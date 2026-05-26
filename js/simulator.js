@@ -37,18 +37,10 @@ const Simulator = {
             this.simId = PhysVis.SimulationManager.createSimulation(spec, { trailLength: 2000 });
 
             PhysVis.SimulationManager.onRenderUpdate(this.simId, (states, _stepCount) => {
-                this.particles = states.map(s => ({
-                    x: s.position.x,
-                    y: s.position.y,
-                    z: s.position.z,
-                    vx: s.velocity.x,
-                    vy: s.velocity.y,
-                    vz: s.velocity.z,
-                    alive: s.alive,
-                    trail: s.trail,
-                    hitPoint: s.hitPoint,
-                    age: this.time
-                }));
+                for (let i = 0; i < states.length; i++) {
+                    states[i].age = this.time;
+                }
+                this.particles = states;
             });
         }
 

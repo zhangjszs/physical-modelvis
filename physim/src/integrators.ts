@@ -9,75 +9,104 @@ export interface Integrator {
 
 export class BorisIntegrator implements Integrator {
     public name = 'boris';
+    // Pre-allocated scratch buffers to avoid per-step Vec3 allocation
+    private _s: Vec3[] = Array.from({ length: 11 }, () => new Vec3());
 
     step(state: ParticleState, field: FieldSource, dt: number): ParticleState {
         const q = state.charge;
         const m = state.mass;
         const qom = q / m;
+        const halfQomDt = qom * dt / 2;
+        const s = this._s;
 
+        // Field evaluations (return clones — unavoidable with current interface)
         const E = field.electricFieldAt(state.position, state.time);
         const B = field.magneticFieldAt(state.position, state.time);
 
-        const v_minus = state.velocity.add(E.multiplyScalar(qom * dt / 2));
+        // s[0] = E * (q/m * dt/2)
+        s[0].copy(E).multiplyScalarInPlace(halfQomDt);
+        // s[1] = v_minus = v + s[0] (half electric kick)
+        s[1].copy(state.velocity).addInPlace(s[0]);
 
-        const t = B.multiplyScalar(qom * dt / 2);
-        const tMagSq = t.lengthSq();
-        const s = t.multiplyScalar(2 / (1 + tMagSq));
+        // s[2] = t = B * (q/m * dt/2)
+        s[2].copy(B).multiplyScalarInPlace(halfQomDt);
+        const tMagSq = s[2].lengthSq();
+        // s[3] = s_vec = t * 2/(1+|t|²)
+        s[3].copy(s[2]).multiplyScalarInPlace(2 / (1 + tMagSq));
 
-        const v_prime = v_minus.add(v_minus.cross(t));
-        const v_plus = v_minus.add(v_prime.cross(s));
+        // s[4] = v_minus × t
+        s[4].copy(s[1]).crossInPlace(s[2]);
+        // s[5] = v_prime = v_minus + (v_minus × t)
+        s[5].copy(s[1]).addInPlace(s[4]);
 
-        const v_new = v_plus.add(E.multiplyScalar(qom * dt / 2));
+        // s[6] = v_prime × s_vec
+        s[6].copy(s[5]).crossInPlace(s[3]);
+        // s[7] = v_plus = v_minus + (v_prime × s_vec)
+        s[7].copy(s[1]).addInPlace(s[6]);
 
-        const pos_new = state.position.add(v_new.multiplyScalar(dt));
+        // s[8] = v_new = v_plus + E*(q/m*dt/2) (second half electric kick)
+        s[8].copy(s[7]).addInPlace(s[0]);
 
-        state.position = pos_new;
-        state.velocity = v_new;
+        // s[9] = v_new * dt
+        s[9].copy(s[8]).multiplyScalarInPlace(dt);
+        // s[10] = pos_new = pos + v_new*dt
+        s[10].copy(state.position).addInPlace(s[9]);
+
+        state.position.copy(s[10]);
+        state.velocity.copy(s[8]);
         state.time += dt;
-        state.trail.push(pos_new.clone());
-        if (state.trail.length > 5000) {
-            state.trail.splice(0, state.trail.length - 5000);
-        }
+        state.trail.push(s[10].clone());
         return state;
     }
 }
 
 export class VelocityVerletIntegrator implements Integrator {
     public name = 'velocity-verlet';
+    private _s: Vec3[] = Array.from({ length: 6 }, () => new Vec3());
 
     step(state: ParticleState, field: FieldSource, dt: number): ParticleState {
         const q = state.charge;
         const m = state.mass;
+        const s = this._s;
 
         const E = field.electricFieldAt(state.position, state.time);
         const B = field.magneticFieldAt(state.position, state.time);
 
-        const F1 = this.lorentzForce(state.velocity, E, B, q);
-        const a1 = F1.multiplyScalar(1 / m);
+        // a1 = lorentzForce(v, E, B, q) / m
+        // F = (E + v × B) * q
+        s[0].copy(state.velocity).crossInPlace(B).addInPlace(E).multiplyScalarInPlace(q / m);
+        // s[0] = a1
 
-        const pos_new = state.position.add(state.velocity.multiplyScalar(dt)).add(a1.multiplyScalar(0.5 * dt * dt));
+        // pos_new = pos + v*dt + a1*0.5*dt²
+        s[1].copy(state.velocity).multiplyScalarInPlace(dt);
+        s[2].copy(s[0]).multiplyScalarInPlace(0.5 * dt * dt);
+        s[3].copy(state.position).addInPlace(s[1]).addInPlace(s[2]);
+        // s[3] = pos_new
 
-        const E2 = field.electricFieldAt(pos_new, state.time + dt);
-        const B2 = field.magneticFieldAt(pos_new, state.time + dt);
+        const E2 = field.electricFieldAt(s[3], state.time + dt);
+        const B2 = field.magneticFieldAt(s[3], state.time + dt);
 
-        const v_half = state.velocity.add(a1.multiplyScalar(dt / 2));
-        const F2 = this.lorentzForce(v_half, E2, B2, q);
-        const a2 = F2.multiplyScalar(1 / m);
+        // v_half = v + a1 * dt/2
+        s[4].copy(state.velocity).addInPlace(s[0].clone().multiplyScalarInPlace(dt / 2));
+        // Wait, s[0] was already used. Let me recompute.
+        // Actually s[0] is a1, we need a1*(dt/2) without modifying s[0]
+        // Use s[5] for a1*(dt/2)
+        s[5].copy(s[0]).multiplyScalarInPlace(dt / 2);
+        s[4].copy(state.velocity).addInPlace(s[5]);
+        // s[4] = v_half
 
-        const v_new = state.velocity.add(a1.add(a2).multiplyScalar(dt / 2));
+        // a2 = lorentzForce(v_half, E2, B2, q) / m
+        s[5].copy(s[4]).crossInPlace(B2).addInPlace(E2).multiplyScalarInPlace(q / m);
+        // s[5] = a2
 
-        state.position = pos_new;
-        state.velocity = v_new;
+        // v_new = v + (a1 + a2) * dt/2
+        s[0].addInPlace(s[5]).multiplyScalarInPlace(dt / 2);
+        state.velocity.addInPlace(s[0]);
+
+        state.position.copy(s[3]);
         state.time += dt;
-        state.trail.push(pos_new.clone());
-        if (state.trail.length > 5000) {
-            state.trail.splice(0, state.trail.length - 5000);
-        }
+        state.trail.push(s[3].clone());
         return state;
-    }
-
-    private lorentzForce(v: Vec3, E: Vec3, B: Vec3, q: number): Vec3 {
-        return E.add(v.cross(B)).multiplyScalar(q);
     }
 }
 
@@ -96,16 +125,16 @@ export class RK4Integrator implements Integrator {
     step(state: ParticleState, field: FieldSource, dt: number): ParticleState {
         const numSubSteps = Math.max(1, Math.ceil(dt / this.maxDt));
         const subDt = dt / numSubSteps;
-        let currentState = state;
 
         for (let i = 0; i < numSubSteps; i++) {
-            currentState = this.rk4Step(currentState, field, subDt);
+            this.rk4Step(state, field, subDt);
         }
 
-        return currentState;
+        state.trail.push(state.position.clone());
+        return state;
     }
 
-    private rk4Step(state: ParticleState, field: FieldSource, dt: number): ParticleState {
+    private rk4Step(state: ParticleState, field: FieldSource, dt: number): void {
         const k1 = this.derivatives(state, field);
         const s2 = this.applyK(state, k1, dt / 2);
         const k2 = this.derivatives(s2, field);
@@ -117,17 +146,9 @@ export class RK4Integrator implements Integrator {
         const dx = k1.dx.add(k2.dx.multiplyScalar(2)).add(k3.dx.multiplyScalar(2)).add(k4.dx).multiplyScalar(dt / 6);
         const dv = k1.dv.add(k2.dv.multiplyScalar(2)).add(k3.dv.multiplyScalar(2)).add(k4.dv).multiplyScalar(dt / 6);
 
-        const pos_new = state.position.add(dx);
-        const v_new = state.velocity.add(dv);
-
-        state.position = pos_new;
-        state.velocity = v_new;
+        state.position = state.position.add(dx);
+        state.velocity = state.velocity.add(dv);
         state.time += dt;
-        state.trail.push(pos_new.clone());
-        if (state.trail.length > 5000) {
-            state.trail.splice(0, state.trail.length - 5000);
-        }
-        return state;
     }
 
     private derivatives(state: ParticleState, field: FieldSource): { dx: Vec3; dv: Vec3 } {

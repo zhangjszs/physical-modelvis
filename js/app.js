@@ -59,7 +59,10 @@ const App = {
         Simulator.reset();
         this.isPlaying = false;
         this.continuousTimer = 0;
-        Renderer3D.clearGroup('particles');
+        // Hide pooled particle meshes instead of destroying
+        if (Renderer3D._particlePool) {
+            Renderer3D._particlePool.forEach(m => { m.visible = false; });
+        }
         Renderer3D.clearGroup('trails');
         Renderer3D.clearGroup('hitPoints');
         Renderer3D.clearGroup('annotations');

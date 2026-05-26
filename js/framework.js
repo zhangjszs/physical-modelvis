@@ -198,15 +198,15 @@ const PhysVis = (function () {
     // ==================== 6. Integrators 积分器（接入 PhysSim）====================
 
     // 缓存 PhysSim 场对象，避免每帧重复创建
-    let _cachedFieldKey = '';
+    let _cachedFieldRef = null;
     let _cachedComposite = null;
     let _borisInstance = null;
 
     function getCachedComposite(fields) {
-        const key = JSON.stringify(fields || []);
-        if (key !== _cachedFieldKey || !_cachedComposite) {
-            _cachedFieldKey = key;
-            const sources = buildPhysSimFields(fields || []);
+        const f = fields || [];
+        if (f !== _cachedFieldRef || !_cachedComposite) {
+            _cachedFieldRef = f;
+            const sources = buildPhysSimFields(f);
             _cachedComposite = sources.length > 0
                 ? new PhysSim.CompositeField(sources)
                 : new PhysSim.CompositeField([]);
@@ -414,17 +414,21 @@ const PhysVis = (function () {
             simulation.step(dt);
             simData.stepCount++;
 
-            // 记录粒子状态用于渲染
+            // 记录粒子状态用于渲染（直接引用，避免每帧 180k 对象分配）
             const states = [];
             for (let i = 0; i < simulation.particles.length; i++) {
                 const p = simulation.getParticle(i);
                 if (p) {
                     states.push({
-                        position: { x: p.position.x, y: p.position.y, z: p.position.z },
-                        velocity: { x: p.velocity.x, y: p.velocity.y, z: p.velocity.z },
+                        x: p.position.x,
+                        y: p.position.y,
+                        z: p.position.z,
+                        vx: p.velocity.x,
+                        vy: p.velocity.y,
+                        vz: p.velocity.z,
                         alive: p.alive,
-                        trail: p.trail.map(t => ({ x: t.x, y: t.y, z: t.z })),
-                        hitPoint: p.hitPoint ? { x: p.hitPoint.x, y: p.hitPoint.y, z: p.hitPoint.z } : null
+                        trail: p.trail,
+                        hitPoint: p.hitPoint
                     });
                 }
             }

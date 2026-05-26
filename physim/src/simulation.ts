@@ -103,7 +103,7 @@ export class Simulation {
             }
 
             if (newState.trail.length > this.config.trailLength) {
-                newState.trail = newState.trail.slice(-this.config.trailLength);
+                newState.trail.splice(0, newState.trail.length - this.config.trailLength);
             }
 
             this.particles[i] = newState;

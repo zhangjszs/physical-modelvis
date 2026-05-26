@@ -56,6 +56,14 @@ export class Vec3 {
         );
     }
 
+    crossInPlace(v: Vec3): Vec3 {
+        const x = this.x, y = this.y, z = this.z;
+        this.x = y * v.z - z * v.y;
+        this.y = z * v.x - x * v.z;
+        this.z = x * v.y - y * v.x;
+        return this;
+    }
+
     length(): number {
         return Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z);
     }

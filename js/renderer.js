@@ -49,15 +49,15 @@ const Renderer3D = {
     clearGroup(name) {
         const g = this.groups[name];
         if (!g) return;
-        while (g.children.length > 0) {
-            const c = g.children[0];
-            g.remove(c);
+        for (let i = g.children.length - 1; i >= 0; i--) {
+            const c = g.children[i];
             if (c.geometry) c.geometry.dispose();
             if (c.material) {
                 if (c.material.map) c.material.map.dispose();
                 c.material.dispose();
             }
         }
+        g.clear();
     },
 
     clearAll() {
@@ -178,33 +178,54 @@ const Renderer3D = {
     },
 
     updateParticles(particles) {
-        this.clearGroup('particles');
-        this.clearGroup('hitPoints');
-
         if (!this._sharedGeoms.particle) {
             this._sharedGeoms.particle = new THREE.SphereGeometry(0.08, 12, 12);
             this._sharedMats.particle = new THREE.MeshPhongMaterial({ color: 0x00ffff, emissive: 0x006666 });
             this._sharedGeoms.hitPoint = new THREE.SphereGeometry(0.06, 10, 10);
             this._sharedMats.hitPoint = new THREE.MeshPhongMaterial({ color: 0xff0080, emissive: 0x880044 });
+            this._particlePool = [];
+            this._hitPool = [];
         }
 
+        // Reuse or create particle meshes
+        let aliveIdx = 0;
         particles.forEach(p => {
             if (p.alive) {
-                const mesh = new THREE.Mesh(this._sharedGeoms.particle, this._sharedMats.particle);
+                let mesh;
+                if (aliveIdx < this._particlePool.length) {
+                    mesh = this._particlePool[aliveIdx];
+                    mesh.visible = true;
+                } else {
+                    mesh = new THREE.Mesh(this._sharedGeoms.particle, this._sharedMats.particle);
+                    this.groups.particles.add(mesh);
+                    this._particlePool.push(mesh);
+                }
                 mesh.position.set(p.x, p.y, p.z || 0);
-                this.groups.particles.add(mesh);
+                aliveIdx++;
             }
             if (p.hitPoint) {
-                const mesh = new THREE.Mesh(this._sharedGeoms.hitPoint, this._sharedMats.hitPoint);
+                let mesh;
+                if (this._hitPool.length > 0) {
+                    mesh = this._hitPool.pop();
+                    mesh.visible = true;
+                } else {
+                    mesh = new THREE.Mesh(this._sharedGeoms.hitPoint, this._sharedMats.hitPoint);
+                    this.groups.hitPoints.add(mesh);
+                }
                 mesh.position.set(p.hitPoint.x, p.hitPoint.y, p.hitPoint.z || 0);
-                this.groups.hitPoints.add(mesh);
             }
         });
+
+        // Hide excess particle meshes
+        for (let i = aliveIdx; i < this._particlePool.length; i++) {
+            this._particlePool[i].visible = false;
+        }
     },
 
     updateTrails(particles) {
+        // Remove excess trail lines
         while (this.groups.trails.children.length > particles.length) {
-            const c = this.groups.trails.children[particles.length];
+            const c = this.groups.trails.children[this.groups.trails.children.length - 1];
             this.groups.trails.remove(c);
             if (c.geometry) c.geometry.dispose();
             if (c.material) c.material.dispose();
@@ -213,33 +234,40 @@ const Renderer3D = {
         particles.forEach((p, i) => {
             if (p.trail.length < 2) return;
             const count = p.trail.length * 3;
-            let posArray;
             const existing = i < this.groups.trails.children.length ? this.groups.trails.children[i] : null;
             const existingAttr = existing?.geometry?.getAttribute('position');
-            if (existingAttr && existingAttr.array.length === count) {
-                posArray = existingAttr.array;
-            } else {
-                posArray = new Float32Array(count);
-            }
-            for (let j = 0; j < p.trail.length; j++) {
-                const pt = p.trail[j];
-                posArray[j * 3] = pt.x;
-                posArray[j * 3 + 1] = pt.y;
-                posArray[j * 3 + 2] = pt.z || 0;
-            }
 
-            if (existing) {
-                const geom = new THREE.BufferGeometry();
-                geom.setAttribute('position', new THREE.Float32BufferAttribute(posArray, 3));
-                if (existing.geometry) existing.geometry.dispose();
-                existing.geometry = geom;
+            if (existingAttr && existingAttr.array.length === count) {
+                // In-place update: same length, just overwrite data
+                const posArray = existingAttr.array;
+                for (let j = 0; j < p.trail.length; j++) {
+                    const pt = p.trail[j];
+                    posArray[j * 3] = pt.x;
+                    posArray[j * 3 + 1] = pt.y;
+                    posArray[j * 3 + 2] = pt.z || 0;
+                }
+                existingAttr.needsUpdate = true;
             } else {
+                // Length changed: create new geometry
+                const posArray = new Float32Array(count);
+                for (let j = 0; j < p.trail.length; j++) {
+                    const pt = p.trail[j];
+                    posArray[j * 3] = pt.x;
+                    posArray[j * 3 + 1] = pt.y;
+                    posArray[j * 3 + 2] = pt.z || 0;
+                }
                 const geom = new THREE.BufferGeometry();
                 geom.setAttribute('position', new THREE.Float32BufferAttribute(posArray, 3));
-                this.groups.trails.add(new THREE.Line(
-                    geom,
-                    new THREE.LineBasicMaterial({ color: 0x00ff88, transparent: true, opacity: 0.7 })
-                ));
+
+                if (existing) {
+                    if (existing.geometry) existing.geometry.dispose();
+                    existing.geometry = geom;
+                } else {
+                    this.groups.trails.add(new THREE.Line(
+                        geom,
+                        new THREE.LineBasicMaterial({ color: 0x00ff88, transparent: true, opacity: 0.7 })
+                    ));
+                }
             }
         });
     },
