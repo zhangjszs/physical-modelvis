@@ -384,13 +384,18 @@ const PhysVis = (function () {
 
             const simulation = new PhysSim.Simulation(compositeField, boundaries, simConfig);
 
-            // 添加粒子
+            // 添加粒子（使用归一化电荷/质量）
+            const Bmag = getTotalB(sceneSpec.fields);
             (sceneSpec.particles || []).forEach(p => {
+                const v = p.speed || Math.sqrt((p.vx||0)**2 + (p.vy||0)**2 + (p.vz||0)**2) || 1;
+                const R = p.radius || 2;
+                const qSign = (p.charge !== undefined ? p.charge : -1) > 0 ? 1 : -1;
+                const norm = getNormalizedChargeMass({ speed: v, radius: R, charge: qSign }, Bmag);
                 simulation.addParticle(
                     new PhysSim.Vec3(p.startX || 0, p.startY || 0, p.startZ || 0),
                     new PhysSim.Vec3(p.vx || 0, p.vy || 0, p.vz || 0),
-                    p.charge !== undefined ? p.charge : -1,
-                    p.mass !== undefined ? p.mass : 1
+                    norm.charge,
+                    norm.mass
                 );
             });
 
