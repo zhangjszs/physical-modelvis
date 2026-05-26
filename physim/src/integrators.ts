@@ -62,42 +62,34 @@ export class BorisIntegrator implements Integrator {
 
 export class VelocityVerletIntegrator implements Integrator {
     public name = 'velocity-verlet';
-    private _s: Vec3[] = Array.from({ length: 6 }, () => new Vec3());
+    private _s: Vec3[] = Array.from({ length: 5 }, () => new Vec3());
 
     step(state: ParticleState, field: FieldSource, dt: number): ParticleState {
         const q = state.charge;
         const m = state.mass;
+        const invM = q / m;
         const s = this._s;
 
         const E = field.electricFieldAt(state.position, state.time);
         const B = field.magneticFieldAt(state.position, state.time);
 
-        // a1 = lorentzForce(v, E, B, q) / m
-        // F = (E + v × B) * q
-        s[0].copy(state.velocity).crossInPlace(B).addInPlace(E).multiplyScalarInPlace(q / m);
-        // s[0] = a1
+        // a1 = (E + v × B) * (q/m)
+        s[0].copy(state.velocity).crossInPlace(B).addInPlace(E).multiplyScalarInPlace(invM);
 
         // pos_new = pos + v*dt + a1*0.5*dt²
         s[1].copy(state.velocity).multiplyScalarInPlace(dt);
         s[2].copy(s[0]).multiplyScalarInPlace(0.5 * dt * dt);
         s[3].copy(state.position).addInPlace(s[1]).addInPlace(s[2]);
-        // s[3] = pos_new
 
         const E2 = field.electricFieldAt(s[3], state.time + dt);
         const B2 = field.magneticFieldAt(s[3], state.time + dt);
 
         // v_half = v + a1 * dt/2
-        s[4].copy(state.velocity).addInPlace(s[0].clone().multiplyScalarInPlace(dt / 2));
-        // Wait, s[0] was already used. Let me recompute.
-        // Actually s[0] is a1, we need a1*(dt/2) without modifying s[0]
-        // Use s[5] for a1*(dt/2)
         s[5].copy(s[0]).multiplyScalarInPlace(dt / 2);
         s[4].copy(state.velocity).addInPlace(s[5]);
-        // s[4] = v_half
 
-        // a2 = lorentzForce(v_half, E2, B2, q) / m
-        s[5].copy(s[4]).crossInPlace(B2).addInPlace(E2).multiplyScalarInPlace(q / m);
-        // s[5] = a2
+        // a2 = (E2 + v_half × B2) * (q/m)
+        s[5].copy(s[4]).crossInPlace(B2).addInPlace(E2).multiplyScalarInPlace(invM);
 
         // v_new = v + (a1 + a2) * dt/2
         s[0].addInPlace(s[5]).multiplyScalarInPlace(dt / 2);
