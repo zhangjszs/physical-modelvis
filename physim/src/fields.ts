@@ -7,6 +7,15 @@ export interface FieldSource {
     isInsideRegion(position: Vec3): boolean;
 }
 
+function isInsideBoxRegion(position: Vec3, region: { min: Vec3; max: Vec3 } | null): boolean {
+    if (!region) return true;
+    return (
+        position.x >= region.min.x && position.x <= region.max.x &&
+        position.y >= region.min.y && position.y <= region.max.y &&
+        position.z >= region.min.z && position.z <= region.max.z
+    );
+}
+
 export class UniformElectricField implements FieldSource {
     public type = 'uniform_electric';
     public field: Vec3;
@@ -27,12 +36,7 @@ export class UniformElectricField implements FieldSource {
     }
 
     isInsideRegion(position: Vec3): boolean {
-        if (!this.region) return true;
-        return (
-            position.x >= this.region.min.x && position.x <= this.region.max.x &&
-            position.y >= this.region.min.y && position.y <= this.region.max.y &&
-            position.z >= this.region.min.z && position.z <= this.region.max.z
-        );
+        return isInsideBoxRegion(position, this.region);
     }
 }
 
@@ -56,12 +60,7 @@ export class UniformMagneticField implements FieldSource {
     }
 
     isInsideRegion(position: Vec3): boolean {
-        if (!this.region) return true;
-        return (
-            position.x >= this.region.min.x && position.x <= this.region.max.x &&
-            position.y >= this.region.min.y && position.y <= this.region.max.y &&
-            position.z >= this.region.min.z && position.z <= this.region.max.z
-        );
+        return isInsideBoxRegion(position, this.region);
     }
 }
 
@@ -134,17 +133,17 @@ export class CompositeField implements FieldSource {
     }
 
     electricFieldAt(position: Vec3, time: number): Vec3 {
-        let E = Vec3.ZERO.clone();
+        const E = new Vec3();
         for (const source of this.sources) {
-            E = E.add(source.electricFieldAt(position, time));
+            E.addInPlace(source.electricFieldAt(position, time));
         }
         return E;
     }
 
     magneticFieldAt(position: Vec3, time: number): Vec3 {
-        let B = Vec3.ZERO.clone();
+        const B = new Vec3();
         for (const source of this.sources) {
-            B = B.add(source.magneticFieldAt(position, time));
+            B.addInPlace(source.magneticFieldAt(position, time));
         }
         return B;
     }

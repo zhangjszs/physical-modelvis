@@ -4,7 +4,13 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "cd physim && npm test"
+    "test": "cd physim && npm test && npx tsx test/physics.test.ts && node test/bridge.test.js",
+    "test:core": "cd physim && npm test",
+    "build": "cd physim && npm run build",
+    "lint": "eslint physim/src/ js/ templates/ problems/",
+    "lint:fix": "eslint --fix physim/src/ js/ templates/ problems/",
+    "format": "prettier --write \"physim/src/**/*.ts\" \"js/**/*.js\" \"templates/**/*.js\" \"problems/**/*.js\"",
+    "format:check": "prettier --check \"physim/src/**/*.ts\" \"js/**/*.js\" \"templates/**/*.js\" \"problems/**/*.js\""
   },
   "keywords": [],
   "author": "",
@@ -12,5 +18,12 @@
   "type": "commonjs",
   "dependencies": {
     "physim": "file:physim"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@typescript-eslint/eslint-plugin": "^8.60.0",
+    "@typescript-eslint/parser": "^8.60.0",
+    "eslint": "^10.4.0",
+    "prettier": "^3.8.3"
   }
 }

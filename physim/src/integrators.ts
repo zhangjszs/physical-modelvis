@@ -31,24 +31,14 @@ export class BorisIntegrator implements Integrator {
 
         const pos_new = state.position.add(v_new.multiplyScalar(dt));
 
-        const newState: ParticleState = {
-            position: pos_new,
-            velocity: v_new,
-            charge: state.charge,
-            mass: state.mass,
-            time: state.time + dt,
-            alive: state.alive,
-            trail: [...state.trail, pos_new.clone()],
-            hitPoint: state.hitPoint,
-            hitTime: state.hitTime,
-            metadata: { ...state.metadata }
-        };
-
-        if (newState.trail.length > 5000) {
-            newState.trail = newState.trail.slice(-5000);
+        state.position = pos_new;
+        state.velocity = v_new;
+        state.time += dt;
+        state.trail.push(pos_new.clone());
+        if (state.trail.length > 5000) {
+            state.trail.splice(0, state.trail.length - 5000);
         }
-
-        return newState;
+        return state;
     }
 }
 
@@ -76,24 +66,14 @@ export class VelocityVerletIntegrator implements Integrator {
 
         const v_new = state.velocity.add(a1.add(a2).multiplyScalar(dt / 2));
 
-        const newState: ParticleState = {
-            position: pos_new,
-            velocity: v_new,
-            charge: state.charge,
-            mass: state.mass,
-            time: state.time + dt,
-            alive: state.alive,
-            trail: [...state.trail, pos_new.clone()],
-            hitPoint: state.hitPoint,
-            hitTime: state.hitTime,
-            metadata: { ...state.metadata }
-        };
-
-        if (newState.trail.length > 5000) {
-            newState.trail = newState.trail.slice(-5000);
+        state.position = pos_new;
+        state.velocity = v_new;
+        state.time += dt;
+        state.trail.push(pos_new.clone());
+        if (state.trail.length > 5000) {
+            state.trail.splice(0, state.trail.length - 5000);
         }
-
-        return newState;
+        return state;
     }
 
     private lorentzForce(v: Vec3, E: Vec3, B: Vec3, q: number): Vec3 {
@@ -140,24 +120,14 @@ export class RK4Integrator implements Integrator {
         const pos_new = state.position.add(dx);
         const v_new = state.velocity.add(dv);
 
-        const newState: ParticleState = {
-            position: pos_new,
-            velocity: v_new,
-            charge: state.charge,
-            mass: state.mass,
-            time: state.time + dt,
-            alive: state.alive,
-            trail: [...state.trail, pos_new.clone()],
-            hitPoint: state.hitPoint,
-            hitTime: state.hitTime,
-            metadata: { ...state.metadata }
-        };
-
-        if (newState.trail.length > 5000) {
-            newState.trail = newState.trail.slice(-5000);
+        state.position = pos_new;
+        state.velocity = v_new;
+        state.time += dt;
+        state.trail.push(pos_new.clone());
+        if (state.trail.length > 5000) {
+            state.trail.splice(0, state.trail.length - 5000);
         }
-
-        return newState;
+        return state;
     }
 
     private derivatives(state: ParticleState, field: FieldSource): { dx: Vec3; dv: Vec3 } {
@@ -170,10 +140,16 @@ export class RK4Integrator implements Integrator {
 
     private applyK(state: ParticleState, k: { dx: Vec3; dv: Vec3 }, dt: number): ParticleState {
         return {
-            ...state,
             position: state.position.add(k.dx.multiplyScalar(dt)),
             velocity: state.velocity.add(k.dv.multiplyScalar(dt)),
-            time: state.time + dt
+            charge: state.charge,
+            mass: state.mass,
+            time: state.time + dt,
+            alive: state.alive,
+            trail: state.trail,
+            hitPoint: state.hitPoint,
+            hitTime: state.hitTime,
+            metadata: state.metadata
         };
     }
 }

@@ -1,5 +1,5 @@
 import { Vec3 } from './vec3';
-import { ParticleState, createParticleState, kineticEnergy, cyclotronRadius, cyclotronPeriod } from './particle';
+import { ParticleState, createParticleState, kineticEnergy, momentum } from './particle';
 import { FieldSource, CompositeField } from './fields';
 import { Integrator, BorisIntegrator, VelocityVerletIntegrator, RK4Integrator } from './integrators';
 import { Boundary, BoundaryResult } from './boundaries';
@@ -10,6 +10,11 @@ export interface SimulationConfig {
     maxSteps: number;
     trailLength: number;
     rk4Tolerance?: number;
+}
+
+export interface SimulationCallbacks {
+    onHit?: (particle: ParticleState, hitPoint: Vec3, boundary: Boundary) => void;
+    onStep?: (simulation: Simulation) => void;
 }
 
 export const DEFAULT_CONFIG: SimulationConfig = {
@@ -28,11 +33,13 @@ export class Simulation {
     public particles: ParticleState[];
     public time: number;
     public stepCount: number;
+    private callbacks: SimulationCallbacks;
 
     constructor(
         field: FieldSource | CompositeField,
         boundaries: Boundary[] = [],
-        config: Partial<SimulationConfig> = {}
+        config: Partial<SimulationConfig> = {},
+        callbacks: SimulationCallbacks = {}
     ) {
         this.field = field instanceof CompositeField ? field : new CompositeField([field]);
         this.boundaries = boundaries;
@@ -41,6 +48,7 @@ export class Simulation {
         this.particles = [];
         this.time = 0;
         this.stepCount = 0;
+        this.callbacks = callbacks;
     }
 
     private createIntegrator(type: string): Integrator {
@@ -89,6 +97,9 @@ export class Simulation {
                 newState.alive = false;
                 newState.hitPoint = boundaryResult.hitPoint;
                 newState.hitTime = newState.time;
+                if (this.callbacks.onHit && boundaryResult.hitPoint) {
+                    this.callbacks.onHit(newState, boundaryResult.hitPoint, this.boundaries[0]);
+                }
             }
 
             if (newState.trail.length > this.config.trailLength) {
@@ -100,6 +111,10 @@ export class Simulation {
 
         this.time += effectiveDt;
         this.stepCount++;
+
+        if (this.callbacks.onStep) {
+            this.callbacks.onStep(this);
+        }
     }
 
     stepN(n: number, dt?: number): void {
@@ -147,6 +162,26 @@ export class Simulation {
             if (relativeError > tolerance) return false;
         }
         return true;
+    }
+
+    setCallbacks(callbacks: SimulationCallbacks): void {
+        this.callbacks = callbacks;
+    }
+
+    getTotalKineticEnergy(): number {
+        let total = 0;
+        for (const p of this.particles) {
+            if (p.alive) total += kineticEnergy(p);
+        }
+        return total;
+    }
+
+    getTotalMomentum(): Vec3 {
+        const total = new Vec3();
+        for (const p of this.particles) {
+            if (p.alive) total.addInPlace(momentum(p));
+        }
+        return total;
     }
 }
 

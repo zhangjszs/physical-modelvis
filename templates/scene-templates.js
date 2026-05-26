@@ -43,7 +43,6 @@ const SceneTemplates = (function () {
     // ==================== 模板2: 速度选择器 ====================
     const velocitySelector = function (config) {
         const given = config.given || {};
-        const d = given.d || 1.0;
         const E = given.electricField || 1.0;
         const B = given.magneticField || 1.0;
         const v0 = given.initialVelocity || 1.0;

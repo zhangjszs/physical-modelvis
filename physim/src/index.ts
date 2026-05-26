@@ -34,6 +34,7 @@ export {
 export {
     Simulation,
     SimulationConfig,
+    SimulationCallbacks,
     DEFAULT_CONFIG,
     runSimulation
 } from './simulation';

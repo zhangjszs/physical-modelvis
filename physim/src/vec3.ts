@@ -92,8 +92,8 @@ export class Vec3 {
         return this;
     }
 
-    static ZERO: Vec3 = new Vec3(0, 0, 0);
-    static UNIT_X: Vec3 = new Vec3(1, 0, 0);
-    static UNIT_Y: Vec3 = new Vec3(0, 1, 0);
-    static UNIT_Z: Vec3 = new Vec3(0, 0, 1);
+    static readonly ZERO: Readonly<Vec3> = Object.freeze(new Vec3(0, 0, 0));
+    static readonly UNIT_X: Readonly<Vec3> = Object.freeze(new Vec3(1, 0, 0));
+    static readonly UNIT_Y: Readonly<Vec3> = Object.freeze(new Vec3(0, 1, 0));
+    static readonly UNIT_Z: Readonly<Vec3> = Object.freeze(new Vec3(0, 0, 1));
 }

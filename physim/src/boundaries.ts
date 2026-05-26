@@ -94,7 +94,7 @@ export class CylinderBoundary implements Boundary {
 
     check(state: ParticleState): BoundaryResult {
         const r = Math.sqrt(state.position.x * state.position.x + state.position.y * state.position.y);
-        if (r >= this.radius || Math.abs(state.position.z) > this.halfHeight) {
+        if (r > this.radius || Math.abs(state.position.z) > this.halfHeight) {
             return {
                 hit: true,
                 hitPoint: state.position.clone(),
