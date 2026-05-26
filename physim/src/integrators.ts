@@ -62,7 +62,7 @@ export class BorisIntegrator implements Integrator {
 
 export class VelocityVerletIntegrator implements Integrator {
     public name = 'velocity-verlet';
-    private _s: Vec3[] = Array.from({ length: 5 }, () => new Vec3());
+    private _s: Vec3[] = Array.from({ length: 6 }, () => new Vec3());
 
     step(state: ParticleState, field: FieldSource, dt: number): ParticleState {
         const q = state.charge;
