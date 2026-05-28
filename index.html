@@ -17,6 +17,7 @@
         <div class="nav-logo">PhysVis</div>
         <div class="nav-sep"></div>
         <div id="tabs" style="display:flex;gap:6px;flex:1;"></div>
+        <button class="nav-btn" id="btn-ocr" style="background:rgba(255,200,0,0.15);border-color:rgba(255,200,0,0.3);color:#ffc800;">📷 拍照解题</button>
         <button class="nav-btn" id="btn-reveal">答案</button>
     </div>
 
@@ -24,6 +25,60 @@
     <div class="panel control-panel" id="control-panel"></div>
     <div class="panel info-panel" id="info-panel"></div>
     <div class="panel deriv-panel" id="deriv-panel"></div>
+    <!-- OCR Upload Modal -->
+    <div class="ocr-overlay" id="ocr-overlay">
+        <div class="ocr-modal">
+            <button class="ocr-close" id="ocr-close" aria-label="关闭">&times;</button>
+            <div class="ocr-modal-title">AI 拍照解题</div>
+
+            <div class="ocr-dropzone" id="ocr-dropzone">
+                <div class="ocr-dropzone-icon">📷</div>
+                <div class="ocr-dropzone-text">拖拽图片到此处，或 <span>点击选择</span></div>
+                <input type="file" id="ocr-file-input" accept="image/jpeg,image/png,image/gif">
+            </div>
+
+            <div class="ocr-preview" id="ocr-preview">
+                <img id="ocr-preview-img" src="" alt="预览">
+                <div class="ocr-preview-info" id="ocr-preview-info"></div>
+                <button class="ocr-preview-remove" id="ocr-preview-remove">移除图片</button>
+            </div>
+
+            <div class="ocr-config">
+                <details>
+                    <summary>API 设置</summary>
+                    <div class="ocr-config-row">
+                        <label>API Key</label>
+                        <input type="password" id="ocr-api-key" placeholder="sk-...">
+                    </div>
+                    <div class="ocr-config-row">
+                        <label>Base URL（留空使用 OpenAI 官方）</label>
+                        <input type="text" id="ocr-base-url" placeholder="https://api.openai.com/v1">
+                    </div>
+                    <div class="ocr-config-row">
+                        <label>模型名称</label>
+                        <input type="text" id="ocr-model" placeholder="gpt-4o">
+                    </div>
+                </details>
+            </div>
+
+            <div class="ocr-actions">
+                <button class="ocr-btn ocr-btn-primary" id="ocr-recognize" disabled>识别题目</button>
+            </div>
+
+            <div class="ocr-status" id="ocr-status"></div>
+
+            <div class="ocr-result" id="ocr-result">
+                <div class="ocr-result-title" id="ocr-result-title"></div>
+                <div class="ocr-result-desc" id="ocr-result-desc"></div>
+                <div class="ocr-result-options" id="ocr-result-options"></div>
+                <div class="ocr-result-answer" id="ocr-result-answer"></div>
+                <div style="margin-top:14px;">
+                    <button class="ocr-btn ocr-btn-primary" id="ocr-load-sim" style="width:100%;">开始仿真</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="panel legend-panel">
         <div class="sec-title" style="color:#7b2fff;border-bottom-color:rgba(123,47,255,0.2);">图例</div>
         <div class="legend-item"><div class="lc electron"></div>带电粒子</div>
@@ -53,6 +108,8 @@
     <script src="js/renderer.js"></script>
     <script src="js/simulator.js"></script>
     <script src="js/ui-manager.js"></script>
+    <script src="js/ocr-service.js"></script>
+    <script src="js/ocr-ui.js"></script>
     <script src="js/app.js"></script>
 
     <script>

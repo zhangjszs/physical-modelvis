@@ -1,9 +1,10 @@
 # Dependencies
 node_modules/
-physim/node_modules/
+**/node_modules/
 
 # Build outputs
-physim/dist/
+dist/
+**/dist/
 
 # IDE
 .vscode/
@@ -23,9 +24,19 @@ npm-debug.log*
 # Environment
 .env
 .env.local
+.env.*
 
 # OMC state
 .omc/
 
 # Windows reserved
 nul
+
+# Test coverage
+coverage/
+
+# Vite
+.vite/
+
+# TypeScript
+*.tsbuildinfo

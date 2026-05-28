@@ -19,6 +19,7 @@ const App = {
             UIManager.buildTabs(PhysVis.ProblemRegistry.list());
             UIManager.buildControlPanel();
             UIManager.buildInfoPanel();
+            OCRUI.init();
             this.bindEvents();
 
             const first = PhysVis.ProblemRegistry.list()[0];
