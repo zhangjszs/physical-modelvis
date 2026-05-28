@@ -103,5 +103,4 @@ export interface SimulationState {
   setSelectedGraph: (graph: GraphType) => void;
   setErrorMessage: (msg: string | null) => void;
   toggleTheme: () => void;
-  runSimulation: () => void;
 }

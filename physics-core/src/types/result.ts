@@ -89,7 +89,10 @@ export interface SimulationResult {
     readonly x_t?: ChartSeries;
     readonly v_t?: ChartSeries;
     readonly y_t?: ChartSeries;
+    readonly a_t?: ChartSeries;
     readonly energy_t?: ChartSeries;
+    readonly p_t?: ChartSeries;
+    readonly ke_t?: ChartSeries;
     readonly force_diagram?: ForceDiagram;
   };
   readonly diagnostics: {

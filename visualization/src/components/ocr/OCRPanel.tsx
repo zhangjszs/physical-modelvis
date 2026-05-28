@@ -113,6 +113,12 @@ export function OCRPanel() {
       'projectile': 'projectile',
       'electric-field': 'electric-field',
       'magnetic-field': 'magnetic-field',
+      'collision': 'collision',
+      'spring': 'spring',
+      'inclined-plane': 'inclined-plane',
+      'em-combined': 'em-combined',
+      'uniform-accelerated': 'uniform-accelerated',
+      'free-fall': 'free-fall',
     };
     const sceneId = result.sceneTemplate ? sceneMap[result.sceneTemplate] ?? 'projectile' : 'projectile';
     setScene(sceneId);

@@ -69,7 +69,7 @@ export class UniformMagneticModel extends PhysicsModelBase {
     // 向心力方向: F = qv × B, 对于 v=(vx,vy), B=(0,0,Bz)
     // Fx = q*vy*Bz, Fy = -q*vx*Bz
     // 圆心在速度方向的左侧（正电荷，Bz>0）或右侧
-    const sign = Math.sign(q * Bz); // +1: 逆时针, -1: 顺时针
+    const sign = q * Bz > 0 ? 1 : -1; // +1: 逆时针, -1: 顺时针
     // 速度的垂直方向（指向圆心）
     const perpX = -sign * v0.y / v0Mag;
     const perpY = sign * v0.x / v0Mag;

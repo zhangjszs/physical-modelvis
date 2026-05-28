@@ -103,7 +103,7 @@ export class UniformAcceleratedModel extends PhysicsModelBase {
     // 图表数据
     const x_t: ChartSeries = {
       xLabel: '时间', yLabel: '位移', xUnit: 's', yUnit: 'm',
-      points: trajectory.map(p => ({ x: p.t, y: Vec2.magnitude(Vec2.sub(p.position, x0)) })),
+      points: trajectory.map(p => ({ x: p.t, y: Vec2.sub(p.position, x0).y })),
     };
     const v_t: ChartSeries = {
       xLabel: '时间', yLabel: '速度', xUnit: 's', yUnit: 'm/s',
@@ -149,7 +149,6 @@ export class UniformAcceleratedModel extends PhysicsModelBase {
 
   /** 从问题配置中提取加速度 */
   private extractAcceleration(problem: PhysicsProblem): { x: number; y: number } {
-    // 如果有斜面约束，计算斜面方向加速度
     if (problem.constraints?.inclinedPlane) {
       const angle = problem.constraints.inclinedPlane.angle * Math.PI / 180;
       const mu = problem.constraints.inclinedPlane.frictionCoefficient ?? 0;
@@ -158,21 +157,11 @@ export class UniformAcceleratedModel extends PhysicsModelBase {
       return { x: a * Math.cos(angle), y: -a * Math.sin(angle) };
     }
 
-    // 如果有重力且无地面约束，自由落体
     if (problem.environment?.gravity?.enabled !== false) {
       const g = problem.environment?.gravity?.value ?? 9.8;
-      // 检查是否有竖直初速度，如果有则视为自由落体/竖直上抛
-      const v0 = problem.bodies[0].velocity;
-      if (v0.x === 0 && v0.y !== 0) {
-        return { x: 0, y: -g };
-      }
-      // 如果初速度为零，也可能是自由落体
-      if (v0.x === 0 && v0.y === 0) {
-        return { x: 0, y: -g };
-      }
+      return { x: 0, y: -g };
     }
 
-    // 默认: 零加速度 (退化为匀速)
     return { x: 0, y: 0 };
   }
 }

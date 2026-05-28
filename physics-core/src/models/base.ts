@@ -1,7 +1,7 @@
 import type { PhysicsProblem, ModelType } from '../types/problem.js';
 import type { SimulationResult } from '../types/result.js';
 import type { ParameterSpec, ValidationResult } from '../types/common.js';
-import { UnsupportedModelError, ParameterOutOfRangeError } from '../errors/index.js';
+import { UnsupportedModelError, ParameterOutOfRangeError, PhysicsError } from '../errors/index.js';
 
 /** 物理模型抽象基类 */
 export abstract class PhysicsModelBase {
@@ -67,7 +67,18 @@ export abstract class PhysicsModelBase {
     const result = this.validate(problem);
     if (!result.valid) {
       const first = result.errors[0];
-      throw new ParameterOutOfRangeError(first.param ?? 'unknown', 0, [0, 0]);
+      switch (first.code) {
+        case 'MODEL_MISMATCH':
+          throw new UnsupportedModelError(problem.model, first.message);
+        case 'NO_BODIES':
+          throw new PhysicsError('NO_BODIES', first.message, { param: first.param });
+        case 'INVALID_MASS':
+          throw new ParameterOutOfRangeError(first.param ?? 'mass', 0, [0, Infinity]);
+        case 'INVALID_DURATION':
+          throw new ParameterOutOfRangeError(first.param ?? 'duration', 0, [0, Infinity]);
+        default:
+          throw new PhysicsError(first.code, first.message, { param: first.param });
+      }
     }
   }
 }

@@ -91,25 +91,69 @@ const UIManager = {
 
     buildProblemPanel(config) {
         const panel = document.getElementById('problem-panel');
-        panel.innerHTML = `
-            <h1>${config.title}</h1>
-            <div class="source">${config.source}</div>
-            <div class="problem-text">${config.description}</div>
-            ${(config.formulas || []).map(f => '<div class="formula">' + f + '</div>').join('')}
-            <div style="margin-top:12px;font-size:13px;font-weight:600;color:#00d4ff;">下列说法正确的是：</div>
-            <div class="options-list">
-                ${(config.options || []).map(o => `
-                    <div class="option-item" data-option="${o.letter}">
-                        <div class="opt-letter">${o.letter}</div>
-                        <div class="opt-text">${o.text}</div>
-                    </div>
-                `).join('')}
-            </div>
-            <div class="answer-box" id="answer-box">
-                <div style="font-size:14px;font-weight:600;color:#00ff88;margin-bottom:8px;">正确答案：${config.answer.correct.join('、')}</div>
-                <div>${config.answer.explanation}</div>
-            </div>
-        `;
+        panel.innerHTML = '';
+
+        const h1 = document.createElement('h1');
+        h1.textContent = config.title;
+        panel.appendChild(h1);
+
+        const source = document.createElement('div');
+        source.className = 'source';
+        source.textContent = config.source;
+        panel.appendChild(source);
+
+        const desc = document.createElement('div');
+        desc.className = 'problem-text';
+        desc.textContent = config.description;
+        panel.appendChild(desc);
+
+        (config.formulas || []).forEach(f => {
+            const div = document.createElement('div');
+            div.className = 'formula';
+            div.textContent = f;
+            panel.appendChild(div);
+        });
+
+        const prompt = document.createElement('div');
+        prompt.style.cssText = 'margin-top:12px;font-size:13px;font-weight:600;color:#00d4ff;';
+        prompt.textContent = '下列说法正确的是：';
+        panel.appendChild(prompt);
+
+        const optList = document.createElement('div');
+        optList.className = 'options-list';
+        (config.options || []).forEach(o => {
+            const item = document.createElement('div');
+            item.className = 'option-item';
+            item.dataset.option = o.letter;
+
+            const letter = document.createElement('div');
+            letter.className = 'opt-letter';
+            letter.textContent = o.letter;
+            item.appendChild(letter);
+
+            const text = document.createElement('div');
+            text.className = 'opt-text';
+            text.textContent = o.text;
+            item.appendChild(text);
+
+            optList.appendChild(item);
+        });
+        panel.appendChild(optList);
+
+        const ansBox = document.createElement('div');
+        ansBox.className = 'answer-box';
+        ansBox.id = 'answer-box';
+
+        const ansTitle = document.createElement('div');
+        ansTitle.style.cssText = 'font-size:14px;font-weight:600;color:#00ff88;margin-bottom:8px;';
+        ansTitle.textContent = '正确答案：' + config.answer.correct.join('、');
+        ansBox.appendChild(ansTitle);
+
+        const ansExp = document.createElement('div');
+        ansExp.textContent = config.answer.explanation;
+        ansBox.appendChild(ansExp);
+
+        panel.appendChild(ansBox);
         panel.querySelectorAll('.option-item').forEach(item => {
             item.addEventListener('click', () => {
                 panel.querySelectorAll('.option-item').forEach(i => i.classList.remove('selected'));

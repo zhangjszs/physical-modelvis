@@ -10,25 +10,20 @@ import { SpringOscillatorModel } from '../models/spring-oscillator.js';
 import { EMCombinedFieldModel } from '../models/em-combined-field.js';
 import { CollisionModel, InelasticCollisionModel } from '../models/collision.js';
 
-// 自动注册所有内置模型
-let registered = false;
-function ensureRegistered() {
-  if (registered) return;
-  registerModel(new UniformLinearModel());
-  registerModel(new UniformAcceleratedModel());
-  registerModel(new UniformElectricModel());
-  registerModel(new UniformMagneticModel());
-  registerModel(new InclinedPlaneModel());
-  registerModel(new SpringOscillatorModel());
-  registerModel(new EMCombinedFieldModel());
-  registerModel(new CollisionModel());
-  registerModel(new InelasticCollisionModel());
-  registered = true;
-}
+registerModel(new UniformLinearModel());
+registerModel(new UniformAcceleratedModel());
+registerModel(new UniformElectricModel());
+registerModel(new UniformMagneticModel());
+registerModel(new InclinedPlaneModel());
+registerModel(new SpringOscillatorModel());
+registerModel(new EMCombinedFieldModel());
+registerModel(new CollisionModel());
+registerModel(new InelasticCollisionModel());
 
-/** 根据问题的 model 字段自动路由到正确的模型求解 */
 export function solveProblem(problem: PhysicsProblem): SimulationResult {
-  ensureRegistered();
   const model = getModel(problem.model);
-  return model.solve(problem);
+  const t0 = Date.now();
+  const result = model.solve(problem);
+  const computationTime = Date.now() - t0;
+  return { ...result, meta: { ...result.meta, computationTime } };
 }

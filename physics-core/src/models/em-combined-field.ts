@@ -184,26 +184,20 @@ export class EMCombinedFieldModel extends PhysicsModelBase {
 
       if (i === sampleCount) break;
 
-      // Step 1: half electric kick -> v-
       let vMinusX = vx + qm * E.x * halfDt;
       let vMinusY = vy + qm * E.y * halfDt;
 
-      // Step 2-3: rotation via Boris (B along z)
-      // v' = v- + (v- x t), where v x t = (vy*tz, -vx*tz)
       const vPrimeX = vMinusX + vMinusY * tz;
       const vPrimeY = vMinusY - vMinusX * tz;
 
-      // v+ = v- + (v' x s)
       const vPlusX = vMinusX + vPrimeY * sz;
       const vPlusY = vMinusY - vPrimeX * sz;
 
-      // Step 4: half electric kick -> v_{n+1}
       vx = vPlusX + qm * E.x * halfDt;
       vy = vPlusY + qm * E.y * halfDt;
 
-      // Update position
-      px += vx * dt;
-      py += vy * dt;
+      px += 0.5 * (trajectory[i]!.velocity.x + vx) * dt;
+      py += 0.5 * (trajectory[i]!.velocity.y + vy) * dt;
     }
 
     const finalPos = trajectory[trajectory.length - 1]!.position;
