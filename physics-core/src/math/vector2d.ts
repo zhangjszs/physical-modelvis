@@ -40,7 +40,7 @@ export const Vec2 = {
   /** 单位向量 (零向量返回零向量) */
   normalize(v: Vector2D): Vector2D {
     const mag = Vec2.magnitude(v);
-    if (mag === 0) return Vec2.zero();
+    if (mag === 0) throw new Error('Cannot normalize a zero vector');
     return { x: v.x / mag, y: v.y / mag };
   },
 

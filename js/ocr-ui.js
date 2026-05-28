@@ -21,7 +21,6 @@ const OCRUI = (function () {
 
         // 加载保存的配置
         const cfg = OCRService.getConfig();
-        if (cfg.apiKey) document.getElementById('ocr-api-key').value = cfg.apiKey;
         if (cfg.baseUrl) document.getElementById('ocr-base-url').value = cfg.baseUrl;
         if (cfg.model) document.getElementById('ocr-model').value = cfg.model;
 
@@ -124,16 +123,29 @@ const OCRUI = (function () {
         (data.options || []).forEach(o => {
             const div = document.createElement('div');
             div.className = 'ocr-result-opt';
-            div.innerHTML = '<strong>' + o.letter + '.</strong> ' + (o.text || '');
+            const strong = document.createElement('strong');
+            strong.textContent = o.letter + '.';
+            div.appendChild(strong);
+            div.appendChild(document.createTextNode(' ' + (o.text || '')));
             optBox.appendChild(div);
         });
 
         const ansBox = document.getElementById('ocr-result-answer');
+        ansBox.innerHTML = '';
         if (data.answer && data.answer.correct) {
-            ansBox.innerHTML = '<strong>正确答案：</strong>' + data.answer.correct.join('、') +
-                (data.answer.explanation ? '<br>' + data.answer.explanation : '');
+            const strong = document.createElement('strong');
+            strong.textContent = '正确答案：';
+            ansBox.appendChild(strong);
+            ansBox.appendChild(document.createTextNode(data.answer.correct.join('、')));
+            if (data.answer.explanation) {
+                ansBox.appendChild(document.createElement('br'));
+                ansBox.appendChild(document.createTextNode(data.answer.explanation));
+            }
         } else {
-            ansBox.innerHTML = '<strong>答案：</strong>未能识别';
+            const strong = document.createElement('strong');
+            strong.textContent = '答案：';
+            ansBox.appendChild(strong);
+            ansBox.appendChild(document.createTextNode('未能识别'));
         }
 
         document.getElementById('ocr-result').classList.add('visible');
@@ -157,7 +169,7 @@ const OCRUI = (function () {
         }
 
         // 保存配置
-        OCRService.saveConfig({ apiKey, baseUrl, model });
+        OCRService.saveConfig({ baseUrl, model });
 
         const btnOCR = document.getElementById('ocr-recognize');
         btnOCR.disabled = true;

@@ -42,9 +42,8 @@ describe('Vec2', () => {
     expect(Vec2.magnitude(n)).toBeCloseTo(1);
   });
 
-  it('normalize zero vector returns zero', () => {
-    const n = Vec2.normalize(Vec2.zero());
-    expect(n).toEqual({ x: 0, y: 0 });
+  it('normalize zero vector throws error', () => {
+    expect(() => Vec2.normalize(Vec2.zero())).toThrow('Cannot normalize a zero vector');
   });
 
   it('distance', () => {

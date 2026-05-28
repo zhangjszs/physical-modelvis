@@ -4,10 +4,14 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "cd physim && npm test && npx tsx test/physics.test.ts && node test/bridge.test.js",
-    "test:core": "cd physim && npm test",
-    "build": "cd physim && npm run build",
-    "lint": "eslint physim/src/ js/ templates/ problems/",
+    "test": "cd physics-core && npm test && cd ../visualization && npm test && cd ../physim && npm test && cd .. && npx tsx test/physics.test.ts && node test/bridge.test.js",
+    "test:core": "cd physics-core && npm test",
+    "test:viz": "cd visualization && npm test",
+    "test:legacy": "cd physim && npm test && cd .. && npx tsx test/physics.test.ts && node test/bridge.test.js",
+    "build": "cd physics-core && npm run build && cd ../visualization && npm run build && cd ../physim && npm run build",
+    "build:core": "cd physics-core && npm run build",
+    "build:viz": "cd visualization && npm run build",
+    "lint": "eslint physim/src/ js/ templates/ problems/ && cd physics-core && npm run lint && cd ../visualization && npm run lint",
     "lint:fix": "eslint --fix physim/src/ js/ templates/ problems/",
     "format": "prettier --write \"physim/src/**/*.ts\" \"js/**/*.js\" \"templates/**/*.js\" \"problems/**/*.js\"",
     "format:check": "prettier --check \"physim/src/**/*.ts\" \"js/**/*.js\" \"templates/**/*.js\" \"problems/**/*.js\""

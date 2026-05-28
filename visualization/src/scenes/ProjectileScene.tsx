@@ -49,7 +49,7 @@ export function ProjectileScene() {
     <div className="scene-container">
       {/* 左侧参数 */}
       <div className="sidebar left-sidebar">
-        <ParameterPanel />
+        <ParameterPanel onRunSimulation={runSimulation} />
         <LayerToggle />
       </div>
 

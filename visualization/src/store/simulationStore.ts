@@ -89,8 +89,4 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   setErrorMessage: (msg) => set({ errorMessage: msg }),
 
   toggleTheme: () => set((s) => ({ theme: s.theme === 'dark' ? 'light' : 'dark' })),
-
-  runSimulation: () => {
-    // 由场景组件实现具体调用
-  },
 }));

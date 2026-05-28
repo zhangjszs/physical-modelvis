@@ -3,8 +3,12 @@ import { useSimulationStore } from '../../store/simulationStore';
 import { SCENES } from '../../scenes/sceneRegistry';
 import type { SceneParameter } from '../../types/visualization';
 
-export function ParameterPanel() {
-  const { currentScene, parameters, setParameter, runSimulation } = useSimulationStore();
+interface ParameterPanelProps {
+  onRunSimulation: () => void;
+}
+
+export function ParameterPanel({ onRunSimulation }: ParameterPanelProps) {
+  const { currentScene, parameters, setParameter } = useSimulationStore();
   const scene = SCENES.find(s => s.id === currentScene);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -21,7 +25,7 @@ export function ParameterPanel() {
     setParameter(param.name, clamped);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      runSimulation();
+      onRunSimulation();
     }, 300);
   };
 
@@ -65,7 +69,7 @@ export function ParameterPanel() {
       ))}
       <div className="param-actions">
         <button onClick={handleReset} className="btn btn-secondary">重置参数</button>
-        <button onClick={runSimulation} className="btn btn-primary">运行仿真</button>
+        <button onClick={onRunSimulation} className="btn btn-primary">运行仿真</button>
       </div>
     </div>
   );

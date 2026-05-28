@@ -66,10 +66,16 @@ export interface EnvironmentConfig {
   readonly airResistance?: { enabled: boolean; coefficient?: number };
 }
 
+/** 碰撞约束 */
+export interface CollisionConstraint {
+  readonly restitution?: number;
+}
+
 /** 约束配置 */
 export interface ConstraintConfig {
   readonly inclinedPlane?: InclinedPlaneConstraint;
   readonly spring?: SpringConstraint;
+  readonly collision?: CollisionConstraint;
 }
 
 /** 时间配置 */

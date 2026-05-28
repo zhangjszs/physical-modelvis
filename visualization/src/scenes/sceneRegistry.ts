@@ -202,6 +202,7 @@ export const SCENES: SceneConfig[] = [
           { id: 'body1', mass: { value: m1, unit: 'kg' }, position: { x: -2, y: 0 }, velocity: { x: v1, y: 0 } },
           { id: 'body2', mass: { value: m2, unit: 'kg' }, position: { x: 2, y: 0 }, velocity: { x: v2, y: 0 } },
         ],
+        constraints: e < 0.99 ? { collision: { restitution: e } } : {},
         environment: {},
         timeConfig: { duration, dt: 0.001, sampleCount: 1000 },
       };

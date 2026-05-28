@@ -1,52 +1,72 @@
-# PhysVis - 高中电磁学可视化仿真系统
+# PhysVis - 高中物理教学可视化平台
 
 ## Project Overview
-Interactive electromagnetic physics simulation for Chinese high school education.
-Three-layer architecture: PhysSim engine (TypeScript) → PhysVis bridge (JS) → Three.js renderer.
+面向高中物理教学的交互式可视化仿真系统。
+双层架构：physics-core 引擎 (TypeScript, 零依赖) → React + Canvas 2D 可视化前端。
+
+旧版架构 (physim + Three.js) 仍保留在仓库中，但已不再主动开发。
 
 ## Build & Test
 ```bash
-# Build physics engine
-cd physim && npm run build
+# 安装依赖
+cd physics-core && npm install && npm run build && cd ..
+cd visualization && npm install && cd ..
 
-# Run all tests
-cd physim && npm test          # Core physics tests (9 tests)
-npx tsx test/physics.test.ts   # Root regression tests (15 tests)
-node test/bridge.test.js       # Bridge layer tests (11 tests)
+# 运行所有测试
+npm test
+
+# 运行新版核心测试
+cd physics-core && npm test
+
+# 运行可视化前端测试
+cd visualization && npm test
+
+# 运行旧版测试
+npm run test:legacy
 
 # Lint
-npx eslint physim/src/ js/ templates/ problems/
+npm run lint
 
 # Format
-npx prettier --write "physim/src/**/*.ts" "js/**/*.js" "templates/**/*.js" "problems/**/*.js"
+npm run format
+
+# 启动开发服务器
+cd visualization && npm run dev
 ```
 
 ## Architecture
 ```
-index.html          — Monolithic SPA (CSS + HTML + inline JS: Renderer3D, Simulator, UIManager, App)
-physim/src/         — Zero-dependency TypeScript physics engine
-  vec3.ts           — 3D vector math (immutable ops + in-place mutations)
-  particle.ts       — Particle state interface + utility functions
-  fields.ts         — Field sources (UniformE, UniformB, PointCharge, Dipole, Composite)
-  integrators.ts    — Boris, Velocity-Verlet, RK4 integrators
-  boundaries.ts     — Collision boundaries (plates, box, cylinder)
-  simulation.ts     — Simulation orchestrator + runSimulation()
-js/framework.js     — Bridge layer: PhysVis global namespace (SceneSpec, ProblemConfig, SceneBuilder, SimulationManager, Integrators, ProblemRegistry)
-templates/          — 6 scene templates (parallel plates+magnetic, velocity selector, mass spectrometer, cyclotron, parallel plates electric, dipole)
-problems/           — 3 exam problem definitions
+physics-core/          — 零依赖 TypeScript 物理引擎 (当前主力)
+  src/models/          — 9 个物理模型 (匀速/匀变速/电场/磁场/碰撞/弹簧/斜面/电磁复合场)
+  src/math/            — Vec2D 向量运算
+  src/types/           — 类型定义 (PhysicsProblem, SimulationResult)
+  src/units/           — 单位换算和物理常数
+  src/solver/          — 求解器路由 (自动注册模型)
+  tests/               — 单元测试
+
+visualization/         — React 可视化前端 (当前主力)
+  src/components/      — UI 组件 (Canvas, 图表, 控制面板, OCR)
+  src/scenes/          — 9 个场景配置 + buildProblem
+  src/rendering/       — Canvas 渲染器
+  src/adapters/        — physics-core 适配器
+  src/store/           — Zustand 状态管理
+  server/              — OCR 后端代理 (Express + Anthropic API)
+
+physim/                — 旧版物理引擎 (Boris 积分器, 3D)
+js/                    — 旧版桥接层 (PhysVis 全局命名空间)
+templates/             — 旧版场景模板
+problems/              — 旧版题目配置
 ```
 
 ## Key Patterns
-- Physics engine uses normalized units (q=±1, m=R*B/v) for numerical stability
-- Boris integrator is primary (energy conservation <0.1% error)
-- Integrators mutate ParticleState in-place for performance (trail array push/splice)
-- Vec3 static constants (ZERO, UNIT_X, etc.) are frozen — always .clone() before modifying
-- Bridge layer caches PhysSim field objects via JSON.stringify key
-- Renderer shares geometry/material instances for particles via _sharedGeoms/_sharedMats
+- physics-core 使用解析解 (除电磁复合场用 Boris 数值积分)
+- 物理模型继承 PhysicsModelBase，通过 registerModel 注册到全局注册表
+- PhysicsProblem 是引擎输入，SimulationResult 是引擎输出
+- Zustand 管理前端状态，场景组件负责构建 PhysicsProblem 并调用 solveProblem
+- OCR 代理在后端调用 Anthropic API，避免前端暴露 API Key
 
 ## Conventions
-- TypeScript strict mode for physim/
-- Vanilla JS (CommonJS/IIFE) for bridge/templates/problems
-- Three.js 0.128.0 via CDN
+- TypeScript strict mode
+- React 18 + TypeScript for visualization
 - Chinese language for UI text and documentation
-- No frontend framework — pure DOM manipulation
+- Vitest for testing

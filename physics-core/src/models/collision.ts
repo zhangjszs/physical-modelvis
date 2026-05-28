@@ -1,4 +1,4 @@
-import type { PhysicsProblem } from '../types/problem.js';
+import type { PhysicsProblem, ModelType } from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ConservedQuantity, ExplanationStep, FormulaUsage } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
@@ -6,10 +6,10 @@ import { Vec2 } from '../math/vector2d.js';
 
 /** 一维碰撞模型 (弹性 / 非弹性) */
 export class CollisionModel extends PhysicsModelBase {
-  readonly name = '一维碰撞';
+  readonly name: string = '一维碰撞';
   readonly version = '1.0.0';
-  readonly description = '两个物体在一维方向上发生碰撞（弹性或非弹性）';
-  readonly modelType = 'collision-elastic' as const;
+  readonly description: string = '两个物体在一维方向上发生碰撞（弹性或非弹性）';
+  readonly modelType: ModelType = 'collision-elastic' as ModelType;
   readonly assumptions = [
     '碰撞为一维 (沿 x 轴)',
     '碰撞瞬间完成，不考虑碰撞持续时间',
@@ -35,10 +35,9 @@ export class CollisionModel extends PhysicsModelBase {
 
   private getCoefficientOfRestitution(problem: PhysicsProblem): number {
     if (!this.isInelastic(problem)) return 1;
-    // 从 renderHints 或 constraints 中提取恢复系数，默认完全非弹性 e=0
-    const hint = problem.renderHints?.find(h => h.bodyId === '__restitution__');
-    if (hint && hint.renderRadius !== undefined) return hint.renderRadius;
-    return 0; // 完全非弹性
+    const restitution = problem.constraints?.collision?.restitution;
+    if (restitution !== undefined) return restitution;
+    return 0;
   }
 
   solve(problem: PhysicsProblem): SimulationResult {
@@ -60,16 +59,20 @@ export class CollisionModel extends PhysicsModelBase {
     const isInelastic = this.isInelastic(problem);
     const e = this.getCoefficientOfRestitution(problem);
 
-    // 碰撞后速度 (1D 弹性/非弹性公式)
     const v1f = ((m1 - e * m2) * v1i + (1 + e) * m2 * v2i) / (m1 + m2);
     const v2f = ((m2 - e * m1) * v2i + (1 + e) * m1 * v1i) / (m1 + m2);
 
-    // 碰撞时刻: 两物体相遇
     const relativeSpeed = v1i - v2i;
-    const collisionTime = relativeSpeed !== 0 ? (x2i - x1i) / relativeSpeed : Infinity;
-    const collisionOccurs = collisionTime > 0 && collisionTime <= duration;
+    let collisionTime: number;
+    if (Math.abs(x2i - x1i) < 1e-12) {
+      collisionTime = 0;
+    } else if (Math.abs(relativeSpeed) < 1e-12) {
+      collisionTime = Infinity;
+    } else {
+      collisionTime = (x2i - x1i) / relativeSpeed;
+    }
+    const collisionOccurs = collisionTime >= 0 && collisionTime <= duration;
 
-    // 生成两条轨迹
     const traj1: TrajectoryPoint[] = [];
     const traj2: TrajectoryPoint[] = [];
 
@@ -108,7 +111,6 @@ export class CollisionModel extends PhysicsModelBase {
       });
     }
 
-    // 关键帧
     const keyframes: Keyframe[] = [];
     keyframes.push({
       label: '初始状态',
@@ -125,7 +127,7 @@ export class CollisionModel extends PhysicsModelBase {
         t: collisionTime,
         position: { x: xCollide, y: 0 },
         velocity: { x: v1i, y: 0 },
-        description: `两物体在 t=${collisionTime.toFixed(4)}s, x=${xCollide.toFixed(3)}m 处碰撞`,
+        description: `碰撞前: v₁=${v1i.toFixed(4)}m/s, v₂=${v2i.toFixed(4)}m/s; 碰撞后: v₁'=${v1f.toFixed(4)}m/s, v₂'=${v2f.toFixed(4)}m/s`,
       });
     }
 
@@ -139,7 +141,6 @@ export class CollisionModel extends PhysicsModelBase {
       description: `物体1: x=${finalPos1.x.toFixed(3)}m, v=${(collisionOccurs ? v1f : v1i).toFixed(3)}m/s; 物体2: x=${finalPos2.x.toFixed(3)}m, v=${(collisionOccurs ? v2f : v2i).toFixed(3)}m/s`,
     });
 
-    // 图表
     const v_t: ChartSeries = {
       xLabel: '时间', yLabel: '速度', xUnit: 's', yUnit: 'm/s',
       points: [
@@ -161,7 +162,6 @@ export class CollisionModel extends PhysicsModelBase {
       })),
     };
 
-    // 动量守恒诊断
     const pInit = m1 * v1i + m2 * v2i;
     const pFinal = m1 * (collisionOccurs ? v1f : v1i) + m2 * (collisionOccurs ? v2f : v2i);
     const keInit = 0.5 * m1 * v1i * v1i + 0.5 * m2 * v2i * v2i;
@@ -179,7 +179,7 @@ export class CollisionModel extends PhysicsModelBase {
       },
     ];
 
-    if (!isInelastic || e === 1) {
+    if (e === 1) {
       conservedQuantities.push({
         name: '总动能',
         law: '动能守恒 (弹性碰撞)',
@@ -191,7 +191,6 @@ export class CollisionModel extends PhysicsModelBase {
       });
     }
 
-    // 解释步骤
     const collisionType = isInelastic ? `非弹性碰撞 (e=${e})` : '弹性碰撞';
     const steps: ExplanationStep[] = [
       { order: 1, description: '碰撞类型', formula: collisionType },
@@ -236,10 +235,9 @@ export class CollisionModel extends PhysicsModelBase {
   }
 }
 
-/** 非弹性碰撞模型 — 复用 CollisionModel 逻辑，modelType 不同 */
 export class InelasticCollisionModel extends CollisionModel {
-  readonly name = '一维非弹性碰撞';
-  readonly description = '两个物体在一维方向上发生非弹性碰撞，恢复系数 e ∈ [0,1)';
+  override readonly name = '一维非弹性碰撞';
+  override readonly description = '两个物体在一维方向上发生非弹性碰撞，恢复系数 e ∈ [0,1)';
   override readonly modelType = 'collision-inelastic' as const;
   override readonly assumptions = [
     '碰撞为一维 (沿 x 轴)',

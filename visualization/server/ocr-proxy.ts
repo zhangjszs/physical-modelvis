@@ -22,6 +22,18 @@ const hits = new Map<string, number[]>();
 const RATE_LIMIT = 10;
 const RATE_WINDOW = 60_000;
 
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, timestamps] of hits) {
+    const filtered = timestamps.filter(t => now - t < RATE_WINDOW);
+    if (filtered.length === 0) {
+      hits.delete(ip);
+    } else {
+      hits.set(ip, filtered);
+    }
+  }
+}, 5 * 60_000);
+
 function rateLimit(req: Request, res: Response, next: NextFunction): void {
   const ip = req.ip ?? 'unknown';
   const now = Date.now();

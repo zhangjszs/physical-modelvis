@@ -52,7 +52,7 @@ export class InclinedPlaneModel extends PhysicsModelBase {
 
     // 加速度: a = g(sinθ - μcosθ) 沿斜面方向
     const a = g * (sinTheta - mu * cosTheta);
-    const isStationary = a < 1e-10;
+    const isStationary = sinTheta <= mu * cosTheta + 1e-10;
 
     // 沿斜面方向的单位向量 (向下为正)
     const inclineDir = { x: cosTheta, y: -sinTheta };
