@@ -13,7 +13,7 @@ import { LayerToggle } from '../components/layout/LayerToggle';
 
 export function ProjectileScene() {
   const {
-    currentScene, parameters, setSimulationResult, setErrorMessage, setParameter,
+    currentScene, parameters, sceneLoadVersion, setSimulationResult, setErrorMessage, ensureSceneParameters,
   } = useSimulationStore();
 
   const scene = SCENES.find(s => s.id === currentScene);
@@ -22,10 +22,8 @@ export function ProjectileScene() {
   useEffect(() => {
     if (!scene) return;
     const defaults = getDefaultParams(currentScene);
-    for (const [k, v] of Object.entries(defaults)) {
-      setParameter(k, v);
-    }
-  }, [currentScene]);
+    ensureSceneParameters(currentScene, defaults);
+  }, [currentScene, ensureSceneParameters]);
 
   // 运行仿真
   const runSimulation = useCallback(() => {
@@ -43,7 +41,7 @@ export function ProjectileScene() {
   // 首次加载自动运行
   useEffect(() => {
     runSimulation();
-  }, [currentScene]);
+  }, [currentScene, sceneLoadVersion]);
 
   return (
     <div className="scene-container">

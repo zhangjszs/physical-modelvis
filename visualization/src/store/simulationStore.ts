@@ -16,6 +16,8 @@ const DEFAULT_LAYERS: VisibleLayers = {
 export const useSimulationStore = create<SimulationState>((set, get) => ({
   currentScene: 'projectile',
   parameters: {},
+  parametersSceneId: null,
+  sceneLoadVersion: 0,
   simulationResult: null,
   currentTime: 0,
   currentFrameIndex: 0,
@@ -27,7 +29,42 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   theme: 'dark',
 
   setScene: (sceneId) => {
-    set({ currentScene: sceneId, isPlaying: false, currentTime: 0, currentFrameIndex: 0, simulationResult: null, errorMessage: null });
+    set((s) => ({
+      currentScene: sceneId,
+      parameters: {},
+      parametersSceneId: null,
+      sceneLoadVersion: s.sceneLoadVersion + 1,
+      isPlaying: false,
+      currentTime: 0,
+      currentFrameIndex: 0,
+      simulationResult: null,
+      errorMessage: null,
+    }));
+  },
+
+  setSceneWithParameters: (sceneId, parameters) => {
+    set((s) => ({
+      currentScene: sceneId,
+      parameters: { ...parameters },
+      parametersSceneId: sceneId,
+      sceneLoadVersion: s.sceneLoadVersion + 1,
+      isPlaying: false,
+      currentTime: 0,
+      currentFrameIndex: 0,
+      simulationResult: null,
+      errorMessage: null,
+    }));
+  },
+
+  ensureSceneParameters: (sceneId, defaults) => {
+    set((s) => {
+      if (s.currentScene !== sceneId || s.parametersSceneId === sceneId) return s;
+      return {
+        ...s,
+        parameters: { ...defaults },
+        parametersSceneId: sceneId,
+      };
+    });
   },
 
   setParameter: (name, value) => {

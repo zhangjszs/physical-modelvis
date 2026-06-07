@@ -273,6 +273,89 @@ body { font-family: 'Segoe UI', 'Microsoft YaHei', system-ui, sans-serif; }
   background: rgba(34,197,94,0.06); border: 1px solid rgba(34,197,94,0.2);
 }
 
+/* ========== Problem Builder Modal ========== */
+.analysis-open-btn {
+  background: rgba(34,197,94,0.12);
+  border-color: rgba(34,197,94,0.32);
+  color: var(--ok);
+}
+.problem-overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(0,0,0,0.6);
+  display: flex; align-items: center; justify-content: center;
+}
+.problem-modal {
+  position: relative; width: min(720px, calc(100vw - 32px)); max-height: 86vh;
+  overflow-y: auto; background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 12px; padding: 22px; box-shadow: 0 16px 48px rgba(0,0,0,0.4);
+}
+.problem-close {
+  position: absolute; top: 12px; right: 16px; background: none; border: none;
+  color: var(--text3); font-size: 20px; cursor: pointer;
+}
+.problem-close:hover { color: var(--err); }
+.problem-title {
+  font-size: 16px; font-weight: 700; color: var(--accent);
+  margin-bottom: 14px; text-align: center;
+}
+.problem-textarea {
+  width: 100%; min-height: 116px; resize: vertical;
+  padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px;
+  background: var(--bg); color: var(--text); font-size: 13px; line-height: 1.6;
+  font-family: inherit;
+}
+.problem-textarea:focus { outline: none; border-color: var(--accent); }
+.problem-actions { display: flex; gap: 8px; justify-content: flex-end; margin: 12px 0; }
+.analysis-status {
+  padding: 8px 10px; border-radius: 6px; font-size: 12px;
+  color: var(--ok); background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.2);
+}
+.analysis-result { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
+.analysis-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 10px 12px; border-radius: 8px; background: rgba(59,130,246,0.08);
+  border: 1px solid rgba(59,130,246,0.18);
+}
+.analysis-scene { font-size: 15px; font-weight: 700; color: var(--text); }
+.analysis-model { font-size: 11px; color: var(--text3); margin-top: 2px; font-family: monospace; }
+.analysis-confidence {
+  padding: 4px 8px; border-radius: 999px; font-size: 11px; border: 1px solid transparent;
+}
+.analysis-confidence.high { color: var(--ok); background: rgba(34,197,94,0.08); border-color: rgba(34,197,94,0.24); }
+.analysis-confidence.medium { color: var(--warn); background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.24); }
+.analysis-confidence.low { color: var(--err); background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.24); }
+.analysis-block {
+  padding: 10px 12px; border-radius: 8px; background: rgba(0,0,0,0.12);
+  border: 1px solid rgba(255,255,255,0.05);
+}
+.app.light .analysis-block { background: rgba(0,0,0,0.03); border-color: rgba(0,0,0,0.06); }
+.analysis-block.warning {
+  background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.2);
+}
+.analysis-block-title {
+  font-size: 11px; font-weight: 700; color: var(--accent);
+  margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;
+}
+.analysis-chip-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.analysis-chip {
+  padding: 5px 8px; border-radius: 999px; font-size: 11px;
+  color: var(--text); background: var(--bg); border: 1px solid var(--border);
+}
+.analysis-param-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 6px;
+}
+.analysis-param {
+  display: flex; justify-content: space-between; gap: 10px;
+  padding: 6px 8px; border-radius: 6px; background: var(--bg); font-size: 12px;
+}
+.analysis-param span { color: var(--text2); font-family: monospace; }
+.analysis-param strong { color: var(--ok); font-family: monospace; font-weight: 700; }
+.analysis-list { display: flex; flex-direction: column; gap: 5px; font-size: 12px; color: var(--text2); line-height: 1.5; }
+.analysis-assumptions {
+  padding: 10px 12px; border-radius: 8px; border: 1px dashed var(--border);
+}
+.analysis-assumptions summary { cursor: pointer; font-size: 12px; color: var(--text2); margin-bottom: 8px; }
+
 /* ========== Sidebar Toggle (Mobile) ========== */
 .sidebar-toggle {
   display: none;

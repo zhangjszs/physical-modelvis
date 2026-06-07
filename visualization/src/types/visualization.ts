@@ -78,6 +78,8 @@ export type Theme = 'light' | 'dark';
 export interface SimulationState {
   currentScene: string;
   parameters: Record<string, number>;
+  parametersSceneId: string | null;
+  sceneLoadVersion: number;
   simulationResult: SimulationResult | null;
   currentTime: number;
   currentFrameIndex: number;
@@ -90,6 +92,8 @@ export interface SimulationState {
 
   // Actions
   setScene: (sceneId: string) => void;
+  setSceneWithParameters: (sceneId: string, parameters: Record<string, number>) => void;
+  ensureSceneParameters: (sceneId: string, defaults: Record<string, number>) => void;
   setParameter: (name: string, value: number) => void;
   setSimulationResult: (result: SimulationResult) => void;
   setCurrentTime: (t: number) => void;
