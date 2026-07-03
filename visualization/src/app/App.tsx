@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { useSimulationStore } from '../store/simulationStore';
 import { SceneSelector } from '../components/layout/SceneSelector';
-import { OCRPanel } from '../components/ocr/OCRPanel';
-import { ProblemBuilderPanel } from '../components/problem/ProblemBuilderPanel';
 import { ProjectileScene } from '../scenes/ProjectileScene';
 
 const SCENE_MAP: Record<string, () => JSX.Element> = {
@@ -31,8 +29,6 @@ export function App() {
           <SceneSelector />
         </div>
         <div className="top-bar-right">
-          <ProblemBuilderPanel />
-          <OCRPanel />
           <button className="btn btn-sm" onClick={toggleTheme}>
             {theme === 'dark' ? '☀ 浅色' : '🌙 深色'}
           </button>

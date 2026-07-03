@@ -1,4 +1,5 @@
 import type { SimulationResult, PhysicsProblem, ModelType } from 'physics-core';
+import type { PhotogateMeasurement } from '../utils/photogate';
 
 // ========== 场景参数 ==========
 
@@ -89,6 +90,8 @@ export interface SimulationState {
   selectedGraph: GraphType;
   errorMessage: string | null;
   theme: Theme;
+  /** 实验特化数据（气垫导轨场景为光电门测量结果） */
+  experimentData: PhotogateMeasurement[] | null;
 
   // Actions
   setScene: (sceneId: string) => void;
@@ -96,6 +99,7 @@ export interface SimulationState {
   ensureSceneParameters: (sceneId: string, defaults: Record<string, number>) => void;
   setParameter: (name: string, value: number) => void;
   setSimulationResult: (result: SimulationResult) => void;
+  setExperimentData: (data: PhotogateMeasurement[] | null) => void;
   setCurrentTime: (t: number) => void;
   play: () => void;
   pause: () => void;

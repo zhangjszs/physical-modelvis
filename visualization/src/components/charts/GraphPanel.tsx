@@ -52,7 +52,7 @@ export function GraphPanel() {
         ))}
       </div>
       <div className="graph-container">
-        <ResponsiveContainer width="100%" height={240}>
+        <ResponsiveContainer width="100%" aspect={2.5}>
           <LineChart data={data} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
             <XAxis

@@ -1,20 +1,72 @@
+import { useState } from 'react';
 import { useSimulationStore } from '../../store/simulationStore';
-import { SCENES } from '../../scenes/sceneRegistry';
+
+/** 场景分类定义 */
+const SCENE_CATEGORIES = [
+  {
+    label: '力学',
+    scenes: [
+      { id: 'projectile', name: '平抛/斜抛' },
+      { id: 'free-fall', name: '自由落体' },
+      { id: 'uniform-accelerated', name: '匀变速直线' },
+      { id: 'collision', name: '碰撞' },
+      { id: 'spring', name: '弹簧振子' },
+      { id: 'inclined-plane', name: '斜面运动' },
+      { id: 'air-track', name: '气垫导轨' },
+    ],
+  },
+  {
+    label: '电磁学',
+    scenes: [
+      { id: 'electric-field', name: '匀强电场' },
+      { id: 'magnetic-field', name: '匀强磁场' },
+      { id: 'em-combined', name: '电磁复合场' },
+    ],
+  },
+];
 
 export function SceneSelector() {
   const { currentScene, setScene } = useSimulationStore();
+  const [openCategory, setOpenCategory] = useState<string | null>(null);
+
+  // 找到当前选中场景所在的分类
+  const activeCategory = SCENE_CATEGORIES.find(cat =>
+    cat.scenes.some(s => s.id === currentScene),
+  );
 
   return (
     <div className="scene-selector">
-      {SCENES.map(scene => (
-        <button
-          key={scene.id}
-          className={`scene-btn ${currentScene === scene.id ? 'active' : ''}`}
-          onClick={() => setScene(scene.id)}
-        >
-          {scene.name}
-        </button>
-      ))}
+      {SCENE_CATEGORIES.map(cat => {
+        const isActive = activeCategory?.label === cat.label;
+        const isOpen = openCategory === cat.label;
+        const activeScene = cat.scenes.find(s => s.id === currentScene);
+
+        return (
+          <div key={cat.label} className="scene-category">
+            <button
+              className={`scene-cat-btn ${isActive ? 'active' : ''}`}
+              onClick={() => setOpenCategory(isOpen ? null : cat.label)}
+            >
+              {isActive && activeScene ? activeScene.name : cat.label}
+              <span className="scene-cat-arrow">{isOpen ? '▴' : '▾'}</span>
+            </button>
+            {isOpen && (
+              <div className="scene-dropdown">
+                <div className="scene-dropdown-label">{cat.label}</div>
+                {cat.scenes.map(scene => (
+                  <button
+                    key={scene.id}
+                    className={`scene-dropdown-item ${currentScene === scene.id ? 'active' : ''}`}
+                    onClick={() => { setScene(scene.id); setOpenCategory(null); }}
+                  >
+                    {scene.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

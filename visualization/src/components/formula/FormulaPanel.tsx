@@ -148,6 +148,21 @@ const FORMULA_MAP: Record<string, FormulaDef> = {
       '运动轨迹一般为摆线（旋轮线）',
     ],
   },
+  'air-track': {
+    title: '气垫导轨测速度',
+    formulas: [
+      { name: '平均速度', formula: 'v̄ = Δx / Δt', variables: 'Δx: 挡光片宽度, Δt: 挡光时间' },
+      { name: '瞬时速度（近似）', formula: 'v ≈ Δx / Δt', variables: '当 Δt 足够小时', condition: '极限思想' },
+      { name: '挡光时间', formula: 'Δt = Δx / v', variables: '用于反推速度' },
+      { name: '匀速判据', formula: 'v₁ ≈ v₂', variables: 'v₁,v₂ 为两光电门测得的速度', condition: '|v₁−v₂|/v̄ < 1%' },
+    ],
+    tips: [
+      '挡光片越窄（Δt 越小），平均速度越接近瞬时速度',
+      '气垫导轨通过气孔喷气形成气垫，几乎消除摩擦，滑块可视为匀速运动',
+      '调平导轨的判据：滑块经过两光电门时速度相等',
+      '数字毫秒计精度通常为 1 ms，挡光时间通常为毫秒量级',
+    ],
+  },
 };
 
 const DEFAULT_FORMULA: FormulaDef = {
@@ -171,13 +186,13 @@ export function FormulaPanel() {
     <div className="panel-section formula-panel">
       <div className="panel-title">公式说明</div>
 
-      {/* physics-core 解释 */}
-      {summary && (
+      {/* physics-core 解释（air-track 场景隐藏，避免与实验专用公式重复） */}
+      {summary && currentScene !== 'air-track' && (
         <div className="formula-summary">{summary}</div>
       )}
 
-      {/* physics-core 推导步骤 */}
-      {engineSteps.length > 0 && (
+      {/* physics-core 推导步骤（air-track 场景隐藏，使用实验专用公式替代） */}
+      {engineSteps.length > 0 && currentScene !== 'air-track' && (
         <div className="formula-steps">
           <div className="formula-subtitle">推导过程</div>
           {engineSteps
@@ -196,8 +211,8 @@ export function FormulaPanel() {
         </div>
       )}
 
-      {/* physics-core 公式 */}
-      {engineFormulas.length > 0 && (
+      {/* physics-core 公式（air-track 场景隐藏，使用实验专用公式替代） */}
+      {engineFormulas.length > 0 && currentScene !== 'air-track' && (
         <div className="formula-list">
           <div className="formula-subtitle">核心公式</div>
           {engineFormulas.map((f, i) => (
@@ -215,7 +230,7 @@ export function FormulaPanel() {
       )}
 
       {/* 内置公式回退 */}
-      {engineFormulas.length === 0 && engineSteps.length === 0 && (
+      {(engineFormulas.length === 0 && engineSteps.length === 0 || currentScene === 'air-track') && (
         <>
           <div className="formula-list">
             <div className="formula-subtitle">{fallback.title}</div>

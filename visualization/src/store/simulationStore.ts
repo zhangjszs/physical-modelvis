@@ -27,6 +27,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   selectedGraph: 'y_t',
   errorMessage: null,
   theme: 'dark',
+  experimentData: null,
 
   setScene: (sceneId) => {
     set((s) => ({
@@ -39,6 +40,9 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
       currentFrameIndex: 0,
       simulationResult: null,
       errorMessage: null,
+      experimentData: null,
+      // 气垫导轨是 1D 水平运动，默认显示 x-t 图
+      selectedGraph: sceneId === 'air-track' ? 'x_t' : s.selectedGraph,
     }));
   },
 
@@ -53,6 +57,8 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
       currentFrameIndex: 0,
       simulationResult: null,
       errorMessage: null,
+      experimentData: null,
+      selectedGraph: sceneId === 'air-track' ? 'x_t' : s.selectedGraph,
     }));
   },
 
@@ -72,7 +78,11 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   },
 
   setSimulationResult: (result) => {
-    set({ simulationResult: result, currentTime: 0, currentFrameIndex: 0, errorMessage: null });
+    set({ simulationResult: result, currentTime: 0, currentFrameIndex: 0, errorMessage: null, experimentData: null });
+  },
+
+  setExperimentData: (data) => {
+    set({ experimentData: data });
   },
 
   setCurrentTime: (t) => {
