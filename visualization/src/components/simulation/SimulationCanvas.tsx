@@ -75,11 +75,30 @@ function drawElectricField(
   ctx.font = 'bold 13px sans-serif';
   ctx.textAlign = 'right';
   const lx = width - 12, ly = 24;
-  const tm = ctx.measureText('E ↑');
+  const eLabel = 'E';
+  const tm = ctx.measureText(eLabel);
+  const arrowW = 18;
   ctx.fillStyle = isDark ? 'rgba(15,23,42,0.7)' : 'rgba(255,255,255,0.8)';
-  ctx.fillRect(lx - tm.width - 6, ly - 12, tm.width + 10, 18);
+  ctx.fillRect(lx - tm.width - arrowW - 6, ly - 12, tm.width + arrowW + 10, 18);
   ctx.fillStyle = `rgb(${baseColor[0]},${baseColor[1]},${baseColor[2]})`;
-  ctx.fillText('E ↑', lx, ly);
+  ctx.fillText(eLabel, lx - arrowW, ly);
+  {
+    const ax = lx - arrowW + tm.width + 4, ay = ly - 9;
+    ctx.strokeStyle = `rgb(${baseColor[0]},${baseColor[1]},${baseColor[2]})`;
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(ax + 5, ay + 12);
+    ctx.lineTo(ax + 5, ay);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(ax + 5, ay);
+    ctx.lineTo(ax + 1, ay + 5);
+    ctx.lineTo(ax + 9, ay + 5);
+    ctx.closePath();
+    ctx.fillStyle = `rgb(${baseColor[0]},${baseColor[1]},${baseColor[2]})`;
+    ctx.fill();
+  }
 }
 
 /** 绘制匀强磁场符号（⊗ 画成圆圈+叉号，更精致） */
@@ -120,7 +139,7 @@ function drawMagneticField(
   ctx.textAlign = 'right';
   ctx.textBaseline = 'top';
   ctx.fillStyle = lineColor;
-  ctx.fillText('B ⊗ (垂直纸面向里)', width - 12, 12);
+  ctx.fillText('B (垂直纸面向里)', width - 12, 12);
   ctx.textBaseline = 'alphabetic';
 }
 
@@ -196,19 +215,19 @@ function drawCollisionScene(
   ctx.fillStyle = labelColor;
   ctx.font = 'bold 12px sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText(`m\u2081=${m1}kg`, width * 0.25, cy + size1 / 2 + 18);
+  ctx.fillText(`m1=${m1}kg`, width * 0.25, cy + size1 / 2 + 18);
   ctx.fillStyle = subColor;
   ctx.font = '11px sans-serif';
-  ctx.fillText(`v\u2081=${v1}m/s`, width * 0.25, cy + size1 / 2 + 33);
+  ctx.fillText(`v1=${v1}m/s`, width * 0.25, cy + size1 / 2 + 33);
 
   draw3DBox(width * 0.7, cy, size2, '#ef4444');
   ctx.fillStyle = labelColor;
   ctx.font = 'bold 12px sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText(`m\u2082=${m2}kg`, width * 0.7, cy + size2 / 2 + 18);
+  ctx.fillText(`m2=${m2}kg`, width * 0.7, cy + size2 / 2 + 18);
   ctx.fillStyle = subColor;
   ctx.font = '11px sans-serif';
-  ctx.fillText(`v\u2082=${v2}m/s`, width * 0.7, cy + size2 / 2 + 33);
+  ctx.fillText(`v2=${v2}m/s`, width * 0.7, cy + size2 / 2 + 33);
 
   if (v1 !== 0) {
     drawArrow2(width * 0.25 + size1 / 2 + 5, cy, width * 0.25 + size1 / 2 + 5 + v1 * 4, cy, '#3b82f6');
@@ -510,7 +529,24 @@ function drawEMCombinedField(
   ctx.font = 'bold 13px sans-serif';
   ctx.textAlign = 'left';
   ctx.fillStyle = `rgb(${eColor[0]},${eColor[1]},${eColor[2]})`;
-  ctx.fillText('E \u2192', 12, 20);
+  ctx.fillText('E', 12, 20);
+  {
+    const arrowX = 26, arrowY = 16;
+    ctx.strokeStyle = `rgb(${eColor[0]},${eColor[1]},${eColor[2]})`;
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(arrowX, arrowY);
+    ctx.lineTo(arrowX + 14, arrowY);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(arrowX + 14, arrowY);
+    ctx.lineTo(arrowX + 9, arrowY - 4);
+    ctx.lineTo(arrowX + 9, arrowY + 4);
+    ctx.closePath();
+    ctx.fillStyle = `rgb(${eColor[0]},${eColor[1]},${eColor[2]})`;
+    ctx.fill();
+  }
 
   const bSpacing = 70;
   const bR = 9;
@@ -540,7 +576,21 @@ function drawEMCombinedField(
   ctx.textAlign = 'right';
   ctx.textBaseline = 'top';
   ctx.fillStyle = bLineColor;
-  ctx.fillText('B \u2297', width - 12, 12);
+  ctx.fillText('B', width - 28, 12);
+  {
+    const cx = width - 14, cy = 18, cr = 7;
+    ctx.strokeStyle = bLineColor;
+    ctx.lineWidth = 1.3;
+    ctx.beginPath();
+    ctx.arc(cx, cy, cr, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx - cr * 0.55, cy - cr * 0.55);
+    ctx.lineTo(cx + cr * 0.55, cy + cr * 0.55);
+    ctx.moveTo(cx + cr * 0.55, cy - cr * 0.55);
+    ctx.lineTo(cx - cr * 0.55, cy + cr * 0.55);
+    ctx.stroke();
+  }
   ctx.textBaseline = 'alphabetic';
 }
 
