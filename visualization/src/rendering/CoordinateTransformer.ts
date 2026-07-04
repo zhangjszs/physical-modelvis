@@ -44,6 +44,7 @@ export class CoordinateTransformer {
     canvasWidth: number,
     canvasHeight: number,
     padding = 60,
+    for3D = false,
   ): void {
     if (points.length === 0) return;
 
@@ -56,16 +57,34 @@ export class CoordinateTransformer {
       if (p.y > maxY) maxY = p.y;
     }
 
+    minY = Math.min(minY, 0);
+
     const rangeX = maxX - minX || 1;
     const rangeY = maxY - minY || 1;
-    const centerX = (minX + maxX) / 2;
-    const centerY = (minY + maxY) / 2;
 
-    const availW = canvasWidth - padding * 2;
-    const availH = canvasHeight - padding * 2;
+    if (for3D) {
+      const groundScreenY = canvasHeight * 0.62;
+      const topPadding = canvasHeight * 0.12;
+      const leftPadding = canvasWidth * 0.12;
+      const rightPadding = canvasWidth * 0.1;
 
-    this.scale = Math.min(availW / rangeX, availH / rangeY);
-    this.originX = canvasWidth / 2 - centerX * this.scale;
-    this.originY = canvasHeight / 2 + centerY * this.scale; // y 翻转
+      const availH = groundScreenY - topPadding;
+      const availW = canvasWidth - leftPadding - rightPadding;
+
+      this.scale = Math.min(availW / rangeX, availH / rangeY);
+
+      this.originX = leftPadding - minX * this.scale;
+      this.originY = groundScreenY;
+    } else {
+      const centerX = (minX + maxX) / 2;
+      const centerY = (minY + maxY) / 2;
+
+      const availW = canvasWidth - padding * 2;
+      const availH = canvasHeight - padding * 2;
+
+      this.scale = Math.min(availW / rangeX, availH / rangeY);
+      this.originX = canvasWidth / 2 - centerX * this.scale;
+      this.originY = canvasHeight / 2 + centerY * this.scale;
+    }
   }
 }

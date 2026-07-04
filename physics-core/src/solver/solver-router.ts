@@ -9,6 +9,7 @@ import { InclinedPlaneModel } from '../models/inclined-plane.js';
 import { SpringOscillatorModel } from '../models/spring-oscillator.js';
 import { EMCombinedFieldModel } from '../models/em-combined-field.js';
 import { CollisionModel, InelasticCollisionModel } from '../models/collision.js';
+import { UniformCircularMotionModel } from '../models/uniform-circular-motion.js';
 
 registerModel(new UniformLinearModel());
 registerModel(new UniformAcceleratedModel());
@@ -19,6 +20,7 @@ registerModel(new SpringOscillatorModel());
 registerModel(new EMCombinedFieldModel());
 registerModel(new CollisionModel());
 registerModel(new InelasticCollisionModel());
+registerModel(new UniformCircularMotionModel());
 
 export function solveProblem(problem: PhysicsProblem): SimulationResult {
   const model = getModel(problem.model);

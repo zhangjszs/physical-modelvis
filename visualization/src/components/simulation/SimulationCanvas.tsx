@@ -4,6 +4,7 @@ import { CoordinateTransformer } from '../../rendering/CoordinateTransformer';
 import { CanvasRenderer } from '../../rendering/CanvasRenderer';
 import { COLORS } from '../../utils/colorMap';
 import { findFrameIndex, interpolateFrame, getTotalDuration } from '../../utils/frameUtils';
+import type { TrajectoryPoint } from 'physics-core';
 import {
   drawAirTrack, drawGlider, drawPhotogate, drawDigitalTimer, drawRuler, drawCalipers,
   updateAirflowParticles,
@@ -14,6 +15,22 @@ import {
   type PhotogateMeasurement,
 } from '../../utils/photogate';
 import { woodTexture, metalTexture } from '../../rendering/textureFactory';
+
+const SCENES_3D = new Set([
+  'projectile',
+  'uniform-accelerated',
+  'free-fall',
+  'circular-motion',
+]);
+
+const SCENES_2D_CUSTOM_BG = new Set([
+  'electric-field',
+  'magnetic-field',
+  'em-combined',
+  'collision',
+  'spring',
+  'inclined-plane',
+]);
 
 /** 绘制匀强电场线（渐变发光箭头，方向向上） */
 function drawElectricField(
@@ -29,14 +46,12 @@ function drawElectricField(
   for (let x = spacing / 2; x < width; x += spacing) {
     const startY = height - 30;
     const endY = 30;
-    // 发光外圈
     ctx.strokeStyle = `rgba(${baseColor[0]},${baseColor[1]},${baseColor[2]},${isDark ? 0.12 : 0.15})`;
     ctx.lineWidth = 6;
     ctx.beginPath();
     ctx.moveTo(x, startY);
     ctx.lineTo(x, endY + 12);
     ctx.stroke();
-    // 主线（渐变）
     const grad = ctx.createLinearGradient(x, startY, x, endY);
     grad.addColorStop(0, `rgba(${baseColor[0]},${baseColor[1]},${baseColor[2]},0.2)`);
     grad.addColorStop(0.5, `rgba(${baseColor[0]},${baseColor[1]},${baseColor[2]},${isDark ? 0.55 : 0.65})`);
@@ -47,7 +62,6 @@ function drawElectricField(
     ctx.moveTo(x, startY);
     ctx.lineTo(x, endY + 12);
     ctx.stroke();
-    // 实心箭头
     ctx.fillStyle = `rgba(${baseColor[0]},${baseColor[1]},${baseColor[2]},${isDark ? 0.6 : 0.7})`;
     ctx.beginPath();
     ctx.moveTo(x, endY);
@@ -58,15 +72,33 @@ function drawElectricField(
     ctx.fill();
   }
 
-  // 标签（带背景）
   ctx.font = 'bold 13px sans-serif';
   ctx.textAlign = 'right';
   const lx = width - 12, ly = 24;
-  const tm = ctx.measureText('E ↑');
+  const eLabel = 'E';
+  const tm = ctx.measureText(eLabel);
+  const arrowW = 18;
   ctx.fillStyle = isDark ? 'rgba(15,23,42,0.7)' : 'rgba(255,255,255,0.8)';
-  ctx.fillRect(lx - tm.width - 6, ly - 12, tm.width + 10, 18);
+  ctx.fillRect(lx - tm.width - arrowW - 6, ly - 12, tm.width + arrowW + 10, 18);
   ctx.fillStyle = `rgb(${baseColor[0]},${baseColor[1]},${baseColor[2]})`;
-  ctx.fillText('E ↑', lx, ly);
+  ctx.fillText(eLabel, lx - arrowW, ly);
+  {
+    const ax = lx - arrowW + tm.width + 4, ay = ly - 9;
+    ctx.strokeStyle = `rgb(${baseColor[0]},${baseColor[1]},${baseColor[2]})`;
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(ax + 5, ay + 12);
+    ctx.lineTo(ax + 5, ay);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(ax + 5, ay);
+    ctx.lineTo(ax + 1, ay + 5);
+    ctx.lineTo(ax + 9, ay + 5);
+    ctx.closePath();
+    ctx.fillStyle = `rgb(${baseColor[0]},${baseColor[1]},${baseColor[2]})`;
+    ctx.fill();
+  }
 }
 
 /** 绘制匀强磁场符号（⊗ 画成圆圈+叉号，更精致） */
@@ -84,13 +116,11 @@ function drawMagneticField(
 
   for (let x = spacing / 2; x < width; x += spacing) {
     for (let y = spacing / 2; y < height; y += spacing) {
-      // 外圆
       ctx.strokeStyle = circleColor;
       ctx.lineWidth = 1.2;
       ctx.beginPath();
       ctx.arc(x, y, r, 0, Math.PI * 2);
       ctx.stroke();
-      // 叉号（×）
       ctx.strokeStyle = lineColor;
       ctx.lineWidth = 1.5;
       const d = r * 0.55;
@@ -105,12 +135,11 @@ function drawMagneticField(
     }
   }
 
-  // 标签
   ctx.font = 'bold 13px sans-serif';
   ctx.textAlign = 'right';
   ctx.textBaseline = 'top';
   ctx.fillStyle = lineColor;
-  ctx.fillText('B ⊗ (垂直纸面向里)', width - 12, 12);
+  ctx.fillText('B (垂直纸面向里)', width - 12, 12);
   ctx.textBaseline = 'alphabetic';
 }
 
@@ -135,40 +164,33 @@ function drawCollisionScene(
   const size2 = Math.max(24, Math.min(64, 18 + m2 * 5));
   const cy = height / 2;
 
-  // 辅助：绘制 3D 方块（金属纹理）
   function draw3DBox(cx: number, cy2: number, sz: number, baseHex: string) {
     const x = cx - sz / 2, y = cy2 - sz / 2;
-    // 投影
     ctx.fillStyle = isDark ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.12)';
     ctx.fillRect(x + 4, y + 4, sz, sz);
-    // 金属纹理主体
     const metalTex = metalTexture(sz, sz, baseHex, isDark);
     ctx.save();
     roundRectPath(ctx, x, y, sz, sz, 4);
     ctx.clip();
     ctx.drawImage(metalTex, x, y, sz, sz);
     ctx.restore();
-    // 边缘
     ctx.strokeStyle = darkenHex(baseHex, 50);
     ctx.lineWidth = 1;
     ctx.globalAlpha = 0.3;
     roundRectPath(ctx, x, y, sz, sz, 4);
     ctx.stroke();
     ctx.globalAlpha = 1;
-    // 高光条
     ctx.fillStyle = 'rgba(255,255,255,0.15)';
     roundRectPath(ctx, x + 3, y + 3, sz - 6, sz * 0.3, 3);
     ctx.fill();
   }
 
-  // 辅助：绘制精致箭头
   function drawArrow2(x1: number, y1: number, x2: number, y2: number, color: string) {
     const dx = x2 - x1, dy = y2 - y1;
     const len = Math.sqrt(dx * dx + dy * dy);
     if (len < 3) return;
     const angle = Math.atan2(dy, dx);
     const headLen = Math.min(12, len * 0.3);
-    // 箭杆渐变
     const grad = ctx.createLinearGradient(x1, y1, x2, y2);
     grad.addColorStop(0, color + '66');
     grad.addColorStop(1, color);
@@ -179,7 +201,6 @@ function drawCollisionScene(
     ctx.moveTo(x1, y1);
     ctx.lineTo(x2 - headLen * 0.6 * Math.cos(angle), y2 - headLen * 0.6 * Math.sin(angle));
     ctx.stroke();
-    // 箭头
     ctx.fillStyle = color;
     ctx.beginPath();
     ctx.moveTo(x2, y2);
@@ -190,27 +211,24 @@ function drawCollisionScene(
     ctx.fill();
   }
 
-  // 物体1（蓝色）
   draw3DBox(width * 0.25, cy, size1, '#3b82f6');
   ctx.fillStyle = labelColor;
   ctx.font = 'bold 12px sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText(`m\u2081=${m1}kg`, width * 0.25, cy + size1 / 2 + 18);
+  ctx.fillText(`m1=${m1}kg`, width * 0.25, cy + size1 / 2 + 18);
   ctx.fillStyle = subColor;
   ctx.font = '11px sans-serif';
-  ctx.fillText(`v\u2081=${v1}m/s`, width * 0.25, cy + size1 / 2 + 33);
+  ctx.fillText(`v1=${v1}m/s`, width * 0.25, cy + size1 / 2 + 33);
 
-  // 物体2（红色）
   draw3DBox(width * 0.7, cy, size2, '#ef4444');
   ctx.fillStyle = labelColor;
   ctx.font = 'bold 12px sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText(`m\u2082=${m2}kg`, width * 0.7, cy + size2 / 2 + 18);
+  ctx.fillText(`m2=${m2}kg`, width * 0.7, cy + size2 / 2 + 18);
   ctx.fillStyle = subColor;
   ctx.font = '11px sans-serif';
-  ctx.fillText(`v\u2082=${v2}m/s`, width * 0.7, cy + size2 / 2 + 33);
+  ctx.fillText(`v2=${v2}m/s`, width * 0.7, cy + size2 / 2 + 33);
 
-  // 速度箭头
   if (v1 !== 0) {
     drawArrow2(width * 0.25 + size1 / 2 + 5, cy, width * 0.25 + size1 / 2 + 5 + v1 * 4, cy, '#3b82f6');
   }
@@ -218,7 +236,6 @@ function drawCollisionScene(
     drawArrow2(width * 0.7 + size2 / 2 + 5, cy, width * 0.7 + size2 / 2 + 5 + v2 * 4, cy, '#ef4444');
   }
 
-  // 恢复系数标签（带背景）
   const typeLabel = e >= 0.99 ? '弹性碰撞' : e < 0.01 ? '完全非弹性碰撞' : '非弹性碰撞';
   const labelText = `${typeLabel} (e=${e})`;
   ctx.font = '12px sans-serif';
@@ -253,13 +270,11 @@ function drawSpringScene(
   const eqX = width * 0.5;
   const blockX = eqX + A * 200;
 
-  // 1. 金属墙壁（渐变 + 斜线纹理）
   const wallGrad = ctx.createLinearGradient(anchorX - 14, 0, anchorX, 0);
   wallGrad.addColorStop(0, isDark ? '#334155' : '#94a3b8');
   wallGrad.addColorStop(1, isDark ? '#475569' : '#cbd5e1');
   ctx.fillStyle = wallGrad;
   ctx.fillRect(anchorX - 14, cy - 55, 14, 110);
-  // 斜线纹理
   ctx.strokeStyle = isDark ? 'rgba(100,116,139,0.25)' : 'rgba(0,0,0,0.08)';
   ctx.lineWidth = 1;
   for (let i = -10; i < 120; i += 6) {
@@ -269,11 +284,9 @@ function drawSpringScene(
     ctx.stroke();
   }
 
-  // 2. 立体弹簧线圈（双线螺旋效果）
   const coils = 14;
   const springLen = blockX - blockW / 2 - anchorX;
   const amplitude = Math.max(6, Math.min(14, 10 * (springLen / 200)));
-  // 外层阴影线
   ctx.strokeStyle = isDark ? 'rgba(34,211,238,0.15)' : 'rgba(8,145,178,0.12)';
   ctx.lineWidth = 5;
   ctx.beginPath();
@@ -284,7 +297,6 @@ function drawSpringScene(
     ctx.lineTo(px, i === 0 || i === coils ? cy : py);
   }
   ctx.stroke();
-  // 主弹簧线（渐变）
   const springGrad = ctx.createLinearGradient(anchorX, cy - amplitude, anchorX, cy + amplitude);
   springGrad.addColorStop(0, isDark ? '#67e8f9' : '#06b6d4');
   springGrad.addColorStop(0.5, isDark ? '#22d3ee' : '#0891b2');
@@ -302,30 +314,24 @@ function drawSpringScene(
   ctx.stroke();
   ctx.lineJoin = 'miter';
 
-  // 3. 3D 滑块（金属纹理 + 阴影）
   const bx = blockX - blockW / 2, by = cy - blockH / 2;
-  // 投影
   ctx.fillStyle = isDark ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.12)';
   roundRectPath(ctx, bx + 3, by + 3, blockW, blockH, 4);
   ctx.fill();
-  // 金属纹理主体
   const blockTex = metalTexture(blockW, blockH, '#3b82f6', isDark);
   ctx.save();
   roundRectPath(ctx, bx, by, blockW, blockH, 4);
   ctx.clip();
   ctx.drawImage(blockTex, bx, by, blockW, blockH);
   ctx.restore();
-  // 高光条
   ctx.fillStyle = 'rgba(255,255,255,0.15)';
   roundRectPath(ctx, bx + 3, by + 3, blockW - 6, blockH * 0.3, 3);
   ctx.fill();
-  // 标签
   ctx.fillStyle = labelColor;
   ctx.font = 'bold 12px sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText(`m=${m}kg`, blockX, cy + blockH / 2 + 18);
 
-  // 4. 平衡位置虚线
   ctx.setLineDash([5, 4]);
   ctx.strokeStyle = isDark ? 'rgba(34,211,238,0.35)' : 'rgba(8,145,178,0.35)';
   ctx.lineWidth = 1.2;
@@ -339,7 +345,6 @@ function drawSpringScene(
   ctx.textAlign = 'center';
   ctx.fillText('平衡位置', eqX, cy - 70);
 
-  // 5. 信息标签（带背景）
   const infoText = `k=${k}N/m  A=${A}m${damping > 0 ? `  阻尼=${damping}` : ''}`;
   ctx.font = '11px sans-serif';
   ctx.textAlign = 'center';
@@ -352,14 +357,7 @@ function drawSpringScene(
 }
 
 /**
- * 绘制斜面场景：教科书标准“左竖右斜”楔体 + 3D 滑块 + 角度标注
- *
- * 布局：
- *   topLeft (竖直墙顶) ── 斜面 ── bottomRight (底边右端)
- *       │                           │
- *   bottomLeft (竖直墙底) ─ 底边 ───┘
- *
- * 倾角 θ 标注在 bottomRight（斜面与底边的夹角）。
+ * 绘制斜面场景：教科书标准"左竖右斜"楔体 + 3D 滑块 + 角度标注
  */
 function drawInclinedPlaneScene(
   ctx: CanvasRenderingContext2D,
@@ -376,14 +374,12 @@ function drawInclinedPlaneScene(
   const subColor = isDark ? '#94a3b8' : '#64748b';
   const thetaRad = (thetaDeg * Math.PI) / 180;
 
-  // ── 楔体顶点 ──
-  const baseLen = width * 0.65;          // 底边长度
-  const wallH = baseLen * Math.tan(thetaRad); // 竖直墙高度
+  const baseLen = width * 0.65;
+  const wallH = baseLen * Math.tan(thetaRad);
   const bottomRight = { x: width * 0.82, y: height * 0.82 };
   const bottomLeft  = { x: bottomRight.x - baseLen, y: bottomRight.y };
   const topLeft     = { x: bottomLeft.x, y: bottomRight.y - wallH };
 
-  // 1. 楔体投影
   ctx.fillStyle = isDark ? 'rgba(0,0,0,0.22)' : 'rgba(0,0,0,0.10)';
   ctx.beginPath();
   ctx.moveTo(topLeft.x + 5, topLeft.y + 5);
@@ -392,7 +388,6 @@ function drawInclinedPlaneScene(
   ctx.closePath();
   ctx.fill();
 
-  // 2. 楔体主体（木纹纹理填充）
   const wedgeW = bottomRight.x - bottomLeft.x;
   const wedgeH = bottomRight.y - topLeft.y;
   const woodTex = woodTexture(Math.max(64, wedgeW), Math.max(64, wedgeH), isDark ? '#7c5e3c' : '#b07c4f', isDark);
@@ -406,7 +401,6 @@ function drawInclinedPlaneScene(
   ctx.drawImage(woodTex, bottomLeft.x, topLeft.y, wedgeW, wedgeH);
   ctx.restore();
 
-  // 3. 楔体边缘
   ctx.strokeStyle = isDark ? '#64748b' : '#94a3b8';
   ctx.lineWidth = 1.8;
   ctx.beginPath();
@@ -416,7 +410,6 @@ function drawInclinedPlaneScene(
   ctx.closePath();
   ctx.stroke();
 
-  // 竖直墙左侧阴影线（表示固定壁面）
   ctx.strokeStyle = isDark ? 'rgba(100,116,139,0.18)' : 'rgba(0,0,0,0.08)';
   ctx.lineWidth = 1;
   for (let i = 0; i < wallH; i += 7) {
@@ -426,9 +419,7 @@ function drawInclinedPlaneScene(
     ctx.stroke();
   }
 
-  // 5. 角度弧（在 bottomRight，标注斜面倾角 θ）
   const arcR = 45;
-  // 从底边（向左 = π 方向）到斜面方向（朝左上）
   const slopeAngleFromBR = Math.atan2(topLeft.y - bottomRight.y, topLeft.x - bottomRight.x);
   ctx.fillStyle = isDark ? 'rgba(251,191,36,0.10)' : 'rgba(217,119,6,0.08)';
   ctx.beginPath();
@@ -439,9 +430,8 @@ function drawInclinedPlaneScene(
   ctx.strokeStyle = isDark ? '#fbbf24' : '#d97706';
   ctx.lineWidth = 1.5;
   ctx.beginPath();
-  ctx.arc(bottomRight.x, bottomRight.y, arcR, Math.PI, slopeAngleFromHR(thetaRad, bottomRight, topLeft), true);
+  ctx.arc(bottomRight.x, bottomRight.y, arcR, Math.PI, slopeAngleFromBR, true);
   ctx.stroke();
-  // 标签
   const arcMidAngle = (Math.PI + slopeAngleFromBR) / 2;
   ctx.fillStyle = isDark ? '#fbbf24' : '#d97706';
   ctx.font = 'bold 13px sans-serif';
@@ -454,8 +444,7 @@ function drawInclinedPlaneScene(
   );
   ctx.textBaseline = 'alphabetic';
 
-  // 6. 3D 滑块（放在斜面中段，贴合斜面）
-  const t = 0.45; // 0=bottomRight, 1=topLeft
+  const t = 0.45;
   const slopeCenterX = bottomRight.x + t * (topLeft.x - bottomRight.x);
   const slopeCenterY = bottomRight.y + t * (topLeft.y - bottomRight.y);
   const blockW = 38;
@@ -463,12 +452,10 @@ function drawInclinedPlaneScene(
 
   ctx.save();
   ctx.translate(slopeCenterX, slopeCenterY);
-  ctx.rotate(thetaRad); // 贴合斜面（斜面从左上到右下，canvas 旋转 θ 使底边平行斜面）
-  // 投影
+  ctx.rotate(thetaRad);
   ctx.fillStyle = 'rgba(0,0,0,0.18)';
   roundRectPath(ctx, -blockW / 2 + 3, -blockH + 3, blockW, blockH, 4);
   ctx.fill();
-  // 主体渐变
   const bGrad = ctx.createLinearGradient(-blockW / 2, -blockH, blockW / 2, 0);
   bGrad.addColorStop(0, '#60a5fa');
   bGrad.addColorStop(0.5, '#3b82f6');
@@ -476,13 +463,11 @@ function drawInclinedPlaneScene(
   ctx.fillStyle = bGrad;
   roundRectPath(ctx, -blockW / 2, -blockH, blockW, blockH, 4);
   ctx.fill();
-  // 高光条
   ctx.fillStyle = 'rgba(255,255,255,0.20)';
   roundRectPath(ctx, -blockW / 2 + 3, -blockH + 3, blockW - 6, blockH * 0.35, 3);
   ctx.fill();
   ctx.restore();
 
-  // 质量标签（放在滑块上方，不旋转）
   const labelOffX = slopeCenterX + Math.sin(thetaRad) * (blockH + 12);
   const labelOffY = slopeCenterY - Math.cos(thetaRad) * (blockH + 12);
   ctx.fillStyle = labelColor;
@@ -490,7 +475,6 @@ function drawInclinedPlaneScene(
   ctx.textAlign = 'center';
   ctx.fillText(`m=${m}kg`, labelOffX, labelOffY);
 
-  // 7. 摩擦系数标签
   if (mu > 0) {
     const infoText = `\u03BC=${mu}`;
     ctx.font = '11px sans-serif';
@@ -504,16 +488,6 @@ function drawInclinedPlaneScene(
   }
 }
 
-/** 辅助：计算斜面在 bottomRight 处的角度（用于弧线绘制） */
-function slopeAngleFromHR(
-  _thetaRad: number,
-  _br: { x: number; y: number },
-  _tl: { x: number; y: number },
-): number {
-  // 直接用 atan2 计算斜面方向角
-  return Math.atan2(_tl.y - _br.y, _tl.x - _br.x);
-}
-
 /** 绘制电磁复合场：渐变电场线 + 精致磁场符号 */
 function drawEMCombinedField(
   ctx: CanvasRenderingContext2D,
@@ -522,20 +496,17 @@ function drawEMCombinedField(
   height: number,
   isDark: boolean,
 ) {
-  // 电场线（水平向右，渐变 + 发光）
   const spacing = 60;
   const eColor = isDark ? [251, 191, 36] as const : [234, 179, 8] as const;
   for (let y = spacing / 2; y < height; y += spacing) {
     const startX = 30;
     const endX = width - 30;
-    // 发光外圈
     ctx.strokeStyle = `rgba(${eColor[0]},${eColor[1]},${eColor[2]},0.1)`;
     ctx.lineWidth = 5;
     ctx.beginPath();
     ctx.moveTo(startX, y);
     ctx.lineTo(endX, y);
     ctx.stroke();
-    // 主线渐变
     const grad = ctx.createLinearGradient(startX, y, endX, y);
     grad.addColorStop(0, `rgba(${eColor[0]},${eColor[1]},${eColor[2]},0.2)`);
     grad.addColorStop(0.4, `rgba(${eColor[0]},${eColor[1]},${eColor[2]},${isDark ? 0.5 : 0.6})`);
@@ -546,7 +517,6 @@ function drawEMCombinedField(
     ctx.moveTo(startX, y);
     ctx.lineTo(endX, y);
     ctx.stroke();
-    // 箭头
     ctx.fillStyle = `rgba(${eColor[0]},${eColor[1]},${eColor[2]},${isDark ? 0.55 : 0.65})`;
     ctx.beginPath();
     ctx.moveTo(endX, y);
@@ -556,13 +526,28 @@ function drawEMCombinedField(
     ctx.closePath();
     ctx.fill();
   }
-  // E 标签
   ctx.font = 'bold 13px sans-serif';
   ctx.textAlign = 'left';
   ctx.fillStyle = `rgb(${eColor[0]},${eColor[1]},${eColor[2]})`;
-  ctx.fillText('E \u2192', 12, 20);
+  ctx.fillText('E', 12, 20);
+  {
+    const arrowX = 26, arrowY = 16;
+    ctx.strokeStyle = `rgb(${eColor[0]},${eColor[1]},${eColor[2]})`;
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(arrowX, arrowY);
+    ctx.lineTo(arrowX + 14, arrowY);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(arrowX + 14, arrowY);
+    ctx.lineTo(arrowX + 9, arrowY - 4);
+    ctx.lineTo(arrowX + 9, arrowY + 4);
+    ctx.closePath();
+    ctx.fillStyle = `rgb(${eColor[0]},${eColor[1]},${eColor[2]})`;
+    ctx.fill();
+  }
 
-  // 磁场符号（圆圈 + 叉号）
   const bSpacing = 70;
   const bR = 9;
   const bLineColor = isDark ? 'rgba(168,85,247,0.5)' : 'rgba(147,51,234,0.45)';
@@ -591,18 +576,26 @@ function drawEMCombinedField(
   ctx.textAlign = 'right';
   ctx.textBaseline = 'top';
   ctx.fillStyle = bLineColor;
-  ctx.fillText('B \u2297', width - 12, 12);
+  ctx.fillText('B', width - 28, 12);
+  {
+    const cx = width - 14, cy = 18, cr = 7;
+    ctx.strokeStyle = bLineColor;
+    ctx.lineWidth = 1.3;
+    ctx.beginPath();
+    ctx.arc(cx, cy, cr, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx - cr * 0.55, cy - cr * 0.55);
+    ctx.lineTo(cx + cr * 0.55, cy + cr * 0.55);
+    ctx.moveTo(cx + cr * 0.55, cy - cr * 0.55);
+    ctx.lineTo(cx - cr * 0.55, cy + cr * 0.55);
+    ctx.stroke();
+  }
   ctx.textBaseline = 'alphabetic';
 }
 
 /**
  * 绘制气垫导轨测速度实验场景。
- *
- * 组合调用可复用元件：drawRuler / drawAirTrack / drawPhotogate / drawGlider / drawDigitalTimer。
- * 借鉴 PhET UI/UX：金属质感渐变 + LED 发光 + 7 段数码管风格 + 气流粒子可视化。
- *
- * 注意：气垫导轨是 1D 水平运动，绕过 CoordinateTransformer.autoFit（y=0 时退化），
- * 改用固定 pixelsPerMeter 屏幕坐标布局。
  */
 function drawAirTrackScene(
   ctx: CanvasRenderingContext2D,
@@ -632,10 +625,8 @@ function drawAirTrackScene(
   const rulerY = trackTopY + trackHeight + 28;
   const timerRect = { x: width - 300, y: 16, width: 280, height: 120 };
 
-  // 计算挡光中的光电门
   const blockedGates = experimentData ? getBlockedGateIndices(experimentData, currentTime) : new Set<number>();
 
-  // 1. 刻度尺（带 G1/G2 标记）
   drawRuler({
     ctx, x: trackLeftX, y: rulerY, length: trackScreenW, pixelsPerMeter, isDark,
     majorInterval: 0.1, minorPerMajor: 5, orientation: 'horizontal',
@@ -646,11 +637,8 @@ function drawAirTrackScene(
     ],
   });
 
-  // 2. 气垫导轨主体 + 气流粒子
   const airholes: Array<{ x: number; y: number }> = [];
   const trackRect = { x: trackLeftX, y: trackTopY, width: trackScreenW, height: trackHeight };
-  // 每帧更新粒子（先 update 再传入 drawAirTrack）
-  // 计算气孔位置（与 drawAirTrack 内部一致：每 30px 一个）
   const airholeCount = Math.max(5, Math.floor(trackScreenW / 30));
   const spacing = trackScreenW / airholeCount;
   for (let i = 0; i < airholeCount; i++) {
@@ -665,7 +653,6 @@ function drawAirTrackScene(
     label: '气垫导轨',
   });
 
-  // 3. 两个光电门
   const gatePositions = [x1, x2];
   const gateLabels = ['G1', 'G2'];
   const gateColors = ['#22d3ee', '#a78bfa'];
@@ -680,11 +667,9 @@ function drawAirTrackScene(
     });
   }
 
-  // 4. 滑块（随 currentTime 移动）
   const gliderScreenX = trackLeftX + gliderX * pixelsPerMeter;
   const gliderW = 56;
   const gliderH = 22;
-  // 挡光片宽度按物理换算（最小可见 4px）
   const flagPx = Math.max(flagWidth * pixelsPerMeter, 4);
   drawGlider({
     ctx, centerX: gliderScreenX, bottomY: trackLayout.topY, width: gliderW, height: gliderH,
@@ -693,7 +678,6 @@ function drawAirTrackScene(
     showVelocityVector: true, velocity: gliderV, velocityScale: 60, velocityColor: '#22c55e',
   });
 
-  // 5. 数字毫秒计（Canvas 仪表盘）
   const channels: TimerChannel[] = (experimentData ?? []).map((m, i) => {
     const isActive = blockedGates.has(i);
     const deltaT = getTimerDisplayValue(m, currentTime);
@@ -712,7 +696,6 @@ function drawAirTrackScene(
     channels,
   });
 
-  // 6. 顶部时间标签
   ctx.fillStyle = isDark ? '#e2e8f0' : '#1e293b';
   ctx.font = 'bold 14px monospace';
   ctx.textAlign = 'left';
@@ -723,7 +706,6 @@ function drawAirTrackScene(
   ctx.fillText(`v = ${gliderV.toFixed(3)} m/s`, 16, 38);
   ctx.fillText(`Δx = ${flagWidth.toFixed(3)} m`, 16, 56);
 
-  // 7. 游标卡尺示意（左下角，展示挡光片宽度测量）
   const calipersY = height - 40;
   const calipersWidthPx = Math.max(flagPx, 20);
   const calipersX = trackLeftX + 200;
@@ -743,6 +725,7 @@ export function SimulationCanvas() {
   const animFrameRef = useRef<number>(0);
   const lastTimeRef = useRef<number>(0);
   const airflowParticlesRef = useRef<AirflowParticle[]>([]);
+  const probeRef = useRef<TrajectoryPoint | null>(null);
 
   const {
     simulationResult, currentTime, isPlaying, playbackSpeed,
@@ -751,8 +734,10 @@ export function SimulationCanvas() {
   } = useSimulationStore();
 
   const isDark = theme === 'dark';
+  const is3DScene = SCENES_3D.has(currentScene);
+  const isAirTrack = currentScene === 'air-track';
+  const hasCustom2DBackground = SCENES_2D_CUSTOM_BG.has(currentScene);
 
-  // 初始化 renderer
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -765,22 +750,27 @@ export function SimulationCanvas() {
       canvas.height = rect.height;
       transformerRef.current = new CoordinateTransformer(canvas.width, canvas.height);
       rendererRef.current = new CanvasRenderer(ctx, transformerRef.current, visibleLayers, isDark);
+      if (is3DScene) {
+        rendererRef.current.set3DEnabled(true, canvas.width, canvas.height);
+      }
     };
     resize();
     window.addEventListener('resize', resize);
     return () => window.removeEventListener('resize', resize);
-  }, []);
+  }, [currentScene]);
 
-  // 更新 renderer 参数
   useEffect(() => {
     if (!transformerRef.current || !rendererRef.current) return;
+    const canvas = canvasRef.current;
+    if (canvas) {
+      rendererRef.current.set3DEnabled(is3DScene, canvas.width, canvas.height);
+    }
     rendererRef.current.update(transformerRef.current, visibleLayers, isDark);
-  }, [visibleLayers, isDark]);
+  }, [visibleLayers, isDark, is3DScene]);
 
-  // 自动缩放（气垫导轨是 1D 水平运动，跳过 autoFit，改用固定 pixelsPerMeter）
   useEffect(() => {
     if (!simulationResult || !transformerRef.current) return;
-    if (currentScene === 'air-track') return;
+    if (isAirTrack) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const allPoints: Array<{ x: number; y: number }> = [];
@@ -789,10 +779,16 @@ export function SimulationCanvas() {
         allPoints.push(p.position);
       }
     }
-    transformerRef.current.autoFit(allPoints, canvas.width, canvas.height);
-  }, [simulationResult, currentScene]);
+    if (is3DScene) {
+      transformerRef.current.autoFit(allPoints, canvas.width, canvas.height, 90, true);
+      if (rendererRef.current) {
+        rendererRef.current.set3DEnabled(true, canvas.width, canvas.height);
+      }
+    } else {
+      transformerRef.current.autoFit(allPoints, canvas.width, canvas.height);
+    }
+  }, [simulationResult, currentScene, is3DScene, isAirTrack]);
 
-  // 渲染循环
   const render = useCallback(() => {
     const canvas = canvasRef.current;
     const renderer = rendererRef.current;
@@ -804,19 +800,20 @@ export function SimulationCanvas() {
     renderer.drawGrid(canvas.width, canvas.height);
     renderer.drawAxes(canvas.width, canvas.height);
 
-    // 绘制场背景
-    if (currentScene === 'electric-field') {
-      drawElectricField(ctx, transformer, canvas.width, canvas.height, isDark);
-    } else if (currentScene === 'magnetic-field') {
-      drawMagneticField(ctx, transformer, canvas.width, canvas.height, isDark);
-    } else if (currentScene === 'em-combined') {
-      drawEMCombinedField(ctx, transformer, canvas.width, canvas.height, isDark);
-    } else if (currentScene === 'collision') {
-      drawCollisionScene(ctx, transformer, canvas.width, canvas.height, isDark, parameters);
-    } else if (currentScene === 'spring') {
-      drawSpringScene(ctx, transformer, canvas.width, canvas.height, isDark, parameters);
-    } else if (currentScene === 'inclined-plane') {
-      drawInclinedPlaneScene(ctx, transformer, canvas.width, canvas.height, isDark, parameters);
+    if (!is3DScene && hasCustom2DBackground) {
+      if (currentScene === 'electric-field') {
+        drawElectricField(ctx, transformer, canvas.width, canvas.height, isDark);
+      } else if (currentScene === 'magnetic-field') {
+        drawMagneticField(ctx, transformer, canvas.width, canvas.height, isDark);
+      } else if (currentScene === 'em-combined') {
+        drawEMCombinedField(ctx, transformer, canvas.width, canvas.height, isDark);
+      } else if (currentScene === 'collision') {
+        drawCollisionScene(ctx, transformer, canvas.width, canvas.height, isDark, parameters);
+      } else if (currentScene === 'spring') {
+        drawSpringScene(ctx, transformer, canvas.width, canvas.height, isDark, parameters);
+      } else if (currentScene === 'inclined-plane') {
+        drawInclinedPlaneScene(ctx, transformer, canvas.width, canvas.height, isDark, parameters);
+      }
     }
 
     if (!simulationResult) {
@@ -827,8 +824,7 @@ export function SimulationCanvas() {
       return;
     }
 
-    // 气垫导轨场景：调用 drawAirTrackScene 并直接返回，跳过通用质点/轨迹/向量绘制
-    if (currentScene === 'air-track') {
+    if (isAirTrack) {
       const trajectories = simulationResult.trajectories;
       const points = trajectories[0] ?? [];
       if (points.length === 0) return;
@@ -836,7 +832,6 @@ export function SimulationCanvas() {
       const p0 = points[idx]!;
       const p1 = points[Math.min(idx + 1, points.length - 1)]!;
       const frame = interpolateFrame(p0, p1, currentTime);
-      // 调用 drawAirTrackScene，返回更新后的气流粒子
       airflowParticlesRef.current = drawAirTrackScene(
         ctx, canvas.width, canvas.height, isDark, parameters,
         currentTime, frame.position.x, frame.velocity.x,
@@ -849,36 +844,49 @@ export function SimulationCanvas() {
     const points = trajectories[0] ?? [];
     if (points.length === 0) return;
 
-    // 绘制地面（仅重力场景）
-    const noGroundScenes = ['electric-field', 'magnetic-field', 'em-combined', 'collision', 'spring'];
-    if (!noGroundScenes.includes(currentScene)) {
+    const noGroundScenes = ['electric-field', 'magnetic-field', 'em-combined', 'collision', 'spring', 'circular-motion'];
+    const skipGround = noGroundScenes.includes(currentScene) && !is3DScene;
+    if (!skipGround) {
       renderer.drawGround(0, canvas.width);
     }
 
-    // 绘制完整轨迹（淡色）
+    const isCircular = currentScene === 'circular-motion';
+    const circularCenter = { x: 0, y: 0 };
+    const circularRadius = parameters['radius'] ?? 1.0;
+    const circularOmega = parameters['omega'] ?? 3.0;
+    const circularPivotH = is3DScene ? 1.2 : 0;
+    const circularBallH = is3DScene ? 0.35 : 0;
+
     const allPositions = points.map(p => p.position);
-    ctx.globalAlpha = 0.3;
-    renderer.drawTrajectory(allPositions, COLORS.trajectory);
-    ctx.globalAlpha = 1.0;
 
-    // 绘制当前时间之前的轨迹
-    const pastPoints = points.filter(p => p.t <= currentTime).map(p => p.position);
-    renderer.drawTrajectory(pastPoints, COLORS.trajectory);
+    if (isCircular && is3DScene) {
+      renderer.setCircularCoordMode(true, circularBallH);
+      renderer.draw3DCircularTrajectory(allPositions, COLORS.trajectory, circularBallH);
+    } else {
+      renderer.setCircularCoordMode(false);
+      ctx.globalAlpha = 0.3;
+      renderer.drawTrajectory(allPositions, COLORS.trajectory);
+      ctx.globalAlpha = 1.0;
 
-    // 获取当前帧
+      const pastPoints = points.filter(p => p.t <= currentTime).map(p => p.position);
+      renderer.drawTrajectory(pastPoints, COLORS.trajectory);
+    }
+
     const idx = findFrameIndex(trajectories, currentTime);
     const p0 = points[idx]!;
     const p1 = points[Math.min(idx + 1, points.length - 1)]!;
     const frame = interpolateFrame(p0, p1, currentTime);
 
-    // 绘制物体（根据场景类型着色）
+    if (isCircular) {
+      renderer.drawCircularMotionSetup(circularCenter, frame.position, circularRadius, circularOmega, circularPivotH, circularBallH);
+    }
+
     const emScenes = ['electric-field', 'magnetic-field', 'em-combined'];
     const isEM = emScenes.includes(currentScene);
     const isCollision = currentScene === 'collision';
     const collisionColors = ['#3b82f6', '#ef4444', '#22c55e', '#f59e0b'];
 
     if (isCollision && trajectories.length > 1) {
-      // 多物体渲染
       for (let bi = 0; bi < trajectories.length; bi++) {
         const traj = trajectories[bi] ?? [];
         if (traj.length === 0) continue;
@@ -892,44 +900,79 @@ export function SimulationCanvas() {
           renderer.drawVector(bFrame.position, bFrame.velocity, bColor, `v${bi + 1}`, 0.15);
         }
       }
+    } else if (isCircular && is3DScene) {
+      const bodyColor = '#f97316';
+      const label = '小球';
+      renderer.drawCircularBody3D(frame.position, 0.12, bodyColor, visibleLayers.bodyLabels ? label : undefined, circularBallH);
+      const mass = parameters['mass'] ?? 0.2;
+      const centripetalForce = mass * circularOmega * circularOmega * circularRadius;
+      const centripetalAcc = circularOmega * circularOmega * circularRadius;
+      renderer.drawCircularForceVectors(
+        circularCenter, frame.position, frame.velocity, centripetalForce, centripetalAcc,
+        visibleLayers.velocityVector, visibleLayers.accelerationVector, visibleLayers.forceVector, circularBallH,
+      );
     } else {
       const charge = parameters['charge'] ?? 1.6;
       const bodyColor = isEM
         ? (charge >= 0 ? '#ef4444' : '#3b82f6')
-        : COLORS.body;
+        : (isCircular ? '#f97316' : COLORS.body);
       const label = isEM
         ? (charge >= 0 ? '正电荷' : '负电荷')
-        : '物体';
-      renderer.drawBody(frame.position, 0.15, bodyColor, label);
+        : isCircular
+          ? '小球'
+          : (is3DScene ? '' : '物体');
+      renderer.drawBody(frame.position, isCircular ? 0.12 : 0.15, bodyColor, label);
 
-      // 绘制速度向量
-      if (visibleLayers.velocityVector) {
-        renderer.drawVector(frame.position, frame.velocity, COLORS.velocity, 'v', 0.15);
-      }
+      if (isCircular) {
+        const mass = parameters['mass'] ?? 0.2;
+        const centripetalForce = mass * circularOmega * circularOmega * circularRadius;
+        const centripetalAcc = circularOmega * circularOmega * circularRadius;
+        renderer.drawCircularForceVectors(
+          circularCenter, frame.position, frame.velocity, centripetalForce, centripetalAcc,
+          visibleLayers.velocityVector, visibleLayers.accelerationVector, visibleLayers.forceVector, 0,
+        );
+      } else {
+        if (visibleLayers.velocityVector) {
+          renderer.drawVector(frame.position, frame.velocity, COLORS.velocity, 'v', 0.15);
+        }
 
-      // 绘制加速度向量
-      if (visibleLayers.accelerationVector && frame.acceleration) {
-        renderer.drawVector(frame.position, frame.acceleration, COLORS.acceleration, 'a', 0.3);
-      }
+        if (visibleLayers.accelerationVector && frame.acceleration) {
+          renderer.drawVector(frame.position, frame.acceleration, COLORS.acceleration, 'a', 0.3);
+        }
 
-      // 绘制力向量
-      if (visibleLayers.forceVector && frame.acceleration) {
-        const mass = isEM ? (parameters['mass'] ?? 1.67) * 1e-27 : (parameters['m'] ?? 1);
-        const forceX = frame.acceleration.x * mass;
-        const forceY = frame.acceleration.y * mass;
-        renderer.drawVector(frame.position, { x: forceX, y: forceY }, COLORS.force, 'F', isEM ? 1e20 : 0.3);
+        if (visibleLayers.forceVector && frame.acceleration) {
+          const mass = isEM ? (parameters['mass'] ?? 1.67) * 1e-27 : (parameters['m'] ?? 1);
+          const forceX = frame.acceleration.x * mass;
+          const forceY = frame.acceleration.y * mass;
+          renderer.drawVector(frame.position, { x: forceX, y: forceY }, COLORS.force, 'F', isEM ? 1e20 : 0.3);
+        }
       }
     }
 
-    // 时间/位置标签（带半透明背景面板）
-    const timeText = `t = ${currentTime.toExponential(3)} s`;
-    const xText = `x = ${frame.position.x.toExponential(3)} m`;
-    const yText = `y = ${frame.position.y.toExponential(3)} m`;
+    const probe = probeRef.current;
+    if (probe && !isAirTrack) {
+      renderer.drawCrosshair(probe.position, isDark);
+      renderer.drawProbePoint(probe.position, {
+        t: probe.t,
+        vx: probe.velocity.x,
+        vy: probe.velocity.y,
+      }, isDark);
+    }
+
+    const timeText = `t = ${currentTime.toFixed(3)} s`;
+    const xText = `x = ${frame.position.x.toFixed(2)} m`;
+    const yText = `y = ${frame.position.y.toFixed(2)} m`;
     const hasLabels = visibleLayers.bodyLabels;
     const panelH = hasLabels ? 64 : 28;
-    ctx.fillStyle = isDark ? 'rgba(15,23,42,0.7)' : 'rgba(255,255,255,0.8)';
-    roundRectPath(ctx, 8, 10, 220, panelH, 6);
+    ctx.fillStyle = isDark ? 'rgba(15,23,42,0.75)' : 'rgba(255,255,255,0.85)';
+    roundRectPath(ctx, 8, 10, 200, panelH, 6);
     ctx.fill();
+    ctx.strokeStyle = is3DScene
+      ? (isDark ? 'rgba(56,189,248,0.3)' : 'rgba(59,130,246,0.2)')
+      : 'transparent';
+    ctx.lineWidth = 1;
+    roundRectPath(ctx, 8, 10, 200, panelH, 6);
+    ctx.stroke();
     ctx.fillStyle = isDark ? '#e2e8f0' : '#1e293b';
     ctx.font = 'bold 14px monospace';
     ctx.textAlign = 'left';
@@ -940,9 +983,8 @@ export function SimulationCanvas() {
       ctx.fillText(xText, 16, 50);
       ctx.fillText(yText, 16, 68);
     }
-  }, [simulationResult, currentTime, visibleLayers, isDark, currentScene, parameters, experimentData]);
+  }, [simulationResult, currentTime, visibleLayers, isDark, currentScene, parameters, experimentData, is3DScene, isAirTrack, hasCustom2DBackground]);
 
-  // 动画循环
   useEffect(() => {
     let running = true;
     const loop = (timestamp: number) => {
@@ -973,6 +1015,127 @@ export function SimulationCanvas() {
     };
   }, [isPlaying, playbackSpeed, simulationResult, currentTime, render, setCurrentTime, pause]);
 
+  useEffect(() => {
+    const canvasEl = canvasRef.current;
+    if (!canvasEl) return;
+    const canvas: HTMLCanvasElement = canvasEl;
+
+    function getRenderer(): CanvasRenderer | null {
+      return rendererRef.current;
+    }
+
+    const isCircular3D = currentScene === 'circular-motion';
+    const probeBallH = isCircular3D ? 0.35 : 0;
+
+    function physToScreen(pos: { x: number; y: number }): { x: number; y: number } {
+      const r = getRenderer();
+      if (!r) return { x: 0, y: 0 };
+      if (r.is3D() && isCircular3D) {
+        return r.world3DToScreen(pos.x, probeBallH, pos.y);
+      }
+      return r.worldToScreenPoint(pos);
+    }
+
+    function findNearestTrajectoryPoint(mx: number, my: number): TrajectoryPoint | null {
+      if (!simulationResult) return null;
+      const trajectories = simulationResult.trajectories;
+      if (!trajectories || trajectories.length === 0) return null;
+      const points = trajectories[0] ?? [];
+      if (points.length < 2) return null;
+
+      const hitRadius = 18;
+      let best: { point: TrajectoryPoint; dist: number } | null = null;
+
+      for (let i = 0; i < points.length; i++) {
+        const p = points[i]!;
+        const s = physToScreen(p.position);
+        const dx = s.x - mx;
+        const dy = s.y - my;
+        const d = Math.sqrt(dx * dx + dy * dy);
+        if (d < hitRadius && (!best || d < best.dist)) {
+          best = { point: p, dist: d };
+        }
+      }
+
+      for (let i = 0; i < points.length - 1; i++) {
+        const p0 = points[i]!;
+        const p1 = points[i + 1]!;
+        const s0 = physToScreen(p0.position);
+        const s1 = physToScreen(p1.position);
+        const segDx = s1.x - s0.x;
+        const segDy = s1.y - s0.y;
+        const segLen2 = segDx * segDx + segDy * segDy;
+        if (segLen2 < 1) continue;
+        let t = ((mx - s0.x) * segDx + (my - s0.y) * segDy) / segLen2;
+        t = Math.max(0, Math.min(1, t));
+        const px = s0.x + t * segDx;
+        const py = s0.y + t * segDy;
+        const dx = px - mx;
+        const dy = py - my;
+        const d = Math.sqrt(dx * dx + dy * dy);
+        if (d < hitRadius && (!best || d < best.dist)) {
+          const interpT = p0.t + t * (p1.t - p0.t);
+          const interpX = p0.position.x + t * (p1.position.x - p0.position.x);
+          const interpY = p0.position.y + t * (p1.position.y - p0.position.y);
+          const interpVx = p0.velocity.x + t * (p1.velocity.x - p0.velocity.x);
+          const interpVy = p0.velocity.y + t * (p1.velocity.y - p0.velocity.y);
+          best = {
+            point: {
+              t: interpT,
+              position: { x: interpX, y: interpY },
+              velocity: { x: interpVx, y: interpVy },
+              acceleration: p0.acceleration,
+            },
+            dist: d,
+          };
+        }
+      }
+
+      if (!best) return null;
+      return best.point;
+    }
+
+    function getCanvasPos(e: MouseEvent): { x: number; y: number } {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      return {
+        x: (e.clientX - rect.left) * scaleX,
+        y: (e.clientY - rect.top) * scaleY,
+      };
+    }
+
+    function onMouseMove(e: MouseEvent) {
+      const { x: mx, y: my } = getCanvasPos(e);
+      const nearest = findNearestTrajectoryPoint(mx, my);
+      probeRef.current = nearest;
+      canvas.style.cursor = nearest ? 'crosshair' : 'default';
+    }
+
+    function onMouseLeave() {
+      probeRef.current = null;
+      canvas.style.cursor = 'default';
+    }
+
+    function onClick(e: MouseEvent) {
+      const { x: mx, y: my } = getCanvasPos(e);
+      const nearest = findNearestTrajectoryPoint(mx, my);
+      if (nearest) {
+        pause();
+        setCurrentTime(nearest.t);
+      }
+    }
+
+    canvas.addEventListener('mousemove', onMouseMove);
+    canvas.addEventListener('mouseleave', onMouseLeave);
+    canvas.addEventListener('click', onClick);
+    return () => {
+      canvas.removeEventListener('mousemove', onMouseMove);
+      canvas.removeEventListener('mouseleave', onMouseLeave);
+      canvas.removeEventListener('click', onClick);
+    };
+  }, [simulationResult, pause, setCurrentTime]);
+
   return (
     <div className="canvas-wrapper">
       <canvas
@@ -987,7 +1150,6 @@ export function SimulationCanvas() {
 /*  场景绘制工具函数                                                        */
 /* ====================================================================== */
 
-/** 绘制圆角矩形路径（不自动 fill/stroke） */
 function roundRectPath(
   ctx: CanvasRenderingContext2D,
   x: number, y: number, w: number, h: number, r: number,
@@ -1005,7 +1167,6 @@ function roundRectPath(
   ctx.closePath();
 }
 
-/** 解析 hex 颜色为 RGB */
 function hexToRgb(hex: string): [number, number, number] {
   const h = hex.replace('#', '');
   const full = h.length === 3 ? h.split('').map(c => c + c).join('') : h;
@@ -1016,14 +1177,8 @@ function hexToRgb(hex: string): [number, number, number] {
   ];
 }
 
-/** RGB → hex */
-function rgbToHex(r: number, g: number, b: number): string {
-  const clamp = (v: number) => Math.max(0, Math.min(255, Math.round(v)));
-  return '#' + [r, g, b].map(v => clamp(v).toString(16).padStart(2, '0')).join('');
-}
-
-/** 加深颜色 */
 function darkenHex(hex: string, amount: number): string {
   const [r, g, b] = hexToRgb(hex);
-  return rgbToHex(r - amount, g - amount, b - amount);
+  const clamp = (v: number) => Math.max(0, Math.min(255, Math.round(v)));
+  return '#' + [r - amount, g - amount, b - amount].map(v => clamp(v).toString(16).padStart(2, '0')).join('');
 }

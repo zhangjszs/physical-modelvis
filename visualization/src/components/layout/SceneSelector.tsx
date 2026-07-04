@@ -9,6 +9,7 @@ const SCENE_CATEGORIES = [
       { id: 'projectile', name: '平抛/斜抛' },
       { id: 'free-fall', name: '自由落体' },
       { id: 'uniform-accelerated', name: '匀变速直线' },
+      { id: 'circular-motion', name: '圆周运动' },
       { id: 'collision', name: '碰撞' },
       { id: 'spring', name: '弹簧振子' },
       { id: 'inclined-plane', name: '斜面运动' },
@@ -39,7 +40,6 @@ export function SceneSelector() {
       {SCENE_CATEGORIES.map(cat => {
         const isActive = activeCategory?.label === cat.label;
         const isOpen = openCategory === cat.label;
-        const activeScene = cat.scenes.find(s => s.id === currentScene);
 
         return (
           <div key={cat.label} className="scene-category">
@@ -47,7 +47,7 @@ export function SceneSelector() {
               className={`scene-cat-btn ${isActive ? 'active' : ''}`}
               onClick={() => setOpenCategory(isOpen ? null : cat.label)}
             >
-              {isActive && activeScene ? activeScene.name : cat.label}
+              {cat.label}
               <span className="scene-cat-arrow">{isOpen ? '▴' : '▾'}</span>
             </button>
             {isOpen && (
