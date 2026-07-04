@@ -48,7 +48,7 @@ export function SceneSelector() {
               className={`scene-cat-btn ${isActive ? 'active' : ''}`}
               onClick={() => setOpenCategory(isOpen ? null : cat.label)}
             >
-              {isActive && activeScene ? activeScene.name : cat.label}
+              {cat.label}
               <span className="scene-cat-arrow">{isOpen ? '▴' : '▾'}</span>
             </button>
             {isOpen && (
