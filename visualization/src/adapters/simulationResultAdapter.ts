@@ -86,6 +86,10 @@ export function extractGraphSeries(
         color: '#a855f7',
       }];
     case 'F_t':
+      // 第三章: 优先使用 physics-core 返回的 F_t ChartSeries (牛顿第三定律)
+      if (result.charts.F_t) {
+        return [chartSeriesToGraphSeries(result.charts.F_t, 'F', '#ef4444')];
+      }
       return [{
         label: '合力',
         data: trajectory.map(p => ({
@@ -97,6 +101,18 @@ export function extractGraphSeries(
         unit: 'N',
         color: '#ef4444',
       }];
+    case 'F_theta':
+      // 第三章: 力的合成 — 合力随夹角变化曲线
+      if (result.charts.F_theta) {
+        return [chartSeriesToGraphSeries(result.charts.F_theta, '合力 F', '#22c55e')];
+      }
+      return [];
+    case 'f_N':
+      // 第三章: 滑动摩擦力 — f-N 关系曲线
+      if (result.charts.f_N) {
+        return [chartSeriesToGraphSeries(result.charts.f_N, '摩擦力 f', '#ef4444')];
+      }
+      return [];
   }
 }
 

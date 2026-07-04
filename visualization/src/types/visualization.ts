@@ -61,7 +61,7 @@ export interface VisibleLayers {
 
 // ========== 曲线图 ==========
 
-export type GraphType = 'x_t' | 'y_t' | 'vx_t' | 'vy_t' | 'a_t' | 'ke_t' | 'pe_t' | 'total_e_t' | 'p_t' | 'F_t';
+export type GraphType = 'x_t' | 'y_t' | 'vx_t' | 'vy_t' | 'a_t' | 'ke_t' | 'pe_t' | 'total_e_t' | 'p_t' | 'F_t' | 'F_theta' | 'f_N';
 
 export interface GraphSeries {
   label: string;

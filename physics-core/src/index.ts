@@ -24,6 +24,10 @@ export { InclinedPlaneModel } from './models/inclined-plane.js';
 export { EMCombinedFieldModel } from './models/em-combined-field.js';
 export { CollisionModel, InelasticCollisionModel } from './models/collision.js';
 export { UniformCircularMotionModel } from './models/uniform-circular-motion.js';
+// 必修一 第三章 相互作用——力
+export { ForceCompositionModel } from './models/force-composition.js';
+export { NewtonThirdLawModel } from './models/newton-third-law.js';
+export { SlidingFrictionModel } from './models/sliding-friction.js';
 
 // === 求解器导出 ===
 export { solveProblem } from './solver/solver-router.js';

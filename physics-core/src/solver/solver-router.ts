@@ -10,6 +10,9 @@ import { SpringOscillatorModel } from '../models/spring-oscillator.js';
 import { EMCombinedFieldModel } from '../models/em-combined-field.js';
 import { CollisionModel, InelasticCollisionModel } from '../models/collision.js';
 import { UniformCircularMotionModel } from '../models/uniform-circular-motion.js';
+import { ForceCompositionModel } from '../models/force-composition.js';
+import { NewtonThirdLawModel } from '../models/newton-third-law.js';
+import { SlidingFrictionModel } from '../models/sliding-friction.js';
 
 registerModel(new UniformLinearModel());
 registerModel(new UniformAcceleratedModel());
@@ -21,6 +24,10 @@ registerModel(new EMCombinedFieldModel());
 registerModel(new CollisionModel());
 registerModel(new InelasticCollisionModel());
 registerModel(new UniformCircularMotionModel());
+// 必修一 第三章 相互作用——力
+registerModel(new ForceCompositionModel());
+registerModel(new NewtonThirdLawModel());
+registerModel(new SlidingFrictionModel());
 
 export function solveProblem(problem: PhysicsProblem): SimulationResult {
   const model = getModel(problem.model);

@@ -24,6 +24,15 @@ const SCENE_CATEGORIES = [
       { id: 'em-combined', name: '电磁复合场' },
     ],
   },
+  {
+    label: '相互作用——力',
+    scenes: [
+      { id: 'hooke-law', name: '胡克定律 F=kx' },
+      { id: 'sliding-friction', name: '滑动摩擦力 f=μN' },
+      { id: 'force-composition', name: '力的合成 (平行四边形定则)' },
+      { id: 'newton-third-law', name: '牛顿第三定律' },
+    ],
+  },
 ];
 
 export function SceneSelector() {

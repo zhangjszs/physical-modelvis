@@ -163,6 +163,70 @@ const FORMULA_MAP: Record<string, FormulaDef> = {
       '数字毫秒计精度通常为 1 ms，挡光时间通常为毫秒量级',
     ],
   },
+  // ========== 必修一 第三章 相互作用——力 ==========
+  'hooke-law': {
+    title: '胡克定律 (弹簧弹力与形变量)',
+    formulas: [
+      { name: '胡克定律', formula: 'F = kx', variables: 'k: 劲度系数(N/m), x: 弹簧伸长量(m)', condition: '弹性限度内' },
+      { name: '平衡条件', formula: 'kx = mg', variables: 'm: 钩码质量, g: 重力加速度', condition: '竖直悬挂静止时' },
+      { name: '伸长量', formula: 'x = mg / k', variables: '由平衡条件推导' },
+      { name: '劲度系数', formula: 'k = F / x = mg / x', variables: '实验测量公式' },
+    ],
+    tips: [
+      '弹力方向始终指向弹簧原长方向 (回复力)',
+      '劲度系数 k 由弹簧材料、粗细、长度决定，与外力无关',
+      'F-x 图像为过原点的直线，斜率即为 k',
+      '超过弹性限度后，胡克定律不再适用',
+    ],
+  },
+  'sliding-friction': {
+    title: '滑动摩擦力 (f=μN)',
+    formulas: [
+      { name: '滑动摩擦力', formula: 'f = μN', variables: 'μ: 动摩擦因数, N: 正压力(N)', condition: '滑动摩擦' },
+      { name: '正压力 (水平面)', formula: 'N = mg', variables: 'm: 物体质量, g: 重力加速度', condition: '水平面无竖直加速度' },
+      { name: '动摩擦因数', formula: 'μ = f / N', variables: '由接触面材料和粗糙程度决定' },
+      { name: '匀速条件', formula: 'F_pull = f = μmg', variables: '外力等于摩擦力时匀速', condition: '水平面匀速运动' },
+      { name: '加速条件', formula: 'a = (F_pull − f) / m', variables: '外力大于摩擦力时加速' },
+    ],
+    tips: [
+      '滑动摩擦力方向始终与相对运动方向相反',
+      '动摩擦因数 μ 只与接触面性质有关，与正压力、速度无关',
+      'f-N 图像为过原点的直线，斜率即为 μ',
+      'μ 通常小于 1，但橡胶与地面等特殊组合可大于 1',
+    ],
+  },
+  'force-composition': {
+    title: '力的合成 (平行四边形定则)',
+    formulas: [
+      { name: '合力大小 (余弦定理)', formula: 'F = √(F₁² + F₂² + 2·F₁·F₂·cosθ)', variables: 'F₁,F₂: 分力, θ: 夹角' },
+      { name: '合力方向', formula: 'tanφ = F₂·sinθ / (F₁ + F₂·cosθ)', variables: 'φ: 合力与 F₁ 的夹角' },
+      { name: '同向合成 (θ=0°)', formula: 'F = F₁ + F₂', variables: '最大合力' },
+      { name: '反向合成 (θ=180°)', formula: 'F = |F₁ − F₂|', variables: '最小合力' },
+      { name: '垂直合成 (θ=90°)', formula: 'F = √(F₁² + F₂²)', variables: '勾股定理' },
+    ],
+    tips: [
+      '平行四边形定则适用于所有矢量合成，不限于力',
+      '合力大小范围：|F₁−F₂| ≤ F ≤ F₁+F₂',
+      'θ=0° 时合力最大，θ=180° 时合力最小',
+      '多个力合成可两两依次合成，结果与顺序无关',
+    ],
+  },
+  'newton-third-law': {
+    title: '牛顿第三定律 (作用力与反作用力)',
+    formulas: [
+      { name: '牛顿第三定律', formula: 'F_AB = −F_BA', variables: 'F_AB: A对B的力, F_BA: B对A的力' },
+      { name: '大小关系', formula: '|F_AB| = |F_BA|', variables: '大小相等' },
+      { name: '方向关系', formula: 'F_AB 与 F_BA 方向相反', variables: '沿同一直线' },
+      { name: '系统性', formula: '作用在两个不同物体上', variables: '不能抵消，不同于平衡力' },
+      { name: '同时性', formula: '同时产生、同时变化、同时消失', variables: '不可独立存在' },
+    ],
+    tips: [
+      '作用力与反作用力作用在不同物体上，不能抵消',
+      '平衡力作用在同一物体上，可以抵消',
+      '作用力与反作用力总是同种性质的力',
+      '与运动状态无关：静止、匀速、加速时都成立',
+    ],
+  },
 };
 
 const DEFAULT_FORMULA: FormulaDef = {

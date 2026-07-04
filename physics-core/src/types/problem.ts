@@ -14,7 +14,11 @@ export type ModelType =
   | 'uniform-electric-field'
   | 'uniform-magnetic-field'
   | 'em-combined-field'
-  | 'uniform-circular-motion';
+  | 'uniform-circular-motion'
+  // 必修一 第三章 相互作用——力
+  | 'force-composition'      // 力的合成与分解 (平行四边形定则)
+  | 'newton-third-law'       // 牛顿第三定律 (作用力与反作用力)
+  | 'sliding-friction';      // 滑动摩擦力 (f = μN)
 
 /** 重力场配置 */
 export interface GravityConfig {
@@ -81,12 +85,45 @@ export interface CircularMotionConstraint {
   readonly showCentripetalForce?: boolean;
 }
 
+/** 力的合成约束 (平行四边形定则) — 必修一 §4 */
+export interface ForceCompositionConstraint {
+  /** 第一个分力 F1 的大小 (N) */
+  readonly f1: number;
+  /** 第二个分力 F2 的大小 (N) */
+  readonly f2: number;
+  /** F1 与 F2 之间的夹角 (度) */
+  readonly angleDeg: number;
+  /** F1 的方向角 (度，相对 x 轴)，默认 0 */
+  readonly f1AngleDeg?: number;
+}
+
+/** 牛顿第三定律约束 — 必修一 §5 */
+export interface NewtonThirdLawConstraint {
+  /** A 对 B 施加的作用力大小 (N)，正=向右，负=向左 */
+  readonly forceAB: number;
+  /** 是否模拟运动 (true=两物体在光滑水平面上加速，false=固定) */
+  readonly allowMotion?: boolean;
+}
+
+/** 滑动摩擦力约束 — 必修一 §3 */
+export interface SlidingFrictionConstraint {
+  /** 动摩擦因数 μ */
+  readonly frictionCoefficient: number;
+  /** 接触面材料 (用于显示) */
+  readonly surfaceMaterial?: 'wood' | 'rubber' | 'metal' | 'glass';
+  /** 是否匀速拉动 (true=外力等于摩擦力，false=外力大于摩擦力加速) */
+  readonly uniformMotion?: boolean;
+}
+
 /** 约束配置 */
 export interface ConstraintConfig {
   readonly inclinedPlane?: InclinedPlaneConstraint;
   readonly spring?: SpringConstraint;
   readonly collision?: CollisionConstraint;
   readonly circularMotion?: CircularMotionConstraint;
+  readonly forceComposition?: ForceCompositionConstraint;
+  readonly newtonThirdLaw?: NewtonThirdLawConstraint;
+  readonly slidingFriction?: SlidingFrictionConstraint;
 }
 
 /** 时间配置 */
