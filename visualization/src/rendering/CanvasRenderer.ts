@@ -24,6 +24,20 @@ export class CanvasRenderer {
   private groundZRange = 0;
   private worldCenterX = 0;
   private worldCenterY = 0;
+  private circularYIsDepth = false;
+  private circularBallH = 0;
+
+  setCircularCoordMode(enabled: boolean, ballH = 0.35) {
+    this.circularYIsDepth = enabled;
+    this.circularBallH = ballH;
+  }
+
+  private physToScreen3D(p: Vec2, wz: number): Screen3D {
+    if (this.circularYIsDepth) {
+      return this.worldToScreen(p.x, this.circularBallH, p.y);
+    }
+    return this.worldToScreen(p.x, p.y, wz);
+  }
 
   constructor(
     ctx: CanvasRenderingContext2D,
@@ -64,6 +78,14 @@ export class CanvasRenderer {
     return this.transformer.toScreen(p);
   }
 
+  world3DToScreen(wx: number, wy: number, wz: number): { x: number; y: number; depth: number } {
+    return this.worldToScreen(wx, wy, wz);
+  }
+
+  getBaseScale(): number {
+    return this.use3D ? this.baseScale : this.transformer.getScale();
+  }
+
   is3D(): boolean {
     return this.use3D;
   }
@@ -95,7 +117,7 @@ export class CanvasRenderer {
   }
 
   private physToScreen(p: Vec2, wz = 0): Screen3D {
-    return this.worldToScreen(p.x, p.y, wz);
+    return this.physToScreen3D(p, wz);
   }
 
   private toScreenLen(physLen: number): number {
@@ -526,9 +548,9 @@ export class CanvasRenderer {
     ctx.lineJoin = 'miter';
   }
 
-  drawBody(pos: Vec2, radius: number, color: string, label?: string) {
+  drawBody(pos: Vec2, radius: number, color: string, label?: string, zHeight = 0) {
     if (this.use3D) {
-      this.draw3DBody(pos, radius, color, label);
+      this.draw3DBody(pos, radius, color, label, zHeight);
     } else {
       this.draw2DBody(pos, radius, color, label);
     }
@@ -590,11 +612,12 @@ export class CanvasRenderer {
     }
   }
 
-  private draw3DBody(pos: Vec2, radius: number, color: string, label?: string) {
+  private draw3DBody(pos: Vec2, radius: number, color: string, label?: string, zHeight = 0) {
     const ctx = this.ctx;
-    const s = this.physToScreen(pos, 0);
+    const s = this.physToScreen(pos, zHeight);
     const r = Math.max(this.toScreenLen(radius), 10);
-    const shadowY = this.worldToScreen(pos.x, 0, 0).y;
+    const shadowS = this.worldToScreen(pos.x, 0, 0);
+    const shadowY = shadowS.y;
     const objY = s.y;
     const heightDiff = shadowY - objY;
 
@@ -603,7 +626,7 @@ export class CanvasRenderer {
     const shadowAlpha = Math.max(0.12, 0.35 - heightDiff / 400);
     ctx.fillStyle = `rgba(0,0,0,${shadowAlpha})`;
     ctx.beginPath();
-    ctx.ellipse(s.x, shadowY, r * shadowScaleX, r * shadowScaleY, 0, 0, Math.PI * 2);
+    ctx.ellipse(shadowS.x, shadowY, r * shadowScaleX, r * shadowScaleY, 0, 0, Math.PI * 2);
     ctx.fill();
 
     const bodyGrad = ctx.createRadialGradient(
@@ -1021,6 +1044,523 @@ export class CanvasRenderer {
     ctx.lineTo(x, y + r);
     ctx.arcTo(x, y, x + r, y, r);
     ctx.closePath();
+  }
+
+  drawCircularMotionSetup(center: Vec2, ballPos: Vec2, radius: number, omega: number, pivotH = 1.0, ballH = 0.3) {
+    if (this.use3D) {
+      this.draw3DCircularMotion(center, ballPos, radius, omega, pivotH, ballH);
+    } else {
+      this.draw2DCircularMotion(center, ballPos, radius, omega);
+    }
+  }
+
+  draw3DCircularTrajectory(points: Vec2[], color: string, ballH: number) {
+    if (!this.use3D) return;
+    const ctx = this.ctx;
+    const total = points.length;
+
+    ctx.strokeStyle = this.isDark ? 'rgba(100,116,139,0.2)' : 'rgba(71,85,105,0.15)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 5]);
+    ctx.beginPath();
+    for (let i = 0; i < total; i++) {
+      const p = points[i]!;
+      const gp = this.worldToScreen(p.x, 0, p.y);
+      if (i === 0) ctx.moveTo(gp.x, gp.y);
+      else ctx.lineTo(gp.x, gp.y);
+    }
+    ctx.closePath();
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    for (let i = 0; i < total - 1; i++) {
+      const p0 = points[i]!;
+      const p1 = points[i + 1]!;
+      const s0 = this.worldToScreen(p0.x, ballH, p0.y);
+      const s1 = this.worldToScreen(p1.x, ballH, p1.y);
+      const dx = s1.x - s0.x;
+      const dy = s1.y - s0.y;
+      const segLen = Math.sqrt(dx * dx + dy * dy);
+      if (segLen < 1) continue;
+      const depthFactor = Math.max(0.3, Math.min(1, 1 - (s0.depth + s1.depth) / (2 * this.groundZRange) * 0.5));
+      ctx.strokeStyle = colorWithAlpha(color, 0.5 * depthFactor);
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(s0.x, s0.y);
+      ctx.lineTo(s1.x, s1.y);
+      ctx.stroke();
+    }
+    ctx.lineCap = 'butt';
+    ctx.lineJoin = 'miter';
+  }
+
+  drawCircularBody3D(ballPos: Vec2, radius: number, color: string, label: string | undefined, ballH: number) {
+    if (!this.use3D) return;
+    const ctx = this.ctx;
+    const s = this.worldToScreen(ballPos.x, ballH, ballPos.y);
+    const shadowS = this.worldToScreen(ballPos.x, 0, ballPos.y);
+    const r = Math.max(this.toScreenLen(radius), 10);
+    const shadowY = shadowS.y;
+    const objY = s.y;
+    const heightDiff = shadowY - objY;
+
+    const shadowScaleX = 1.0 + Math.min(heightDiff / (r * 4), 0.6);
+    const shadowScaleY = 0.35 + Math.min(heightDiff / (r * 8), 0.2);
+    const shadowAlpha = Math.max(0.12, 0.35 - heightDiff / 400);
+    ctx.fillStyle = `rgba(0,0,0,${shadowAlpha})`;
+    ctx.beginPath();
+    ctx.ellipse(shadowS.x, shadowY, r * shadowScaleX, r * shadowScaleY, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    const bodyGrad = ctx.createRadialGradient(
+      s.x - r * 0.3, s.y - r * 0.3, r * 0.05,
+      s.x, s.y, r,
+    );
+    bodyGrad.addColorStop(0, lightenColor(color, 80));
+    bodyGrad.addColorStop(0.35, lightenColor(color, 30));
+    bodyGrad.addColorStop(0.7, color);
+    bodyGrad.addColorStop(1, darkenColor(color, 50));
+    ctx.fillStyle = bodyGrad;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, r, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = darkenColor(color, 60);
+    ctx.lineWidth = 1.2;
+    ctx.globalAlpha = 0.4;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, r, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    const hlGrad = ctx.createRadialGradient(
+      s.x - r * 0.4, s.y - r * 0.4, 0,
+      s.x - r * 0.4, s.y - r * 0.4, r * 0.65,
+    );
+    hlGrad.addColorStop(0, 'rgba(255,255,255,0.85)');
+    hlGrad.addColorStop(0.4, 'rgba(255,255,255,0.25)');
+    hlGrad.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = hlGrad;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, r, 0, Math.PI * 2);
+    ctx.fill();
+
+    if (label && this.layers.bodyLabels) {
+      const labelColor = this.isDark ? '#e2e8f0' : '#1e293b';
+      ctx.font = 'bold 12px sans-serif';
+      ctx.textAlign = 'center';
+      const metrics = ctx.measureText(label);
+      const lx = s.x;
+      const ly = s.y - r - 14;
+      const pad = 5;
+      ctx.fillStyle = this.isDark ? 'rgba(15,23,42,0.8)' : 'rgba(255,255,255,0.88)';
+      const bw = metrics.width + pad * 2;
+      const bh = 18;
+      this.roundRect(ctx, lx - bw / 2, ly - bh / 2 - 1, bw, bh, 4);
+      ctx.fill();
+      ctx.strokeStyle = this.isDark ? 'rgba(251,146,60,0.3)' : 'rgba(249,115,22,0.2)';
+      ctx.lineWidth = 1;
+      this.roundRect(ctx, lx - bw / 2, ly - bh / 2 - 1, bw, bh, 4);
+      ctx.stroke();
+      ctx.fillStyle = labelColor;
+      ctx.fillText(label, lx, ly + 4);
+    }
+  }
+
+  drawCircularForceVectors3D(center: Vec2, ballPos: Vec2, velocity: Vec2, centripetalMag: number, accelerationMag: number, showV: boolean, showA: boolean, showF: boolean, ballH: number) {
+    if (!this.use3D) return;
+    const ctx = this.ctx;
+    const wBall = (px: number, py: number) => this.worldToScreen(px, ballH, py);
+    const sBall = wBall(ballPos.x, ballPos.y);
+    const forceScale = 0.3;
+    const vScale = 0.2;
+    const aScale = 0.1;
+
+    ctx.save();
+
+    if (showF) {
+      const dx = center.x - ballPos.x;
+      const dy = center.y - ballPos.y;
+      const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+      const fx = (dx / dist) * centripetalMag * forceScale;
+      const fy = (dy / dist) * centripetalMag * forceScale;
+      const fEnd = wBall(ballPos.x + fx, ballPos.y + fy);
+
+      const fGrad = ctx.createLinearGradient(sBall.x, sBall.y, fEnd.x, fEnd.y);
+      fGrad.addColorStop(0, 'rgba(239,68,68,0.3)');
+      fGrad.addColorStop(1, '#ef4444');
+      ctx.strokeStyle = fGrad;
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(sBall.x, sBall.y);
+      ctx.lineTo(fEnd.x, fEnd.y);
+      ctx.stroke();
+
+      const angleF = Math.atan2(fEnd.y - sBall.y, fEnd.x - sBall.x);
+      const headLen = 12;
+      ctx.fillStyle = '#ef4444';
+      ctx.beginPath();
+      ctx.moveTo(fEnd.x, fEnd.y);
+      ctx.lineTo(fEnd.x - headLen * Math.cos(angleF - 0.4), fEnd.y - headLen * Math.sin(angleF - 0.4));
+      ctx.lineTo(fEnd.x - headLen * 0.6 * Math.cos(angleF), fEnd.y - headLen * 0.6 * Math.sin(angleF));
+      ctx.lineTo(fEnd.x - headLen * Math.cos(angleF + 0.4), fEnd.y - headLen * Math.sin(angleF + 0.4));
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.font = 'bold 12px sans-serif';
+      ctx.fillStyle = '#ef4444';
+      ctx.fillText('F⃗ₙ', fEnd.x + Math.cos(angleF) * 8, fEnd.y + Math.sin(angleF) * 8 + 4);
+    }
+
+    if (showA) {
+      const dx = center.x - ballPos.x;
+      const dy = center.y - ballPos.y;
+      const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+      const ax = (dx / dist) * accelerationMag * aScale;
+      const ay = (dy / dist) * accelerationMag * aScale;
+      const aEnd = wBall(ballPos.x + ax, ballPos.y + ay);
+
+      const aGrad = ctx.createLinearGradient(sBall.x, sBall.y, aEnd.x, aEnd.y);
+      aGrad.addColorStop(0, 'rgba(139,92,246,0.3)');
+      aGrad.addColorStop(1, '#8b5cf6');
+      ctx.strokeStyle = aGrad;
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(sBall.x, sBall.y);
+      ctx.lineTo(aEnd.x, aEnd.y);
+      ctx.stroke();
+
+      const angleA = Math.atan2(aEnd.y - sBall.y, aEnd.x - sBall.x);
+      const headLenA = 11;
+      ctx.fillStyle = '#8b5cf6';
+      ctx.beginPath();
+      ctx.moveTo(aEnd.x, aEnd.y);
+      ctx.lineTo(aEnd.x - headLenA * Math.cos(angleA - 0.4), aEnd.y - headLenA * Math.sin(angleA - 0.4));
+      ctx.lineTo(aEnd.x - headLenA * 0.6 * Math.cos(angleA), aEnd.y - headLenA * 0.6 * Math.sin(angleA));
+      ctx.lineTo(aEnd.x - headLenA * Math.cos(angleA + 0.4), aEnd.y - headLenA * Math.sin(angleA + 0.4));
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.font = 'bold 12px sans-serif';
+      ctx.fillStyle = '#8b5cf6';
+      ctx.fillText('a⃗', aEnd.x + Math.cos(angleA) * 8, aEnd.y + Math.sin(angleA) * 8 + 4);
+    }
+
+    if (showV) {
+      const r = Math.sqrt(ballPos.x * ballPos.x + ballPos.y * ballPos.y) || 1;
+      const vMag = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
+      const vDisp = vMag * vScale;
+      const vEnd = wBall(ballPos.x + (-ballPos.y) * vDisp / r,
+                          ballPos.y + (ballPos.x) * vDisp / r);
+
+      const vGrad = ctx.createLinearGradient(sBall.x, sBall.y, vEnd.x, vEnd.y);
+      vGrad.addColorStop(0, 'rgba(34,197,94,0.3)');
+      vGrad.addColorStop(1, '#22c55e');
+      ctx.strokeStyle = vGrad;
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(sBall.x, sBall.y);
+      ctx.lineTo(vEnd.x, vEnd.y);
+      ctx.stroke();
+
+      const angleV = Math.atan2(vEnd.y - sBall.y, vEnd.x - sBall.x);
+      const headLenV = 11;
+      ctx.fillStyle = '#22c55e';
+      ctx.beginPath();
+      ctx.moveTo(vEnd.x, vEnd.y);
+      ctx.lineTo(vEnd.x - headLenV * Math.cos(angleV - 0.4), vEnd.y - headLenV * Math.sin(angleV - 0.4));
+      ctx.lineTo(vEnd.x - headLenV * 0.6 * Math.cos(angleV), vEnd.y - headLenV * 0.6 * Math.sin(angleV));
+      ctx.lineTo(vEnd.x - headLenV * Math.cos(angleV + 0.4), vEnd.y - headLenV * Math.sin(angleV + 0.4));
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.font = 'bold 12px sans-serif';
+      ctx.fillStyle = '#22c55e';
+      ctx.fillText('v⃗', vEnd.x + 6, vEnd.y + 4);
+    }
+
+    ctx.restore();
+  }
+
+  private draw2DCircularMotion(center: Vec2, ballPos: Vec2, radius: number, _omega: number) {
+    const ctx = this.ctx;
+    const sCenter = this.transformer.toScreen(center);
+    const sBall = this.transformer.toScreen(ballPos);
+    const sRadius = radius * this.transformer.getScale();
+
+    ctx.save();
+
+    ctx.strokeStyle = this.isDark ? 'rgba(148,163,184,0.35)' : 'rgba(100,116,139,0.3)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([6, 5]);
+    ctx.beginPath();
+    ctx.arc(sCenter.x, sCenter.y, sRadius, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.fillStyle = this.isDark ? '#475569' : '#64748b';
+    ctx.beginPath();
+    ctx.arc(sCenter.x, sCenter.y, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = this.isDark ? '#94a3b8' : '#475569';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(sCenter.x - 8, sCenter.y);
+    ctx.lineTo(sCenter.x + 8, sCenter.y);
+    ctx.moveTo(sCenter.x, sCenter.y - 8);
+    ctx.lineTo(sCenter.x, sCenter.y + 8);
+    ctx.stroke();
+
+    const ropeGrad = ctx.createLinearGradient(sCenter.x, sCenter.y, sBall.x, sBall.y);
+    ropeGrad.addColorStop(0, this.isDark ? '#78716c' : '#a8a29e');
+    ropeGrad.addColorStop(1, this.isDark ? '#a8a29e' : '#d6d3d1');
+    ctx.strokeStyle = ropeGrad;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(sCenter.x, sCenter.y);
+    ctx.lineTo(sBall.x, sBall.y);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  private draw3DCircularMotion(center: Vec2, ballPos: Vec2, radius: number, _omega: number, pivotH: number, ballH: number) {
+    const ctx = this.ctx;
+    const wPivot = this.worldToScreen(center.x, pivotH, center.y);
+    const wBall = this.worldToScreen(ballPos.x, ballH, ballPos.y);
+    const wGround = this.worldToScreen(center.x, 0, center.y);
+    const segments = 72;
+
+    ctx.save();
+
+    ctx.strokeStyle = this.isDark ? 'rgba(148,163,184,0.35)' : 'rgba(100,116,139,0.3)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([6, 5]);
+    ctx.beginPath();
+    for (let i = 0; i <= segments; i++) {
+      const angle = (i / segments) * Math.PI * 2;
+      const wx = center.x + radius * Math.cos(angle);
+      const wz = center.y + radius * Math.sin(angle);
+      const sp = this.worldToScreen(wx, ballH, wz);
+      if (i === 0) ctx.moveTo(sp.x, sp.y);
+      else ctx.lineTo(sp.x, sp.y);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.strokeStyle = this.isDark ? 'rgba(56,189,248,0.15)' : 'rgba(59,130,246,0.1)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 4]);
+    ctx.beginPath();
+    ctx.moveTo(wPivot.x, wPivot.y);
+    ctx.lineTo(wGround.x, wGround.y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    const pivotBaseR = 14;
+    ctx.fillStyle = this.isDark ? 'rgba(15,23,42,0.5)' : 'rgba(0,0,0,0.15)';
+    ctx.beginPath();
+    ctx.ellipse(wGround.x, wGround.y + 3, pivotBaseR, pivotBaseR * 0.35, 0, 0, Math.PI * 2);
+    ctx.fill();
+    const standGrad = ctx.createLinearGradient(wGround.x, wPivot.y, wGround.x, wGround.y);
+    standGrad.addColorStop(0, this.isDark ? '#64748b' : '#94a3b8');
+    standGrad.addColorStop(1, this.isDark ? '#334155' : '#64748b');
+    ctx.strokeStyle = standGrad;
+    ctx.lineWidth = 4;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(wPivot.x, wPivot.y);
+    ctx.lineTo(wGround.x, wGround.y);
+    ctx.stroke();
+
+    const pivotR = 7;
+    ctx.fillStyle = this.isDark ? '#1e293b' : '#334155';
+    ctx.beginPath();
+    ctx.arc(wPivot.x, wPivot.y, pivotR + 2, 0, Math.PI * 2);
+    ctx.fill();
+    const pivotGrad = ctx.createRadialGradient(
+      wPivot.x - 2, wPivot.y - 2, 1, wPivot.x, wPivot.y, pivotR,
+    );
+    pivotGrad.addColorStop(0, this.isDark ? '#94a3b8' : '#cbd5e1');
+    pivotGrad.addColorStop(0.5, this.isDark ? '#475569' : '#64748b');
+    pivotGrad.addColorStop(1, this.isDark ? '#0f172a' : '#1e293b');
+    ctx.fillStyle = pivotGrad;
+    ctx.beginPath();
+    ctx.arc(wPivot.x, wPivot.y, pivotR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = this.isDark ? 'rgba(148,163,184,0.5)' : 'rgba(255,255,255,0.3)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    const ropeGrad = ctx.createLinearGradient(wPivot.x, wPivot.y, wBall.x, wBall.y);
+    ropeGrad.addColorStop(0, this.isDark ? '#a8a29e' : '#d6d3d1');
+    ropeGrad.addColorStop(1, this.isDark ? '#78716c' : '#a8a29e');
+    ctx.strokeStyle = ropeGrad;
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(wPivot.x, wPivot.y);
+    ctx.lineTo(wBall.x, wBall.y);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  drawCircularForceVectors(center: Vec2, ballPos: Vec2, velocity: Vec2, centripetalMag: number, accelerationMag: number, showV: boolean, showA: boolean, showF: boolean, ballH = 0) {
+    if (this.use3D) {
+      this.drawCircularForceVectors3D(center, ballPos, velocity, centripetalMag, accelerationMag, showV, showA, showF, ballH);
+      return;
+    }
+    const ctx = this.ctx;
+    const transform = (p: Vec2) => this.transformer.toScreen(p);
+    const sBall = transform(ballPos);
+    const forceScale = 0.35;
+    const vScale = 0.25;
+    const aScale = 0.1;
+
+    ctx.save();
+
+    if (showF) {
+      const dx = center.x - ballPos.x;
+      const dy = center.y - ballPos.y;
+      const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+      const fVec = { x: (dx / dist) * centripetalMag * forceScale, y: (dy / dist) * centripetalMag * forceScale };
+      const fEnd = { x: ballPos.x + fVec.x, y: ballPos.y + fVec.y };
+      const sFEnd = transform(fEnd);
+
+      const fGrad = ctx.createLinearGradient(sBall.x, sBall.y, sFEnd.x, sFEnd.y);
+      fGrad.addColorStop(0, 'rgba(239,68,68,0.3)');
+      fGrad.addColorStop(1, '#ef4444');
+      ctx.strokeStyle = fGrad;
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(sBall.x, sBall.y);
+      ctx.lineTo(sFEnd.x, sFEnd.y);
+      ctx.stroke();
+
+      const angleF = Math.atan2(sFEnd.y - sBall.y, sFEnd.x - sBall.x);
+      const headLen = 12;
+      ctx.fillStyle = '#ef4444';
+      ctx.beginPath();
+      ctx.moveTo(sFEnd.x, sFEnd.y);
+      ctx.lineTo(
+        sFEnd.x - headLen * Math.cos(angleF - 0.4),
+        sFEnd.y - headLen * Math.sin(angleF - 0.4),
+      );
+      ctx.lineTo(
+        sFEnd.x - headLen * 0.6 * Math.cos(angleF),
+        sFEnd.y - headLen * 0.6 * Math.sin(angleF),
+      );
+      ctx.lineTo(
+        sFEnd.x - headLen * Math.cos(angleF + 0.4),
+        sFEnd.y - headLen * Math.sin(angleF + 0.4),
+      );
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.font = 'bold 12px sans-serif';
+      ctx.fillStyle = '#ef4444';
+      const labelX = sFEnd.x + Math.cos(angleF) * 8;
+      const labelY = sFEnd.y + Math.sin(angleF) * 8 + 4;
+      ctx.fillText('F⃗ₙ', labelX, labelY);
+    }
+
+    if (showA) {
+      const dx = center.x - ballPos.x;
+      const dy = center.y - ballPos.y;
+      const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+      const aVec = { x: (dx / dist) * accelerationMag * aScale, y: (dy / dist) * accelerationMag * aScale };
+      const aEnd = { x: ballPos.x + aVec.x, y: ballPos.y + aVec.y };
+      const sAEnd = transform(aEnd);
+
+      const aGrad = ctx.createLinearGradient(sBall.x, sBall.y, sAEnd.x, sAEnd.y);
+      aGrad.addColorStop(0, 'rgba(139,92,246,0.3)');
+      aGrad.addColorStop(1, '#8b5cf6');
+      ctx.strokeStyle = aGrad;
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(sBall.x, sBall.y);
+      ctx.lineTo(sAEnd.x, sAEnd.y);
+      ctx.stroke();
+
+      const angleA = Math.atan2(sAEnd.y - sBall.y, sAEnd.x - sBall.x);
+      const headLenA = 11;
+      ctx.fillStyle = '#8b5cf6';
+      ctx.beginPath();
+      ctx.moveTo(sAEnd.x, sAEnd.y);
+      ctx.lineTo(
+        sAEnd.x - headLenA * Math.cos(angleA - 0.4),
+        sAEnd.y - headLenA * Math.sin(angleA - 0.4),
+      );
+      ctx.lineTo(
+        sAEnd.x - headLenA * 0.6 * Math.cos(angleA),
+        sAEnd.y - headLenA * 0.6 * Math.sin(angleA),
+      );
+      ctx.lineTo(
+        sAEnd.x - headLenA * Math.cos(angleA + 0.4),
+        sAEnd.y - headLenA * Math.sin(angleA + 0.4),
+      );
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.font = 'bold 12px sans-serif';
+      ctx.fillStyle = '#8b5cf6';
+      ctx.fillText('a⃗', sAEnd.x + 6, sAEnd.y + 4);
+    }
+
+    if (showV) {
+      const vMag = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
+      const vNx = vMag > 0 ? velocity.x / vMag : 0;
+      const vNy = vMag > 0 ? velocity.y / vMag : 0;
+      const vDisp = vMag * vScale;
+      const vEnd = { x: ballPos.x + vNx * vDisp, y: ballPos.y + vNy * vDisp };
+      const sVEnd = transform(vEnd);
+
+      const vGrad = ctx.createLinearGradient(sBall.x, sBall.y, sVEnd.x, sVEnd.y);
+      vGrad.addColorStop(0, 'rgba(34,197,94,0.3)');
+      vGrad.addColorStop(1, '#22c55e');
+      ctx.strokeStyle = vGrad;
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(sBall.x, sBall.y);
+      ctx.lineTo(sVEnd.x, sVEnd.y);
+      ctx.stroke();
+
+      const angleV = Math.atan2(sVEnd.y - sBall.y, sVEnd.x - sBall.x);
+      const headLenV = 11;
+      ctx.fillStyle = '#22c55e';
+      ctx.beginPath();
+      ctx.moveTo(sVEnd.x, sVEnd.y);
+      ctx.lineTo(
+        sVEnd.x - headLenV * Math.cos(angleV - 0.4),
+        sVEnd.y - headLenV * Math.sin(angleV - 0.4),
+      );
+      ctx.lineTo(
+        sVEnd.x - headLenV * 0.6 * Math.cos(angleV),
+        sVEnd.y - headLenV * 0.6 * Math.sin(angleV),
+      );
+      ctx.lineTo(
+        sVEnd.x - headLenV * Math.cos(angleV + 0.4),
+        sVEnd.y - headLenV * Math.sin(angleV + 0.4),
+      );
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.font = 'bold 12px sans-serif';
+      ctx.fillStyle = '#22c55e';
+      ctx.fillText('v⃗', sVEnd.x + 6, sVEnd.y + 4);
+    }
+
+    ctx.restore();
   }
 
   drawArrow(from: Vec2, to: Vec2, color: string) {

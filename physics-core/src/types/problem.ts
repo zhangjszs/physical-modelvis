@@ -13,7 +13,8 @@ export type ModelType =
   | 'point-charge-field'
   | 'uniform-electric-field'
   | 'uniform-magnetic-field'
-  | 'em-combined-field';
+  | 'em-combined-field'
+  | 'uniform-circular-motion';
 
 /** 重力场配置 */
 export interface GravityConfig {
@@ -71,11 +72,21 @@ export interface CollisionConstraint {
   readonly restitution?: number;
 }
 
+/** 圆周运动约束 */
+export interface CircularMotionConstraint {
+  readonly center: Vector2D;
+  readonly radius: number;
+  readonly angularVelocity: number;
+  readonly initialAngle?: number;
+  readonly showCentripetalForce?: boolean;
+}
+
 /** 约束配置 */
 export interface ConstraintConfig {
   readonly inclinedPlane?: InclinedPlaneConstraint;
   readonly spring?: SpringConstraint;
   readonly collision?: CollisionConstraint;
+  readonly circularMotion?: CircularMotionConstraint;
 }
 
 /** 时间配置 */

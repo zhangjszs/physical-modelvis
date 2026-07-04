@@ -324,6 +324,50 @@ export const SCENES: SceneConfig[] = [
     },
   },
   {
+    id: 'circular-motion',
+    name: '匀速圆周运动',
+    model: 'uniform-circular-motion',
+    parameters: [
+      { name: 'mass', label: '小球质量 m', unit: 'kg', value: 0.2, min: 0.01, max: 5, step: 0.01, default: 0.2, description: '做圆周运动的小球质量' },
+      { name: 'radius', label: '圆周半径 r', unit: 'm', value: 1.0, min: 0.1, max: 5, step: 0.05, default: 1.0, description: '圆周运动半径（绳长）' },
+      { name: 'omega', label: '角速度 ω', unit: 'rad/s', value: 3.0, min: 0.1, max: 20, step: 0.1, default: 3.0, description: '角速度大小，越大转得越快' },
+      { name: 'initialAngle', label: '初始角度', unit: '°', value: 0, min: 0, max: 360, step: 5, default: 0, description: '小球初始位置的角度（0°=正右方）' },
+      { name: 'revolutions', label: '转动圈数', unit: '周', value: 3, min: 0.5, max: 20, step: 0.5, default: 3, description: '仿真显示的转动圈数' },
+    ],
+    buildProblem: (params) => {
+      const mass = params['mass'] ?? 0.2;
+      const radius = params['radius'] ?? 1.0;
+      const omega = params['omega'] ?? 3.0;
+      const initialAngleDeg = params['initialAngle'] ?? 0;
+      const revolutions = params['revolutions'] ?? 3;
+      const phi0 = (initialAngleDeg * Math.PI) / 180;
+      const duration = (2 * Math.PI * revolutions) / omega;
+      return {
+        id: `circular-motion-${Date.now()}`,
+        title: '匀速圆周运动（向心力演示）',
+        model: 'uniform-circular-motion' as const,
+        bodies: [{
+          id: 'ball',
+          mass: { value: mass, unit: 'kg' },
+          position: { x: radius * Math.cos(phi0), y: radius * Math.sin(phi0) },
+          velocity: { x: -radius * omega * Math.sin(phi0), y: radius * omega * Math.cos(phi0) },
+        }],
+        constraints: {
+          circularMotion: {
+            center: { x: 0, y: 0 },
+            radius,
+            angularVelocity: omega,
+            initialAngle: phi0,
+          },
+        },
+        environment: {
+          gravity: { enabled: false },
+        },
+        timeConfig: { duration, dt: duration / 600, sampleCount: 600 },
+      };
+    },
+  },
+  {
     id: 'air-track',
     name: '气垫导轨测速度',
     model: 'uniform-linear',

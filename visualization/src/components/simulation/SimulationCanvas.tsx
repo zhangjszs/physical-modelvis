@@ -20,6 +20,7 @@ const SCENES_3D = new Set([
   'projectile',
   'uniform-accelerated',
   'free-fall',
+  'circular-motion',
 ]);
 
 const SCENES_2D_CUSTOM_BG = new Set([
@@ -793,24 +794,42 @@ export function SimulationCanvas() {
     const points = trajectories[0] ?? [];
     if (points.length === 0) return;
 
-    const noGroundScenes = ['electric-field', 'magnetic-field', 'em-combined', 'collision', 'spring'];
+    const noGroundScenes = ['electric-field', 'magnetic-field', 'em-combined', 'collision', 'spring', 'circular-motion'];
     const skipGround = noGroundScenes.includes(currentScene) && !is3DScene;
     if (!skipGround) {
       renderer.drawGround(0, canvas.width);
     }
 
-    const allPositions = points.map(p => p.position);
-    ctx.globalAlpha = 0.3;
-    renderer.drawTrajectory(allPositions, COLORS.trajectory);
-    ctx.globalAlpha = 1.0;
+    const isCircular = currentScene === 'circular-motion';
+    const circularCenter = { x: 0, y: 0 };
+    const circularRadius = parameters['radius'] ?? 1.0;
+    const circularOmega = parameters['omega'] ?? 3.0;
+    const circularPivotH = is3DScene ? 1.2 : 0;
+    const circularBallH = is3DScene ? 0.35 : 0;
 
-    const pastPoints = points.filter(p => p.t <= currentTime).map(p => p.position);
-    renderer.drawTrajectory(pastPoints, COLORS.trajectory);
+    const allPositions = points.map(p => p.position);
+
+    if (isCircular && is3DScene) {
+      renderer.setCircularCoordMode(true, circularBallH);
+      renderer.draw3DCircularTrajectory(allPositions, COLORS.trajectory, circularBallH);
+    } else {
+      renderer.setCircularCoordMode(false);
+      ctx.globalAlpha = 0.3;
+      renderer.drawTrajectory(allPositions, COLORS.trajectory);
+      ctx.globalAlpha = 1.0;
+
+      const pastPoints = points.filter(p => p.t <= currentTime).map(p => p.position);
+      renderer.drawTrajectory(pastPoints, COLORS.trajectory);
+    }
 
     const idx = findFrameIndex(trajectories, currentTime);
     const p0 = points[idx]!;
     const p1 = points[Math.min(idx + 1, points.length - 1)]!;
     const frame = interpolateFrame(p0, p1, currentTime);
+
+    if (isCircular) {
+      renderer.drawCircularMotionSetup(circularCenter, frame.position, circularRadius, circularOmega, circularPivotH, circularBallH);
+    }
 
     const emScenes = ['electric-field', 'magnetic-field', 'em-combined'];
     const isEM = emScenes.includes(currentScene);
@@ -831,29 +850,52 @@ export function SimulationCanvas() {
           renderer.drawVector(bFrame.position, bFrame.velocity, bColor, `v${bi + 1}`, 0.15);
         }
       }
+    } else if (isCircular && is3DScene) {
+      const bodyColor = '#f97316';
+      const label = '小球';
+      renderer.drawCircularBody3D(frame.position, 0.12, bodyColor, visibleLayers.bodyLabels ? label : undefined, circularBallH);
+      const mass = parameters['mass'] ?? 0.2;
+      const centripetalForce = mass * circularOmega * circularOmega * circularRadius;
+      const centripetalAcc = circularOmega * circularOmega * circularRadius;
+      renderer.drawCircularForceVectors(
+        circularCenter, frame.position, frame.velocity, centripetalForce, centripetalAcc,
+        visibleLayers.velocityVector, visibleLayers.accelerationVector, visibleLayers.forceVector, circularBallH,
+      );
     } else {
       const charge = parameters['charge'] ?? 1.6;
       const bodyColor = isEM
         ? (charge >= 0 ? '#ef4444' : '#3b82f6')
-        : COLORS.body;
+        : (isCircular ? '#f97316' : COLORS.body);
       const label = isEM
         ? (charge >= 0 ? '正电荷' : '负电荷')
-        : (is3DScene ? '' : '物体');
-      renderer.drawBody(frame.position, 0.15, bodyColor, label);
+        : isCircular
+          ? '小球'
+          : (is3DScene ? '' : '物体');
+      renderer.drawBody(frame.position, isCircular ? 0.12 : 0.15, bodyColor, label);
 
-      if (visibleLayers.velocityVector) {
-        renderer.drawVector(frame.position, frame.velocity, COLORS.velocity, 'v', 0.15);
-      }
+      if (isCircular) {
+        const mass = parameters['mass'] ?? 0.2;
+        const centripetalForce = mass * circularOmega * circularOmega * circularRadius;
+        const centripetalAcc = circularOmega * circularOmega * circularRadius;
+        renderer.drawCircularForceVectors(
+          circularCenter, frame.position, frame.velocity, centripetalForce, centripetalAcc,
+          visibleLayers.velocityVector, visibleLayers.accelerationVector, visibleLayers.forceVector, 0,
+        );
+      } else {
+        if (visibleLayers.velocityVector) {
+          renderer.drawVector(frame.position, frame.velocity, COLORS.velocity, 'v', 0.15);
+        }
 
-      if (visibleLayers.accelerationVector && frame.acceleration) {
-        renderer.drawVector(frame.position, frame.acceleration, COLORS.acceleration, 'a', 0.3);
-      }
+        if (visibleLayers.accelerationVector && frame.acceleration) {
+          renderer.drawVector(frame.position, frame.acceleration, COLORS.acceleration, 'a', 0.3);
+        }
 
-      if (visibleLayers.forceVector && frame.acceleration) {
-        const mass = isEM ? (parameters['mass'] ?? 1.67) * 1e-27 : (parameters['m'] ?? 1);
-        const forceX = frame.acceleration.x * mass;
-        const forceY = frame.acceleration.y * mass;
-        renderer.drawVector(frame.position, { x: forceX, y: forceY }, COLORS.force, 'F', isEM ? 1e20 : 0.3);
+        if (visibleLayers.forceVector && frame.acceleration) {
+          const mass = isEM ? (parameters['mass'] ?? 1.67) * 1e-27 : (parameters['m'] ?? 1);
+          const forceX = frame.acceleration.x * mass;
+          const forceY = frame.acceleration.y * mass;
+          renderer.drawVector(frame.position, { x: forceX, y: forceY }, COLORS.force, 'F', isEM ? 1e20 : 0.3);
+        }
       }
     }
 
@@ -932,9 +974,15 @@ export function SimulationCanvas() {
       return rendererRef.current;
     }
 
+    const isCircular3D = currentScene === 'circular-motion';
+    const probeBallH = isCircular3D ? 0.35 : 0;
+
     function physToScreen(pos: { x: number; y: number }): { x: number; y: number } {
       const r = getRenderer();
       if (!r) return { x: 0, y: 0 };
+      if (r.is3D() && isCircular3D) {
+        return r.world3DToScreen(pos.x, probeBallH, pos.y);
+      }
       return r.worldToScreenPoint(pos);
     }
 

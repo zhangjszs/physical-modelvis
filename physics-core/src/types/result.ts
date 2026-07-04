@@ -87,9 +87,10 @@ export interface SimulationResult {
   readonly keyframes: Keyframe[];
   readonly charts: {
     readonly x_t?: ChartSeries;
-    readonly v_t?: ChartSeries;
     readonly y_t?: ChartSeries;
+    readonly v_t?: ChartSeries;
     readonly a_t?: ChartSeries;
+    readonly theta_t?: ChartSeries;
     readonly energy_t?: ChartSeries;
     readonly p_t?: ChartSeries;
     readonly ke_t?: ChartSeries;

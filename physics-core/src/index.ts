@@ -23,6 +23,7 @@ export { SpringOscillatorModel } from './models/spring-oscillator.js';
 export { InclinedPlaneModel } from './models/inclined-plane.js';
 export { EMCombinedFieldModel } from './models/em-combined-field.js';
 export { CollisionModel, InelasticCollisionModel } from './models/collision.js';
+export { UniformCircularMotionModel } from './models/uniform-circular-motion.js';
 
 // === 求解器导出 ===
 export { solveProblem } from './solver/solver-router.js';

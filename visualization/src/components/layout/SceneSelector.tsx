@@ -9,6 +9,7 @@ const SCENE_CATEGORIES = [
       { id: 'projectile', name: '平抛/斜抛' },
       { id: 'free-fall', name: '自由落体' },
       { id: 'uniform-accelerated', name: '匀变速直线' },
+      { id: 'circular-motion', name: '圆周运动' },
       { id: 'collision', name: '碰撞' },
       { id: 'spring', name: '弹簧振子' },
       { id: 'inclined-plane', name: '斜面运动' },
