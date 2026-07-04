@@ -3,7 +3,6 @@ import { COLORS } from '../utils/colorMap';
 import type { VisibleLayers, Vec2 } from '../types/visualization';
 import { labBenchTexture, clearTextureCache } from './textureFactory';
 
-type Vec3 = { x: number; y: number; z: number };
 type Screen3D = { x: number; y: number; depth: number };
 
 export class CanvasRenderer {
@@ -16,7 +15,6 @@ export class CanvasRenderer {
   private canvasH: number;
 
   private readonly CABINET_COS = 0.707;
-  private readonly CABINET_SIN = 0.707;
   private readonly CABINET_DEPTH_SCALE = 0.5;
   private readonly TILT_AZIMUTH = Math.PI / 4;
 
@@ -57,6 +55,17 @@ export class CanvasRenderer {
     if (enabled) {
       this.recompute3DParams();
     }
+  }
+
+  worldToScreenPoint(p: Vec2): { x: number; y: number } {
+    if (this.use3D) {
+      return this.physToScreen(p, 0);
+    }
+    return this.transformer.toScreen(p);
+  }
+
+  is3D(): boolean {
+    return this.use3D;
   }
 
   private recompute3DParams() {
@@ -188,8 +197,6 @@ export class CanvasRenderer {
     const gridSpacing = this.calcGridSpacing(scale);
     const zMax = this.groundZRange;
     const zMin = 0;
-    const xNear = this.canvasW / (this.baseScale) * 0.7;
-    const xFar = xNear - zMax * this.CABINET_DEPTH_SCALE * this.CABINET_COS;
     const xMin = -this.vpX / this.baseScale * 0.5;
     const xMax = (this.canvasW - this.vpX) / this.baseScale * 0.95;
 
@@ -587,7 +594,6 @@ export class CanvasRenderer {
     const ctx = this.ctx;
     const s = this.physToScreen(pos, 0);
     const r = Math.max(this.toScreenLen(radius), 10);
-    const yAboveGround = pos.y;
     const shadowY = this.worldToScreen(pos.x, 0, 0).y;
     const objY = s.y;
     const heightDiff = shadowY - objY;
@@ -831,16 +837,11 @@ export class CanvasRenderer {
 
   private draw3DGround(_y: number, _width: number) {
     const ctx = this.ctx;
-    const zMax = this.groundZRange;
     const xMin = -this.vpX / this.baseScale * 0.5;
     const xMax = (this.canvasW - this.vpX) / this.baseScale * 1.2;
 
     const bl = this.worldToScreen(xMin, 0, 0);
     const br = this.worldToScreen(xMax, 0, 0);
-    const farRightX = xMax - zMax * this.CABINET_DEPTH_SCALE * this.CABINET_COS;
-    const farLeftX = xMin - zMax * this.CABINET_DEPTH_SCALE * this.CABINET_COS;
-    const tr = this.worldToScreen(farRightX, 0, zMax);
-    const tl = this.worldToScreen(farLeftX, 0, zMax);
 
     ctx.beginPath();
     ctx.moveTo(bl.x, bl.y);
@@ -868,6 +869,158 @@ export class CanvasRenderer {
     ctx.moveTo(bl.x, bl.y);
     ctx.lineTo(br.x, br.y);
     ctx.stroke();
+  }
+
+  drawProbePoint(pos: Vec2, info: { t: number; vx: number; vy: number }, isDark: boolean) {
+    const ctx = this.ctx;
+    const s = this.use3D ? this.physToScreen(pos, 0) : this.transform(pos);
+    const r = 7;
+
+    ctx.save();
+
+    const glowGrad = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, r * 4);
+    glowGrad.addColorStop(0, 'rgba(251,191,36,0.55)');
+    glowGrad.addColorStop(0.4, 'rgba(251,191,36,0.18)');
+    glowGrad.addColorStop(1, 'rgba(251,191,36,0)');
+    ctx.fillStyle = glowGrad;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, r * 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#fbbf24';
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, r - 2, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, r - 2, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, r, 0, Math.PI * 2);
+    ctx.stroke();
+
+    const speed = Math.sqrt(info.vx * info.vx + info.vy * info.vy);
+    const lines = [
+      `t = ${info.t.toFixed(2)} s`,
+      `x = ${pos.x.toFixed(1)} m`,
+      `y = ${pos.y.toFixed(1)} m`,
+      `vₓ = ${info.vx.toFixed(1)} m/s`,
+      `vᵧ = ${info.vy.toFixed(1)} m/s`,
+      `|v| = ${speed.toFixed(1)} m/s`,
+    ];
+    const panelW = 175;
+    const lineH = 17;
+    const panelH = lines.length * lineH + 16;
+    const margin = 14;
+    let px: number;
+    let py: number;
+
+    const placeRight = s.x < this.canvasW * 0.55;
+    if (placeRight) {
+      px = s.x + margin + r;
+    } else {
+      px = s.x - margin - r - panelW;
+    }
+    py = s.y - panelH / 2;
+    if (py < 8) py = 8;
+    if (py + panelH > this.canvasH - 8) py = this.canvasH - 8 - panelH;
+
+    ctx.strokeStyle = 'rgba(251,191,36,0.35)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    const anchorX = placeRight ? px : px + panelW;
+    const anchorY = py + 22;
+    ctx.moveTo(s.x, s.y);
+    ctx.lineTo(anchorX, anchorY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.fillStyle = isDark ? 'rgba(15,23,42,0.94)' : 'rgba(255,255,255,0.96)';
+    this.roundRect(ctx, px, py, panelW, panelH, 7);
+    ctx.fill();
+
+    ctx.strokeStyle = isDark ? 'rgba(251,191,36,0.45)' : 'rgba(217,119,6,0.4)';
+    ctx.lineWidth = 1.5;
+    this.roundRect(ctx, px, py, panelW, panelH, 7);
+    ctx.stroke();
+
+    ctx.fillStyle = isDark ? 'rgba(251,191,36,0.12)' : 'rgba(251,191,36,0.08)';
+    this.roundRect(ctx, px, py, panelW, lineH + 10, 7);
+    ctx.fill();
+    ctx.fillRect(px, py + lineH + 10, panelW, 0);
+
+    ctx.font = '11px monospace';
+    ctx.textAlign = 'left';
+    const labelColor = isDark ? '#64748b' : '#94a3b8';
+    const valueColor = isDark ? '#e2e8f0' : '#1e293b';
+    const accentColor = '#fbbf24';
+
+    ctx.fillStyle = accentColor;
+    ctx.font = 'bold 12px monospace';
+    ctx.fillText(lines[0]!, px + 10, py + 20);
+
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i]!;
+      const eqIdx = line.indexOf('=');
+      const label = line.substring(0, eqIdx + 1);
+      const value = line.substring(eqIdx + 1);
+      ctx.font = '11px monospace';
+      ctx.fillStyle = labelColor;
+      ctx.fillText(label, px + 10, py + 22 + i * lineH);
+      const labelWidth = ctx.measureText(label).width;
+      ctx.fillStyle = i === lines.length - 1 ? accentColor : valueColor;
+      ctx.font = i === lines.length - 1 ? 'bold 11px monospace' : '11px monospace';
+      ctx.fillText(value, px + 10 + labelWidth, py + 22 + i * lineH);
+    }
+
+    ctx.fillStyle = '#fbbf24';
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  drawCrosshair(pos: Vec2, isDark: boolean) {
+    const ctx = this.ctx;
+    const s = this.use3D ? this.physToScreen(pos, 0) : this.transform(pos);
+    ctx.save();
+    ctx.strokeStyle = isDark ? 'rgba(251,191,36,0.4)' : 'rgba(217,119,6,0.4)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(s.x, 0);
+    ctx.lineTo(s.x, this.canvasH);
+    ctx.moveTo(0, s.y);
+    ctx.lineTo(this.canvasW, s.y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+  }
+
+  private transform(p: Vec2): Screen3D {
+    const s = this.transformer.toScreen(p);
+    return { x: s.x, y: s.y, depth: 0 };
+  }
+
+  private roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.arcTo(x + w, y, x + w, y + r, r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+    ctx.lineTo(x + r, y + h);
+    ctx.arcTo(x, y + h, x, y + h - r, r);
+    ctx.lineTo(x, y + r);
+    ctx.arcTo(x, y, x + r, y, r);
+    ctx.closePath();
   }
 
   drawArrow(from: Vec2, to: Vec2, color: string) {

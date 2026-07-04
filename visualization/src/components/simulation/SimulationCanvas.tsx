@@ -4,6 +4,7 @@ import { CoordinateTransformer } from '../../rendering/CoordinateTransformer';
 import { CanvasRenderer } from '../../rendering/CanvasRenderer';
 import { COLORS } from '../../utils/colorMap';
 import { findFrameIndex, interpolateFrame, getTotalDuration } from '../../utils/frameUtils';
+import type { TrajectoryPoint } from 'physics-core';
 import {
   drawAirTrack, drawGlider, drawPhotogate, drawDigitalTimer, drawRuler, drawCalipers,
   updateAirflowParticles,
@@ -673,6 +674,7 @@ export function SimulationCanvas() {
   const animFrameRef = useRef<number>(0);
   const lastTimeRef = useRef<number>(0);
   const airflowParticlesRef = useRef<AirflowParticle[]>([]);
+  const probeRef = useRef<TrajectoryPoint | null>(null);
 
   const {
     simulationResult, currentTime, isPlaying, playbackSpeed,
@@ -855,6 +857,16 @@ export function SimulationCanvas() {
       }
     }
 
+    const probe = probeRef.current;
+    if (probe && !isAirTrack) {
+      renderer.drawCrosshair(probe.position, isDark);
+      renderer.drawProbePoint(probe.position, {
+        t: probe.t,
+        vx: probe.velocity.x,
+        vy: probe.velocity.y,
+      }, isDark);
+    }
+
     const timeText = `t = ${currentTime.toFixed(3)} s`;
     const xText = `x = ${frame.position.x.toFixed(2)} m`;
     const yText = `y = ${frame.position.y.toFixed(2)} m`;
@@ -910,6 +922,121 @@ export function SimulationCanvas() {
       cancelAnimationFrame(animFrameRef.current);
     };
   }, [isPlaying, playbackSpeed, simulationResult, currentTime, render, setCurrentTime, pause]);
+
+  useEffect(() => {
+    const canvasEl = canvasRef.current;
+    if (!canvasEl) return;
+    const canvas: HTMLCanvasElement = canvasEl;
+
+    function getRenderer(): CanvasRenderer | null {
+      return rendererRef.current;
+    }
+
+    function physToScreen(pos: { x: number; y: number }): { x: number; y: number } {
+      const r = getRenderer();
+      if (!r) return { x: 0, y: 0 };
+      return r.worldToScreenPoint(pos);
+    }
+
+    function findNearestTrajectoryPoint(mx: number, my: number): TrajectoryPoint | null {
+      if (!simulationResult) return null;
+      const trajectories = simulationResult.trajectories;
+      if (!trajectories || trajectories.length === 0) return null;
+      const points = trajectories[0] ?? [];
+      if (points.length < 2) return null;
+
+      const hitRadius = 18;
+      let best: { point: TrajectoryPoint; dist: number } | null = null;
+
+      for (let i = 0; i < points.length; i++) {
+        const p = points[i]!;
+        const s = physToScreen(p.position);
+        const dx = s.x - mx;
+        const dy = s.y - my;
+        const d = Math.sqrt(dx * dx + dy * dy);
+        if (d < hitRadius && (!best || d < best.dist)) {
+          best = { point: p, dist: d };
+        }
+      }
+
+      for (let i = 0; i < points.length - 1; i++) {
+        const p0 = points[i]!;
+        const p1 = points[i + 1]!;
+        const s0 = physToScreen(p0.position);
+        const s1 = physToScreen(p1.position);
+        const segDx = s1.x - s0.x;
+        const segDy = s1.y - s0.y;
+        const segLen2 = segDx * segDx + segDy * segDy;
+        if (segLen2 < 1) continue;
+        let t = ((mx - s0.x) * segDx + (my - s0.y) * segDy) / segLen2;
+        t = Math.max(0, Math.min(1, t));
+        const px = s0.x + t * segDx;
+        const py = s0.y + t * segDy;
+        const dx = px - mx;
+        const dy = py - my;
+        const d = Math.sqrt(dx * dx + dy * dy);
+        if (d < hitRadius && (!best || d < best.dist)) {
+          const interpT = p0.t + t * (p1.t - p0.t);
+          const interpX = p0.position.x + t * (p1.position.x - p0.position.x);
+          const interpY = p0.position.y + t * (p1.position.y - p0.position.y);
+          const interpVx = p0.velocity.x + t * (p1.velocity.x - p0.velocity.x);
+          const interpVy = p0.velocity.y + t * (p1.velocity.y - p0.velocity.y);
+          best = {
+            point: {
+              t: interpT,
+              position: { x: interpX, y: interpY },
+              velocity: { x: interpVx, y: interpVy },
+              acceleration: p0.acceleration,
+            },
+            dist: d,
+          };
+        }
+      }
+
+      if (!best) return null;
+      return best.point;
+    }
+
+    function getCanvasPos(e: MouseEvent): { x: number; y: number } {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      return {
+        x: (e.clientX - rect.left) * scaleX,
+        y: (e.clientY - rect.top) * scaleY,
+      };
+    }
+
+    function onMouseMove(e: MouseEvent) {
+      const { x: mx, y: my } = getCanvasPos(e);
+      const nearest = findNearestTrajectoryPoint(mx, my);
+      probeRef.current = nearest;
+      canvas.style.cursor = nearest ? 'crosshair' : 'default';
+    }
+
+    function onMouseLeave() {
+      probeRef.current = null;
+      canvas.style.cursor = 'default';
+    }
+
+    function onClick(e: MouseEvent) {
+      const { x: mx, y: my } = getCanvasPos(e);
+      const nearest = findNearestTrajectoryPoint(mx, my);
+      if (nearest) {
+        pause();
+        setCurrentTime(nearest.t);
+      }
+    }
+
+    canvas.addEventListener('mousemove', onMouseMove);
+    canvas.addEventListener('mouseleave', onMouseLeave);
+    canvas.addEventListener('click', onClick);
+    return () => {
+      canvas.removeEventListener('mousemove', onMouseMove);
+      canvas.removeEventListener('mouseleave', onMouseLeave);
+      canvas.removeEventListener('click', onClick);
+    };
+  }, [simulationResult, pause, setCurrentTime]);
 
   return (
     <div className="canvas-wrapper">
