@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { SimulationState, VisibleLayers } from '../types/visualization';
+import type { SimulationState, VisibleLayers, GraphType } from '../types/visualization';
 import { getTotalDuration } from '../utils/frameUtils';
 
 const DEFAULT_LAYERS: VisibleLayers = {
@@ -12,6 +12,18 @@ const DEFAULT_LAYERS: VisibleLayers = {
   energyLabels: false,
   bodyLabels: true,
 };
+
+/** 根据场景 ID 返回默认选中的图表类型 */
+function getDefaultGraphForScene(sceneId: string): GraphType {
+  switch (sceneId) {
+    case 'air-track':       return 'x_t';
+    case 'hooke-law':       return 'x_t';
+    case 'sliding-friction':return 'f_N';
+    case 'force-composition': return 'F_theta';
+    case 'newton-third-law':return 'F_t';
+    default:                return 'y_t';
+  }
+}
 
 export const useSimulationStore = create<SimulationState>((set, get) => ({
   currentScene: 'projectile',
@@ -41,8 +53,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
       simulationResult: null,
       errorMessage: null,
       experimentData: null,
-      // 气垫导轨是 1D 水平运动，默认显示 x-t 图
-      selectedGraph: sceneId === 'air-track' ? 'x_t' : s.selectedGraph,
+      selectedGraph: getDefaultGraphForScene(sceneId),
     }));
   },
 
@@ -58,7 +69,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
       simulationResult: null,
       errorMessage: null,
       experimentData: null,
-      selectedGraph: sceneId === 'air-track' ? 'x_t' : s.selectedGraph,
+      selectedGraph: getDefaultGraphForScene(sceneId),
     }));
   },
 

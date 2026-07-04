@@ -94,6 +94,9 @@ export interface SimulationResult {
     readonly energy_t?: ChartSeries;
     readonly p_t?: ChartSeries;
     readonly ke_t?: ChartSeries;
+    readonly F_t?: ChartSeries;          // 第三章: 力随时间变化
+    readonly F_theta?: ChartSeries;      // 第三章: 合力随夹角变化 (力的合成)
+    readonly f_N?: ChartSeries;          // 第三章: 摩擦力随正压力变化
     readonly force_diagram?: ForceDiagram;
   };
   readonly diagnostics: {

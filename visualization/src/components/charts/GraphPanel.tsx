@@ -15,10 +15,34 @@ const GRAPH_OPTIONS: Array<{ key: GraphType; label: string }> = [
   { key: 'ke_t', label: 'Ek-t' },
   { key: 'pe_t', label: 'Ep-t' },
   { key: 'total_e_t', label: 'E-t' },
+  { key: 'F_t', label: 'F-t' },
+  { key: 'F_theta', label: 'F-θ' },
+  { key: 'f_N', label: 'f-N' },
 ];
 
+/** 不同图表类型的 x 轴标签配置 */
+const X_AXIS_CONFIG: Record<GraphType, { label: string; unit: string }> = {
+  x_t: { label: 't', unit: 's' },
+  y_t: { label: 't', unit: 's' },
+  vx_t: { label: 't', unit: 's' },
+  vy_t: { label: 't', unit: 's' },
+  a_t: { label: 't', unit: 's' },
+  ke_t: { label: 't', unit: 's' },
+  pe_t: { label: 't', unit: 's' },
+  total_e_t: { label: 't', unit: 's' },
+  p_t: { label: 't', unit: 's' },
+  F_t: { label: 't', unit: 's' },
+  F_theta: { label: 'θ', unit: '°' },
+  f_N: { label: 'N', unit: 'N' },
+};
+
+/** 判断图表的 x 轴是否为时间轴 (用于决定是否显示当前时间参考线) */
+function isTimeBasedChart(graphType: GraphType): boolean {
+  return graphType !== 'F_theta' && graphType !== 'f_N';
+}
+
 export function GraphPanel() {
-  const { simulationResult, selectedGraph, setSelectedGraph, currentTime, theme } = useSimulationStore();
+  const { simulationResult, selectedGraph, setSelectedGraph, currentTime, theme, currentScene } = useSimulationStore();
   const isDark = theme === 'dark';
 
   if (!simulationResult) {
@@ -37,11 +61,32 @@ export function GraphPanel() {
   const data = currentSeries.data.map(d => ({ t: parseFloat(d.t.toFixed(4)), value: d.value }));
   const axisColor = isDark ? '#94a3b8' : '#64748b';
   const gridColor = isDark ? '#1e293b' : '#e2e8f0';
+  const xAxisCfg = X_AXIS_CONFIG[selectedGraph];
+  const showTimeRefLine = isTimeBasedChart(selectedGraph);
+
+  // 根据当前场景筛选可用的图表选项
+  const availableOptions = GRAPH_OPTIONS.filter(opt => {
+    // 第三章场景只显示相关图表
+    if (currentScene === 'force-composition') {
+      return opt.key === 'F_theta';
+    }
+    if (currentScene === 'sliding-friction') {
+      return opt.key === 'f_N' || opt.key === 'vx_t';
+    }
+    if (currentScene === 'newton-third-law') {
+      return opt.key === 'F_t' || opt.key === 'vx_t';
+    }
+    if (currentScene === 'hooke-law') {
+      return opt.key === 'x_t' || opt.key === 'vx_t';
+    }
+    // 其他场景隐藏第三章专用图表
+    return opt.key !== 'F_theta' && opt.key !== 'f_N' && opt.key !== 'F_t';
+  });
 
   return (
     <div className="graph-panel">
       <div className="graph-tabs">
-        {GRAPH_OPTIONS.map(opt => (
+        {availableOptions.map(opt => (
           <button
             key={opt.key}
             className={`btn btn-sm ${selectedGraph === opt.key ? 'active' : ''}`}
@@ -59,7 +104,7 @@ export function GraphPanel() {
               dataKey="t"
               stroke={axisColor}
               tick={{ fontSize: 11 }}
-              label={{ value: 't (s)', position: 'insideBottomRight', offset: -4, fill: axisColor, fontSize: 11 }}
+              label={{ value: `${xAxisCfg.label} (${xAxisCfg.unit})`, position: 'insideBottomRight', offset: -4, fill: axisColor, fontSize: 11 }}
             />
             <YAxis
               stroke={axisColor}
@@ -75,16 +120,18 @@ export function GraphPanel() {
                 fontSize: 12,
               }}
               formatter={(value: number) => [`${value.toFixed(4)} ${currentSeries.unit}`, currentSeries.label]}
-              labelFormatter={(label) => `t = ${label} s`}
+              labelFormatter={(label) => `${xAxisCfg.label} = ${label} ${xAxisCfg.unit}`}
             />
             <Legend />
-            <ReferenceLine
-              x={parseFloat(currentTime.toFixed(4))}
-              stroke="#f59e0b"
-              strokeWidth={2}
-              strokeDasharray="4 4"
-              label={{ value: '当前', fill: '#f59e0b', fontSize: 11 }}
-            />
+            {showTimeRefLine && (
+              <ReferenceLine
+                x={parseFloat(currentTime.toFixed(4))}
+                stroke="#f59e0b"
+                strokeWidth={2}
+                strokeDasharray="4 4"
+                label={{ value: '当前', fill: '#f59e0b', fontSize: 11 }}
+              />
+            )}
             <Line
               type="monotone"
               dataKey="value"

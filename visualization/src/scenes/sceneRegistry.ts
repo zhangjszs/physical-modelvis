@@ -399,6 +399,150 @@ export const SCENES: SceneConfig[] = [
       };
     },
   },
+  // ========================================================================
+  // 必修一 第三章 相互作用——力
+  // ========================================================================
+  {
+    id: 'hooke-law',
+    name: '胡克定律 F=kx',
+    model: 'spring-oscillator',
+    parameters: [
+      { name: 'k', label: '劲度系数 k', unit: 'N/m', value: 20, min: 1, max: 200, step: 1, default: 20, description: '弹簧的劲度系数，反映弹簧"软硬程度"' },
+      { name: 'massPerWeight', label: '钩码质量 m', unit: 'g', value: 50, min: 10, max: 200, step: 5, default: 50, description: '每个钩码的质量 (常见 50g)' },
+      { name: 'weightCount', label: '钩码数量 n', unit: '个', value: 4, min: 0, max: 10, step: 1, default: 4, description: '悬挂的钩码个数' },
+      { name: 'g', label: '重力加速度 g', unit: 'm/s²', value: PHYSICS_CONSTANTS.g.value, min: 1, max: 20, step: 0.1, default: PHYSICS_CONSTANTS.g.value, description: '重力加速度' },
+      { name: 'duration', label: '模拟时长', unit: 's', value: 2, min: 0.5, max: 10, step: 0.5, default: 2, description: '仿真总时长 (用于动画展示)' },
+    ],
+    buildProblem: (params) => {
+      const k = params['k'] ?? 20;
+      const massPerWeight_g = params['massPerWeight'] ?? 50;
+      const weightCount = params['weightCount'] ?? 4;
+      const g = params['g'] ?? PHYSICS_CONSTANTS.g.value;
+      const duration = params['duration'] ?? 2;
+      const m = (massPerWeight_g / 1000) * Math.max(1, weightCount); // 至少 1 个钩码避免 0 质量
+      // 弹簧从原长 L0=0 开始，挂上钩码后平衡位置 x = mg/k
+      const x_eq = (m * g) / k;
+      return {
+        id: `hooke-law-${Date.now()}`,
+        title: '胡克定律 (弹簧弹力与形变量)',
+        model: 'spring-oscillator',
+        bodies: [{
+          id: 'weight',
+          mass: { value: m, unit: 'kg' },
+          position: { x: x_eq, y: 0 },  // 从平衡位置开始 (静止)
+          velocity: { x: 0, y: 0 },
+        }],
+        constraints: {
+          spring: { springConstant: k, naturalLength: 0, anchorPoint: { x: 0, y: 0 } },
+        },
+        environment: { gravity: { enabled: true, value: g } },
+        timeConfig: { duration, dt: duration / 200, sampleCount: 200 },
+      };
+    },
+  },
+  {
+    id: 'sliding-friction',
+    name: '滑动摩擦力 f=μN',
+    model: 'sliding-friction',
+    parameters: [
+      { name: 'mu', label: '动摩擦因数 μ', unit: '', value: 0.3, min: 0, max: 1.5, step: 0.01, default: 0.3, description: '动摩擦因数，由接触面材料和粗糙程度决定' },
+      { name: 'mass', label: '物体质量 m', unit: 'kg', value: 1, min: 0.1, max: 10, step: 0.1, default: 1, description: '物体质量 (改变正压力 N=mg)' },
+      { name: 'v0', label: '初速度 v₀', unit: 'm/s', value: 0.5, min: 0, max: 5, step: 0.1, default: 0.5, description: '物体初速度' },
+      { name: 'uniformMotion', label: '运动模式 (1=匀速 0=加速)', unit: '', value: 1, min: 0, max: 1, step: 1, default: 1, description: '1=外力等于摩擦力做匀速运动；0=外力大于摩擦力做加速运动' },
+      { name: 'g', label: '重力加速度 g', unit: 'm/s²', value: PHYSICS_CONSTANTS.g.value, min: 1, max: 20, step: 0.1, default: PHYSICS_CONSTANTS.g.value, description: '重力加速度' },
+      { name: 'duration', label: '模拟时长', unit: 's', value: 4, min: 0.5, max: 20, step: 0.5, default: 4, description: '仿真总时长' },
+    ],
+    buildProblem: (params) => {
+      const mu = params['mu'] ?? 0.3;
+      const mass = params['mass'] ?? 1;
+      const v0 = params['v0'] ?? 0.5;
+      const uniformMotion = (params['uniformMotion'] ?? 1) === 1;
+      const g = params['g'] ?? PHYSICS_CONSTANTS.g.value;
+      const duration = params['duration'] ?? 4;
+      return {
+        id: `sliding-friction-${Date.now()}`,
+        title: '滑动摩擦力 (f=μN)',
+        model: 'sliding-friction',
+        bodies: [{
+          id: 'block',
+          mass: { value: mass, unit: 'kg' },
+          position: { x: 0, y: 0 },
+          velocity: { x: v0, y: 0 },
+        }],
+        constraints: {
+          slidingFriction: { frictionCoefficient: mu, uniformMotion },
+        },
+        environment: { gravity: { enabled: true, value: g } },
+        timeConfig: { duration, dt: duration / 400, sampleCount: 400 },
+      };
+    },
+  },
+  {
+    id: 'force-composition',
+    name: '力的合成 (平行四边形定则)',
+    model: 'force-composition',
+    parameters: [
+      { name: 'f1', label: '分力 F₁', unit: 'N', value: 3, min: 0, max: 20, step: 0.1, default: 3, description: '第一个分力的大小' },
+      { name: 'f2', label: '分力 F₂', unit: 'N', value: 4, min: 0, max: 20, step: 0.1, default: 4, description: '第二个分力的大小' },
+      { name: 'angleDeg', label: '夹角 θ', unit: '°', value: 90, min: 0, max: 180, step: 1, default: 90, description: 'F₁ 与 F₂ 之间的夹角' },
+      { name: 'duration', label: '动画时长', unit: 's', value: 1, min: 0.5, max: 5, step: 0.5, default: 1, description: 'F-θ 曲线扫描时长' },
+    ],
+    buildProblem: (params) => {
+      const f1 = params['f1'] ?? 3;
+      const f2 = params['f2'] ?? 4;
+      const angleDeg = params['angleDeg'] ?? 90;
+      const duration = params['duration'] ?? 1;
+      return {
+        id: `force-composition-${Date.now()}`,
+        title: '力的合成与分解 (平行四边形定则)',
+        model: 'force-composition',
+        bodies: [{
+          id: 'point',
+          mass: { value: 1, unit: 'kg' },
+          position: { x: 0, y: 0 },
+          velocity: { x: 0, y: 0 },
+        }],
+        constraints: {
+          forceComposition: { f1, f2, angleDeg, f1AngleDeg: 0 },
+        },
+        environment: {},
+        timeConfig: { duration, dt: duration / 360, sampleCount: 360 },
+      };
+    },
+  },
+  {
+    id: 'newton-third-law',
+    name: '牛顿第三定律',
+    model: 'newton-third-law',
+    parameters: [
+      { name: 'forceAB', label: '作用力 F_AB', unit: 'N', value: 5, min: -20, max: 20, step: 0.5, default: 5, description: 'A 对 B 施加的作用力 (正=向右)"' },
+      { name: 'massA', label: '物体 A 质量', unit: 'kg', value: 1, min: 0.1, max: 10, step: 0.1, default: 1, description: '物体 A 的质量' },
+      { name: 'massB', label: '物体 B 质量', unit: 'kg', value: 2, min: 0.1, max: 10, step: 0.1, default: 2, description: '物体 B 的质量' },
+      { name: 'allowMotion', label: '运动模式 (1=加速 0=静止)', unit: '', value: 0, min: 0, max: 1, step: 1, default: 0, description: '1=两物体在光滑水平面上共同加速；0=两物体固定，仅展示力' },
+      { name: 'duration', label: '模拟时长', unit: 's', value: 3, min: 0.5, max: 20, step: 0.5, default: 3, description: '仿真总时长' },
+    ],
+    buildProblem: (params) => {
+      const forceAB = params['forceAB'] ?? 5;
+      const massA = params['massA'] ?? 1;
+      const massB = params['massB'] ?? 2;
+      const allowMotion = (params['allowMotion'] ?? 0) === 1;
+      const duration = params['duration'] ?? 3;
+      return {
+        id: `newton-third-law-${Date.now()}`,
+        title: '牛顿第三定律 (作用力与反作用力)',
+        model: 'newton-third-law',
+        bodies: [
+          { id: 'A', mass: { value: massA, unit: 'kg' }, position: { x: -1, y: 0 }, velocity: { x: 0, y: 0 } },
+          { id: 'B', mass: { value: massB, unit: 'kg' }, position: { x: 1, y: 0 }, velocity: { x: 0, y: 0 } },
+        ],
+        constraints: {
+          newtonThirdLaw: { forceAB, allowMotion },
+        },
+        environment: {},
+        timeConfig: { duration, dt: duration / 300, sampleCount: 300 },
+      };
+    },
+  },
 ];
 export function getDefaultParams(sceneId: string): Record<string, number> {
   const scene = SCENES.find(s => s.id === sceneId);

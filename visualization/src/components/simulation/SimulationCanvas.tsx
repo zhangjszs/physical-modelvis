@@ -15,6 +15,12 @@ import {
   type PhotogateMeasurement,
 } from '../../utils/photogate';
 import { woodTexture, metalTexture } from '../../rendering/textureFactory';
+import {
+  drawHookeLawScene,
+  drawSlidingFrictionScene,
+  drawForceCompositionScene,
+  drawNewtonThirdLawScene,
+} from '../../rendering/chapter3Scenes';
 
 const SCENES_3D = new Set([
   'projectile',
@@ -30,6 +36,14 @@ const SCENES_2D_CUSTOM_BG = new Set([
   'collision',
   'spring',
   'inclined-plane',
+]);
+
+/** 第三章「相互作用——力」场景集合：完整自定义渲染，不走标准轨迹/物体绘制流程 */
+const SCENES_CHAPTER3 = new Set([
+  'hooke-law',
+  'sliding-friction',
+  'force-composition',
+  'newton-third-law',
 ]);
 
 /** 绘制匀强电场线（渐变发光箭头，方向向上） */
@@ -736,6 +750,7 @@ export function SimulationCanvas() {
   const isDark = theme === 'dark';
   const is3DScene = SCENES_3D.has(currentScene);
   const isAirTrack = currentScene === 'air-track';
+  const isChapter3 = SCENES_CHAPTER3.has(currentScene);
   const hasCustom2DBackground = SCENES_2D_CUSTOM_BG.has(currentScene);
 
   useEffect(() => {
@@ -770,7 +785,7 @@ export function SimulationCanvas() {
 
   useEffect(() => {
     if (!simulationResult || !transformerRef.current) return;
-    if (isAirTrack) return;
+    if (isAirTrack || isChapter3) return;  // 第三章场景使用屏幕坐标，无需 autoFit
     const canvas = canvasRef.current;
     if (!canvas) return;
     const allPoints: Array<{ x: number; y: number }> = [];
@@ -787,7 +802,7 @@ export function SimulationCanvas() {
     } else {
       transformerRef.current.autoFit(allPoints, canvas.width, canvas.height);
     }
-  }, [simulationResult, currentScene, is3DScene, isAirTrack]);
+  }, [simulationResult, currentScene, is3DScene, isAirTrack, isChapter3]);
 
   const render = useCallback(() => {
     const canvas = canvasRef.current;
@@ -797,8 +812,11 @@ export function SimulationCanvas() {
 
     const ctx = canvas.getContext('2d')!;
     renderer.clear(canvas.width, canvas.height);
-    renderer.drawGrid(canvas.width, canvas.height);
-    renderer.drawAxes(canvas.width, canvas.height);
+    // 第三章场景使用屏幕坐标系，不需要网格/坐标轴
+    if (!isChapter3) {
+      renderer.drawGrid(canvas.width, canvas.height);
+      renderer.drawAxes(canvas.width, canvas.height);
+    }
 
     if (!is3DScene && hasCustom2DBackground) {
       if (currentScene === 'electric-field') {
@@ -814,6 +832,21 @@ export function SimulationCanvas() {
       } else if (currentScene === 'inclined-plane') {
         drawInclinedPlaneScene(ctx, transformer, canvas.width, canvas.height, isDark, parameters);
       }
+    }
+
+    // 第三章场景：完整自定义渲染 (背景 + 动态元素 + HUD)，跳过标准轨迹/物体流程
+    if (isChapter3) {
+      const sceneOpts = {
+        ctx, width: canvas.width, height: canvas.height, isDark,
+        params: parameters, simulationResult, currentTime,
+      };
+      switch (currentScene) {
+        case 'hooke-law':         drawHookeLawScene(sceneOpts); break;
+        case 'sliding-friction':  drawSlidingFrictionScene(sceneOpts); break;
+        case 'force-composition': drawForceCompositionScene(sceneOpts); break;
+        case 'newton-third-law':  drawNewtonThirdLawScene(sceneOpts); break;
+      }
+      return;
     }
 
     if (!simulationResult) {
@@ -983,7 +1016,7 @@ export function SimulationCanvas() {
       ctx.fillText(xText, 16, 50);
       ctx.fillText(yText, 16, 68);
     }
-  }, [simulationResult, currentTime, visibleLayers, isDark, currentScene, parameters, experimentData, is3DScene, isAirTrack, hasCustom2DBackground]);
+  }, [simulationResult, currentTime, visibleLayers, isDark, currentScene, parameters, experimentData, is3DScene, isAirTrack, isChapter3, hasCustom2DBackground]);
 
   useEffect(() => {
     let running = true;
