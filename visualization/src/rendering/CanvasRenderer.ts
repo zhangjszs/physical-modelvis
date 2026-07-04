@@ -124,6 +124,44 @@ export class CanvasRenderer {
     return physLen * this.baseScale;
   }
 
+  private drawVectorLabel(
+    x: number, y: number,
+    letter: string, subscript: string | null,
+    color: string,
+  ) {
+    const ctx = this.ctx;
+    ctx.font = 'bold 13px sans-serif';
+    ctx.fillStyle = color;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+
+    ctx.fillText(letter, x, y);
+    const metrics = ctx.measureText(letter);
+    const lw = metrics.width;
+
+    if (subscript) {
+      ctx.font = 'bold 9px sans-serif';
+      ctx.fillText(subscript, x + lw - 1, y + 4);
+    }
+
+    const arrowY = y - 13;
+    const arrowStartX = x - 1;
+    const arrowEndX = x + lw + 2;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(arrowStartX, arrowY);
+    ctx.lineTo(arrowEndX, arrowY);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(arrowEndX, arrowY);
+    ctx.lineTo(arrowEndX - 4, arrowY - 3);
+    ctx.moveTo(arrowEndX, arrowY);
+    ctx.lineTo(arrowEndX - 4, arrowY + 3);
+    ctx.stroke();
+  }
+
   clear(width: number, height: number) {
     const ctx = this.ctx;
     this.canvasW = width;
@@ -1210,9 +1248,7 @@ export class CanvasRenderer {
       ctx.closePath();
       ctx.fill();
 
-      ctx.font = 'bold 12px sans-serif';
-      ctx.fillStyle = '#ef4444';
-      ctx.fillText('F⃗ₙ', fEnd.x + Math.cos(angleF) * 8, fEnd.y + Math.sin(angleF) * 8 + 4);
+      this.drawVectorLabel(fEnd.x + Math.cos(angleF) * 8, fEnd.y + Math.sin(angleF) * 8 + 4, 'F', 'n', '#ef4444');
     }
 
     if (showA) {
@@ -1245,9 +1281,7 @@ export class CanvasRenderer {
       ctx.closePath();
       ctx.fill();
 
-      ctx.font = 'bold 12px sans-serif';
-      ctx.fillStyle = '#8b5cf6';
-      ctx.fillText('a⃗', aEnd.x + Math.cos(angleA) * 8, aEnd.y + Math.sin(angleA) * 8 + 4);
+      this.drawVectorLabel(aEnd.x + Math.cos(angleA) * 8, aEnd.y + Math.sin(angleA) * 8 + 4, 'a', null, '#8b5cf6');
     }
 
     if (showV) {
@@ -1279,9 +1313,7 @@ export class CanvasRenderer {
       ctx.closePath();
       ctx.fill();
 
-      ctx.font = 'bold 12px sans-serif';
-      ctx.fillStyle = '#22c55e';
-      ctx.fillText('v⃗', vEnd.x + 6, vEnd.y + 4);
+      this.drawVectorLabel(vEnd.x + 6, vEnd.y + 4, 'v', null, '#22c55e');
     }
 
     ctx.restore();
@@ -1465,11 +1497,9 @@ export class CanvasRenderer {
       ctx.closePath();
       ctx.fill();
 
-      ctx.font = 'bold 12px sans-serif';
-      ctx.fillStyle = '#ef4444';
       const labelX = sFEnd.x + Math.cos(angleF) * 8;
       const labelY = sFEnd.y + Math.sin(angleF) * 8 + 4;
-      ctx.fillText('F⃗ₙ', labelX, labelY);
+      this.drawVectorLabel(labelX, labelY, 'F', 'n', '#ef4444');
     }
 
     if (showA) {
@@ -1511,9 +1541,7 @@ export class CanvasRenderer {
       ctx.closePath();
       ctx.fill();
 
-      ctx.font = 'bold 12px sans-serif';
-      ctx.fillStyle = '#8b5cf6';
-      ctx.fillText('a⃗', sAEnd.x + 6, sAEnd.y + 4);
+      this.drawVectorLabel(sAEnd.x + 6, sAEnd.y + 4, 'a', null, '#8b5cf6');
     }
 
     if (showV) {
@@ -1555,9 +1583,7 @@ export class CanvasRenderer {
       ctx.closePath();
       ctx.fill();
 
-      ctx.font = 'bold 12px sans-serif';
-      ctx.fillStyle = '#22c55e';
-      ctx.fillText('v⃗', sVEnd.x + 6, sVEnd.y + 4);
+      this.drawVectorLabel(sVEnd.x + 6, sVEnd.y + 4, 'v', null, '#22c55e');
     }
 
     ctx.restore();

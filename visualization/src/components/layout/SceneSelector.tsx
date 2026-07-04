@@ -40,7 +40,6 @@ export function SceneSelector() {
       {SCENE_CATEGORIES.map(cat => {
         const isActive = activeCategory?.label === cat.label;
         const isOpen = openCategory === cat.label;
-        const activeScene = cat.scenes.find(s => s.id === currentScene);
 
         return (
           <div key={cat.label} className="scene-category">
