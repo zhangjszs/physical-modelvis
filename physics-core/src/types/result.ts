@@ -98,6 +98,9 @@ export interface SimulationResult {
     readonly ke_t?: ChartSeries;
     readonly pe_t?: ChartSeries;         // 势能
     readonly r_t?: ChartSeries;          // 轨道半径
+    readonly impulse_t?: ChartSeries;    // 累积冲量
+    readonly v1_t?: ChartSeries;         // 物体1速度 (碰撞/反冲)
+    readonly v2_t?: ChartSeries;         // 物体2速度 (碰撞/反冲)
     readonly F_t?: ChartSeries;          // 第三章: 力随时间变化
     readonly F_theta?: ChartSeries;      // 第三章: 合力随夹角变化 (力的合成)
     readonly f_N?: ChartSeries;          // 第三章: 摩擦力随正压力变化

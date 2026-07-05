@@ -24,7 +24,9 @@ export type ModelType =
   // 必修二 第一章 抛体运动
   | 'projectile'             // 抛体运动 (平抛 + 斜抛)
   // 必修二 第三章 万有引力与航天
-  | 'orbital';               // 万有引力轨道运动
+  | 'orbital'                // 万有引力轨道运动
+  // 选必一 第一章 动量守恒定律
+  | 'momentum';              // 动量定理 / 反冲
 
 /** 重力场配置 */
 export interface GravityConfig {
@@ -141,6 +143,14 @@ export interface ProjectileConstraint {
   readonly initialHeight?: number;
 }
 
+/** 动量定理/反冲约束 — 选必一 §1 */
+export interface MomentumConstraint {
+  /** 模式：'impulse' (动量定理) 或 'recoil' (反冲) */
+  readonly mode: 'impulse' | 'recoil';
+  /** 冲量模式：恒力 F (N) */
+  readonly force?: number;
+}
+
 /** 万有引力轨道约束 — 必修二 §3 */
 export interface OrbitalConstraint {
   /** 中心天体引力参数 GM (m³/s²)，默认地球 3.986×10¹⁴ */
@@ -163,6 +173,7 @@ export interface ConstraintConfig {
   readonly newtonSecondLaw?: NewtonSecondLawConstraint;
   readonly projectile?: ProjectileConstraint;
   readonly orbital?: OrbitalConstraint;
+  readonly momentum?: MomentumConstraint;
 }
 
 /** 时间配置 */

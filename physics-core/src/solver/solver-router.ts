@@ -16,6 +16,7 @@ import { SlidingFrictionModel } from '../models/sliding-friction.js';
 import { NewtonSecondLawModel } from '../models/newton-second-law.js';
 import { ProjectileModel } from '../models/projectile.js';
 import { OrbitalModel } from '../models/orbital.js';
+import { MomentumModel } from '../models/momentum.js';
 
 registerModel(new UniformLinearModel());
 registerModel(new UniformAcceleratedModel());
@@ -37,6 +38,8 @@ registerModel(new NewtonSecondLawModel());
 registerModel(new ProjectileModel());
 // 必修二 第三章 万有引力与航天
 registerModel(new OrbitalModel());
+// 选必一 第一章 动量守恒定律
+registerModel(new MomentumModel());
 
 export function solveProblem(problem: PhysicsProblem): SimulationResult {
   const model = getModel(problem.model);

@@ -5,6 +5,7 @@ export type { Vector2D, Quantity, ParameterSpec, ValidationResult, PhysicalBody,
 export type {
   PhysicsProblem, ModelType, NewtonSecondLawConstraint, ForceCompositionConstraint,
   NewtonThirdLawConstraint, SlidingFrictionConstraint, ProjectileConstraint, OrbitalConstraint,
+  MomentumConstraint,
 } from './types/problem.js';
 export type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep, FormulaUsage } from './types/result.js';
 
@@ -37,6 +38,8 @@ export { NewtonSecondLawModel } from './models/newton-second-law.js';
 export { ProjectileModel } from './models/projectile.js';
 // 必修二 第三章 万有引力与航天
 export { OrbitalModel } from './models/orbital.js';
+// 选必一 第一章 动量守恒定律
+export { MomentumModel } from './models/momentum.js';
 
 // === 求解器导出 ===
 export { solveProblem } from './solver/solver-router.js';
