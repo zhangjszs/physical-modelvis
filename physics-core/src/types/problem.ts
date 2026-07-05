@@ -20,7 +20,9 @@ export type ModelType =
   | 'newton-third-law'       // 牛顿第三定律 (作用力与反作用力)
   | 'sliding-friction'       // 滑动摩擦力 (f = μN)
   // 必修一 第四章 运动和力的关系
-  | 'newton-second-law';     // 牛顿第二定律 (F = ma)
+  | 'newton-second-law'      // 牛顿第二定律 (F = ma)
+  // 必修二 第一章 抛体运动
+  | 'projectile';            // 抛体运动 (平抛 + 斜抛)
 
 /** 重力场配置 */
 export interface GravityConfig {
@@ -125,6 +127,14 @@ export interface NewtonSecondLawConstraint {
   readonly includeFriction?: boolean;
 }
 
+/** 抛体运动约束 — 必修二 §1 */
+export interface ProjectileConstraint {
+  /** 发射角 (度, 0°=水平, 90°=竖直上抛) */
+  readonly angleDeg: number;
+  /** 初始高度 (m) */
+  readonly initialHeight?: number;
+}
+
 /** 约束配置 */
 export interface ConstraintConfig {
   readonly inclinedPlane?: InclinedPlaneConstraint;
@@ -135,6 +145,7 @@ export interface ConstraintConfig {
   readonly newtonThirdLaw?: NewtonThirdLawConstraint;
   readonly slidingFriction?: SlidingFrictionConstraint;
   readonly newtonSecondLaw?: NewtonSecondLawConstraint;
+  readonly projectile?: ProjectileConstraint;
 }
 
 /** 时间配置 */

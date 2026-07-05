@@ -4,7 +4,7 @@
 export type { Vector2D, Quantity, ParameterSpec, ValidationResult, PhysicalBody, RenderHint } from './types/common.js';
 export type {
   PhysicsProblem, ModelType, NewtonSecondLawConstraint, ForceCompositionConstraint,
-  NewtonThirdLawConstraint, SlidingFrictionConstraint,
+  NewtonThirdLawConstraint, SlidingFrictionConstraint, ProjectileConstraint,
 } from './types/problem.js';
 export type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep, FormulaUsage } from './types/result.js';
 
@@ -33,6 +33,8 @@ export { NewtonThirdLawModel } from './models/newton-third-law.js';
 export { SlidingFrictionModel } from './models/sliding-friction.js';
 // 必修一 第四章 运动和力的关系
 export { NewtonSecondLawModel } from './models/newton-second-law.js';
+// 必修二 第一章 抛体运动
+export { ProjectileModel } from './models/projectile.js';
 
 // === 求解器导出 ===
 export { solveProblem } from './solver/solver-router.js';

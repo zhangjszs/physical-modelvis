@@ -90,10 +90,13 @@ export interface SimulationResult {
     readonly y_t?: ChartSeries;
     readonly v_t?: ChartSeries;
     readonly a_t?: ChartSeries;
+    readonly vx_t?: ChartSeries;         // 抛体: 水平分速度
+    readonly vy_t?: ChartSeries;         // 抛体: 竖直分速度
     readonly theta_t?: ChartSeries;
     readonly energy_t?: ChartSeries;
     readonly p_t?: ChartSeries;
     readonly ke_t?: ChartSeries;
+    readonly pe_t?: ChartSeries;         // 势能
     readonly F_t?: ChartSeries;          // 第三章: 力随时间变化
     readonly F_theta?: ChartSeries;      // 第三章: 合力随夹角变化 (力的合成)
     readonly f_N?: ChartSeries;          // 第三章: 摩擦力随正压力变化

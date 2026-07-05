@@ -22,13 +22,14 @@
   - 提交：c5d7064 feat: 牛顿第二定律可视化场景 (必修一第四章)
   - sceneRegistry 6 参数；标准渲染流程；端到端验证 F=10N m=2kg t=3s → v=15m/s x=22.5m
 
-- [~] 实现牛顿第一定律（惯性）可视化场景
-  - 描述：展示无外力下的匀速直线运动，对比有外力时的变化
-  - 涉及文件：visualization/src/scenes/sceneRegistry.ts, visualization/src/rendering/
+- [x] 实现牛顿第一定律（惯性）可视化场景 ✅ 2026-07-05
+  - 提交：1bd45a6 feat: 牛顿第一定律 (惯性) 可视化场景
+  - 复用 uniform-linear 模型 (零外力 → 匀速直线运动)
+  - 验证：v=2m/s 持续 5s 匀速，Δx=10m
 
 ## 阶段四：必修二
 
-- [ ] 扩展抛体运动场景（平抛 + 斜抛）
+- [~] 扩展抛体运动场景（平抛 + 斜抛）
   - 描述：增强 projectile 场景，支持斜抛运动，展示轨迹分解
   - 涉及文件：visualization/src/rendering/, physics-core/src/models/
   - 参考：experiments/必修二_第1章_抛体运动.md
