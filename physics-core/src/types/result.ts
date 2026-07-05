@@ -122,10 +122,35 @@ export interface SimulationResult {
     readonly sin_theta_t_end?: ChartSeries; // sinθ-t_end: 不同 θ 对应的斜面下落时间
     // 悬挂法重心 — 静态示意图 (多边形轮廓 + 两次悬挂线 + 重心标记)
     readonly 'static-diagram'?: ChartSeries;
+    // 运动合成分解 (蜡块实验) — y vs x 抛物线轨迹
+    readonly 'y-x'?: ChartSeries;
+    // 传动皮带/齿轮 (必修二 §2 几种传动方式)
+    readonly omega_comparison?: ChartSeries;     // ω₁ vs ω₂ (随传动比变化)
+    readonly gear_ratio?: ChartSeries;            // 角速度比 vs 半径比
+    readonly r_omega_inverse?: ChartSeries;      // r-ω 反比关系图 (皮带)
+    readonly v_surfaces?: ChartSeries;            // 两轮边缘线速度对比
+    // 竖直圆周 (必修二 §2 竖直圆周最高点条件)
+    readonly vc_trajectory?: ChartSeries;         // 圆周轨迹 (x-y) 静态示意
+    readonly tension_angle?: ChartSeries;         // 绳张力 vs 角度 (最高点最小)
+    readonly vc_speed_angle?: ChartSeries;        // 速率 vs 角度
+    readonly vc_energy_angle?: ChartSeries;       // 机械能/分量 vs 角度
+    readonly vmin_markers?: ChartSeries;          // 临界速度标记 (静态示意图)
+    // 离心现象 (必修二 §2 离心运动)
+    readonly omega_critical_curve?: ChartSeries;  // 临界 ω-√r 曲线 F_fric = m·ω²·r
+    readonly centrifugal_traj?: ChartSeries;      // 物块相对地面轨迹 (x-y)
+    readonly required_vs_provided?: ChartSeries;  // F_需 与 F_实,max 对比 (随半径)
+    readonly slip_diagnostics?: ChartSeries;      // 是否滑动的判定边界
+    // 卡文迪什扭秤 (必修二 §3)
+    readonly displacement_sin?: ChartSeries;       // 引力-扭转角 (τ-θ) 关系图
+    readonly 'static-diagram-cavendish'?: ChartSeries; // 扭秤示意图 (大球-小球-镜面-光点)
+    // 月地检验 (必修二 §3)
+    readonly 'moon-earth-data'?: ChartSeries;    // a_月 vs g/3600 数据对比表 (points)
+    readonly ratio_R_r?: ChartSeries;            // 比例 R/r 验证图
   };
   readonly diagnostics: {
     readonly conservedQuantities: ConservedQuantity[];
     readonly maxValues: Record<string, number>;
+    readonly flags?: Record<string, boolean>;
     readonly rangeCheck: RangeCheckResult;
   };
   readonly explanation: {

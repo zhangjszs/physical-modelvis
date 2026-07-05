@@ -32,7 +32,7 @@
   - **复用**: air-track, uniform-accelerated, free-fall, hooke-law, sliding-friction, force-composition, newton-third-law, newton-first-law, newton-second-law
   - **退出条件**: `npm test && npm run build` → `git commit -m "feat: 必修一 20 实验全覆盖"`
 
-- [ ] **阶段 C: 必修二 25 实验**
+- [~] **阶段 C: 必修二 25 实验**
   - **新建 Model**: curve-velocity-direction, curve-condition, motion-composition, transmission-belt, vertical-circle, centrifugal, cavendish, moon-earth-test (共 8 个)
   - **复用**: projectile (×3), circular-motion (×4), orbital (×2), energy-conservation (×4), free-fall (×2), air-track, simple-pendulum, spring (×2)
   - **退出条件**: `npm test && npm run build` → `git commit -m "feat: 必修二 25 实验全覆盖"`

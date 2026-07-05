@@ -13,6 +13,14 @@ export type {
   InertiaConstraint, InertiaMode,
   OverweightConstraint, OverweightMode,
   CenterOfGravityConstraint,
+  TransmissionConstraint,
+  VerticalCircleConstraint,
+  CentrifugalConstraint,
+  CurveVelocityConstraint,
+  CurveTrackShape,
+  CurveConditionConstraint,
+  MotionCompositionConstraint,
+  CavendishConstraint, MoonEarthTestConstraint,
 } from './types/problem.js';
 export type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep, FormulaUsage } from './types/result.js';
 
@@ -43,8 +51,18 @@ export { SlidingFrictionModel } from './models/sliding-friction.js';
 export { NewtonSecondLawModel } from './models/newton-second-law.js';
 // 必修二 第一章 抛体运动
 export { ProjectileModel } from './models/projectile.js';
+// 必修二 第一章 曲线运动 (速度方向 / 曲线条件 / 运动合成)
+export { CurveVelocityDirectionModel } from './models/curve-velocity-direction.js';
+export { CurveConditionModel } from './models/curve-condition.js';
+export { MotionCompositionModel } from './models/motion-composition.js';
+// 必修二 第二章 圆周运动
+export { TransmissionBeltModel } from './models/transmission-belt.js';
+export { VerticalCircleModel } from './models/vertical-circle.js';
+export { CentrifugalModel } from './models/centrifugal.js';
 // 必修二 第三章 万有引力与航天
 export { OrbitalModel } from './models/orbital.js';
+export { CavendishModel } from './models/cavendish.js';
+export { MoonEarthTestModel } from './models/moon-earth-test.js';
 // 选必一 第一章 动量守恒定律
 export { MomentumModel } from './models/momentum.js';
 // 选必一 第二章 机械振动

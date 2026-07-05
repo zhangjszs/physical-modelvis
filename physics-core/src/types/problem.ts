@@ -23,8 +23,17 @@ export type ModelType =
   | 'newton-second-law'      // 牛顿第二定律 (F = ma)
   // 必修二 第一章 抛体运动
   | 'projectile'             // 抛体运动 (平抛 + 斜抛)
+  | 'curve-velocity-direction' // 曲线运动速度方向 (切线方向)
+  | 'curve-condition'        // 曲线运动条件 (合力与速度共线/不共线)
+  | 'motion-composition'     // 运动合成分解 (蜡块实验: 水平匀速 + 竖直匀加速)
+  // 必修二 第二章 圆周运动
+  | 'transmission-belt'      // 几种传动方式 (皮带/齿轮/摩擦轮/同轴)
+  | 'vertical-circle'        // 竖直圆周最高点条件 (绳/杆/圆环)
+  | 'centrifugal'            // 离心现象 (F_实 < m·ω²·r)
   // 必修二 第三章 万有引力与航天
   | 'orbital'                // 万有引力轨道运动
+  | 'cavendish'              // 卡文迪什扭秤 (测 G)
+  | 'moon-earth-test'        // 月地检验 (a_月 = g/3600)
   // 选必一 第一章 动量守恒定律
   | 'momentum'               // 动量定理 / 反冲
   // 选必一 第二章 机械振动
@@ -180,6 +189,80 @@ export interface ProjectileConstraint {
   readonly initialHeight?: number;
 }
 
+/** 曲线运动速度方向轨道形状 — 必修二 §1 (曲线运动速度方向沿切线) */
+export type CurveTrackShape = 'circle' | 'parabola' | 'spiral';
+
+/**
+ * 曲线运动速度方向约束 — 必修二 §1
+ *
+ * 物理: 质点做曲线运动时, 在某点的速度方向沿曲线在该点的切线方向。
+ * 模型从不同 "脱离点" (releaseIndex) 出发, 以切向速度脱离轨道做直线运动,
+ * 用于对比展示 "切线方向即速度方向"。
+ *
+ *   - circle: x = R·cos(ω·t), y = R·sin(ω·t), v_切向 = ω·R
+ *   - parabola: x = x₀ + v₀·t, y = k·(x₀ + v₀·t)², v 沿切线方向
+ *   - spiral: r(t) = r₀ + b·ω·t, θ(t) = ω·t (阿基米德螺线)
+ */
+export interface CurveVelocityConstraint {
+  /** 轨道形状 */
+  readonly trackShape: CurveTrackShape;
+  /** 角速度 ω (rad/s), 用于圆周/螺线缩放. 抛体时理解为 "切向速率"(m/s) */
+  readonly angularSpeed: number;
+  /** 采样点数量 (生成 3-5 条不同脱离点轨迹), 默认 5 */
+  readonly sampleCount?: number;
+  /** 默认释放时间段 [0,T] 内每个释放点所对应的时间长度 (s), 默认 2 */
+  readonly releaseDuration?: number;
+  /** 发射半径 R (m) (circle | spiral), 默认 2 */
+  readonly radius?: number;
+  /** 螺线增长系数 b (spiral), 每弧度增加半径 m, 默认 0.5 */
+  readonly spiralGrowth?: number;
+  /** 抛物线系数 k (1/m), 默认 0.5 */
+  readonly parabolaK?: number;
+  /** 基础切向速率 (m/s), 用于抛物线/螺线初始切向速度, 默认取 angularSpeed */
+  readonly initialSpeed?: number;
+}
+
+/**
+ * 曲线运动条件约束 — 必修二 §1
+ *
+ * 物理: 当合力 F 与速度 v 不共线时, 物体做曲线运动；
+ *       共线时做直线运动 (同向匀加速 / 反向匀减速)；
+ *       当 F ⊥ v 且 F 大小不变时, 物体做匀速圆周运动 (仅理论演示)。
+ *
+ * 默认: 质点从原点以 v₀ = (initialSpeed, 0) 出发,
+ *       受恒力 F 沿 forceDirectionDeg 方向 (°, 相对 +x), 质量 m。
+ *       x(t) = v₀·t + ½·(F/m)·cosθ·t²
+ *       y(t) = ½·(F/m)·sinθ·t²
+ *       vx(t) = v₀ + (F/m)·cosθ·t
+ *       vy(t) = (F/m)·sinθ·t
+ */
+export interface CurveConditionConstraint {
+  /** 合力方向角 (°, 相对 +x 轴), 0=右, 90=上 */
+  readonly forceDirectionDeg: number;
+  /** 初速度大小 (m/s), 沿 +x */
+  readonly initialSpeed: number;
+  /** 质量 (kg) */
+  readonly mass: number;
+  /** 合力大小 (N), 默认 10 */
+  readonly forceMagnitude?: number;
+}
+
+/**
+ * 运动合成分解约束 — 必修二 §1 (蜡块实验)
+ *
+ * 物理: (1) 水平方向匀速: x = vxConst · t
+ *       (2) 竖直方向匀加速: y = ½ · vyAccel · t²
+ *       (3) 合速度 v_合 = √(vx² + vy²),  tanθ = vy / vx
+ *
+ * 曲线运动轨迹 (抛物线): y = (vyAccel / (2·vxConst²)) · x²
+ */
+export interface MotionCompositionConstraint {
+  /** 水平方向匀速速度 vx (m/s) */
+  readonly vxConst: number;
+  /** 竖直方向匀加速度 a_y (m/s²) */
+  readonly vyAccel: number;
+}
+
 /** 动量定理/反冲约束 — 选必一 §1 */
 export interface MomentumConstraint {
   /** 模式：'impulse' (动量定理) 或 'recoil' (反冲) */
@@ -196,6 +279,49 @@ export interface OrbitalConstraint {
   readonly centralRadius?: number;
   /** 是否显示椭圆轨道焦点 (地心) */
   readonly showCenter?: boolean;
+}
+
+/**
+ * 卡文迪什扭秤约束 — 必修二 §3 实验 (测 G)
+ *
+ * 三次"放大":
+ *   1. 力矩放大: τ = F·L (L = 悬丝到小球距离，即半臂长)
+ *   2. 扭转放大: θ = τ/k (k = 扭转常数)
+ *   3. 光杠杆放大: Δspot = 2·D·θ (D = 镜面到投影屏距离)
+ *
+ * 引力: F = G·m₁·m₂/r²
+ */
+export interface CavendishConstraint {
+  /** 大球质量 m₁ (kg), 默认 500 */
+  readonly m1: number;
+  /** 小球质量 m₂ (kg), 默认 1 */
+  readonly m2: number;
+  /** 大小球球心距离 r (m), 默认 0.1 */
+  readonly distance: number;
+  /** (可选) 悬丝到小球距离 (半臂长) L (m), 默认 1 — 用于力矩, 若不传按 m1>>m2 简化 */
+  readonly armLength?: number;
+  /** 扭转常数 k (N·m/rad), 默认 1e-8 */
+  readonly torsionConst: number;
+  /** 镜面到投影屏距离 D (m), 默认 5 */
+  readonly mirrorDist: number;
+}
+
+/**
+ * 月地检验约束 — 必修二 §3
+ *
+ * 牛顿猜想: 月球绕地球运动的加速度 a_月 = ω²·r_月 = 4π²·r/T²
+ * 应与地面重力加速度 g 满足平方反比律:
+ *   a_月 / g = (R_地 / r_月)² = (1/60)² = 1/3600 ≈ 2.78×10⁻⁴
+ *
+ * 理论: a_月 = g/3600 ≈ 2.72×10⁻³ m/s²
+ */
+export interface MoonEarthTestConstraint {
+  /** 地球半径 R (m), 默认 6.371×10⁶ */
+  readonly earthRadius: number;
+  /** 地月距离 r (m), 默认 3.844×10⁸ */
+  readonly moonDistance: number;
+  /** 月球公转周期 T (s), 默认 27.3·86400 */
+  readonly moonPeriod: number;
 }
 
 /** 单摆约束 — 选必一 §2 */
@@ -496,6 +622,70 @@ export interface InertiaConstraint {
   readonly frictionCoeff?: number;
 }
 
+/**
+ * 传动约束 — 必修二 §2 (几种传动方式)
+ *
+ * 皮带/摩擦轮边缘: v = ω·r (两轮边缘线速度等大)
+ * 齿轮: ω₁·r₁ = ω₂·r₂ (转向相反)
+ * 同轴: ω 等大
+ */
+export interface TransmissionConstraint {
+  /** 传动模式: belt 皮带 | gear 齿轮 | friction 摩擦轮 | coax 同轴 */
+  readonly mode: 'belt' | 'gear' | 'friction' | 'coax';
+  /** 主动轮半径 (m) */
+  readonly r1: number;
+  /** 从动轮半径 (m) */
+  readonly r2: number;
+  /** 主动轮角速度 (rad/s) */
+  readonly omega1: number;
+  /** 主动轮中心坐标 (用于静态演示) */
+  readonly center1?: Vector2D;
+  /** 从动轮中心坐标 (用于静态演示) */
+  readonly center2?: Vector2D;
+}
+
+/**
+ * 竖直圆周约束 — 必修二 §2 (竖直圆周最高点条件)
+ *
+ * 绳模型: 最高点 T=0 即 mg=mv²/r → v_min = √(gr) (只能提供拉力)
+ * 杆模型: v_min = 0 (可提供拉力与支持力)
+ * 圆环模型: 与绳类似 (内侧只能提供"指向圆心的单侧约束")
+ */
+export interface VerticalCircleConstraint {
+  /** 绳/杆长 (即圆周半径 r) */
+  readonly length: number;
+  /** 物体质量 (kg) */
+  readonly mass: number;
+  /** 约束类型: rope 绳 | rod 杆 | ring 圆环 */
+  readonly modelType: 'rope' | 'rod' | 'ring';
+  /** 最低点初速度 (m/s) — 由此推导最高点速度 (机械能守恒) */
+  readonly initialSpeed: number;
+  /** 可覆盖默认重力加速度 (m/s²) */
+  readonly gravity?: number;
+  /** 圆心坐标 (用于静态演示) */
+  readonly center?: Vector2D;
+}
+
+/**
+ * 离心现象约束 — 必修二 §2 (离心运动)
+ *
+ * 物体在转盘上做圆周运动所需向心力: F_需 = m·ω²·r
+ * 实际能提供的最大静摩擦力: F_实,max = μ·m·g
+ * 当 F_需 > F_实,max 时物体做离心运动 (惯性驱使维持原速度方向)
+ */
+export interface CentrifugalConstraint {
+  /** 物块质量 (kg) */
+  readonly mass: number;
+  /** 物块所在旋转半径 (m) */
+  readonly radius: number;
+  /** 转盘角速度 ω (rad/s) */
+  readonly angularSpeed: number;
+  /** 物块与转盘间静摩擦系数 */
+  readonly frictionCoeff: number;
+  /** 可覆盖默认重力加速度 (m/s²) */
+  readonly gravity?: number;
+}
+
 /** 约束配置 */
 export interface ConstraintConfig {
   readonly inclinedPlane?: InclinedPlaneConstraint;
@@ -507,7 +697,15 @@ export interface ConstraintConfig {
   readonly slidingFriction?: SlidingFrictionConstraint;
   readonly newtonSecondLaw?: NewtonSecondLawConstraint;
   readonly projectile?: ProjectileConstraint;
+  /** 曲线运动速度方向约束 — 必修二 §1 (沿切线方向) */
+  readonly curveVelocity?: CurveVelocityConstraint;
+  /** 曲线运动条件约束 — 必修二 §1 (合力与速度共线/不共线) */
+  readonly curveCondition?: CurveConditionConstraint;
+  /** 运动合成分解约束 — 必修二 §1 (蜡块实验) */
+  readonly motionComposition?: MotionCompositionConstraint;
   readonly orbital?: OrbitalConstraint;
+  readonly cavendish?: CavendishConstraint;
+  readonly moonEarthTest?: MoonEarthTestConstraint;
   readonly momentum?: MomentumConstraint;
   readonly simplePendulum?: SimplePendulumConstraint;
   readonly wave?: WaveConstraint;
@@ -531,6 +729,12 @@ export interface ConstraintConfig {
   readonly overweight?: OverweightConstraint;
   /** 悬挂法确定重心 */
   readonly centerOfGravity?: CenterOfGravityConstraint;
+  /** 传动约束 — 必修二 §2 (皮带/齿轮/摩擦轮/同轴) */
+  readonly transmission?: TransmissionConstraint;
+  /** 竖直圆周约束 — 必修二 §2 (绳/杆/圆环) */
+  readonly verticalCircle?: VerticalCircleConstraint;
+  /** 离心现象约束 — 必修二 §2 (F_实 < m·ω²·r) */
+  readonly centrifugal?: CentrifugalConstraint;
 }
 
 /** 时间配置 */

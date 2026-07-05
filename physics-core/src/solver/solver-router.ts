@@ -15,7 +15,15 @@ import { NewtonThirdLawModel } from '../models/newton-third-law.js';
 import { SlidingFrictionModel } from '../models/sliding-friction.js';
 import { NewtonSecondLawModel } from '../models/newton-second-law.js';
 import { ProjectileModel } from '../models/projectile.js';
+import { CurveVelocityDirectionModel } from '../models/curve-velocity-direction.js';
+import { CurveConditionModel } from '../models/curve-condition.js';
+import { MotionCompositionModel } from '../models/motion-composition.js';
+import { TransmissionBeltModel } from '../models/transmission-belt.js';
+import { VerticalCircleModel } from '../models/vertical-circle.js';
+import { CentrifugalModel } from '../models/centrifugal.js';
 import { OrbitalModel } from '../models/orbital.js';
+import { CavendishModel } from '../models/cavendish.js';
+import { MoonEarthTestModel } from '../models/moon-earth-test.js';
 import { MomentumModel } from '../models/momentum.js';
 import { SimplePendulumModel } from '../models/simple-pendulum.js';
 import { MechanicalWaveModel } from '../models/mechanical-wave.js';
@@ -56,8 +64,18 @@ registerModel(new SlidingFrictionModel());
 registerModel(new NewtonSecondLawModel());
 // 必修二 第一章 抛体运动
 registerModel(new ProjectileModel());
+// 必修二 第一章 曲线运动 (速度方向 / 曲线条件 / 运动合成)
+registerModel(new CurveVelocityDirectionModel());
+registerModel(new CurveConditionModel());
+registerModel(new MotionCompositionModel());
+// 必修二 第二章 圆周运动
+registerModel(new TransmissionBeltModel());
+registerModel(new VerticalCircleModel());
+registerModel(new CentrifugalModel());
 // 必修二 第三章 万有引力与航天
 registerModel(new OrbitalModel());
+registerModel(new CavendishModel());
+registerModel(new MoonEarthTestModel());
 // 选必一 第一章 动量守恒定律
 registerModel(new MomentumModel());
 // 选必一 第二章 机械振动 (单摆)
