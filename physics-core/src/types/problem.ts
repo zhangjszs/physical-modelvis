@@ -45,6 +45,10 @@ export type ModelType =
   | 'interference'           // 双缝干涉 / 薄膜干涉
   // 必修三 第十一章 电路及其应用
   | 'circuit'                // 直流电路 (串并联)
+  | 'capacitor-charge'       // 电容充放电 (RC 暂态电路)
+  | 'parallel-plate-capacitor' // 平行板电容器因素 (C=εr·S/(4πkd))
+  | 'resistance-law'         // 电阻定律 (R=ρ·L/S)
+  | 'load-voltage'           // 路端电压与负载 (U=E−Ir)
   // 选必三 气体/热学
   | 'gas-law'                // 理想气体状态方程
   // 选必三 §4 原子结构和波粒二象性
@@ -72,7 +76,21 @@ export type ModelType =
   // 必修一 第四章 运动和力的关系 (超重和失重)
   | 'overweight'            // 超重与失重 — 电梯加速度方向演示
   // 重心实验 (悬挂法)
-  | 'center-of-gravity';    // 悬挂法确定均匀薄板重心
+  | 'center-of-gravity'    // 悬挂法确定均匀薄板重心
+  // 必修三 实验: 测量仪器读数练习
+  | 'vernier-caliper'          // 游标卡尺读数
+  | 'micrometer'               // 螺旋测微器读数
+  | 'multimeter'               // 多用电表使用
+  // 必修三 第十二章 安培力因素实验
+  | 'ampere-force'             // 安培力因素 (F = BIL·sinθ)
+  // 必修三 第十三章 赫兹电磁波实验
+  | 'em-wave-hertz'           // 赫兹电磁波实验
+  // 必修三 第十二章 静电感应 / 验电器 / 电荷间作用力 / 静电屏蔽 / 法拉第圆筒
+  | 'electrostatic-induction'    // 静电感应 (感应电荷分布 + 箔片张角)
+  | 'electroscope'               // 验电器 (箔片张角 vs 电荷量)
+  | 'coulomb-force-explore'      // 探究电荷间作用力 (F=k·|q₁q₂|/r²)
+  | 'electrostatic-shielding'    // 静电屏蔽 (接地 vs 不接地 E=0)
+  | 'faraday-cup';              // 法拉第圆筒 (内表面电荷=0)
 
 /** 重力场配置 */
 export interface GravityConfig {
@@ -406,6 +424,107 @@ export interface CircuitConstraint {
   }>;
 }
 
+/**
+ * RC 暂态 (电容充放电) 约束 — 必修三 第十一章
+ *
+ * 充电:
+ *   U_c(t) = E·(1 − e^(−t/τ)),  I(t) = (E/R)·e^(−t/τ),  Q(t) = CE·(1−e^(−t/τ))
+ * 放电 (U_c 从 E 开始):
+ *   U_c(t) = E·e^(−t/τ),       I(t) = −(E/R)·e^(−t/τ),     ln U_c = ln E − t/τ
+ * 时间常数 τ = RC
+ */
+export interface CapacitorConstraint {
+  /** 电阻 (Ω) */
+  readonly resistance: number;
+  /** 电容 (F) */
+  readonly capacitance: number;
+  /** 电源电动势 (V) (充电) / 初始电压 (放电) */
+  readonly emf: number;
+  /** 'charge' (从 0 充电到 E) 或 'discharge' (从 E 放电到 0) */
+  readonly mode: 'charge' | 'discharge';
+  /** 采样点数, 默认 120 */
+  readonly sampleCount?: number;
+  /** 时间跨度上限 (单位 τ 的倍数), 默认 5 → 0~5τ */
+  readonly timeSpanTau?: number;
+}
+
+/**
+ * 平行板电容器因素约束 — 必修三 第十一章
+ *
+ * 电容决定式: C = εr·S / (4π·k·d) = εr·ε₀·S/d
+ * 三个控制变量实验: C vs 1/d (线性), C vs S (线性), C vs εr (线性)
+ */
+export interface ParallelPlateConstraint {
+  /** 极板面积 (m²) — 基准面积, 改变 d/εr 时固定 */
+  readonly area: number;
+  /** 极板距离 (m) — 基准距离, 改变 S/εr 时固定 */
+  readonly distance: number;
+  /** 相对介电常数 εr — 基准介电常数, 改变 S/d 时固定 */
+  readonly epsilonR: number;
+  /** 扫描采样点数 (每个维度), 默认 60 */
+  readonly sampleCount?: number;
+  /** 极板距离扫描范围 [d_min, d_max] (m), 默认 [1e-4, 8e-4] */
+  readonly distanceRange?: [number, number];
+  /** 极板面积扫描范围 [S_min, S_max] (m²), 默认 [1e-3, 5e-2] */
+  readonly areaRange?: [number, number];
+  /** 相对介电常数扫描范围 [εr_min, εr_max], 默认 [1, 10] */
+  readonly epsilonRange?: [number, number];
+}
+
+/** 电阻材料类型 — 必修三 第十一章 */
+export type ResistanceMaterial = 'Cu' | 'Fe' | 'Nichrome';
+
+/**
+ * 材料电阻率 (Ω·m) — 必修三 第十一章 (20°C 左右参考值)
+ *   Cu ≈ 1.68×10⁻⁸ Ω·m     (铜)
+ *   Fe ≈ 1.0×10⁻⁷ Ω·m      (铁)
+ *   Nichrome ≈ 1.1×10⁻⁶ Ω·m (镍铬合金)
+ */
+export const RESISTIVITY: Record<ResistanceMaterial, number> = {
+  Cu: 1.68e-8,
+  Fe: 1.0e-7,
+  Nichrome: 1.1e-6,
+};
+
+/**
+ * 电阻定律约束 — 必修三 第十一章
+ *
+ * R = ρ·L/S, S = π·(d/2)²  (d 需换算为 m)
+ * 三因素扫描: R-L (线性), R-1/S (线性), 材料比较 (Cu/Fe/Nichrome)
+ */
+export interface ResistanceLawConstraint {
+  /** 导线长度 (m) — 基准长度 */
+  readonly length: number;
+  /** 导线直径 (mm) — 基准直径 (内部换算为 m) */
+  readonly diameter: number;
+  /** 材料 */
+  readonly material: ResistanceMaterial;
+  /** 长度扫描范围 [L_min, L_max] (m), 默认 [0.2, 5] */
+  readonly lengthRange?: [number, number];
+  /** 直径扫描范围 [d_min, d_max] (mm), 默认 [0.5, 5] */
+  readonly diameterRange?: [number, number];
+  /** 采样点数 (每个维度), 默认 60 */
+  readonly sampleCount?: number;
+}
+
+/**
+ * 路端电压与负载约束 — 必修三 第十一章 (闭合电路欧姆定律)
+ *
+ * U = E·R/(R+r)  (U-R 曲线):  R=0 → 0, R→∞ → E
+ * U = E − I·r   (U-I 直线):  截距=E, 斜率=−r
+ * 可由 U-I 数据线性拟合反推 E_exp, r_exp, 与输入参数比较验证
+ */
+export interface LoadVoltageConstraint {
+  /** 电动势 (V) */
+  readonly emf: number;
+  /** 内阻 (Ω) */
+  readonly internalResistance: number;
+  /** 负载电阻扫描范围 (Ω) [R_min, R_max] */
+  readonly loadRange: [number, number];
+  /** 采样点数, 默认 60 */
+  readonly sampleCount?: number;
+}
+
 /** 理想气体状态方程约束 — 选必三 §2 (pV=nRT) */
 export interface GasLawConstraint {
   /** 物质的量 (mol) */
@@ -712,6 +831,14 @@ export interface ConstraintConfig {
   readonly refraction?: RefractionConstraint;
   readonly interference?: InterferenceConstraint;
   readonly circuit?: CircuitConstraint;
+  /** RC 暂态 (电容充放电) — 必修三 §11 */
+  readonly capacitor?: CapacitorConstraint;
+  /** 平行板电容器因素 — 必修三 §11 (C=εr·S/(4πkd)) */
+  readonly parallelPlate?: ParallelPlateConstraint;
+  /** 电阻定律 — 必修三 §11 (R=ρ·L/S) */
+  readonly resistanceLaw?: ResistanceLawConstraint;
+  /** 路端电压与负载 — 必修三 §11 (U=E−Ir) */
+  readonly loadVoltage?: LoadVoltageConstraint;
   readonly gasLaw?: GasLawConstraint;
   readonly photoelectric?: PhotoelectricConstraint;
   readonly bohr?: BohrModelConstraint;
@@ -735,6 +862,186 @@ export interface ConstraintConfig {
   readonly verticalCircle?: VerticalCircleConstraint;
   /** 离心现象约束 — 必修二 §2 (F_实 < m·ω²·r) */
   readonly centrifugal?: CentrifugalConstraint;
+  /** 游标卡尺读数约束 — 必修三 实验 */
+  readonly vernierCaliper?: VernierCaliperConstraint;
+  /** 螺旋测微器读数约束 — 必修三 实验 */
+  readonly micrometer?: MicrometerConstraint;
+  /** 多用电表使用约束 — 必修三 实验 */
+  readonly multimeter?: MultimeterConstraint;
+  /** 安培力因素约束 — 必修三 §12 (F = BIL·sinθ) */
+  readonly ampereForce?: AmpereForceConstraint;
+  /** 赫兹电磁波实验约束 — 必修三 §13 */
+  readonly hertzExperiment?: HertzExperimentConstraint;
+  /** 静电感应约束 — 必修三 第十二章 */
+  readonly electrostaticInduction?: ElectrostaticInductionConstraint;
+  /** 验电器约束 — 必修三 第十二章 */
+  readonly electroscope?: ElectroscopeConstraint;
+  /** 探究电荷间作用力约束 — 必修三 第十二章 */
+  readonly coulombForce?: CoulombForceConstraint;
+  /** 静电屏蔽约束 — 必修三 第十二章 */
+  readonly electrostaticShielding?: ElectrostaticShieldingConstraint;
+  /** 法拉第圆筒约束 — 必修三 第十二章 */
+  readonly faradayCup?: FaradayCupConstraint;
+}
+
+/** 游标卡尺读数约束 — 必修三 实验 (L = 主尺 + K×1/N mm) */
+export interface VernierCaliperConstraint {
+  /** 被测物体实际长度 (mm) */
+  readonly objectSize: number;
+  /** 分度: 10 | 20 | 50 */
+  readonly nType: 10 | 20 | 50;
+  /** 随机偏移 (mm), 模拟读物时游标尺位置的微小变化 */
+  readonly randomOffset?: number;
+}
+
+/** 螺旋测微器读数约束 — 必修三 实验 (L = a + b + n×0.01 mm) */
+export interface MicrometerConstraint {
+  /** 被测物体厚度 (mm) */
+  readonly thickness: number;
+  /** 随机角度 (0~360°), 模拟可动刻度的随机位置 */
+  readonly randomAngle?: number;
+}
+
+/** 电表档位 */
+export type MultimeterMode = 'DCV' | 'ACV' | 'Ohm' | 'DCA';
+
+/** 多用电表使用约束 — 必修三 实验 */
+export interface MultimeterConstraint {
+  /** 档位: DCV(直流电压) | ACV(交流电压) | Ohm(欧姆) | DCA(直流电流) */
+  readonly mode: MultimeterMode;
+  /** 量程 (对应单位: V, Ω, A 等) */
+  readonly range: number;
+  /** 被测量值 (与量程同单位) */
+  readonly testValue: number;
+}
+
+/** 安培力因素约束 — 必修三 §12 (F = BIL·sinθ) */
+export interface AmpereForceConstraint {
+  /** 磁感应强度 B (T) */
+  readonly B: number;
+  /** 电流 I (A) */
+  readonly I: number;
+  /** 导线有效长度 L (m) */
+  readonly L: number;
+  /** 导线与磁场夹角 (度) */
+  readonly angle: number;
+}
+
+/** 赫兹电磁波实验约束 — 必修三 §13 */
+export interface HertzExperimentConstraint {
+  /** LC 振荡频率 (Hz) */
+  readonly frequency: number;
+  /** 线圈匝数 */
+  readonly turns: number;
+  /** 振子火花间隙 (mm) */
+  readonly sparkGap: number;
+  /** 接收端距离 (m) */
+  readonly distance: number;
+}
+
+/**
+ * 静电感应约束 — 必修三 第十二章
+ *
+ * 导体 A 在带电体 C 的电场中发生静电感应:
+ *   近端 (右侧) 感应异号电荷 q_A_right = −k_ind·Q_C/(d_AC+s)²
+ *   远端 (左侧) 感应同号电荷 q_A_left = +k_ind·Q_C/d_AC²
+ *   A 整体中性: q_A_left + q_A_right ≈ 0 (感应的中和近似)
+ *   箔片张角 θ ∝ |q_net_near| (近端电荷越大, 斥力越大)
+ */
+export interface ElectrostaticInductionConstraint {
+  /** 带电体 C 电量 (μC) */
+  readonly chargeC: number;
+  /** A/B 间隙 (cm) */
+  readonly separation: number;
+  /** A 左端到 C 的距离 (cm) */
+  readonly distanceAC: number;
+  /** 张角比例系数 (默认 50) */
+  readonly thetaK?: number;
+  /** 采样点数量 (扫描不同 distanceAC 取值), 默认 30 */
+  readonly sampleCount?: number;
+}
+
+/**
+ * 验电器约束 — 必修三 第十二章
+ *
+ * 简化公式: 箔片张角 θ 与电荷量 q 的关系
+ *   sin(θ/2) ≈ ½·k·q²/(m·g·L)
+ *   (近似, 表示斥力与张角的关系)
+ */
+export interface ElectroscopeConstraint {
+  /** 验电器带电量 (μC) */
+  readonly charge: number;
+  /** 箔片长度 (cm), 默认 5 */
+  readonly foilLength?: number;
+  /** 箔片质量 (g), 默认 1 */
+  readonly foilMass?: number;
+  /** 采样点数量 (0~charge), 默认 30 */
+  readonly sampleCount?: number;
+}
+
+/**
+ * 库仑力探究模式 */
+export type CoulombForceMode = 'varyQ' | 'varyR';
+
+/**
+ * 探究电荷间作用力约束 — 必修三 第十二章
+ *
+ * F = k·|q₁q₂|/r²  (k=8.99e9 N·m²/C²)
+ * mode=varyQ: 固定 r, F-q 直线
+ * mode=varyR: 固定 q, F-1/r² 直线
+ */
+export interface CoulombForceConstraint {
+  /** 电荷 1 电量 (μC) */
+  readonly q1: number;
+  /** 电荷 2 电量 (μC) */
+  readonly q2: number;
+  /** 两电荷间距 (cm) */
+  readonly distance: number;
+  /** 探究模式: 'varyQ' (控制 r, 改变 q) 或 'varyR' (控制 q, 改变 r) */
+  readonly mode: CoulombForceMode;
+  /** 扫描采样点数, 默认 30 */
+  readonly sampleCount?: number;
+  /** 电荷扫描范围 [q_min, q_max] (μC), 默认 [0.5, 5] */
+  readonly qRange?: [number, number];
+  /** 距离扫描范围 [r_min, r_max] (cm), 默认 [2, 20] */
+  readonly rRange?: [number, number];
+}
+
+/**
+ * 静电屏蔽约束 — 必修三 第十二章
+ *
+ * - 空腔导体内 E=0 (无论是否接地)
+ * - 接地: 外部电场不影响内部, 箔片张角≈0
+ * - 不接地: 外部电场在导体外表面感应电荷, 箔片张角 ∝ externalField
+ */
+export interface ElectrostaticShieldingConstraint {
+  /** 是否接地 */
+  readonly isGrounded: boolean;
+  /** 外部电场强度 (V/m) */
+  readonly externalField: number;
+  /** 空腔内电荷 (μC), 默认 0 */
+  readonly cavityCharge?: number;
+  /** 采样点数量 (扫描 externalField), 默认 30 */
+  readonly sampleCount?: number;
+}
+
+/**
+ * 法拉第圆筒约束 — 必修三 第十二章
+ *
+ * 内表面电荷=0 (法拉第圆筒定律)
+ * 外表面电荷=totalCharge
+ * innerProbe 测量值 → 接触内表面 (理论为 0)
+ * outerProbe 测量值 → 接触外表面 (理论为 totalCharge)
+ */
+export interface FaradayCupConstraint {
+  /** 内探针深度 (0-1, 0=刚好内壁, 1=内腔深处); 默认 0 */
+  readonly innerProbeDepth?: number;
+  /** 外探针接触面深度 (0-1, 外表面处); 默认 1 */
+  readonly outerProbeDepth?: number;
+  /** 外表面总电量 (μC) */
+  readonly totalCharge: number;
+  /** 采样点数 (沿深度方向 0→1), 默认 30 */
+  readonly sampleCount?: number;
 }
 
 /** 时间配置 */

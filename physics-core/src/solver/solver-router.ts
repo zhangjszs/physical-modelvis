@@ -30,6 +30,10 @@ import { MechanicalWaveModel } from '../models/mechanical-wave.js';
 import { RefractionModel } from '../models/refraction.js';
 import { InterferenceModel } from '../models/interference.js';
 import { CircuitModel } from '../models/circuit.js';
+import { CapacitorChargeModel } from '../models/capacitor-charge.js';
+import { ParallelPlateCapacitorModel } from '../models/parallel-plate-capacitor.js';
+import { ResistanceLawModel } from '../models/resistance-law.js';
+import { LoadVoltageModel } from '../models/load-voltage.js';
 import { GasLawModel } from '../models/gas-law.js';
 import { PhotoelectricModel } from '../models/photoelectric.js';
 import { BohrModel } from '../models/bohr.js';
@@ -45,6 +49,16 @@ import { MicroDeformationModel } from '../models/micro-deformation.js';
 import { ReactionTimeModel } from '../models/reaction-time.js';
 import { OverweightModel } from '../models/overweight.js';
 import { CenterOfGravityModel } from '../models/center-of-gravity.js';
+import { VernierCaliperModel } from '../models/vernier-caliper.js';
+import { MicrometerModel } from '../models/micrometer.js';
+import { MultimeterModel } from '../models/multimeter.js';
+import { AmpereForceModel } from '../models/ampere-force.js';
+import { HertzExperimentModel } from '../models/em-wave-hertz.js';
+import { ElectrostaticInductionModel } from '../models/electrostatic-induction.js';
+import { ElectroscopeModel } from '../models/electroscope.js';
+import { CoulombForceExploreModel } from '../models/coulomb-force-explore.js';
+import { ElectrostaticShieldingModel } from '../models/electrostatic-shielding.js';
+import { FaradayCupModel } from '../models/faraday-cup.js';
 
 registerModel(new UniformLinearModel());
 registerModel(new UniformAcceleratedModel());
@@ -87,6 +101,10 @@ registerModel(new RefractionModel());
 registerModel(new InterferenceModel());
 // 必修三 第十一章 电路及其应用
 registerModel(new CircuitModel());
+registerModel(new CapacitorChargeModel());
+registerModel(new ParallelPlateCapacitorModel());
+registerModel(new ResistanceLawModel());
+registerModel(new LoadVoltageModel());
 // 选必三 气体/热学
 registerModel(new GasLawModel());
 // 选必三 §4 原子结构和波粒二象性
@@ -115,6 +133,20 @@ registerModel(new ReactionTimeModel());
 registerModel(new OverweightModel());
 // 重心实验 (悬挂法)
 registerModel(new CenterOfGravityModel());
+// 必修三 实验: 测量仪器读数练习
+registerModel(new VernierCaliperModel());
+registerModel(new MicrometerModel());
+registerModel(new MultimeterModel());
+// 必修三 第十二章 安培力因素实验
+registerModel(new AmpereForceModel());
+// 必修三 第十三章 赫兹电磁波实验
+registerModel(new HertzExperimentModel());
+// 必修三 第十二章 静电感应与静电屏蔽
+registerModel(new ElectrostaticInductionModel());
+registerModel(new ElectroscopeModel());
+registerModel(new CoulombForceExploreModel());
+registerModel(new ElectrostaticShieldingModel());
+registerModel(new FaradayCupModel());
 
 export function solveProblem(problem: PhysicsProblem): SimulationResult {
   const model = getModel(problem.model);

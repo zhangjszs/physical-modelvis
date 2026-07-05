@@ -34,7 +34,7 @@
 
 - [x] **阶段 C: 必修二 25 实验** (8 新 Model + 17 复用)
 
-- [ ] **阶段 D: 必修三 26 实验**
+- [~] **阶段 D: 必修三 26 实验**
   - **新建 Model**: electrostatic-induction, electroscope, coulomb-force-explore, electrostatic-shielding, faraday-cup, capacitor-charge, parallel-plate-capacitor, vernier-caliper, micrometer, resistance-law, multimeter, load-voltage, ampere-force, em-wave-hertz (共 14 个)
   - **复用**: electric-field (×4), circuit (×3), magnetic-field (×3), em-induction (×2)
   - **退出条件**: `npm test && npm run build` → `git commit -m "feat: 必修三 26 实验全覆盖"`

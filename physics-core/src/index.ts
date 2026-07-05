@@ -21,7 +21,15 @@ export type {
   CurveConditionConstraint,
   MotionCompositionConstraint,
   CavendishConstraint, MoonEarthTestConstraint,
+  VernierCaliperConstraint, MicrometerConstraint, MultimeterConstraint, MultimeterMode,
+  AmpereForceConstraint, HertzExperimentConstraint,
+  CapacitorConstraint, ParallelPlateConstraint, ResistanceLawConstraint, LoadVoltageConstraint,
+  ResistanceMaterial,
+  ElectrostaticInductionConstraint, ElectroscopeConstraint,
+  CoulombForceConstraint, CoulombForceMode,
+  ElectrostaticShieldingConstraint, FaradayCupConstraint,
 } from './types/problem.js';
+export { RESISTIVITY } from './types/problem.js';
 export type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep, FormulaUsage } from './types/result.js';
 
 // === 错误类导出 ===
@@ -74,6 +82,10 @@ export { RefractionModel } from './models/refraction.js';
 export { InterferenceModel } from './models/interference.js';
 // 必修三 第十一章 电路及其应用
 export { CircuitModel } from './models/circuit.js';
+export { CapacitorChargeModel } from './models/capacitor-charge.js';
+export { ParallelPlateCapacitorModel } from './models/parallel-plate-capacitor.js';
+export { ResistanceLawModel } from './models/resistance-law.js';
+export { LoadVoltageModel } from './models/load-voltage.js';
 // 选必三 气体/热学
 export { GasLawModel } from './models/gas-law.js';
 // 选必三 §4 原子结构和波粒二象性
@@ -102,6 +114,20 @@ export { ReactionTimeModel } from './models/reaction-time.js';
 export { OverweightModel } from './models/overweight.js';
 // 重心实验 (悬挂法)
 export { CenterOfGravityModel } from './models/center-of-gravity.js';
+// 必修三 实验: 测量仪器读数练习
+export { VernierCaliperModel } from './models/vernier-caliper.js';
+export { MicrometerModel } from './models/micrometer.js';
+export { MultimeterModel } from './models/multimeter.js';
+// 必修三 第十二章 安培力因素实验
+export { AmpereForceModel } from './models/ampere-force.js';
+// 必修三 第十三章 赫兹电磁波实验
+export { HertzExperimentModel } from './models/em-wave-hertz.js';
+// 必修三 第十二章 静电感应与静电屏蔽
+export { ElectrostaticInductionModel } from './models/electrostatic-induction.js';
+export { ElectroscopeModel } from './models/electroscope.js';
+export { CoulombForceExploreModel } from './models/coulomb-force-explore.js';
+export { ElectrostaticShieldingModel } from './models/electrostatic-shielding.js';
+export { FaradayCupModel } from './models/faraday-cup.js';
 
 // === 求解器导出 ===
 export { solveProblem } from './solver/solver-router.js';

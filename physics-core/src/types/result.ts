@@ -146,6 +146,31 @@ export interface SimulationResult {
     // 月地检验 (必修二 §3)
     readonly 'moon-earth-data'?: ChartSeries;    // a_月 vs g/3600 数据对比表 (points)
     readonly ratio_R_r?: ChartSeries;            // 比例 R/r 验证图
+    // 必修三 第十一章 电路及其应用 — RC 暂态 (电容充放电)
+    readonly Uc_t?: ChartSeries;                 // 电容电压-时间 (指数曲线)
+    readonly I_t?: ChartSeries;                  // 电流-时间 (指数衰减)
+    readonly Q_t?: ChartSeries;                  // 电荷-时间 (充电累积)
+    readonly lnUc_t?: ChartSeries;               // ln(U_c)-t (放电直线, 斜率=−1/τ)
+    // 必修三 第十一章 — 平行板电容器因素
+    readonly C_inv_d?: ChartSeries;              // C vs 1/d (线性)
+    readonly C_S?: ChartSeries;                  // C vs S (线性)
+    readonly C_epsilonR?: ChartSeries;           // C vs εr (线性)
+    // 必修三 第十一章 — 电阻定律
+    readonly R_L?: ChartSeries;                  // R-L (线性)
+    readonly R_invS?: ChartSeries;               // R-1/S (线性)
+    readonly R_material?: ChartSeries;           // 材料比较 (Cu/Fe/Nichrome)
+    // 必修三 第十一章 — 路端电压与负载
+    readonly U_R?: ChartSeries;                  // U-R 曲线 (E·R/(R+r))
+    readonly U_I?: ChartSeries;                  // U-I 直线 (截距=E, 斜率=−r)
+    readonly I_R?: ChartSeries;                  // I-R 曲线 (E/(R+r))
+    // 必修三 第十二章 静电感应 / 验电器 / 电荷间作用力 / 静电屏蔽 / 法拉第圆筒
+    readonly qC_theta?: ChartSeries;             // 静电感应: C 电荷与箔片张角散点
+    readonly q_theta?: ChartSeries;              // 验电器: q-θ 关系曲线
+    readonly F_q?: ChartSeries;                  // 库仑力探究: F-q 直线 (varyQ)
+    readonly F_inv_r2?: ChartSeries;             // 库仑力探究: F-1/r² 直线 (varyR)
+    readonly grounding_effect?: ChartSeries;      // 静电屏蔽: 接地vs不接地张角对比
+    readonly field_section?: ChartSeries;        // 静电屏蔽: 导体内外电场剖面
+    readonly probe_position_charge?: ChartSeries; // 法拉第圆筒: 探针位置-测量电荷曲线
   };
   readonly diagnostics: {
     readonly conservedQuantities: ConservedQuantity[];
