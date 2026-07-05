@@ -46,10 +46,10 @@
   - **复用**: magnetic-force (×4), em-induction (×5), ac-current (×4), lc-oscillator (×2)
   - **退出条件**: `npm test && npm run build` → ✅ 750 tests 全绿
 
-- [ ] **阶段 G: 选必三 37 实验**
+- [x] **阶段 G: 选必三 37 实验** (25 新 Model + 12 复用) (commit `d71844b`)
   - **新建 Model**: diffusion, brownian-motion, oil-film, liquid-mixing, molecular-force, melting-curve, surface-tension, capillary, wetting, liquid-crystal, joule-mechanical, joule-electrical, adiabatic-compression, heat-transfer, energy-transformation, perpetuum-mobile, heat-direction, alpha-scattering, black-body, electron-diffraction, radiation-deflection, decay-statistics, cosmic-ray, neutron-discovery, fission-chain (共 25 个)
   - **复用**: gas-law (×3), photoelectric (×3), bohr (×2), radioactive (×3)
-  - **退出条件**: `npm test && npm run build` → `git commit -m "feat: 选必三 37 实验全覆盖"`
+  - **退出条件**: `npm test && npm run build` → ✅ 800 tests 全绿
 
 - [ ] **阶段 H: UI 全面扩展**
   - SceneSelector 列出全部 ~176 注册的 scene (按 7 大教材分类)
@@ -70,7 +70,7 @@
 | **D** | ⏳ | 26 | 14 | — |
 | **E** | ✅ done | 40 | 13 | `cbc4f4c` |
 | **F** | ✅ done | 28 | 14 | `8b1b4d6` |
-| **G** | ⏳ | 37 | 25 | — |
+| **G** | ✅ done | 37 | 25 | `d71844b` |
 | **H** | ⏳ | — | — | — |
 | **合计** | | **176** | **~81** | **8 commits** |
 
