@@ -29,6 +29,10 @@ npm-debug.log*
 # OMC state
 .omc/
 
+# Tool/IDE local folders
+.omo/
+.trae/
+
 # Windows reserved
 nul
 

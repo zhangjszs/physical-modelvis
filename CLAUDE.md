@@ -4,8 +4,6 @@
 面向高中物理教学的交互式可视化仿真系统。
 双层架构：physics-core 引擎 (TypeScript, 零依赖) → React + Canvas 2D 可视化前端。
 
-旧版架构 (physim + Three.js) 仍保留在仓库中，但已不再主动开发。
-
 ## Build & Test
 ```bash
 # 安装依赖
@@ -15,14 +13,11 @@ cd visualization && npm install && cd ..
 # 运行所有测试
 npm test
 
-# 运行新版核心测试
+# 运行核心测试
 cd physics-core && npm test
 
 # 运行可视化前端测试
 cd visualization && npm test
-
-# 运行旧版测试
-npm run test:legacy
 
 # Lint
 npm run lint
@@ -36,26 +31,23 @@ cd visualization && npm run dev
 
 ## Architecture
 ```
-physics-core/          — 零依赖 TypeScript 物理引擎 (当前主力)
-  src/models/          — 9 个物理模型 (匀速/匀变速/电场/磁场/碰撞/弹簧/斜面/电磁复合场)
+physics-core/          — 零依赖 TypeScript 物理引擎
+  src/models/          — 物理模型 (匀速/匀变速/电场/磁场/碰撞/弹簧/斜面/电磁复合场/圆周运动/第三章力)
   src/math/            — Vec2D 向量运算
   src/types/           — 类型定义 (PhysicsProblem, SimulationResult)
   src/units/           — 单位换算和物理常数
   src/solver/          — 求解器路由 (自动注册模型)
   tests/               — 单元测试
 
-visualization/         — React 可视化前端 (当前主力)
+visualization/         — React 可视化前端
   src/components/      — UI 组件 (Canvas, 图表, 控制面板, OCR)
-  src/scenes/          — 9 个场景配置 + buildProblem
+  src/scenes/          — 场景配置 + buildProblem
   src/rendering/       — Canvas 渲染器
   src/adapters/        — physics-core 适配器
   src/store/           — Zustand 状态管理
   server/              — OCR 后端代理 (Express + Anthropic API)
 
-physim/                — 旧版物理引擎 (Boris 积分器, 3D)
-js/                    — 旧版桥接层 (PhysVis 全局命名空间)
-templates/             — 旧版场景模板
-problems/              — 旧版题目配置
+experiments/           — 人教版高中物理实验整理 (176 个实验, 6 册教材)
 ```
 
 ## Key Patterns

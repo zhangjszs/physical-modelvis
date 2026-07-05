@@ -1,192 +1,270 @@
-# PhysVis 开发任务清单
+# PhysVis 全实验覆盖 — 开发任务清单
 
-> 自主工作循环 (`/loop`) 按顺序执行以下任务。
-> 修改本文件可调整任务优先级和内容。
+> 覆盖人教版高中物理 **6 册 / 27 章 / 176 个实验**
+>
+> 当前已有 32 个 physics-core Model + 32 个 Scene，**目标 95 Model + 176 Scene**
+>
+> 工作流: **A (清理) → B~H (教科书阶段) → commit 迭代**
+>
+> 每个新建 Model 的详细公式见 `docs/experiment-design-spec.md`。
+> 通用实现规范见 `docs/WORKFLOW.md`。
 
-## 流程约定 (2026-07-05 更新)
+---
 
-每个任务实现后、commit 前，必须执行一轮 **代码审查**（见 `AGENTS.md > 代码审查约定`）：
+## 📋 流程约定
 
-1. `git diff --cached` 查看已暂存改动
-2. 按 AGENTS.md 中 6 个审查维度逐一审查
-3. 发现问题 → 修复 → 重新 typecheck/test → 重新暂存
-4. 审查通过 → commit
+1. **每阶段独立 commit** — 完成一个阶段 + 通过门禁 → commit → Tag 阶段
+2. **门禁 (全部通过才允许 commit)**:
+   - `npm test` (全 289+/25+ tests 全绿)
+   - `npm run build` (≤ 5s)
+   - `npx tsc --noEmit -p visualization/tsconfig.json` 类型检查
+3. **代码审查** — 按 `AGENTS.md > 代码审查约定` 7 个维度过一遍
+4. **commit 格式** — `feat: <阶段名> (<N> 个实验): <具体说明>`
+5. **每新建 Model 参考 `docs/experiment-design-spec.md`** 中的公式/参数/图表定义
 
-+ 后台加载一个 `general-purpose` agent 执行代码审查，主线程继续执行下一步。
+---
 
-## 阶段二：验证第三章场景
+## 📊 进度总览
 
-- [x] 验证第三章 4 个新场景的可视化效果 ✅ 2026-07-05
-  - 验证结果：123/123 单元测试通过 │ tsc --noEmit 通过 │ vite build 通过 (2.29s) │ 4 个模型端到端求解成功
-  - hooke-law → spring-oscillator → 轨迹 201 点 ✓
-  - sliding-friction → sliding-friction → 轨迹 401 点 ✓
-  - force-composition → force-composition → 静态公式渲染 ✓
-  - newton-third-law → newton-third-law → 双体轨迹 300 点 ✓
+| 阶段 | 教材 | 实验数 | 复用 | 新建 Model | 状态 |
+|------|------|--------|------|-----------|------|
+| **A** | 清理 | - | - | - | 🔄 待做 |
+| **B** | 必修一 | 20 | 11 | 9 | ⏳ 待做 |
+| **C** | 必修二 | 25 | 9 | 16 | ⏳ 待做 |
+| **D** | 必修三 | 26 | 14 | 12 | ⏳ 待做 |
+| **E** | 选必一 | 40 | 24 | 16 | ⏳ 待做 |
+| **F** | 选必二 | 28 | 18 | 10 | ⏳ 待做 |
+| **G** | 选必三 | 37 | 11 | 26 | ⏳ 待做 |
+| **H** | UI 扩展 | - | - | - | ⏳ 待做 |
+| **合计** | 6 册 | **176** | 87 | **89** | ~95 Model 总数 |
 
-## 阶段三：必修一第四章「运动和力的关系」
+---
 
-- [x] 实现 NewtonSecondLaw 模型 (physics-core) ✅ 2026-07-05
-  - 提交：dd797ab feat: 牛顿第二定律 F=ma 分析解模型 (必修一第四章)
-  - 13 个单元测试通过；0 类型错误；vite build 通过
+## 🔴 阶段 A: 旧代码清理
 
-- [x] 实现牛顿第二定律可视化场景 ✅ 2026-07-05
-  - 提交：c5d7064 feat: 牛顿第二定律可视化场景 (必修一第四章)
-  - sceneRegistry 6 参数；标准渲染流程；端到端验证 F=10N m=2kg t=3s → v=15m/s x=22.5m
+**目标**: 提交已在 working tree 中删除的 32 个旧版文件
 
-- [x] 实现牛顿第一定律（惯性）可视化场景 ✅ 2026-07-05
-  - 提交：1bd45a6 feat: 牛顿第一定律 (惯性) 可视化场景
-  - 复用 uniform-linear 模型 (零外力 → 匀速直线运动)
-  - 验证：v=2m/s 持续 5s 匀速，Δx=10m
+**步骤**:
+1. `git add -A` (stage deletions + package.json/scripts 更新)
+2. `git commit -m "chore: 清理旧版代码 (physim/旧引擎, js/旧SPA, css, problems, templates, 旧test)"`
+3. npm test + npm run build 通过
 
-## 阶段四：必修二
+---
 
-- [x] 扩展抛体运动场景（平抛 + 斜抛） ✅ 2026-07-05
-  - 提交：dc28b30 feat: 抛体运动模型 (平抛+斜抛) — 必修二第一章
-  - 新建 ProjectileModel：vx/vy 分运动分解，恒定水平速度
-  - 特征量：射程/最高点/飞行时间；图表：vx-t, vy-t, 能量-t
-  - 11 个测试通过；sceneRegistry 升级到 projectile 模型 + 发射高度参数
+## 🟠 阶段 B: 必修一 20 实验 (新建 9 Model)
 
-- [x] 扩展圆周运动场景（向心力、向心加速度） ✅ 2026-07-05
-  - 提交：25f951a feat: 圆周运动场景扩展 (圆锥摆 + 受力分析图)
-  - 圆锥摆：ω 自动由 g/(L·cosθ)；有效半径 r=L·sinθ
-  - 受力分析图 + F-t 图表；summary 显示 F_c, v, a_c, T
+新建 Model:
+1. `ticker-timer` — 打点计时器 (vₙ = (xₙ+xₙ₊₁)/2T)
+2. `reaction-time` — 测反应时间 t=√(2h/g)
+3. `galileo-incline` — 伽利略斜面理想实验
+4. `center-of-gravity` — 悬挂法确定重心
+5. `micro-deformation` — 光杠杆放大微小形变
+6. `inertia` — 惯性实验组合
+7. `overweight` — 超重和失重 (N=m(g±a))
 
-- [x] 实现万有引力与航天场景 ✅ 2026-07-05
-  - 提交：d370409 feat: 万有引力与航天模型 (必修二第三章)
-  - Velocity Verlet 轨道积分；第一/第二宇宙速度
-  - 关键点检测近/远地点 (开普勒第二定律)
-  - ISS 实测: v=7.67km/s T=92.4min; 10 个单元测试通过
+复用 Scene (参数/UI 扩展):
+- air-track, uniform-accelerated, free-fall, hooke-law, sliding-friction, force-composition, newton-third-law, newton-first-law, newton-second-law
 
-- [x] 实现机械能守恒场景 ✅ 2026-07-05
-  - 提交：faa4f0b feat: 机械能守恒定律场景 + 修复重力势能计算
-  - 新增 energy-conservation 场景 (可控摩擦力 → 守恒/损耗对比)
-  - 修复 uniform-accelerated 势能 (原硬编码为 0)
-  - 新增 ke-t, pe-t, energy-t 图表 (验证 E 恒定 98J)
+退出条件:
+- [ ] 9 新 Model + 测试通过
+- [ ] 20 SceneConfig 注册
+- [ ] npm test + build 通过
+- [ ] `git commit -m "feat: 必修一 20 个实验全覆盖"`
 
-## 阶段五：选择性必修 (待实现)
+---
 
-- [x] 实现动量守恒场景 ✅ 2026-07-05
-  - 提交：785cde6 feat: 动量定理与反冲模型 (选必一第一章)
-  - 新建 MomentumModel：恒力冲量 + 反冲两模式
-  - 冲量 J=F·Δt=Δp 验证；反冲总动量守恒恒为 0
-  - 9 个单元测试通过
+## 🟡 阶段 C: 必修二 25 实验 (新建 16 Model)
 
-- [x] 实现简谐运动场景 ✅ 2026-07-05
-  - 提交：aed43b6 feat: 单摆简谐运动模型 (选必一第二章)
-  - 新建 SimplePendulumModel (Velocity Verlet)
-  - 任意角度精确 + 小角度 T=2π√(L/g)
-  - 阻尼选项、能量守恒/振幅衰减对比
-  - 12 个测试通过
+新建 Model:
+1. `curve-velocity-direction` — 曲线运动速度方向
+2. `curve-condition` — 曲线运动条件
+3. `motion-composition` — 蜡块运动合成分解
+4. `transmission-belt` — 传动方式 (皮带/齿轮/摩擦轮/同轴)
+5. `vertical-circle` — 竖直圆周最高点条件
+6. `centrifugal` — 离心现象
+7. `cavendish` — 卡文迪什扭秤测 G
+8. `moon-earth-test` — 月地检验思想实验
 
-- [x] 实现机械波场景 ✅ 2026-07-05
-  - 提交：c874bb9 feat: 机械波模型 (选必一第三章)
-  - 新建 MechanicalWaveModel: 横波/纵波/干涉三模式
-  - 离散 81 质点 + 相位差；干涉形成驻波波节
-  - 11 个测试通过
+复用 Scene:
+- projectile (×3), circular-motion (×4), orbital (×2), energy-conservation (×4), free-fall (×2), air-track, simple-pendulum, spring (×2)
 
-## 阶段六：选必一 第四章「光」
+退出条件:
+- [ ] 16 新 Model + 测试
+- [ ] 25 SceneConfig
+- [ ] npm test + build 通过
+- [ ] `git commit -m "feat: 必修二 25 个实验全覆盖"`
 
-- [x] 实现折射定律模型 (physics-core) ✅ 2026-07-05
-  - 提交：3dce3f8 feat: 光学模型 — 折射定律 + 双缝干涉 (选必一第四章)
-  - 9 个单元测试通过；全反射临界角、sinθ₁-sinθ₂ 线性验证
+---
 
-- [x] 实现双缝干涉模型 (physics-core) ✅ 2026-07-05
-  - 同上提交 (同一 commit)
-  - 9 个单元测试通过；等间距峰值、薄膜增透/增反
+## 🟢 阶段 D: 必修三 26 实验 (新建 12 Model)
 
-- [x] 光学可视化场景 (折射 + 干涉) ✅ 2026-07-05
-  - 提交：88c8f5c feat: 光学可视化场景 (折射 + 双缝干涉)
-  - 注册 refraction + interference 场景
-  - physics-core/dist 重建以同步类型
-  - 在 sceneRegistry 注册 refraction + interference 场景
-  - 折射：可调入射角/两种介质，实时显示反射+折射光线，全反射警示
-  - 干涉：可调 d/L/λ，显示条纹图案和光强曲线
-  - 涉及文件：visualization/src/scenes/sceneRegistry.ts
-  - 参考：experiments/选必一_第4章_光.md
+新建 Model:
+1. `electrostatic-induction` — 静电感应
+2. `electroscope` — 验电器
+3. `coulomb-force-explore` — 探究电荷间作用力因素
+4. `electrostatic-shielding` — 静电屏蔽
+5. `faraday-cup` — 法拉第圆筒
+6. `capacitor-charge` — 电容充放电
+7. `parallel-plate-capacitor` — 平行板电容器因素
+8. `vernier-caliper` — 游标卡尺读数
+9. `micrometer` — 螺旋测微器读数
+10. `resistance-law` — 电阻定律
+11. `multimeter` — 多用电表
+12. `load-voltage` — 路端电压与 E/r 测量三法
+13. `ampere-force` — 安培力因素
+14. `em-wave-hertz` — 赫兹电磁波实验
 
-## 阶段七：必修三 电路与电能
+复用 Scene:
+- electric-field (×4), circuit (×3), magnetic-field (×3), em-induction (×2)
 
-- [x] 实现直流电路模型 (physics-core) ✅ 2026-07-05
-  - 提交：9949a0b feat: 直流电路分析模型 (必修三第十一章)
-  - 13 个单元测试通过
+退出条件:
+- [ ] 12 新 Model + 测试
+- [ ] 26 SceneConfig
+- [ ] npm test + build 通过
+- [ ] `git commit -m "feat: 必修三 26 个实验全覆盖"`
 
-- [x] 实现伏安特性曲线场景 ✅ 2026-07-05
-  - 提交：a4c43d6 (同一 commit，circuit scene 内置 VI_curve 图表)
+---
 
-## 阶段八：选必三 分子动理论与热力学 (入门)
+## 🔵 阶段 E: 选必一 40 实验 (新建 16 Model)
 
-- [x] 实现气体定律模型 (physics-core) 入门 ✅ 2026-07-05
-  - 提交：5de251b feat: 理想气体状态方程模型 (选必三第二章入门)
-  - 8 个单元测试通过
+新建 Model:
+1. `projectile-collision` — 平抛验证动量守恒
+2. `double-pendulum` — 两个单摆步调
+3. `forced-vibration` — 受迫振动频率
+4. `resonance` — 共振曲线
+5. `sound-waveform` — 声音波形
+6. `water-diffraction` — 水波衍射
+7. `sound-interference` — 声音干涉
+8. `doppler` — 多普勒效应
+9. `thin-film` — 薄膜干涉
+10. `hologram` — 全息照相
+11. `single-slit` — 单缝衍射
+12. `diffraction-grating` — 光栅衍射
+13. `polarization` — 偏振光 (马吕斯定律)
 
-- [x] 气体定律可视化场景 ✅ 2026-07-05
-  - 提交：10d05f7
+复用 Scene:
+- momentum (×3), collision (×6), simple-pendulum (×12), spring (×4), mechanical-wave (×6), refraction (×4), interference (×6)
 
-## 阶段九：选必三 §4-5 原子结构与原子核
+退出条件:
+- [ ] 13 新 Model + 测试
+- [ ] 40 SceneConfig
+- [ ] npm test + build 通过
+- [ ] `git commit -m "feat: 选必一 40 个实验全覆盖"`
 
-- [x] 实现光电效应模型 (physics-core) ✅ 2026-07-05
-  - 描述：爱因斯坦光电方程 hν = W₀ + E_k；截止电压、极限频率
-  - 新建 PhotoelectricModel: 给定金属逸出功 W₀, 计算 U_c-ν 曲线
-  - 特征量：极限频率 ν₀ = W₀/h, 斜率 = h/e (测定普朗克常量)
-  - 涉及文件：physics-core/src/models/photoelectric.ts; test: photoelectric.test.ts
-  - 参考：experiments/选必三_第4章_原子结构和波粒二象性.md (实验 3-5)
+---
 
-- [x] 实现氢原子光谱/玻尔模型 (physics-core) ✅ 2026-07-05
-  - 描述：巴尔末公式 1/λ = R(1/n₁² − 1/n₂²)、能级图 E_n = −13.6/n² eV
-  - 新建 BohrModel: 能级计算、发射/吸收光谱模拟
-  - 涉及文件：physics-core/src/models/bohr.ts; test: bohr.test.ts
-  - 参考：第4章实验 1
+## 🟣 阶段 F: 选必二 28 实验 (新建 10+ Model)
 
-- [x] 实现放射性衰变模型 (physics-core) ✅ 2026-07-05
-  - 描述：N(t) = N₀·e^(−λt), 半衰期 T₁/₂ = ln2/λ
-  - 新建 RadioactiveDecayModel: α/β/γ 粒子径迹模拟器 (云室)
-  - 涉及文件：physics-core/src/models/radioactive-decay.ts; test: radioactive-decay.test.ts
-  - 参考：第5章实验 1,4
+新建 Model:
+1. `current-balance` — 电流天平
+2. `eddy-current` — 涡流现象
+3. `em-damping` — 电磁阻尼与电磁驱动
+4. `mutual-inductance` — 互感现象
+5. `self-inductance` — 自感现象
+6. `em-wave-communication` — 电磁波发射接收
+7. `em-spectrum` — 电磁波谱
+8. `hall-effect` — 霍尔元件
+9. `reed-switch` — 干簧管
+10. `photoresistor` — 光敏电阻
+11. `thermistor` — 热敏电阻
+12. `strain-gauge` — 电阻应变片
+13. `security-alarm` — 门窗防盗报警
+14. `light-control-switch` — 光控开关
 
-- [x] 原子物理可视化场景 ✅ 2026-07-05
-  - sceneRegistry 注册 photoelectric + bohr + radioactive 场景
-  - 涉及文件：visualization/src/scenes/sceneRegistry.ts
+复用 Scene:
+- magnetic-force (×4), em-induction (×5), ac-current (×4), lc-oscillator (×2)
 
-## 阶段十：选必二 第一章「安培力与洛伦兹力」
+退出条件:
+- [ ] 14 新 Model + 测试
+- [ ] 28 SceneConfig
+- [ ] npm test + build 通过
+- [ ] `git commit -m "feat: 选必二 28 个实验全覆盖"`
 
-- [x] 实现安培力/洛伦兹力模型 ✅ 2026-07-05 (physics-core) 📐 2026-07-05
-  - 描述：F = B·I·L·sinθ (安培力)；F = q·v·B·sinθ (洛伦兹力)；带电粒子圆周运动 r = mv/(qB)
-  - 新建 MagneticForceModel：安培力方向(左手定则)、洛伦兹力偏转、回旋半径
-  - 涉及文件：physics-core/src/models/magnetic-force.ts；test: magnetic-force.test.ts
-  - 参考：experiments/选必二_第1章_安培力与洛伦兹力.md
+---
 
-- [x] 安培力/洛伦兹力可视化场景 ✅ 2026-07-05
-  - 力学场景：左手定则交互、力大小随θ变化、带电粒子圆周运动
-  - 涉及文件：visualization/src/scenes/sceneRegistry.ts
-  - 参考：同上
+## 🟤 阶段 G: 选必三 37 实验 (新建 25+ Model)
 
-## 阶段十一：选必二 第二章「电磁感应」
+新建 Model:
+1. `diffusion` — 扩散现象
+2. `brownian-motion` — 布朗运动
+3. `oil-film` — 油膜法测分子大小
+4. `liquid-mixing` — 酒精与水混合
+5. `molecular-force` — 分子间作用力 (Lennard-Jones)
+6. `melting-curve` — 晶体熔化
+7. `surface-tension` — 液体表面张力
+8. `capillary` — 毛细现象
+9. `wetting` — 浸润与不浸润
+10. `liquid-crystal` — 液晶光学性质
+11. `joule-mechanical` — 焦耳热功当量
+12. `joule-electrical` — 焦耳电热实验
+13. `adiabatic-compression` — 压缩点火
+14. `heat-transfer` — 热传递三方式
+15. `energy-transformation` — 能量转化与守恒
+16. `perpetuum-mobile` — 第二类永动机
+17. `heat-direction` — 热传导方向性
+18. `alpha-scattering` — α 粒子散射
+19. `black-body` — 黑体辐射
+20. `electron-diffraction` — 电子衍射
+21. `radiation-deflection` — 放射线磁场偏转
+22. `decay-statistics` — 衰变统计规律
+23. `cosmic-ray` — 宇宙射线
+24. `neutron-discovery` — 中子发现
+25. `fission-chain` — 核裂变链式反应
 
-- [x] 实现电磁感应模型 (physics-core) ✅ 2026-07-05
-  - 描述：ε = −dΦ/dt (法拉第)；Φ = B·A·cosθ；切割 ε = B·L·v
-  - 新建 ElectromagneticInductionModel
-  - 涉及文件：physics-core/src/models/em-induction.ts；test: em-induction.test.ts
-  - 参考：experiments/选必二_第2章_电磁感应.md
+复用 Scene:
+- gas-law (×3), photoelectric (×3), bohr (×2), radioactive (×3)
 
-- [x] 法拉第电磁感应可视化场景 ✅ 2026-07-05
-  - 磁通量变化动画、感生电动势、L 形导轨滑块模型
-  - 涉及文件：visualization/src/scenes/sceneRegistry.ts
+退出条件:
+- [ ] 25 新 Model + 测试
+- [ ] 37 SceneConfig
+- [ ] npm test + build 通过
+- [ ] `git commit -m "feat: 选必三 37 个实验全覆盖"`
 
-## 阶段十二：选必二 第三~五章综合 (交变电流 / 电磁振荡 / 传感器)
+---
 
-- [x] 实现交变电流模型 (physics-core) ✅ 2026-07-05
-  - 描述：e = Eₘ·sinωt；有效值 E_eff = Eₘ/√2；变压器 U₁/U₂ = n₁/n₂
-  - 新建 ACModel：交变电流的时间曲线 + 变压器场景
-  - 涉及文件：physics-core/src/models/ac-current.ts；test: ac-current.test.ts
-  - 参考：experiments/选必二_第3章_交变电流.md
+## ⚫ 阶段 H: UI 全面扩展
 
-- [x] 实现电磁振荡 (LC) 模型 (physics-core) ✅ 2026-07-05
-  - 描述：T = 2π√(LC)；Q(t) = Q₀·cos(ωt)；ω = 1/√(LC)
-  - 新建 LCModel：电容+电感振荡电路
-  - 涉及文件：physics-core/src/models/lc-oscillator.ts；test: lc-oscillator.test.ts
-  - 参考：experiments/选必二_第4章_电磁振荡与电磁波.md
+**目标**: 全量 SceneSelector + problemAnalyzer + FormulaPanel
 
-- [x] 选必二综合可视化场景 ✅ 2026-07-05
-  - 注册 magnetic-force + em-induction + ac + lc-oscillator 4 个场景
-  - 涉及文件：visualization/src/scenes/sceneRegistry.ts
-  - 参考：选必二 §1-4 全部章节
+### H1. SceneSelector 全场景覆盖
+当前 SCENE_CATEGORIES 仅列 15 scene，需要列出全部注册的 ~176 scene。
+按 7 大教材分类扩展。
+
+### H2. problemAnalyzer 关键词扩展
+当前 SCENE_KEYWORDS 10 条，扩展到 ≥ 50 条覆盖全部新 sceneId。
+关键词从 experiments/ 中提取 (实验名 → 同义/近义/描述词)。
+
+### H3. FormulaPanel 公式扩展
+FORMULA_MAP 每个新 scene 至少一组核心公式。
+
+### H4. README/CLAUDE.md 更新
+- README "9 个物理场景" → "176 个实验场景"
+- CLAUDE.md 模型列表更新
+
+退出条件:
+- [ ] SceneSelector 列出全部注册的 scene
+- [ ] problemAnalyzer 覆盖全部新 sceneId
+- [ ] FormularMap 覆盖新 scene ≥ 70%
+- [ ] npm test + build 通过
+- [ ] `git commit -m "feat: SceneSelector + problemAnalyzer + FormulaPanel 全覆盖"`
+
+---
+
+## 📈 全部完成后的状态
+
+- **physics-core Model**: ~95 个 (当前 32 + 新建 63)
+- **Scene (tsx)**: 176 个 SceneConfig
+- **SceneSelector 显示**: 176 个
+- **Test count**: ≥ 500+ (每 Model ≥ 5 断言)
+- **npm build**: 通过
+
+---
+
+## ⚠️ 注意事项
+
+1. **不要为了测试而测试** — 每个断言必须验证物理意义的正确性
+2. **静态场景也要有 Model** — 即使只是 Canvas 绘制, 也过 physics-core 的 Model.solve() 接口
+3. **复用 Model 优先于新建** — 能用 constraint 参数表达的场景不要建新 Model
+4. **不要破坏已有测试** — 新 Model 不能导致已有 289+ 测试失败
+5. **中文 JSDoc 必须完整** — 每个 Model 必须有
+6. **图表必须有中文标注** — xLabel/yLabel 中文

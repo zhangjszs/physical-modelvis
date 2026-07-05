@@ -20,12 +20,12 @@
 physical_modelvis/
 ├── physics-core/          # TypeScript 物理引擎（零依赖）
 │   ├── src/
-│   │   ├── models/        # 8 个物理模型
+│   │   ├── models/        # 物理模型
 │   │   ├── math/          # 向量运算
 │   │   ├── types/         # 类型定义
 │   │   ├── units/         # 单位和常数
 │   │   └── solver/        # 求解器路由
-│   └── tests/             # 92 个单元测试
+│   └── tests/             # 单元测试
 │
 ├── visualization/         # React 可视化前端
 │   ├── src/
@@ -36,13 +36,9 @@ physical_modelvis/
 │   │   ├── store/         # Zustand 状态管理
 │   │   └── utils/         # 工具函数
 │   ├── server/            # OCR 后端代理
-│   └── tests/             # 20 个测试
+│   └── tests/             # 测试
 │
-├── physim/                # 旧版物理引擎（Boris 积分器）
-├── js/                    # 旧版桥接层
-├── templates/             # 旧版场景模板
-├── problems/              # 旧版题目配置
-└── index.html             # 旧版前端入口
+└── experiments/           # 人教版高中物理实验整理（176 个实验）
 ```
 
 ## 快速开始
