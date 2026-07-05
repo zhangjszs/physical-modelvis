@@ -349,14 +349,15 @@ export const SCENES: SceneConfig[] = [
       const ropeLength = params['ropeLength'] ?? 1.0;
       const conicalAngleDeg = params['conicalAngle'] ?? 30;
       const phi0 = (initialAngleDeg * Math.PI) / 180;
-      // 圆锥摆：由绳长与摆角自动确定 ω (g=9.8默认)
+      // 圆锥摆：ω 由 model (physics-core) 单一推导 → ω = √(g / (L·cosθ))
+      // scene 仅在圆锥摆模式下计算 omega 本地副本用于 duration 估算, 不写回 constraint.angularVelocity
       const g = params['g'] ?? PHYSICS_CONSTANTS.g.value;
-      const finalRadius = conicalMode ? ropeLength * Math.sin(conicalAngleDeg * Math.PI / 180) : radius;
-      if (conicalMode) {
-        const theta = conicalAngleDeg * Math.PI / 180;
-        omega = Math.sqrt(g / (ropeLength * Math.cos(theta)));
-      }
-      const duration = (2 * Math.PI * revolutions) / omega;
+      const conicalAngleRad = conicalMode ? (conicalAngleDeg * Math.PI / 180) : 0;
+      const computedOmega = conicalMode ? Math.sqrt(g / (ropeLength * Math.cos(conicalAngleRad))) : null;
+      const finalRadius = conicalMode ? ropeLength * Math.sin(conicalAngleRad) : radius;
+      // 用于时长计算的 omega：圆锥摆使用推导值, 否则使用 UI 值
+      const effectiveOmega = computedOmega ?? omega;
+      const duration = (2 * Math.PI * revolutions) / effectiveOmega;
       return {
         id: `circular-motion-${Date.now()}`,
         title: conicalMode ? '圆锥摆 (圆锥曲线运动)' : '匀速圆周运动 (向心力)',
@@ -365,13 +366,15 @@ export const SCENES: SceneConfig[] = [
           id: 'ball',
           mass: { value: mass, unit: 'kg' },
           position: { x: finalRadius * Math.cos(phi0), y: finalRadius * Math.sin(phi0) },
-          velocity: { x: -finalRadius * omega * Math.sin(phi0), y: finalRadius * omega * Math.cos(phi0) },
+          // 速度：非圆锥摆模式使用 scene omega；圆锥摆模式下 velocity 为占位，model 会重新计算
+          velocity: { x: -finalRadius * effectiveOmega * Math.sin(phi0), y: finalRadius * effectiveOmega * Math.cos(phi0) },
         }],
         constraints: {
           circularMotion: {
             center: { x: 0, y: 0 },
             radius: finalRadius,
-            angularVelocity: omega,
+            // 圆锥摆模式下 angularVelocity 为占位值；model 根据 conicalAngleDeg + ropeLength + g 自动覆盖
+            angularVelocity: computedOmega ?? omega,
             initialAngle: phi0,
             ...(conicalMode ? { conicalAngleDeg, ropeLength } : {}),
           },
@@ -525,13 +528,14 @@ export const SCENES: SceneConfig[] = [
       const duration = params['duration'] ?? 3;
 
       if (mode === 'recoil') {
-        const v1 = -(mass2 * v2) / mass; // 动量守恒
+        // 场景仅输入 m1, m2, v2；model 内部由动量守恒 (m1·v1 + m2·v2 = 0) 自动推导 v1
+        // scene 不在 buildProblem 中重复计算, 避免与 model 计算结果不一致
         return {
           id: `momentum-${Date.now()}`,
           title: '反冲运动 (动量守恒)',
           model: 'momentum',
           bodies: [
-            { id: 'A', mass: { value: mass, unit: 'kg' }, position: { x: -1, y: 0 }, velocity: { x: v1, y: 0 } },
+            { id: 'A', mass: { value: mass, unit: 'kg' }, position: { x: -1, y: 0 }, velocity: { x: 0, y: 0 } },
             { id: 'B', mass: { value: mass2, unit: 'kg' }, position: { x: 1, y: 0 }, velocity: { x: v2, y: 0 } },
           ],
           constraints: { momentum: { mode: 'recoil' } },

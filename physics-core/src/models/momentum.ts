@@ -120,13 +120,15 @@ export class MomentumModel extends PhysicsModelBase {
     };
   }
 
-  /** 反冲：两物体静止，内力推开 → 总动量守恒 = 0 */
+  /** 反冲：两物体静止，内力推开 → 总动量守恒 = 0
+   * 契约：scene 输入 v2 (物体2碰后速度)；model 内部由 m1·v1 + m2·v2 = 0 推导 v1 (物体1碰后速度)
+   * body[0].velocity.x (入参) 被忽略，以模型计算结果为权威值 */
   private solveRecoil(problem: PhysicsProblem, _mc: NonNullable<PhysicsProblem['constraints']>['momentum'] & object): SimulationResult {
     const bodies = problem.bodies;
     if (bodies.length < 2) throw new Error('反冲模式需要两个物体');
     const m1 = bodies[0]!.mass.value;
     const m2 = bodies[1]!.mass.value;
-    const v2Final = bodies[1]!.velocity.x; // 物体2碰后速度 (由 buildProblem 预设)
+    const v2Final = bodies[1]!.velocity.x; // 物体2碰后速度 (scene 预设
     // 动量守恒: m1·v1 + m2·v2 = 0 → v1 = −m2·v2 / m1
     const v1Final = -(m2 * v2Final) / m1;
 

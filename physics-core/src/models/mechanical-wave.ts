@@ -72,7 +72,9 @@ export class MechanicalWaveModel extends PhysicsModelBase {
     const tracked = [0, Math.floor(N / 8), Math.floor(N / 4), Math.floor(3 * N / 8), Math.floor(N / 2), Math.floor(5 * N / 8), Math.floor(3 * N / 4), Math.floor(7 * N / 8), N - 1];
     const trajs: TrajectoryPoint[][] = tracked.map(() => []);
 
-    // 波形快照: 最后一帧的所有 N 个质点位置, 用于绘制波形 (wave-t 图)
+    // 波形快照: 把某一时刻的所有 N 个质点位置打包成一条「轨迹」放入 trajectories 末尾
+    // 注意：waveSnapshot 中的 TrajectoryPoint.t 字段存的是该质点的 x 坐标 (暂存技巧)
+    //       图表 x 坐标使用 position.x, t 字段仅在渲染端标记用
     const waveSnapshot: TrajectoryPoint[] = [];
 
     for (let s = 0; s <= sampleCount; s++) {

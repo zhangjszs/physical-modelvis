@@ -65,6 +65,18 @@ export class SimplePendulumModel extends PhysicsModelBase {
     let omega = pc.initialOmega ?? 0; // 初始角速度 (dθ/dt)
     const pivot = pc.pivot ?? { x: 0, y: 0 };
 
+    // 一致性校验：body.position 必须与 (pivot + L·sinθ, pivot.y + L·cosθ) 匹配
+    // (避免 scene 构建时 body 位置与 pivot/initialAngle 不一致)
+    const expectedX = pivot.x + L * Math.sin(theta0Rad);
+    const expectedY = pivot.y + L * Math.cos(theta0Rad);
+    const posTolerance = 1e-6;
+    let pivotWarning: string | null = null;
+    if (Math.abs(body.position.x - expectedX) > posTolerance || Math.abs(body.position.y - expectedY) > posTolerance) {
+      // 不抛出异常 (向后兼容默认 pivot={0,0} 的历史 scene)
+      // 仅标记警告：实际 simulation 以 pivot + initialAngle 为准
+      pivotWarning = `body.position (${body.position.x.toFixed(3)}, ${body.position.y.toFixed(3)}) 与 pivot+initialAngle 推导值 (${expectedX.toFixed(3)}, ${expectedY.toFixed(3)}) 不一致`;
+    }
+
     // 解析小角度周期 (用于参考)
     const Tsmall = 2 * Math.PI * Math.sqrt(L / g);
     const omegaSmall = Math.sqrt(g / L);
@@ -206,7 +218,7 @@ export class SimplePendulumModel extends PhysicsModelBase {
           maxThetaDeg: maxTheta * 180 / Math.PI,
           maxOmega,
         },
-        rangeCheck: { withinRange: true, warnings: [] },
+        rangeCheck: { withinRange: true, warnings: pivotWarning ? [pivotWarning] : [] },
       },
       explanation: {
         summary: `单摆: L=${L}m, g=${g}m/s², θ₀=${deg0.toFixed(1)}°, T(小角度)=${Tsmall.toFixed(2)}s, f=${(1/Tsmall).toFixed(3)}Hz`,
@@ -218,7 +230,7 @@ export class SimplePendulumModel extends PhysicsModelBase {
         ],
       },
       errors: [],
-      warnings: [],
+      warnings: pivotWarning ? [pivotWarning] : [],
     };
   }
 
