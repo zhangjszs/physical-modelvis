@@ -13,6 +13,7 @@ import { UniformCircularMotionModel } from '../models/uniform-circular-motion.js
 import { ForceCompositionModel } from '../models/force-composition.js';
 import { NewtonThirdLawModel } from '../models/newton-third-law.js';
 import { SlidingFrictionModel } from '../models/sliding-friction.js';
+import { NewtonSecondLawModel } from '../models/newton-second-law.js';
 
 registerModel(new UniformLinearModel());
 registerModel(new UniformAcceleratedModel());
@@ -28,6 +29,8 @@ registerModel(new UniformCircularMotionModel());
 registerModel(new ForceCompositionModel());
 registerModel(new NewtonThirdLawModel());
 registerModel(new SlidingFrictionModel());
+// 必修一 第四章 运动和力的关系
+registerModel(new NewtonSecondLawModel());
 
 export function solveProblem(problem: PhysicsProblem): SimulationResult {
   const model = getModel(problem.model);

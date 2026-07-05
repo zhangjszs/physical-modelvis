@@ -18,7 +18,9 @@ export type ModelType =
   // 必修一 第三章 相互作用——力
   | 'force-composition'      // 力的合成与分解 (平行四边形定则)
   | 'newton-third-law'       // 牛顿第三定律 (作用力与反作用力)
-  | 'sliding-friction';      // 滑动摩擦力 (f = μN)
+  | 'sliding-friction'       // 滑动摩擦力 (f = μN)
+  // 必修一 第四章 运动和力的关系
+  | 'newton-second-law';     // 牛顿第二定律 (F = ma)
 
 /** 重力场配置 */
 export interface GravityConfig {
@@ -115,6 +117,14 @@ export interface SlidingFrictionConstraint {
   readonly uniformMotion?: boolean;
 }
 
+/** 牛顿第二定律约束 — 必修一 §2 (F = ma) */
+export interface NewtonSecondLawConstraint {
+  /** 合外力 (N) — 支持一维标量 (沿 x 轴) 或二维向量 */
+  readonly force: number | Vector2D;
+  /** 是否考虑摩擦力 (使用 environment.ground.friction) */
+  readonly includeFriction?: boolean;
+}
+
 /** 约束配置 */
 export interface ConstraintConfig {
   readonly inclinedPlane?: InclinedPlaneConstraint;
@@ -124,6 +134,7 @@ export interface ConstraintConfig {
   readonly forceComposition?: ForceCompositionConstraint;
   readonly newtonThirdLaw?: NewtonThirdLawConstraint;
   readonly slidingFriction?: SlidingFrictionConstraint;
+  readonly newtonSecondLaw?: NewtonSecondLawConstraint;
 }
 
 /** 时间配置 */
