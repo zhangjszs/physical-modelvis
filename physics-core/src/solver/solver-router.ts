@@ -59,6 +59,23 @@ import { ElectroscopeModel } from '../models/electroscope.js';
 import { CoulombForceExploreModel } from '../models/coulomb-force-explore.js';
 import { ElectrostaticShieldingModel } from '../models/electrostatic-shielding.js';
 import { FaradayCupModel } from '../models/faraday-cup.js';
+// 选必一 第一章 实验
+import { ProjectileCollisionModel } from '../models/projectile-collision.js';
+// 选必一 第二章 振动
+import { DoublePendulumSyncModel } from '../models/double-pendulum.js';
+import { ForcedVibrationModel } from '../models/forced-vibration.js';
+import { ResonanceModel } from '../models/resonance.js';
+// 选必一 第三章 波
+import { SoundWaveformModel } from '../models/sound-waveform.js';
+import { WaterDiffractionModel } from '../models/water-diffraction.js';
+import { SoundInterferenceModel } from '../models/sound-interference.js';
+import { DopplerModel } from '../models/doppler.js';
+// 选必一 第四章 光
+import { ThinFilmModel } from '../models/thin-film.js';
+import { HologramModel } from '../models/hologram.js';
+import { SingleSlitModel } from '../models/single-slit.js';
+import { DiffractionGratingModel } from '../models/diffraction-grating.js';
+import { PolarizationModel } from '../models/polarization.js';
 
 registerModel(new UniformLinearModel());
 registerModel(new UniformAcceleratedModel());
@@ -147,6 +164,23 @@ registerModel(new ElectroscopeModel());
 registerModel(new CoulombForceExploreModel());
 registerModel(new ElectrostaticShieldingModel());
 registerModel(new FaradayCupModel());
+// 选必一 第一章 实验 (平抛验证动量守恒)
+registerModel(new ProjectileCollisionModel());
+// 选必一 第二章 振动 (双单摆/受迫/共振)
+registerModel(new DoublePendulumSyncModel());
+registerModel(new ForcedVibrationModel());
+registerModel(new ResonanceModel());
+// 选必一 第三章 波 (声波/水波/干涉/多普勒)
+registerModel(new SoundWaveformModel());
+registerModel(new WaterDiffractionModel());
+registerModel(new SoundInterferenceModel());
+registerModel(new DopplerModel());
+// 选必一 第四章 光 (薄膜/全息/单缝/光栅/偏振)
+registerModel(new ThinFilmModel());
+registerModel(new HologramModel());
+registerModel(new SingleSlitModel());
+registerModel(new DiffractionGratingModel());
+registerModel(new PolarizationModel());
 
 export function solveProblem(problem: PhysicsProblem): SimulationResult {
   const model = getModel(problem.model);

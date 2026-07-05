@@ -171,6 +171,32 @@ export interface SimulationResult {
     readonly grounding_effect?: ChartSeries;      // 静电屏蔽: 接地vs不接地张角对比
     readonly field_section?: ChartSeries;        // 静电屏蔽: 导体内外电场剖面
     readonly probe_position_charge?: ChartSeries; // 法拉第圆筒: 探针位置-测量电荷曲线
+    // 选必一 第一章 实验: 平抛验证动量守恒
+    readonly range_diagram?: ChartSeries;         // 射程标记图 (OP/OM/ON)
+    readonly velocity_ratio_scan?: ChartSeries;   // 碰后速度 vs 质量比
+    // 选必一 第二章 振动
+    readonly A_f_drive?: ChartSeries;             // 受迫振动/共振: A-f 曲线
+    readonly multi_damping_curves?: ChartSeries;  // 共振: 多阻尼曲线
+    // 选必一 第三章 波
+    readonly waveform_t?: ChartSeries;            // 声音波形: 时域
+    readonly envelope_t?: ChartSeries;            // 包络
+    readonly intensity_angle?: ChartSeries;       // 水波/单缝: 强度-角度
+    readonly slit_scan?: ChartSeries;             // 水波: 缝宽扫描
+    readonly scan_line?: ChartSeries;             // 声音干涉: 沿线扫描
+    readonly perpendicular_scan?: ChartSeries;    // 声音干涉: 垂直扫描
+    readonly fprime_vs_speed?: ChartSeries;       // 多普勒: f'-v_s
+    readonly fprime_vs_theta?: ChartSeries;       // 多普勒: f'-theta
+    // 选必一 第四章 光
+    readonly thickness_scan?: ChartSeries;        // 薄膜: 膜厚扫描
+    readonly wavelength_scan?: ChartSeries;       // 薄膜: 波长扫描
+    readonly record_curve?: ChartSeries;          // 全息: 记录光强
+    readonly reconstruct_curve?: ChartSeries;     // 全息: 再现衍射
+    readonly width_scan?: ChartSeries;            // 单缝: 缝宽扫描
+    readonly grating_intensity?: ChartSeries;     // 光栅: 衍射图样
+    readonly spectrum_curve?: ChartSeries;        // 光栅: 光谱
+    readonly malus_curve?: ChartSeries;           // 偏振: 马吕斯曲线
+    readonly polar_curve?: ChartSeries;           // 偏振: 极坐标
+    readonly multi_scan?: ChartSeries;            // 偏振: 多片扫描
   };
   readonly diagnostics: {
     readonly conservedQuantities: ConservedQuantity[];

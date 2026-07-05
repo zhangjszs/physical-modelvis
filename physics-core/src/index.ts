@@ -28,6 +28,12 @@ export type {
   ElectrostaticInductionConstraint, ElectroscopeConstraint,
   CoulombForceConstraint, CoulombForceMode,
   ElectrostaticShieldingConstraint, FaradayCupConstraint,
+  ProjectileCollisionConstraint,
+  DoublePendulumConstraint, ForcedVibrationConstraint, ResonanceConstraint,
+  SoundWaveformConstraint, WaterDiffractionConstraint,
+  SoundInterferenceConstraint, DopplerConstraint,
+  ThinFilmConstraint, HologramConstraint,
+  SingleSlitConstraint, DiffractionGratingConstraint, PolarizationConstraint,
 } from './types/problem.js';
 export { RESISTIVITY } from './types/problem.js';
 export type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep, FormulaUsage } from './types/result.js';
@@ -128,6 +134,23 @@ export { ElectroscopeModel } from './models/electroscope.js';
 export { CoulombForceExploreModel } from './models/coulomb-force-explore.js';
 export { ElectrostaticShieldingModel } from './models/electrostatic-shielding.js';
 export { FaradayCupModel } from './models/faraday-cup.js';
+// 选必一 第一章 实验
+export { ProjectileCollisionModel } from './models/projectile-collision.js';
+// 选必一 第二章 振动
+export { DoublePendulumSyncModel } from './models/double-pendulum.js';
+export { ForcedVibrationModel } from './models/forced-vibration.js';
+export { ResonanceModel } from './models/resonance.js';
+// 选必一 第三章 波
+export { SoundWaveformModel } from './models/sound-waveform.js';
+export { WaterDiffractionModel } from './models/water-diffraction.js';
+export { SoundInterferenceModel } from './models/sound-interference.js';
+export { DopplerModel } from './models/doppler.js';
+// 选必一 第四章 光
+export { ThinFilmModel } from './models/thin-film.js';
+export { HologramModel } from './models/hologram.js';
+export { SingleSlitModel } from './models/single-slit.js';
+export { DiffractionGratingModel } from './models/diffraction-grating.js';
+export { PolarizationModel } from './models/polarization.js';
 
 // === 求解器导出 ===
 export { solveProblem } from './solver/solver-router.js';

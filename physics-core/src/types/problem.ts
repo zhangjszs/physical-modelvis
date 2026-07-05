@@ -90,7 +90,24 @@ export type ModelType =
   | 'electroscope'               // 验电器 (箔片张角 vs 电荷量)
   | 'coulomb-force-explore'      // 探究电荷间作用力 (F=k·|q₁q₂|/r²)
   | 'electrostatic-shielding'    // 静电屏蔽 (接地 vs 不接地 E=0)
-  | 'faraday-cup';              // 法拉第圆筒 (内表面电荷=0)
+  | 'faraday-cup'              // 法拉第圆筒 (内表面电荷=0)
+  // 选必一 第一章 实验: 平抛验证动量守恒
+  | 'projectile-collision'     // 平抛等时性 + 动量守恒 m1*OP = m1*OM + m2*ON
+  // 选必一 第二章 振动: 双单摆步调 / 受迫振动 / 共振
+  | 'double-pendulum'          // 两个单摆振动步调 (同相/反相)
+  | 'forced-vibration'         // 受迫振动 (稳态频率 = 驱动频率)
+  | 'resonance'                // 共振曲线 (A-f, 不同阻尼)
+  // 选必一 第三章 波
+  | 'sound-waveform'           // 声音时域波形
+  | 'water-diffraction'        // 水波衍射
+  | 'sound-interference'       // 声音干涉 (两相干声源)
+  | 'doppler'                  // 多普勒效应
+  // 选必一 第四章 光
+  | 'thin-film'                // 薄膜干涉 (等厚/增透/增反)
+  | 'hologram'                 // 全息照片
+  | 'single-slit'              // 单缝衍射
+  | 'diffraction-grating'      // 光栅衍射
+  | 'polarization';            // 偏振光 (马吕斯定律)
 
 /** 重力场配置 */
 export interface GravityConfig {
@@ -882,7 +899,214 @@ export interface ConstraintConfig {
   readonly electrostaticShielding?: ElectrostaticShieldingConstraint;
   /** 法拉第圆筒约束 — 必修三 第十二章 */
   readonly faradayCup?: FaradayCupConstraint;
+  /** 平抛验证动量守恒约束 — 选必一 第一章 实验 */
+  readonly projectileCollision?: ProjectileCollisionConstraint;
+  /** 双单摆步调约束 — 选必一 第二章 */
+  readonly doublePendulum?: DoublePendulumConstraint;
+  /** 受迫振动约束 — 选必一 第二章 */
+  readonly forcedVibration?: ForcedVibrationConstraint;
+  /** 共振曲线约束 — 选必一 第二章 */
+  readonly resonance?: ResonanceConstraint;
+  /** 声音波形约束 — 选必一 第三章 */
+  readonly soundWaveform?: SoundWaveformConstraint;
+  /** 水波衍射约束 — 选必一 第三章 */
+  readonly waterDiffraction?: WaterDiffractionConstraint;
+  /** 声音干涉约束 — 选必一 第三章 */
+  readonly soundInterference?: SoundInterferenceConstraint;
+  /** 多普勒效应约束 — 选必一 第三章 */
+  readonly doppler?: DopplerConstraint;
+  /** 薄膜干涉约束 — 选必一 第四章 */
+  readonly thinFilm?: ThinFilmConstraint;
+  /** 全息照片约束 — 选必一 第四章 */
+  readonly hologram?: HologramConstraint;
+  /** 单缝衍射约束 — 选必一 第四章 */
+  readonly singleSlit?: SingleSlitConstraint;
+  /** 光栅衍射约束 — 选必一 第四章 */
+  readonly diffractionGrating?: DiffractionGratingConstraint;
+  /** 偏振光约束 — 选必一 第四章 */
+  readonly polarization?: PolarizationConstraint;
 }
+
+/** 平抛验证动量守恒约束 — 选必一 第一章 实验 */
+export interface ProjectileCollisionConstraint {
+  /** 入射球质量 m1 (kg) */
+  readonly m1: number;
+  /** 被撞球质量 m2 (kg) */
+  readonly m2: number;
+  /** 入射球碰前速度 (m/s) */
+  readonly v1Initial: number;
+  /** 实验台高度 (m) */
+  readonly tableHeight: number;
+  /** 弹性系数 e (0=完全非弹性, 1=完全弹性), 默认 1 */
+  readonly restitution?: number;
+  /** 重力加速度 (m/s^2), 默认 9.8 */
+  readonly gravity?: number;
+}
+
+/** 双单摆步调约束 — 选必一 第二章 */
+export interface DoublePendulumConstraint {
+  /** 摆1摆长 L1 (m) */
+  readonly length1: number;
+  /** 摆2摆长 L2 (m) */
+  readonly length2: number;
+  /** 摆1初始角 (度) */
+  readonly initialAngle1: number;
+  /** 摆2初始角 (度) */
+  readonly initialAngle2: number;
+  /** 两摆相位差 phi2-phi1 (度), 0=同相, 180=反相 */
+  readonly phaseDiff: number;
+  /** 重力加速度 (m/s^2), 默认 9.8 */
+  readonly gravity?: number;
+}
+
+/** 受迫振动约束 — 选必一 第二章 */
+export interface ForcedVibrationConstraint {
+  /** 振子质量 m (kg) */
+  readonly mass: number;
+  /** 弹簧劲度系数 k (N/m) */
+  readonly springConstant: number;
+  /** 阻尼系数 beta = c/(2m) (1/s) */
+  readonly dampingBeta: number;
+  /** 驱动力幅值 F0 (N) */
+  readonly forceAmplitude: number;
+  /** 驱动频率 (Hz) */
+  readonly drivingFreq: number;
+}
+
+/** 共振曲线约束 — 选必一 第二章 */
+export interface ResonanceConstraint {
+  /** 振子质量 m (kg) */
+  readonly mass: number;
+  /** 弹簧劲度系数 k (N/m) */
+  readonly springConstant: number;
+  /** 驱动力幅值 F0 (N) */
+  readonly forceAmplitude: number;
+  /** 阻尼系数数组 (1/s), 用于多曲线对比 */
+  readonly dampingBetas: number[];
+  /** 频率扫描下限 (Hz) */
+  readonly freqMin: number;
+  /** 频率扫描上限 (Hz) */
+  readonly freqMax: number;
+}
+
+/** 声音波形约束 — 选必一 第三章 */
+export interface SoundWaveformConstraint {
+  /** 基频 (Hz) */
+  readonly frequency: number;
+  /** 振幅 (相对值 0-1) */
+  readonly amplitude: number;
+  /** 波形类型: pure(纯音)/complex(复合)/noise(噪声) */
+  readonly waveType: 'pure' | 'complex' | 'noise';
+  /** 谐波数组 (仅 complex 模式) */
+  readonly harmonics?: number[];
+}
+
+/** 水波衍射约束 — 选必一 第三章 */
+export interface WaterDiffractionConstraint {
+  /** 水波波长 (cm) */
+  readonly wavelength: number;
+  /** 狭缝宽度 a (cm) */
+  readonly slitWidth: number;
+  /** 缝到挡板距离 L (cm) */
+  readonly screenDist: number;
+  /** 入射波振幅 (cm) */
+  readonly waveAmplitude: number;
+}
+
+/** 声音干涉约束 — 选必一 第三章 */
+export interface SoundInterferenceConstraint {
+  /** 声波频率 (Hz) */
+  readonly frequency: number;
+  /** 两扬声器距离 d (m) */
+  readonly speakerDist: number;
+  /** 声速 v (m/s) */
+  readonly soundSpeed: number;
+  /** 单个声源振幅 A0 */
+  readonly amplitude: number;
+  /** 观察点 x 坐标 (m, 沿两扬声器连线方向), 可选 */
+  readonly observationX?: number;
+  /** 观察点 y 坐标 (m, 垂直于连线方向), 可选 */
+  readonly observationY?: number;
+}
+
+/** 多普勒效应约束 — 选必一 第三章 */
+export interface DopplerConstraint {
+  /** 声速 v (m/s) */
+  readonly soundSpeed: number;
+  /** 声源频率 f (Hz) */
+  readonly sourceFreq: number;
+  /** 声源速度 v_s (m/s) */
+  readonly sourceSpeed: number;
+  /** 声源运动方向与观察者连线夹角 theta (度), 0=朝向, 180=远离 */
+  readonly directionAngle: number;
+}
+
+/** 薄膜干涉约束 — 选必一 第四章 */
+export interface ThinFilmConstraint {
+  /** 薄膜厚度 d (nm) */
+  readonly thickness: number;
+  /** 薄膜折射率 n */
+  readonly refIndex: number;
+  /** 入射光波长 lambda (nm) */
+  readonly wavelength: number;
+  /** 入射角 (度, 相对法线) */
+  readonly incidentAngle: number;
+  /** 基片折射率, 默认 1.5 */
+  readonly substrateIndex?: number;
+}
+
+/** 全息照片约束 — 选必一 第四章 */
+export interface HologramConstraint {
+  /** 参考光与光轴夹角 theta_r (度) */
+  readonly referenceAngle: number;
+  /** 物光与光轴夹角 theta_o (度) */
+  readonly objectAngle: number;
+  /** 激光波长 (nm) */
+  readonly wavelength: number;
+  /** 参考光振幅 A_r */
+  readonly referenceAmp: number;
+  /** 物光振幅 A_o */
+  readonly objectAmp: number;
+  /** 全息干板宽度 (mm) */
+  readonly recordWidth: number;
+}
+
+/** 单缝衍射约束 — 选必一 第四章 */
+export interface SingleSlitConstraint {
+  /** 缝宽 a (mm) */
+  readonly slitWidth: number;
+  /** 光波长 lambda (nm) */
+  readonly wavelength: number;
+  /** 缝到屏距离 L (m) */
+  readonly screenDist: number;
+}
+
+/** 光栅衍射约束 — 选必一 第四章 */
+export interface DiffractionGratingConstraint {
+  /** 光栅常数 d (um) */
+  readonly gratingConstant: number;
+  /** 缝宽 a (um) */
+  readonly slitWidth: number;
+  /** 光波长 lambda (nm) */
+  readonly wavelength: number;
+  /** 最大衍射级次 k */
+  readonly orderMax: number;
+  /** 光栅总缝数 N */
+  readonly slitCount: number;
+}
+
+/** 偏振光约束 — 选必一 第四章 */
+export interface PolarizationConstraint {
+  /** 入射光强 I_0 (相对值 0-1) */
+  readonly initialIntensity: number;
+  /** 偏振片数量 n */
+  readonly nPolarizers: number;
+  /** 各偏振片透振方向角度数组 (度), 长度=nPolarizers */
+  readonly polarizerAngles: number[];
+  /** 入射光偏振方向 (度) */
+  readonly incidentAngle?: number;
+}
+
 
 /** 游标卡尺读数约束 — 必修三 实验 (L = 主尺 + K×1/N mm) */
 export interface VernierCaliperConstraint {
