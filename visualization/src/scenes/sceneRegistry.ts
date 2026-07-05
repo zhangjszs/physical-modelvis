@@ -1656,6 +1656,468 @@ export const SCENES: SceneConfig[] = [
       };
     },
   },
+  // ========================================================================
+  // 选必一 第二章 机械振动 — 双单摆 / 受迫振动 / 共振
+  // ========================================================================
+  {
+    id: 'double-pendulum-sync',
+    name: '双单摆步调比较',
+    model: 'double-pendulum' as const,
+    parameters: [
+      { name: 'length1',   label: '摆1摆长 L₁',         unit: 'm',    value: 1.0,  min: 0.1, max: 5,   step: 0.05, default: 1.0,  description: '第一个单摆的摆线长度 (m)' },
+      { name: 'length2',   label: '摆2摆长 L₂',         unit: 'm',    value: 0.5,  min: 0.1, max: 5,   step: 0.05, default: 0.5,  description: '第二个单摆的摆线长度 (m)' },
+      { name: 'angle1',    label: '摆1初始角 θ₁',       unit: '°',   value: 10,   min: 0,   max: 15,  step: 1,    default: 10,   description: '第一个摆初始偏离角度 (建议 ≤15°, 小角度近似)' },
+      { name: 'angle2',    label: '摆2初始角 θ₂',       unit: '°',   value: 10,   min: 0,   max: 15,  step: 1,    default: 10,   description: '第二个摆初始偏离角度 (建议 ≤15°, 小角度近似)' },
+      { name: 'phaseDiff', label: '相位差 Δφ',          unit: '°',   value: 0,    min: 0,   max: 360, step: 5,    default: 0,    description: '两摆相位差 (0°=同相, 180°=反相)' },
+      { name: 'gravity',   label: '重力加速度 g',        unit: 'm/s²', value: PHYSICS_CONSTANTS.g.value, min: 1, max: 20, step: 0.1, default: PHYSICS_CONSTANTS.g.value, description: '当地重力加速度' },
+      { name: 'duration',  label: '模拟时长',            unit: 's',   value: 10,   min: 1,   max: 60,  step: 1,    default: 10,   description: '仿真总时长 (建议覆盖 ≥2 个长摆周期)' },
+    ],
+    buildProblem: (params) => {
+      const L1 = params['length1'] ?? 1.0;
+      const L2 = params['length2'] ?? 0.5;
+      const th1 = params['angle1'] ?? 10;
+      const th2 = params['angle2'] ?? 10;
+      const phase = params['phaseDiff'] ?? 0;
+      const g = params['gravity'] ?? PHYSICS_CONSTANTS.g.value;
+      const duration = params['duration'] ?? 10;
+      return {
+        id: `dp-${Date.now()}`,
+        title: '双单摆步调比较',
+        model: 'double-pendulum',
+        bodies: [
+          { id: 'pendulum1', mass: { value: 0.2, unit: 'kg' }, position: { x: L1 * Math.sin(th1 * Math.PI / 180), y: L1 * Math.cos(th1 * Math.PI / 180) }, velocity: { x: 0, y: 0 } },
+          { id: 'pendulum2', mass: { value: 0.2, unit: 'kg' }, position: { x: L2 * Math.sin(th2 * Math.PI / 180), y: L2 * Math.cos(th2 * Math.PI / 180) }, velocity: { x: 0, y: 0 } },
+        ],
+        constraints: {
+          doublePendulum: { length1: L1, length2: L2, initialAngle1: th1, initialAngle2: th2, phaseDiff: phase, gravity: g },
+        },
+        environment: {},
+        timeConfig: { duration, dt: duration / 500, sampleCount: 500 },
+      };
+    },
+  },
+  {
+    id: 'forced-vibration-freq',
+    name: '受迫振动 (频率响应)',
+    model: 'forced-vibration' as const,
+    parameters: [
+      { name: 'mass',      label: '振子质量 m',         unit: 'kg',  value: 1,    min: 0.01, max: 10,   step: 0.01, default: 1,    description: '振子质量 (kg)' },
+      { name: 'k',         label: '弹簧劲度系数 k',     unit: 'N/m', value: 100,  min: 0.1,  max: 1000, step: 1,    default: 100,  description: '弹簧劲度系数 (越大固有频率越高)' },
+      { name: 'beta',      label: '阻尼系数 β',         unit: '1/s', value: 0.3,  min: 0,    max: 5,    step: 0.05, default: 0.3,  description: '粘滞阻尼系数 = c/(2m) (越大振幅衰减越快)' },
+      { name: 'forceAmp',  label: '驱动力幅值 F₀',      unit: 'N',   value: 1,    min: 0.01, max: 100,  step: 0.1,  default: 1,    description: '周期驱动力的幅值' },
+      { name: 'driveFreq', label: '驱动频率 f_d',       unit: 'Hz',  value: 2,    min: 0.1,  max: 20,   step: 0.1,  default: 2,    description: '驱动力的频率 (靠近固有频率时共振)' },
+      { name: 'duration',  label: '模拟时长',            unit: 's',   value: 20,   min: 1,    max: 60,   step: 1,    default: 20,   description: '仿真总时长 (需足够长以观察稳态)' },
+    ],
+    buildProblem: (params) => {
+      const mass = params['mass'] ?? 1;
+      const springConstant = params['k'] ?? 100;
+      const dampingBeta = params['beta'] ?? 0.3;
+      const forceAmplitude = params['forceAmp'] ?? 1;
+      const drivingFreq = params['driveFreq'] ?? 2;
+      const duration = params['duration'] ?? 20;
+      return {
+        id: `fv-${Date.now()}`,
+        title: '受迫振动 (频率响应)',
+        model: 'forced-vibration',
+        bodies: [{
+          id: 'oscillator',
+          mass: { value: mass, unit: 'kg' },
+          position: { x: 0, y: 0 },
+          velocity: { x: 0, y: 0 },
+        }],
+        constraints: {
+          forcedVibration: { mass, springConstant, dampingBeta, forceAmplitude, drivingFreq },
+        },
+        environment: {},
+        timeConfig: { duration, dt: duration / 2000, sampleCount: 2000 },
+      };
+    },
+  },
+  {
+    id: 'resonance-curve',
+    name: '共振曲线 (幅-频)',
+    model: 'resonance' as const,
+    parameters: [
+      { name: 'mass',      label: '振子质量 m',         unit: 'kg',  value: 1,    min: 0.01, max: 10,   step: 0.01, default: 1,    description: '振子质量 (kg)' },
+      { name: 'k',         label: '弹簧劲度系数 k',     unit: 'N/m', value: 100,  min: 0.1,  max: 1000, step: 1,    default: 100,  description: '决定固有频率 f₀ = √(k/m)/(2π)' },
+      { name: 'forceAmp',  label: '驱动力幅值 F₀',      unit: 'N',   value: 1,    min: 0.01, max: 100,  step: 0.1,  default: 1,    description: '保持恒定的驱动力幅值' },
+      { name: 'beta',      label: '阻尼系数 β',         unit: '1/s', value: 0.5,  min: 0.02, max: 3,    step: 0.02, default: 0.5,  description: '阻尼越小, 共振峰越高越尖' },
+      { name: 'freqMin',   label: '扫描下限 f_min',     unit: 'Hz',  value: 0.1,  min: 0.1,  max: 20,   step: 0.1,  default: 0.1,  description: '振幅-频率曲线扫描下限' },
+      { name: 'freqMax',   label: '扫描上限 f_max',     unit: 'Hz',  value: 10,   min: 0.5,  max: 30,   step: 0.1,  default: 10,   description: '振幅-频率曲线扫描上限 (应覆盖 f₀)' },
+    ],
+    buildProblem: (params) => {
+      const mass = params['mass'] ?? 1;
+      const springConstant = params['k'] ?? 100;
+      const forceAmplitude = params['forceAmp'] ?? 1;
+      const beta = params['beta'] ?? 0.5;
+      const freqMin = params['freqMin'] ?? 0.1;
+      const freqMax = params['freqMax'] ?? 10;
+      return {
+        id: `res-${Date.now()}`,
+        title: '共振曲线 (幅-频)',
+        model: 'resonance',
+        bodies: [{ id: 'osc', mass: { value: mass, unit: 'kg' }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } }],
+        constraints: {
+          resonance: {
+            mass, springConstant, forceAmplitude,
+            dampingBetas: [beta],
+            freqMin, freqMax,
+          },
+        },
+        environment: {},
+        // 静态图 (A-f 曲线): 不需要长时间演化
+        timeConfig: { duration: 1, dt: 0.1, sampleCount: 100 },
+      };
+    },
+  },
+  // ========================================================================
+  // 选必一 第三章 机械波 (声波/水波/多普勒)
+  // ========================================================================
+  {
+    id: 'sound-waveform',
+    name: '声音波形 (纯音+复合)',
+    model: 'sound-waveform' as const,
+    parameters: [
+      { name: 'frequency', label: '基频 f',             unit: 'Hz',  value: 440,   min: 20,    max: 5000, step: 10,   default: 440, description: '声波基频 (A4 = 440 Hz)' },
+      { name: 'amplitude', label: '振幅 A',              unit: '',    value: 0.8,   min: 0,     max: 1,   step: 0.05, default: 0.8, description: '振动幅度相对值 (0-1)' },
+      { name: 'waveType',  label: '波形 (0=纯音 1=复合 2=噪声)', unit: '', value: 0, min: 0, max: 2, step: 1, default: 0, description: '0=纯音 (正弦); 1=复合音 (基频+谐波); 2=噪声' },
+      { name: 'harmonic1', label: '2 倍频振幅',         unit: '',    value: 0.3,   min: 0,     max: 1,   step: 0.05, default: 0.3, description: '二次谐波相对振幅 (仅复合音模式有效)' },
+      { name: 'harmonic2', label: '3 倍频振幅',         unit: '',    value: 0.2,   min: 0,     max: 1,   step: 0.05, default: 0.2, description: '三次谐波相对振幅 (仅复合音模式有效)' },
+      { name: 'duration',  label: '模拟时长',            unit: 's',    value: 0.05,  min: 0.001, max: 0.5, step: 0.001, default: 0.05, description: '仿真总时长 (建议取 5-10 个基频周期)' },
+    ],
+    buildProblem: (params) => {
+      const frequency = params['frequency'] ?? 440;
+      const amplitude = params['amplitude'] ?? 0.8;
+      const waveTypeIdx = params['waveType'] ?? 0;
+      const waveTypes = ['pure', 'complex', 'noise'] as const;
+      const waveType = waveTypes[waveTypeIdx] ?? 'pure';
+      const h1 = params['harmonic1'] ?? 0.3;
+      const h2 = params['harmonic2'] ?? 0.2;
+      const harmonics = waveType === 'complex' ? [h1, h2] : [];
+      const duration = params['duration'] ?? 0.05;
+      return {
+        id: `sw-${Date.now()}`,
+        title: '声音波形 (纯音+复合)',
+        model: 'sound-waveform',
+        bodies: [{ id: 'medium', mass: { value: 0.1, unit: 'kg' }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } }],
+        constraints: {
+          soundWaveform: { frequency, amplitude, waveType, harmonics },
+        },
+        environment: {},
+        timeConfig: { duration, dt: duration / 500, sampleCount: 500 },
+      };
+    },
+  },
+  {
+    id: 'doppler-effect',
+    name: '多普勒效应 (声源运动)',
+    model: 'doppler' as const,
+    parameters: [
+      { name: 'soundSpeed',  label: '声速 v',           unit: 'm/s', value: 340, min: 300,  max: 400,  step: 1,  default: 340, description: '空气中声速 (20°C ≈ 343 m/s)' },
+      { name: 'sourceFreq',  label: '声源频率 f',       unit: 'Hz',  value: 500, min: 50,   max: 5000, step: 10, default: 500, description: '声源发出的原始频率' },
+      { name: 'sourceSpeed', label: '声源速度 v_s',      unit: 'm/s', value: 30,  min: 0,    max: 330,  step: 1,  default: 30,  description: '声源相对介质的运动速度' },
+      { name: 'dirAngle',    label: '方向角 θ',         unit: '°',   value: 0,   min: 0,    max: 360,  step: 1,  default: 0,   description: '声源运动方向与观察者连线夹角 (0°=靠近, 180°=远离)' },
+      { name: 'duration',    label: '模拟时长',          unit: 's',   value: 10,  min: 0.5,  max: 30,   step: 0.5,default: 10,  description: '仿真总时长 (仅影响声源运动轨迹动画)' },
+    ],
+    buildProblem: (params) => {
+      const soundSpeed = params['soundSpeed'] ?? 340;
+      const sourceFreq = params['sourceFreq'] ?? 500;
+      const sourceSpeed = params['sourceSpeed'] ?? 30;
+      const dirAngle = params['dirAngle'] ?? 0;
+      const duration = params['duration'] ?? 10;
+      return {
+        id: `dop-${Date.now()}`,
+        title: '多普勒效应 (声源运动)',
+        model: 'doppler',
+        bodies: [{ id: 'source', mass: { value: 0.1, unit: 'kg' }, position: { x: -10, y: 0 }, velocity: { x: sourceSpeed, y: 0 } }],
+        constraints: {
+          doppler: { soundSpeed, sourceFreq, sourceSpeed, directionAngle: dirAngle },
+        },
+        environment: {},
+        timeConfig: { duration, dt: duration / 50, sampleCount: 50 },
+      };
+    },
+  },
+  {
+    id: 'water-diffraction',
+    name: '水波衍射 (遇障碍物)',
+    model: 'water-diffraction' as const,
+    parameters: [
+      { name: 'wavelength', label: '波长 λ',           unit: 'cm', value: 4,   min: 0.5, max: 20,  step: 0.5, default: 4,   description: '水波波长 (cm)' },
+      { name: 'slitWidth',  label: '狭缝宽度 a',       unit: 'cm', value: 5,   min: 0.5, max: 50,  step: 0.5, default: 5,   description: '障碍物狭缝宽度 (a/λ<1 衍射明显)' },
+      { name: 'screenDist', label: '缝-挡板距离 L',    unit: 'cm', value: 50,  min: 5,   max: 200, step: 5,   default: 50,  description: '狭缝到后方挡板距离' },
+      { name: 'waveAmp',    label: '入射波振幅 A',     unit: 'cm', value: 1,   min: 0.1, max: 5,   step: 0.1, default: 1,   description: '入射水波振幅' },
+      { name: 'duration',   label: '模拟时长',          unit: 's',  value: 1,   min: 0.5, max: 5,   step: 0.1, default: 1,   description: '静态场景 (仅显示衍射强度图样)' },
+    ],
+    buildProblem: (params) => {
+      const wavelength = params['wavelength'] ?? 4;
+      const slitWidth = params['slitWidth'] ?? 5;
+      const screenDist = params['screenDist'] ?? 50;
+      const waveAmp = params['waveAmp'] ?? 1;
+      const duration = params['duration'] ?? 1;
+      return {
+        id: `wd-${Date.now()}`,
+        title: '水波衍射 (遇障碍物)',
+        model: 'water-diffraction',
+        bodies: [{ id: 'wave', mass: { value: 1, unit: 'kg' }, position: { x: -screenDist, y: 0 }, velocity: { x: 0, y: 0 } }],
+        constraints: {
+          waterDiffraction: { wavelength, slitWidth, screenDist, waveAmplitude: waveAmp },
+        },
+        environment: {},
+        timeConfig: { duration, dt: duration / 200, sampleCount: 200 },
+      };
+    },
+  },
+  {
+    id: 'sound-interference',
+    name: '声波干涉 (双喇叭)',
+    model: 'sound-interference' as const,
+    parameters: [
+      { name: 'frequency',   label: '声波频率 f',      unit: 'Hz',  value: 500, min: 50,  max: 5000, step: 10,   default: 500,  description: '相干声波频率' },
+      { name: 'speakerDist', label: '两扬声器距离 d',  unit: 'm',   value: 3,   min: 0.5, max: 20,  step: 0.1,  default: 3,    description: '扬声器 S₁ 与 S₂ 的距离' },
+      { name: 'soundSpeed',  label: '声速 v',           unit: 'm/s', value: 340, min: 300, max: 400,  step: 1,    default: 340,  description: '空气中声速 (λ=v/f)' },
+      { name: 'obsX',        label: '观察点 x',         unit: 'm',   value: 3,   min: -30, max: 30,  step: 0.5,  default: 3,    description: '观察点水平坐标 (沿两源连线方向)' },
+      { name: 'obsY',        label: '观察点 y',         unit: 'm',   value: 10,  min: 0.5, max: 30,  step: 0.5,  default: 10,   description: '观察点到连线中点的垂直距离' },
+      { name: 'amplitude',   label: '单源振幅 A₀',      unit: '',    value: 0.5, min: 0.1, max: 1,   step: 0.05, default: 0.5,  description: '单个声源的振幅相对值' },
+      { name: 'duration',    label: '模拟时长',          unit: 's',   value: 1,   min: 0.5, max: 5,   step: 0.1,  default: 1,    description: '静态场景 (仅显示声强空间分布)' },
+    ],
+    buildProblem: (params) => {
+      const frequency = params['frequency'] ?? 500;
+      const speakerDist = params['speakerDist'] ?? 3;
+      const soundSpeed = params['soundSpeed'] ?? 340;
+      const obsX = params['obsX'] ?? 3;
+      const obsY = params['obsY'] ?? 10;
+      const amplitude = params['amplitude'] ?? 0.5;
+      const duration = params['duration'] ?? 1;
+      return {
+        id: `si-${Date.now()}`,
+        title: '声波干涉 (双喇叭)',
+        model: 'sound-interference',
+        bodies: [
+          { id: 'S1', mass: { value: 0.1, unit: 'kg' }, position: { x: -speakerDist / 2, y: 0 }, velocity: { x: 0, y: 0 } },
+          { id: 'S2', mass: { value: 0.1, unit: 'kg' }, position: { x: speakerDist / 2, y: 0 }, velocity: { x: 0, y: 0 } },
+        ],
+        constraints: {
+          soundInterference: { frequency, speakerDist, soundSpeed, observationX: obsX, observationY: obsY, amplitude },
+        },
+        environment: {},
+        timeConfig: { duration, dt: duration / 100, sampleCount: 100 },
+      };
+    },
+  },
+  // ========================================================================
+  // 选必一 第四章 光
+  // ========================================================================
+  {
+    id: 'thin-film',
+    name: '薄膜干涉 (等厚)',
+    model: 'thin-film' as const,
+    parameters: [
+      { name: 'thickness', label: '薄膜厚度 d',     unit: 'nm',  value: 300,   min: 10,    max: 2000, step: 10,   default: 300,   description: '薄膜中心厚度 (可见光波长的 1-3 倍)' },
+      { name: 'refIndex',  label: '薄膜折射率 n',  unit: '',    value: 1.38,  min: 1,     max: 3,    step: 0.01, default: 1.38,  description: '薄膜材料折射率 (MgF₂=1.38, 玻璃=1.5)' },
+      { name: 'wavelength', label: '入射光波长 λ', unit: 'nm',  value: 550,   min: 380,   max: 780,  step: 5,    default: 550,   description: '入射单色光波长 (绿光≈550nm)' },
+      { name: 'incAngle',  label: '入射角 θ',       unit: '°',   value: 0,     min: 0,     max: 89,   step: 1,    default: 0,     description: '入射光线与法线的夹角' },
+      { name: 'subsIndex', label: '基片折射率 n_s', unit: '',    value: 1.5,   min: 1,     max: 4,    step: 0.01, default: 1.5,   description: '薄膜下方基片折射率 (玻璃=1.5)' },
+      { name: 'duration',  label: '模拟时长',        unit: 's',    value: 1,     min: 0.5,   max: 5,    step: 0.1,  default: 1,     description: '静态场景 (仅显示反射率曲线)' },
+    ],
+    buildProblem: (params) => {
+      const thickness = params['thickness'] ?? 300;
+      const refIndex = params['refIndex'] ?? 1.38;
+      const wavelength = params['wavelength'] ?? 550;
+      const incAngle = params['incAngle'] ?? 0;
+      const subsIndex = params['subsIndex'] ?? 1.5;
+      const duration = params['duration'] ?? 1;
+      return {
+        id: `tf-${Date.now()}`,
+        title: '薄膜干涉 (等厚)',
+        model: 'thin-film',
+        bodies: [{ id: 'photon', mass: { value: 1, unit: 'kg' }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } }],
+        constraints: {
+          thinFilm: { thickness, refIndex, wavelength, incidentAngle: incAngle, substrateIndex: subsIndex },
+        },
+        environment: {},
+        timeConfig: { duration, dt: duration / 100, sampleCount: 100 },
+      };
+    },
+  },
+  {
+    id: 'single-slit',
+    name: '单缝衍射 (光强分布)',
+    model: 'single-slit' as const,
+    parameters: [
+      { name: 'slitWidth',  label: '缝宽 a',         unit: 'mm', value: 0.1,  min: 0.005, max: 1,   step: 0.005, default: 0.1,  description: '单缝宽度 (建议 0.05-0.5 mm 以获得明显衍射图样)' },
+      { name: 'wavelength', label: '波长 λ',          unit: 'nm', value: 550,  min: 380,   max: 780, step: 5,     default: 550,  description: '入射单色光波长' },
+      { name: 'screenDist', label: '缝-屏距离 L',     unit: 'm',  value: 1.5,  min: 0.1,   max: 10,  step: 0.1,   default: 1.5,  description: '单缝到观察屏的距离' },
+      { name: 'duration',   label: '模拟时长',         unit: 's',  value: 1,    min: 0.5,   max: 5,   step: 0.1,   default: 1,    description: '静态场景 (仅显示衍射图样)' },
+    ],
+    buildProblem: (params) => {
+      const slitWidth = params['slitWidth'] ?? 0.1;
+      const wavelength = params['wavelength'] ?? 550;
+      const screenDist = params['screenDist'] ?? 1.5;
+      const duration = params['duration'] ?? 1;
+      return {
+        id: `ss-${Date.now()}`,
+        title: '单缝衍射 (光强分布)',
+        model: 'single-slit',
+        bodies: [{ id: 'photon', mass: { value: 1, unit: 'kg' }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } }],
+        constraints: {
+          singleSlit: { slitWidth, wavelength, screenDist },
+        },
+        environment: {},
+        timeConfig: { duration, dt: duration / 100, sampleCount: 100 },
+      };
+    },
+  },
+  {
+    id: 'diffraction-grating',
+    name: '光栅衍射 (光栅方程)',
+    model: 'diffraction-grating' as const,
+    parameters: [
+      { name: 'gratingConst', label: '光栅常数 d', unit: 'μm', value: 2,    min: 0.5,   max: 10,   step: 0.1,  default: 2,    description: '相邻狭缝中心距 (d=1/N, N=刻线数)' },
+      { name: 'slitWidth',    label: '缝宽 a',      unit: 'μm', value: 1,    min: 0.2,   max: 5,    step: 0.1,  default: 1,    description: '单条狭缝的宽度' },
+      { name: 'wavelength',   label: '波长 λ',      unit: 'nm', value: 550,  min: 380,   max: 780,  step: 5,    default: 550,  description: '入射单色光波长' },
+      { name: 'orderMax',     label: '最大级次 k_max', unit: '', value: 4, min: 1,     max: 10,   step: 1,    default: 4,    description: '计算的最大衍射级次' },
+      { name: 'slitCount',    label: '总缝数 N',    unit: '',   value: 500,  min: 10,    max: 10000, step: 10, default: 500,  description: '光栅总刻线数 (越多谱线越锐利)' },
+      { name: 'duration',     label: '模拟时长',     unit: 's',  value: 1,    min: 0.5,   max: 5,    step: 0.1,  default: 1,    description: '静态场景 (仅显示衍射谱线)' },
+    ],
+    buildProblem: (params) => {
+      const gratingConstant = params['gratingConst'] ?? 2;
+      const slitWidth = params['slitWidth'] ?? 1;
+      const wavelength = params['wavelength'] ?? 550;
+      const orderMax = params['orderMax'] ?? 4;
+      const slitCount = params['slitCount'] ?? 500;
+      const duration = params['duration'] ?? 1;
+      return {
+        id: `dg-${Date.now()}`,
+        title: '光栅衍射 (光栅方程)',
+        model: 'diffraction-grating',
+        bodies: [{ id: 'photon', mass: { value: 1, unit: 'kg' }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } }],
+        constraints: {
+          diffractionGrating: { gratingConstant, slitWidth, wavelength, orderMax, slitCount },
+        },
+        environment: {},
+        timeConfig: { duration, dt: duration / 100, sampleCount: 100 },
+      };
+    },
+  },
+  {
+    id: 'polarization-malus',
+    name: '偏振光 (马吕斯定律)',
+    model: 'polarization' as const,
+    parameters: [
+      { name: 'initIntensity', label: '入射光强 I₀',   unit: '',  value: 1,   min: 0,    max: 1,   step: 0.05, default: 1,   description: '入射光强相对值' },
+      { name: 'nPolarizers',   label: '偏振片数量 n',    unit: '',  value: 2,   min: 1,    max: 5,   step: 1,    default: 2,   description: '偏振片数目 (1=检偏, ≥2=多级系统)' },
+      { name: 'angle0',        label: '第 1 片角度',     unit: '°', value: 0,   min: 0,    max: 360, step: 1,    default: 0,   description: '第一片偏振片透振方向 (相对入射偏振)' },
+      { name: 'angle1',        label: '第 2 片角度',     unit: '°', value: 45,  min: 0,    max: 360, step: 1,    default: 45,  description: '第二片偏振片透振方向 (≥2 片时有效)' },
+      { name: 'angle2',        label: '第 3 片角度',     unit: '°', value: 90,  min: 0,    max: 360, step: 1,    default: 90,  description: '第三片偏振片透振方向 (≥3 片时有效)' },
+      { name: 'incAngle',       label: '入射偏振方向',    unit: '°', value: 0,   min: 0,    max: 360, step: 1,    default: 0,   description: '入射光偏振方向 (仅参考)' },
+      { name: 'duration',       label: '模拟时长',          unit: 's', value: 1,   min: 0.5,  max: 5,   step: 0.1,  default: 1,   description: '静态场景 (仅显示光强曲线)' },
+    ],
+    buildProblem: (params) => {
+      const initialIntensity = params['initIntensity'] ?? 1;
+      const nPolarizers = params['nPolarizers'] ?? 2;
+      const angle0 = params['angle0'] ?? 0;
+      const angle1 = params['angle1'] ?? 45;
+      const angle2 = params['angle2'] ?? 90;
+      let extraAngles: number[] = [];
+      if (nPolarizers >= 4) extraAngles = [angle0 + 22];
+      if (nPolarizers >= 5) extraAngles = [angle0 + 22, angle0 + 67];
+      const polarizerAngles = [angle0, angle1, angle2, ...extraAngles].slice(0, nPolarizers);
+      const incidentAngle = params['incAngle'] ?? 0;
+      const duration = params['duration'] ?? 1;
+      return {
+        id: `pol-${Date.now()}`,
+        title: '偏振光 (马吕斯定律)',
+        model: 'polarization',
+        bodies: [{ id: 'photon', mass: { value: 1, unit: 'kg' }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } }],
+        constraints: {
+          polarization: { initialIntensity, nPolarizers, polarizerAngles, incidentAngle },
+        },
+        environment: {},
+        timeConfig: { duration, dt: duration / 50, sampleCount: 50 },
+      };
+    },
+  },
+  {
+    id: 'hologram',
+    name: '全息照相 (干涉记录)',
+    model: 'hologram' as const,
+    parameters: [
+      { name: 'refAngle',     label: '参考光角度 θ_r', unit: '°',   value: 30,    min: 0,     max: 60,   step: 1,    default: 30,    description: '参考光与光轴夹角' },
+      { name: 'objAngle',     label: '物光角度 θ_o',    unit: '°',   value: -10,   min: -30,  max: 30,   step: 1,    default: -10,   description: '物光与光轴夹角 (反号表示另一侧)' },
+      { name: 'wavelength',   label: '激光波长 λ',      unit: 'nm',  value: 632.8, min: 380,   max: 780,  step: 5,    default: 632.8, description: '激光波长 (He-Ne 激光器 632.8nm)' },
+      { name: 'refAmp',       label: '参考光振幅 A_r',  unit: '',    value: 1,     min: 0.1,   max: 10,   step: 0.1,  default: 1,     description: '参考光振幅相对值' },
+      { name: 'objAmp',       label: '物光振幅 A_o',    unit: '',    value: 0.5,   min: 0.1,   max: 10,   step: 0.1,  default: 0.5,   description: '物光振幅相对值 (通常 < 参考光)' },
+      { name: 'recordWidth',  label: '干板宽度 W',      unit: 'mm',  value: 20,    min: 1,     max: 100,  step: 1,    default: 20,    description: '全息干板宽度 (mm)' },
+      { name: 'duration',     label: '模拟时长',         unit: 's',    value: 1,     min: 0.5,   max: 5,    step: 0.1,  default: 1,     description: '静态场景 (仅显示记录/再现条纹)' },
+    ],
+    buildProblem: (params) => {
+      const referenceAngle = params['refAngle'] ?? 30;
+      const objectAngle = params['objAngle'] ?? -10;
+      const wavelength = params['wavelength'] ?? 632.8;
+      const refAmp = params['refAmp'] ?? 1;
+      const objAmp = params['objAmp'] ?? 0.5;
+      const recordWidth = params['recordWidth'] ?? 20;
+      const duration = params['duration'] ?? 1;
+      return {
+        id: `hlg-${Date.now()}`,
+        title: '全息照相 (干涉记录)',
+        model: 'hologram',
+        bodies: [{ id: 'plate', mass: { value: 1, unit: 'kg' }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } }],
+        constraints: {
+          hologram: { referenceAngle, objectAngle, wavelength, referenceAmp: refAmp, objectAmp: objAmp, recordWidth },
+        },
+        environment: {},
+        timeConfig: { duration, dt: duration / 100, sampleCount: 100 },
+      };
+    },
+  },
+  // ========================================================================
+  // 选必一 第一章 实验 — 平抛验证动量守恒
+  // ========================================================================
+  {
+    id: 'projectile-collision',
+    name: '平抛碰撞 (验证动量守恒)',
+    model: 'projectile-collision' as const,
+    parameters: [
+      { name: 'm1',          label: '入射球质量 m₁',   unit: 'kg',     value: 0.1, min: 0.01, max: 2,  step: 0.01, default: 0.1, description: '入射小球质量 (从斜轨释放)' },
+      { name: 'm2',          label: '被撞球质量 m₂',   unit: 'kg',     value: 0.1, min: 0.01, max: 2,  step: 0.01, default: 0.1, description: '静止被撞小球质量' },
+      { name: 'v1Initial',   label: '入射球碰前速度 v₁', unit: 'm/s', value: 2,   min: 0.1,  max: 10,  step: 0.1,  default: 2,   description: '碰前入射球速度 (平抛初速)' },
+      { name: 'tableHeight', label: '实验台高度 h',      unit: 'm',     value: 0.8, min: 0.1,  max: 3,  step: 0.01, default: 0.8, description: '实验台水平面高度 (决定平抛时间 t=√(2h/g))' },
+      { name: 'restitution', label: '弹性系数 e',        unit: '',       value: 1,   min: 0,    max: 1,  step: 0.01, default: 1,   description: '1=完全弹性碰撞, 0=完全非弹性' },
+      { name: 'gravity',     label: '重力加速度 g',      unit: 'm/s²',  value: PHYSICS_CONSTANTS.g.value, min: 1, max: 20, step: 0.1, default: PHYSICS_CONSTANTS.g.value, description: '当地重力加速度' },
+      { name: 'duration',    label: '模拟时长',           unit: 's',     value: 5,   min: 1,    max: 30, step: 0.5, default: 5,   description: '仿真总时长 (覆盖完整平抛过程)' },
+    ],
+    buildProblem: (params) => {
+      const m1 = params['m1'] ?? 0.1;
+      const m2 = params['m2'] ?? 0.1;
+      const v1Initial = params['v1Initial'] ?? 2;
+      const tableHeight = params['tableHeight'] ?? 0.8;
+      const restitution = params['restitution'] ?? 1;
+      const g = params['gravity'] ?? PHYSICS_CONSTANTS.g.value;
+      const duration = params['duration'] ?? 5;
+      // 预计算平抛下落时长, 确保动画覆盖完整过程
+      const tFall = Math.sqrt(2 * tableHeight / g);
+      const effDuration = Math.max(duration, tFall * 1.2);
+      return {
+        id: `pc-${Date.now()}`,
+        title: '平抛碰撞 (验证动量守恒)',
+        model: 'projectile-collision',
+        bodies: [
+          { id: 'A', mass: { value: m1, unit: 'kg' }, position: { x: 0, y: tableHeight }, velocity: { x: v1Initial, y: 0 } },
+          { id: 'B', mass: { value: m2, unit: 'kg' }, position: { x: 0, y: tableHeight }, velocity: { x: 0, y: 0 } },
+        ],
+        constraints: {
+          projectileCollision: { m1, m2, v1Initial, tableHeight, restitution, gravity: g },
+        },
+        environment: {
+          gravity: { enabled: true, value: g },
+          ground: { enabled: true, y: 0 },
+        },
+        timeConfig: { duration: effDuration, dt: effDuration / 300, sampleCount: 300 },
+      };
+    },
+  },
 ];
 export function getDefaultParams(sceneId: string): Record<string, number> {
   const scene = SCENES.find(s => s.id === sceneId);

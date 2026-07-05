@@ -114,3 +114,112 @@ npm run build          # vite build ≤ 5s
 ```
 
 通过后立即 commit, 格式: `feat: <教材名> <N> 个实验: <一句话说明>`
+
+---
+
+## 新 Loop: Stage I/J/K — 可视化缺口填补 (方向 ①②④)
+
+> 审计发现: 68 个 physics-core Model 无 SceneConfig, FormulaPanel 只覆盖 15 个场景, 特殊渲染器空白
+>
+> 工作流: I (SceneConfig) → J (定制渲染器) → K (FormulaPanel)
+>
+> 每个任务独立 commit, 通过门禁 `npm test && npm run build && cd visualization && npx tsc --noEmit`
+
+### 阶段 I: SceneConfig 创建 (68 个孤立 Model 挂入 sceneRegistry)
+
+- [~] **I1: 选必一 13 个 Model SceneConfig**
+  - 模型: double-pendulum, forced-vibration, resonance, projectile-collision, sound-waveform, water-diffraction, sound-interference, doppler, thin-film, hologram, single-slit, diffraction-grating, polarization
+  - 文件: `visualization/src/scenes/sceneRegistry.ts`
+  - 参考: 现有 SceneConfig 的 `parameters` + `buildProblem` 模式 (如 projectile)
+  - 参数规则: 每个 Model 至少 3 个可调参数 + duration 必含
+  - buildProblem: constraints key 与 model 的 `requiredParameters` 对齐
+
+- [ ] **I2: 选必二 14 个 Model SceneConfig**
+  - 模型: current-balance, eddy-current, em-damping, mutual-inductance, self-inductance, em-wave-communication, em-spectrum, hall-effect, reed-switch, photoresistor, thermistor, strain-gauge, security-alarm, light-control-switch
+  - 文件: `visualization/src/scenes/sceneRegistry.ts`
+  - 参考: 选必二模型 constraints 接口定义 (reed-switch 用 ReedSwitchConstraint 等)
+
+- [ ] **I3: 选必三 (热学) 10 个 Model SceneConfig**
+  - 模型: diffusion, brownian-motion, oil-film, liquid-mixing, molecular-force, melting-curve, surface-tension, capillary, wetting, liquid-crystal
+  - 文件: `visualization/src/scenes/sceneRegistry.ts`
+
+- [ ] **I4: 选必三 (热力学) 7 个 Model SceneConfig**
+  - 模型: joule-mechanical, joule-electrical, adiabatic-compression, heat-transfer, energy-transformation, perpetuum-mobile, heat-direction
+  - 文件: `visualization/src/scenes/sceneRegistry.ts`
+
+- [ ] **I5: 选必三 (原子核物理) 9 个 Model SceneConfig**
+  - 模型: alpha-scattering, black-body, electron-diffraction, radiation-deflection, decay-statistics, cosmic-ray, neutron-discovery, fission-chain, bohr (bohr 文件 modelType='bohr', 已存在 sceneId 'bohr' 指向 'bohr-model')
+  - 文件: `visualization/src/scenes/sceneRegistry.ts`
+
+- [ ] **I6: 必修三 12 个 Model SceneConfig**
+  - 模型: capacitor-charge, parallel-plate-capacitor, load-voltage, resistance-law, coulomb-force-explore, electroscope, electrostatic-induction, electrostatic-shielding, faraday-cup, ampere-force, em-wave-hertz
+  - 文件: `visualization/src/scenes/sceneRegistry.ts`
+
+- [ ] **I7: 仪器测量 + 工具场景 SceneConfig + 特殊 entry**
+  - 模型: multimeter (多用电表), vernier-caliper (游标卡尺), micrometer (螺旋测微器)
+  - 这三个需要特殊 canvas 渲染, 在后续 Stage J 处理定制渲染器
+  - 文件: `visualization/src/scenes/sceneRegistry.ts`
+
+### 阶段 J: 定制 Canvas 渲染器 (Special Renderers)
+
+> 通用 `CanvasRenderer.ts` 已覆盖轨迹/向量/场线; 以下场景需要定制渲染
+
+- [ ] **J1: 双摆/共振/受迫振动渲染器**
+  - 文件: `visualization/src/rendering/chapter2Scenes.ts`
+  - 内容: 双摆支架+双线+摆球+相位标记; 共振振幅-频率曲线+当前点; 受迫振动相位差可视化
+  - 参考现有 `chapter3Scenes.ts` 模式
+
+- [ ] **J2: 波动场景渲染器 (声波/水波/多普勒/干涉/衍射)**
+  - 文件: `visualization/src/rendering/wave optScenes.ts`
+  - 内容: 波前圆+视疏区域(声波); 水波涟漪+衍射暗区; 多普勒频移+波纹压缩; 双缝干涉条纹; 单缝衍射光强包络; 薄膜等厚干涉
+  - 使用 textureFactory 波纹纹理
+
+- [ ] **J3: 电磁装备渲染器 (电流天平/电磁阻尼/互感自感/电磁振荡)**
+  - 文件: `visualization/src/rendering/emEquipmentScenes.ts`
+  - 内容: U 形磁铁+水平导体棒+砝码+指针(电流天平); 铝框+阻尼振动曲线; 双线圈+感应电动势波形; LC 振荡电流+磁场能/电场能条
+
+- [ ] **J4: 量子/原子核渲染器 (α散射/衰变/裂变链)**
+  - 文件: `visualization/src/rendering/nuclearScenes.ts`
+  - 内容: 金核+α 粒子双曲线轨迹(多条+不同瞄准距); 放射性衰变 N-t 曲线+随机闪烁; 中子裂变链式反应树+分支
+  - 风格: 闪烁+拖尾效果
+
+- [ ] **J5: 热学/分子渲染器 (扩散/布朗/熔化曲线/热传递)**
+  - 文件: `visualization/src/rendering/thermalScenes.ts`
+  - 内容: 分子粒子随机运动+浓度梯度(扩散); 布朗运动颗粒抖动; 熔化/凝固 T-t 平台段; 三种传热 Qdot-t 对比曲线
+
+- [ ] **J6: 传感器/控制电路渲染器 (霍尔元件/光敏/热敏/干簧管/报警电路)**
+  - 文件: `visualization/src/rendering/sensorScenes.ts`
+  - 内容: 霍尔片+载流子偏转+电势差表; 光敏/热敏电阻伏安特性曲线; 干簧管+磁场触发; LED+继电器示意电路
+
+### 阶段 K: FormulaPanel 覆盖 (FORMULA_MAP 扩展)
+
+> 现有 15 个场景, 需扩展到覆盖所有注册场景
+> 每个新 sceneId 在 FormulaPanel FORMULA_MAP 内建立对应 formula 定义
+
+- [ ] **K1: 选必一 13 场景公式**
+  - 文件: `visualization/src/components/formula/FormulaPanel.tsx`
+  - 内容: 双摆周期公式 / 受迫振动+共振条件 / 动量守恒 (平抛碰撞) / 声波波形+波长公式 / 水波衍射条件 / 多普勒频移公式 / 薄膜干涉 2nd=kλ / 全息干涉记录再现 / 单缝衍射 asinθ=kλ / 光栅方程 dsinθ=kλ / 偏振马吕斯定律
+
+- [ ] **K2: 选必二 14 场景公式**
+  - 文件: `visualization/src/components/formula/FormulaPanel.tsx`
+  - 内容: 电流天平 F=BIL / 涡流热功率 / 电磁阻尼力 / 互感 MΦ / 自感 L=IΦ / 电磁波发射功率 / 电磁波谱排序 / 霍尔电压 VH=IB/nqd / 干簧管原理 / 光敏电阻 R-L 曲线 / 热敏电阻 R-T 曲线 / 应变片 ΔR/R=Gε / 报警电路逻辑
+
+- [ ] **K3: 选必三 (热学+热力学) 17 场景公式**
+  - 文件: `visualization/src/components/formula/FormulaPanel.tsx`
+  - 内容: 扩散菲克定律 / 布朗运动爱因斯坦公式 / 油膜法 d=V/S / 分子力曲线 / 熔化曲线平台 / 表面张力系数 / 毛细上升 / 润湿接触角 / 液晶光学各向异性 / 焦耳热 Q=I²Rt / 绝热方程 PVγ=常数 / 热传导傅里叶定律 / 能量守恒 / 热力学第二定律 / 热机效率上限
+
+- [ ] **K4: 选必三 (原子核) + 必修三 场景公式**
+  - 文件: `visualization/src/components/formula/FormulaPanel.tsx`
+  - 内容: 卢瑟福散射公式 / 黑体辐射维恩位移+斯忒藩-玻尔兹曼 / 电子衍射关系 / 放射性衰变 N=N0e^{-λt} / 宇宙线簇射 / 中子裂变 / 波尔轨道能级 / 电容 C=εS/4πkd / 欧姆定律 / 库仑定律 / 安培力
+
+---
+
+## 新 Loop 进度追踪
+
+| 阶段 | 状态 | 任务 |
+|------|------|------|
+| **I** | ⏳ next | SceneConfig ×68 (I1-I7) |
+| **J** | ⏳ | 定制渲染器 ×6 (J1-J6) |
+| **K** | ⏳ | FormulaPanel 扩展 ×4 (K1-K4) |
+| **合计** | | **17 任务**, 覆盖 68 个 Model 可视化 + 36 个公式集 + 6 个渲染器 |
+
