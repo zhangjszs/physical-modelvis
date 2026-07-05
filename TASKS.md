@@ -36,10 +36,10 @@
 
 - [x] **阶段 D: 必修三 26 实验** (14 新 Model + 12 复用)
 
-- [~] **阶段 E: 选必一 40 实验**
+- [x] **阶段 E: 选必一 40 实验** (13 新 Model + 27 复用) (commit `cbc4f4c`)
   - **新建 Model**: projectile-collision, double-pendulum, forced-vibration, resonance, sound-waveform, water-diffraction, sound-interference, doppler, thin-film, hologram, single-slit, diffraction-grating, polarization (共 13 个)
   - **复用**: momentum (×3), collision (×6), simple-pendulum (×12), spring (×4), mechanical-wave (×6), refraction (×4), interference (×6)
-  - **退出条件**: `npm test && npm run build` → `git commit -m "feat: 选必一 40 实验全覆盖"`
+  - **退出条件**: `npm test && npm run build` → ✅ 722 tests 全绿
 
 - [ ] **阶段 F: 选必二 28 实验**
   - **新建 Model**: current-balance, eddy-current, em-damping, mutual-inductance, self-inductance, em-wave-communication, em-spectrum, hall-effect, reed-switch, photoresistor, thermistor, strain-gauge, security-alarm, light-control-switch (共 14 个)
@@ -68,7 +68,7 @@
 | **B** | 🔄 next | 20 | 7 | — |
 | **C** | ⏳ | 25 | 8 | — |
 | **D** | ⏳ | 26 | 14 | — |
-| **E** | ⏳ | 40 | 13 | — |
+| **E** | ✅ done | 40 | 13 | `cbc4f4c` |
 | **F** | ⏳ | 28 | 14 | — |
 | **G** | ⏳ | 37 | 25 | — |
 | **H** | ⏳ | — | — | — |
