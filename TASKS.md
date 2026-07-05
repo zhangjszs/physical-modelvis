@@ -113,8 +113,6 @@
 - [x] 实现伏安特性曲线场景 ✅ 2026-07-05
   - 提交：a4c43d6 (同一 commit，circuit scene 内置 VI_curve 图表)
 
-- [~] 实现气体定律模型 (physics-core) 入门 📐 2026-07-05
-
 ## 阶段八：选必三 分子动理论与热力学 (入门)
 
 - [x] 实现气体定律模型 (physics-core) 入门 ✅ 2026-07-05
@@ -151,44 +149,44 @@
 
 ## 阶段十：选必二 第一章「安培力与洛伦兹力」
 
-- [~] 实现安培力/洛伦兹力模型 (physics-core) 📐 2026-07-05
+- [x] 实现安培力/洛伦兹力模型 ✅ 2026-07-05 (physics-core) 📐 2026-07-05
   - 描述：F = B·I·L·sinθ (安培力)；F = q·v·B·sinθ (洛伦兹力)；带电粒子圆周运动 r = mv/(qB)
   - 新建 MagneticForceModel：安培力方向(左手定则)、洛伦兹力偏转、回旋半径
   - 涉及文件：physics-core/src/models/magnetic-force.ts；test: magnetic-force.test.ts
   - 参考：experiments/选必二_第1章_安培力与洛伦兹力.md
 
-- [ ] 安培力/洛伦兹力可视化场景 📐 2026-07-05
+- [x] 安培力/洛伦兹力可视化场景 ✅ 2026-07-05
   - 力学场景：左手定则交互、力大小随θ变化、带电粒子圆周运动
   - 涉及文件：visualization/src/scenes/sceneRegistry.ts
   - 参考：同上
 
 ## 阶段十一：选必二 第二章「电磁感应」
 
-- [ ] 实现电磁感应模型 (physics-core) 📐 2026-07-05
+- [x] 实现电磁感应模型 (physics-core) ✅ 2026-07-05
   - 描述：ε = −dΦ/dt (法拉第)；Φ = B·A·cosθ；切割 ε = B·L·v
   - 新建 ElectromagneticInductionModel
   - 涉及文件：physics-core/src/models/em-induction.ts；test: em-induction.test.ts
   - 参考：experiments/选必二_第2章_电磁感应.md
 
-- [ ] 法拉第电磁感应可视化场景 📐 2026-07-05
+- [x] 法拉第电磁感应可视化场景 ✅ 2026-07-05
   - 磁通量变化动画、感生电动势、L 形导轨滑块模型
   - 涉及文件：visualization/src/scenes/sceneRegistry.ts
 
 ## 阶段十二：选必二 第三~五章综合 (交变电流 / 电磁振荡 / 传感器)
 
-- [ ] 实现交变电流模型 (physics-core) 📐 2026-07-05
+- [x] 实现交变电流模型 (physics-core) ✅ 2026-07-05
   - 描述：e = Eₘ·sinωt；有效值 E_eff = Eₘ/√2；变压器 U₁/U₂ = n₁/n₂
   - 新建 ACModel：交变电流的时间曲线 + 变压器场景
   - 涉及文件：physics-core/src/models/ac-current.ts；test: ac-current.test.ts
   - 参考：experiments/选必二_第3章_交变电流.md
 
-- [ ] 实现电磁振荡 (LC) 模型 (physics-core) 📐 2026-07-05
+- [x] 实现电磁振荡 (LC) 模型 (physics-core) ✅ 2026-07-05
   - 描述：T = 2π√(LC)；Q(t) = Q₀·cos(ωt)；ω = 1/√(LC)
   - 新建 LCModel：电容+电感振荡电路
   - 涉及文件：physics-core/src/models/lc-oscillator.ts；test: lc-oscillator.test.ts
   - 参考：experiments/选必二_第4章_电磁振荡与电磁波.md
 
-- [ ] 选必二综合可视化场景 📐 2026-07-05
-  - sceneRegister 注册 magnetic-force + em-induction + ac 场景
+- [x] 选必二综合可视化场景 ✅ 2026-07-05
+  - 注册 magnetic-force + em-induction + ac + lc-oscillator 4 个场景
   - 涉及文件：visualization/src/scenes/sceneRegistry.ts
   - 参考：选必二 §1-4 全部章节
