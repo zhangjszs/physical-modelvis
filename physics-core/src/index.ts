@@ -8,6 +8,11 @@ export type {
   MomentumConstraint, WaveConstraint, RefractionConstraint, InterferenceConstraint, CircuitConstraint, GasLawConstraint,
   PhotoelectricConstraint, BohrModelConstraint, RadioactiveDecayConstraint,
   MagneticForceConstraint, EMInductionConstraint, ACCurrentConstraint, LCOscillatorConstraint,
+  TickerTimerConstraint, MicroDeformationConstraint, ReactionTimeConstraint,
+  GalileoInclineConstraint, GalileoInclineMode,
+  InertiaConstraint, InertiaMode,
+  OverweightConstraint, OverweightMode,
+  CenterOfGravityConstraint,
 } from './types/problem.js';
 export type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep, FormulaUsage } from './types/result.js';
 
@@ -65,6 +70,20 @@ export { EMInductionModel } from './models/em-induction.js';
 // 选必二 §3 交变电流 + §4 LC 振荡
 export { ACCurrentModel } from './models/ac-current.js';
 export { LCOscillatorModel } from './models/lc-oscillator.js';
+// 打点计时器实验 (必修一 第一章 实验)
+export { TickerTimerModel } from './models/ticker-timer.js';
+// 必修一 第四章 牛顿第一定律 — 伽利略斜面理想实验
+export { GalileoInclineModel } from './models/galileo-incline.js';
+// 必修一 第四章 牛顿第一定律 — 惯性实验组合
+export { InertiaModel } from './models/inertia.js';
+// 选必一 §5 实验: 光杠杆放大法演示桌面微小形变
+export { MicroDeformationModel } from './models/micro-deformation.js';
+// 互动实验: 测反应时间 (自由落体法)
+export { ReactionTimeModel } from './models/reaction-time.js';
+// 必修一 第四章 运动和力的关系: 超重与失重
+export { OverweightModel } from './models/overweight.js';
+// 重心实验 (悬挂法)
+export { CenterOfGravityModel } from './models/center-of-gravity.js';
 
 // === 求解器导出 ===
 export { solveProblem } from './solver/solver-router.js';

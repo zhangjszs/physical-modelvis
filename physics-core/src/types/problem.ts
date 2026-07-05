@@ -49,7 +49,21 @@ export type ModelType =
   | 'em-induction'           // 电磁感应
   // 选必二 §3 交变电流 + §4 LC 振荡
   | 'ac-current'             // 交变电流
-  | 'lc-oscillator';         // LC 电磁振荡
+  | 'lc-oscillator'          // LC 电磁振荡
+  // 打点计时器实验 (必修一 第一章 实验)
+  | 'ticker-timer'           // 打点计时器 — 匀变速直线运动实验研究
+  // 必修一 第四章 牛顿第一定律 — 伽利略理想实验
+  | 'galileo-incline'        // 伽利略斜面理想实验 (冲淡重力 / 对接斜面 / 水平外推)
+  // 必修一 第四章 牛顿第一定律 — 惯性实验组合
+  | 'inertia'                // 惯性 (棋子打击 / 鸡蛋落水 / 小车急停)
+  // 选必一 §5 实验: 用光杠杆放大法演示桌面微小形变
+  | 'micro-deformation'     // 桌面微小形变光杠杆放大法
+  // 互动实验: 测反应时间 (自由落体法)
+  | 'reaction-time'         // 测反应时间 — 自由落体位移公式 t = √(2h/g)
+  // 必修一 第四章 运动和力的关系 (超重和失重)
+  | 'overweight'            // 超重与失重 — 电梯加速度方向演示
+  // 重心实验 (悬挂法)
+  | 'center-of-gravity';    // 悬挂法确定均匀薄板重心
 
 /** 重力场配置 */
 export interface GravityConfig {
@@ -367,6 +381,121 @@ export interface LCOscillatorConstraint {
   readonly initialCharge?: number;
 }
 
+/** 超重/失重演示模式 */
+export type OverweightMode = 'upStart' | 'upStop' | 'downStart' | 'downStop';
+
+/**
+ * 超重与失重约束 — 必修一 第四章 运动和力的关系
+ *
+ * 电梯内物体受支持力 N = m·(g + a_y) (向上为正):
+ * - 超重: a_y > 0 (向上加速或向下减速) → N > mg
+ * - 失重: a_y < 0 (向下加速或向上减速) → N < mg
+ * - 完全失重: a_y = −g → N = 0
+ */
+export interface OverweightConstraint {
+  /** 物体质量 (kg)，默认 1 */
+  readonly mass?: number;
+  /** 加速度大小 (m/s²)，默认 2 */
+  readonly accMagnitude?: number;
+  /** 演示阶段: upStart (超重), upStop (失重), downStart (失重), downStop (超重) */
+  readonly mode: OverweightMode;
+  /** 重力加速度 (m/s²)，默认 9.8 */
+  readonly gravity?: number;
+}
+
+/** 打点计时器约束 — 必修一 第一章 实验 (研究匀变速直线运动) */
+export interface TickerTimerConstraint {
+  /** 打点频率 (Hz)，默认 50 */
+  readonly frequency?: number;
+  /** 加速度 (m/s²)，默认 2 */
+  readonly acceleration?: number;
+  /** 摩擦系数 (无单位，可选) */
+  readonly frictionCoefficient?: number;
+  /** 初速度 (m/s)，默认 0 */
+  readonly initialVelocity?: number;
+}
+
+/** 测反应时间约束 — 自由落体法 (互动实验) */
+export interface ReactionTimeConstraint {
+  /** 尺子下落距离 (m), 默认 0.2 */
+  readonly distance: number;
+  /** 重力加速度 (m/s²), 默认 9.8 */
+  readonly gravity?: number;
+}
+
+/** 伽利略斜面理想实验演示模式 */
+export type GalileoInclineMode = 'single' | 'docked' | 'horizontal' | 'all';
+
+/**
+ * 伽利略斜面理想实验约束 — 必修一 第四章 牛顿第一定律引入实验.
+ *
+ * 物理原理 ("冲淡重力" 理想实验):
+ *   - 沿斜面分力: F∥ = mg·sinθ → a = g·sinθ
+ *   - 斜面位移:   x(t) = ½·g·sinθ·t²
+ *   - 外推逻辑:   θ→90° 时 a→g, 变为自由落体
+ *
+ * 三段推理:
+ *   1. 冲淡重力 — 小 θ 延长运动时间, 便于测量
+ *   2. 对接斜面 — 小球滚下后滚上对接斜面, 回到原来高度 (能量守恒)
+ *   3. 水平面外推 — 无摩擦水平面, 永远匀速运动 (牛顿第一定律)
+ */
+export interface GalileoInclineConstraint {
+  /** 斜面倾角 θ (度) */
+  readonly angleDeg: number;
+  /** 重力加速度 (m/s²), 默认 9.8 */
+  readonly gravity?: number;
+  /** 斜面长度 (m), 默认 2 */
+  readonly inclineLength?: number;
+  /** 演示模式: single / docked / horizontal / all */
+  readonly mode?: GalileoInclineMode;
+}
+
+/** 光杠杆微小形变约束 — 选必一 §5 (演示桌面微小形变) */
+export interface MicroDeformationConstraint {
+  /** 激光到镜面距离 m，默认 1 */
+  readonly laserDist?: number;
+  /** 镜面到投影屏距离 m，默认 5 */
+  readonly mirrorDist?: number;
+  /** 桌面压力 N，默认 100 */
+  readonly pressure?: number;
+  /** 桌面杨氏模量 Pa，默认 1e10 (木材量级) */
+  readonly youngModulus?: number;
+  /** 桌面厚度 m，默认 0.05 */
+  readonly thickness?: number;
+  /** 桌面长度 m，默认 1 */
+  readonly tableLength?: number;
+}
+
+/**
+ * 悬挂法确定重心约束 — 二力平衡原理 (必修一 §3 拓展实验)
+ *
+ * 悬挂静止时, 重力作用线必过悬挂点; 两次不同悬挂点的悬挂线延长线交点 = 重心。
+ * 重心 = 多边形形心 (均匀密度)。
+ */
+export interface CenterOfGravityConstraint {
+  /** 多边形顶点 (均匀密度, 逆时针或顺时针顺序均可) */
+  readonly vertices: ReadonlyArray<Vector2D>;
+  /** 第一次悬挂点索引, 默认 0 */
+  readonly suspensionIndex1?: number;
+  /** 第二次悬挂点索引, 默认 vertices.length-1 */
+  readonly suspensionIndex2?: number;
+}
+
+/** 惯性演示模式 */
+export type InertiaMode = 'stroke' | 'stop' | 'smoothPull';
+
+/** 惯性实验约束 — 必修一 第四章 牛顿第一定律 (牛顿第一定律 — 惯性) */
+export interface InertiaConstraint {
+  /** 质量比 m_top/m_bottom, 默认 0.1 */
+  readonly massRatio?: number;
+  /** 初速度 (m/s), 默认 2 */
+  readonly initialSpeed?: number;
+  /** 演示模式: stroke(棋子打击) / stop(小车急停) / smoothPull(纸板弹出) */
+  readonly mode: InertiaMode;
+  /** 摩擦系数, 默认 0.3 */
+  readonly frictionCoeff?: number;
+}
+
 /** 约束配置 */
 export interface ConstraintConfig {
   readonly inclinedPlane?: InclinedPlaneConstraint;
@@ -393,6 +522,15 @@ export interface ConstraintConfig {
   readonly emInduction?: EMInductionConstraint;
   readonly ac?: ACCurrentConstraint;
   readonly lc?: LCOscillatorConstraint;
+  readonly tickerTimer?: TickerTimerConstraint;
+  /** 必修一 第四章 伽利略斜面理想实验 */
+  readonly galileoIncline?: GalileoInclineConstraint;
+  readonly inertia?: InertiaConstraint;
+  readonly microDeformation?: MicroDeformationConstraint;
+  readonly reactionTime?: ReactionTimeConstraint;
+  readonly overweight?: OverweightConstraint;
+  /** 悬挂法确定重心 */
+  readonly centerOfGravity?: CenterOfGravityConstraint;
 }
 
 /** 时间配置 */

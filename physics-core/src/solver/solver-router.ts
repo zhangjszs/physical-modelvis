@@ -30,6 +30,13 @@ import { MagneticForceModel } from '../models/magnetic-force.js';
 import { EMInductionModel } from '../models/em-induction.js';
 import { ACCurrentModel } from '../models/ac-current.js';
 import { LCOscillatorModel } from '../models/lc-oscillator.js';
+import { TickerTimerModel } from '../models/ticker-timer.js';
+import { GalileoInclineModel } from '../models/galileo-incline.js';
+import { InertiaModel } from '../models/inertia.js';
+import { MicroDeformationModel } from '../models/micro-deformation.js';
+import { ReactionTimeModel } from '../models/reaction-time.js';
+import { OverweightModel } from '../models/overweight.js';
+import { CenterOfGravityModel } from '../models/center-of-gravity.js';
 
 registerModel(new UniformLinearModel());
 registerModel(new UniformAcceleratedModel());
@@ -76,6 +83,20 @@ registerModel(new EMInductionModel());
 // 选必二 §3+4 交变电流 + LC 振荡
 registerModel(new ACCurrentModel());
 registerModel(new LCOscillatorModel());
+// 打点计时器实验 (必修一 第一章 实验)
+registerModel(new TickerTimerModel());
+// 必修一 第四章 牛顿第一定律 — 伽利略斜面理想实验
+registerModel(new GalileoInclineModel());
+// 必修一 第四章 牛顿第一定律 — 惯性实验组合
+registerModel(new InertiaModel());
+// 选必一 §5 实验: 光杠杆放大法演示桌面微小形变
+registerModel(new MicroDeformationModel());
+// 互动实验: 测反应时间 (自由落体法)
+registerModel(new ReactionTimeModel());
+// 必修一 第四章 运动和力的关系: 超重与失重
+registerModel(new OverweightModel());
+// 重心实验 (悬挂法)
+registerModel(new CenterOfGravityModel());
 
 export function solveProblem(problem: PhysicsProblem): SimulationResult {
   const model = getModel(problem.model);

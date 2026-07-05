@@ -90,6 +90,10 @@ export interface SimulationResult {
     readonly y_t?: ChartSeries;
     readonly v_t?: ChartSeries;
     readonly a_t?: ChartSeries;
+    readonly a_y_t?: ChartSeries;        // 竖直加速度-时间 (超重/失重)
+    readonly FN_t?: ChartSeries;         // 支持力-时间 (对比 mg 参考线)
+    readonly mg_ref_t?: ChartSeries;     // mg 参考线 (恒定)
+    readonly FN_a_y?: ChartSeries;       // 支持力-竖直加速度 (线性 N = m(g+a_y))
     readonly vx_t?: ChartSeries;         // 抛体: 水平分速度
     readonly vy_t?: ChartSeries;         // 抛体: 竖直分速度
     readonly theta_t?: ChartSeries;
@@ -106,7 +110,18 @@ export interface SimulationResult {
     readonly F_t?: ChartSeries;          // 第三章: 力随时间变化
     readonly F_theta?: ChartSeries;      // 第三章: 合力随夹角变化 (力的合成)
     readonly f_N?: ChartSeries;          // 第三章: 摩擦力随正压力变化
+    readonly h_t?: ChartSeries;          // 反应时间: h-t 曲线 (下落距离-时间 抛物线)
+    readonly t_sqrt_h?: ChartSeries;     // 反应时间: t-√h 直线 (验证 t ∝ √h 线性)
+    readonly h_t_extra?: ChartSeries;    // 附加: h-t 曲线 (部分模型)
     readonly force_diagram?: ForceDiagram;
+    // 桌面微小形变光杠杆 (micro-deformation)
+    readonly pressure_deltaS?: ChartSeries; // 压力-光点位移 (线性)
+    readonly pressure_deltaH?: ChartSeries; // 压力-桌面形变 (线性，nm 级)
+    // 伽利略斜面参数扫描图
+    readonly theta_a?: ChartSeries;      // θ-a: 不同 θ 对应的加速度 a = g·sinθ
+    readonly sin_theta_t_end?: ChartSeries; // sinθ-t_end: 不同 θ 对应的斜面下落时间
+    // 悬挂法重心 — 静态示意图 (多边形轮廓 + 两次悬挂线 + 重心标记)
+    readonly 'static-diagram'?: ChartSeries;
   };
   readonly diagnostics: {
     readonly conservedQuantities: ConservedQuantity[];

@@ -1215,6 +1215,225 @@ export const SCENES: SceneConfig[] = [
       };
     },
   },
+  // ========================================================================
+  // 必修一 第一章 运动的描述
+  // ========================================================================
+  {
+    id: 'ticker-timer',
+    name: '打点计时器测瞬时速度',
+    model: 'ticker-timer',
+    parameters: [
+      { name: 'frequency', label: '打点频率 f', unit: 'Hz', value: 50, min: 10, max: 100, step: 5, default: 50, description: '电磁打点计时器电源频率 (50Hz=每隔 0.02s 打一点)' },
+      { name: 'acceleration', label: '加速度 a', unit: 'm/s²', value: 2, min: 0.1, max: 10, step: 0.1, default: 2, description: '小车匀变速直线运动的加速度' },
+      { name: 'frictionCoeff', label: '摩擦系数 μ', unit: '', value: 0, min: 0, max: 1, step: 0.01, default: 0, description: '纸带与限位孔间的摩擦系数' },
+      { name: 'initialVelocity', label: '初速度 v₀', unit: 'm/s', value: 0, min: -5, max: 5, step: 0.1, default: 0, description: '第一个计数点对应的初速度' },
+      { name: 'duration', label: '模拟时长', unit: 's', value: 2, min: 0.5, max: 5, step: 0.1, default: 2, description: '仿真的总时长 (影响打出纸带长度)' },
+    ],
+    buildProblem: (params) => {
+      const frequency = params['frequency'] ?? 50;
+      const acceleration = params['acceleration'] ?? 2;
+      const frictionCoeff = params['frictionCoeff'] ?? 0;
+      const initialVelocity = params['initialVelocity'] ?? 0;
+      const duration = params['duration'] ?? 2;
+      return {
+        id: `ticker-${Date.now()}`,
+        title: '打点计时器',
+        model: 'ticker-timer',
+        bodies: [{ id: 'ticker', mass: { value: 1, unit: 'kg' }, position: { x: 0, y: 0 }, velocity: { x: initialVelocity, y: 0 } }],
+        constraints: { tickerTimer: { frequency, acceleration, frictionCoefficient: frictionCoeff, initialVelocity } },
+        environment: { gravity: { enabled: false } },
+        timeConfig: { duration, dt: duration / 1000, sampleCount: 1000 },
+      };
+    },
+  },
+  {
+    id: 'reaction-time',
+    name: '测反应时间',
+    model: 'reaction-time',
+    parameters: [
+      { name: 'distance', label: '尺子下落距离 h', unit: 'm', value: 0.2, min: 0.05, max: 0.5, step: 0.01, default: 0.2, description: '尺子被抓住时下落的位置 (读数越大=反应越慢)' },
+      { name: 'gravity', label: '重力加速度 g', unit: 'm/s²', value: PHYSICS_CONSTANTS.g.value, min: 1, max: 20, step: 0.1, default: PHYSICS_CONSTANTS.g.value, description: '地球 g≈9.8, 月球 g≈1.6' },
+      { name: 'duration', label: '模拟时长', unit: 's', value: 1, min: 0.1, max: 3, step: 0.1, default: 1, description: '仿真的总时长 (覆盖反应时间)' },
+    ],
+    buildProblem: (params) => {
+      const distance = params['distance'] ?? 0.2;
+      const gravity = params['gravity'] ?? PHYSICS_CONSTANTS.g.value;
+      const duration = params['duration'] ?? 1;
+      const tReact = Math.sqrt(2 * distance / gravity);
+      return {
+        id: `reaction-${Date.now()}`,
+        title: '测反应时间',
+        model: 'reaction-time',
+        bodies: [{ id: 'ruler', mass: { value: 0.1, unit: 'kg' }, position: { x: 0, y: distance }, velocity: { x: 0, y: 0 } }],
+        constraints: { reactionTime: { distance, gravity } },
+        environment: { gravity: { enabled: true, value: gravity } },
+        timeConfig: { duration: Math.max(duration, tReact * 1.5), dt: 0.001, sampleCount: 1000 },
+      };
+    },
+  },
+  {
+    id: 'galileo-incline',
+    name: '伽利略斜面理想实验',
+    model: 'galileo-incline',
+    parameters: [
+      { name: 'angleDeg', label: '斜面倾角 θ', unit: '°', value: 30, min: 5, max: 90, step: 1, default: 30, description: '斜面与水平面的夹角 (冲淡重力: θ↓→a↓→t↑)' },
+      { name: 'inclineLength', label: '斜面长度 L', unit: 'm', value: 2, min: 0.5, max: 5, step: 0.1, default: 2, description: '斜面长度 (纸带可测量的运动距离)' },
+      { name: 'mode', label: '演示模式', unit: '', value: 3, min: 0, max: 3, step: 1, default: 3, description: '0=单斜面 1=对接斜面 2=水平面外推 3=三段完整演示' },
+      { name: 'gravity', label: '重力加速度 g', unit: 'm/s²', value: PHYSICS_CONSTANTS.g.value, min: 1, max: 20, step: 0.1, default: PHYSICS_CONSTANTS.g.value, description: '不同星球的重力加速度' },
+      { name: 'duration', label: '模拟时长', unit: 's', value: 5, min: 1, max: 15, step: 0.5, default: 5, description: '仿真的总时长' },
+    ],
+    buildProblem: (params) => {
+      const angleDeg = params['angleDeg'] ?? 30;
+      const inclineLength = params['inclineLength'] ?? 2;
+      const modeIdx = Math.round(params['mode'] ?? 3);
+      const modes = ['single', 'docked', 'horizontal', 'all'] as const;
+      const mode = modes[modeIdx] ?? 'all';
+      const gravity = params['gravity'] ?? PHYSICS_CONSTANTS.g.value;
+      const duration = params['duration'] ?? 5;
+      return {
+        id: `galileo-${Date.now()}`,
+        title: '伽利略斜面',
+        model: 'galileo-incline',
+        bodies: [{ id: 'ball', mass: { value: 1, unit: 'kg' }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } }],
+        constraints: { galileoIncline: { angleDeg, inclineLength, mode, gravity } },
+        environment: { gravity: { enabled: true, value: gravity } },
+        timeConfig: { duration, dt: duration / 1000, sampleCount: 1000 },
+      };
+    },
+  },
+  // ========================================================================
+  // 必修一 第三章 相互作用——力
+  // ========================================================================
+  {
+    id: 'center-of-gravity',
+    name: '悬挂法确定重心',
+    model: 'center-of-gravity',
+    parameters: [
+      { name: 'shapeType', label: '薄板形状', unit: '', value: 0, min: 0, max: 2, step: 1, default: 0, description: '0=L形 1=三角形 2=不规则四边形' },
+      { name: 'duration', label: '模拟时长', unit: 's', value: 1, min: 0.5, max: 5, step: 0.1, default: 1, description: '静态场景 (该参数无实际物理影响)' },
+    ],
+    buildProblem: (params) => {
+      const shapeIdx = Math.round(params['shapeType'] ?? 0);
+      const shapes: Array<Array<{ x: number; y: number }>> = [
+        // L 形
+        [{ x: -1, y: -1 }, { x: 1, y: -1 }, { x: 1, y: 0 }, { x: 0, y: 0 }, { x: 0, y: 1 }, { x: -1, y: 1 }],
+        // 三角形
+        [{ x: -1, y: -1 }, { x: 1, y: -1 }, { x: 0, y: 1 }],
+        // 不规则四边形
+        [{ x: -1.2, y: -0.5 }, { x: 0.8, y: -1 }, { x: 1.2, y: 0.8 }, { x: -0.5, y: 1 }],
+      ];
+      const vertices = shapes[shapeIdx] ?? shapes[0]!;
+      const duration = params['duration'] ?? 1;
+      return {
+        id: `cog-${Date.now()}`,
+        title: '悬挂法确定重心',
+        model: 'center-of-gravity',
+        bodies: [{ id: 'plate', mass: { value: 1, unit: 'kg' }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } }],
+        constraints: { centerOfGravity: { vertices } },
+        environment: {},
+        timeConfig: { duration, dt: duration / 100, sampleCount: 100 },
+      };
+    },
+  },
+  {
+    id: 'micro-deformation',
+    name: '光杠杆放大微小形变',
+    model: 'micro-deformation',
+    parameters: [
+      { name: 'pressure', label: '桌面压力 F', unit: 'N', value: 100, min: 10, max: 500, step: 10, default: 100, description: '按压桌面的力 (模拟重物放在桌面上)' },
+      { name: 'laserDist', label: '激光到镜面距离', unit: 'm', value: 1, min: 0.5, max: 3, step: 0.1, default: 1, description: '激光笔到平面镜的距离' },
+      { name: 'mirrorDist', label: '镜面到投影屏距离 D', unit: 'm', value: 5, min: 1, max: 20, step: 0.5, default: 5, description: '反射光路越长, 放大效果越明显 (光杠杆放大)' },
+      { name: 'youngModulus', label: '杨氏模量 E', unit: 'GPa', value: 10, min: 1, max: 200, step: 1, default: 10, description: '桌面材料的杨氏模量 (玻璃约 70GPa, 木材约 10GPa)' },
+      { name: 'duration', label: '模拟时长', unit: 's', value: 1, min: 0.5, max: 3, step: 0.1, default: 1, description: '静态场景 (该参数仅用于仿真框架)' },
+    ],
+    buildProblem: (params) => {
+      const pressure = params['pressure'] ?? 100;
+      const laserDist = params['laserDist'] ?? 1;
+      const mirrorDist = params['mirrorDist'] ?? 5;
+      const youngModulusGPa = params['youngModulus'] ?? 10;
+      const duration = params['duration'] ?? 1;
+      return {
+        id: `micro-def-${Date.now()}`,
+        title: '光杠杆放大微小形变',
+        model: 'micro-deformation',
+        bodies: [{ id: 'table', mass: { value: 10, unit: 'kg' }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } }],
+        constraints: {
+          microDeformation: {
+            laserDist, mirrorDist, pressure,
+            youngModulus: youngModulusGPa * 1e9, thickness: 0.05, tableLength: 1,
+          },
+        },
+        environment: {},
+        timeConfig: { duration, dt: duration / 100, sampleCount: 100 },
+      };
+    },
+  },
+  // ========================================================================
+  // 必修一 第四章 运动和力的关系 (牛顿运动定律)
+  // ========================================================================
+  {
+    id: 'inertia',
+    name: '惯性实验 (棋子/鸡蛋/小车)',
+    model: 'inertia',
+    parameters: [
+      { name: 'mode', label: '演示实验', unit: '', value: 0, min: 0, max: 2, step: 1, default: 0, description: '0=棋子打击(静→动) 1=小车急停(动→静) 2=纸板抽拉鸡蛋落水' },
+      { name: 'initialSpeed', label: '初速度 v₀', unit: 'm/s', value: 2, min: 0.5, max: 10, step: 0.5, default: 2, description: '初始运动速度 (模拟棋子被击打/小车行驶的速度)' },
+      { name: 'massRatio', label: '质量比 m上/m下', unit: '', value: 0.1, min: 0.01, max: 1, step: 0.01, default: 0.1, description: '上下物体质量比 (越小, 惯性现象越明显)' },
+      { name: 'frictionCoeff', label: '摩擦系数 μ', unit: '', value: 0.3, min: 0, max: 1, step: 0.01, default: 0.3, description: '接触面摩擦系数' },
+      { name: 'duration', label: '模拟时长', unit: 's', value: 3, min: 0.5, max: 10, step: 0.5, default: 3, description: '仿真的总时长' },
+    ],
+    buildProblem: (params) => {
+      const modeIdx = Math.round(params['mode'] ?? 0);
+      const modes = ['stroke', 'stop', 'smoothPull'] as const;
+      const mode = modes[modeIdx] ?? 'stroke';
+      const initialSpeed = params['initialSpeed'] ?? 2;
+      const massRatio = params['massRatio'] ?? 0.1;
+      const frictionCoeff = params['frictionCoeff'] ?? 0.3;
+      const duration = params['duration'] ?? 3;
+      return {
+        id: `inertia-${Date.now()}`,
+        title: '惯性实验',
+        model: 'inertia',
+        bodies: [
+          { id: 'top', mass: { value: massRatio, unit: 'kg' }, position: { x: 0, y: 0.5 }, velocity: { x: initialSpeed, y: 0 } },
+          { id: 'bottom', mass: { value: 1, unit: 'kg' }, position: { x: 0, y: 0 }, velocity: { x: initialSpeed, y: 0 } },
+        ],
+        constraints: { inertia: { mode, initialSpeed, massRatio, frictionCoeff } },
+        environment: { ground: { enabled: true, y: -0.5, friction: frictionCoeff } },
+        timeConfig: { duration, dt: duration / 500, sampleCount: 500 },
+      };
+    },
+  },
+  {
+    id: 'overweight',
+    name: '超重与失重 (电梯台秤)',
+    model: 'overweight',
+    parameters: [
+      { name: 'mode', label: '电梯运动阶段', unit: '', value: 0, min: 0, max: 3, step: 1, default: 0, description: '0=向上加速(超重) 1=向上减速(失重) 2=向下加速(失重) 3=向下减速(超重)' },
+      { name: 'mass', label: '物体质量 m', unit: 'kg', value: 1, min: 0.1, max: 10, step: 0.1, default: 1, description: '放置在台秤上的物体质量' },
+      { name: 'accMagnitude', label: '加速度大小 a', unit: 'm/s²', value: 2, min: 0.5, max: 9.8, step: 0.1, default: 2, description: '电梯的加速度大小 (a=g 时为完全失重 N=0)' },
+      { name: 'gravity', label: '重力加速度 g', unit: 'm/s²', value: PHYSICS_CONSTANTS.g.value, min: 1, max: 20, step: 0.1, default: PHYSICS_CONSTANTS.g.value, description: '当地重力加速度' },
+      { name: 'duration', label: '模拟时长', unit: 's', value: 4, min: 1, max: 10, step: 0.5, default: 4, description: '仿真的总时长' },
+    ],
+    buildProblem: (params) => {
+      const modeIdx = Math.round(params['mode'] ?? 0);
+      const modes = ['upStart', 'upStop', 'downStart', 'downStop'] as const;
+      const mode = modes[modeIdx] ?? 'upStart';
+      const mass = params['mass'] ?? 1;
+      const accMagnitude = params['accMagnitude'] ?? 2;
+      const gravity = params['gravity'] ?? PHYSICS_CONSTANTS.g.value;
+      const duration = params['duration'] ?? 4;
+      return {
+        id: `overweight-${Date.now()}`,
+        title: '超重与失重',
+        model: 'overweight',
+        bodies: [{ id: 'object', mass: { value: mass, unit: 'kg' }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } }],
+        constraints: { overweight: { mass, accMagnitude, mode, gravity } },
+        environment: { gravity: { enabled: true, value: gravity } },
+        timeConfig: { duration, dt: duration / 500, sampleCount: 500 },
+      };
+    },
+  },
 ];
 export function getDefaultParams(sceneId: string): Record<string, number> {
   const scene = SCENES.find(s => s.id === sceneId);
