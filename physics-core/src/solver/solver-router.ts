@@ -75,6 +75,35 @@ import { PhotoresistorModel } from '../models/photoresistor.js';
 import { StrainGaugeModel } from '../models/strain-gauge.js';
 import { SecurityAlarmModel } from '../models/security-alarm.js';
 import { LightControlSwitchModel } from '../models/light-control-switch.js';
+// 选必三 §1-2 分子动理论/物态
+import { DiffusionModel } from '../models/diffusion.js';
+import { BrownianMotionModel } from '../models/brownian-motion.js';
+import { MolecularForceModel } from '../models/molecular-force.js';
+import { LiquidMixingModel } from '../models/liquid-mixing.js';
+import { OilFilmModel } from '../models/oil-film.js';
+import { MeltingCurveModel } from '../models/melting-curve.js';
+import { SurfaceTensionModel } from '../models/surface-tension.js';
+import { CapillaryModel } from '../models/capillary.js';
+import { WettingModel } from '../models/wetting.js';
+import { LiquidCrystalModel } from '../models/liquid-crystal.js';
+// 选必三 §3 热力学
+import { JouleMechanicalModel } from '../models/joule-mechanical.js';
+import { JouleElectricalModel } from '../models/joule-electrical.js';
+import { AdiabaticCompressionModel } from '../models/adiabatic-compression.js';
+import { HeatTransferModel } from '../models/heat-transfer.js';
+import { EnergyTransformationModel } from '../models/energy-transformation.js';
+import { PerpetuumMobileModel } from '../models/perpetuum-mobile.js';
+// 选必三 §4 原子物理
+import { BlackBodyModel } from '../models/black-body.js';
+// 选必三 §5 原子核
+import { HeatDirectionModel } from '../models/heat-direction.js';
+import { AlphaScatteringModel } from '../models/alpha-scattering.js';
+import { ElectronDiffractionModel } from '../models/electron-diffraction.js';
+import { RadiationDeflectionModel } from '../models/radiation-deflection.js';
+import { DecayStatisticsModel } from '../models/decay-statistics.js';
+import { CosmicRayModel } from '../models/cosmic-ray.js';
+import { NeutronDiscoveryModel } from '../models/neutron-discovery.js';
+import { FissionChainModel } from '../models/fission-chain.js';
 // 选必一 第一章 实验
 import { ProjectileCollisionModel } from '../models/projectile-collision.js';
 // 选必一 第二章 振动
@@ -213,6 +242,35 @@ registerModel(new PhotoresistorModel());
 registerModel(new StrainGaugeModel());
 registerModel(new SecurityAlarmModel());
 registerModel(new LightControlSwitchModel());
+// 选必三 §1-2
+registerModel(new DiffusionModel());
+registerModel(new BrownianMotionModel());
+registerModel(new MolecularForceModel());
+registerModel(new LiquidMixingModel());
+registerModel(new OilFilmModel());
+registerModel(new MeltingCurveModel());
+registerModel(new SurfaceTensionModel());
+registerModel(new CapillaryModel());
+registerModel(new WettingModel());
+registerModel(new LiquidCrystalModel());
+// 选必三 §3
+registerModel(new JouleMechanicalModel());
+registerModel(new JouleElectricalModel());
+registerModel(new AdiabaticCompressionModel());
+registerModel(new HeatTransferModel());
+registerModel(new EnergyTransformationModel());
+registerModel(new PerpetuumMobileModel());
+// 选必三 §4
+registerModel(new BlackBodyModel());
+// 选必三 §5
+registerModel(new HeatDirectionModel());
+registerModel(new AlphaScatteringModel());
+registerModel(new ElectronDiffractionModel());
+registerModel(new RadiationDeflectionModel());
+registerModel(new DecayStatisticsModel());
+registerModel(new CosmicRayModel());
+registerModel(new NeutronDiscoveryModel());
+registerModel(new FissionChainModel());
 
 export function solveProblem(problem: PhysicsProblem): SimulationResult {
   const model = getModel(problem.model);

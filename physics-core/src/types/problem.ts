@@ -63,6 +63,37 @@ export type ModelType =
   // 选必二 §3 交变电流 + §4 LC 振荡
   | 'ac-current'             // 交变电流
   | 'lc-oscillator'          // LC 电磁振荡
+  // 选必三 §1 分子动理论
+  | 'diffusion'              // 扩散现象
+  | 'brownian-motion'        // 布朗运动
+  | 'molecular-force'       // 分子间作用力 (Lennard-Jones)
+  | 'liquid-mixing'         // 酒精与水混合
+  | 'oil-film'              // 油膜法测分子大小
+  // 选必三 §2 气体/固体/液体
+  | 'melting-curve'          // 晶体熔化
+  | 'surface-tension'       // 表面张力
+  | 'capillary'              // 毛细现象
+  | 'wetting'               // 浸润与不浸润
+  | 'liquid-crystal'         // 液晶
+  // 选必三 §3 热力学定律
+  | 'joule-mechanical'       // 焦耳热功当量 (机械法)
+  | 'joule-electrical'       // 焦耳热功当量 (电学法)
+  | 'adiabatic-compression'  // 压缩点火
+  | 'heat-transfer'          // 热传递三方式
+  | 'energy-transformation'  // 能量守恒与转化
+  | 'perpetuum-mobile'       // 卡诺循环/第二定律
+  // 选必三 §4 原子物理
+  | 'black-body'             // 黑体辐射
+  // 选必三 §5 原子核
+  | 'radioactive-decay'      // 放射性衰变
+  | 'heat-direction'         // 热传导方向性
+  | 'alpha-scattering'       // α 粒子散射
+  | 'electron-diffraction'   // 电子衍射
+  | 'radiation-deflection'   // 放射线磁场偏转
+  | 'decay-statistics'       // 衰变统计规律
+  | 'cosmic-ray'             // 宇宙射线
+  | 'neutron-discovery'      // 中子发现
+  | 'fission-chain'          // 核裂变链式反应
   // 打点计时器实验 (必修一 第一章 实验)
   | 'ticker-timer'           // 打点计时器 — 匀变速直线运动实验研究
   // 必修一 第四章 牛顿第一定律 — 伽利略理想实验
@@ -952,24 +983,41 @@ export interface ConstraintConfig {
   readonly mutualInductance?: MutualInductanceConstraint;
   /** 自感现象约束 — 选必二 */
   readonly selfInductance?: SelfInductanceConstraint;
-  /** 电磁波发射接收约束 — 选必二 */
-  readonly emWaveComm?: import('./em-wave-communication.js').EMWaveCommConstraint;
-  /** 电磁波谱约束 — 选必二 */
-  readonly emSpectrum?: import('./em-spectrum.js').EMSpectrumConstraint;
-  /** 霍尔元件约束 — 选必二 */
-  readonly hallEffect?: import('./hall-effect.js').HallEffectConstraint;
-  /** 干簧管约束 — 选必二 */
-  readonly reedSwitch?: import('./reed-switch.js').ReedSwitchConstraint;
-  /** 热敏电阻约束 — 选必二 */
-  readonly thermistor?: import('./thermistor.js').ThermistorConstraint;
-  /** 光敏电阻约束 — 选必二 */
-  readonly photoresistor?: import('./photoresistor.js').PhotoresistorConstraint;
-  /** 电阻应变片约束 — 选必二 */
+  // === Constraints for F & G stage models (types defined in respective model files) ===
+  readonly emWaveComm?: EMWaveCommConstraint;
+  readonly emSpectrum?: EMSpectrumConstraint;
+  readonly hallEffect?: HallEffectConstraint;
+  readonly reedSwitch?: ReedSwitchConstraint;
+  readonly photoresistor?: PhotoresistorConstraint;
+  readonly thermistor?: ThermistorConstraint;
   readonly strainGauge?: StrainGaugeConstraint;
-  /** 门窗防盗报警约束 — 选必二 */
   readonly securityAlarm?: SecurityAlarmConstraint;
-  /** 光控开关约束 — 选必二 */
   readonly lightControlSwitch?: LightControlSwitchConstraint;
+  readonly diffusion?: DiffusionConstraint;
+  readonly brownianMotion?: BrownianMotionConstraint;
+  readonly molecularForce?: MolecularForceConstraint;
+  readonly liquidMixing?: LiquidMixingConstraint;
+  readonly oilFilm?: OilFilmConstraint;
+  readonly meltingCurve?: MeltingCurveConstraint;
+  readonly surfaceTension?: SurfaceTensionConstraint;
+  readonly capillary?: CapillaryConstraint;
+  readonly wetting?: WettingConstraint;
+  readonly liquidCrystal?: LiquidCrystalConstraint;
+  readonly jouleMechanical?: JouleMechanicalConstraint;
+  readonly jouleElectrical?: JouleElectricalConstraint;
+  readonly adiabaticCompression?: AdiabaticCompressionConstraint;
+  readonly heatTransfer?: HeatTransferConstraint;
+  readonly energyTransformation?: EnergyTransformationConstraint;
+  readonly perpetuumMobile?: PerpetuumMobileConstraint;
+  readonly blackBody?: BlackBodyConstraint;
+  readonly heatDirection?: HeatDirectionConstraint;
+  readonly alphaScattering?: AlphaScatteringConstraint;
+  readonly electronDiffraction?: ElectronDiffractionConstraint;
+  readonly radiationDeflection?: RadiationDeflectionConstraint;
+  readonly decayStatistics?: DecayStatisticsConstraint;
+  readonly cosmicRay?: CosmicRayConstraint;
+  readonly neutronDiscovery?: NeutronDiscoveryConstraint;
+  readonly fissionChain?: FissionChainConstraint;
 }
 
 /** 电流天平约束 — 选必二 (m*g = n*BIl) */
@@ -1383,3 +1431,45 @@ export interface PhysicsProblem {
   readonly renderHints?: RenderHint[];
   readonly originalText?: string;
 }
+
+// ============================================================
+// F & G stage constraint interfaces
+// (minimal declarations — full implementations live in model files)
+// ============================================================
+
+export interface EMWaveCommConstraint { carrierFreq: number; modulationType: string; audioFreq: number; }
+export interface EMSpectrumConstraint { freqMin?: number; freqMax?: number; highlightBand?: string; }
+export interface HallEffectConstraint { current: number; magneticField: number; chargeDensity: number; thickness: number; }
+export interface ReedSwitchConstraint { mode: string; magnetDistance?: number; pullInThreshold?: number; releaseThreshold?: number; sampleCount?: number; }
+export interface PhotoresistorConstraint { lightIntensity: number; darkResistance: number; sensitivity: number; }
+export interface ThermistorConstraint { temperature: number; mode: string; R0: number; BValue: number; curieTemp?: number; ptcCoeff?: number; tempMin?: number; tempMax?: number; sampleCount?: number; }
+export interface StrainGaugeConstraint { strain: number; gaugeFactor: number; bridgeVoltage: number; }
+export interface SecurityAlarmConstraint { doorState: string; magnetDistance?: number; releaseDistance?: number; operateDistance?: number; sampleCount?: number; }
+export interface LightControlSwitchConstraint { lightIntensity: number; threshold?: number; Rfix?: number; VbeOn?: number; Rdark?: number; Rbright?: number; timeSpanH?: number; sampleCount?: number; Esupply?: number; }
+
+export interface DiffusionConstraint { temperature: number; mode: string; particleCount: number; diffusionCoeff?: number; gridSize?: number; timeSteps?: number; sampleCount?: number; }
+export interface BrownianMotionConstraint { particleRadius: number; liquidTemp: number; fluidViscosity: number; duration: number; dt?: number; nParticles?: number; sampleCount?: number; }
+export interface MolecularForceConstraint { epsilon: number; sigma: number; rMin?: number; rMax?: number; sampleCount?: number; }
+export interface LiquidMixingConstraint { volumeWater: number; volumeAlcohol: number; }
+export interface OilFilmConstraint { oilConcentration: number; dropsPerMl: number; filmArea: number; sampleCount?: number; drops?: number; }
+export interface MeltingCurveConstraint { mode: string; meltingPoint: number; heatingRate: number; sampleCount?: number; initialTemp?: number; durationMin?: number; latentHeat?: number; }
+export interface SurfaceTensionConstraint { liquidMode: string; sliderLength: number; temperature: number; }
+export interface CapillaryConstraint { tubeRadius: number; liquidMode: string; materialMode: string; sampleCount?: number; }
+export interface WettingConstraint { liquidMode: string; surfaceMode: string; }
+export interface LiquidCrystalConstraint { temperature: number; voltage: number; mode: string; sampleCount?: number; thresholdVoltage?: number; pitchUm?: number; clearingPoint?: number; }
+export interface JouleMechanicalConstraint { mass: number; height: number; drops: number; waterMass: number; specificHeat?: number; gravity?: number; }
+export interface JouleElectricalConstraint { voltage: number; resistance: number; time: number; waterMass: number; specificHeat?: number; sampleCount?: number; }
+export interface AdiabaticCompressionConstraint { initialTemp: number; compressionRatio: number; gamma?: number; gasType?: string; sampleCount?: number; moles?: number; }
+export interface HeatTransferConstraint { mode: string; materialType?: string; temperatureDiff: number; sampleCount?: number; length?: number; area?: number; thickness?: number; initialTemp?: number; ambientTemp?: number; time?: number; }
+export interface EnergyTransformationConstraint { mode: string; inputEnergy: number; efficiency?: number; }
+export interface PerpetuumMobileConstraint { hotTemp: number; coldTemp: number; mode: string; inputHeat?: number; }
+export interface BlackBodyConstraint { temperature: number; freqMin?: number; freqMax?: number; sampleCount?: number; }
+export interface HeatDirectionConstraint { hotTemp: number; coldTemp: number; thermalConductivity: number; duration?: number; sampleCount?: number; }
+export interface AlphaScatteringConstraint { alphaEnergy: number; targetZ: number; foilThickness: number; nParticles?: number; impactParamMax?: number; }
+export interface ElectronDiffractionConstraint { accVoltage: number; crystalLattice: number; sampleCount?: number; }
+export interface RadiationDeflectionConstraint { Bfield: number; particleType: string; particleEnergy: number; }
+export interface DecayStatisticsConstraint { meanCount: number; nTrials: number; experimentTime?: number; sampleCount?: number; }
+export interface CosmicRayConstraint { altitude: number; shieldingMode: string; shieldThickness?: number; }
+export interface NeutronDiscoveryConstraint { alphaEnergy: number; targetMass: number; }
+export interface FissionChainConstraint { multiplicationFactor: number; generations: number; initialNeutrons?: number; }
+

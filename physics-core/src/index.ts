@@ -150,6 +150,35 @@ export { PhotoresistorModel } from './models/photoresistor.js';
 export { StrainGaugeModel } from './models/strain-gauge.js';
 export { SecurityAlarmModel } from './models/security-alarm.js';
 export { LightControlSwitchModel } from './models/light-control-switch.js';
+// 选必三 §1-2 分子动理论/物态
+export { DiffusionModel } from './models/diffusion.js';
+export { BrownianMotionModel } from './models/brownian-motion.js';
+export { MolecularForceModel } from './models/molecular-force.js';
+export { LiquidMixingModel } from './models/liquid-mixing.js';
+export { OilFilmModel } from './models/oil-film.js';
+export { MeltingCurveModel } from './models/melting-curve.js';
+export { SurfaceTensionModel } from './models/surface-tension.js';
+export { CapillaryModel } from './models/capillary.js';
+export { WettingModel } from './models/wetting.js';
+export { LiquidCrystalModel } from './models/liquid-crystal.js';
+// 选必三 §3 热力学
+export { JouleMechanicalModel } from './models/joule-mechanical.js';
+export { JouleElectricalModel } from './models/joule-electrical.js';
+export { AdiabaticCompressionModel } from './models/adiabatic-compression.js';
+export { HeatTransferModel } from './models/heat-transfer.js';
+export { EnergyTransformationModel } from './models/energy-transformation.js';
+export { PerpetuumMobileModel } from './models/perpetuum-mobile.js';
+// 选必三 §4 原子物理
+export { BlackBodyModel } from './models/black-body.js';
+// 选必三 §5 原子核
+export { HeatDirectionModel } from './models/heat-direction.js';
+export { AlphaScatteringModel } from './models/alpha-scattering.js';
+export { ElectronDiffractionModel } from './models/electron-diffraction.js';
+export { RadiationDeflectionModel } from './models/radiation-deflection.js';
+export { DecayStatisticsModel } from './models/decay-statistics.js';
+export { CosmicRayModel } from './models/cosmic-ray.js';
+export { NeutronDiscoveryModel } from './models/neutron-discovery.js';
+export { FissionChainModel } from './models/fission-chain.js';
 // 选必一 第一章 实验
 export { ProjectileCollisionModel } from './models/projectile-collision.js';
 // 选必一 第二章 振动
