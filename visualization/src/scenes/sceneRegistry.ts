@@ -849,6 +849,68 @@ export const SCENES: SceneConfig[] = [
       };
     },
   },
+  // ========================================================================
+  // 选必一 第四章 光
+  // ========================================================================
+  {
+    id: 'refraction',
+    name: '光的折射定律 (Snell)',
+    model: 'refraction',
+    parameters: [
+      { name: 'n1', label: '介质 1 折射率 n₁', unit: '', value: 1.0, min: 1.0, max: 2.5, step: 0.01, default: 1.0, description: '光疏介质 (空气=1.00, 水=1.33, 玻璃=1.50, 金刚石=2.42)' },
+      { name: 'n2', label: '介质 2 折射率 n₂', unit: '', value: 1.5, min: 1.0, max: 2.5, step: 0.01, default: 1.5, description: '光密介质' },
+      { name: 'angle', label: '入射角 θ₁', unit: '°', value: 30, min: 0, max: 89, step: 1, default: 30, description: '入射光线与法线夹角' },
+    ],
+    buildProblem: (params) => {
+      const n1 = params['n1'] ?? 1.0;
+      const n2 = params['n2'] ?? 1.5;
+      const angleDeg = params['angle'] ?? 30;
+      return {
+        id: `refraction-${Date.now()}`,
+        title: '光的折射定律 (Snell 定律)',
+        model: 'refraction',
+        bodies: [{ id: 'light', mass: { value: 1, unit: 'kg' }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } }],
+        constraints: { refraction: { n1, n2, incidentAngleDeg: angleDeg } },
+        environment: {},
+        timeConfig: { duration: 1, dt: 0.1, sampleCount: 10 },
+      };
+    },
+  },
+  {
+    id: 'interference',
+    name: '双缝干涉 (杨氏实验)',
+    model: 'interference',
+    parameters: [
+      { name: 'wavelength', label: '波长 λ', unit: 'nm', value: 600, min: 380, max: 780, step: 5, default: 600, description: '光波长 (红~620-780, 绿~495-570, 蓝~450-495)' },
+      { name: 'slitSep', label: '缝距 d', unit: 'mm', value: 0.5, min: 0.1, max: 2, step: 0.05, default: 0.5, description: '双缝间距' },
+      { name: 'screenDist', label: '缝-屏距离 L', unit: 'm', value: 2.0, min: 0.5, max: 5, step: 0.1, default: 2.0, description: '双缝到观察屏的距离' },
+      { name: 'filmThickness', label: '薄膜厚度 (可选)', unit: 'μm', value: 0, min: 0, max: 2, step: 0.01, default: 0, description: '薄膜干涉时输入 (0=不启用薄膜模式)' },
+      { name: 'filmN', label: '薄膜折射率', unit: '', value: 1.38, min: 1, max: 2.5, step: 0.01, default: 1.38, description: '薄膜材料折射率 (MgF₂=1.38, 玻璃=1.5)' },
+    ],
+    buildProblem: (params) => {
+      const wavelengthNm = params['wavelength'] ?? 600;
+      const slitSeparationMm = params['slitSep'] ?? 0.5;
+      const screenDistanceM = params['screenDist'] ?? 2.0;
+      const filmThicknessUm = params['filmThickness'] ?? 0;
+      const filmN = params['filmN'] ?? 1.38;
+      const ic: { wavelengthNm: number; slitSeparationMm: number; screenDistanceM: number; filmThicknessUm?: number; filmN?: number } = {
+        wavelengthNm, slitSeparationMm, screenDistanceM,
+      };
+      if (filmThicknessUm > 0) {
+        ic.filmThicknessUm = filmThicknessUm;
+        ic.filmN = filmN;
+      }
+      return {
+        id: `interference-${Date.now()}`,
+        title: '双缝干涉 (杨氏实验)',
+        model: 'interference',
+        bodies: [{ id: 'light', mass: { value: 1, unit: 'kg' }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } }],
+        constraints: { interference: ic },
+        environment: {},
+        timeConfig: { duration: 1, dt: 0.1, sampleCount: 10 },
+      };
+    },
+  },
 ];
 export function getDefaultParams(sceneId: string): Record<string, number> {
   const scene = SCENES.find(s => s.id === sceneId);

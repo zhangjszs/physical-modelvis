@@ -3,6 +3,17 @@
 > 自主工作循环 (`/loop`) 按顺序执行以下任务。
 > 修改本文件可调整任务优先级和内容。
 
+## 流程约定 (2026-07-05 更新)
+
+每个任务实现后、commit 前，必须执行一轮 **代码审查**（见 `AGENTS.md > 代码审查约定`）：
+
+1. `git diff --cached` 查看已暂存改动
+2. 按 AGENTS.md 中 6 个审查维度逐一审查
+3. 发现问题 → 修复 → 重新 typecheck/test → 重新暂存
+4. 审查通过 → commit
+
++ 后台加载一个 `general-purpose` agent 执行代码审查，主线程继续执行下一步。
+
 ## 阶段二：验证第三章场景
 
 - [x] 验证第三章 4 个新场景的可视化效果 ✅ 2026-07-05
@@ -67,6 +78,46 @@
   - 阻尼选项、能量守恒/振幅衰减对比
   - 12 个测试通过
 
-- [~] 实现机械波场景
-  - 描述：横波、纵波传播，波的干涉/衍射
-  - 参考：experiments/选必一_第3章_机械波.md
+- [x] 实现机械波场景 ✅ 2026-07-05
+  - 提交：c874bb9 feat: 机械波模型 (选必一第三章)
+  - 新建 MechanicalWaveModel: 横波/纵波/干涉三模式
+  - 离散 81 质点 + 相位差；干涉形成驻波波节
+  - 11 个测试通过
+
+## 阶段六：选必一 第四章「光」
+
+- [x] 实现折射定律模型 (physics-core) ✅ 2026-07-05
+  - 提交：3dce3f8 feat: 光学模型 — 折射定律 + 双缝干涉 (选必一第四章)
+  - 9 个单元测试通过；全反射临界角、sinθ₁-sinθ₂ 线性验证
+
+- [x] 实现双缝干涉模型 (physics-core) ✅ 2026-07-05
+  - 同上提交 (同一 commit)
+  - 9 个单元测试通过；等间距峰值、薄膜增透/增反
+
+- [~] 光学可视化场景 (折射 + 干涉) 📐 2026-07-05
+  - 在 sceneRegistry 注册 refraction + interference 场景
+  - 折射：可调入射角/两种介质，实时显示反射+折射光线，全反射警示
+  - 干涉：可调 d/L/λ，显示条纹图案和光强曲线
+  - 涉及文件：visualization/src/scenes/sceneRegistry.ts
+  - 参考：experiments/选必一_第4章_光.md
+
+## 阶段七：必修三 电路与电能
+
+- [ ] 实现直流电路模型 (physics-core) 📐 2026-07-05
+  - 描述：串并联电路分析；欧姆定律、电功率；U-I 图
+  - 新建 CircuitModel: 电阻串并联、电源内阻、输出功率
+  - 涉及文件：physics-core/src/models/circuit.ts；test: circuit.test.ts
+  - 参考：experiments/必修三_第3章_电路及其应用.md
+
+- [ ] 实现伏安特性曲线场景 📐 2026-07-05
+  - 灯泡 (非线性) vs 线性电阻；测量电动势和内阻
+  - 涉及文件：visualization/src/scenes/sceneRegistry.ts
+  - 参考：同上
+
+## 阶段八：选必三 分子动理论与热力学 (入门)
+
+- [ ] 实现分子运动 / 气体定律可视化场景 📐 2026-07-05
+  - 布朗运动 (随机粒子模拟)；p-V-T 状态方程；p-V 图
+  - 新建 GasLawModel: pV=nRT
+  - 涉及文件：physics-core/src/models/gas-law.ts；visualization scene
+  - 参考：experiments/选必三_第1章_分子动理论.md
