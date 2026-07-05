@@ -1,5 +1,5 @@
 import type { PhysicsProblem } from '../types/problem.js';
-import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries } from '../types/result.js';
+import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ForceDiagram } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
 import { Vec2 } from '../math/vector2d.js';
@@ -37,10 +37,25 @@ export class UniformCircularMotionModel extends PhysicsModelBase {
     }
 
     const center = cm.center;
-    const radius = cm.radius;
-    const omega = cm.angularVelocity;
     const phi0 = cm.initialAngle ?? 0;
     const mass = body.mass.value;
+
+    // ===== 圆锥摆：由绳长 L 与摆角 θ 自动确定角速度 =====
+    // 圆锥摆：mLω²·sinθ = mg·tanθ → ω = √(g / (L·cosθ))
+    // 当 conicalAngleDeg>0 且 ropeLength>0 时，使用此 ω 覆盖原 ω
+    const conicalMode = (cm.conicalAngleDeg ?? 0) > 0 && (cm.ropeLength ?? 0) > 0;
+    let omega = cm.angularVelocity;
+    let ropeLength = cm.ropeLength ?? cm.radius;
+    let conicalAngleRad = 0;
+    // 实际参与平面投影的圆周半径 (圆锥摆时 r=L·sinθ)
+    let radius = cm.radius;
+    if (conicalMode) {
+      conicalAngleRad = (cm.conicalAngleDeg! * Math.PI) / 180;
+      const g = problem.environment?.gravity?.value ?? 9.8;
+      omega = Math.sqrt(g / (cm.ropeLength! * Math.cos(conicalAngleRad)));
+      ropeLength = cm.ropeLength!;
+      radius = ropeLength * Math.sin(conicalAngleRad);
+    }
 
     const duration = problem.timeConfig.duration;
     const sampleCount = problem.timeConfig.sampleCount ?? 1000;
@@ -91,7 +106,9 @@ export class UniformCircularMotionModel extends PhysicsModelBase {
       t: 0,
       position: trajectory[0]!.position,
       velocity: trajectory[0]!.velocity,
-      description: `物体在半径 ${radius}m 的圆周上以角速度 ω=${omega.toFixed(2)} rad/s 开始运动，线速度 v=${v.toFixed(2)} m/s，向心力 F=${F.toFixed(2)} N`,
+      description: conicalMode
+        ? `圆锥摆：L=${ropeLength.toFixed(2)}m, θ=${(conicalAngleRad * 180 / Math.PI).toFixed(1)}°, ω=${omega.toFixed(2)}rad/s (g=9.8推导), v=${v.toFixed(2)}m/s, F=${F.toFixed(2)}N`
+        : `物体在半径 ${radius}m 的圆周上以角速度 ω=${omega.toFixed(2)} rad/s 开始运动，线速度 v=${v.toFixed(2)} m/s，向心力 F=${F.toFixed(2)} N`,
     });
 
     const quarters = Math.floor(duration / (period / 4));
@@ -119,6 +136,21 @@ export class UniformCircularMotionModel extends PhysicsModelBase {
       velocity: trajectory[trajectory.length - 1]!.velocity,
       description: `t=${duration.toFixed(2)}s 时，物体完成 ${(duration / period).toFixed(2)} 周运动`,
     });
+
+    // ===== 受力分析图 =====
+    // 在 t=0 时刻：向心力指向圆心
+    const forceDiagram: ForceDiagram = {
+      bodyId: body.id,
+      forces: [
+        { name: '向心力 F_c', vector: { x: (center.x - trajectory[0]!.position.x), y: (center.y - trajectory[0]!.position.y) }, magnitude: F, unit: 'N' },
+        { name: '线速度 v', vector: trajectory[0]!.velocity, magnitude: v, unit: 'm/s' },
+      ],
+      netForce: { x: (center.x - trajectory[0]!.position.x) * F / radius, y: (center.y - trajectory[0]!.position.y) * F / radius },
+    };
+    const F_t: ChartSeries = {
+      xLabel: '时间', yLabel: '向心力大小', xUnit: 's', yUnit: 'N',
+      points: trajectory.map(p => ({ x: p.t, y: F })),
+    };
 
     const theta_t: ChartSeries = {
       xLabel: '时间', yLabel: '角度', xUnit: 's', yUnit: 'rad',
@@ -151,7 +183,7 @@ export class UniformCircularMotionModel extends PhysicsModelBase {
       },
       trajectories: [trajectory],
       keyframes,
-      charts: { x_t, y_t, v_t, a_t, theta_t },
+      charts: { x_t, y_t, v_t, a_t, theta_t, F_t, force_diagram: forceDiagram },
       diagnostics: {
         conservedQuantities: [
           {
@@ -184,8 +216,16 @@ export class UniformCircularMotionModel extends PhysicsModelBase {
         rangeCheck: { withinRange: true, warnings: [] },
       },
       explanation: {
-        summary: `质量 ${mass}kg 的物体在半径 ${radius}m 的圆周上以角速度 ω=${omega.toFixed(2)} rad/s 做匀速圆周运动，线速度 v=${v.toFixed(2)} m/s，向心加速度 a=${aCentripetal.toFixed(2)} m/s²，向心力 F=${F.toFixed(2)} N，周期 T=${period.toFixed(3)} s`,
-        steps: [
+        summary: conicalMode
+          ? `圆锥摆：L=${ropeLength.toFixed(2)}m, θ=${(conicalAngleRad * 180 / Math.PI).toFixed(1)}° → ω=${omega.toFixed(2)}rad/s (g推导), r=${radius.toFixed(2)}m, v=${v.toFixed(2)}m/s, a=${aCentripetal.toFixed(2)}m/s², F=${F.toFixed(2)}N`
+          : `质量 ${mass}kg 的物体在半径 ${radius}m 的圆周上以角速度 ω=${omega.toFixed(2)} rad/s 做匀速圆周运动，线速度 v=${v.toFixed(2)} m/s，向心加速度 a=${aCentripetal.toFixed(2)} m/s²，向心力 F=${F.toFixed(2)} N，周期 T=${period.toFixed(3)} s`,
+        steps: conicalMode ? [
+          { order: 1, description: '圆锥摆 ω 自动推导', formula: 'ω = √(g / (L·cosθ))', calculation: `ω = √(9.8 / (${ropeLength.toFixed(2)} × cos${(conicalAngleRad * 180 / Math.PI).toFixed(1)}°)) = ${omega.toFixed(3)} rad/s` },
+          { order: 2, description: '有效圆周半径', formula: 'r = L·sinθ', calculation: `r = ${ropeLength.toFixed(2)} × sin${(conicalAngleRad * 180 / Math.PI).toFixed(1)}° = ${radius.toFixed(3)} m` },
+          { order: 3, description: '线速度', formula: 'v = ωr', calculation: `v = ${omega.toFixed(2)} × ${radius.toFixed(3)} = ${v.toFixed(2)} m/s` },
+          { order: 4, description: '向心加速度', formula: 'a = ω²r', calculation: `a = ${omega.toFixed(2)}² × ${radius.toFixed(3)} = ${aCentripetal.toFixed(2)} m/s²` },
+          { order: 5, description: '向心力', formula: 'F = ma', calculation: `F = ${mass} × ${aCentripetal.toFixed(2)} = ${F.toFixed(2)} N` },
+        ] : [
           { order: 1, description: '线速度与角速度关系', formula: 'v = ωr', calculation: `v = ${omega.toFixed(2)} × ${radius} = ${v.toFixed(2)} m/s` },
           { order: 2, description: '向心加速度', formula: 'a = ω²r = v²/r', calculation: `a = ${omega.toFixed(2)}² × ${radius} = ${aCentripetal.toFixed(2)} m/s²` },
           { order: 3, description: '向心力（牛顿第二定律）', formula: 'F = ma = mω²r', calculation: `F = ${mass} × ${aCentripetal.toFixed(2)} = ${F.toFixed(2)} N` },

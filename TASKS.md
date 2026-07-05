@@ -29,12 +29,13 @@
 
 ## 阶段四：必修二
 
-- [~] 扩展抛体运动场景（平抛 + 斜抛）
-  - 描述：增强 projectile 场景，支持斜抛运动，展示轨迹分解
-  - 涉及文件：visualization/src/rendering/, physics-core/src/models/
-  - 参考：experiments/必修二_第1章_抛体运动.md
+- [x] 扩展抛体运动场景（平抛 + 斜抛） ✅ 2026-07-05
+  - 提交：dc28b30 feat: 抛体运动模型 (平抛+斜抛) — 必修二第一章
+  - 新建 ProjectileModel：vx/vy 分运动分解，恒定水平速度
+  - 特征量：射程/最高点/飞行时间；图表：vx-t, vy-t, 能量-t
+  - 11 个测试通过；sceneRegistry 升级到 projectile 模型 + 发射高度参数
 
-- [ ] 扩展圆周运动场景（向心力、向心加速度）
+- [~] 扩展圆周运动场景（向心力、向心加速度）
   - 描述：增强 circular-motion 场景，展示向心力矢量、向心加速度
   - 涉及文件：visualization/src/rendering/, physics-core/src/models/
   - 参考：experiments/必修二_第2章_圆周运动.md

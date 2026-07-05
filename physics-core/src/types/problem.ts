@@ -87,6 +87,10 @@ export interface CircularMotionConstraint {
   readonly angularVelocity: number;
   readonly initialAngle?: number;
   readonly showCentripetalForce?: boolean;
+  /** 圆锥摆模式：细绳与竖直方向的夹角 (度) — 设置后由 L 和 θ 自动推导线速度 */
+  readonly conicalAngleDeg?: number;
+  /** 圆锥摆绳长 (m) — 仅当 conicalAngleDeg>0 时生效 */
+  readonly ropeLength?: number;
 }
 
 /** 力的合成约束 (平行四边形定则) — 必修一 §4 */
