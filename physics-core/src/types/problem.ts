@@ -28,7 +28,9 @@ export type ModelType =
   // 选必一 第一章 动量守恒定律
   | 'momentum'               // 动量定理 / 反冲
   // 选必一 第二章 机械振动
-  | 'simple-pendulum';       // 单摆简谐运动
+  | 'simple-pendulum'        // 单摆简谐运动
+  // 选必一 第三章 机械波
+  | 'mechanical-wave';       // 机械波 (横波/纵波/干涉)
 
 /** 重力场配置 */
 export interface GravityConfig {
@@ -179,6 +181,30 @@ export interface SimplePendulumConstraint {
   readonly pivot?: { x: number; y: number };
 }
 
+/** 机械波约束 — 选必一 §3 */
+export interface WaveConstraint {
+  /** 横波 transverse / 纵波 longitudinal / 干涉 interference */
+  readonly mode: 'transverse' | 'longitudinal' | 'interference';
+  /** 振幅 (m) */
+  readonly amplitude: number;
+  /** 频率 (Hz) */
+  readonly frequency: number;
+  /** 波长 (m) */
+  readonly wavelength: number;
+  /** 质点数量 */
+  readonly particleCount?: number;
+  /** 起点坐标 (m) */
+  readonly xStart?: number;
+  /** 终点坐标 (m) */
+  readonly xEnd?: number;
+  /** 干涉模式：第二列波振幅 */
+  readonly amplitude2?: number;
+  /** 第二列波相位差 (rad) */
+  readonly phaseDiff?: number;
+  /** 第二列波传播方向 (+1=右, -1=左) */
+  readonly direction2?: number;
+}
+
 /** 约束配置 */
 export interface ConstraintConfig {
   readonly inclinedPlane?: InclinedPlaneConstraint;
@@ -193,6 +219,7 @@ export interface ConstraintConfig {
   readonly orbital?: OrbitalConstraint;
   readonly momentum?: MomentumConstraint;
   readonly simplePendulum?: SimplePendulumConstraint;
+  readonly wave?: WaveConstraint;
 }
 
 /** 时间配置 */

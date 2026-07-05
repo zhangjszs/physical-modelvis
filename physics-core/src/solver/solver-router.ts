@@ -18,6 +18,7 @@ import { ProjectileModel } from '../models/projectile.js';
 import { OrbitalModel } from '../models/orbital.js';
 import { MomentumModel } from '../models/momentum.js';
 import { SimplePendulumModel } from '../models/simple-pendulum.js';
+import { MechanicalWaveModel } from '../models/mechanical-wave.js';
 
 registerModel(new UniformLinearModel());
 registerModel(new UniformAcceleratedModel());
@@ -43,6 +44,8 @@ registerModel(new OrbitalModel());
 registerModel(new MomentumModel());
 // 选必一 第二章 机械振动 (单摆)
 registerModel(new SimplePendulumModel());
+// 选必一 第三章 机械波
+registerModel(new MechanicalWaveModel());
 
 export function solveProblem(problem: PhysicsProblem): SimulationResult {
   const model = getModel(problem.model);

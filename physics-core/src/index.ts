@@ -5,7 +5,7 @@ export type { Vector2D, Quantity, ParameterSpec, ValidationResult, PhysicalBody,
 export type {
   PhysicsProblem, ModelType, NewtonSecondLawConstraint, ForceCompositionConstraint,
   NewtonThirdLawConstraint, SlidingFrictionConstraint, ProjectileConstraint, OrbitalConstraint,
-  MomentumConstraint,
+  MomentumConstraint, WaveConstraint,
 } from './types/problem.js';
 export type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep, FormulaUsage } from './types/result.js';
 
@@ -42,6 +42,8 @@ export { OrbitalModel } from './models/orbital.js';
 export { MomentumModel } from './models/momentum.js';
 // 选必一 第二章 机械振动
 export { SimplePendulumModel } from './models/simple-pendulum.js';
+// 选必一 第三章 机械波
+export { MechanicalWaveModel } from './models/mechanical-wave.js';
 
 // === 求解器导出 ===
 export { solveProblem } from './solver/solver-router.js';
