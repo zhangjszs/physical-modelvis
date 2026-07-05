@@ -22,7 +22,9 @@ export type ModelType =
   // 必修一 第四章 运动和力的关系
   | 'newton-second-law'      // 牛顿第二定律 (F = ma)
   // 必修二 第一章 抛体运动
-  | 'projectile';            // 抛体运动 (平抛 + 斜抛)
+  | 'projectile'             // 抛体运动 (平抛 + 斜抛)
+  // 必修二 第三章 万有引力与航天
+  | 'orbital';               // 万有引力轨道运动
 
 /** 重力场配置 */
 export interface GravityConfig {
@@ -139,6 +141,16 @@ export interface ProjectileConstraint {
   readonly initialHeight?: number;
 }
 
+/** 万有引力轨道约束 — 必修二 §3 */
+export interface OrbitalConstraint {
+  /** 中心天体引力参数 GM (m³/s²)，默认地球 3.986×10¹⁴ */
+  readonly GM?: number;
+  /** 中心天体半径 (m)，用于碰撞检测 */
+  readonly centralRadius?: number;
+  /** 是否显示椭圆轨道焦点 (地心) */
+  readonly showCenter?: boolean;
+}
+
 /** 约束配置 */
 export interface ConstraintConfig {
   readonly inclinedPlane?: InclinedPlaneConstraint;
@@ -150,6 +162,7 @@ export interface ConstraintConfig {
   readonly slidingFriction?: SlidingFrictionConstraint;
   readonly newtonSecondLaw?: NewtonSecondLawConstraint;
   readonly projectile?: ProjectileConstraint;
+  readonly orbital?: OrbitalConstraint;
 }
 
 /** 时间配置 */

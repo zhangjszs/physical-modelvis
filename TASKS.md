@@ -35,12 +35,12 @@
   - 特征量：射程/最高点/飞行时间；图表：vx-t, vy-t, 能量-t
   - 11 个测试通过；sceneRegistry 升级到 projectile 模型 + 发射高度参数
 
-- [~] 扩展圆周运动场景（向心力、向心加速度）
-  - 描述：增强 circular-motion 场景，展示向心力矢量、向心加速度
-  - 涉及文件：visualization/src/rendering/, physics-core/src/models/
-  - 参考：experiments/必修二_第2章_圆周运动.md
+- [x] 扩展圆周运动场景（向心力、向心加速度） ✅ 2026-07-05
+  - 提交：25f951a feat: 圆周运动场景扩展 (圆锥摆 + 受力分析图)
+  - 圆锥摆：ω 自动由 g/(L·cosθ)；有效半径 r=L·sinθ
+  - 受力分析图 + F-t 图表；summary 显示 F_c, v, a_c, T
 
-- [ ] 实现万有引力与航天场景
+- [~] 实现万有引力与航天场景
   - 描述：卫星轨道运动、宇宙速度可视化
   - 涉及文件：physics-core/src/models/, visualization/src/rendering/
   - 参考：experiments/必修二_第3章_万有引力与航天.md

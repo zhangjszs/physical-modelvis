@@ -4,7 +4,7 @@
 export type { Vector2D, Quantity, ParameterSpec, ValidationResult, PhysicalBody, RenderHint } from './types/common.js';
 export type {
   PhysicsProblem, ModelType, NewtonSecondLawConstraint, ForceCompositionConstraint,
-  NewtonThirdLawConstraint, SlidingFrictionConstraint, ProjectileConstraint,
+  NewtonThirdLawConstraint, SlidingFrictionConstraint, ProjectileConstraint, OrbitalConstraint,
 } from './types/problem.js';
 export type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep, FormulaUsage } from './types/result.js';
 
@@ -35,6 +35,8 @@ export { SlidingFrictionModel } from './models/sliding-friction.js';
 export { NewtonSecondLawModel } from './models/newton-second-law.js';
 // 必修二 第一章 抛体运动
 export { ProjectileModel } from './models/projectile.js';
+// 必修二 第三章 万有引力与航天
+export { OrbitalModel } from './models/orbital.js';
 
 // === 求解器导出 ===
 export { solveProblem } from './solver/solver-router.js';

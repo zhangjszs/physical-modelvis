@@ -15,6 +15,7 @@ import { NewtonThirdLawModel } from '../models/newton-third-law.js';
 import { SlidingFrictionModel } from '../models/sliding-friction.js';
 import { NewtonSecondLawModel } from '../models/newton-second-law.js';
 import { ProjectileModel } from '../models/projectile.js';
+import { OrbitalModel } from '../models/orbital.js';
 
 registerModel(new UniformLinearModel());
 registerModel(new UniformAcceleratedModel());
@@ -34,6 +35,8 @@ registerModel(new SlidingFrictionModel());
 registerModel(new NewtonSecondLawModel());
 // 必修二 第一章 抛体运动
 registerModel(new ProjectileModel());
+// 必修二 第三章 万有引力与航天
+registerModel(new OrbitalModel());
 
 export function solveProblem(problem: PhysicsProblem): SimulationResult {
   const model = getModel(problem.model);

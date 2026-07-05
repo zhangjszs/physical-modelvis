@@ -32,4 +32,16 @@ export const PHYSICS_CONSTANTS = {
 
   /** 质子质量 */
   protonMass: q(1.67262192369e-27, 'kg', 'mₚ'),
+
+  /** 万有引力常量 G */
+  G: q(6.67430e-11, 'N·m²/kg²', 'G'),
+
+  /** 地球质量 */
+  earthMass: q(5.9722e24, 'kg', 'Mₑ'),
+
+  /** 地球半径 */
+  earthRadius: q(6.371e6, 'm', 'Rₑ'),
+
+  /** 近地轨道高度 (ISS ≈ 400 km) */
+  leoAltitude: q(400e3, 'm', 'h_LEO'),
 } as const;
