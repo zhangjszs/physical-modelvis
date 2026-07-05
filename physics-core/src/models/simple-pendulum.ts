@@ -120,12 +120,14 @@ export class SimplePendulumModel extends PhysicsModelBase {
 
     // 关键帧：振幅最大点 (转折点)
     const keyframes: Keyframe[] = [];
+    const v0x = (pc.initialOmega ?? 0) * L * Math.cos(theta0Rad);
+    const v0y = -(pc.initialOmega ?? 0) * L * Math.sin(theta0Rad);
     keyframes.push({
       label: '释放点',
       t: 0,
       position: trajectory[0]!.position,
-      velocity: { x: 0, y: 0 },
-      description: `θ₀=${(theta0Rad * 180 / Math.PI).toFixed(1)}°, L=${L}m, 由静止释放`,
+      velocity: { x: v0x, y: v0y },
+      description: `θ₀=${(theta0Rad * 180 / Math.PI).toFixed(1)}°, L=${L}m, ${pc.initialOmega ? `ω₀=${pc.initialOmega}rad/s` : '由静止释放'}`,
     });
 
     // 检测第一个最低点 (θ 从正变负)
