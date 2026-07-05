@@ -6,6 +6,7 @@ export type {
   PhysicsProblem, ModelType, NewtonSecondLawConstraint, ForceCompositionConstraint,
   NewtonThirdLawConstraint, SlidingFrictionConstraint, ProjectileConstraint, OrbitalConstraint,
   MomentumConstraint, WaveConstraint, RefractionConstraint, InterferenceConstraint, CircuitConstraint, GasLawConstraint,
+  PhotoelectricConstraint, BohrModelConstraint, RadioactiveDecayConstraint,
 } from './types/problem.js';
 export type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep, FormulaUsage } from './types/result.js';
 
@@ -51,6 +52,11 @@ export { InterferenceModel } from './models/interference.js';
 export { CircuitModel } from './models/circuit.js';
 // 选必三 气体/热学
 export { GasLawModel } from './models/gas-law.js';
+// 选必三 §4 原子结构和波粒二象性
+export { PhotoelectricModel } from './models/photoelectric.js';
+export { BohrModel } from './models/bohr.js';
+// 选必三 §5 原子核
+export { RadioactiveDecayModel } from './models/radioactive-decay.js';
 
 // === 求解器导出 ===
 export { solveProblem } from './solver/solver-router.js';

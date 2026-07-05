@@ -37,7 +37,12 @@ export type ModelType =
   // 必修三 第十一章 电路及其应用
   | 'circuit'                // 直流电路 (串并联)
   // 选必三 气体/热学
-  | 'gas-law';               // 理想气体状态方程
+  | 'gas-law'                // 理想气体状态方程
+  // 选必三 §4 原子结构和波粒二象性
+  | 'photoelectric'          // 光电效应
+  | 'bohr-model'             // 玻尔氢原子模型 / 光谱
+  // 选必三 §5 原子核
+  | 'radioactive-decay';     // 放射性衰变
 
 /** 重力场配置 */
 export interface GravityConfig {
@@ -268,6 +273,35 @@ export interface GasLawConstraint {
   readonly initialTemperature?: number;
 }
 
+/** 光电效应约束 — 选必三 §4 (hν = W₀ + e·U_c) */
+export interface PhotoelectricConstraint {
+  /** 金属逸出功 W₀ (eV) */
+  readonly workFunction: number;
+  /** 入射光频率范围 (THz) */
+  readonly freqMinTHz?: number;
+  readonly freqMaxTHz?: number;
+}
+
+/** 玻尔氢原子模型约束 — 选必三 §4 */
+export interface BohrModelConstraint {
+  /** 目标光谱线系：'Lyman'(n₁=1) / 'Balmer'(n₁=2) / 'Paschen'(n₁=3) */
+  readonly series?: 'Lyman' | 'Balmer' | 'Paschen';
+  /** 最大主量子数 */
+  readonly maxN?: number;
+}
+
+/** 放射性衰变约束 — 选必三 §5 */
+export interface RadioactiveDecayConstraint {
+  /** 初始原子数 */
+  readonly initialAtoms: number;
+  /** 半衰期 T₁/₂ (s) */
+  readonly halfLife: number;
+  /** 模拟时长 (s) */
+  readonly duration?: number;
+  /** 射线类型 (影响径迹) */
+  readonly radiationType?: 'alpha' | 'beta' | 'gamma';
+}
+
 /** 约束配置 */
 export interface ConstraintConfig {
   readonly inclinedPlane?: InclinedPlaneConstraint;
@@ -287,6 +321,9 @@ export interface ConstraintConfig {
   readonly interference?: InterferenceConstraint;
   readonly circuit?: CircuitConstraint;
   readonly gasLaw?: GasLawConstraint;
+  readonly photoelectric?: PhotoelectricConstraint;
+  readonly bohr?: BohrModelConstraint;
+  readonly radioactive?: RadioactiveDecayConstraint;
 }
 
 /** 时间配置 */

@@ -23,6 +23,9 @@ import { RefractionModel } from '../models/refraction.js';
 import { InterferenceModel } from '../models/interference.js';
 import { CircuitModel } from '../models/circuit.js';
 import { GasLawModel } from '../models/gas-law.js';
+import { PhotoelectricModel } from '../models/photoelectric.js';
+import { BohrModel } from '../models/bohr.js';
+import { RadioactiveDecayModel } from '../models/radioactive-decay.js';
 
 registerModel(new UniformLinearModel());
 registerModel(new UniformAcceleratedModel());
@@ -57,6 +60,11 @@ registerModel(new InterferenceModel());
 registerModel(new CircuitModel());
 // 选必三 气体/热学
 registerModel(new GasLawModel());
+// 选必三 §4 原子结构和波粒二象性
+registerModel(new PhotoelectricModel());
+registerModel(new BohrModel());
+// 选必三 §5 原子核
+registerModel(new RadioactiveDecayModel());
 
 export function solveProblem(problem: PhysicsProblem): SimulationResult {
   const model = getModel(problem.model);
