@@ -14,12 +14,11 @@
 
 ## 阶段三：必修一第四章「运动和力的关系」
 
-- [~] 实现 NewtonSecondLaw 模型 (physics-core)
-  - 描述：F=ma 分析解模型，支持恒力作用下的匀变速运动
-  - 涉及文件：physics-core/src/models/newton-second-law.ts, physics-core/tests/unit/newton-second-law.test.ts
-  - 参考：experiments/必修一_第4章_运动和力的关系.md
+- [x] 实现 NewtonSecondLaw 模型 (physics-core) ✅ 2026-07-05
+  - 提交：dd797ab feat: 牛顿第二定律 F=ma 分析解模型 (必修一第四章)
+  - 13 个单元测试通过；0 类型错误；vite build 通过
 
-- [ ] 实现牛顿第二定律可视化场景
+- [~] 实现牛顿第二定律可视化场景
   - 描述：展示恒力作用下物体的加速度、速度、位移变化，支持参数调节
   - 涉及文件：visualization/src/scenes/sceneRegistry.ts, visualization/src/rendering/
   - 依赖：NewtonSecondLaw 模型完成

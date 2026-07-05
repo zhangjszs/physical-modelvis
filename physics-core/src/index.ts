@@ -2,7 +2,10 @@
 
 // === 类型导出 ===
 export type { Vector2D, Quantity, ParameterSpec, ValidationResult, PhysicalBody, RenderHint } from './types/common.js';
-export type { PhysicsProblem, ModelType } from './types/problem.js';
+export type {
+  PhysicsProblem, ModelType, NewtonSecondLawConstraint, ForceCompositionConstraint,
+  NewtonThirdLawConstraint, SlidingFrictionConstraint,
+} from './types/problem.js';
 export type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep, FormulaUsage } from './types/result.js';
 
 // === 错误类导出 ===
@@ -28,6 +31,8 @@ export { UniformCircularMotionModel } from './models/uniform-circular-motion.js'
 export { ForceCompositionModel } from './models/force-composition.js';
 export { NewtonThirdLawModel } from './models/newton-third-law.js';
 export { SlidingFrictionModel } from './models/sliding-friction.js';
+// 必修一 第四章 运动和力的关系
+export { NewtonSecondLawModel } from './models/newton-second-law.js';
 
 // === 求解器导出 ===
 export { solveProblem } from './solver/solver-router.js';
