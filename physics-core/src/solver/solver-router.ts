@@ -21,6 +21,7 @@ import { SimplePendulumModel } from '../models/simple-pendulum.js';
 import { MechanicalWaveModel } from '../models/mechanical-wave.js';
 import { RefractionModel } from '../models/refraction.js';
 import { InterferenceModel } from '../models/interference.js';
+import { CircuitModel } from '../models/circuit.js';
 
 registerModel(new UniformLinearModel());
 registerModel(new UniformAcceleratedModel());
@@ -51,6 +52,8 @@ registerModel(new MechanicalWaveModel());
 // 选必一 第四章 光
 registerModel(new RefractionModel());
 registerModel(new InterferenceModel());
+// 必修三 第十一章 电路及其应用
+registerModel(new CircuitModel());
 
 export function solveProblem(problem: PhysicsProblem): SimulationResult {
   const model = getModel(problem.model);

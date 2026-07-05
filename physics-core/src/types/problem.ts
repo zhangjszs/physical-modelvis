@@ -33,7 +33,9 @@ export type ModelType =
   | 'mechanical-wave'        // 机械波 (横波/纵波/干涉)
   // 选必一 第四章 光
   | 'refraction'             // 折射定律 / 全反射
-  | 'interference';          // 双缝干涉 / 薄膜干涉
+  | 'interference'           // 双缝干涉 / 薄膜干涉
+  // 必修三 第十一章 电路及其应用
+  | 'circuit';               // 直流电路 (串并联)
 
 /** 重力场配置 */
 export interface GravityConfig {
@@ -232,6 +234,24 @@ export interface InterferenceConstraint {
   readonly filmN?: number;
 }
 
+/** 直流电路约束 — 必修三 §3 (串并联、欧姆定律、电功率) */
+export interface CircuitConstraint {
+  /** 电源电动势 (V) */
+  readonly emf: number;
+  /** 电源内阻 (Ω) */
+  readonly internalResistance?: number;
+  /**
+   * 电路拓扑：电阻值 (Ω) 与连接方式。
+   * 第一个电阻总是与电源串联；后续电阻根据 connection 决定与前一个电阻串联或并联。
+   * 例：[10(series), 10(series), 10(parallel)] → R1 串 R2 串 (并 R3)
+   */
+  readonly resistors: ReadonlyArray<{
+    readonly resistance: number;
+    /** 'series' (串联) 或 'parallel' (并联，对前一级) */
+    readonly connection: 'series' | 'parallel';
+  }>;
+}
+
 /** 约束配置 */
 export interface ConstraintConfig {
   readonly inclinedPlane?: InclinedPlaneConstraint;
@@ -249,6 +269,7 @@ export interface ConstraintConfig {
   readonly wave?: WaveConstraint;
   readonly refraction?: RefractionConstraint;
   readonly interference?: InterferenceConstraint;
+  readonly circuit?: CircuitConstraint;
 }
 
 /** 时间配置 */

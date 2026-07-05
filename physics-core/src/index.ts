@@ -5,7 +5,7 @@ export type { Vector2D, Quantity, ParameterSpec, ValidationResult, PhysicalBody,
 export type {
   PhysicsProblem, ModelType, NewtonSecondLawConstraint, ForceCompositionConstraint,
   NewtonThirdLawConstraint, SlidingFrictionConstraint, ProjectileConstraint, OrbitalConstraint,
-  MomentumConstraint, WaveConstraint, RefractionConstraint, InterferenceConstraint,
+  MomentumConstraint, WaveConstraint, RefractionConstraint, InterferenceConstraint, CircuitConstraint,
 } from './types/problem.js';
 export type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep, FormulaUsage } from './types/result.js';
 
@@ -47,6 +47,8 @@ export { MechanicalWaveModel } from './models/mechanical-wave.js';
 // 选必一 第四章 光
 export { RefractionModel } from './models/refraction.js';
 export { InterferenceModel } from './models/interference.js';
+// 必修三 第十一章 电路及其应用
+export { CircuitModel } from './models/circuit.js';
 
 // === 求解器导出 ===
 export { solveProblem } from './solver/solver-router.js';
