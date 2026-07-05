@@ -19,6 +19,8 @@ import { OrbitalModel } from '../models/orbital.js';
 import { MomentumModel } from '../models/momentum.js';
 import { SimplePendulumModel } from '../models/simple-pendulum.js';
 import { MechanicalWaveModel } from '../models/mechanical-wave.js';
+import { RefractionModel } from '../models/refraction.js';
+import { InterferenceModel } from '../models/interference.js';
 
 registerModel(new UniformLinearModel());
 registerModel(new UniformAcceleratedModel());
@@ -46,6 +48,9 @@ registerModel(new MomentumModel());
 registerModel(new SimplePendulumModel());
 // 选必一 第三章 机械波
 registerModel(new MechanicalWaveModel());
+// 选必一 第四章 光
+registerModel(new RefractionModel());
+registerModel(new InterferenceModel());
 
 export function solveProblem(problem: PhysicsProblem): SimulationResult {
   const model = getModel(problem.model);

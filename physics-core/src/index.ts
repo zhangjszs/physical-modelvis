@@ -5,7 +5,7 @@ export type { Vector2D, Quantity, ParameterSpec, ValidationResult, PhysicalBody,
 export type {
   PhysicsProblem, ModelType, NewtonSecondLawConstraint, ForceCompositionConstraint,
   NewtonThirdLawConstraint, SlidingFrictionConstraint, ProjectileConstraint, OrbitalConstraint,
-  MomentumConstraint, WaveConstraint,
+  MomentumConstraint, WaveConstraint, RefractionConstraint, InterferenceConstraint,
 } from './types/problem.js';
 export type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep, FormulaUsage } from './types/result.js';
 
@@ -44,6 +44,9 @@ export { MomentumModel } from './models/momentum.js';
 export { SimplePendulumModel } from './models/simple-pendulum.js';
 // 选必一 第三章 机械波
 export { MechanicalWaveModel } from './models/mechanical-wave.js';
+// 选必一 第四章 光
+export { RefractionModel } from './models/refraction.js';
+export { InterferenceModel } from './models/interference.js';
 
 // === 求解器导出 ===
 export { solveProblem } from './solver/solver-router.js';

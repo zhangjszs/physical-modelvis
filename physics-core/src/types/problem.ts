@@ -30,7 +30,10 @@ export type ModelType =
   // 选必一 第二章 机械振动
   | 'simple-pendulum'        // 单摆简谐运动
   // 选必一 第三章 机械波
-  | 'mechanical-wave';       // 机械波 (横波/纵波/干涉)
+  | 'mechanical-wave'        // 机械波 (横波/纵波/干涉)
+  // 选必一 第四章 光
+  | 'refraction'             // 折射定律 / 全反射
+  | 'interference';          // 双缝干涉 / 薄膜干涉
 
 /** 重力场配置 */
 export interface GravityConfig {
@@ -205,6 +208,30 @@ export interface WaveConstraint {
   readonly direction2?: number;
 }
 
+/** 折射/全反射约束 — 选必一 §4 (Snell 定律 n₁sinθ₁=n₂sinθ₂) */
+export interface RefractionConstraint {
+  /** 入射角 (度, 相对法线) */
+  readonly incidentAngleDeg: number;
+  /** 介质 1 折射率 (空气 ≈1.0, 水 ≈1.33, 玻璃 ≈1.5) */
+  readonly n1: number;
+  /** 介质 2 折射率 */
+  readonly n2: number;
+}
+
+/** 双缝干涉约束 — 选必一 §4 */
+export interface InterferenceConstraint {
+  /** 光波长 (nm) */
+  readonly wavelengthNm: number;
+  /** 缝距 d (mm) */
+  readonly slitSeparationMm: number;
+  /** 缝到屏的距离 L (m) */
+  readonly screenDistanceM: number;
+  /** 薄膜干涉：膜厚 (μm) — 非薄膜模式忽略 */
+  readonly filmThicknessUm?: number;
+  /** 薄膜折射率 */
+  readonly filmN?: number;
+}
+
 /** 约束配置 */
 export interface ConstraintConfig {
   readonly inclinedPlane?: InclinedPlaneConstraint;
@@ -220,6 +247,8 @@ export interface ConstraintConfig {
   readonly momentum?: MomentumConstraint;
   readonly simplePendulum?: SimplePendulumConstraint;
   readonly wave?: WaveConstraint;
+  readonly refraction?: RefractionConstraint;
+  readonly interference?: InterferenceConstraint;
 }
 
 /** 时间配置 */
