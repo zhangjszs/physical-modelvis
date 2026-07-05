@@ -110,15 +110,15 @@
   - 提交：9949a0b feat: 直流电路分析模型 (必修三第十一章)
   - 13 个单元测试通过
 
-- [~] 实现伏安特性曲线场景 📐 2026-07-05
-  - 灯泡 (非线性) vs 线性电阻；测量电动势和内阻
-  - 涉及文件：visualization/src/scenes/sceneRegistry.ts
-  - 参考：同上
+- [x] 实现伏安特性曲线场景 ✅ 2026-07-05
+  - 提交：a4c43d6 (同一 commit，circuit scene 内置 VI_curve 图表)
+
+- [~] 实现气体定律模型 (physics-core) 入门 📐 2026-07-05
 
 ## 阶段八：选必三 分子动理论与热力学 (入门)
 
-- [ ] 实现分子运动 / 气体定律可视化场景 📐 2026-07-05
-  - 布朗运动 (随机粒子模拟)；p-V-T 状态方程；p-V 图
-  - 新建 GasLawModel: pV=nRT
-  - 涉及文件：physics-core/src/models/gas-law.ts；visualization scene
-  - 参考：experiments/选必三_第1章_分子动理论.md
+- [x] 实现气体定律模型 (physics-core) 入门 ✅ 2026-07-05
+  - 提交：5de251b feat: 理想气体状态方程模型 (选必三第二章入门)
+  - 8 个单元测试通过
+
+- [~] 气体定律可视化场景 📐 2026-07-05
