@@ -40,12 +40,13 @@
   - 圆锥摆：ω 自动由 g/(L·cosθ)；有效半径 r=L·sinθ
   - 受力分析图 + F-t 图表；summary 显示 F_c, v, a_c, T
 
-- [~] 实现万有引力与航天场景
-  - 描述：卫星轨道运动、宇宙速度可视化
-  - 涉及文件：physics-core/src/models/, visualization/src/rendering/
-  - 参考：experiments/必修二_第3章_万有引力与航天.md
+- [x] 实现万有引力与航天场景 ✅ 2026-07-05
+  - 提交：d370409 feat: 万有引力与航天模型 (必修二第三章)
+  - Velocity Verlet 轨道积分；第一/第二宇宙速度
+  - 关键点检测近/远地点 (开普勒第二定律)
+  - ISS 实测: v=7.67km/s T=92.4min; 10 个单元测试通过
 
-- [ ] 实现机械能守恒场景
+- [~] 实现机械能守恒场景
   - 描述：动能、势能转换，机械能守恒定律演示
   - 涉及文件：physics-core/src/models/, visualization/src/rendering/
   - 参考：experiments/必修二_第4章_机械能及其守恒定律.md

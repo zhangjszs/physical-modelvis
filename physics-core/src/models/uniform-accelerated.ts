@@ -38,6 +38,13 @@ export class UniformAcceleratedModel extends PhysicsModelBase {
     // 这里我们从 body 的第一个"力"推导，或者直接用零加速度
     // 实际使用时由 SolverRouter 调用，问题中应包含加速度信息
     const a = this.extractAcceleration(problem);
+    // 坐标系约定: 本引擎 y 轴向上为正 (数学标准)
+    // uniform-accelerated 提取重力加速度 a = {x:0, y:−g}
+    // 地面 y=groundY (通常 0), 物体下落时 y↓ (即 y 减小)
+    // 重力势能 U = m·g·(y − groundY), 零点在地面
+    const gAmp = Vec2.magnitude(a);
+    const groundY = problem.environment?.ground?.y ?? 0;
+    const mass = body.mass.value;
 
     const duration = problem.timeConfig.duration;
     const sampleCount = problem.timeConfig.sampleCount ?? 1000;
@@ -50,13 +57,15 @@ export class UniformAcceleratedModel extends PhysicsModelBase {
       const position = Vec2.add(x0, Vec2.add(Vec2.scale(v0, t), Vec2.scale(a, 0.5 * t * t)));
       const velocity = Vec2.add(v0, Vec2.scale(a, t));
       const speed = Vec2.magnitude(velocity);
+      // 重力势能 (零点在地面, 地面以上 U 为正)
+      const potentialEnergy = gAmp > 0 ? mass * gAmp * (position.y - groundY) : 0;
       trajectory.push({
         t,
         position,
         velocity,
         acceleration: { ...a },
-        kineticEnergy: 0.5 * body.mass.value * speed * speed,
-        potentialEnergy: 0,
+        kineticEnergy: 0.5 * mass * speed * speed,
+        potentialEnergy,
       });
     }
 
@@ -102,12 +111,24 @@ export class UniformAcceleratedModel extends PhysicsModelBase {
 
     // 图表数据
     const x_t: ChartSeries = {
-      xLabel: '时间', yLabel: '位移', xUnit: 's', yUnit: 'm',
+      xLabel: '时间', yLabel: '竖直位移', xUnit: 's', yUnit: 'm',
       points: trajectory.map(p => ({ x: p.t, y: Vec2.sub(p.position, x0).y })),
     };
     const v_t: ChartSeries = {
       xLabel: '时间', yLabel: '速度', xUnit: 's', yUnit: 'm/s',
       points: trajectory.map(p => ({ x: p.t, y: Vec2.magnitude(p.velocity) })),
+    };
+    const ke_t: ChartSeries = {
+      xLabel: '时间', yLabel: '动能', xUnit: 's', yUnit: 'J',
+      points: trajectory.map(p => ({ x: p.t, y: p.kineticEnergy ?? 0 })),
+    };
+    const pe_t: ChartSeries = {
+      xLabel: '时间', yLabel: '势能', xUnit: 's', yUnit: 'J',
+      points: trajectory.map(p => ({ x: p.t, y: p.potentialEnergy ?? 0 })),
+    };
+    const energy_t: ChartSeries = {
+      xLabel: '时间', yLabel: '机械能', xUnit: 's', yUnit: 'J',
+      points: trajectory.map(p => ({ x: p.t, y: (p.kineticEnergy ?? 0) + (p.potentialEnergy ?? 0) })),
     };
 
     return {
@@ -120,7 +141,7 @@ export class UniformAcceleratedModel extends PhysicsModelBase {
       },
       trajectories: [trajectory],
       keyframes,
-      charts: { x_t, v_t },
+      charts: { x_t, v_t, ke_t, pe_t, energy_t },
       diagnostics: {
         conservedQuantities: [], // 匀变速运动不守恒
         maxValues: {
