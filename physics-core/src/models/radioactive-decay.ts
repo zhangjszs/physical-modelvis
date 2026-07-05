@@ -31,6 +31,10 @@ export class RadioactiveDecayModel extends PhysicsModelBase {
   ];
   readonly applicableRange = '放射性核素衰变统计, 半衰期 1s ~ 10¹⁷s';
   readonly errorSources: string[] = [];
+  readonly requiredParameters: ParameterSpec[] = [
+    { name: 'initialAtoms', description: '初始原子数 N₀', unit: '个', required: true, min: 1, max: 1e6 },
+    { name: 'halfLife', description: '半衰期 T₁/₂ (s)', unit: 's', required: true, min: 0.001, max: 1e20 },
+  ];
 
   solve(problem: PhysicsProblem): SimulationResult {
     this.throwIfInvalid(problem);

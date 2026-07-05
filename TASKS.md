@@ -121,4 +121,30 @@
   - 提交：5de251b feat: 理想气体状态方程模型 (选必三第二章入门)
   - 8 个单元测试通过
 
-- [~] 气体定律可视化场景 📐 2026-07-05
+- [x] 气体定律可视化场景 ✅ 2026-07-05
+  - 提交：10d05f7
+
+## 阶段九：选必三 §4-5 原子结构与原子核
+
+- [ ] 实现光电效应模型 (physics-core) 📐 2026-07-05
+  - 描述：爱因斯坦光电方程 hν = W₀ + E_k；截止电压、极限频率
+  - 新建 PhotoelectricModel: 给定金属逸出功 W₀, 计算 U_c-ν 曲线
+  - 特征量：极限频率 ν₀ = W₀/h, 斜率 = h/e (测定普朗克常量)
+  - 涉及文件：physics-core/src/models/photoelectric.ts; test: photoelectric.test.ts
+  - 参考：experiments/选必三_第4章_原子结构和波粒二象性.md (实验 3-5)
+
+- [ ] 实现氢原子光谱/玻尔模型 (physics-core) 📐 2026-07-05
+  - 描述：巴尔末公式 1/λ = R(1/n₁² − 1/n₂²)、能级图 E_n = −13.6/n² eV
+  - 新建 BohrModel: 能级计算、发射/吸收光谱模拟
+  - 涉及文件：physics-core/src/models/bohr.ts; test: bohr.test.ts
+  - 参考：第4章实验 1
+
+- [ ] 实现放射性衰变模型 (physics-core) 📐 2026-07-05
+  - 描述：N(t) = N₀·e^(−λt), 半衰期 T₁/₂ = ln2/λ
+  - 新建 RadioactiveDecayModel: α/β/γ 粒子径迹模拟器 (云室)
+  - 涉及文件：physics-core/src/models/radioactive-decay.ts; test: radioactive-decay.test.ts
+  - 参考：第5章实验 1,4
+
+- [ ] 原子物理可视化场景 📐 2026-07-05
+  - sceneRegistry 注册 photoelectric + bohr + radioactive 场景
+  - 涉及文件：visualization/src/scenes/sceneRegistry.ts

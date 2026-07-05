@@ -995,6 +995,83 @@ export const SCENES: SceneConfig[] = [
       };
     },
   },
+  // ========================================================================
+  // 选必三 第四章 原子结构和波粒二象性
+  // ========================================================================
+  {
+    id: 'photoelectric',
+    name: '光电效应 (爱因斯坦方程)',
+    model: 'photoelectric',
+    parameters: [
+      { name: 'W0', label: '逸出功 W₀', unit: 'eV', value: 2.3, min: 1, max: 6, step: 0.05, default: 2.3, description: '金属逸出功 (钠≈2.28, 钾≈2.3, 锌≈4.3, 铜≈4.7)' },
+      { name: 'nuMin', label: '起始频率 ν_min', unit: 'THz', value: 300, min: 100, max: 1500, step: 50, default: 300, description: '入射光频率范围下限' },
+      { name: 'nuMax', label: '终止频率 ν_max', unit: 'THz', value: 1500, min: 500, max: 5000, step: 50, default: 1500, description: '入射光频率范围上限' },
+    ],
+    buildProblem: (params) => {
+      const workFunction = params['W0'] ?? 2.3;
+      const freqMinTHz = params['nuMin'] ?? Math.max(workFunction * 110, 100);
+      const freqMaxTHz = params['nuMax'] ?? workFunction * 400;
+      return {
+        id: `photoelectric-${Date.now()}`,
+        title: '光电效应 (爱因斯坦光电方程)',
+        model: 'photoelectric' as const,
+        bodies: [{ id: 'electron', mass: { value: 1, unit: 'kg' }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } }],
+        constraints: { photoelectric: { workFunction, freqMinTHz, freqMaxTHz } },
+        environment: {},
+        timeConfig: { duration: 1, dt: 0.1, sampleCount: 10 },
+      };
+    },
+  },
+  {
+    id: 'bohr',
+    name: '玻尔氢原子模型 (能级与光谱)',
+    model: 'bohr-model',
+    parameters: [
+      { name: 'seriesB', label: '线系 (0=赖曼 1=巴尔末 2=帕邢)', unit: '', value: 1, min: 0, max: 2, step: 1, default: 1, description: '0=赖曼系(紫外,n₁=1); 1=巴尔末系(可见,n₁=2); 2=帕邢系(红外,n₁=3)' },
+      { name: 'maxN', label: '最大主量子数 n_max', unit: '', value: 6, min: 3, max: 10, step: 1, default: 6, description: '决定计算多少条谱线' },
+    ],
+    buildProblem: (params) => {
+      const seriesNum = params['seriesB'] ?? 1;
+      const series = seriesNum === 0 ? 'Lyman' as const : seriesNum === 2 ? 'Paschen' as const : 'Balmer' as const;
+      const maxN = params['maxN'] ?? 6;
+      return {
+        id: `bohr-${Date.now()}`,
+        title: '玻尔氢原子模型 (能级与发射光谱)',
+        model: 'bohr-model' as const,
+        bodies: [{ id: 'electron', mass: { value: 1, unit: 'kg' }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } }],
+        constraints: { bohr: { series, maxN } },
+        environment: {},
+        timeConfig: { duration: 1, dt: 0.1, sampleCount: 10 },
+      };
+    },
+  },
+  {
+    id: 'radioactive',
+    name: '放射性衰变 (云室径迹)',
+    model: 'radioactive-decay',
+    parameters: [
+      { name: 'N0', label: '初始原子数 N₀', unit: '个', value: 1000, min: 100, max: 10000, step: 100, default: 1000, description: '放射性核素初始原子数' },
+      { name: 'halfLife', label: '半衰期 T₁/₂', unit: 's', value: 10, min: 0.1, max: 3600, step: 0.1, default: 10, description: '半衰期 (秒)' },
+      { name: 'tEnd', label: '模拟时长', unit: 's', value: 50, min: 1, max: 10000, step: 1, default: 50, description: '模拟时间 (建议 ≥ 3×T₁/₂)' },
+      { name: 'rayType', label: '射线 (0=α 1=β 2=γ)', unit: '', value: 0, min: 0, max: 2, step: 1, default: 0, description: 'α=短直径迹; β=长弯径迹; γ=极少径迹' },
+    ],
+    buildProblem: (params) => {
+      const initialAtoms = params['N0'] ?? 1000;
+      const halfLife = params['halfLife'] ?? 10;
+      const duration = params['tEnd'] ?? 5 * halfLife;
+      const rayNum = params['rayType'] ?? 0;
+      const radiationType = rayNum === 1 ? 'beta' as const : rayNum === 2 ? 'gamma' as const : 'alpha' as const;
+      return {
+        id: `radioactive-${Date.now()}`,
+        title: '放射性衰变 (云室粒子径迹)',
+        model: 'radioactive-decay' as const,
+        bodies: [{ id: 'nuclei', mass: { value: 1, unit: 'kg' }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } }],
+        constraints: { radioactive: { initialAtoms, halfLife, duration, radiationType } },
+        environment: {},
+        timeConfig: { duration, dt: duration / 300, sampleCount: 300 },
+      };
+    },
+  },
 ];
 export function getDefaultParams(sceneId: string): Record<string, number> {
   const scene = SCENES.find(s => s.id === sceneId);

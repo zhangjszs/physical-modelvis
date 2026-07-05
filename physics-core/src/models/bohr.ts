@@ -39,6 +39,10 @@ export class BohrModel extends PhysicsModelBase {
   ];
   readonly applicableRange = '氢原子；可见光区 Balmer 系为主';
   readonly errorSources: string[] = [];
+  readonly requiredParameters: ParameterSpec[] = [
+    { name: 'series', description: '线系 (Lyman/Balmer/Paschen)', unit: '', required: true },
+    { name: 'maxN', description: '最大主量子数', unit: '', required: true, min: 3, max: 10 },
+  ];
 
   solve(problem: PhysicsProblem): SimulationResult {
     this.throwIfInvalid(problem);
@@ -166,7 +170,7 @@ export class BohrModel extends PhysicsModelBase {
         summary: `${seriesNameZh}：${transitions.length} 条谱线 (n=${nBase}→2..${maxN})，可见光区包含 ${balmerSummary || '无'}`,
         steps: steps.map(s => ({
           ...s,
-          formula: s.formula.includes('${') ? '能级跃迁 ΔE = E_{n_high} − E_{n_low}' : s.formula,
+          formula: (s.formula ?? '').includes('${') ? '能级跃迁' : (s.formula ?? ''),
         })),
         formulas: [
           { name: '能级公式', formula: 'E_n = −13.6/n² (eV)', variables: { 'E₁': { value: E1_eV, unit: 'eV' }, 'E∞': { value: 0, unit: 'eV' } } },
