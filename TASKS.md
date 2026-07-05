@@ -94,7 +94,10 @@
   - 同上提交 (同一 commit)
   - 9 个单元测试通过；等间距峰值、薄膜增透/增反
 
-- [~] 光学可视化场景 (折射 + 干涉) 📐 2026-07-05
+- [x] 光学可视化场景 (折射 + 干涉) ✅ 2026-07-05
+  - 提交：88c8f5c feat: 光学可视化场景 (折射 + 双缝干涉)
+  - 注册 refraction + interference 场景
+  - physics-core/dist 重建以同步类型
   - 在 sceneRegistry 注册 refraction + interference 场景
   - 折射：可调入射角/两种介质，实时显示反射+折射光线，全反射警示
   - 干涉：可调 d/L/λ，显示条纹图案和光强曲线
@@ -103,13 +106,11 @@
 
 ## 阶段七：必修三 电路与电能
 
-- [ ] 实现直流电路模型 (physics-core) 📐 2026-07-05
-  - 描述：串并联电路分析；欧姆定律、电功率；U-I 图
-  - 新建 CircuitModel: 电阻串并联、电源内阻、输出功率
-  - 涉及文件：physics-core/src/models/circuit.ts；test: circuit.test.ts
-  - 参考：experiments/必修三_第3章_电路及其应用.md
+- [x] 实现直流电路模型 (physics-core) ✅ 2026-07-05
+  - 提交：9949a0b feat: 直流电路分析模型 (必修三第十一章)
+  - 13 个单元测试通过
 
-- [ ] 实现伏安特性曲线场景 📐 2026-07-05
+- [~] 实现伏安特性曲线场景 📐 2026-07-05
   - 灯泡 (非线性) vs 线性电阻；测量电动势和内阻
   - 涉及文件：visualization/src/scenes/sceneRegistry.ts
   - 参考：同上
