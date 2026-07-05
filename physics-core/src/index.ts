@@ -7,6 +7,7 @@ export type {
   NewtonThirdLawConstraint, SlidingFrictionConstraint, ProjectileConstraint, OrbitalConstraint,
   MomentumConstraint, WaveConstraint, RefractionConstraint, InterferenceConstraint, CircuitConstraint, GasLawConstraint,
   PhotoelectricConstraint, BohrModelConstraint, RadioactiveDecayConstraint,
+  MagneticForceConstraint, EMInductionConstraint, ACCurrentConstraint, LCOscillatorConstraint,
 } from './types/problem.js';
 export type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep, FormulaUsage } from './types/result.js';
 
@@ -57,6 +58,13 @@ export { PhotoelectricModel } from './models/photoelectric.js';
 export { BohrModel } from './models/bohr.js';
 // 选必三 §5 原子核
 export { RadioactiveDecayModel } from './models/radioactive-decay.js';
+// 选必二 §1 安培力与洛伦兹力
+export { MagneticForceModel } from './models/magnetic-force.js';
+// 选必二 §2 电磁感应
+export { EMInductionModel } from './models/em-induction.js';
+// 选必二 §3 交变电流 + §4 LC 振荡
+export { ACCurrentModel } from './models/ac-current.js';
+export { LCOscillatorModel } from './models/lc-oscillator.js';
 
 // === 求解器导出 ===
 export { solveProblem } from './solver/solver-router.js';

@@ -26,6 +26,10 @@ import { GasLawModel } from '../models/gas-law.js';
 import { PhotoelectricModel } from '../models/photoelectric.js';
 import { BohrModel } from '../models/bohr.js';
 import { RadioactiveDecayModel } from '../models/radioactive-decay.js';
+import { MagneticForceModel } from '../models/magnetic-force.js';
+import { EMInductionModel } from '../models/em-induction.js';
+import { ACCurrentModel } from '../models/ac-current.js';
+import { LCOscillatorModel } from '../models/lc-oscillator.js';
 
 registerModel(new UniformLinearModel());
 registerModel(new UniformAcceleratedModel());
@@ -65,6 +69,13 @@ registerModel(new PhotoelectricModel());
 registerModel(new BohrModel());
 // 选必三 §5 原子核
 registerModel(new RadioactiveDecayModel());
+// 选必二 §1 安培力与洛伦兹力
+registerModel(new MagneticForceModel());
+// 选必二 §2 电磁感应
+registerModel(new EMInductionModel());
+// 选必二 §3+4 交变电流 + LC 振荡
+registerModel(new ACCurrentModel());
+registerModel(new LCOscillatorModel());
 
 export function solveProblem(problem: PhysicsProblem): SimulationResult {
   const model = getModel(problem.model);

@@ -42,7 +42,14 @@ export type ModelType =
   | 'photoelectric'          // 光电效应
   | 'bohr-model'             // 玻尔氢原子模型 / 光谱
   // 选必三 §5 原子核
-  | 'radioactive-decay';     // 放射性衰变
+  | 'radioactive-decay'      // 放射性衰变
+  // 选必二 §1 安培力与洛伦兹力
+  | 'magnetic-force'         // 安培力 + 洛伦兹力
+  // 选必二 §2 电磁感应
+  | 'em-induction'           // 电磁感应
+  // 选必二 §3 交变电流 + §4 LC 振荡
+  | 'ac-current'             // 交变电流
+  | 'lc-oscillator';         // LC 电磁振荡
 
 /** 重力场配置 */
 export interface GravityConfig {
@@ -302,6 +309,64 @@ export interface RadioactiveDecayConstraint {
   readonly radiationType?: 'alpha' | 'beta' | 'gamma';
 }
 
+/** 安培力/洛伦兹力约束 — 选必二 §1 */
+export interface MagneticForceConstraint {
+  /** 磁感应强度 B (T) */
+  readonly magneticField: number;
+  /** 安培力模式参数 */
+  /** 电流 I (A) */
+  readonly current?: number;
+  /** 导线长度 L (m) */
+  readonly wireLength?: number;
+  /** 导线与磁场夹角 θ (度) */
+  readonly wireAngleDeg?: number;
+  /** 洛伦兹力模式参数 */
+  /** 粒子电荷 q (C) */
+  readonly charge?: number;
+  /** 粒子速度 v (m/s) */
+  readonly velocity?: number;
+  /** 速度与磁场夹角 φ (度) */
+  readonly velocityAngleDeg?: number;
+  /** 粒子质量 (kg) — 圆周运动需要 */
+  readonly particleMass?: number;
+}
+
+/** 电磁感应约束 — 选必二 §2 */
+export interface EMInductionConstraint {
+  /** 磁感应强度 B (T) */
+  readonly magneticField: number;
+  /** 线圈面积 A (m²) */
+  readonly area: number;
+  /** 线圈匝数 N */
+  readonly turns?: number;
+  /** 磁场与法线夹角 θ (度) */
+  readonly angleDeg?: number;
+  /** 切割模式：导线长度 L (m) 方向垂直 B */
+  readonly cuttingLength?: number;
+  /** 切割速度 (m/s) */
+  readonly cuttingVelocity?: number;
+}
+
+/** 交变电流约束 — 选必二 §3 */
+export interface ACCurrentConstraint {
+  /** 峰值电动势 (V) */
+  readonly peakEmf: number;
+  /** 角频率 ω (rad/s) */
+  readonly angularFreq: number;
+  /** 变压器匝数比 n1:n2 */
+  readonly turnsRatio?: number; // n2/n1 (降压 < 1, 升压 > 1)
+}
+
+/** LC 振荡约束 — 选必二 §4 */
+export interface LCOscillatorConstraint {
+  /** 电容 (F) */
+  readonly capacitance: number;
+  /** 电感 (H) */
+  readonly inductance: number;
+  /** 初始电荷 (C) */
+  readonly initialCharge?: number;
+}
+
 /** 约束配置 */
 export interface ConstraintConfig {
   readonly inclinedPlane?: InclinedPlaneConstraint;
@@ -324,6 +389,10 @@ export interface ConstraintConfig {
   readonly photoelectric?: PhotoelectricConstraint;
   readonly bohr?: BohrModelConstraint;
   readonly radioactive?: RadioactiveDecayConstraint;
+  readonly magneticForce?: MagneticForceConstraint;
+  readonly emInduction?: EMInductionConstraint;
+  readonly ac?: ACCurrentConstraint;
+  readonly lc?: LCOscillatorConstraint;
 }
 
 /** 时间配置 */
