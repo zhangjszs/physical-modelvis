@@ -40,6 +40,8 @@ export { ProjectileModel } from './models/projectile.js';
 export { OrbitalModel } from './models/orbital.js';
 // 选必一 第一章 动量守恒定律
 export { MomentumModel } from './models/momentum.js';
+// 选必一 第二章 机械振动
+export { SimplePendulumModel } from './models/simple-pendulum.js';
 
 // === 求解器导出 ===
 export { solveProblem } from './solver/solver-router.js';

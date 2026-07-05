@@ -26,7 +26,9 @@ export type ModelType =
   // 必修二 第三章 万有引力与航天
   | 'orbital'                // 万有引力轨道运动
   // 选必一 第一章 动量守恒定律
-  | 'momentum';              // 动量定理 / 反冲
+  | 'momentum'               // 动量定理 / 反冲
+  // 选必一 第二章 机械振动
+  | 'simple-pendulum';       // 单摆简谐运动
 
 /** 重力场配置 */
 export interface GravityConfig {
@@ -161,6 +163,22 @@ export interface OrbitalConstraint {
   readonly showCenter?: boolean;
 }
 
+/** 单摆约束 — 选必一 §2 */
+export interface SimplePendulumConstraint {
+  /** 摆长 (m) */
+  readonly length: number;
+  /** 重力加速度 (m/s²) */
+  readonly g?: number;
+  /** 初始摆角 (度) */
+  readonly initialAngleDeg: number;
+  /** 初始角速度 (rad/s) */
+  readonly initialOmega?: number;
+  /** 阻尼系数 */
+  readonly damping?: number;
+  /** 悬点坐标 */
+  readonly pivot?: { x: number; y: number };
+}
+
 /** 约束配置 */
 export interface ConstraintConfig {
   readonly inclinedPlane?: InclinedPlaneConstraint;
@@ -174,6 +192,7 @@ export interface ConstraintConfig {
   readonly projectile?: ProjectileConstraint;
   readonly orbital?: OrbitalConstraint;
   readonly momentum?: MomentumConstraint;
+  readonly simplePendulum?: SimplePendulumConstraint;
 }
 
 /** 时间配置 */

@@ -17,6 +17,7 @@ import { NewtonSecondLawModel } from '../models/newton-second-law.js';
 import { ProjectileModel } from '../models/projectile.js';
 import { OrbitalModel } from '../models/orbital.js';
 import { MomentumModel } from '../models/momentum.js';
+import { SimplePendulumModel } from '../models/simple-pendulum.js';
 
 registerModel(new UniformLinearModel());
 registerModel(new UniformAcceleratedModel());
@@ -40,6 +41,8 @@ registerModel(new ProjectileModel());
 registerModel(new OrbitalModel());
 // 选必一 第一章 动量守恒定律
 registerModel(new MomentumModel());
+// 选必一 第二章 机械振动 (单摆)
+registerModel(new SimplePendulumModel());
 
 export function solveProblem(problem: PhysicsProblem): SimulationResult {
   const model = getModel(problem.model);
