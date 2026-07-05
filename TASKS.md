@@ -41,10 +41,10 @@
   - **复用**: momentum (×3), collision (×6), simple-pendulum (×12), spring (×4), mechanical-wave (×6), refraction (×4), interference (×6)
   - **退出条件**: `npm test && npm run build` → ✅ 722 tests 全绿
 
-- [ ] **阶段 F: 选必二 28 实验**
+- [x] **阶段 F: 选必二 28 实验** (14 新 Model + 14 复用) (commit `8b1b4d6`)
   - **新建 Model**: current-balance, eddy-current, em-damping, mutual-inductance, self-inductance, em-wave-communication, em-spectrum, hall-effect, reed-switch, photoresistor, thermistor, strain-gauge, security-alarm, light-control-switch (共 14 个)
   - **复用**: magnetic-force (×4), em-induction (×5), ac-current (×4), lc-oscillator (×2)
-  - **退出条件**: `npm test && npm run build` → `git commit -m "feat: 选必二 28 实验全覆盖"`
+  - **退出条件**: `npm test && npm run build` → ✅ 750 tests 全绿
 
 - [ ] **阶段 G: 选必三 37 实验**
   - **新建 Model**: diffusion, brownian-motion, oil-film, liquid-mixing, molecular-force, melting-curve, surface-tension, capillary, wetting, liquid-crystal, joule-mechanical, joule-electrical, adiabatic-compression, heat-transfer, energy-transformation, perpetuum-mobile, heat-direction, alpha-scattering, black-body, electron-diffraction, radiation-deflection, decay-statistics, cosmic-ray, neutron-discovery, fission-chain (共 25 个)
@@ -69,7 +69,7 @@
 | **C** | ⏳ | 25 | 8 | — |
 | **D** | ⏳ | 26 | 14 | — |
 | **E** | ✅ done | 40 | 13 | `cbc4f4c` |
-| **F** | ⏳ | 28 | 14 | — |
+| **F** | ✅ done | 28 | 14 | `8b1b4d6` |
 | **G** | ⏳ | 37 | 25 | — |
 | **H** | ⏳ | — | — | — |
 | **合计** | | **176** | **~81** | **8 commits** |
