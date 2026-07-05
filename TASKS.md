@@ -18,12 +18,11 @@
   - 提交：dd797ab feat: 牛顿第二定律 F=ma 分析解模型 (必修一第四章)
   - 13 个单元测试通过；0 类型错误；vite build 通过
 
-- [~] 实现牛顿第二定律可视化场景
-  - 描述：展示恒力作用下物体的加速度、速度、位移变化，支持参数调节
-  - 涉及文件：visualization/src/scenes/sceneRegistry.ts, visualization/src/rendering/
-  - 依赖：NewtonSecondLaw 模型完成
+- [x] 实现牛顿第二定律可视化场景 ✅ 2026-07-05
+  - 提交：c5d7064 feat: 牛顿第二定律可视化场景 (必修一第四章)
+  - sceneRegistry 6 参数；标准渲染流程；端到端验证 F=10N m=2kg t=3s → v=15m/s x=22.5m
 
-- [ ] 实现牛顿第一定律（惯性）可视化场景
+- [~] 实现牛顿第一定律（惯性）可视化场景
   - 描述：展示无外力下的匀速直线运动，对比有外力时的变化
   - 涉及文件：visualization/src/scenes/sceneRegistry.ts, visualization/src/rendering/
 
