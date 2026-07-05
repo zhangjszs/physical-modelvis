@@ -1434,6 +1434,228 @@ export const SCENES: SceneConfig[] = [
       };
     },
   },
+  // ========================================================================
+  // 必修二 第五章 曲线运动
+  // ========================================================================
+  {
+    id: 'curve-velocity-direction',
+    name: '曲线运动速度方向',
+    model: 'curve-velocity-direction',
+    parameters: [
+      { name: 'trackShape', label: '轨道形状', unit: '', value: 0, min: 0, max: 2, step: 1, default: 0, description: '0=圆形 1=抛物线 2=螺旋' },
+      { name: 'angularSpeed', label: '角速度 ω', unit: 'rad/s', value: 1, min: 0.1, max: 5, step: 0.1, default: 1, description: '物体沿曲线运动的角速度' },
+      { name: 'releaseIndex', label: '脱离点序号', unit: '', value: 1, min: 0, max: 3, step: 1, default: 1, description: '演示切线速度方向的脱离点位置' },
+      { name: 'duration', label: '模拟时长', unit: 's', value: 1, min: 0.5, max: 5, step: 0.1, default: 1, description: '演示动画时长' },
+    ],
+    buildProblem: (params) => {
+      const shapeIdx = Math.round(params['trackShape'] ?? 0);
+      const angularSpeed = params['angularSpeed'] ?? 1;
+      const releaseIndex = params['releaseIndex'] ?? 1;
+      const duration = params['duration'] ?? 1;
+      const shapes = ['circle', 'parabola', 'spiral'] as const;
+      return {
+        id: `cvd-${Date.now()}`,
+        title: '曲线运动速度方向',
+        model: 'curve-velocity-direction',
+        bodies: [{ id: 'ball', mass: { value: 1, unit: 'kg' }, position: { x: 1, y: 0 }, velocity: { x: 0, y: angularSpeed } }],
+        constraints: { curveVelocity: { trackShape: shapes[shapeIdx] ?? 'circle', angularSpeed, releaseIndex } },
+        environment: {},
+        timeConfig: { duration, dt: duration / 100, sampleCount: 100 },
+      };
+    },
+  },
+  {
+    id: 'curve-condition',
+    name: '曲线运动条件',
+    model: 'curve-condition',
+    parameters: [
+      { name: 'forceAngle', label: '力的方向角', unit: '°', value: 45, min: 0, max: 180, step: 5, default: 45, description: '合力与水平面的夹角' },
+      { name: 'initialSpeed', label: '初速度 v₀', unit: 'm/s', value: 5, min: 1, max: 30, step: 0.5, default: 5, description: '初速度大小 (水平向右)' },
+      { name: 'mass', label: '质量 m', unit: 'kg', value: 1, min: 0.1, max: 10, step: 0.1, default: 1, description: '物体质量' },
+      { name: 'duration', label: '模拟时长', unit: 's', value: 3, min: 0.5, max: 10, step: 0.5, default: 3, description: '仿真的总时长' },
+    ],
+    buildProblem: (params) => {
+      const forceAngle = params['forceAngle'] ?? 45;
+      const v0 = params['initialSpeed'] ?? 5;
+      const m = params['mass'] ?? 1;
+      const duration = params['duration'] ?? 3;
+      return {
+        id: `cc-${Date.now()}`,
+        title: '曲线运动条件',
+        model: 'curve-condition',
+        bodies: [{ id: 'obj', mass: { value: m, unit: 'kg' }, position: { x: 0, y: 0 }, velocity: { x: v0, y: 0 } }],
+        constraints: { curveCondition: { forceDirectionDeg: forceAngle, initialSpeed: v0, mass: m, forceMagnitude: m * 2 } },
+        environment: {},
+        timeConfig: { duration, dt: duration / 500, sampleCount: 500 },
+      };
+    },
+  },
+  {
+    id: 'motion-composition',
+    name: '运动的合成与分解',
+    model: 'motion-composition',
+    parameters: [
+      { name: 'vxConst', label: '水平速度 vx', unit: 'm/s', value: 2, min: 0, max: 10, step: 0.5, default: 2, description: '水平方向的匀速分运动速度' },
+      { name: 'vyAccel', label: '竖直加速度 ay', unit: 'm/s²', value: 2, min: 0, max: 10, step: 0.5, default: 2, description: '竖直方向的匀加速分运动加速度' },
+      { name: 'duration', label: '模拟时长', unit: 's', value: 3, min: 0.5, max: 10, step: 0.5, default: 3, description: '仿真的总时长' },
+    ],
+    buildProblem: (params) => {
+      const vxConst = params['vxConst'] ?? 2;
+      const vyAccel = params['vyAccel'] ?? 2;
+      const duration = params['duration'] ?? 3;
+      return {
+        id: `mc-${Date.now()}`,
+        title: '运动的合成与分解',
+        model: 'motion-composition',
+        bodies: [{ id: 'ball', mass: { value: 1, unit: 'kg' }, position: { x: 0, y: 0 }, velocity: { x: vxConst, y: 0 } }],
+        constraints: { motionComposition: { vxConst, vyAccel } },
+        environment: { gravity: { enabled: true, value: vyAccel } },
+        timeConfig: { duration, dt: duration / 500, sampleCount: 500 },
+      };
+    },
+  },
+  {
+    id: 'transmission-belt',
+    name: '传动方式 (皮带/齿轮/摩擦轮/同轴)',
+    model: 'transmission-belt',
+    parameters: [
+      { name: 'mode', label: '传动方式', unit: '', value: 0, min: 0, max: 3, step: 1, default: 0, description: '0=皮带 1=齿轮 2=摩擦轮 3=同轴' },
+      { name: 'r1', label: '主动轮半径 r₁', unit: 'm', value: 0.1, min: 0.01, max: 0.5, step: 0.01, default: 0.1, description: '主动轮半径' },
+      { name: 'r2', label: '从动轮半径 r₂', unit: 'm', value: 0.2, min: 0.01, max: 0.5, step: 0.01, default: 0.2, description: '从动轮半径' },
+      { name: 'omega1', label: '主动轮角速度 ω₁', unit: 'rad/s', value: 10, min: 1, max: 100, step: 1, default: 10, description: '主动轮角速度' },
+      { name: 'duration', label: '模拟时长', unit: 's', value: 2, min: 0.5, max: 5, step: 0.5, default: 2, description: '仿真的总时长' },
+    ],
+    buildProblem: (params) => {
+      const modes = ['belt', 'gear', 'friction', 'coax'] as const;
+      const modeIdx = Math.round(params['mode'] ?? 0);
+      const r1 = params['r1'] ?? 0.1;
+      const r2 = params['r2'] ?? 0.2;
+      const omega1 = params['omega1'] ?? 10;
+      const duration = params['duration'] ?? 2;
+      return {
+        id: `tb-${Date.now()}`,
+        title: '传动方式',
+        model: 'transmission-belt',
+        bodies: [{ id: 'wheel1', mass: { value: 1, unit: 'kg' }, position: { x: -1, y: 0 }, velocity: { x: 0, y: 0 } }],
+        constraints: { transmission: { mode: modes[modeIdx] ?? 'belt', r1, r2, omega1 } },
+        environment: {},
+        timeConfig: { duration, dt: duration / 100, sampleCount: 100 },
+      };
+    },
+  },
+  {
+    id: 'vertical-circle',
+    name: '竖直圆周最高点条件',
+    model: 'vertical-circle',
+    parameters: [
+      { name: 'modelType', label: '约束类型', unit: '', value: 0, min: 0, max: 2, step: 1, default: 0, description: '0=绳 1=杆 2=圆环' },
+      { name: 'length', label: '半径 r', unit: 'm', value: 1, min: 0.1, max: 5, step: 0.1, default: 1, description: '圆周运动半径 (绳/杆长)' },
+      { name: 'mass', label: '质量 m', unit: 'kg', value: 1, min: 0.1, max: 10, step: 0.1, default: 1, description: '运动物体质量' },
+      { name: 'initialSpeed', label: '最低点速度 v₀', unit: 'm/s', value: 7.5, min: 0, max: 15, step: 0.5, default: 7.5, description: '最低点初速度 (决定能否通过最高点)' },
+      { name: 'duration', label: '模拟时长', unit: 's', value: 5, min: 1, max: 15, step: 0.5, default: 5, description: '仿真的总时长' },
+    ],
+    buildProblem: (params) => {
+      const types = ['rope', 'rod', 'ring'] as const;
+      const typeIdx = Math.round(params['modelType'] ?? 0);
+      const length = params['length'] ?? 1;
+      const mass = params['mass'] ?? 1;
+      const initialSpeed = params['initialSpeed'] ?? 7.5;
+      const duration = params['duration'] ?? 5;
+      return {
+        id: `vc-${Date.now()}`,
+        title: '竖直圆周最高点',
+        model: 'vertical-circle',
+        bodies: [{ id: 'ball', mass: { value: mass, unit: 'kg' }, position: { x: length, y: 0 }, velocity: { x: 0, y: initialSpeed } }],
+        constraints: { verticalCircle: { length, mass, modelType: types[typeIdx] ?? 'rope', initialSpeed } },
+        environment: { gravity: { enabled: true, value: 9.8 } },
+        timeConfig: { duration, dt: duration / 500, sampleCount: 500 },
+      };
+    },
+  },
+  {
+    id: 'centrifugal',
+    name: '离心现象',
+    model: 'centrifugal',
+    parameters: [
+      { name: 'mass', label: '物块质量 m', unit: 'kg', value: 1, min: 0.1, max: 10, step: 0.1, default: 1, description: '放置在转盘上的物体质量' },
+      { name: 'radius', label: '转动半径 r', unit: 'm', value: 0.3, min: 0.05, max: 1, step: 0.05, default: 0.3, description: '物块到转盘中心的距离' },
+      { name: 'angularSpeed', label: '角速度 ω', unit: 'rad/s', value: 5, min: 1, max: 15, step: 0.5, default: 5, description: '转盘角速度' },
+      { name: 'frictionCoeff', label: '摩擦系数 μ', unit: '', value: 0.5, min: 0, max: 1, step: 0.05, default: 0.5, description: '物块与转盘间的静摩擦系数' },
+      { name: 'duration', label: '模拟时长', unit: 's', value: 3, min: 0.5, max: 10, step: 0.5, default: 3, description: '仿真的总时长' },
+    ],
+    buildProblem: (params) => {
+      const mass = params['mass'] ?? 1;
+      const radius = params['radius'] ?? 0.3;
+      const angularSpeed = params['angularSpeed'] ?? 5;
+      const frictionCoeff = params['frictionCoeff'] ?? 0.5;
+      const duration = params['duration'] ?? 3;
+      return {
+        id: `cent-${Date.now()}`,
+        title: '离心现象',
+        model: 'centrifugal',
+        bodies: [{ id: 'block', mass: { value: mass, unit: 'kg' }, position: { x: radius, y: 0 }, velocity: { x: 0, y: angularSpeed * radius } }],
+        constraints: { centrifugal: { mass, radius, angularSpeed, frictionCoeff } },
+        environment: {},
+        timeConfig: { duration, dt: duration / 200, sampleCount: 200 },
+      };
+    },
+  },
+  {
+    id: 'cavendish',
+    name: '卡文迪什扭秤测 G',
+    model: 'cavendish',
+    parameters: [
+      { name: 'm1', label: '大球质量 m₁', unit: 'kg', value: 10, min: 0.1, max: 1000, step: 0.1, default: 10, description: '大铅球质量' },
+      { name: 'm2', label: '小球质量 m₂', unit: 'kg', value: 0.5, min: 0.01, max: 10, step: 0.01, default: 0.5, description: '小铅球质量' },
+      { name: 'distance', label: '球心距离 r', unit: 'm', value: 0.1, min: 0.01, max: 0.5, step: 0.01, default: 0.1, description: '大球与小球的球心距离' },
+      { name: 'torsionConst', label: '悬丝扭转常数 k', unit: 'N·m/rad', value: 1e-4, min: 1e-10, max: 1e-2, step: 0, default: 1e-4, description: '悬丝的扭转常数 (torsion wire stiffness)' },
+      { name: 'mirrorDist', label: '镜面到屏距离 D', unit: 'm', value: 5, min: 0.5, max: 20, step: 0.5, default: 5, description: '光杠杆的放大臂长' },
+      { name: 'duration', label: '模拟时长', unit: 's', value: 1, min: 0.5, max: 5, step: 0.1, default: 1, description: '静态演示场景' },
+    ],
+    buildProblem: (params) => {
+      const m1 = params['m1'] ?? 10;
+      const m2 = params['m2'] ?? 0.5;
+      const distance = params['distance'] ?? 0.1;
+      const torsionConst = params['torsionConst'] ?? 1e-4;
+      const mirrorDist = params['mirrorDist'] ?? 5;
+      const duration = params['duration'] ?? 1;
+      return {
+        id: `cav-${Date.now()}`,
+        title: '卡文迪什扭秤',
+        model: 'cavendish',
+        bodies: [{ id: 'smallBall', mass: { value: m2, unit: 'kg' }, position: { x: distance, y: 0 }, velocity: { x: 0, y: 0 } }],
+        constraints: { cavendish: { m1, m2, distance, torsionConst, mirrorDist, armLength: 1 } },
+        environment: {},
+        timeConfig: { duration, dt: duration / 50, sampleCount: 50 },
+      };
+    },
+  },
+  {
+    id: 'moon-earth-test',
+    name: '月地检验 (牛顿)',
+    model: 'moon-earth-test',
+    parameters: [
+      { name: 'duration', label: '模拟时长', unit: 's', value: 1, min: 0.5, max: 5, step: 0.1, default: 1, description: '静态演示场景' },
+    ],
+    buildProblem: (params) => {
+      const duration = params['duration'] ?? 1;
+      return {
+        id: `met-${Date.now()}`,
+        title: '月地检验',
+        model: 'moon-earth-test',
+        bodies: [{ id: 'moon', mass: { value: 1, unit: 'kg' }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } }],
+        constraints: {
+          moonEarthTest: {
+            earthRadius: 6.371e6,
+            moonDistance: 3.844e8,
+            moonPeriod: 27.3 * 86400,
+          },
+        },
+        environment: {},
+        timeConfig: { duration, dt: duration / 50, sampleCount: 50 },
+      };
+    },
+  },
 ];
 export function getDefaultParams(sceneId: string): Record<string, number> {
   const scene = SCENES.find(s => s.id === sceneId);
