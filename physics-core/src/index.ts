@@ -5,7 +5,7 @@ export type { Vector2D, Quantity, ParameterSpec, ValidationResult, PhysicalBody,
 export type {
   PhysicsProblem, ModelType, NewtonSecondLawConstraint, ForceCompositionConstraint,
   NewtonThirdLawConstraint, SlidingFrictionConstraint, ProjectileConstraint, OrbitalConstraint,
-  MomentumConstraint, WaveConstraint, RefractionConstraint, InterferenceConstraint, CircuitConstraint,
+  MomentumConstraint, WaveConstraint, RefractionConstraint, InterferenceConstraint, CircuitConstraint, GasLawConstraint,
 } from './types/problem.js';
 export type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep, FormulaUsage } from './types/result.js';
 
@@ -49,6 +49,8 @@ export { RefractionModel } from './models/refraction.js';
 export { InterferenceModel } from './models/interference.js';
 // 必修三 第十一章 电路及其应用
 export { CircuitModel } from './models/circuit.js';
+// 选必三 气体/热学
+export { GasLawModel } from './models/gas-law.js';
 
 // === 求解器导出 ===
 export { solveProblem } from './solver/solver-router.js';

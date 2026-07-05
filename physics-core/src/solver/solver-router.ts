@@ -22,6 +22,7 @@ import { MechanicalWaveModel } from '../models/mechanical-wave.js';
 import { RefractionModel } from '../models/refraction.js';
 import { InterferenceModel } from '../models/interference.js';
 import { CircuitModel } from '../models/circuit.js';
+import { GasLawModel } from '../models/gas-law.js';
 
 registerModel(new UniformLinearModel());
 registerModel(new UniformAcceleratedModel());
@@ -54,6 +55,8 @@ registerModel(new RefractionModel());
 registerModel(new InterferenceModel());
 // 必修三 第十一章 电路及其应用
 registerModel(new CircuitModel());
+// 选必三 气体/热学
+registerModel(new GasLawModel());
 
 export function solveProblem(problem: PhysicsProblem): SimulationResult {
   const model = getModel(problem.model);

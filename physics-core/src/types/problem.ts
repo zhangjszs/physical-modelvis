@@ -35,7 +35,9 @@ export type ModelType =
   | 'refraction'             // 折射定律 / 全反射
   | 'interference'           // 双缝干涉 / 薄膜干涉
   // 必修三 第十一章 电路及其应用
-  | 'circuit';               // 直流电路 (串并联)
+  | 'circuit'                // 直流电路 (串并联)
+  // 选必三 气体/热学
+  | 'gas-law';               // 理想气体状态方程
 
 /** 重力场配置 */
 export interface GravityConfig {
@@ -252,6 +254,20 @@ export interface CircuitConstraint {
   }>;
 }
 
+/** 理想气体状态方程约束 — 选必三 §2 (pV=nRT) */
+export interface GasLawConstraint {
+  /** 物质的量 (mol) */
+  readonly moles: number;
+  /** 模式：'isothermal' (等温)｜'isobaric' (等压)｜'isochoric' (等容) */
+  readonly mode: 'isothermal' | 'isobaric' | 'isochoric';
+  /** 初始压强 (Pa) */
+  readonly initialPressure?: number;
+  /** 初始体积 (m³) */
+  readonly initialVolume?: number;
+  /** 初始温度 (K) */
+  readonly initialTemperature?: number;
+}
+
 /** 约束配置 */
 export interface ConstraintConfig {
   readonly inclinedPlane?: InclinedPlaneConstraint;
@@ -270,6 +286,7 @@ export interface ConstraintConfig {
   readonly refraction?: RefractionConstraint;
   readonly interference?: InterferenceConstraint;
   readonly circuit?: CircuitConstraint;
+  readonly gasLaw?: GasLawConstraint;
 }
 
 /** 时间配置 */
