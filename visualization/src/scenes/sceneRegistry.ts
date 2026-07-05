@@ -1072,6 +1072,149 @@ export const SCENES: SceneConfig[] = [
       };
     },
   },
+  // ========================================================================
+  // 选必二 第一章 安培力与洛伦兹力
+  // ========================================================================
+  {
+    id: 'magnetic-force',
+    name: '安培力与洛伦兹力',
+    model: 'magnetic-force',
+    parameters: [
+      { name: 'B', label: '磁感应强度 B', unit: 'T', value: 0.5, min: 0.01, max: 5, step: 0.01, default: 0.5, description: '匀强磁场磁感应强度' },
+      { name: 'I', label: '电流 I (安培力)', unit: 'A', value: 2, min: 0, max: 30, step: 0.1, default: 2, description: '通电导线电流 (A)' },
+      { name: 'L', label: '导线长度 L', unit: 'm', value: 0.3, min: 0.01, max: 5, step: 0.01, default: 0.3, description: '导线在磁场中的有效长度' },
+      { name: 'theta', label: '导线与磁场夹角 θ', unit: '°', value: 90, min: 0, max: 180, step: 1, default: 90, description: '导线与磁场方向的夹角' },
+      { name: 'q', label: '粒子电荷 q (洛伦兹力)', unit: '×10⁻¹⁹ C', value: 1.6, min: -10, max: 10, step: 0.1, default: 1.6, description: '运动粒子电荷 (元电荷 e = 1.6×10⁻¹⁹ C)' },
+      { name: 'v', label: '粒子速度 v', unit: '×10⁶ m/s', value: 1, min: 0, max: 100, step: 0.1, default: 1, description: '粒子运动速度' },
+      { name: 'phi', label: '速度与磁场夹角 φ', unit: '°', value: 90, min: 0, max: 180, step: 1, default: 90, description: '速度方向与磁场方向夹角' },
+      { name: 'mass', label: '粒子质量 m', unit: '×10⁻³¹ kg', value: 9.1, min: 0.01, max: 100, step: 0.01, default: 9.1, description: '粒子质量 (电子 = 9.1×10⁻³¹ kg)' },
+    ],
+    buildProblem: (params) => {
+      const B = params['B'] ?? 0.5;
+      const current = params['I'] ?? 0;
+      const wireLength = params['L'] ?? 0;
+      const wireAngleDeg = params['theta'] ?? 90;
+      const charge = (params['q'] ?? 0) * 1e-19;
+      const velocity = (params['v'] ?? 0) * 1e6;
+      const velocityAngleDeg = params['phi'] ?? 90;
+      const particleMass = (params['mass'] ?? 0) * 1e-31;
+      return {
+        id: `magnetic-force-${Date.now()}`,
+        title: '安培力与洛伦兹力',
+        model: 'magnetic-force' as const,
+        bodies: [{ id: 'particle', mass: { value: 1, unit: 'kg' }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } }],
+        constraints: {
+          magneticForce: {
+            magneticField: B,
+            current: current > 0 ? current : undefined,
+            wireLength: wireLength > 0 ? wireLength : undefined,
+            wireAngleDeg,
+            charge: charge !== 0 ? charge : undefined,
+            velocity: velocity > 0 ? velocity : undefined,
+            velocityAngleDeg,
+            particleMass: particleMass > 0 ? particleMass : undefined,
+          },
+        },
+        environment: {},
+        timeConfig: { duration: 1, sampleCount: 200, dt: 0.01 },
+      };
+    },
+  },
+  // ========================================================================
+  // 选必二 第二章 电磁感应 + 第三~四章 LC振荡/交变电流
+  // ========================================================================
+  {
+    id: 'em-induction',
+    name: '电磁感应 (法拉第定律)',
+    model: 'em-induction',
+    parameters: [
+      { name: 'Bind', label: '磁感应强度 B', unit: 'T', value: 0.5, min: 0.01, max: 5, step: 0.01, default: 0.5, description: '磁场强度' },
+      { name: 'A', label: '线圈面积 A', unit: 'm²', value: 0.01, min: 0.0001, max: 1, step: 0.0001, default: 0.01, description: '线圈面积' },
+      { name: 'Nturns', label: '线圈匝数 N', unit: '', value: 100, min: 1, max: 1000, step: 1, default: 100, description: '线圈匝数' },
+      { name: 'angleBind', label: '磁场与法线夹角 θ', unit: '°', value: 0, min: 0, max: 180, step: 1, default: 0, description: '磁场与线圈法线方向的夹角' },
+      { name: 'Lcut', label: '切割导线长度 L (可选)', unit: 'm', value: 0, min: 0, max: 10, step: 0.01, default: 0, description: '导线切割磁感线的有效长度 (0=不启用切割)' },
+      { name: 'vCut', label: '切割速度 v (可选)', unit: 'm/s', value: 0, min: 0, max: 100, step: 0.1, default: 0, description: '导线切割速度' },
+    ],
+    buildProblem: (params) => {
+      const ec: { magneticField: number; area: number; turns?: number; angleDeg?: number; cuttingLength?: number; cuttingVelocity?: number } = {
+        magneticField: params['Bind'] ?? 0.5,
+        area: params['A'] ?? 0.01,
+      };
+      const Nturns = params['Nturns'] ?? 0;
+      if (Nturns > 0) ec.turns = Nturns;
+      const angleBind = params['angleBind'];
+      if (angleBind !== undefined) ec.angleDeg = angleBind;
+      const Lcut = params['Lcut'] ?? 0;
+      const vCut = params['vCut'] ?? 0;
+      if (Lcut > 0 && vCut > 0) {
+        ec.cuttingLength = Lcut;
+        ec.cuttingVelocity = vCut;
+      }
+      return {
+        id: `em-induction-${Date.now()}`,
+        title: '电磁感应 (法拉第定律)',
+        model: 'em-induction' as const,
+        bodies: [{ id: 'coil', mass: { value: 1, unit: 'kg' }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } }],
+        constraints: { emInduction: ec },
+        environment: {},
+        timeConfig: { duration: 0.04, dt: 0.001, sampleCount: 40 },
+      };
+    },
+  },
+  {
+    id: 'ac-current',
+    name: '交变电流与变压器 (选必二§3)',
+    model: 'ac-current',
+    parameters: [
+      { name: 'Em', label: '峰值电动势 Eₘ', unit: 'V', value: 311, min: 1, max: 100000, step: 1, default: 311, description: '交流电峰值 (220V有效值对应 311V 峰值)' },
+      { name: 'freq', label: '频率 f', unit: 'Hz', value: 50, min: 1, max: 10000, step: 1, default: 50, description: '市电 50Hz' },
+      { name: 'nRatio', label: '变压器匝数比 n₂/n₁ (0=无)', unit: '', value: 0.1, min: 0, max: 100, step: 0.01, default: 0.1, description: '次级/初级匝数比；>1=升压；<1=降压；0=无变压器' },
+    ],
+    buildProblem: (params) => {
+      const ac: { peakEmf: number; angularFreq: number; turnsRatio?: number } = {
+        peakEmf: params['Em'] ?? 311,
+        angularFreq: 2 * Math.PI * (params['freq'] ?? 50),
+      };
+      const nRatio = params['nRatio'] ?? 0;
+      if (nRatio > 0) ac.turnsRatio = nRatio;
+      return {
+        id: `ac-${Date.now()}`,
+        title: '交变电流与变压器',
+        model: 'ac-current' as const,
+        bodies: [{ id: 'wire', mass: { value: 1, unit: 'kg' }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } }],
+        constraints: { ac },
+        environment: {},
+        timeConfig: { duration: 0.04, dt: 0.001, sampleCount: 40 },
+      };
+    },
+  },
+  {
+    id: 'lc-oscillator',
+    name: 'LC 电磁振荡',
+    model: 'lc-oscillator',
+    parameters: [
+      { name: 'C', label: '电容 C', unit: 'pF', value: 100, min: 1, max: 1e6, step: 1, default: 100, description: '电容值 (pF)' },
+      { name: 'Lind', label: '电感 L', unit: 'μH', value: 10, min: 0.001, max: 100000, step: 0.001, default: 10, description: '电感值 (μH)' },
+      { name: 'Q0', label: '初始电荷 Q₀', unit: 'μC', value: 1, min: 0.001, max: 100, step: 0.001, default: 1, description: '电容初始充电量' },
+    ],
+    buildProblem: (params) => {
+      return {
+        id: `lc-${Date.now()}`,
+        title: 'LC 电磁振荡',
+        model: 'lc-oscillator' as const,
+        bodies: [{ id: 'wire', mass: { value: 1, unit: 'kg' }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } }],
+        constraints: {
+          lc: {
+            capacitance: (params['C'] ?? 100) * 1e-12,
+            inductance: (params['Lind'] ?? 10) * 1e-6,
+            initialCharge: (params['Q0'] ?? 1) * 1e-6,
+          },
+        },
+        environment: {},
+        timeConfig: { duration: 1, dt: 0.01, sampleCount: 100 },
+      };
+    },
+  },
 ];
 export function getDefaultParams(sceneId: string): Record<string, number> {
   const scene = SCENES.find(s => s.id === sceneId);

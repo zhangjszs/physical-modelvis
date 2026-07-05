@@ -126,25 +126,69 @@
 
 ## 阶段九：选必三 §4-5 原子结构与原子核
 
-- [ ] 实现光电效应模型 (physics-core) 📐 2026-07-05
+- [x] 实现光电效应模型 (physics-core) ✅ 2026-07-05
   - 描述：爱因斯坦光电方程 hν = W₀ + E_k；截止电压、极限频率
   - 新建 PhotoelectricModel: 给定金属逸出功 W₀, 计算 U_c-ν 曲线
   - 特征量：极限频率 ν₀ = W₀/h, 斜率 = h/e (测定普朗克常量)
   - 涉及文件：physics-core/src/models/photoelectric.ts; test: photoelectric.test.ts
   - 参考：experiments/选必三_第4章_原子结构和波粒二象性.md (实验 3-5)
 
-- [ ] 实现氢原子光谱/玻尔模型 (physics-core) 📐 2026-07-05
+- [x] 实现氢原子光谱/玻尔模型 (physics-core) ✅ 2026-07-05
   - 描述：巴尔末公式 1/λ = R(1/n₁² − 1/n₂²)、能级图 E_n = −13.6/n² eV
   - 新建 BohrModel: 能级计算、发射/吸收光谱模拟
   - 涉及文件：physics-core/src/models/bohr.ts; test: bohr.test.ts
   - 参考：第4章实验 1
 
-- [ ] 实现放射性衰变模型 (physics-core) 📐 2026-07-05
+- [x] 实现放射性衰变模型 (physics-core) ✅ 2026-07-05
   - 描述：N(t) = N₀·e^(−λt), 半衰期 T₁/₂ = ln2/λ
   - 新建 RadioactiveDecayModel: α/β/γ 粒子径迹模拟器 (云室)
   - 涉及文件：physics-core/src/models/radioactive-decay.ts; test: radioactive-decay.test.ts
   - 参考：第5章实验 1,4
 
-- [ ] 原子物理可视化场景 📐 2026-07-05
+- [x] 原子物理可视化场景 ✅ 2026-07-05
   - sceneRegistry 注册 photoelectric + bohr + radioactive 场景
   - 涉及文件：visualization/src/scenes/sceneRegistry.ts
+
+## 阶段十：选必二 第一章「安培力与洛伦兹力」
+
+- [~] 实现安培力/洛伦兹力模型 (physics-core) 📐 2026-07-05
+  - 描述：F = B·I·L·sinθ (安培力)；F = q·v·B·sinθ (洛伦兹力)；带电粒子圆周运动 r = mv/(qB)
+  - 新建 MagneticForceModel：安培力方向(左手定则)、洛伦兹力偏转、回旋半径
+  - 涉及文件：physics-core/src/models/magnetic-force.ts；test: magnetic-force.test.ts
+  - 参考：experiments/选必二_第1章_安培力与洛伦兹力.md
+
+- [ ] 安培力/洛伦兹力可视化场景 📐 2026-07-05
+  - 力学场景：左手定则交互、力大小随θ变化、带电粒子圆周运动
+  - 涉及文件：visualization/src/scenes/sceneRegistry.ts
+  - 参考：同上
+
+## 阶段十一：选必二 第二章「电磁感应」
+
+- [ ] 实现电磁感应模型 (physics-core) 📐 2026-07-05
+  - 描述：ε = −dΦ/dt (法拉第)；Φ = B·A·cosθ；切割 ε = B·L·v
+  - 新建 ElectromagneticInductionModel
+  - 涉及文件：physics-core/src/models/em-induction.ts；test: em-induction.test.ts
+  - 参考：experiments/选必二_第2章_电磁感应.md
+
+- [ ] 法拉第电磁感应可视化场景 📐 2026-07-05
+  - 磁通量变化动画、感生电动势、L 形导轨滑块模型
+  - 涉及文件：visualization/src/scenes/sceneRegistry.ts
+
+## 阶段十二：选必二 第三~五章综合 (交变电流 / 电磁振荡 / 传感器)
+
+- [ ] 实现交变电流模型 (physics-core) 📐 2026-07-05
+  - 描述：e = Eₘ·sinωt；有效值 E_eff = Eₘ/√2；变压器 U₁/U₂ = n₁/n₂
+  - 新建 ACModel：交变电流的时间曲线 + 变压器场景
+  - 涉及文件：physics-core/src/models/ac-current.ts；test: ac-current.test.ts
+  - 参考：experiments/选必二_第3章_交变电流.md
+
+- [ ] 实现电磁振荡 (LC) 模型 (physics-core) 📐 2026-07-05
+  - 描述：T = 2π√(LC)；Q(t) = Q₀·cos(ωt)；ω = 1/√(LC)
+  - 新建 LCModel：电容+电感振荡电路
+  - 涉及文件：physics-core/src/models/lc-oscillator.ts；test: lc-oscillator.test.ts
+  - 参考：experiments/选必二_第4章_电磁振荡与电磁波.md
+
+- [ ] 选必二综合可视化场景 📐 2026-07-05
+  - sceneRegister 注册 magnetic-force + em-induction + ac 场景
+  - 涉及文件：visualization/src/scenes/sceneRegistry.ts
+  - 参考：选必二 §1-4 全部章节
