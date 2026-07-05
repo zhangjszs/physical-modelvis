@@ -4,8 +4,6 @@
 面向高中物理教学的交互式可视化仿真系统。
 双层架构：physics-core 引擎 (TypeScript, 零依赖) → React + Canvas 2D 可视化前端。
 
-旧版架构 (physim + Three.js) 仍保留在仓库中，但已不再主动开发。
-
 ## Build & Test
 ```bash
 # 安装依赖
@@ -15,14 +13,11 @@ cd visualization && npm install && cd ..
 # 运行所有测试
 npm test
 
-# 运行新版核心测试
+# 运行核心测试
 cd physics-core && npm test
 
 # 运行可视化前端测试
 cd visualization && npm test
-
-# 运行旧版测试
-npm run test:legacy
 
 # Lint
 npm run lint
@@ -34,28 +29,53 @@ npm run format
 cd visualization && npm run dev
 ```
 
+## 代码审查约定 (Code Review Pass)
+
+每个任务实现完成后、commit 之前，必须执行一轮 **代码审查**（使用 `/code-review` 或手动 review）：
+
+### Review 维度
+1. **Correctness** — 物理公式 / 数值计算 / 边界条件 / NaN 处理
+2. **Type Safety** — strict TS, no `any`, no non-null assertion abuse
+3. **API Consistency** — extends `PhysicsModelBase`, modelType 唯一, requiredParameters 完整
+4. **Test Coverage** — 每个 exported 函数至少有 1 个 positive + 1 个 edge-case 测试
+5. **Doc & Naming** — 中文 JSDoc, 变量名自解释, 无 magic number
+6. **Performance** — 无 O(N²) 大循环, 无内存泄漏 (大数组)
+7. **Rendering Contract** — scene 的 `parameters[].name` 与 `buildProblem` 配套, unit 正确
+
+### Review 流程
+1. `git diff --cached` 查看已暂存改动
+2. 对每个新建/修改的 .ts 文件逐一审查
+3. 发现问题 → 修复 → 重新 typecheck/test → 重新暂存
+4. Review 通过 → 进入 commit 阶段
+
+### 常见问题清单
+- [ ] 除零 / 负数开方 (sqrt)
+- [ ] 数组越界 (`traj[idx + 1]` 未 clamp)
+- [ ] 未处理的 nullable (`problem.bodies[0]!`)
+- [ ] console.log 调试残留
+- [ ] 未使用的 import / 变量
+- [ ] TODO/FIXME 残留
+- [ ] 数学符号错 (θ vs ω, v vs V)
+
 ## Architecture
 ```
-physics-core/          — 零依赖 TypeScript 物理引擎 (当前主力)
-  src/models/          — 9 个物理模型 (匀速/匀变速/电场/磁场/碰撞/弹簧/斜面/电磁复合场)
+physics-core/          — 零依赖 TypeScript 物理引擎
+  src/models/          — 物理模型 (匀速/匀变速/电场/磁场/碰撞/弹簧/斜面/电磁复合场/圆周运动/第三章力)
   src/math/            — Vec2D 向量运算
   src/types/           — 类型定义 (PhysicsProblem, SimulationResult)
   src/units/           — 单位换算和物理常数
   src/solver/          — 求解器路由 (自动注册模型)
   tests/               — 单元测试
 
-visualization/         — React 可视化前端 (当前主力)
+visualization/         — React 可视化前端
   src/components/      — UI 组件 (Canvas, 图表, 控制面板, OCR)
-  src/scenes/          — 9 个场景配置 + buildProblem
+  src/scenes/          — 场景配置 + buildProblem
   src/rendering/       — Canvas 渲染器
   src/adapters/        — physics-core 适配器
   src/store/           — Zustand 状态管理
   server/              — OCR 后端代理 (Express + Anthropic API)
 
-physim/                — 旧版物理引擎 (Boris 积分器, 3D)
-js/                    — 旧版桥接层 (PhysVis 全局命名空间)
-templates/             — 旧版场景模板
-problems/              — 旧版题目配置
+experiments/           — 人教版高中物理实验整理 (176 个实验, 6 册教材)
 ```
 
 ## Key Patterns
