@@ -80,8 +80,9 @@ export class OrbitalModel extends PhysicsModelBase {
       const t = i * dt;
       const speed = Vec2.magnitude(v);
       const rMag = Vec2.magnitude(r);
+      const rSafe = Math.max(rMag, 1); // 防止 r→0 时 PE→−∞
       const ke = 0.5 * m * speed * speed;
-      const pe = -GM * m / rMag; // 引力势能零点选在无穷远
+      const pe = -GM * m / rSafe; // 引力势能零点选在无穷远 (rSafe 下限 1m 避免奇点)
       minR = Math.min(minR, rMag);
       maxR = Math.max(maxR, rMag);
       minV = Math.min(minV, speed);

@@ -40,9 +40,9 @@ describe('MechanicalWaveModel', () => {
     expect(v).toBeCloseTo(1.5, 5); // 5 * 0.3 = 1.5 m/s
   });
 
-  it('波形快照轨迹长度为 N+1 = 82', () => {
+  it('波形快照轨迹长度 = N = 81 质点', () => {
     const r = model.solve(makeProblem({}));
-    // 最后一个轨迹是波形快照 (N = 81 质点 → 81 个点)
+    // 最后一个轨迹是波形快照 (N = 81 质点)
     const snapshot = r.trajectories[r.trajectories.length - 1]!;
     expect(snapshot.length).toBe(81);
   });

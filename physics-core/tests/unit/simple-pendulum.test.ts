@@ -45,13 +45,17 @@ describe('SimplePendulumModel', () => {
     expect(conserved!.conserved).toBe(true);
   });
 
-  it('机械能全程近似恒定 (波动 < 1%)', () => {
+  it('机械能全程近似恒定 (波动 < 1%, 一致容差)', () => {
     const r = model.solve(makeProblem({ angleDeg: 15, duration: 10 }));
     const energies = r.charts.energy_t!.points.map(p => p.y);
     const mean = energies.reduce((a, b) => a + b, 0) / energies.length;
     if (Math.abs(mean) > 0.01) {
       const maxDev = Math.max(...energies.map(e => Math.abs(e - mean)));
-      expect(maxDev / Math.abs(mean)).toBeLessThan(0.01);
+      const consumed = r.diagnostics.conservedQuantities[0]!;
+      // 测试与 model 使用相同容差公式：1% 相对 + 1e-6 绝对
+      const tol = consumed.tolerance;
+      expect(maxDev).toBeLessThan(tol);
+      expect(consumed.conserved).toBe(true);
     }
   });
 
@@ -100,6 +104,20 @@ describe('SimplePendulumModel', () => {
     expect(r.charts.ke_t).toBeDefined();
     expect(r.charts.pe_t).toBeDefined();
     expect(r.charts.energy_t).toBeDefined();
+  });
+
+  it('omega_t 值 = dθ/dt (数值微分), 非 ω·cos2θ', () => {
+    const r = model.solve(makeProblem({ length: 1, g: 9.8, angleDeg: 20, damping: 0, duration: 4 }));
+    const dt = r.trajectories[0][1]!.t - r.trajectories[0][0]!.t;
+    // 取中间若干点, 计算 dθ/dt 数值微分, 对比 omega_t 值
+    for (let i = 50; i < 200; i += 25) {
+      const thetaPrev = Math.atan2(r.trajectories[0][i - 10]!.position.x, r.trajectories[0][i - 10]!.position.y);
+      const thetaNext = Math.atan2(r.trajectories[0][i + 10]!.position.x, r.trajectories[0][i + 10]!.position.y);
+      const dtheta = thetaNext - thetaPrev;
+      const dtSpan = 20 * dt;
+      const omegaNumeric = dtheta / dtSpan;
+      expect(Math.abs(r.charts.omega_t!.points[i]!.y - omegaNumeric)).toBeLessThan(0.02);
+    }
   });
 
   it('周期与摆长 √L 成正比 (g 固定)', () => {

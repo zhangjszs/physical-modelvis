@@ -10,10 +10,12 @@ import { Vec2 } from '../math/vector2d.js';
  * 运动方程 (极坐标)：θ̈ = −(g/L)·sinθ
  * 小角度近似 (θ < 15°)：θ̈ ≈ −(g/L)·θ  →  ω = √(g/L),  T = 2π√(L/g)
  *
- * 使用 Velocity Verlet 数值积分 (大角度时也精确)
+ * 使用 Velocity Verlet 数值积分：
+ *   - 无阻尼 (damping=0): 精确辛积分，能量守恒 < 0.1%
+ *   - 有阻尼 (damping>0): a(t+dt) 用旧 ω 估算 (一阶近似，对强阻尼有微弱偏差)
  *
  * 能量：E = ½m·v² + m·g·L·(1 − cosθ)
- * 小角度时近似守恒；大角度时有轻微数值漂移但辛积分保持良好
+ * 小角度时近似守恒；大角度时 Verlet 辛结构保持长期能量振荡有界
  */
 export class SimplePendulumModel extends PhysicsModelBase {
   readonly name = '单摆 (简谐运动)';
@@ -160,20 +162,27 @@ export class SimplePendulumModel extends PhysicsModelBase {
     };
     const omega_t: ChartSeries = {
       xLabel: '时间', yLabel: '角速度 ω', xUnit: 's', yUnit: 'rad/s',
-      points: trajectory.map((p) => ({ x: p.t, y: (p.velocity.x * Math.cos(this.thetaFromPosition(p.position, pivot, L)) + p.velocity.y * Math.sin(this.thetaFromPosition(p.position, pivot, L))) / L })),
+      points: trajectory.map((p) => {
+        const th = this.thetaFromPosition(p.position, pivot, L);
+        // 角速度 ω = (cosθ·vx − sinθ·vy) / L  (切向分量 / 臂长)
+        const omega = (p.velocity.x * Math.cos(th) - p.velocity.y * Math.sin(th)) / L;
+        return { x: p.t, y: omega };
+      }),
     };
     const ke_t: ChartSeries = { xLabel: '时间', yLabel: '动能', xUnit: 's', yUnit: 'J', points: trajectory.map(p => ({ x: p.t, y: p.kineticEnergy ?? 0 })) };
     const pe_t: ChartSeries = { xLabel: '时间', yLabel: '势能', xUnit: 's', yUnit: 'J', points: trajectory.map(p => ({ x: p.t, y: p.potentialEnergy ?? 0 })) };
     const energy_t: ChartSeries = { xLabel: '时间', yLabel: '机械能', xUnit: 's', yUnit: 'J', points: trajectory.map(p => ({ x: p.t, y: (p.kineticEnergy ?? 0) + (p.potentialEnergy ?? 0) })) };
 
+    // 能量容差：1% 相对误差 + 绝对下限 (Symplectic Verlet 典型精度)
+    const tol = 0.01 * Math.abs(E0) + 1e-6;
     const conservedQuantities: ConservedQuantity[] = damping === 0 ? [{
       name: '机械能',
       law: '机械能守恒 (无阻尼)',
       initialValue: E0,
-      finalValue: this.computeEnergy(mass, L, g, this.thetaFromPosition(last.position, pivot, L), (last.velocity.x * Math.cos(this.thetaFromPosition(last.position, pivot, L))) / L, pivot),
+      finalValue: this.computeEnergy(mass, L, g, this.thetaFromPosition(last.position, pivot, L), (last.velocity.x * Math.cos(this.thetaFromPosition(last.position, pivot, L)) - last.velocity.y * Math.sin(this.thetaFromPosition(last.position, pivot, L))) / L, pivot),
       maxDeviation: maxEnergyDrift,
-      tolerance: 0.01 * Math.abs(E0) + 1e-10,
-      conserved: maxEnergyDrift < (0.01 * Math.abs(E0) + 1e-6),
+      tolerance: tol,
+      conserved: maxEnergyDrift < tol,
     }] : [];
 
     const deg0 = (theta0Rad * 180 / Math.PI);

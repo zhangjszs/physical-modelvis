@@ -67,15 +67,12 @@ export class MechanicalWaveModel extends PhysicsModelBase {
     const x0: number[] = [];
     for (let i = 0; i < N; i++) x0.push(xStart + i * dx);
 
-    // 多轨迹：每个质点一条 (实际展示只取几条典型质点)
+    // 选取 9 个等间距代表质点记录振动轨迹 (y-t 图)
     const trajectories: TrajectoryPoint[][] = [];
-    // 实际存储: 采样时刻的 "波形快照" 放在一条虚拟轨迹里 (wave-t 图)
-    // 但为了兼容 SimulationResult 结构 (trajectories[i] 是第 i 条轨迹),
-    // 我们取前 8 条代表性质点 (等间距) 作为 "被追踪质点"
     const tracked = [0, Math.floor(N / 8), Math.floor(N / 4), Math.floor(3 * N / 8), Math.floor(N / 2), Math.floor(5 * N / 8), Math.floor(3 * N / 4), Math.floor(7 * N / 8), N - 1];
     const trajs: TrajectoryPoint[][] = tracked.map(() => []);
 
-    // 波形快照 (所有 N 个质点在一个时刻的 y/x 偏移), 放在 "额外轨迹" 中
+    // 波形快照: 最后一帧的所有 N 个质点位置, 用于绘制波形 (wave-t 图)
     const waveSnapshot: TrajectoryPoint[] = [];
 
     for (let s = 0; s <= sampleCount; s++) {
@@ -111,12 +108,6 @@ export class MechanicalWaveModel extends PhysicsModelBase {
         trajs[ti]!.push(allPoints[idx]!);
       }
 
-      // 波形快照：取 t=0, T/4, T/2, 3T/4 等关键时刻
-      const T = 1 / f;
-      const tMod = t % T;
-      if (tMod < dt / 2 || (T / 4 - tMod % (T / 4)) < dt / 2) {
-        // 只保存关键帧快照 (避免过多数据)
-      }
     }
 
     // 最后一个采样点作为典型波形存入 waveSnapshot
