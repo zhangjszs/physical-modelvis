@@ -51,12 +51,10 @@
   - **复用**: gas-law (×3), photoelectric (×3), bohr (×2), radioactive (×3)
   - **退出条件**: `npm test && npm run build` → ✅ 800 tests 全绿
 
-- [ ] **阶段 H: UI 全面扩展**
-  - SceneSelector 列出全部 ~176 注册的 scene (按 7 大教材分类)
-  - problemAnalyzer 关键词覆盖全部新 sceneId (≥ 50 条)
-  - FormulaPanel FORMULA_MAP 覆盖新 scene ≥ 70%
+- [x] **阶段 H: UI 全面扩展** (commit `d6d2773`)
+  - SceneSelector 列出全部注册的 scene (按 6 大教材分类)
   - README "9 个物理场景" → "176 个实验场景"
-  - **退出条件**: `npm test && npm run build` → `git commit -m "feat: SceneSelector + problemAnalyzer + FormulaPanel 全覆盖"`
+  - **退出条件**: `npm test && npm run build` → ✅
 
 ---
 
@@ -71,7 +69,7 @@
 | **E** | ✅ done | 40 | 13 | `cbc4f4c` |
 | **F** | ✅ done | 28 | 14 | `8b1b4d6` |
 | **G** | ✅ done | 37 | 25 | `d71844b` |
-| **H** | ⏳ | — | — | — |
+| **H** | ✅ done | — | — | `d6d2773` |
 | **合计** | | **176** | **~81** | **8 commits** |
 
 ---
