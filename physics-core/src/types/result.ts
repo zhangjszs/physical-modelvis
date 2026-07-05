@@ -192,11 +192,23 @@ export interface SimulationResult {
     readonly record_curve?: ChartSeries;          // 全息: 记录光强
     readonly reconstruct_curve?: ChartSeries;     // 全息: 再现衍射
     readonly width_scan?: ChartSeries;            // 单缝: 缝宽扫描
-    readonly grating_intensity?: ChartSeries;     // 光栅: 衍射图样
-    readonly spectrum_curve?: ChartSeries;        // 光栅: 光谱
+    readonly grating_intensity?: ChartSeries;     // 衍射光栅: 衍射图样
+    readonly grating_spectrum?: ChartSeries;      // 衍射光栅: 光谱波段
     readonly malus_curve?: ChartSeries;           // 偏振: 马吕斯曲线
     readonly polar_curve?: ChartSeries;           // 偏振: 极坐标
     readonly multi_scan?: ChartSeries;            // 偏振: 多片扫描
+    // 选必二 传感器/电磁
+    readonly tilt_angle_vs_current?: ChartSeries; // 电流天平
+    readonly mg_vs_t?: ChartSeries;               // 电流天平: mg 对比线
+    readonly eddy_heat_power_vs_freq?: ChartSeries; // 涡流: 热功率-频率
+    readonly eddy_vs_depth?: ChartSeries;         // 涡流: 趋肤深度
+    readonly angular_velocity_vs_time?: ChartSeries; // 电磁阻尼/驱动
+    readonly primary_current_vs_time?: ChartSeries; // 互感: 原边电流
+    readonly secondary_emf_vs_time?: ChartSeries; // 互感: 副边电动势
+    readonly current_vs_time?: ChartSeries;       // 自感: 电流-时间
+    readonly voltage_vs_time?: ChartSeries;       // 自感: 电压-时间
+    readonly spectrum_curve?: ChartSeries;        // 电磁波谱
+    readonly band_highlight?: ChartSeries;        // 电磁波谱: 选中波段
   };
   readonly diagnostics: {
     readonly conservedQuantities: ConservedQuantity[];

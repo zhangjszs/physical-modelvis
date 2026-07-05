@@ -107,7 +107,24 @@ export type ModelType =
   | 'hologram'                 // 全息照片
   | 'single-slit'              // 单缝衍射
   | 'diffraction-grating'      // 光栅衍射
-  | 'polarization';            // 偏振光 (马吕斯定律)
+  | 'polarization'             // 偏振光 (马吕斯定律)
+  // 选必二 电路与电磁感应 (F1-F5)
+  | 'current-balance'          // 电流天平 m*g=nBIl
+  | 'eddy-current'             // 涡流现象
+  | 'em-damping'               // 电磁阻尼/驱动
+  | 'mutual-inductance'        // 互感现象
+  | 'self-inductance'          // 自感现象
+  // 选必二 电磁波与传感器 (F6-F14)
+  | 'em-wave-communication'    // 电磁波发射接收
+  | 'em-spectrum'              // 电磁波谱
+  | 'hall-effect'              // 霍尔元件
+  | 'reed-switch'              // 干簧管
+  | 'thermistor'               // 热敏电阻
+  | 'photoresistor'            // 光敏电阻
+  | 'strain-gauge'             // 电阻应变片
+  | 'security-alarm'           // 门窗防盗报警
+  | 'light-control-switch'     // 光控开关
+  ;
 
 /** 重力场配置 */
 export interface GravityConfig {
@@ -925,7 +942,86 @@ export interface ConstraintConfig {
   readonly diffractionGrating?: DiffractionGratingConstraint;
   /** 偏振光约束 — 选必一 第四章 */
   readonly polarization?: PolarizationConstraint;
+  /** 电流天平约束 — 选必二 */
+  readonly currentBalance?: CurrentBalanceConstraint;
+  /** 涡流现象约束 — 选必二 */
+  readonly eddyCurrent?: EddyCurrentConstraint;
+  /** 电磁阻尼/驱动约束 — 选必二 */
+  readonly emDamping?: EMDampingConstraint;
+  /** 互感现象约束 — 选必二 */
+  readonly mutualInductance?: MutualInductanceConstraint;
+  /** 自感现象约束 — 选必二 */
+  readonly selfInductance?: SelfInductanceConstraint;
+  /** 电磁波发射接收约束 — 选必二 */
+  readonly emWaveComm?: import('./em-wave-communication.js').EMWaveCommConstraint;
+  /** 电磁波谱约束 — 选必二 */
+  readonly emSpectrum?: import('./em-spectrum.js').EMSpectrumConstraint;
+  /** 霍尔元件约束 — 选必二 */
+  readonly hallEffect?: import('./hall-effect.js').HallEffectConstraint;
+  /** 干簧管约束 — 选必二 */
+  readonly reedSwitch?: import('./reed-switch.js').ReedSwitchConstraint;
+  /** 热敏电阻约束 — 选必二 */
+  readonly thermistor?: import('./thermistor.js').ThermistorConstraint;
+  /** 光敏电阻约束 — 选必二 */
+  readonly photoresistor?: import('./photoresistor.js').PhotoresistorConstraint;
+  /** 电阻应变片约束 — 选必二 */
+  readonly strainGauge?: StrainGaugeConstraint;
+  /** 门窗防盗报警约束 — 选必二 */
+  readonly securityAlarm?: SecurityAlarmConstraint;
+  /** 光控开关约束 — 选必二 */
+  readonly lightControlSwitch?: LightControlSwitchConstraint;
 }
+
+/** 电流天平约束 — 选必二 (m*g = n*BIl) */
+export interface CurrentBalanceConstraint {
+  readonly wireLen: number;
+  readonly turns: number;
+  readonly mass: number;
+  readonly current: number;
+  readonly magneticField: number;
+  readonly armLen?: number;
+  readonly gravity?: number;
+}
+
+/** 涡流现象约束 — 选必二 (P = pi^2*B^2*f^2*d^2*V/(6*rho)) */
+export interface EddyCurrentConstraint {
+  readonly magneticField: number;
+  readonly frequency: number;
+  readonly conductivity: number;
+  readonly thickness: number;
+  readonly area?: number;
+  readonly muR?: number;
+  readonly resistivity?: number;
+}
+
+/** 电磁阻尼/驱动约束 — 选必二 */
+export interface EMDampingConstraint {
+  readonly mode: 'damping' | 'drive';
+  readonly magneticField: number;
+  readonly angularSpeed: number;
+  readonly conductivity: number;
+  readonly inertia: number;
+  readonly radius?: number;
+  readonly thickness?: number;
+}
+
+/** 互感现象约束 — 选必二 (M = k*sqrt(L1*L2), E2 = -M*dI1/dt) */
+export interface MutualInductanceConstraint {
+  readonly L1: number;
+  readonly L2: number;
+  readonly coupling: number;
+  readonly frequency: number;
+  readonly primaryCurrent: number;
+}
+
+/** 自感现象约束 — 选必二 (E = -L*dI/dt) */
+export interface SelfInductanceConstraint {
+  readonly inductance: number;
+  readonly resistance: number;
+  readonly emf: number;
+  readonly mode: 'turnOn' | 'turnOff';
+}
+
 
 /** 平抛验证动量守恒约束 — 选必一 第一章 实验 */
 export interface ProjectileCollisionConstraint {

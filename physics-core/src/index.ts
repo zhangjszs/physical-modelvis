@@ -134,6 +134,22 @@ export { ElectroscopeModel } from './models/electroscope.js';
 export { CoulombForceExploreModel } from './models/coulomb-force-explore.js';
 export { ElectrostaticShieldingModel } from './models/electrostatic-shielding.js';
 export { FaradayCupModel } from './models/faraday-cup.js';
+// 选必二 电路与电磁感应
+export { CurrentBalanceModel } from './models/current-balance.js';
+export { EddyCurrentModel } from './models/eddy-current.js';
+export { EMDampingModel } from './models/em-damping.js';
+export { MutualInductanceModel } from './models/mutual-inductance.js';
+export { SelfInductanceModel } from './models/self-inductance.js';
+// 选必二 电磁波与传感器
+export { EMWaveCommunicationModel } from './models/em-wave-communication.js';
+export { EMSpectrumModel } from './models/em-spectrum.js';
+export { HallEffectModel } from './models/hall-effect.js';
+export { ReedSwitchModel } from './models/reed-switch.js';
+export { ThermistorModel } from './models/thermistor.js';
+export { PhotoresistorModel } from './models/photoresistor.js';
+export { StrainGaugeModel } from './models/strain-gauge.js';
+export { SecurityAlarmModel } from './models/security-alarm.js';
+export { LightControlSwitchModel } from './models/light-control-switch.js';
 // 选必一 第一章 实验
 export { ProjectileCollisionModel } from './models/projectile-collision.js';
 // 选必一 第二章 振动

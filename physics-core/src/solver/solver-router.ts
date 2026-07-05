@@ -59,6 +59,22 @@ import { ElectroscopeModel } from '../models/electroscope.js';
 import { CoulombForceExploreModel } from '../models/coulomb-force-explore.js';
 import { ElectrostaticShieldingModel } from '../models/electrostatic-shielding.js';
 import { FaradayCupModel } from '../models/faraday-cup.js';
+// 选必二 电路与电磁感应
+import { CurrentBalanceModel } from '../models/current-balance.js';
+import { EddyCurrentModel } from '../models/eddy-current.js';
+import { EMDampingModel } from '../models/em-damping.js';
+import { MutualInductanceModel } from '../models/mutual-inductance.js';
+import { SelfInductanceModel } from '../models/self-inductance.js';
+// 选必二 电磁波与传感器
+import { EMWaveCommunicationModel } from '../models/em-wave-communication.js';
+import { EMSpectrumModel } from '../models/em-spectrum.js';
+import { HallEffectModel } from '../models/hall-effect.js';
+import { ReedSwitchModel } from '../models/reed-switch.js';
+import { ThermistorModel } from '../models/thermistor.js';
+import { PhotoresistorModel } from '../models/photoresistor.js';
+import { StrainGaugeModel } from '../models/strain-gauge.js';
+import { SecurityAlarmModel } from '../models/security-alarm.js';
+import { LightControlSwitchModel } from '../models/light-control-switch.js';
 // 选必一 第一章 实验
 import { ProjectileCollisionModel } from '../models/projectile-collision.js';
 // 选必一 第二章 振动
@@ -181,6 +197,22 @@ registerModel(new HologramModel());
 registerModel(new SingleSlitModel());
 registerModel(new DiffractionGratingModel());
 registerModel(new PolarizationModel());
+// 选必二 电路与电磁感应
+registerModel(new CurrentBalanceModel());
+registerModel(new EddyCurrentModel());
+registerModel(new EMDampingModel());
+registerModel(new MutualInductanceModel());
+registerModel(new SelfInductanceModel());
+// 选必二 电磁波与传感器
+registerModel(new EMWaveCommunicationModel());
+registerModel(new EMSpectrumModel());
+registerModel(new HallEffectModel());
+registerModel(new ReedSwitchModel());
+registerModel(new ThermistorModel());
+registerModel(new PhotoresistorModel());
+registerModel(new StrainGaugeModel());
+registerModel(new SecurityAlarmModel());
+registerModel(new LightControlSwitchModel());
 
 export function solveProblem(problem: PhysicsProblem): SimulationResult {
   const model = getModel(problem.model);
