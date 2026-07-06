@@ -191,16 +191,24 @@ npm run build          # vite build ≤ 5s
   - sceneId: diffusion, brownian-motion, melting-curve, heat-transfer, surface-tension, capillary, liquid-crystal
   - 7 个渲染器: drawDiffusionScene, drawBrownianScene, drawMeltingCurveScene, drawHeatTransferScene, drawSurfaceTensionScene, drawCapillaryScene, drawLiquidCrystalScene
 
-- [~] **J6: 传感器/控制电路渲染器 (霍尔元件/光敏/热敏/干簧管/报警电路)**
+- [x] **J6: 传感器/控制电路渲染器 (霍尔元件/光敏/热敏/干簧管/应变片/报警电路/光控开关)** (commit `0122d1c`)
   - 文件: `visualization/src/rendering/sensorScenes.ts`
-  - 内容: 霍尔片+载流子偏转+电势差表; 光敏/热敏电阻伏安特性曲线; 干簧管+磁场触发; LED+继电器示意电路
+  - 内容: 7 个渲染器:
+    1. drawHallEffectScene — 3D 霍尔片+载流子偏转+电势差表+VH=IB/nqt 公式
+    2. drawPhotoresistorScene — LDR 符号+R-L 双对数曲线+小灯+阈值开关逻辑
+    3. drawThermistorScene — NTC 温度计+R-T 指数衰减+R0exp(B(1/T-1/T0))
+    4. drawReedSwitchScene — 玻璃管+铁磁簧片+LED+磁铁滑杆+磁滞回线
+    5. drawStrainGaugeScene — 应变片变形+惠斯通电桥+ΔR/R=Kε+ΔU-ε 曲线
+    6. drawSecurityAlarmScene — 门框+门磁+干簧管+非门逻辑+LED/蜂鸣器
+    7. drawLightControlSwitchScene — LDR 分压+三极管+继电器+24h 照度曲线
+  - sceneId: hall-effect, photoresistor, thermistor, reed-switch, strain-gauge, security-alarm, light-control-switch
 
 ### 阶段 K: FormulaPanel 覆盖 (FORMULA_MAP 扩展)
 
 > 现有 15 个场景, 需扩展到覆盖所有注册场景
 > 每个新 sceneId 在 FormulaPanel FORMULA_MAP 内建立对应 formula 定义
 
-- [ ] **K1: 选必一 13 场景公式**
+- [~] **K1: 选必一 13 场景公式**
   - 文件: `visualization/src/components/formula/FormulaPanel.tsx`
   - 内容: 双摆周期公式 / 受迫振动+共振条件 / 动量守恒 (平抛碰撞) / 声波波形+波长公式 / 水波衍射条件 / 多普勒频移公式 / 薄膜干涉 2nd=kλ / 全息干涉记录再现 / 单缝衍射 asinθ=kλ / 光栅方程 dsinθ=kλ / 偏振马吕斯定律
 
@@ -223,7 +231,7 @@ npm run build          # vite build ≤ 5s
 | 阶段 | 状态 | 任务 |
 |------|------|------|
 | **I** | ✅ done | SceneConfig ×68 (I1-I7) |
-| **J** | 🔄 next (5/6) | 定制渲染器 ×6 (J1-J5 done, J6 next) |
-| **K** | ⏳ | FormulaPanel 扩展 ×4 (K1-K4) |
+| **J** | ✅ done | 定制渲染器 ×6 (J1-J6 done) |
+| **K** | 🔄 next (K1) | FormulaPanel 扩展 ×4 (K1 next) |
 | **合计** | | **17 任务**, 覆盖 68 个 Model 可视化 + 36 个公式集 + 6 个渲染器 |
 
