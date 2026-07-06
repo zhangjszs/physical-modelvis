@@ -26,6 +26,14 @@ import {
   drawForcedVibrationScene,
   drawResonanceCurveScene,
 } from '../../rendering/chapter2Scenes';
+import {
+  drawSoundWaveformScene,
+  drawWaterDiffractionScene,
+  drawDopplerScene,
+  drawDoubleSlitScene,
+  drawSingleSlitScene,
+  drawThinFilmScene,
+} from '../../rendering/waveOptScenes';
 
 const SCENES_3D = new Set([
   'projectile',
@@ -56,6 +64,16 @@ const SCENES_CHAPTER2 = new Set([
   'double-pendulum-sync',
   'forced-vibration-freq',
   'resonance-curve',
+]);
+
+/** 选必一 第四章「波动/光学」场景集合：完整自定义渲染 */
+const SCENES_WAVEOPT = new Set([
+  'sound-waveform',
+  'water-diffraction',
+  'doppler-effect',
+  'sound-interference',
+  'single-slit',
+  'thin-film',
 ]);
 
 /** 绘制匀强电场线（渐变发光箭头，方向向上） */
@@ -764,6 +782,7 @@ export function SimulationCanvas() {
   const isAirTrack = currentScene === 'air-track';
   const isChapter3 = SCENES_CHAPTER3.has(currentScene);
   const isChapter2 = SCENES_CHAPTER2.has(currentScene);
+  const isWaveOpt = SCENES_WAVEOPT.has(currentScene);
   const hasCustom2DBackground = SCENES_2D_CUSTOM_BG.has(currentScene);
 
   useEffect(() => {
@@ -798,7 +817,7 @@ export function SimulationCanvas() {
 
   useEffect(() => {
     if (!simulationResult || !transformerRef.current) return;
-    if (isAirTrack || isChapter3 || isChapter2) return;  // 自定义渲染场景使用屏幕坐标，无需 autoFit
+    if (isAirTrack || isChapter3 || isChapter2 || isWaveOpt) return;  // 自定义渲染场景使用屏幕坐标，无需 autoFit
     const canvas = canvasRef.current;
     if (!canvas) return;
     const allPoints: Array<{ x: number; y: number }> = [];
@@ -815,7 +834,7 @@ export function SimulationCanvas() {
     } else {
       transformerRef.current.autoFit(allPoints, canvas.width, canvas.height);
     }
-  }, [simulationResult, currentScene, is3DScene, isAirTrack, isChapter3, isChapter2]);
+  }, [simulationResult, currentScene, is3DScene, isAirTrack, isChapter3, isChapter2, isWaveOpt]);
 
   const render = useCallback(() => {
     const canvas = canvasRef.current;
@@ -826,7 +845,7 @@ export function SimulationCanvas() {
     const ctx = canvas.getContext('2d')!;
     renderer.clear(canvas.width, canvas.height);
     // 第三章场景使用屏幕坐标系，不需要网格/坐标轴
-    if (!isChapter3 && !isChapter2) {
+    if (!isChapter3 && !isChapter2 && !isWaveOpt) {
       renderer.drawGrid(canvas.width, canvas.height);
       renderer.drawAxes(canvas.width, canvas.height);
     }
@@ -848,7 +867,7 @@ export function SimulationCanvas() {
     }
 
     // 第三章场景：完整自定义渲染 (背景 + 动态元素 + HUD)，跳过标准轨迹/物体流程
-    if (isChapter3 || isChapter2) {
+    if (isChapter3 || isChapter2 || isWaveOpt) {
       const sceneOpts = {
         ctx, width: canvas.width, height: canvas.height, isDark,
         params: parameters, simulationResult, currentTime,
@@ -861,6 +880,12 @@ export function SimulationCanvas() {
         case 'double-pendulum-sync': drawDoublePendulumSyncScene(sceneOpts); break;
         case 'forced-vibration-freq': drawForcedVibrationScene(sceneOpts); break;
         case 'resonance-curve':   drawResonanceCurveScene(sceneOpts); break;
+        case 'sound-waveform':    drawSoundWaveformScene(sceneOpts); break;
+        case 'water-diffraction': drawWaterDiffractionScene(sceneOpts); break;
+        case 'doppler-effect':    drawDopplerScene(sceneOpts); break;
+        case 'sound-interference': drawDoubleSlitScene(sceneOpts); break;
+        case 'single-slit':       drawSingleSlitScene(sceneOpts); break;
+        case 'thin-film':         drawThinFilmScene(sceneOpts); break;
       }
       return;
     }
@@ -1032,7 +1057,7 @@ export function SimulationCanvas() {
       ctx.fillText(xText, 16, 50);
       ctx.fillText(yText, 16, 68);
     }
-  }, [simulationResult, currentTime, visibleLayers, isDark, currentScene, parameters, experimentData, is3DScene, isAirTrack, isChapter3, isChapter2, hasCustom2DBackground]);
+  }, [simulationResult, currentTime, visibleLayers, isDark, currentScene, parameters, experimentData, is3DScene, isAirTrack, isChapter3, isChapter2, hasCustom2DBackground, isWaveOpt]);
 
   useEffect(() => {
     let running = true;
