@@ -3632,6 +3632,86 @@ export const SCENES: SceneConfig[] = [
       };
     },
   },
+  // ========================================================================
+  // 必修三 实验: 仪器测量工具 (Stage I7)
+  // 这三个工具场景需要特殊 Canvas 渲染 (定制表盘/刻度), 详见 Stage J
+  // ========================================================================
+  {
+    id: 'multimeter-tool',
+    name: '多用电表 (选档读数)',
+    model: 'multimeter' as const,
+    parameters: [
+      { name: 'mode', label: '档位 (0=DCV 1=ACV 2=Ohm 3=DCA)', unit: '', value: 0, min: 0, max: 3, step: 1, default: 0, description: '0=直流电压; 1=交流电压; 2=欧姆档; 3=直流电流' },
+      { name: 'range', label: '量程', unit: '', value: 10, min: 0.001, max: 1e6, step: 0.001, default: 10, description: '量程设置值 (V/Ω/A 取决于档位)' },
+      { name: 'testValue', label: '被测量值', unit: '', value: 4.5, min: 0, max: 1e6, step: 0.1, default: 4.5, description: '被测量的真实值 (与量程同单位)' },
+      { name: 'duration', label: '动画时长', unit: 's', value: 3, min: 0.5, max: 10, step: 0.5, default: 3, description: '动画播放时长' },
+    ],
+    buildProblem: (params) => {
+      const modeIdx = Math.round(params['mode'] ?? 0);
+      const modes = ['DCV', 'ACV', 'Ohm', 'DCA'] as const;
+      const mode = modes[modeIdx] ?? 'DCV';
+      const range = params['range'] ?? 10;
+      const testValue = params['testValue'] ?? 4.5;
+      const duration = params['duration'] ?? 3;
+      return {
+        id: `multimeter-tool-${Date.now()}`,
+        title: '多用电表 (选档读数)',
+        model: 'multimeter' as const,
+        bodies: [],
+        constraints: { multimeter: { mode, range, testValue } },
+        environment: {},
+        timeConfig: { duration, dt: duration / 60, sampleCount: 60 },
+      };
+    },
+  },
+  {
+    id: 'vernier-caliper-tool',
+    name: '游标卡尺读数',
+    model: 'vernier-caliper' as const,
+    parameters: [
+      { name: 'objectSize', label: '被测物体长度', unit: 'mm', value: 23.4, min: 1, max: 150, step: 0.1, default: 23.4, description: '被测物体实际长度 (L = 主尺 + K×1/N)' },
+      { name: 'nType', label: '分度 (0=10 1=20 2=50)', unit: '', value: 1, min: 0, max: 2, step: 1, default: 1, description: '10分度=0.1mm; 20分度=0.05mm; 50分度=0.02mm' },
+      { name: 'duration', label: '动画时长', unit: 's', value: 3, min: 0.5, max: 10, step: 0.5, default: 3, description: '动画播放时长' },
+    ],
+    buildProblem: (params) => {
+      const objectSize = params['objectSize'] ?? 23.4;
+      const nTypeIdx = Math.round(params['nType'] ?? 1);
+      const nTypes = [10, 20, 50] as const;
+      const nType = nTypes[nTypeIdx] ?? 20;
+      const duration = params['duration'] ?? 3;
+      return {
+        id: `vernier-caliper-tool-${Date.now()}`,
+        title: '游标卡尺读数',
+        model: 'vernier-caliper' as const,
+        bodies: [],
+        constraints: { vernierCaliper: { objectSize, nType } },
+        environment: {},
+        timeConfig: { duration, dt: duration / 60, sampleCount: 60 },
+      };
+    },
+  },
+  {
+    id: 'micrometer-tool',
+    name: '螺旋测微器读数',
+    model: 'micrometer' as const,
+    parameters: [
+      { name: 'thickness', label: '被测物体厚度', unit: 'mm', value: 5.75, min: 0.01, max: 25, step: 0.01, default: 5.75, description: '被测物体厚度 (L = a + b + n×0.01 mm)' },
+      { name: 'duration', label: '动画时长', unit: 's', value: 3, min: 0.5, max: 10, step: 0.5, default: 3, description: '动画播放时长' },
+    ],
+    buildProblem: (params) => {
+      const thickness = params['thickness'] ?? 5.75;
+      const duration = params['duration'] ?? 3;
+      return {
+        id: `micrometer-tool-${Date.now()}`,
+        title: '螺旋测微器读数',
+        model: 'micrometer' as const,
+        bodies: [],
+        constraints: { micrometer: { thickness } },
+        environment: {},
+        timeConfig: { duration, dt: duration / 60, sampleCount: 60 },
+      };
+    },
+  },
 ];
 export function getDefaultParams(sceneId: string): Record<string, number> {
   const scene = SCENES.find(s => s.id === sceneId);

@@ -155,7 +155,7 @@ npm run build          # vite build ≤ 5s
   - 模型: capacitor-charge, parallel-plate-capacitor, load-voltage, resistance-law, coulomb-force-explore, electroscope, electrostatic-induction, electrostatic-shielding, faraday-cup, ampere-force, em-wave-hertz (实际 11 个, 与 ModelType 注册一致)
   - 文件: `visualization/src/scenes/sceneRegistry.ts`
 
-- [~] **I7: 仪器测量 + 工具场景 SceneConfig + 特殊 entry**
+- [x] **I7: 仪器测量 + 工具场景 SceneConfig** (commit `TBD`)
   - 模型: multimeter (多用电表), vernier-caliper (游标卡尺), micrometer (螺旋测微器)
   - 这三个需要特殊 canvas 渲染, 在后续 Stage J 处理定制渲染器
   - 文件: `visualization/src/scenes/sceneRegistry.ts`
@@ -164,7 +164,7 @@ npm run build          # vite build ≤ 5s
 
 > 通用 `CanvasRenderer.ts` 已覆盖轨迹/向量/场线; 以下场景需要定制渲染
 
-- [ ] **J1: 双摆/共振/受迫振动渲染器**
+- [~] **J1: 双摆/共振/受迫振动渲染器**
   - 文件: `visualization/src/rendering/chapter2Scenes.ts`
   - 内容: 双摆支架+双线+摆球+相位标记; 共振振幅-频率曲线+当前点; 受迫振动相位差可视化
   - 参考现有 `chapter3Scenes.ts` 模式
@@ -218,8 +218,8 @@ npm run build          # vite build ≤ 5s
 
 | 阶段 | 状态 | 任务 |
 |------|------|------|
-| **I** | ⏳ next | SceneConfig ×68 (I1-I7) |
-| **J** | ⏳ | 定制渲染器 ×6 (J1-J6) |
+| **I** | ✅ done | SceneConfig ×68 (I1-I7) |
+| **J** | ⏳ next | 定制渲染器 ×6 (J1-J6) |
 | **K** | ⏳ | FormulaPanel 扩展 ×4 (K1-K4) |
 | **合计** | | **17 任务**, 覆盖 68 个 Model 可视化 + 36 个公式集 + 6 个渲染器 |
 
