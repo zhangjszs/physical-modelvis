@@ -1223,6 +1223,540 @@ const FORMULA_MAP: Record<string, FormulaDef> = {
       '赫兹实验为无线电通信奠定了基础 (马可尼/波波夫进一步发展)',
     ],
   },
+
+  // ========== 接手补缺: sceneRegistry 已注册但原 FORMULA_MAP 缺失的场景 ==========
+  'ac-current': {
+    title: '交变电流',
+    formulas: [
+      { name: '瞬时电动势', formula: 'e = E_m sin(ωt + φ)', variables: 'E_m: 最大值, ω: 角频率, φ: 初相' },
+      { name: '有效值关系', formula: 'U = U_m/√2, I = I_m/√2', variables: '正弦交流电的热效应等效直流值' },
+      { name: '周期频率', formula: 'T = 2π/ω, f = 1/T', variables: 'T: 周期, f: 频率' },
+      { name: '平均功率', formula: 'P = UI cosφ', variables: 'cosφ: 功率因数', condition: '正弦稳态交流电路' },
+    ],
+    tips: [
+      '交流电的方向和大小随时间周期性变化',
+      '有效值由相同时间内产生的热量定义',
+      '我国民用交流电频率为 50 Hz, 周期为 0.02 s',
+    ],
+  },
+  'bohr': {
+    title: '玻尔原子模型',
+    formulas: [
+      { name: '轨道半径', formula: 'r_n = n²a₀', variables: 'n: 主量子数, a₀: 玻尔半径' },
+      { name: '能级公式', formula: 'E_n = −13.6/n² eV', variables: '氢原子第 n 能级能量' },
+      { name: '跃迁光子', formula: 'hν = |E_i − E_f|', variables: 'ν: 发射或吸收光子的频率' },
+      { name: '里德伯公式', formula: '1/λ = R(1/m² − 1/n²)', variables: 'n > m, R: 里德伯常量' },
+    ],
+    tips: [
+      '原子能级是分立的, 跃迁只能吸收或放出特定频率光子',
+      '玻尔模型能解释氢原子光谱, 但不适合复杂多电子原子',
+      'n 越大, 能级越接近电离极限',
+    ],
+  },
+  'cavendish': {
+    title: '卡文迪许扭秤实验',
+    formulas: [
+      { name: '万有引力定律', formula: 'F = Gm₁m₂/r²', variables: 'G: 引力常量, r: 质心距离' },
+      { name: '扭转回复力矩', formula: 'M = κθ', variables: 'κ: 扭转常量, θ: 扭转角' },
+      { name: '力矩平衡', formula: 'F·L = κθ', variables: 'L: 力臂', condition: '静态平衡法' },
+      { name: '地球质量', formula: 'M_E = gr_E²/G', variables: 'g: 地表重力加速度, r_E: 地球半径' },
+    ],
+    tips: [
+      '扭秤把极小引力转化为可测的扭转角',
+      '测得 G 后可进一步估算地球质量',
+      '实验要隔离气流、振动和静电干扰',
+    ],
+  },
+  'center-of-gravity': {
+    title: '重心与稳定性',
+    formulas: [
+      { name: '质心坐标', formula: 'x_c = Σmᵢxᵢ / Σmᵢ', variables: '离散质点系的重心水平坐标' },
+      { name: '力矩平衡', formula: 'ΣM = 0', variables: '绕任意转轴合力矩为零', condition: '静力平衡' },
+      { name: '重力力矩', formula: 'M = mgd', variables: 'd: 重力作用线到支点距离' },
+      { name: '稳定条件', formula: '重力作用线落在支撑面内', variables: '用于判断物体是否翻倒' },
+    ],
+    tips: [
+      '重心位置可通过悬挂法或支撑法测定',
+      '重心越低、支撑面越大, 物体越稳定',
+      '不规则物体的重心不一定在物体内部',
+    ],
+  },
+  'centrifugal': {
+    title: '离心现象',
+    formulas: [
+      { name: '向心加速度', formula: 'a_n = v²/r = ω²r', variables: 'r: 半径, v: 线速度, ω: 角速度' },
+      { name: '向心力', formula: 'F_n = mv²/r = mω²r', variables: '维持圆周运动所需合力' },
+      { name: '离心条件', formula: 'F_实际 < F_所需', variables: '实际向心力不足时发生离心' },
+      { name: '临界速度', formula: 'v_c = √(F_max r/m)', variables: 'F_max: 最大可提供向心力' },
+    ],
+    tips: [
+      '离心不是新的真实受力, 而是惯性导致偏离圆周轨道',
+      '转速越大或半径越大, 所需向心力越大',
+      '离心机、甩干机和车辆转弯都涉及离心现象',
+    ],
+  },
+  'circuit': {
+    title: '直流电路',
+    formulas: [
+      { name: '欧姆定律', formula: 'I = U/R', variables: 'U: 电压, R: 电阻' },
+      { name: '串联电阻', formula: 'R = R₁ + R₂ + ...', variables: '串联电路电流相同' },
+      { name: '并联电阻', formula: '1/R = 1/R₁ + 1/R₂ + ...', variables: '并联电路电压相同' },
+      { name: '电功率', formula: 'P = UI = I²R = U²/R', variables: '电能转化速率' },
+    ],
+    tips: [
+      '串联分压、并联分流是电路分析的基本规律',
+      '理想电流表内阻近似为零, 理想电压表内阻近似无穷大',
+      '分析复杂电路时先识别等效串并联结构',
+    ],
+  },
+  'circular-motion': {
+    title: '匀速圆周运动',
+    formulas: [
+      { name: '线速度角速度', formula: 'v = ωr', variables: 'r: 半径, ω: 角速度' },
+      { name: '向心加速度', formula: 'a_n = v²/r = ω²r', variables: '方向始终指向圆心' },
+      { name: '向心力', formula: 'F_n = ma_n = mv²/r', variables: '由合外力提供' },
+      { name: '周期关系', formula: 'ω = 2π/T', variables: 'T: 转动周期' },
+    ],
+    tips: [
+      '匀速圆周运动速率不变, 速度方向不断改变',
+      '向心力不是额外力, 是指向圆心的合力效果',
+      '圆锥摆中重力和拉力的合力提供向心力',
+    ],
+  },
+  'curve-condition': {
+    title: '曲线运动条件',
+    formulas: [
+      { name: '曲线运动判据', formula: 'F 与 v 不共线', variables: '合力方向与速度方向不在同一直线' },
+      { name: '加速度分解', formula: 'a = a_t + a_n', variables: 'a_t 改变速率, a_n 改变方向' },
+      { name: '法向加速度', formula: 'a_n = v²/R', variables: 'R: 曲率半径' },
+      { name: '切向加速度', formula: 'a_t = dv/dt', variables: '沿速度切线方向' },
+    ],
+    tips: [
+      '物体是否做曲线运动取决于合力与速度方向关系',
+      '合力有法向分量时速度方向会改变',
+      '曲线运动一定是变速运动, 因为速度方向变化',
+    ],
+  },
+  'curve-velocity-direction': {
+    title: '曲线运动速度方向',
+    formulas: [
+      { name: '瞬时速度方向', formula: 'v 方向沿轨迹切线', variables: '任一点速度沿该点切线方向' },
+      { name: '速度分解', formula: 'v = v_x i + v_y j', variables: '用分量描述曲线运动' },
+      { name: '速度大小', formula: '|v| = √(v_x² + v_y²)', variables: '二维速度矢量大小' },
+      { name: '方向角', formula: 'tanθ = v_y/v_x', variables: 'θ: 速度与 x 轴夹角' },
+    ],
+    tips: [
+      '曲线轨迹上某点的切线方向就是瞬时速度方向',
+      '平均速度方向指向位移方向, 不等同于瞬时速度方向',
+      '抛体运动中速度方向随竖直分量变化而改变',
+    ],
+  },
+  'em-induction': {
+    title: '电磁感应',
+    formulas: [
+      { name: '磁通量', formula: 'Φ = BS cosθ', variables: 'B: 磁感应强度, S: 面积, θ: B 与法线夹角' },
+      { name: '法拉第定律', formula: 'E = −N·ΔΦ/Δt', variables: 'N: 线圈匝数, 负号表示楞次定律' },
+      { name: '动生电动势', formula: 'E = BLv', variables: '导体棒垂直切割磁感线' },
+      { name: '感应电流', formula: 'I = E/R', variables: 'R: 回路总电阻' },
+    ],
+    tips: [
+      '穿过闭合回路的磁通量变化会产生感应电流',
+      '楞次定律说明感应电流总是阻碍磁通量变化',
+      '发电机和变压器都基于电磁感应',
+    ],
+  },
+  'energy-conservation': {
+    title: '机械能守恒',
+    formulas: [
+      { name: '机械能', formula: 'E = E_k + E_p', variables: '动能与势能之和' },
+      { name: '动能', formula: 'E_k = ½mv²', variables: 'm: 质量, v: 速率' },
+      { name: '重力势能', formula: 'E_p = mgh', variables: 'h: 相对零势能面的高度' },
+      { name: '守恒条件', formula: 'E₁ = E₂', variables: '只有重力或弹力做功时' },
+    ],
+    tips: [
+      '机械能守恒要求非保守力做功为零或可忽略',
+      '能量法常比牛顿运动方程更简洁',
+      '选择合适的零势能面不会影响能量变化',
+    ],
+  },
+  'free-fall': {
+    title: '自由落体运动',
+    formulas: [
+      { name: '速度公式', formula: 'v = gt', variables: '从静止释放, 向下为正' },
+      { name: '位移公式', formula: 'h = ½gt²', variables: 'h: 下落高度' },
+      { name: '速度位移关系', formula: 'v² = 2gh', variables: '不含时间的关系式' },
+      { name: '落地时间', formula: 't = √(2h/g)', variables: '由高度 h 反推下落时间' },
+    ],
+    tips: [
+      '自由落体是初速度为零、只受重力的匀加速直线运动',
+      '忽略空气阻力时不同质量物体加速度相同',
+      '位移与时间平方成正比',
+    ],
+  },
+  'galileo-incline': {
+    title: '伽利略斜面实验',
+    formulas: [
+      { name: '沿斜面加速度', formula: 'a = g sinθ', variables: 'θ: 斜面倾角', condition: '光滑斜面' },
+      { name: '位移时间关系', formula: 's = ½at²', variables: '从静止开始下滑' },
+      { name: '速度时间关系', formula: 'v = at', variables: '匀加速直线运动' },
+      { name: '速度位移关系', formula: 'v² = 2as', variables: '用于实验外推' },
+    ],
+    tips: [
+      '斜面减小加速度, 便于在低精度计时条件下观测规律',
+      '伽利略用斜面实验外推自由落体规律',
+      '实验揭示位移与时间平方成正比',
+    ],
+  },
+  'gas-law': {
+    title: '气体实验定律',
+    formulas: [
+      { name: '玻意耳定律', formula: 'pV = C', variables: '温度不变时压强与体积成反比' },
+      { name: '查理定律', formula: 'V/T = C', variables: '压强不变时体积与热力学温度成正比' },
+      { name: '盖吕萨克定律', formula: 'p/T = C', variables: '体积不变时压强与热力学温度成正比' },
+      { name: '理想气体方程', formula: 'pV = nRT', variables: 'n: 物质的量, R: 气体常量' },
+    ],
+    tips: [
+      '温度必须使用热力学温度 K',
+      '三个实验定律都是理想气体方程的特殊情形',
+      '实际气体在低压高温时更接近理想气体',
+    ],
+  },
+  'inertia': {
+    title: '惯性与牛顿第一定律',
+    formulas: [
+      { name: '惯性定律', formula: 'ΣF = 0 → v 保持不变', variables: '物体保持静止或匀速直线运动' },
+      { name: '动量表达', formula: 'p = mv', variables: '质量越大, 改变运动状态越困难' },
+      { name: '冲量关系', formula: 'FΔt = Δp', variables: '改变运动状态需要冲量' },
+      { name: '加速度关系', formula: 'a = F/m', variables: '同一力作用下质量越大加速度越小' },
+    ],
+    tips: [
+      '惯性是物体保持原有运动状态的性质',
+      '质量是惯性大小的量度',
+      '牛顿第一定律定义了惯性参考系',
+    ],
+  },
+  'interference': {
+    title: '波的干涉',
+    formulas: [
+      { name: '相长干涉', formula: 'Δr = kλ', variables: 'k = 0, ±1, ±2 ...', condition: '振动加强' },
+      { name: '相消干涉', formula: 'Δr = (k + ½)λ', variables: 'k = 0, ±1, ±2 ...', condition: '振动减弱' },
+      { name: '相位差', formula: 'Δφ = 2πΔr/λ', variables: 'Δr: 路程差' },
+      { name: '条纹间距', formula: 'Δx = Lλ/d', variables: '双缝间距 d, 屏距 L' },
+    ],
+    tips: [
+      '稳定干涉需要频率相同、相位差恒定的相干波源',
+      '干涉是波动性的典型证据',
+      '亮暗条纹由光程差决定',
+    ],
+  },
+  'lc-oscillator': {
+    title: 'LC 电磁振荡',
+    formulas: [
+      { name: '固有角频率', formula: 'ω₀ = 1/√(LC)', variables: 'L: 电感, C: 电容' },
+      { name: '振荡周期', formula: 'T = 2π√(LC)', variables: 'LC 回路的固有周期' },
+      { name: '电场能', formula: 'W_E = q²/(2C) = ½CU²', variables: '电容器储存的能量' },
+      { name: '磁场能', formula: 'W_B = ½LI²', variables: '电感线圈储存的能量' },
+    ],
+    tips: [
+      '理想 LC 回路中电场能和磁场能周期性相互转化',
+      '电荷最大时电流为零, 电流最大时电荷为零',
+      '电磁振荡是无线电发射与接收的基础',
+    ],
+  },
+  'magnetic-force': {
+    title: '洛伦兹力',
+    formulas: [
+      { name: '洛伦兹力大小', formula: 'F = |q|vB sinθ', variables: 'θ: v 与 B 的夹角' },
+      { name: '垂直入射半径', formula: 'r = mv/(|q|B)', variables: 'v ⊥ B 时做匀速圆周运动' },
+      { name: '回旋周期', formula: 'T = 2πm/(|q|B)', variables: '与速率无关' },
+      { name: '磁场不做功', formula: 'W_B = 0', variables: '力始终垂直于速度' },
+    ],
+    tips: [
+      '洛伦兹力方向由左手定则判断',
+      '磁场只能改变速度方向, 不改变速率',
+      '质谱仪和回旋加速器利用带电粒子在磁场中的偏转',
+    ],
+  },
+  'mechanical-wave': {
+    title: '机械波',
+    formulas: [
+      { name: '波速公式', formula: 'v = λf = λ/T', variables: 'λ: 波长, f: 频率, T: 周期' },
+      { name: '简谐波函数', formula: 'y = A sin(ωt − kx + φ)', variables: 'A: 振幅, k: 波数' },
+      { name: '角频率', formula: 'ω = 2πf', variables: 'f: 频率' },
+      { name: '波数', formula: 'k = 2π/λ', variables: 'λ: 波长' },
+    ],
+    tips: [
+      '机械波传播需要介质, 传播的是振动形式和能量',
+      '介质质点只在平衡位置附近振动, 不随波远距离迁移',
+      '波速由介质性质决定, 频率由波源决定',
+    ],
+  },
+  'micro-deformation': {
+    title: '微小形变放大',
+    formulas: [
+      { name: '胡克定律', formula: 'F = kx', variables: 'x: 微小形变量' },
+      { name: '应变定义', formula: 'ε = ΔL/L', variables: '相对形变量' },
+      { name: '杨氏模量', formula: 'E = σ/ε = (F/S)/(ΔL/L)', variables: '材料抵抗拉伸形变的能力' },
+      { name: '光杠杆放大', formula: 'Δs ≈ 2Lθ', variables: 'L: 标尺距离, θ: 镜面转角' },
+    ],
+    tips: [
+      '微小形变可通过指针、光杠杆或传感器放大显示',
+      '弹性限度内形变量与外力近似成正比',
+      '应变是无量纲量, 便于比较不同长度物体的形变',
+    ],
+  },
+  'micrometer-tool': {
+    title: '螺旋测微器读数',
+    formulas: [
+      { name: '总读数', formula: 'L = 主尺读数 + 可动刻度读数', variables: '单位通常为 mm' },
+      { name: '可动刻度', formula: 'b = n × 0.01 mm', variables: 'n: 对齐刻度格数' },
+      { name: '零误差修正', formula: 'L_true = L_read − e₀', variables: 'e₀: 零误差' },
+      { name: '螺距关系', formula: 'ΔL = p·ΔN', variables: 'p: 螺距, ΔN: 转过圈数' },
+    ],
+    tips: [
+      '读数时先看固定套筒主尺, 再读微分筒刻度',
+      '常见螺旋测微器精度为 0.01 mm',
+      '测量前要检查并修正零误差',
+    ],
+  },
+  'momentum': {
+    title: '动量与冲量',
+    formulas: [
+      { name: '动量定义', formula: 'p = mv', variables: 'p: 动量, m: 质量, v: 速度' },
+      { name: '冲量定义', formula: 'I = FΔt', variables: '恒力冲量' },
+      { name: '动量定理', formula: 'I = Δp', variables: '合外力冲量等于动量变化' },
+      { name: '动量守恒', formula: 'Σp_before = Σp_after', variables: '系统合外力为零' },
+    ],
+    tips: [
+      '动量是矢量, 列式前必须规定正方向',
+      '碰撞、爆炸、反冲常优先使用动量守恒',
+      '缓冲装置通过延长作用时间减小平均冲力',
+    ],
+  },
+  'moon-earth-test': {
+    title: '月地检验',
+    formulas: [
+      { name: '万有引力', formula: 'F = GMm/r²', variables: 'M: 地球质量, m: 月球质量' },
+      { name: '向心加速度', formula: 'a = 4π²r/T²', variables: 'r: 月地距离, T: 月球公转周期' },
+      { name: '平方反比检验', formula: 'a_m/g ≈ (R_E/r)²', variables: 'R_E: 地球半径, r: 月地距离' },
+      { name: '圆周运动平衡', formula: 'GMm/r² = m4π²r/T²', variables: '引力提供向心力' },
+    ],
+    tips: [
+      '月地检验证明天上运动和地上落体遵循同一种引力规律',
+      '月球绕地球运动的向心加速度远小于地表重力加速度',
+      '平方反比关系是万有引力定律的关键证据',
+    ],
+  },
+  'motion-composition': {
+    title: '运动的合成与分解',
+    formulas: [
+      { name: '位移合成', formula: 'r = r₁ + r₂', variables: '位移矢量按平行四边形法则合成' },
+      { name: '速度合成', formula: 'v = v₁ + v₂', variables: '合速度为分速度矢量和' },
+      { name: '分量表达', formula: 'v_x = v cosθ, v_y = v sinθ', variables: 'θ: 与 x 轴夹角' },
+      { name: '合速度大小', formula: 'v = √(v_x² + v_y²)', variables: '垂直分量合成' },
+    ],
+    tips: [
+      '合运动和分运动具有等时性、独立性和等效性',
+      '小船渡河、抛体运动都可用运动分解分析',
+      '矢量合成要同时考虑大小和方向',
+    ],
+  },
+  'multimeter-tool': {
+    title: '多用电表',
+    formulas: [
+      { name: '电压测量', formula: 'U = IR', variables: '电压档内部等效为高内阻电压表' },
+      { name: '电流测量', formula: 'I = U/R_shunt', variables: '电流档利用分流电阻扩大量程' },
+      { name: '欧姆档读数', formula: 'R_x = U/I − R_内', variables: '由内部电源和表头电流换算' },
+      { name: '量程比例', formula: '读数 = 指针比例 × 量程', variables: '电压/电流线性刻度近似成立' },
+    ],
+    tips: [
+      '测电压并联, 测电流串联, 档位不能接错',
+      '欧姆档每次换挡后需调零',
+      '读数时应根据所选量程换算刻度值',
+    ],
+  },
+  'newton-first-law': {
+    title: '牛顿第一定律',
+    formulas: [
+      { name: '惯性定律', formula: 'ΣF = 0 → v = 常量', variables: '静止或匀速直线运动' },
+      { name: '力与运动状态', formula: 'ΣF ≠ 0 → a ≠ 0', variables: '合力改变运动状态' },
+      { name: '动量保持', formula: 'p = mv = 常量', variables: '质量不变且速度恒定' },
+      { name: '摩擦减速', formula: 'a = −μg', variables: '粗糙水平面上滑动摩擦导致减速' },
+    ],
+    tips: [
+      '力不是维持运动的原因, 而是改变运动状态的原因',
+      '理想无摩擦条件下物体会保持匀速直线运动',
+      '牛顿第一定律建立了惯性参考系概念',
+    ],
+  },
+  'newton-second-law': {
+    title: '牛顿第二定律',
+    formulas: [
+      { name: '基本公式', formula: 'F = ma', variables: 'F: 合外力, m: 质量, a: 加速度' },
+      { name: '分量形式', formula: 'F_x = ma_x, F_y = ma_y', variables: '各方向独立列方程' },
+      { name: '加速度关系', formula: 'a = F/m', variables: '同一物体合力越大加速度越大' },
+      { name: '单位定义', formula: '1 N = 1 kg·m/s²', variables: '牛顿单位由第二定律定义' },
+    ],
+    tips: [
+      'F 必须是物体所受合外力',
+      '加速度方向与合外力方向相同',
+      '应用时先受力分析, 再建立坐标系列分量方程',
+    ],
+  },
+  'orbital': {
+    title: '卫星轨道运动',
+    formulas: [
+      { name: '引力提供向心力', formula: 'GMm/r² = mv²/r', variables: 'r: 轨道半径' },
+      { name: '轨道速度', formula: 'v = √(GM/r)', variables: '圆轨道速度' },
+      { name: '轨道周期', formula: 'T = 2π√(r³/GM)', variables: '开普勒第三定律形式' },
+      { name: '第一宇宙速度', formula: 'v₁ = √(GM/R_E) ≈ 7.9 km/s', variables: '近地圆轨道速度' },
+    ],
+    tips: [
+      '轨道半径越大, 卫星线速度越小、周期越长',
+      '同步卫星周期等于地球自转周期',
+      '万有引力在圆轨道中完全提供向心力',
+    ],
+  },
+  'overweight': {
+    title: '超重与失重',
+    formulas: [
+      { name: '视重', formula: 'N = m(g + a)', variables: '向上加速时超重' },
+      { name: '失重视重', formula: 'N = m(g − a)', variables: '向下加速时失重' },
+      { name: '完全失重', formula: 'a = g → N = 0', variables: '自由下落时支持力为零' },
+      { name: '牛顿第二定律', formula: 'N − mg = ma', variables: '取向上为正时' },
+    ],
+    tips: [
+      '超重和失重描述的是视重变化, 物体重力 mg 本身不变',
+      '电梯加速上升或减速下降时会出现超重',
+      '自由落体和绕地飞行中的物体处于失重状态',
+    ],
+  },
+  'photoelectric': {
+    title: '光电效应',
+    formulas: [
+      { name: '爱因斯坦方程', formula: 'hν = W₀ + E_kmax', variables: 'W₀: 逸出功, E_kmax: 最大初动能' },
+      { name: '截止频率', formula: 'ν₀ = W₀/h', variables: '低于截止频率无光电子逸出' },
+      { name: '遏止电压', formula: 'eU_c = E_kmax', variables: 'U_c: 遏止电压' },
+      { name: '光子能量', formula: 'E = hν = hc/λ', variables: 'ν: 频率, λ: 波长' },
+    ],
+    tips: [
+      '光电效应证明光具有粒子性',
+      '是否产生光电子取决于频率, 光强影响光电子数目',
+      '最大初动能随入射光频率线性增大',
+    ],
+  },
+  'radioactive': {
+    title: '放射性衰变',
+    formulas: [
+      { name: '指数衰变', formula: 'N = N₀e^(−λt)', variables: 'λ: 衰变常量' },
+      { name: '半衰期关系', formula: 'T₁/₂ = ln2/λ', variables: '半数原子核衰变所需时间' },
+      { name: '活度', formula: 'A = λN', variables: '单位时间衰变数' },
+      { name: '剩余比例', formula: 'N/N₀ = (1/2)^(t/T₁/₂)', variables: '按半衰期估算剩余量' },
+    ],
+    tips: [
+      '半衰期由原子核本身决定, 不受普通物理化学条件影响',
+      '大量原子核衰变遵循统计规律',
+      '活度随未衰变原子核数减少而降低',
+    ],
+  },
+  'reaction-time': {
+    title: '反应时间测量',
+    formulas: [
+      { name: '自由落体位移', formula: 'h = ½gt²', variables: '尺子从静止开始下落' },
+      { name: '反应时间', formula: 't = √(2h/g)', variables: '由下落距离 h 反推' },
+      { name: '末速度', formula: 'v = gt', variables: '抓住瞬间尺子的速度' },
+      { name: '误差传播', formula: 'Δt/t ≈ ½·Δh/h', variables: '高度读数误差对时间的影响' },
+    ],
+    tips: [
+      '尺子下落距离越大, 反应时间越长',
+      '多次测量取平均可减小偶然误差',
+      '实验默认忽略空气阻力和抓取过程位移',
+    ],
+  },
+  'refraction': {
+    title: '光的折射',
+    formulas: [
+      { name: '折射定律', formula: 'n₁sinθ₁ = n₂sinθ₂', variables: 'θ₁: 入射角, θ₂: 折射角' },
+      { name: '折射率', formula: 'n = c/v', variables: 'c: 真空光速, v: 介质中光速' },
+      { name: '临界角', formula: 'sinC = n₂/n₁', variables: '从光密介质射向光疏介质', condition: 'n₁ > n₂' },
+      { name: '全反射条件', formula: 'θ₁ ≥ C', variables: '入射角大于等于临界角' },
+    ],
+    tips: [
+      '光从光疏介质进入光密介质时向法线偏折',
+      '全反射要求从光密介质射向光疏介质',
+      '光纤通信利用全反射传输光信号',
+    ],
+  },
+  'simple-pendulum': {
+    title: '单摆',
+    formulas: [
+      { name: '周期公式', formula: 'T = 2π√(L/g)', variables: 'L: 摆长, g: 重力加速度', condition: '小角度近似' },
+      { name: '角频率', formula: 'ω = √(g/L)', variables: '单摆简谐运动角频率' },
+      { name: '回复力近似', formula: 'F_t ≈ −mgθ', variables: 'θ 较小时 sinθ ≈ θ' },
+      { name: '测重力加速度', formula: 'g = 4π²L/T²', variables: '由摆长和周期反推 g' },
+    ],
+    tips: [
+      '单摆周期与摆球质量无关',
+      '周期公式只适用于小角度摆动',
+      '摆长是悬点到摆球重心的距离',
+    ],
+  },
+  'ticker-timer': {
+    title: '打点计时器',
+    formulas: [
+      { name: '打点周期', formula: 'T = 1/f', variables: 'f: 电源频率, 50 Hz 时 T=0.02 s' },
+      { name: '平均速度', formula: 'v̄ = Δx/Δt', variables: '相邻若干点间位移除以时间' },
+      { name: '匀变速加速度', formula: 'a = Δx/(T²)', variables: '连续相等时间位移差 Δx' },
+      { name: '中间时刻速度', formula: 'v_mid = x/t', variables: '一段位移的平均速度等于中间时刻瞬时速度' },
+    ],
+    tips: [
+      '打点计时器用固定时间间隔记录纸带位置',
+      '点迹间距逐渐增大说明物体在加速',
+      '选取较长时间间隔可减小读数相对误差',
+    ],
+  },
+  'transmission-belt': {
+    title: '传送带运动',
+    formulas: [
+      { name: '滑动摩擦力', formula: 'f = μmg', variables: '水平传送带上正压力 N=mg' },
+      { name: '加速度', formula: 'a = μg', variables: '相对滑动阶段由摩擦提供加速度' },
+      { name: '达到共速时间', formula: 't = |v_b − v₀|/(μg)', variables: 'v_b: 传送带速度' },
+      { name: '相对位移', formula: 's_rel = ½|v_b − v₀|t', variables: '滑动阶段物体相对传送带位移' },
+    ],
+    tips: [
+      '摩擦力方向取决于物体相对传送带的运动趋势',
+      '达到共速后可能随传送带匀速运动',
+      '传送带问题常需分滑动阶段和共速阶段讨论',
+    ],
+  },
+  'vernier-caliper-tool': {
+    title: '游标卡尺读数',
+    formulas: [
+      { name: '总读数', formula: 'L = 主尺读数 + 游标读数', variables: '单位通常为 mm' },
+      { name: '游标读数', formula: 'b = k × 精度', variables: 'k: 对齐刻线序号' },
+      { name: '精度关系', formula: '精度 = 1 mm / N', variables: 'N: 游标分度数' },
+      { name: '零误差修正', formula: 'L_true = L_read − e₀', variables: 'e₀: 零误差' },
+    ],
+    tips: [
+      '读数由主尺整毫米数和游标对齐刻度组成',
+      '10、20、50 分度常对应 0.1、0.05、0.02 mm 精度',
+      '测量前应检查零刻线是否对齐',
+    ],
+  },
+  'vertical-circle': {
+    title: '竖直平面圆周运动',
+    formulas: [
+      { name: '最高点临界条件', formula: 'v_top ≥ √(gR)', variables: '轻绳模型中最高点不松弛' },
+      { name: '最高点受力', formula: 'mg + T = mv²/R', variables: 'T: 绳拉力, 指向圆心' },
+      { name: '最低点受力', formula: 'T − mg = mv²/R', variables: '最低点向心方向向上' },
+      { name: '机械能守恒', formula: '½mv_bottom² = ½mv_top² + 2mgR', variables: '忽略阻力' },
+    ],
+    tips: [
+      '竖直圆周运动速率通常随高度变化',
+      '最高点临界速度取决于约束模型, 轻绳和轻杆不同',
+      '最低点绳张力通常最大',
+    ],
+  },
 };
 
 const DEFAULT_FORMULA: FormulaDef = {

@@ -292,6 +292,15 @@ npm run build          # vite build ≤ 5s
   - 顺序执行 L0-L6, 生成报告到 `.scratch/selfcheck-run-*.jsonl`
   - ✅ 通过 (npm run self-check exit 0)
 
+---
+
+## 接手补缺: FormulaPanel 全场景覆盖
+
+- [x] **M1: 补齐 FormulaPanel 38 个缺失场景公式** (commit 本条)
+  - 文件: `visualization/src/components/formula/FormulaPanel.tsx`
+  - 范围: sceneRegistry 已注册但 FORMULA_MAP 缺失的 38 个唯一 sceneId
+  - 目标: 每个 scene ≥3 条公式, 至少 1 条学习要点, 通过 L4 formula drift 检查
+
 ### 自检循环进度
 
 | 层 | 状态 | commit | 文件 |
@@ -305,4 +314,3 @@ npm run build          # vite build ≤ 5s
 | L6 | ✅ | `c0e5dc1` | `parameter-ranges.test.ts` |
 | L7 | ✅ | (当前) | `self-check.mjs`, `docs/self-check-loop.md` |
 | **合计** | | **8 commits** | 物理真实性 + 计算正确性全覆盖 |
-
