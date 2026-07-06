@@ -1,0 +1,33 @@
+chore: complete CI/CD pipeline implementation
+
+## Summary
+Implemented full GitHub Actions CI/CD pipeline with 6 quality gates and automatic GitHub Pages deployment.
+
+## Changes
+
+### CI/CD Workflows
+- Added `.github/workflows/ci.yml` — CI pipeline with 6 stages: TypeScript typecheck → ESLint → Prettier → unit tests → 7-layer physics self-check → build
+- Added `.github/workflows/deploy.yml` — Auto-deploys to GitHub Pages when CI passes on main branch
+- Updated `visualization/vite.config.ts` — Added `VITE_BASE_PATH` environment variable support for GitHub Pages subpath deployment
+
+### Code Quality Infrastructure
+- Replaced broken `eslint.config.js` with `eslint.config.mjs` (ESM format)
+- Added `eslint-plugin-unused-imports` to auto-remove unused imports
+- Updated `package.json` scripts: lint, lint:fix, format, format:check with server directory coverage
+- Fixed 105 ESLint errors across codebase (unused imports, unused vars, prefer-const)
+- Formatted 165 source files with Prettier
+- Updated `visualization/tsconfig.json` to include server directory in typecheck
+
+### Test Fixes
+- Fixed `renderer-routing.test.ts` — Changed regex from `\n\s{2}\}` to `\n\s*\}` for indentation-agnostic switch case parsing
+- Fixed `formula-drift.test.ts` — Added `findSceneBlock()` function to properly locate scene block boundaries, handling both quoted and unquoted keys
+- All 75 visualization tests now pass
+- 7-layer physics self-check (L0-L6) all PASS
+
+### Bug Fixes
+- Fixed `PlaybackControls.tsx` — Changed expression statement to if-else to satisfy no-unused-expressions rule
+- Fixed `ocr-proxy.ts` — Added null guard for image validation
+- Fixed syntax errors in `curve-velocity-direction.ts` and `vertical-circle.ts`
+
+### Documentation
+- Updated `AGENTS.md` with CI/CD section documenting pipeline stages and GitHub Pages configuration

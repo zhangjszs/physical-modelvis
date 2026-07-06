@@ -10,7 +10,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "server:dev": "tsx server/ocr-proxy.ts",
-    "lint": "cd .. && eslint \"visualization/src/**/*.{ts,tsx}\" \"visualization/server/**/*.ts\""
+    "lint": "eslint src/**/*.{ts,tsx} server/**/*.ts"
   },
   "dependencies": {
     "react": "^18.3.1",
