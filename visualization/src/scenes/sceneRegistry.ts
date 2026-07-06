@@ -3109,6 +3109,223 @@ export const SCENES: SceneConfig[] = [
       };
     },
   },
+  {
+    id: 'alpha-scattering',
+    name: 'α 粒子散射实验',
+    model: 'alpha-scattering' as const,
+    parameters: [
+      { name: 'alphaEnergy', label: 'α 粒子能量', unit: 'MeV', value: 5, min: 0.5, max: 15, step: 0.5, default: 5, description: 'α 粒子入射动能' },
+      { name: 'targetZ', label: '靶核电荷数 Z', unit: '', value: 79, min: 1, max: 92, step: 1, default: 79, description: '靶核质子数 (金=79)' },
+      { name: 'duration', label: '模拟时长', unit: 's', value: 5, min: 2, max: 10, step: 0.5, default: 5, description: '仿真总时长' },
+    ],
+    buildProblem: (params) => {
+      const alphaEnergy = params['alphaEnergy'] ?? 5;
+      const targetZ = params['targetZ'] ?? 79;
+      const duration = params['duration'] ?? 5;
+      return {
+        id: `alpha-scattering-${Date.now()}`,
+        title: 'α 粒子散射实验',
+        model: 'alpha-scattering' as const,
+        bodies: [{ id: 'alpha', mass: { value: 1, unit: 'kg' }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } }],
+        constraints: { alphaScattering: { alphaEnergy, targetZ, foilThickness: 1e-6 } },
+        environment: {},
+        timeConfig: { duration, dt: 0.01, sampleCount: 100 },
+      };
+    },
+  },
+  {
+    id: 'black-body',
+    name: '黑体辐射',
+    model: 'black-body' as const,
+    parameters: [
+      { name: 'temperature', label: '黑体温度', unit: 'K', value: 3000, min: 300, max: 10000, step: 100, default: 3000, description: '黑体绝对温度' },
+      { name: 'duration', label: '模拟时长', unit: 's', value: 5, min: 2, max: 10, step: 0.5, default: 5, description: '仿真总时长' },
+    ],
+    buildProblem: (params) => {
+      const temperature = params['temperature'] ?? 3000;
+      const duration = params['duration'] ?? 5;
+      return {
+        id: `black-body-${Date.now()}`,
+        title: '黑体辐射',
+        model: 'black-body' as const,
+        bodies: [{ id: 'photon', mass: { value: 1, unit: 'kg' }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } }],
+        constraints: { blackBody: { temperature } },
+        environment: {},
+        timeConfig: { duration, dt: 0.01, sampleCount: 100 },
+      };
+    },
+  },
+  {
+    id: 'electron-diffraction',
+    name: '电子衍射',
+    model: 'electron-diffraction' as const,
+    parameters: [
+      { name: 'accVoltage', label: '加速电压', unit: 'V', value: 10000, min: 100, max: 50000, step: 100, default: 10000, description: '电子加速电压' },
+      { name: 'duration', label: '模拟时长', unit: 's', value: 5, min: 2, max: 10, step: 0.5, default: 5, description: '仿真总时长' },
+    ],
+    buildProblem: (params) => {
+      const accVoltage = params['accVoltage'] ?? 10000;
+      const duration = params['duration'] ?? 5;
+      return {
+        id: `electron-diffraction-${Date.now()}`,
+        title: '电子衍射',
+        model: 'electron-diffraction' as const,
+        bodies: [{ id: 'electron', mass: { value: 1, unit: 'kg' }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } }],
+        constraints: { electronDiffraction: { accVoltage, crystalLattice: 0.213 } },
+        environment: {},
+        timeConfig: { duration, dt: 0.01, sampleCount: 100 },
+      };
+    },
+  },
+  {
+    id: 'radiation-deflection',
+    name: '放射线磁场偏转',
+    model: 'radiation-deflection' as const,
+    parameters: [
+      { name: 'Bfield', label: '磁感应强度 B', unit: 'T', value: 0.5, min: 0.01, max: 5, step: 0.01, default: 0.5, description: '匀强磁场强度' },
+      { name: 'particleEnergy', label: '粒子动能', unit: 'MeV', value: 5, min: 0.1, max: 20, step: 0.1, default: 5, description: '粒子入射动能' },
+      { name: 'particleType', label: '粒子类型 (0=α 1=β 2=γ)', unit: '', value: 0, min: 0, max: 2, step: 1, default: 0, description: 'α=氦核, β=电子, γ=光子' },
+      { name: 'duration', label: '模拟时长', unit: 's', value: 5, min: 2, max: 10, step: 0.5, default: 5, description: '仿真总时长' },
+    ],
+    buildProblem: (params) => {
+      const Bfield = params['Bfield'] ?? 0.5;
+      const particleEnergy = params['particleEnergy'] ?? 5;
+      const particleTypeNum = params['particleType'] ?? 0;
+      const particleType = particleTypeNum === 1 ? 'beta' as const : particleTypeNum === 2 ? 'gamma' as const : 'alpha' as const;
+      const duration = params['duration'] ?? 5;
+      return {
+        id: `radiation-deflection-${Date.now()}`,
+        title: '放射线磁场偏转',
+        model: 'radiation-deflection' as const,
+        bodies: [{ id: 'particle', mass: { value: 1, unit: 'kg' }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } }],
+        constraints: { radiationDeflection: { Bfield, particleEnergy, particleType } },
+        environment: {},
+        timeConfig: { duration, dt: 0.01, sampleCount: 100 },
+      };
+    },
+  },
+  {
+    id: 'decay-statistics',
+    name: '衰变统计规律',
+    model: 'decay-statistics' as const,
+    parameters: [
+      { name: 'meanCount', label: '平均计数 N̄', unit: '', value: 50, min: 1, max: 200, step: 1, default: 50, description: '泊松分布均值' },
+      { name: 'nTrials', label: '试验次数', unit: '', value: 1000, min: 100, max: 5000, step: 100, default: 1000, description: '蒙特卡洛试验次数' },
+      { name: 'duration', label: '模拟时长', unit: 's', value: 5, min: 2, max: 10, step: 0.5, default: 5, description: '仿真总时长' },
+    ],
+    buildProblem: (params) => {
+      const meanCount = params['meanCount'] ?? 50;
+      const nTrials = params['nTrials'] ?? 1000;
+      const duration = params['duration'] ?? 5;
+      return {
+        id: `decay-statistics-${Date.now()}`,
+        title: '衰变统计规律',
+        model: 'decay-statistics' as const,
+        bodies: [{ id: 'nucleus', mass: { value: 1, unit: 'kg' }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } }],
+        constraints: { decayStatistics: { meanCount, nTrials } },
+        environment: {},
+        timeConfig: { duration, dt: 0.01, sampleCount: 100 },
+      };
+    },
+  },
+  {
+    id: 'cosmic-ray',
+    name: '宇宙射线',
+    model: 'cosmic-ray' as const,
+    parameters: [
+      { name: 'altitude', label: '海拔高度', unit: 'm', value: 0, min: 0, max: 30000, step: 1000, default: 0, description: '观测点海拔' },
+      { name: 'shieldingMode', label: '屏蔽材料 (0=空气 1=铅 2=水)', unit: '', value: 0, min: 0, max: 2, step: 1, default: 0, description: '屏蔽介质类型' },
+      { name: 'duration', label: '模拟时长', unit: 's', value: 5, min: 2, max: 10, step: 0.5, default: 5, description: '仿真总时长' },
+    ],
+    buildProblem: (params) => {
+      const altitude = params['altitude'] ?? 0;
+      const shieldingModeNum = params['shieldingMode'] ?? 0;
+      const shieldingMode = shieldingModeNum === 1 ? 'lead' as const : shieldingModeNum === 2 ? 'water' as const : 'air' as const;
+      const duration = params['duration'] ?? 5;
+      return {
+        id: `cosmic-ray-${Date.now()}`,
+        title: '宇宙射线',
+        model: 'cosmic-ray' as const,
+        bodies: [{ id: 'muon', mass: { value: 1, unit: 'kg' }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } }],
+        constraints: { cosmicRay: { altitude, shieldingMode } },
+        environment: {},
+        timeConfig: { duration, dt: 0.01, sampleCount: 100 },
+      };
+    },
+  },
+  {
+    id: 'neutron-discovery',
+    name: '中子发现 (查德威克实验)',
+    model: 'neutron-discovery' as const,
+    parameters: [
+      { name: 'alphaEnergy', label: 'α 粒子能量', unit: 'MeV', value: 5, min: 1, max: 10, step: 0.5, default: 5, description: 'α 粒子入射动能' },
+      { name: 'targetMass', label: '靶核质量', unit: 'u', value: 1, min: 1, max: 14, step: 1, default: 1, description: '靶核质量数 (氢=1, 氮=14)' },
+      { name: 'duration', label: '模拟时长', unit: 's', value: 5, min: 2, max: 10, step: 0.5, default: 5, description: '仿真总时长' },
+    ],
+    buildProblem: (params) => {
+      const alphaEnergy = params['alphaEnergy'] ?? 5;
+      const targetMass = params['targetMass'] ?? 1;
+      const duration = params['duration'] ?? 5;
+      return {
+        id: `neutron-discovery-${Date.now()}`,
+        title: '中子发现 (查德威克实验)',
+        model: 'neutron-discovery' as const,
+        bodies: [{ id: 'alpha', mass: { value: 1, unit: 'kg' }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } }],
+        constraints: { neutronDiscovery: { alphaEnergy, targetMass } },
+        environment: {},
+        timeConfig: { duration, dt: 0.01, sampleCount: 100 },
+      };
+    },
+  },
+  {
+    id: 'fission-chain',
+    name: '核裂变链式反应',
+    model: 'fission-chain' as const,
+    parameters: [
+      { name: 'multiplicationFactor', label: '有效增殖因子 k', unit: '', value: 1.0, min: 0.5, max: 1.5, step: 0.01, default: 1.0, description: 'k=1临界, k>1超临界, k<1次临界' },
+      { name: 'generations', label: '代数', unit: '', value: 10, min: 3, max: 30, step: 1, default: 10, description: '链式反应代数' },
+      { name: 'duration', label: '模拟时长', unit: 's', value: 5, min: 2, max: 10, step: 0.5, default: 5, description: '仿真总时长' },
+    ],
+    buildProblem: (params) => {
+      const multiplicationFactor = params['multiplicationFactor'] ?? 1.0;
+      const generations = params['generations'] ?? 10;
+      const duration = params['duration'] ?? 5;
+      return {
+        id: `fission-chain-${Date.now()}`,
+        title: '核裂变链式反应',
+        model: 'fission-chain' as const,
+        bodies: [{ id: 'neutron', mass: { value: 1, unit: 'kg' }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } }],
+        constraints: { fissionChain: { multiplicationFactor, generations } },
+        environment: {},
+        timeConfig: { duration, dt: 0.01, sampleCount: 100 },
+      };
+    },
+  },
+  {
+    id: 'bohr-orbit',
+    name: '玻尔氢原子模型 (轨道能级)',
+    model: 'bohr-model' as const,
+    parameters: [
+      { name: 'seriesB', label: '线系 (0=赖曼 1=巴尔末 2=帕邢)', unit: '', value: 1, min: 0, max: 2, step: 1, default: 1, description: '0=赖曼系(紫外,n₁=1); 1=巴尔末系(可见,n₁=2); 2=帕邢系(红外,n₁=3)' },
+      { name: 'maxN', label: '最大主量子数 n_max', unit: '', value: 6, min: 3, max: 10, step: 1, default: 6, description: '决定计算多少条谱线' },
+      { name: 'duration', label: '模拟时长', unit: 's', value: 2, min: 1, max: 5, step: 0.5, default: 2, description: '仿真总时长' },
+    ],
+    buildProblem: (params) => {
+      const seriesNum = params['seriesB'] ?? 1;
+      const series = seriesNum === 0 ? 'Lyman' as const : seriesNum === 2 ? 'Paschen' as const : 'Balmer' as const;
+      const maxN = params['maxN'] ?? 6;
+      const duration = params['duration'] ?? 2;
+      return {
+        id: `bohr-orbit-${Date.now()}`,
+        title: '玻尔氢原子模型 (轨道能级)',
+        model: 'bohr-model' as const,
+        bodies: [{ id: 'electron', mass: { value: 1, unit: 'kg' }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } }],
+        constraints: { bohr: { series, maxN } },
+        environment: {},
+        timeConfig: { duration, dt: 0.1, sampleCount: 10 },
+      };
+    },
+  },
 ];
 export function getDefaultParams(sceneId: string): Record<string, number> {
   const scene = SCENES.find(s => s.id === sceneId);
