@@ -12,7 +12,8 @@
     "build:viz": "cd visualization && npm run build",
     "lint": "cd physics-core && npm run lint && cd ../visualization && npm run lint",
     "format": "prettier --write \"physics-core/src/**/*.ts\" \"visualization/src/**/*.{ts,tsx}\"",
-    "format:check": "prettier --check \"physics-core/src/**/*.ts\" \"visualization/src/**/*.{ts,tsx}\""
+    "format:check": "prettier --check \"physics-core/src/**/*.ts\" \"visualization/src/**/*.{ts,tsx}\"",
+    "selfcheck": "node scripts/self-check.mjs"
   },
   "keywords": [],
   "author": "",

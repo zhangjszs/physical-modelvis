@@ -143,7 +143,7 @@ npm run build          # vite build ≤ 5s
   - 模型: diffusion, brownian-motion, oil-film, liquid-mixing, molecular-force, melting-curve, surface-tension, capillary, wetting, liquid-crystal
   - 文件: `visualization/src/scenes/sceneRegistry.ts`
 
-- [x] **I4: 选必三 (热力学) 7 个 Model SceneConfig**
+- [x] **I4: 选必三 (热力学) 7 个 Model SceneConfig** (commit `4302e9b`)
   - 模型: joule-mechanical, joule-electrical, adiabatic-compression, heat-transfer, energy-transformation, perpetuum-mobile, heat-direction
   - 文件: `visualization/src/scenes/sceneRegistry.ts`
 
@@ -237,4 +237,72 @@ npm run build          # vite build ≤ 5s
 | **合计** | | **17 任务**, 覆盖 68 个 Model 可视化 + 56 个公式集 + 6 个渲染器 |
 
 > 全部 17 任务完成 — SceneConfig (68场景) + 渲染器 (6个) + FormulaPanel (56场景公式集), 覆盖人教版高中物理所有注册场景可视化
+
+---
+
+## 物理准确性自检循环 L0-L7 (方向: 物理真实性 + 计算正确性)
+
+> 运行: `npm run self-check` (顺序执行 L0-L6, 生成报告)
+> 设计文档: `docs/self-check-loop.md`
+> 每条 FAIL 按 severity (HIGH / MED / LOW) 分类处理
+
+每层独立 commit, 独立门禁 `npm test && npm run build`。
+
+- [x] **L0: 物理常数完整性** (commit `6b54915`)
+  - 文件: `physics-core/src/units/constants.ts`, `physics-core/tests/unit/constants.test.ts`
+  - 新增: `h`(Planck), `kB`(Boltzmann), `sigmaSB`(Stefan-Boltzmann), `Na`(Avogadro), `neutronMass`
+  - 验证: CODATA 2018 精确值比对 `toBeCloseTo(15 sig.figs.)`
+  - ✅ 通过 (804 测试, 新增 constants.test.ts)
+
+- [x] **L1: 模型守恒律 + 解析解对齐** (commit `6ee9cd5`)
+  - 文件: `physics-core/tests/accuracy/fixtures.test.ts`
+  - 覆盖: collision(动量+能量守恒), projectile(射程/顶点/周期解析解), capacitor(τ-RC+衰减), pendulum(周期∝√L+能量守恒), photoelectric(ν₀=W₀/h)
+  - 验证: 5 个 fixture 模型 (a)量纲 (b)守恒律 (c)解析解 (d)validate() (e)参数对齐
+  - ✅ 通过 (fixtures + 800+ 模型 tests)
+
+- [x] **L2: SceneConfig ↔ 引擎契约** (commit `e112912`)
+  - 文件: `visualization/tests/accuracy/scene-contract.test.ts`
+  - 遍历 92+ scene, 验证 model 注册 / buildProblem 无错 / validate OK / dt 稳定
+  - ✅ 通过
+
+- [x] **L3: 渲染器公式 + 共享 constants** (commit `fff1e7c`)
+  - 文件: `visualization/src/rendering/constants.ts` (新建), `visualization/tests/accuracy/renderers.test.ts`
+  - 提取 14 个 helper: reedSwitchFieldStrength, thermistorResistance, hallVoltage, surfaceTensionAtT, diffusionAtT, doubleSlitIntensity, singleSlitIntensity, photoThresholdFrequencyTHz, stefanBoltzmannExitance, wienPeakWavelength 等
+  - **修复**: reed-switch 注释-码不一致 (k/d³ → H₀/(1+(d/d₀)²))
+  - ✅ 通过 (56 公式 tests)
+
+- [x] **L4: FormulaPanel 公式定义** (commit `846dfe7`)
+  - 文件: `visualization/tests/accuracy/formula-drift.test.ts`
+  - 解析 FORMULA_MAP 源码: 每 scene ≥3 公式, 无 TODO/FIXME, 公式名唯一
+  - **修复**: 补齐 collision-elastic 速度交换公式
+  - ✅ 通过 (79 scene 覆盖)
+
+- [x] **L5: 渲染器-场景路由** (commit `207f0a0`)
+  - 文件: `visualization/tests/accuracy/renderer-routing.test.ts`
+  - 解析 SimulationCanvas 源码: 每个 Set 元素有 case, 每个 case 归属一个 Set
+  - ✅ 通过 (7 Set × 35 case)
+
+- [x] **L6: 参数面板物理范围** (commit `c0e5dc1`)
+  - 文件: `visualization/tests/accuracy/parameter-ranges.test.ts`
+  - 遍历全部 scene 参数: min≤default≤max, step≥0, description 非空, 白名单 g/T0/duration 物理有效
+  - ✅ 通过 (92+ scene 参数全检查)
+
+- [x] **L7: 整合 self-check CLI** (commit 本条)
+  - 文件: `scripts/self-check.mjs`, `docs/self-check-loop.md`, `package.json` (`"selfcheck"` script)
+  - 顺序执行 L0-L6, 生成报告到 `.scratch/selfcheck-run-*.jsonl`
+  - ✅ 通过 (npm run self-check exit 0)
+
+### 自检循环进度
+
+| 层 | 状态 | commit | 文件 |
+|----|------|--------|------|
+| L0 | ✅ | `6b54915` | `constants.ts`, `constants.test.ts` |
+| L1 | ✅ | `6ee9cd5` | `fixtures.test.ts` |
+| L2 | ✅ | `e112912` | `scene-contract.test.ts` |
+| L3 | ✅ | `fff1e7c` | `constants.ts` (渲染器), `renderers.test.ts` |
+| L4 | ✅ | `846dfe7` | `formula-drift.test.ts` |
+| L5 | ✅ | `207f0a0` | `renderer-routing.test.ts` |
+| L6 | ✅ | `c0e5dc1` | `parameter-ranges.test.ts` |
+| L7 | ✅ | (当前) | `self-check.mjs`, `docs/self-check-loop.md` |
+| **合计** | | **8 commits** | 物理真实性 + 计算正确性全覆盖 |
 
