@@ -918,6 +918,310 @@ const FORMULA_MAP: Record<string, FormulaDef> = {
       '热二律是现有物理定律中唯一有时间箭头的定律',
     ],
   },
+
+  // ========== 选必三 第 5 章 原子核 (9 个场景) ==========
+  'alpha-scattering': {
+    title: 'α 粒子散射实验 (卢瑟福)',
+    formulas: [
+      { name: '瞄准距离', formula: 'd = kZe² / (2E_k)', variables: 'k: 静电力常量, Z: 靶核电荷数, e: 元电荷, E_k: α 粒子动能', condition: '库仑散射' },
+      { name: '卢瑟福散射公式', formula: 'dσ/dΩ = (kZe² / (4E_k))² · 1 / sin⁴(θ/2)', variables: 'σ: 散射截面, Ω: 立体角, θ: 散射角', condition: '非相对论, 忽略电子屏蔽' },
+      { name: '散射角与瞄准距离关系', formula: 'cot(θ/2) = 2d / b', variables: 'b: 碰撞参数(瞄准距离), θ: 散射角', condition: '平方反比有心力' },
+      { name: '大角度散射概率', formula: 'P ∝ 1 / sin⁴(θ/2)', variables: '大角度散射概率极低 → 证实原子核式结构', condition: '卢瑟福实验结论' },
+    ],
+    tips: [
+      '绝大多数 α 粒子几乎不偏转, 极少数大角度偏转 → 卢瑟福提出原子的核式结构模型',
+      '大角度偏转说明原子中心存在体积小、质量大、带正电的原子核',
+      '卢瑟福散射公式在小角度处与实验吻合, 大角度需考虑核力作用',
+      '该实验否定了汤姆孙 "枣糕模型", 是原子物理的里程碑',
+    ],
+  },
+  'black-body': {
+    title: '黑体辐射 (普朗克量子假说)',
+    formulas: [
+      { name: '维恩位移定律', formula: 'λ_max · T = b', variables: 'b = 2.898×10⁻³ m·K (维恩常量), T: 绝对温度, λ_max: 峰值波长', condition: '黑体辐射' },
+      { name: '斯忒藩-玻尔兹曼定律', formula: 'M = σT⁴', variables: 'M: 辐射出射度(W/m²), σ = 5.67×10⁻⁸ W/m²·K⁴ (斯忒藩-玻尔兹曼常量)', condition: '黑体辐射总功率' },
+      { name: '普朗克辐射公式', formula: 'M_λ = 2πhc² / λ⁵ · 1/(e^(hc/λkT) − 1)', variables: '普朗克量子假说, 能量子 E = hν', condition: '精确描述黑体辐射谱' },
+      { name: '维恩近似 (高频)', formula: 'M_λ ≈ 2πhc²/λ⁵ · e^(−hc/λkT)', variables: 'λT 较小时适用', condition: '经典维恩公式高频极限' },
+    ],
+    tips: [
+      '黑体是完全吸收所有入射辐射的理想物体 (空腔辐射体)',
+      '经典理论 "紫外灾难" 无法解释黑体辐射曲线, 普朗克量子假说成功解释',
+      '温度升高, 峰值波长向短波方向移动 (维恩位移)',
+      '温度越高, 总辐射功率增大 (T⁴), 例如太阳表面约 5800 K',
+    ],
+  },
+  'electron-diffraction': {
+    title: '电子衍射 (物质波验证)',
+    formulas: [
+      { name: '德布罗意波长', formula: 'λ_dB = h / p', variables: 'h: 普朗克常量, p: 粒子动量', condition: '所有物质波' },
+      { name: '加速电压与波长', formula: 'λ = h / √(2meU)', variables: 'm: 电子质量, e: 元电荷, U: 加速电压', condition: '电压 U 加速的电子' },
+      { name: '布拉格衍射条件', formula: '2d·sinθ = nλ', variables: 'd: 晶面间距, θ: 掠射角, n: 衍射级数 (整数)', condition: '晶体衍射' },
+      { name: '电子波长 (典型值)', formula: 'λ ≈ 1.226 / √U (nm)', variables: 'U: 加速电压(V), 100V → λ ≈ 0.123 nm', condition: '非相对论近似' },
+    ],
+    tips: [
+      '电子衍射实验 (戴维孙-革末, G.P. 汤姆孙) 证实了德布罗意物质波假说',
+      '物质波是所有运动的粒子都具有的波动性 λ = h/p',
+      '加速电压越高, 电子波长越短, 分辨率越高',
+      '电子显微镜利用短波长电子波获得远优于光学显微镜的分辨率',
+    ],
+  },
+  'radiation-deflection': {
+    title: '带电粒子在磁场中的偏转',
+    formulas: [
+      { name: '洛伦兹力', formula: 'F = qvB', variables: 'q: 电荷量, v: 速度, B: 磁感应强度', condition: 'v ⊥ B' },
+      { name: '回旋半径', formula: 'r = mv / (qB)', variables: 'm: 粒子质量, v: 速率', condition: '匀速圆周运动' },
+      { name: '角频率 (回旋频率)', formula: 'ω = qB / m', variables: '与速率无关!', condition: '回旋加速器原理' },
+      { name: '偏转半径 (云室)', formula: 'r ∝ p / (qB)', variables: 'p: 动量, 云室中粒子径迹曲率反映动量', condition: '密立克 / 云室实验' },
+    ],
+    tips: [
+      '带电粒子垂直进入匀强磁场后做匀速圆周运动',
+      '正负电荷偏转方向相反 (左手定则判断)',
+      '回旋加速器利用电场多次加速 + 磁场约束回旋轨迹获得高能粒子',
+      '气泡室和云室通过液滴/气泡径迹曲率分析粒子动量和符号',
+    ],
+  },
+  'decay-statistics': {
+    title: '放射性衰变 (统计规律)',
+    formulas: [
+      { name: '半衰期衰变公式', formula: 'N = N₀ · 2^(−t/T_1/2)', variables: 'N₀: 初始核数, T_1/2: 半衰期, t: 衰变时间', condition: '统计规律 (大量原子核)' },
+      { name: '指数衰变公式', formula: 'N = N₀ · e^(−λt)', variables: 'λ: 衰变常量 (s⁻¹), 与半衰期关系: λ = ln2 / T_1/2', condition: '连续衰变' },
+      { name: '半衰期与衰变常量', formula: 'T_1/2 = ln 2 / λ', variables: 'ln 2 ≈ 0.693', condition: '定义关系' },
+      { name: '放射性活度', formula: 'A = λN = A₀ · e^(−λt)', variables: 'A: 活度(Bq, 衰变/秒), 1 Ci = 3.7×10¹⁰ Bq', condition: '单位时间的衰变数' },
+    ],
+    tips: [
+      '半衰期是统计规律, 描述大量原子核的集体衰变行为, 不可预测单个原子的衰变时刻',
+      '同种元素的半衰期恒定, 与外界温度、压强、化学状态无关',
+      'α 衰变: 放出 ⁴He 核, 质量数 −4, 电荷数 −2; β 衰变: 核内中子→质子 + 电子',
+      '地质年代测定利用长半核素 (如 ¹⁴C 断代, ²³⁸U 定年)',
+    ],
+  },
+  'cosmic-ray': {
+    title: '宇宙线 (大气簇射)',
+    formulas: [
+      { name: '簇射增殖 (简化)', formula: 'E = E₀ · n', variables: 'E₀: 初始能量, n: 增殖因子', condition: '级联簇射简化模型' },
+      { name: '临界能量', formula: 'E_c ≈ 10⁸ eV (空气)', variables: '低于临界能量时, 簇射停止增殖', condition: '电子临界能量' },
+      { name: '簇射粒子数 (N_max)', formula: 'N_max ∝ E₀ / E_c', variables: '簇射最大粒子数与初始能量成正比', condition: '小型簇射近似' },
+      { name: '粒子能量损失 (电离)', formula: '−dE/dx = K · z² · (Z/A) · (1/β²) · [ln(...) − β²]', variables: '贝特公式, β = v/c', condition: '带电粒子在介质中的电离损失' },
+    ],
+    tips: [
+      '宇宙线是来自外太空的高能粒子, 主要是质子 (90%) 和 α 粒子 (9%)',
+      '高能初级宇宙线进入大气层后与原子核碰撞产生级联簇射 (空气簇射)',
+      '簇射产物包括 π 介子、μ 子、电子、光子、中子等',
+      '宇宙线和放射性衰变、恒星核聚变是粒子物理的主要来源之一',
+    ],
+  },
+  'neutron-discovery': {
+    title: '中子的发现 (查德威克实验)',
+    formulas: [
+      { name: '发现核反应方程', formula: '⁹Be + ⁴He → ¹²C + ¹n', variables: 'α 粒子轰击铍-9, 产生碳-12 和中子', condition: '查德威克 1932 实验' },
+      { name: '中子质量', formula: 'm_n ≈ 1.0087 u ≈ m_H', variables: 'u: 原子质量单位, 中子质量 ≈ 质子质量', condition: '中性粒子, 磁矩极小' },
+      { name: 'α 粒子质量', formula: 'm_α = 4.0026 u', variables: 'α 粒子 = ⁴He 核', condition: '核反应质量守恒' },
+      { name: '质量亏损', formula: 'Δm = Σm_反应前 − Σm_反应后', variables: 'ΔE = Δm·c² > 0 对应释放能量', condition: '核反应能量释放' },
+    ],
+    tips: [
+      '查德威克 1932 年通过 α 轰击铍实验发现中子, 证实原子核由质子和中子组成',
+      '中子是不带电的强子, 由夸克 udd 组成, 静止平均寿命约 15 分钟 (自由态)',
+      '中子发现解决了原子核中质子间库仑斥力问题 (核力维持核稳定)',
+      '中子轰击是诱发核裂变和链式反应的关键 (中子不带电, 不受库仑排斥)',
+    ],
+  },
+  'fission-chain': {
+    title: '裂变链式反应 (铀-235)',
+    formulas: [
+      { name: '典型裂变反应', formula: '²³⁵U + ¹n → ¹⁴¹Ba + ⁹²Kr + 3¹n + E', variables: '铀-235 裂变生成钡和氪, 释放多个中子', condition: '慢中子诱发' },
+      { name: '释放能量', formula: 'E = Δm·c² ≈ 200 MeV / 次裂变', variables: '质量亏损 Δm → 巨大能量释放', condition: '每次裂变释放约 200 MeV' },
+      { name: '临界因子', formula: 'k_eff = 1 (临界状态)', variables: 'k_eff = 每次裂变平均引发下一次裂变的有效中子数', condition: 'k_eff = 1 自持链式反应' },
+      { name: '增殖因子 (三状态)', formula: 'k_eff > 1: 超临界 (爆炸); k_eff < 1: 次临界 (熄灭)', variables: '反应堆控制: 镉/硼控制棒吸收中子调节 k_eff', condition: '反应堆稳态控制' },
+    ],
+    tips: [
+      '铀-235 裂变释放约 200 MeV 能量, 其中约 80% 为碎片动能 (瞬时转化为热能)',
+      '链式反应维持条件: 有效增殖因子 k_eff ≥ 1, 反应堆中通过控制棒调节',
+      '临界体积/质量是维持链式反应的最小条件 (防止中子逃逸过多)',
+      '核电站利用慢中子诱发铀-235 裂变, 原子弹用快中子链式反应实现瞬时能量释放',
+    ],
+  },
+  'bohr-orbit': {
+    title: '玻尔原子模型 (氢原子)',
+    formulas: [
+      { name: '轨道半径', formula: 'r_n = n² · a₀', variables: 'n: 主量子数, a₀ = 0.529 Å (玻尔半径)', condition: '类氢原子中电子轨道' },
+      { name: '能级公式', formula: 'E_n = −13.6 / n² (eV)', variables: 'n = 1 为基态 (E₁ = −13.6 eV), n→∞ 电离态', condition: '类氢原子能量量子化' },
+      { name: '跃迁公式', formula: 'hν = E_n − E_m', variables: 'n > m: 辐射光子, n < m: 吸收光子', condition: '光子能级跃迁' },
+      { name: '里德伯公式', formula: '1/λ = R(1/m² − 1/n²)', variables: 'R = 1.097×10⁷ m⁻¹ (里德伯常量)', condition: '氢原子光谱线系' },
+    ],
+    tips: [
+      '玻尔模型引入量子化条件: 角动量 L = n·h/(2π), 解释氢原子光谱',
+      '巴尔末系 (可见光, m=2), 莱曼系 (紫外, m=1), 帕邢系 (红外, m=3)',
+      '玻尔模型仅适用于类氢原子, 多电子原子需量子力学才能解释',
+      '能级量子化是分立的, 原子只能处于特定能级, 跃迁时吸收/发射特定频率光子',
+    ],
+  },
+
+  // ========== 必修三 (11 个场景) ==========
+  'capacitor-charge': {
+    title: '电容器的充电 (RC 暂态过程)',
+    formulas: [
+      { name: '电容器充电 (电压)', formula: 'u(t) = E(1 − e^(−t/RC))', variables: 'E: 电源电动势, R: 电阻, C: 电容', condition: 'RC 串联直流充电' },
+      { name: '电容器充电 (电荷)', formula: 'q(t) = Q(1 − e^(−t/RC))', variables: 'Q = CE: 最大电荷量', condition: 'q(0) = 0' },
+      { name: '充电电流', formula: 'i(t) = (E/R) · e^(−t/RC)', variables: '初始电流 I₀ = E/R, 按指数衰减', condition: '欧姆定律 + 电容特性' },
+      { name: '时间常数', formula: 'τ = RC', variables: 'τ: RC 回路时间常数, τ 后电压达 63.2% E', condition: '充放电过程速率' },
+    ],
+    tips: [
+      '电容器充电时电荷缓慢积累, 最终 q = CE, 电流趋于 0',
+      '时间常数 τ = RC 决定充电快慢, 5τ 后基本充足',
+      '电容器充电过程非匀速, 前段快后段慢 (指数规律)',
+      'RC 积分/微分电路广泛用于信号处理、定时器等电子线路',
+    ],
+  },
+  'parallel-plate-capacitor': {
+    title: '平行板电容器',
+    formulas: [
+      { name: '平行板电容公式', formula: 'C = εS / (4πkd)', variables: 'ε: 介电常量, S: 极板面积, d: 板间距离, k: 静电力常量', condition: '边缘效应忽略' },
+      { name: '电容定义式', formula: 'C = Q / U', variables: 'Q: 极板电荷量, U: 板间电压', condition: '通用定义' },
+      { name: '电场强度', formula: 'E = U / d = 4πkQ / (εS)', variables: '匀强电场 (忽略边缘效应)', condition: '平行板间' },
+      { name: '电容器储能', formula: 'W = ½CU² = ½QU = Q²/(2C)', variables: '电场能储存在极板间的电场中', condition: '三种等价形式' },
+    ],
+    tips: [
+      '增大正对面积 S 或减小板间距离 d 可增大电容',
+      '插入电介质 (ε 增大) 也能增大电容',
+      '不同条件下讨论 C, Q, E 的变化: 始终与电源相连 U 不变; 充电后断开 Q 不变',
+      '静电计测量电容器板间电压 (验电器不能直接测量, 静电计可)',
+    ],
+  },
+  'load-voltage': {
+    title: '闭合电路欧姆定律 (负载电压)',
+    formulas: [
+      { name: '负载电压 (输出电压)', formula: 'U = E − Ir', variables: 'E: 电动势, I: 电流, r: 内阻', condition: '闭合电路欧姆定律' },
+      { name: '输出功率', formula: 'P = EI − I²r = UI', variables: 'EI: 电源总功率, I²r: 内耗功率', condition: '能量守恒' },
+      { name: '最大输出功率', formula: 'P_max = E²/(4r)', variables: '当 R = r (外阻 = 内阻) 时取得', condition: '阻抗匹配条件' },
+      { name: '效率', formula: 'η = U/E = R/(R+r)', variables: 'R 越大效率越高, R→∞ 时效率 → 100%', condition: '能量转换效率' },
+    ],
+    tips: [
+      '负载变化时路端电压随电流增大而减小 (U = E − Ir)',
+      '外电阻 R = 内阻 r 时输出功率最大, 但效率仅 50%',
+      '负载短路 (R → 0) 时电流最大 I_short = E/r, 路端电压接近 0',
+      '负载开路 (R → ∞) 时电流为 0, 路端电压 U = E',
+    ],
+  },
+  'resistance-law': {
+    title: '电阻定律 (导体电阻的决定因素)',
+    formulas: [
+      { name: '电阻定律', formula: 'R = ρL / S', variables: 'ρ: 电阻率(Ω·m), L: 导体长度, S: 横截面积', condition: '均匀导体温度恒定' },
+      { name: '电导与电导率', formula: 'G = 1/R, γ = 1/ρ', variables: 'G: 电导(S), γ: 电导率(S/m)', condition: '电导率是电阻率倒数' },
+      { name: '电阻串联', formula: 'R_total = R₁ + R₂ + ... + R_n', variables: '电流相同, 电压分配', condition: '串联电阻' },
+      { name: '电阻并联', formula: '1/R_total = 1/R₁ + 1/R₂ + ... + 1/R_n', variables: '电压相同, 电流分配', condition: '并联电阻' },
+    ],
+    tips: [
+      '电阻率 ρ 是材料的本征性质, 反映材料对电流的阻碍能力',
+      '金属电阻率随温度升高而增大; 半导体、绝缘体电阻率随温度降低',
+      '长度增大电阻增大, 横截面积增大电阻减小',
+      '伏安法测电阻: R = U/I (内接法测大电阻, 外接法测小电阻)',
+    ],
+  },
+  'coulomb-force-explore': {
+    title: '探究库仑力 (库仑定律)',
+    formulas: [
+      { name: '库仑定律', formula: 'F = k·q₁·q₂ / r²', variables: 'k = 1/(4πε₀) ≈ 9×10⁹ N·m²/C²', condition: '真空中的点电荷' },
+      { name: '常量 k 与 ε₀ 关系', formula: 'k = 1/(4πε₀)', variables: 'ε₀ = 8.85×10⁻¹² C²/(N·m²) 真空介电常量', condition: '定义关系' },
+      { name: '静电力叠加原理', formula: 'F_total = ΣFᵢ (矢量求和)', variables: '多个点电荷时, 合力为各力矢量和', condition: '线性叠加' },
+      { name: '静电力与重力对比', formula: 'F_库 / F_万 ≈ 10³⁹ (氢原子内)', variables: '静电力远强于万有引力', condition: '微观尺度' },
+    ],
+    tips: [
+      '库仑定律是静电学的基础, 与万有引力定律数学形式相似 (平方反比)',
+      '同号电荷相斥, 异号电荷相吸; 力沿电荷连线方向',
+      '库仑定律适用于真空中的点电荷 (或均匀带电球体)',
+      '静电感应使导体靠近电荷端感应异号电荷, 远端感应同号电荷',
+    ],
+  },
+  'electroscope': {
+    title: '验电器 (检测静电)',
+    formulas: [
+      { name: '箔片张角原理', formula: '箔片带同种电荷 → 排斥张开', variables: '张角大小反映箔片带电量', condition: '同种电荷互斥' },
+      { name: '互斥力公式 (定性)', formula: 'tan(θ/2) ∝ 电荷量 / (mg·L)', variables: 'θ: 张角, m: 箔片质量, L: 箔片长度', condition: '小角度近似' },
+      { name: '接地电势', formula: 'V_地 = 0 (约定)', variables: '接地导体与大地等势', condition: '静电接地原理' },
+      { name: '电量与电势关系', formula: 'Q = CV', variables: '验电器本体是一个电容 C, V 高 → Q 大', condition: '验电器等效为电容器' },
+    ],
+    tips: [
+      '验电器是检测物体是否粗略带电的仪器, 箔片张开角度反映大致电压 (非定量)',
+      '验电器不能直接判断电荷种类, 需使用已知电荷的带电体进行比对',
+      '静电计 (更精密) 可定量测量电压, 原理类似验电器但刻度校准',
+      '防尘罩内装干燥剂可降低漏电, 保持验电器灵敏度',
+    ],
+  },
+  'electrostatic-induction': {
+    title: '静电感应 (导体中电荷重新分布)',
+    formulas: [
+      { name: '自由电子移动 (定性)', formula: '自由电子逆电场方向移动 → 近端感应负电荷, 远端感应正电荷', variables: 'E: 外电场, 感应电荷产生反向电场', condition: '导体处于外电场中' },
+      { name: '静电平衡条件', formula: '导体内部 E = 0', variables: '导体内部电场为零, 电荷分布在外表面', condition: '稳态静电感应' },
+      { name: '感应电荷量', formula: '|q_感| < |q_外|', variables: '感应电荷量小于施感电荷量 (部分被抵消)', condition: '导体感应' },
+      { name: '接地时的感应', formula: '远端电荷流入大地 → 导体带净电荷', variables: '导体接地后不再呈电中性', condition: '接地静电感应' },
+    ],
+    tips: [
+      '静电感应是导体中的自由电子在外电场作用下定向移动的结果',
+      '达到静电平衡后导体内部电场为零, 表面电场垂直于表面',
+      '接地时远端电荷流入大地, 导体最终带与施感电荷异号的净电荷',
+      '静电感应是工业静电喷涂、复印的电子成像的基础原理之一',
+    ],
+  },
+  'electrostatic-shielding': {
+    title: '静电屏蔽 (法拉第笼效应)',
+    formulas: [
+      { name: '屏蔽条件', formula: '屏蔽腔内部 E = 0', variables: '空腔导体在外部电场中, 内部电场为零', condition: '静电平衡' },
+      { name: '高斯定律', formula: '∮E·dA = Q_内/ε₀', variables: '闭合曲面的电通量与曲面内净电荷成正比', condition: '静电场基本定律' },
+      { name: '场强叠加', formula: 'E_total = E_外 + E_感应 = 0 (内部)', variables: '外部电场与感应电荷电场在导体内部完全抵消', condition: '静电屏蔽原理' },
+      { name: '法拉第笼', formula: '金属壳/网使内部不受外部电场影响', variables: '常用于屏蔽高压电、保护灵敏电子设备', condition: '封闭导体壳' },
+    ],
+    tips: [
+      '封闭的导体壳 (法拉第笼) 完全屏蔽外部电场, 内部电场为零',
+      '接地导体壳还能屏蔽内部电场对外部的影响 (双向屏蔽)',
+      '静电屏蔽是电子设备金属外壳、同轴电缆外导体的工作原理',
+      '带电作业的工人穿戴金属网衣 (均压服) 利用静电屏蔽保障安全',
+    ],
+  },
+  'faraday-cup': {
+    title: '法拉第筒 (测量电荷)',
+    formulas: [
+      { name: '电荷收集', formula: 'Q = C · V', variables: 'C: 法拉第筒自身电容, V: 测量端电压', condition: '全部电荷被收集在内壁' },
+      { name: '内壁电荷分布', formula: '电荷只分布在外表面, 内壁无净电场', variables: '导体空腔内部电场为零', condition: '静电屏蔽原理' },
+      { name: '电流测量', formula: 'I = dQ/dt', variables: '通过测量总电荷随时间变化获得电流', condition: '电流定义' },
+      { name: '输入阻抗要求', formula: '测量仪表并联高阻抗, 防止电荷泄漏', variables: '高输入阻抗电压表保证测量准确', condition: '测量条件' },
+    ],
+    tips: [
+      '法拉第筒是测量粒子束总电荷的精密仪器, 全部进入的粒子电荷被金属内壁收集',
+      '外电场完全不影响内壁电荷分布, 测量不受外部干扰',
+      '应用: 测量电子/离子束流强度, 加速器束流诊断, 空间物理探测',
+      '与静电计或灵敏电流表配合使用, 可实时监测束流变化',
+    ],
+  },
+  'ampere-force': {
+    title: '安培力 (磁场对载流导线的作用)',
+    formulas: [
+      { name: '安培力大小', formula: 'F = BIL·sinθ', variables: 'B: 磁感应强度, I: 电流, L: 有效长度, θ: B 与导线夹角', condition: '匀强磁场中直导线' },
+      { name: '左手定则', formula: 'F 方向: 四指电流, 磁感线穿掌心, 拇指安培力方向', variables: '用左手判定安培力方向 (注意与右手定则区分)', condition: '左手定则' },
+      { name: '条件极值', formula: 'θ = 90° 时 F = BIL (最大); θ = 0° 时 F = 0', variables: '导线与磁场垂直时安培力最大, 平行时零', condition: '夹角变化影响安培力' },
+      { name: '力矩', formula: 'M = BIS·cosφ', variables: 'S: 线圈面积, φ: 线圈法线与磁场夹角', condition: '矩形载流线圈在磁场中' },
+    ],
+    tips: [
+      '安培力是洛伦兹力的宏观表现 (载流导线中的自由电子受洛伦兹力传递给导线)',
+      '安培力方向由左手定则判断 (F ⊥ B, F ⊥ I, F 垂直于 B 和 I 所在平面)',
+      '直流电动机、电流表、磁电式仪表都利用安培力',
+      '同向电流平行导线相互吸引, 反向电流相互排斥',
+    ],
+  },
+  'em-wave-hertz': {
+    title: '赫兹实验 (电磁振荡与电磁波)',
+    formulas: [
+      { name: 'LC 振荡角频率', formula: 'ω = 1/√(LC)', variables: 'L: 电感(H), C: 电容(F)', condition: '理想 LC 振荡电路' },
+      { name: '电磁波速度', formula: 'c = f·λ', variables: 'c = 3×10⁸ m/s (真空光速), 赫兹实验证实电磁波以光速传播', condition: '电磁波 = 光速' },
+      { name: '能量转化', formula: 'W = ½LI² + ½CV²', variables: '磁场能 ↔ 电场能 周期转换', condition: '电磁振荡中能量形式交替' },
+      { name: '辐射条件', formula: '开放电路 + 高频振荡 → 有效辐射', variables: '辐射功率 ∝ f⁴, 频率越高辐射能力越强', condition: '赫兹振子实验' },
+    ],
+    tips: [
+      '赫兹 1886-1888 实验首次证实麦克斯韦预言的电磁波真实存在',
+      '赫兹通过火花隙振荡器产生电磁波, 共振环接收, 证实了电磁波的反射、折射、偏振等特性',
+      '物理意义: 同一实验同时证实电磁波存在 + 电磁波速度 = 光速',
+      '赫兹实验为无线电通信奠定了基础 (马可尼/波波夫进一步发展)',
+    ],
+  },
 };
 
 const DEFAULT_FORMULA: FormulaDef = {
