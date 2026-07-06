@@ -151,7 +151,7 @@ npm run build          # vite build ≤ 5s
   - 模型: alpha-scattering, black-body, electron-diffraction, radiation-deflection, decay-statistics, cosmic-ray, neutron-discovery, fission-chain, bohr (bohr 文件 modelType='bohr', 已存在 sceneId 'bohr' 指向 'bohr-model')
   - 文件: `visualization/src/scenes/sceneRegistry.ts`
 
-- [x] **I6: 必修三 11 个 Model SceneConfig** (commit ` placeholder`)
+- [x] **I6: 必修三 11 个 Model SceneConfig** (commit `974a815`)
   - 模型: capacitor-charge, parallel-plate-capacitor, load-voltage, resistance-law, coulomb-force-explore, electroscope, electrostatic-induction, electrostatic-shielding, faraday-cup, ampere-force, em-wave-hertz (实际 11 个, 与 ModelType 注册一致)
   - 文件: `visualization/src/scenes/sceneRegistry.ts`
 
