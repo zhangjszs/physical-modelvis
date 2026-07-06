@@ -164,12 +164,13 @@ npm run build          # vite build ≤ 5s
 
 > 通用 `CanvasRenderer.ts` 已覆盖轨迹/向量/场线; 以下场景需要定制渲染
 
-- [~] **J1: 双摆/共振/受迫振动渲染器**
+- [x] **J1: 双摆/共振/受迫振动渲染器** (commit `placeholder`)
   - 文件: `visualization/src/rendering/chapter2Scenes.ts`
   - 内容: 双摆支架+双线+摆球+相位标记; 共振振幅-频率曲线+当前点; 受迫振动相位差可视化
   - 参考现有 `chapter3Scenes.ts` 模式
+  - 3 个渲染器: `drawDoublePendulumSyncScene`, `drawForcedVibrationScene`, `drawResonanceCurveScene`
 
-- [ ] **J2: 波动场景渲染器 (声波/水波/多普勒/干涉/衍射)**
+- [~] **J2: 波动场景渲染器 (声波/水波/多普勒/干涉/衍射)**
   - 文件: `visualization/src/rendering/wave optScenes.ts`
   - 内容: 波前圆+视疏区域(声波); 水波涟漪+衍射暗区; 多普勒频移+波纹压缩; 双缝干涉条纹; 单缝衍射光强包络; 薄膜等厚干涉
   - 使用 textureFactory 波纹纹理
