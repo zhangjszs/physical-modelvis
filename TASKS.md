@@ -179,12 +179,13 @@ npm run build          # vite build ≤ 5s
   - 文件: `visualization/src/rendering/emEquipmentScenes.ts`
   - 内容: U 形磁铁+水平导体棒+砝码+指针(电流天平); 铝框+阻尼振动曲线; 双线圈+感应电动势波形; LC 振荡电流+磁场能/磁场能条
 
-- [~] **J4: 量子/原子核渲染器 (α散射/衰变/裂变链)**
+- [x] **J4: 量子/原子核渲染器 (α散射/衰变/裂变链)** (commit `e6c43e8`)
   - 文件: `visualization/src/rendering/nuclearScenes.ts`
-  - 内容: 金核+α 粒子双曲线轨迹(多条+不同瞄准距); 放射性衰变 N-t 曲线+随机闪烁; 中子裂变链式反应树+分支
-  - 风格: 闪烁+拖尾效果
+  - 内容: 金核(Z可配)+α 粒子双曲线轨迹(5 条不同瞄准距)+大角度偏转闪烁; 泊松直方图+高斯拟合±σ 区+N 计数动画; 裂变级联树+U-235 发光+碎片+200 MeV/次+临界判别
+  - sceneId: alpha-scattering, decay-statistics, fission-chain
+  - 3 个渲染器: drawAlphaScatteringScene, drawDecayStatisticsScene, drawFissionChainScene
 
-- [ ] **J5: 热学/分子渲染器 (扩散/布朗/熔化曲线/热传递)**
+- [~] **J5: 热学/分子渲染器 (扩散/布朗/熔化曲线/热传递)**
   - 文件: `visualization/src/rendering/thermalScenes.ts`
   - 内容: 分子粒子随机运动+浓度梯度(扩散); 布朗运动颗粒抖动; 熔化/凝固 T-t 平台段; 三种传热 Qdot-t 对比曲线
 
@@ -220,7 +221,7 @@ npm run build          # vite build ≤ 5s
 | 阶段 | 状态 | 任务 |
 |------|------|------|
 | **I** | ✅ done | SceneConfig ×68 (I1-I7) |
-| **J** | 🔄 next (3/6) | 定制渲染器 ×6 (J1-J4 done, J5 next) |
+| **J** | 🔄 next (4/6) | 定制渲染器 ×6 (J1-J4 done, J5 next) |
 | **K** | ⏳ | FormulaPanel 扩展 ×4 (K1-K4) |
 | **合计** | | **17 任务**, 覆盖 68 个 Model 可视化 + 36 个公式集 + 6 个渲染器 |
 
