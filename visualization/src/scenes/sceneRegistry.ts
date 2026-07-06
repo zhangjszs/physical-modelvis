@@ -3326,6 +3326,312 @@ export const SCENES: SceneConfig[] = [
       };
     },
   },
+
+  // ==========================================================
+  // 必修三 (第十二章 电能/静电/电路) — 12 个 Model SceneConfig
+  // ==========================================================
+
+  {
+    id: 'capacitor-charge',
+    name: '电容充放电 (RC 暂态电路)',
+    model: 'capacitor-charge' as const,
+    parameters: [
+      { name: 'resistance', label: '电阻 R', unit: 'Ω', value: 1000, min: 1, max: 1e6, step: 100, default: 1000, description: '回路电阻' },
+      { name: 'capacitance', label: '电容 C', unit: 'μF', value: 100, min: 0.001, max: 1000, step: 1, default: 100, description: '电容值 (μF)' },
+      { name: 'emf', label: '电动势 E', unit: 'V', value: 10, min: 0.1, max: 100, step: 0.5, default: 10, description: '电源电动势' },
+      { name: 'mode', label: '充/放电 (0=充电, 1=放电)', unit: '', value: 0, min: 0, max: 1, step: 1, default: 0, description: '充电: Uc 从 0 升到 E; 放电: Uc 从 E 降到 0' },
+      { name: 'duration', label: '模拟时长 (5τ)', unit: 's', value: 5, min: 2, max: 20, step: 0.5, default: 5, description: '仿真总时长 (对应 5τ)' },
+    ],
+    buildProblem: (params) => {
+      const resistance = params['resistance'] ?? 1000;
+      const capacitanceMuF = params['capacitance'] ?? 100;
+      const capacitance = (capacitanceMuF * 1e-6);
+      const emf = params['emf'] ?? 10;
+      const modeNum = params['mode'] ?? 0;
+      const mode = modeNum >= 1 ? 'discharge' as const : 'charge' as const;
+      const duration = params['duration'] ?? 5;
+      return {
+        id: `capacitor-charge-${Date.now()}`,
+        title: '电容充放电 (RC 暂态电路)',
+        model: 'capacitor-charge' as const,
+        bodies: [],
+        constraints: { capacitor: { resistance, capacitance, emf, mode } },
+        environment: {},
+        timeConfig: { duration, dt: 0.01, sampleCount: 100 },
+      };
+    },
+  },
+  {
+    id: 'parallel-plate-capacitor',
+    name: '平行板电容器因素 (C=εr·S/4πkd)',
+    model: 'parallel-plate-capacitor' as const,
+    parameters: [
+      { name: 'area', label: '极板面积 S', unit: 'm²', value: 0.01, min: 1e-4, max: 1, step: 1e-4, default: 0.01, description: '极板面积' },
+      { name: 'distance', label: '极板距离 d', unit: 'mm', value: 1, min: 0.01, max: 10, step: 0.01, default: 1, description: '极板间距 (mm)' },
+      { name: 'epsilonR', label: '相对介电常数 εr', unit: '', value: 3, min: 1, max: 100, step: 1, default: 3, description: '介质相对介电常数 (空气≈1)' },
+      { name: 'duration', label: '模拟时长', unit: 's', value: 5, min: 2, max: 10, step: 0.5, default: 5, description: '仿真总时长' },
+    ],
+    buildProblem: (params) => {
+      const area = params['area'] ?? 0.01;
+      const distanceMm = params['distance'] ?? 1;
+      const distance = distanceMm / 1000;
+      const epsilonR = params['epsilonR'] ?? 3;
+      const duration = params['duration'] ?? 5;
+      return {
+        id: `parallel-plate-capacitor-${Date.now()}`,
+        title: '平行板电容器因素',
+        model: 'parallel-plate-capacitor' as const,
+        bodies: [],
+        constraints: { parallelPlate: { area, distance, epsilonR } },
+        environment: {},
+        timeConfig: { duration, dt: 0.01, sampleCount: 100 },
+      };
+    },
+  },
+  {
+    id: 'load-voltage',
+    name: '路端电压与负载 (U=E−Ir)',
+    model: 'load-voltage' as const,
+    parameters: [
+      { name: 'emf', label: '电动势 E', unit: 'V', value: 12, min: 0.1, max: 50, step: 0.5, default: 12, description: '电源电动势' },
+      { name: 'internalResistance', label: '内阻 r', unit: 'Ω', value: 2, min: 0, max: 100, step: 0.5, default: 2, description: '电源内阻' },
+      { name: 'loadRMin', label: '负载电阻下限', unit: 'Ω', value: 1, min: 0.1, max: 100, step: 0.5, default: 1, description: '负载扫描范围下限' },
+      { name: 'loadRMax', label: '负载电阻上限', unit: 'kΩ', value: 10, min: 0.01, max: 100, step: 0.5, default: 10, description: '负载扫描范围上限 (kΩ)' },
+      { name: 'duration', label: '模拟时长', unit: 's', value: 5, min: 2, max: 10, step: 0.5, default: 5, description: '仿真总时长' },
+    ],
+    buildProblem: (params) => {
+      const emf = params['emf'] ?? 12;
+      const internalResistance = params['internalResistance'] ?? 2;
+      const loadRMin = params['loadRMin'] ?? 1;
+      const loadRMax = (params['loadRMax'] ?? 10) * 1000;
+      const duration = params['duration'] ?? 5;
+      return {
+        id: `load-voltage-${Date.now()}`,
+        title: '路端电压与负载',
+        model: 'load-voltage' as const,
+        bodies: [],
+        constraints: { loadVoltage: { emf, internalResistance, loadRange: [loadRMin, loadRMax] } },
+        environment: {},
+        timeConfig: { duration, dt: 0.01, sampleCount: 100 },
+      };
+    },
+  },
+  {
+    id: 'resistance-law',
+    name: '电阻定律 (R=ρ·L/S)',
+    model: 'resistance-law' as const,
+    parameters: [
+      { name: 'length', label: '导线长度 L', unit: 'm', value: 1, min: 0.01, max: 100, step: 0.01, default: 1, description: '导线长度' },
+      { name: 'diameter', label: '导线直径 d', unit: 'mm', value: 1, min: 0.1, max: 10, step: 0.1, default: 1, description: '导线直径 (mm)' },
+      { name: 'material', label: '材料 (0=铜 1=铁 2=镍铬)', unit: '', value: 0, min: 0, max: 2, step: 1, default: 0, description: '导体材料' },
+      { name: 'duration', label: '模拟时长', unit: 's', value: 5, min: 2, max: 10, step: 0.5, default: 5, description: '仿真总时长' },
+    ],
+    buildProblem: (params) => {
+      const length = params['length'] ?? 1;
+      const diameter = params['diameter'] ?? 1;
+      const matNum = params['material'] ?? 0;
+      const material = (matNum === 1 ? 'Fe' : matNum === 2 ? 'Nichrome' : 'Cu') as 'Cu' | 'Fe' | 'Nichrome';
+      const duration = params['duration'] ?? 5;
+      return {
+        id: `resistance-law-${Date.now()}`,
+        title: '电阻定律',
+        model: 'resistance-law' as const,
+        bodies: [],
+        constraints: { resistanceLaw: { length, diameter, material } },
+        environment: {},
+        timeConfig: { duration, dt: 0.01, sampleCount: 100 },
+      };
+    },
+  },
+  {
+    id: 'coulomb-force-explore',
+    name: '探究电荷间作用力 (库仑定律)',
+    model: 'coulomb-force-explore' as const,
+    parameters: [
+      { name: 'q1', label: '电荷 q₁', unit: 'μC', value: 1, min: 0.01, max: 100, step: 0.1, default: 1, description: '电荷 1 电量' },
+      { name: 'q2', label: '电荷 q₂', unit: 'μC', value: 1, min: 0.01, max: 100, step: 0.1, default: 1, description: '电荷 2 电量' },
+      { name: 'distance', label: '间距 r', unit: 'cm', value: 5, min: 0.1, max: 200, step: 0.5, default: 5, description: '两电荷间距' },
+      { name: 'mode', label: '探究模式 (0=改变q, 1=改变r)', unit: '', value: 0, min: 0, max: 1, step: 1, default: 0, description: 'varyQ: 固定 r 改 q; varyR: 固定 q 改 r' },
+      { name: 'duration', label: '模拟时长', unit: 's', value: 5, min: 2, max: 10, step: 0.5, default: 5, description: '仿真总时长' },
+    ],
+    buildProblem: (params) => {
+      const q1 = params['q1'] ?? 1;
+      const q2 = params['q2'] ?? 1;
+      const distance = params['distance'] ?? 5;
+      const modeNum = params['mode'] ?? 0;
+      const mode = modeNum >= 1 ? 'varyR' as const : 'varyQ' as const;
+      const duration = params['duration'] ?? 5;
+      return {
+        id: `coulomb-force-explore-${Date.now()}`,
+        title: '探究电荷间作用力',
+        model: 'coulomb-force-explore' as const,
+        bodies: [],
+        constraints: { coulombForce: { q1, q2, distance, mode } },
+        environment: {},
+        timeConfig: { duration, dt: 0.01, sampleCount: 100 },
+      };
+    },
+  },
+  {
+    id: 'electroscope',
+    name: '验电器 (箔片张角 vs 电量)',
+    model: 'electroscope' as const,
+    parameters: [
+      { name: 'charge', label: '带电量 q', unit: 'μC', value: 1, min: 0.01, max: 50, step: 0.1, default: 1, description: '验电器带电量' },
+      { name: 'foilLength', label: '箔片长度 L', unit: 'cm', value: 5, min: 1, max: 20, step: 0.5, default: 5, description: '箔片长度 (cm)' },
+      { name: 'foilMass', label: '箔片质量 m', unit: 'g', value: 1, min: 0.01, max: 10, step: 0.01, default: 1, description: '箔片质量 (g)' },
+      { name: 'duration', label: '模拟时长', unit: 's', value: 5, min: 2, max: 10, step: 0.5, default: 5, description: '仿真总时长' },
+    ],
+    buildProblem: (params) => {
+      const charge = params['charge'] ?? 1;
+      const foilLength = params['foilLength'] ?? 5;
+      const foilMass = params['foilMass'] ?? 1;
+      const duration = params['duration'] ?? 5;
+      return {
+        id: `electroscope-${Date.now()}`,
+        title: '验电器',
+        model: 'electroscope' as const,
+        bodies: [],
+        constraints: { electroscope: { charge, foilLength, foilMass } },
+        environment: {},
+        timeConfig: { duration, dt: 0.01, sampleCount: 100 },
+      };
+    },
+  },
+  {
+    id: 'electrostatic-induction',
+    name: '静电感应 (近/远端感应电荷)',
+    model: 'electrostatic-induction' as const,
+    parameters: [
+      { name: 'chargeC', label: '带电体 C 电量', unit: 'μC', value: 1, min: 0.01, max: 100, step: 0.1, default: 1, description: '外部带电体电量' },
+      { name: 'separation', label: 'A/B 间隙', unit: 'cm', value: 2, min: 0.1, max: 30, step: 0.5, default: 2, description: '两导体间隙 (cm)' },
+      { name: 'distanceAC', label: 'A 到 C 的距离', unit: 'cm', value: 10, min: 0.5, max: 100, step: 0.5, default: 10, description: '导体 A 左端到 C 的距离' },
+      { name: 'duration', label: '模拟时长', unit: 's', value: 5, min: 2, max: 10, step: 0.5, default: 5, description: '仿真总时长' },
+    ],
+    buildProblem: (params) => {
+      const chargeC = params['chargeC'] ?? 1;
+      const separation = params['separation'] ?? 2;
+      const distanceAC = params['distanceAC'] ?? 10;
+      const duration = params['duration'] ?? 5;
+      return {
+        id: `electrostatic-induction-${Date.now()}`,
+        title: '静电感应',
+        model: 'electrostatic-induction' as const,
+        bodies: [],
+        constraints: { electrostaticInduction: { chargeC, separation, distanceAC } },
+        environment: {},
+        timeConfig: { duration, dt: 0.01, sampleCount: 100 },
+      };
+    },
+  },
+  {
+    id: 'electrostatic-shielding',
+    name: '静电屏蔽 (接地 vs 不接地)',
+    model: 'electrostatic-shielding' as const,
+    parameters: [
+      { name: 'externalField', label: '外部电场 E', unit: 'V/m', value: 500, min: 0, max: 1000, step: 10, default: 500, description: '外部电场强度' },
+      { name: 'cavityCharge', label: '空腔电荷', unit: 'μC', value: 0, min: 0, max: 10, step: 0.1, default: 0, description: '空腔内电荷 (μC)' },
+      { name: 'isGrounded', label: '接地 (0=不接地 1=接地)', unit: '', value: 1, min: 0, max: 1, step: 1, default: 1, description: '导体是否接地' },
+      { name: 'duration', label: '模拟时长', unit: 's', value: 5, min: 2, max: 10, step: 0.5, default: 5, description: '仿真总时长' },
+    ],
+    buildProblem: (params) => {
+      const externalField = params['externalField'] ?? 500;
+      const cavityCharge = params['cavityCharge'] ?? 0;
+      const isGrounded = (params['isGrounded'] ?? 1) >= 1;
+      const duration = params['duration'] ?? 5;
+      return {
+        id: `electrostatic-shielding-${Date.now()}`,
+        title: '静电屏蔽',
+        model: 'electrostatic-shielding' as const,
+        bodies: [],
+        constraints: { electrostaticShielding: { externalField, cavityCharge, isGrounded } },
+        environment: {},
+        timeConfig: { duration, dt: 0.01, sampleCount: 100 },
+      };
+    },
+  },
+  {
+    id: 'faraday-cup',
+    name: '法拉第圆筒 (内表面电荷=0)',
+    model: 'faraday-cup' as const,
+    parameters: [
+      { name: 'totalCharge', label: '圆筒总电荷 Q', unit: 'μC', value: 5, min: 0.1, max: 100, step: 0.1, default: 5, description: '圆筒总电量' },
+      { name: 'innerProbeDepth', label: '内探针深度', unit: '', value: 0, min: 0, max: 1, step: 0.05, default: 0, description: '内壁探针深度 (0=内壁, 1=腔体深处)' },
+      { name: 'outerProbeDepth', label: '外探针深度', unit: '', value: 1, min: 0, max: 1, step: 0.05, default: 1, description: '外壁探针深度 (0=表面, 1=外侧)' },
+      { name: 'duration', label: '模拟时长', unit: 's', value: 5, min: 2, max: 10, step: 0.5, default: 5, description: '仿真总时长' },
+    ],
+    buildProblem: (params) => {
+      const totalCharge = params['totalCharge'] ?? 5;
+      const innerProbeDepth = params['innerProbeDepth'] ?? 0;
+      const outerProbeDepth = params['outerProbeDepth'] ?? 1;
+      const duration = params['duration'] ?? 5;
+      return {
+        id: `faraday-cup-${Date.now()}`,
+        title: '法拉第圆筒',
+        model: 'faraday-cup' as const,
+        bodies: [],
+        constraints: { faradayCup: { totalCharge, innerProbeDepth, outerProbeDepth } },
+        environment: {},
+        timeConfig: { duration, dt: 0.01, sampleCount: 100 },
+      };
+    },
+  },
+  {
+    id: 'ampere-force',
+    name: '安培力因素 (F=BIL·sinθ)',
+    model: 'ampere-force' as const,
+    parameters: [
+      { name: 'B', label: '磁感应强度 B', unit: 'T', value: 0.5, min: 0.01, max: 5, step: 0.01, default: 0.5, description: '匀强磁场强度' },
+      { name: 'I', label: '电流 I', unit: 'A', value: 2, min: 0, max: 20, step: 0.1, default: 2, description: '导线电流' },
+      { name: 'L', label: '导线长度 L', unit: 'm', value: 0.2, min: 0.01, max: 2, step: 0.01, default: 0.2, description: '导线有效长度' },
+      { name: 'angle', label: '导线与磁场夹角 θ', unit: '°', value: 30, min: 0, max: 90, step: 1, default: 30, description: '电流与磁场夹角' },
+      { name: 'duration', label: '模拟时长', unit: 's', value: 5, min: 2, max: 10, step: 0.5, default: 5, description: '仿真总时长' },
+    ],
+    buildProblem: (params) => {
+      const B = params['B'] ?? 0.5;
+      const I = params['I'] ?? 2;
+      const L = params['L'] ?? 0.2;
+      const angle = params['angle'] ?? 30;
+      const duration = params['duration'] ?? 5;
+      return {
+        id: `ampere-force-${Date.now()}`,
+        title: '安培力因素',
+        model: 'ampere-force' as const,
+        bodies: [],
+        constraints: { ampereForce: { B, I, L, angle } },
+        environment: {},
+        timeConfig: { duration, dt: 0.01, sampleCount: 100 },
+      };
+    },
+  },
+  {
+    id: 'em-wave-hertz',
+    name: '赫兹电磁波实验 (LC振荡+驻波)',
+    model: 'em-wave-hertz' as const,
+    parameters: [
+      { name: 'frequency', label: '振荡频率 f', unit: 'MHz', value: 100, min: 0.01, max: 300, step: 0.5, default: 100, description: 'LC 振荡频率 (MHz)' },
+      { name: 'turns', label: '线圈匝数 N', unit: '匝', value: 10, min: 1, max: 100, step: 1, default: 10, description: '接收线圈匝数' },
+      { name: 'sparkGap', label: '火花间隙', unit: 'mm', value: 1, min: 0.1, max: 10, step: 0.1, default: 1, description: '振子火花间隙 (mm)' },
+      { name: 'distance', label: '接收端距离 d', unit: 'm', value: 5, min: 0.5, max: 100, step: 0.5, default: 5, description: '接收端到发射端距离' },
+      { name: 'duration', label: '模拟时长', unit: 's', value: 5, min: 2, max: 10, step: 0.5, default: 5, description: '仿真总时长' },
+    ],
+    buildProblem: (params) => {
+      const frequency = (params['frequency'] ?? 100) * 1e6;
+      const turns = params['turns'] ?? 10;
+      const sparkGap = params['sparkGap'] ?? 1;
+      const distance = params['distance'] ?? 5;
+      const duration = params['duration'] ?? 5;
+      return {
+        id: `em-wave-hertz-${Date.now()}`,
+        title: '赫兹电磁波实验',
+        model: 'em-wave-hertz' as const,
+        bodies: [],
+        constraints: { hertzExperiment: { frequency, turns, sparkGap, distance } },
+        environment: {},
+        timeConfig: { duration, dt: 0.01, sampleCount: 100 },
+      };
+    },
+  },
 ];
 export function getDefaultParams(sceneId: string): Record<string, number> {
   const scene = SCENES.find(s => s.id === sceneId);

@@ -151,11 +151,11 @@ npm run build          # vite build ≤ 5s
   - 模型: alpha-scattering, black-body, electron-diffraction, radiation-deflection, decay-statistics, cosmic-ray, neutron-discovery, fission-chain, bohr (bohr 文件 modelType='bohr', 已存在 sceneId 'bohr' 指向 'bohr-model')
   - 文件: `visualization/src/scenes/sceneRegistry.ts`
 
-- [~] **I6: 必修三 12 个 Model SceneConfig**
-  - 模型: capacitor-charge, parallel-plate-capacitor, load-voltage, resistance-law, coulomb-force-explore, electroscope, electrostatic-induction, electrostatic-shielding, faraday-cup, ampere-force, em-wave-hertz
+- [x] **I6: 必修三 11 个 Model SceneConfig** (commit ` placeholder`)
+  - 模型: capacitor-charge, parallel-plate-capacitor, load-voltage, resistance-law, coulomb-force-explore, electroscope, electrostatic-induction, electrostatic-shielding, faraday-cup, ampere-force, em-wave-hertz (实际 11 个, 与 ModelType 注册一致)
   - 文件: `visualization/src/scenes/sceneRegistry.ts`
 
-- [ ] **I7: 仪器测量 + 工具场景 SceneConfig + 特殊 entry**
+- [~] **I7: 仪器测量 + 工具场景 SceneConfig + 特殊 entry**
   - 模型: multimeter (多用电表), vernier-caliper (游标卡尺), micrometer (螺旋测微器)
   - 这三个需要特殊 canvas 渲染, 在后续 Stage J 处理定制渲染器
   - 文件: `visualization/src/scenes/sceneRegistry.ts`
