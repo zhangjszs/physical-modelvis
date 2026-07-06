@@ -446,6 +446,219 @@ const FORMULA_MAP: Record<string, FormulaDef> = {
       '与运动状态无关：静止、匀速、加速时都成立',
     ],
   },
+
+  // ========== 选必二 第 2 章 电磁感应 ==========
+  'current-balance': {
+    title: '电流天平 (安培力 F=BIL)',
+    formulas: [
+      { name: '安培力', formula: 'F = BIL', variables: 'B: 磁感应强度(T), I: 电流(A), L: 导体棒有效长度(m)', condition: 'B⊥L, 匀强磁场' },
+      { name: '天平平衡', formula: 'F = mg', variables: 'm: 砝码质量(kg), g: 重力加速度', condition: '天平水平平衡时' },
+      { name: '磁感应强度', formula: 'B = F / (IL)', variables: '由天平平衡求 B' },
+      { name: '多匝线圈安培力', formula: 'F = NBIL', variables: 'N: 线圈匝数', condition: 'N 匝完全相同线圈' },
+    ],
+    tips: [
+      '电流天平是测量磁场强度的精密仪器',
+      '安培力方向由左手定则判断',
+      '电流天平可通过已知 B 测 I, 或通过已知 I 测 B',
+      '天平平衡时安培力与砝码重力相等',
+    ],
+  },
+  'eddy-current': {
+    title: '涡流 (电磁感应 + 热效应)',
+    formulas: [
+      { name: '法拉第电磁感应定律', formula: 'e = -dΦ/dt', variables: 'Φ: 磁通量(Wb), t: 时间(s)' },
+      { name: '涡流功率密度', formula: 'P = π²B²d²f² / (6ρ)', variables: 'd: 材料厚度(m), f: 磁场变化频率(Hz), ρ: 电阻率(Ω·m)', condition: '交变磁场中导体圆盘' },
+      { name: '涡流阻尼力', formula: 'F_eddy = -k · v', variables: 'k: 阻尼系数, v: 导体相对磁场运动速度', condition: '方向始终阻碍相对运动' },
+      { name: '集肤深度', formula: 'δ = √(2ρ / (ωμ))', variables: 'ω: 角频率, μ: 磁导率', condition: '高频时电流集中在表面' },
+    ],
+    tips: [
+      '涡流是电磁感应在整块导体中形成的闭合电流',
+      '电磁炉、电磁阻尼、金属探测器都是涡流应用',
+      '硅钢片叠压铁芯可减小涡流损耗',
+      '集肤深度 δ 随频率升高而减小',
+    ],
+  },
+  'em-damping': {
+    title: '电磁阻尼 (涡流制动)',
+    formulas: [
+      { name: '阻尼力', formula: 'F_d = -k · v', variables: 'k: 阻尼系数(N·s/m), v: 速度(m/s)', condition: '方向始终与速度方向相反' },
+      { name: '能量损耗', formula: 'E_diss = ½mv₀²', variables: 'm: 振子质量, v₀: 初始速度', condition: '振动停止时全部动能转化为热量' },
+      { name: '阻尼时间常数', formula: 'τ = m / k', variables: '振幅衰减到 1/e 所需时间' },
+      { name: '阻尼比', formula: 'ζ = k / (2√(mω₀²))', variables: 'ω₀: 固有角频率', condition: 'ζ > 0 即存在阻尼' },
+    ],
+    tips: [
+      '电磁阻尼本质是涡流受到的安培力阻碍相对运动',
+      '灵敏电流表铝框利用电磁阻尼使指针快速稳定',
+      '电磁阻尼力与速度成正比, 速度越大阻尼越强',
+      '阻尼比 ζ 决定振动衰减快慢',
+    ],
+  },
+  'mutual-inductance': {
+    title: '互感 (双线圈耦合)',
+    formulas: [
+      { name: '互感电动势', formula: 'E₂ = -M · dI₁/dt', variables: 'M: 互感系数(H), I₁: 初级线圈电流', condition: '初级线圈电流变化时次级线圈产生的电动势' },
+      { name: '螺线管互感系数', formula: 'M = μ₀n₁n₂A / l', variables: 'n₁,n₂: 单位长度匝数, A: 截面积, l: 长度' },
+      { name: '与耦合系数关系', formula: 'M = k√(L₁L₂)', variables: 'k: 耦合系数(0≤k≤1), L₁,L₂: 自感系数' },
+      { name: '互感能量', formula: 'W = M·I₁·I₂', variables: '两线圈电流同时存在时储存的磁场能' },
+    ],
+    tips: [
+      '互感现象是一个线圈电流变化在另一个线圈中产生感应电动势',
+      '变压器利用互感原理实现电压变换',
+      '理想耦合(k=1)的两线圈完全磁通交链',
+      '互感系数与线圈截面积、匝数、相对位置有关',
+    ],
+  },
+  'self-inductance': {
+    title: '自感 (线圈自身电磁感应)',
+    formulas: [
+      { name: '自感电动势', formula: 'E = -L · dI/dt', variables: 'L: 自感系数(H), I: 线圈自身电流', condition: '电流变化时线圈自身产生的感应电动势' },
+      { name: '螺线管自感系数', formula: 'L = μ₀n²A / l', variables: 'n: 单位长度匝数, A: 截面积, l: 长度' },
+      { name: '线圈储能', formula: 'W = ½LI²', variables: '线圈中磁场储存的能量(J)' },
+      { name: 'RL 电路时间常数', formula: 'τ = L / R', variables: 'R: 回路电阻', condition: '电流衰减到 1/e 所需时间' },
+    ],
+    tips: [
+      '自感系数 L 描述线圈阻碍电流变化的能力',
+      '镇流器利用自感产生瞬时高压点燃灯管',
+      '自感线圈在直流稳态时相当于导线(dI/dt=0)',
+      '断开含大自感线圈的开关时会产生电弧',
+    ],
+  },
+
+  // ========== 选必二 第 3 章 交变电流与电磁波 ==========
+  'em-wave-communication': {
+    title: '电磁波发射 (开放电路 + LC 振荡)',
+    formulas: [
+      { name: '电磁波波速', formula: 'c = fλ', variables: 'c = 3×10⁸ m/s, f: 频率, λ: 波长' },
+      { name: 'LC 振荡周期', formula: 'T = 2π√(LC)', variables: 'L: 电感(H), C: 电容(F)' },
+      { name: '电磁振荡能量', formula: 'W = ½LI² + ½CV²', variables: '磁场能 + 电场能', condition: '总能量守恒' },
+      { name: '开放电路辐射', formula: 'P ∝ f⁴', variables: '辐射功率与频率四次方成正比', condition: '频率越高辐射能力越强' },
+    ],
+    tips: [
+      '电磁波由 LC 振荡电路产生, 频率 f = 1/(2π√(LC))',
+      '开放电路(天线+地线)可提高电磁辐射效率',
+      '调制(调幅/调频)后才能携带信息发射',
+      '电磁波在真空中以光速传播, 速度约为 3×10⁸ m/s',
+    ],
+  },
+  'em-spectrum': {
+    title: '电磁波谱 (按频率排序)',
+    formulas: [
+      { name: '波速-波长-频率', formula: 'c = fλ', variables: 'c = 3×10⁸ m/s (真空中光速)' },
+      { name: '光子能量', formula: 'E = hf = hc/λ', variables: 'h = 6.63×10⁻³⁴ J·s (普朗克常量)' },
+      { name: '频率范围 (从低到高)', formula: 'f_radio < f_micro < f_IR < f_vis < f_UV < f_X < f_γ', variables: '无线电波→微波→红外→可见→紫外→X射线→γ射线' },
+      { name: '可见光波长范围', formula: 'λ ≈ 400-700 nm', variables: '紫光到红光, 频率约 4.3-7.5×10¹⁴ Hz' },
+    ],
+    tips: [
+      '电磁波谱按频率(或波长)从低到高排列',
+      '无线电波用于通信和广播, 微波用于雷达和加热',
+      '红外线和紫外线不可见, 可见光只占电磁波谱极小段',
+      'γ射线能量最高, 穿透能力最强, 可用于肿瘤治疗',
+    ],
+  },
+
+  // ========== 选必二 第 4 章 传感器 ==========
+  'hall-effect': {
+    title: '霍尔效应 (VH=IB/nqd)',
+    formulas: [
+      { name: '霍尔电压', formula: 'V_H = IB / (nqd)', variables: 'I: 电流(A), B: 磁感应强度(T), n: 载流子浓度, q: 载流子电量, d: 导体厚度(m)' },
+      { name: '霍尔系数', formula: 'R_H = 1 / (nq)', variables: '仅由载流子性质决定' },
+      { name: '电流微观表达式', formula: 'I = nqvdA', variables: 'v: 载流子漂移速度, A: 横截面积' },
+      { name: '霍尔元件灵敏度', formula: 'K_H = 1 / (nqd)', variables: 'K_H 越大, 霍尔电压越高' },
+    ],
+    tips: [
+      '霍尔效应: 载流导体在磁场中产生横向电势差',
+      '霍尔电压正负可判断载流子类型 (空穴/电子)',      '霍尔元件用于测磁场/电流/位置等',      '半导体材料载流子浓度低, 霍尔效应更显著',    ],
+  },
+  'reed-switch': {
+    title: '干簧管 (磁场吸合原理)',
+    formulas: [
+      { name: '螺线管内部磁场', formula: 'B = μ₀nI', variables: 'μ₀: 真空磁导率, n: 单位长度匝数, I: 电流', condition: '长直螺线管内部' },
+      { name: '吸合条件', formula: 'F_m > F_spring', variables: 'F_m: 磁力, F_spring: 簧片弹力', condition: '磁场使两簧片磁化吸合' },
+      { name: '磁化强度', formula: 'M = χ·H', variables: 'χ: 磁化率, H: 磁场强度', condition: '铁磁材料磁化' },
+      { name: '磁滞回线', formula: 'B-H 曲线', variables: '有剩磁和矫顽力', condition: '铁磁材料特有' },
+    ],
+    tips: [
+      '干簧管是一种磁控开关, 玻璃管内封装两个铁磁簧片',
+      '外加磁场时簧片磁化吸合, 电路接通',
+      '撤去磁场, 簧片弹力使其断开',
+      '干簧管广泛用于门磁传感器、液位计等',
+    ],
+  },
+  'photoresistor': {
+    title: '光敏电阻 (R-L 特性曲线)',
+    formulas: [
+      { name: '照度-电阻特性', formula: 'R = R₀ · (E/E₀)^{−α}', variables: 'E: 照度(lx), α: 灵敏度指数(0.5-1), R₀: E₀ 时的电阻' },
+      { name: '欧姆定律', formula: 'I = V / R', variables: 'R 随照度变化, 故 I 随照度变化' },
+      { name: '电功率', formula: 'P = V² / R', variables: '外加电压恒定时功率与照度正相关' },
+      { name: '相对变化率', formula: '(R₀ − R) / R₀ = 1 − (E/E₀)^{−α}', variables: '光照越强电阻变化越大' },
+    ],
+    tips: [
+      '光敏电阻 (LDR) 阻值随光照增强而减小',
+      '常用材料: 硫化镉(CdS)、硒化镉(CdSe)',
+      'α 越大, 照度-电阻曲线越陡, 灵敏度越高',
+      '光敏电阻响应速度较慢, 不适用于高频场合',
+    ],
+  },
+  'thermistor': {
+    title: '热敏电阻 (NTC 指数特性)',
+    formulas: [
+      { name: 'NTC 电阻-温度特性', formula: 'R = R₀ · exp(B·(1/T − 1/T₀))', variables: 'B: 材料系数(K), T: 绝对温度(K), R₀: T₀ 时电阻' },
+      { name: '温度系数', formula: 'α = −B / T²', variables: '负温度系数 (NTC) 电阻随温度升高而减小' },
+      { name: '电阻变化率', formula: '(R − R₀)/R₀ = exp(B·(1/T − 1/T₀)) − 1', variables: '温度升高时阻值迅速下降' },
+      { name: '线性化近似 (小ΔT)', formula: 'R ≈ R₀ · (1 + α · (T − T₀))', variables: 'ΔT 较小时可近似线性' },
+    ],
+    tips: [
+      '负温度系数(NTC)热敏电阻: 温度升高 → 电阻减小',
+      '正温度系数(PTC)热敏电阻: 温度升高 → 电阻增大',
+      '热敏电阻广泛用于测温、温度补偿、过流保护',
+      'B 值越大, 温度灵敏度越高',
+    ],
+  },
+  'strain-gauge': {
+    title: '应变片 (惠斯通电桥 + ΔR/R=Kε)',
+    formulas: [
+      { name: '应变效应', formula: 'ΔR/R = Kε', variables: 'K: 灵敏系数(~2), ε: 应变(ΔL/L)' },
+      { name: '应变定义', formula: 'ε = ΔL/L', variables: 'ΔL: 长度变化, L: 原长' },
+      { name: '单臂电桥输出', formula: 'V_out ≈ V_ex · Kε / 4', variables: 'V_ex: 激励电压, 单臂工作时' },
+      { name: '全桥输出', formula: 'V_out = V_ex · Kε', variables: '四片应变片组成全桥, 灵敏度提高 4 倍' },
+    ],
+    tips: [
+      '应变片将机械形变转化为电阻变化',
+      '惠斯通电桥将微小电阻变化转为电压信号',
+      '全桥接法灵敏度最高, 温度补偿效果最好',
+      '应变片广泛用于称重传感器、压力传感器',
+    ],
+  },
+  'security-alarm': {
+    title: '报警电路 (与非门逻辑)',
+    formulas: [
+      { name: '与非门逻辑', formula: 'Y = (A·B)\' = A\' + B\'', variables: 'A,B: 输入(0/1), Y: 输出, \' 表示取反', condition: '先与后非' },
+      { name: '真值表', formula: '00→1, 01→1, 10→1, 11→0', variables: '仅当所有输入为 1 时输出为 0' },
+      { name: '逻辑等价', formula: 'Y = NOT(A AND B)', variables: '可实现任何逻辑功能的通用门' },
+      { name: '布尔代数', formula: '(XY)\' = X\' + Y\' (德摩根定理)', variables: '与非门+非门 = 与门' },
+    ],
+    tips: [
+      '报警电路核心是逻辑门判断各种传感器条件',
+      '与非门: 所有输入高 → 输出低; 任一输入低 → 输出高',
+      '布尔代数用于化简复杂逻辑表达式',
+      '门磁/红外/烟感多传感器通过与非门组合触发报警',
+    ],
+  },
+  'light-control-switch': {
+    title: '光控开关 (LDR 分压 + 三极管驱动)',
+    formulas: [
+      { name: '分压电路输出电压', formula: 'V_out = V_cc · R_fixed / (R_LDR + R_fixed)', variables: 'V_cc: 电源电压, R_LDR: 光敏电阻, R_fixed: 固定电阻' },
+      { name: '三极管基极电流', formula: 'I_b = (V_out − V_BE) / R_b', variables: 'V_BE ≈ 0.7V (硅管), R_b: 基极限流电阻' },
+      { name: '驱动条件', formula: 'I_b > I_c / β', variables: 'β: 电流放大系数, I_c: 集电极所需电流(继电器/LED)' },
+      { name: '照度阈值判断', formula: '当 V_out > V_BE + I_b·R_b 时三极管导通', variables: '调节 R_fixed 可改变光照阈值' },
+    ],
+    tips: [
+      '光控开关利用光敏电阻阻值变化实现电路自动通断',
+      '白天光照强 → R_LDR 小 → V_out 低 → 三极管截止 → 灯灭',
+      '夜晚光照弱 → R_LDR 大 → V_out 高 → 三极管导通 → 灯亮',
+      '调节分压电阻 R_fixed 可设定光照阈值',
+    ],
+  },
 };
 
 const DEFAULT_FORMULA: FormulaDef = {

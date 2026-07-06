@@ -212,11 +212,11 @@ npm run build          # vite build ≤ 5s
   - 文件: `visualization/src/components/formula/FormulaPanel.tsx`
   - 内容: 双摆周期公式 / 受迫振动+共振条件 / 动量守恒 (平抛碰撞) / 声波波形+波长公式 / 水波衍射条件 / 多普勒频移公式 / 薄膜干涉 2nd=kλ / 全息干涉记录再现 / 单缝衍射 asinθ=kλ / 光栅方程 dsinθ=kλ / 偏振马吕斯定律
 
-- [~] **K2: 选必二 14 场景公式**
+- [x] **K2: 选必二 14 场景公式** (commit `xxxxxxxx`)
   - 文件: `visualization/src/components/formula/FormulaPanel.tsx`
   - 内容: 电流天平 F=BIL / 涡流热功率 / 电磁阻尼力 / 互感 MΦ / 自感 L=IΦ / 电磁波发射功率 / 电磁波谱排序 / 霍尔电压 VH=IB/nqd / 干簧管原理 / 光敏电阻 R-L 曲线 / 热敏电阻 R-T 曲线 / 应变片 ΔR/R=Gε / 报警电路逻辑
 
-- [ ] **K3: 选必三 (热学+热力学) 17 场景公式**
+- [~] **K3: 选必三 (热学+热力学) 17 场景公式**
   - 文件: `visualization/src/components/formula/FormulaPanel.tsx`
   - 内容: 扩散菲克定律 / 布朗运动爱因斯坦公式 / 油膜法 d=V/S / 分子力曲线 / 熔化曲线平台 / 表面张力系数 / 毛细上升 / 润湿接触角 / 液晶光学各向异性 / 焦耳热 Q=I²Rt / 绝热方程 PVγ=常数 / 热传导傅里叶定律 / 能量守恒 / 热力学第二定律 / 热机效率上限
 
@@ -232,6 +232,6 @@ npm run build          # vite build ≤ 5s
 |------|------|------|
 | **I** | ✅ done | SceneConfig ×68 (I1-I7) |
 | **J** | ✅ done | 定制渲染器 ×6 (J1-J6 done) |
-| **K** | 🔄 next (K1) | FormulaPanel 扩展 ×4 (K1 next) |
+| **K** | 🔄 next (K2 done → K3) | FormulaPanel 扩展 ×4 (K2 done) |
 | **合计** | | **17 任务**, 覆盖 68 个 Model 可视化 + 36 个公式集 + 6 个渲染器 |
 
