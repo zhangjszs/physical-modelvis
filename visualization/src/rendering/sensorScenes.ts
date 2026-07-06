@@ -883,7 +883,7 @@ export function drawThermistorScene(o: SensorSceneOptions): void {
 
 // =====================================================================
 // 场景 4: 干簧管 (reed-switch)
-//   H(d) = k / d³  (距离越小 → 磁场越强)
+//   H(d) = H₀ / (1 + (d/d₀)²)  (经验公式: 磁铁越近 → 磁场越强)
 //   H > H_pull: 吸合 (通路);  H < H_rel: 释放 (断路)
 // =====================================================================
 
@@ -895,7 +895,7 @@ export function drawReedSwitchScene(o: SensorSceneOptions): void {
   const Hpull = params['pullInThreshold'] ?? 50;
   const Hrel = params['releaseThreshold'] ?? 30;
 
-  // 简化: H = H₀ / (1 + (d/d₀)²), H₀=200 mT, d₀=10 mm
+  // H = H₀ / (1 + (d/d₀)²), H₀=200 mT, d₀=10 mm
   const H0 = 200;
   const d0 = 10;
   const H = H0 / (1 + (d / d0) * (d / d0));
