@@ -64,6 +64,18 @@ import {
   drawSecurityAlarmScene,
   drawLightControlSwitchScene,
 } from '../../rendering/sensorScenes';
+import {
+  drawFreeFallScene,
+  drawGalileoInclineScene,
+  drawReactionTimeScene,
+  drawTickerTimerScene,
+  drawTransmissionBeltScene,
+  drawVerticalCircleScene,
+  drawCenterOfGravityScene,
+  drawInertiaScene,
+  drawNewtonFirstLawScene,
+  drawNewtonSecondLawScene,
+} from '../../rendering/mechanicsScenes';
 
 const SCENES_3D = new Set([
   'projectile',
@@ -142,6 +154,20 @@ const SCENES_THERMAL = new Set([
   'surface-tension',
   'capillary',
   'liquid-crystal',
+]);
+
+/** 基础力学实验场景集合：自由落体/斜面/惯性/牛顿定律等完整教学图 */
+const SCENES_MECHANICS = new Set([
+  'free-fall',
+  'galileo-incline',
+  'reaction-time',
+  'ticker-timer',
+  'transmission-belt',
+  'vertical-circle',
+  'center-of-gravity',
+  'inertia',
+  'newton-first-law',
+  'newton-second-law',
 ]);
 
 /** 绘制匀强电场线（渐变发光箭头，方向向上） */
@@ -855,6 +881,7 @@ export function SimulationCanvas() {
   const isNuclear = SCENES_NUCLEAR.has(currentScene);
   const isThermal = SCENES_THERMAL.has(currentScene);
   const isSensor = SCENES_SENSOR.has(currentScene);
+  const isMechanics = SCENES_MECHANICS.has(currentScene);
   const hasCustom2DBackground = SCENES_2D_CUSTOM_BG.has(currentScene);
 
   useEffect(() => {
@@ -889,7 +916,7 @@ export function SimulationCanvas() {
 
   useEffect(() => {
     if (!simulationResult || !transformerRef.current) return;
-    if (isAirTrack || isChapter3 || isChapter2 || isWaveOpt || isEmEquip || isNuclear || isThermal || isSensor) return;  // 自定义渲染场景使用屏幕坐标，无需 autoFit
+    if (isAirTrack || isChapter3 || isChapter2 || isWaveOpt || isEmEquip || isNuclear || isThermal || isSensor || isMechanics) return;  // 自定义渲染场景使用屏幕坐标，无需 autoFit
     const canvas = canvasRef.current;
     if (!canvas) return;
     const allPoints: Array<{ x: number; y: number }> = [];
@@ -906,7 +933,7 @@ export function SimulationCanvas() {
     } else {
       transformerRef.current.autoFit(allPoints, canvas.width, canvas.height);
     }
-  }, [simulationResult, currentScene, is3DScene, isAirTrack, isChapter3, isChapter2, isWaveOpt, isEmEquip, isNuclear, isThermal, isSensor]);
+  }, [simulationResult, currentScene, is3DScene, isAirTrack, isChapter3, isChapter2, isWaveOpt, isEmEquip, isNuclear, isThermal, isSensor, isMechanics]);
 
   const render = useCallback(() => {
     const canvas = canvasRef.current;
@@ -917,7 +944,7 @@ export function SimulationCanvas() {
     const ctx = canvas.getContext('2d')!;
     renderer.clear(canvas.width, canvas.height);
     // 第三章场景使用屏幕坐标系，不需要网格/坐标轴
-    if (!isChapter3 && !isChapter2 && !isWaveOpt && !isEmEquip && !isNuclear && !isThermal && !isSensor) {
+    if (!isChapter3 && !isChapter2 && !isWaveOpt && !isEmEquip && !isNuclear && !isThermal && !isSensor && !isMechanics) {
       renderer.drawGrid(canvas.width, canvas.height);
       renderer.drawAxes(canvas.width, canvas.height);
     }
@@ -939,7 +966,7 @@ export function SimulationCanvas() {
     }
 
     // 第三章场景：完整自定义渲染 (背景 + 动态元素 + HUD)，跳过标准轨迹/物体流程
-    if (isChapter3 || isChapter2 || isWaveOpt || isEmEquip || isNuclear || isThermal || isSensor) {
+    if (isChapter3 || isChapter2 || isWaveOpt || isEmEquip || isNuclear || isThermal || isSensor || isMechanics) {
       const sceneOpts = {
         ctx, width: canvas.width, height: canvas.height, isDark,
         params: parameters, simulationResult, currentTime,
@@ -980,6 +1007,16 @@ export function SimulationCanvas() {
         case 'strain-gauge':      drawStrainGaugeScene(sceneOpts); break;
         case 'security-alarm':    drawSecurityAlarmScene(sceneOpts); break;
         case 'light-control-switch': drawLightControlSwitchScene(sceneOpts); break;
+        case 'free-fall':         drawFreeFallScene(sceneOpts); break;
+        case 'galileo-incline':   drawGalileoInclineScene(sceneOpts); break;
+        case 'reaction-time':     drawReactionTimeScene(sceneOpts); break;
+        case 'ticker-timer':      drawTickerTimerScene(sceneOpts); break;
+        case 'transmission-belt': drawTransmissionBeltScene(sceneOpts); break;
+        case 'vertical-circle':   drawVerticalCircleScene(sceneOpts); break;
+        case 'center-of-gravity': drawCenterOfGravityScene(sceneOpts); break;
+        case 'inertia':           drawInertiaScene(sceneOpts); break;
+        case 'newton-first-law':  drawNewtonFirstLawScene(sceneOpts); break;
+        case 'newton-second-law': drawNewtonSecondLawScene(sceneOpts); break;
       }
       return;
     }
@@ -1151,7 +1188,7 @@ export function SimulationCanvas() {
       ctx.fillText(xText, 16, 50);
       ctx.fillText(yText, 16, 68);
     }
-  }, [simulationResult, currentTime, visibleLayers, isDark, currentScene, parameters, experimentData, is3DScene, isAirTrack, isChapter3, isChapter2, hasCustom2DBackground, isWaveOpt, isEmEquip, isNuclear, isThermal, isSensor]);
+  }, [simulationResult, currentTime, visibleLayers, isDark, currentScene, parameters, experimentData, is3DScene, isAirTrack, isChapter3, isChapter2, hasCustom2DBackground, isWaveOpt, isEmEquip, isNuclear, isThermal, isSensor, isMechanics]);
 
   useEffect(() => {
     let running = true;
