@@ -208,7 +208,7 @@ npm run build          # vite build ≤ 5s
 > 现有 15 个场景, 需扩展到覆盖所有注册场景
 > 每个新 sceneId 在 FormulaPanel FORMULA_MAP 内建立对应 formula 定义
 
-- [x] **K1: 选必一 13 场景公式** (commit `???????`)
+- [x] **K1: 选必一 13 场景公式** (commit `4be69f3`)
   - 文件: `visualization/src/components/formula/FormulaPanel.tsx`
   - 内容: 双摆周期公式 / 受迫振动+共振条件 / 动量守恒 (平抛碰撞) / 声波波形+波长公式 / 水波衍射条件 / 多普勒频移公式 / 薄膜干涉 2nd=kλ / 全息干涉记录再现 / 单缝衍射 asinθ=kλ / 光栅方程 dsinθ=kλ / 偏振马吕斯定律
 
