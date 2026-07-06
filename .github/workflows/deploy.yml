@@ -1,0 +1,53 @@
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            physics-core/package-lock.json
+            visualization/package-lock.json
+
+      - name: 安装依赖
+        run: |
+          npm ci
+          cd physics-core && npm ci && cd ../visualization && npm ci
+
+      - name: 构建
+        run: |
+          cd physics-core && npm run build && cd ../visualization
+          VITE_BASE_PATH=/${{ github.event.repository.name }}/ npm run build
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: visualization/dist
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

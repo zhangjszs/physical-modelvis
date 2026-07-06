@@ -273,9 +273,9 @@ registerModel(new NeutronDiscoveryModel());
 registerModel(new FissionChainModel());
 
 export function solveProblem(problem: PhysicsProblem): SimulationResult {
-  const model = getModel(problem.model);
-  const t0 = Date.now();
-  const result = model.solve(problem);
-  const computationTime = Date.now() - t0;
-  return { ...result, meta: { ...result.meta, computationTime } };
+    const model = getModel(problem.model);
+    const t0 = Date.now();
+    const result = model.solve(problem);
+    const computationTime = Date.now() - t0;
+    return { ...result, meta: { ...result.meta, computationTime } };
 }

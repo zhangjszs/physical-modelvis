@@ -52,7 +52,7 @@ export const PLANCK_H = 6.62607015e-34;
  * @param d0 d₀ 特征距离 (mm, H = H₀/2 时)
  */
 export function reedSwitchFieldStrength(d: number, H0 = 200, d0 = 10): number {
-  return H0 / (1 + (d / d0) * (d / d0));
+    return H0 / (1 + (d / d0) * (d / d0));
 }
 
 /**
@@ -63,7 +63,7 @@ export function reedSwitchFieldStrength(d: number, H0 = 200, d0 = 10): number {
  * @param T0 参考温度 (K)
  */
 export function thermistorResistance(T: number, R0: number, B: number, T0: number): number {
-  return R0 * Math.exp(B * (1 / T - 1 / T0));
+    return R0 * Math.exp(B * (1 / T - 1 / T0));
 }
 
 /**
@@ -75,7 +75,7 @@ export function thermistorResistance(T: number, R0: number, B: number, T0: numbe
  * @param t 霍尔片厚度 (m)
  */
 export function hallVoltage(I: number, B: number, n: number, q: number, t: number): number {
-  return (I * B) / (n * q * t);
+    return (I * B) / (n * q * t);
 }
 
 /**
@@ -85,7 +85,7 @@ export function hallVoltage(I: number, B: number, n: number, q: number, t: numbe
  * @param alphaT 温度系数 (负数表示随温度降低)
  */
 export function surfaceTensionAtT(sigma0: number, Tdeg: number, alphaT = SIGMA_WATER_DT): number {
-  return sigma0 * (1 + alphaT * (Tdeg - 20));
+    return sigma0 * (1 + alphaT * (Tdeg - 20));
 }
 
 /**
@@ -94,7 +94,7 @@ export function surfaceTensionAtT(sigma0: number, Tdeg: number, alphaT = SIGMA_W
  * @param T 绝对温度 (K)
  */
 export function diffusionAtT(D25: number, T: number): number {
-  return D25 * Math.pow(T / 298.15, 1.5);
+    return D25 * Math.pow(T / 298.15, 1.5);
 }
 
 /**
@@ -102,7 +102,7 @@ export function diffusionAtT(D25: number, T: number): number {
  * @param pathDiffPhase π·d·sinθ / λ (已乘 π)
  */
 export function doubleSlitIntensity(pathDiffPhase: number): number {
-  return Math.cos(pathDiffPhase) ** 2;
+    return Math.cos(pathDiffPhase) ** 2;
 }
 
 /**
@@ -110,9 +110,9 @@ export function doubleSlitIntensity(pathDiffPhase: number): number {
  * @param beta β 参数 (弧度, 已含 π)
  */
 export function singleSlitIntensity(beta: number): number {
-  if (Math.abs(beta) < 1e-12) return 1;
-  const s = Math.sin(beta) / beta;
-  return s * s;
+    if (Math.abs(beta) < 1e-12) return 1;
+    const s = Math.sin(beta) / beta;
+    return s * s;
 }
 
 /**
@@ -121,8 +121,8 @@ export function singleSlitIntensity(beta: number): number {
  * @returns ν₀ (THz)
  */
 export function photoThresholdFrequencyTHz(workFunction: number): number {
-  const W_J = workFunction * E_CHARGE;
-  return W_J / PLANCK_H / 1e12;
+    const W_J = workFunction * E_CHARGE;
+    return W_J / PLANCK_H / 1e12;
 }
 
 /**
@@ -132,9 +132,9 @@ export function photoThresholdFrequencyTHz(workFunction: number): number {
  * @returns 谱辐射亮度 (相对单位)
  */
 export function blackBodySpectralRadiance(nuHz: number, T: number): number {
-  const x = (PLANCK_H * nuHz) / (K_BOLTZMANN * T);
-  if (x > 700) return 0; // 避免 exp 溢出
-  return (nuHz ** 3) / (Math.exp(x) - 1);
+    const x = (PLANCK_H * nuHz) / (K_BOLTZMANN * T);
+    if (x > 700) return 0; // 避免 exp 溢出
+    return nuHz ** 3 / (Math.exp(x) - 1);
 }
 
 /**
@@ -143,7 +143,7 @@ export function blackBodySpectralRadiance(nuHz: number, T: number): number {
  * @returns M (W/m²)
  */
 export function stefanBoltzmannExitance(T: number): number {
-  return SIGMA_STEFAN_BOLTZMANN * T ** 4;
+    return SIGMA_STEFAN_BOLTZMANN * T ** 4;
 }
 
 /**
@@ -151,5 +151,5 @@ export function stefanBoltzmannExitance(T: number): number {
  */
 export const WIEN_B = 2.897771955e-3;
 export function wienPeakWavelength(T: number): number {
-  return WIEN_B / T;
+    return WIEN_B / T;
 }

@@ -32,7 +32,7 @@ function extractSetNames(): Array<{ name: string; members: string[] }> {
 }
 
 function extractSwitchCases(): string[] {
-  const m = src.match(/switch\s*\(\s*currentScene\s*\)\s*\{([\s\S]*?)\n\s{2}\}/);
+  const m = src.match(/switch\s*\(\s*currentScene\s*\)\s*\{([\s\S]*?)\n\s*\}/);
   if (!m || !m[1]) return [];
   return [...m[1].matchAll(/case\s+'([^']+)':/g)].map(x => x[1]!);
 }

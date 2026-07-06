@@ -10,9 +10,10 @@
     "build": "cd physics-core && npm run build && cd ../visualization && npm run build",
     "build:core": "cd physics-core && npm run build",
     "build:viz": "cd visualization && npm run build",
-    "lint": "cd physics-core && npm run lint && cd ../visualization && npm run lint",
-    "format": "prettier --write \"physics-core/src/**/*.ts\" \"visualization/src/**/*.{ts,tsx}\"",
-    "format:check": "prettier --check \"physics-core/src/**/*.ts\" \"visualization/src/**/*.{ts,tsx}\"",
+    "lint": "eslint \"physics-core/src/**/*.ts\" \"visualization/src/**/*.{ts,tsx}\" \"visualization/server/**/*.ts\"",
+    "lint:fix": "eslint --fix \"physics-core/src/**/*.ts\" \"visualization/src/**/*.{ts,tsx}\" \"visualization/server/**/*.ts\"",
+    "format": "prettier --write \"physics-core/src/**/*.ts\" \"visualization/src/**/*.{ts,tsx}\" \"visualization/server/**/*.ts\"",
+    "format:check": "prettier --check \"physics-core/src/**/*.ts\" \"visualization/src/**/*.{ts,tsx}\" \"visualization/server/**/*.ts\"",
     "selfcheck": "node scripts/self-check.mjs"
   },
   "keywords": [],
@@ -20,6 +21,10 @@
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
-    "prettier": "^3.8.3"
+    "@eslint/js": "^9.18.0",
+    "eslint": "^9.18.0",
+    "eslint-plugin-unused-imports": "^4.4.1",
+    "prettier": "^3.8.3",
+    "typescript-eslint": "^8.20.0"
   }
 }

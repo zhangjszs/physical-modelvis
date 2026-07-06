@@ -29,6 +29,28 @@ npm run format
 cd visualization && npm run dev
 ```
 
+## CI/CD
+
+GitHub Actions 流水线，配置文件位于 `.github/workflows/`。
+
+### CI 流水线 (`ci.yml`)
+触发：push 到 main、PR 到 main。顺序执行 6 道质量门禁：
+1. **TypeScript 类型检查** — `tsc --noEmit`（physics-core + visualization，含 OCR server）
+2. **ESLint 静态分析** — typescript-eslint recommended 规则集
+3. **Prettier 格式检查** — `format:check`
+4. **单元测试** — physics-core + visualization 各自 `vitest run`
+5. **7 层物理自检** — `node scripts/self-check.mjs`（L0-L6 跨包集成测试）
+6. **构建** — physics-core → visualization（带 `VITE_BASE_PATH` 子路径）
+
+### 部署流水线 (`deploy.yml`)
+触发：CI 在 main 分支成功完成后自动触发（`workflow_run`）。
+- 构建 visualization 并部署到 GitHub Pages
+- 访问地址：`https://<user>.github.io/physical_modelvis/`
+
+### 仓库配置要求
+- Settings → Pages → Source 设为 **"GitHub Actions"**
+- 无需额外 Secrets（OCR 代理不部署，仅做 typecheck + build）
+
 ## 代码审查约定 (Code Review Pass)
 
 每个任务实现完成后、commit 之前，必须执行一轮 **代码审查**（使用 `/code-review` 或手动 review）：

@@ -15,7 +15,8 @@
     "build": "tsc",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "cd .. && eslint \"physics-core/src/**/*.ts\""
   },
   "devDependencies": {
     "typescript": "^5.4.0",

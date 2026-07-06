@@ -3,148 +3,160 @@ import type { SimulationState, VisibleLayers, GraphType } from '../types/visuali
 import { getTotalDuration } from '../utils/frameUtils';
 
 const DEFAULT_LAYERS: VisibleLayers = {
-  axes: true,
-  grid: true,
-  trajectory: true,
-  velocityVector: true,
-  accelerationVector: false,
-  forceVector: false,
-  energyLabels: false,
-  bodyLabels: true,
+    axes: true,
+    grid: true,
+    trajectory: true,
+    velocityVector: true,
+    accelerationVector: false,
+    forceVector: false,
+    energyLabels: false,
+    bodyLabels: true
 };
 
 /** 根据场景 ID 返回默认选中的图表类型 */
 function getDefaultGraphForScene(sceneId: string): GraphType {
-  switch (sceneId) {
-    case 'air-track':       return 'x_t';
-    case 'hooke-law':       return 'x_t';
-    case 'sliding-friction':return 'f_N';
-    case 'force-composition': return 'F_theta';
-    case 'newton-third-law':return 'F_t';
-    default:                return 'y_t';
-  }
+    switch (sceneId) {
+        case 'air-track':
+            return 'x_t';
+        case 'hooke-law':
+            return 'x_t';
+        case 'sliding-friction':
+            return 'f_N';
+        case 'force-composition':
+            return 'F_theta';
+        case 'newton-third-law':
+            return 'F_t';
+        default:
+            return 'y_t';
+    }
 }
 
 export const useSimulationStore = create<SimulationState>((set, get) => ({
-  currentScene: 'projectile',
-  parameters: {},
-  parametersSceneId: null,
-  sceneLoadVersion: 0,
-  simulationResult: null,
-  currentTime: 0,
-  currentFrameIndex: 0,
-  isPlaying: false,
-  playbackSpeed: 1,
-  visibleLayers: { ...DEFAULT_LAYERS },
-  selectedGraph: 'y_t',
-  errorMessage: null,
-  theme: 'dark',
-  experimentData: null,
+    currentScene: 'projectile',
+    parameters: {},
+    parametersSceneId: null,
+    sceneLoadVersion: 0,
+    simulationResult: null,
+    currentTime: 0,
+    currentFrameIndex: 0,
+    isPlaying: false,
+    playbackSpeed: 1,
+    visibleLayers: { ...DEFAULT_LAYERS },
+    selectedGraph: 'y_t',
+    errorMessage: null,
+    theme: 'dark',
+    experimentData: null,
 
-  setScene: (sceneId) => {
-    set((s) => ({
-      currentScene: sceneId,
-      parameters: {},
-      parametersSceneId: null,
-      sceneLoadVersion: s.sceneLoadVersion + 1,
-      isPlaying: false,
-      currentTime: 0,
-      currentFrameIndex: 0,
-      simulationResult: null,
-      errorMessage: null,
-      experimentData: null,
-      selectedGraph: getDefaultGraphForScene(sceneId),
-    }));
-  },
+    setScene: sceneId => {
+        set(s => ({
+            currentScene: sceneId,
+            parameters: {},
+            parametersSceneId: null,
+            sceneLoadVersion: s.sceneLoadVersion + 1,
+            isPlaying: false,
+            currentTime: 0,
+            currentFrameIndex: 0,
+            simulationResult: null,
+            errorMessage: null,
+            experimentData: null,
+            selectedGraph: getDefaultGraphForScene(sceneId)
+        }));
+    },
 
-  setSceneWithParameters: (sceneId, parameters) => {
-    set((s) => ({
-      currentScene: sceneId,
-      parameters: { ...parameters },
-      parametersSceneId: sceneId,
-      sceneLoadVersion: s.sceneLoadVersion + 1,
-      isPlaying: false,
-      currentTime: 0,
-      currentFrameIndex: 0,
-      simulationResult: null,
-      errorMessage: null,
-      experimentData: null,
-      selectedGraph: getDefaultGraphForScene(sceneId),
-    }));
-  },
+    setSceneWithParameters: (sceneId, parameters) => {
+        set(s => ({
+            currentScene: sceneId,
+            parameters: { ...parameters },
+            parametersSceneId: sceneId,
+            sceneLoadVersion: s.sceneLoadVersion + 1,
+            isPlaying: false,
+            currentTime: 0,
+            currentFrameIndex: 0,
+            simulationResult: null,
+            errorMessage: null,
+            experimentData: null,
+            selectedGraph: getDefaultGraphForScene(sceneId)
+        }));
+    },
 
-  ensureSceneParameters: (sceneId, defaults) => {
-    set((s) => {
-      if (s.currentScene !== sceneId || s.parametersSceneId === sceneId) return s;
-      return {
-        ...s,
-        parameters: { ...defaults },
-        parametersSceneId: sceneId,
-      };
-    });
-  },
+    ensureSceneParameters: (sceneId, defaults) => {
+        set(s => {
+            if (s.currentScene !== sceneId || s.parametersSceneId === sceneId) return s;
+            return {
+                ...s,
+                parameters: { ...defaults },
+                parametersSceneId: sceneId
+            };
+        });
+    },
 
-  setParameter: (name, value) => {
-    set((s) => ({ parameters: { ...s.parameters, [name]: value } }));
-  },
+    setParameter: (name, value) => {
+        set(s => ({ parameters: { ...s.parameters, [name]: value } }));
+    },
 
-  setSimulationResult: (result) => {
-    set({ simulationResult: result, currentTime: 0, currentFrameIndex: 0, errorMessage: null, experimentData: null });
-  },
+    setSimulationResult: result => {
+        set({
+            simulationResult: result,
+            currentTime: 0,
+            currentFrameIndex: 0,
+            errorMessage: null,
+            experimentData: null
+        });
+    },
 
-  setExperimentData: (data) => {
-    set({ experimentData: data });
-  },
+    setExperimentData: data => {
+        set({ experimentData: data });
+    },
 
-  setCurrentTime: (t) => {
-    const { simulationResult } = get();
-    if (!simulationResult) return;
-    const trajectories = simulationResult.trajectories;
-    const totalDuration = getTotalDuration(trajectories);
-    const clamped = Math.max(0, Math.min(t, totalDuration));
-    const points = trajectories[0] ?? [];
-    let idx = 0;
-    for (let i = 0; i < points.length; i++) {
-      if (points[i]!.t <= clamped) idx = i;
-      else break;
-    }
-    set({ currentTime: clamped, currentFrameIndex: idx });
-  },
+    setCurrentTime: t => {
+        const { simulationResult } = get();
+        if (!simulationResult) return;
+        const trajectories = simulationResult.trajectories;
+        const totalDuration = getTotalDuration(trajectories);
+        const clamped = Math.max(0, Math.min(t, totalDuration));
+        const points = trajectories[0] ?? [];
+        let idx = 0;
+        for (let i = 0; i < points.length; i++) {
+            if (points[i]!.t <= clamped) idx = i;
+            else break;
+        }
+        set({ currentTime: clamped, currentFrameIndex: idx });
+    },
 
-  play: () => set({ isPlaying: true }),
-  pause: () => set({ isPlaying: false }),
+    play: () => set({ isPlaying: true }),
+    pause: () => set({ isPlaying: false }),
 
-  reset: () => {
-    set({ currentTime: 0, currentFrameIndex: 0, isPlaying: false });
-  },
+    reset: () => {
+        set({ currentTime: 0, currentFrameIndex: 0, isPlaying: false });
+    },
 
-  stepForward: () => {
-    const { simulationResult, currentFrameIndex } = get();
-    if (!simulationResult) return;
-    const points = simulationResult.trajectories[0] ?? [];
-    const next = Math.min(currentFrameIndex + 1, points.length - 1);
-    set({ currentFrameIndex: next, currentTime: points[next]?.t ?? 0 });
-  },
+    stepForward: () => {
+        const { simulationResult, currentFrameIndex } = get();
+        if (!simulationResult) return;
+        const points = simulationResult.trajectories[0] ?? [];
+        const next = Math.min(currentFrameIndex + 1, points.length - 1);
+        set({ currentFrameIndex: next, currentTime: points[next]?.t ?? 0 });
+    },
 
-  stepBackward: () => {
-    const { simulationResult, currentFrameIndex } = get();
-    if (!simulationResult) return;
-    const points = simulationResult.trajectories[0] ?? [];
-    const prev = Math.max(currentFrameIndex - 1, 0);
-    set({ currentFrameIndex: prev, currentTime: points[prev]?.t ?? 0 });
-  },
+    stepBackward: () => {
+        const { simulationResult, currentFrameIndex } = get();
+        if (!simulationResult) return;
+        const points = simulationResult.trajectories[0] ?? [];
+        const prev = Math.max(currentFrameIndex - 1, 0);
+        set({ currentFrameIndex: prev, currentTime: points[prev]?.t ?? 0 });
+    },
 
-  setPlaybackSpeed: (speed) => set({ playbackSpeed: speed }),
+    setPlaybackSpeed: speed => set({ playbackSpeed: speed }),
 
-  toggleLayer: (layer) => {
-    set((s) => ({
-      visibleLayers: { ...s.visibleLayers, [layer]: !s.visibleLayers[layer] },
-    }));
-  },
+    toggleLayer: layer => {
+        set(s => ({
+            visibleLayers: { ...s.visibleLayers, [layer]: !s.visibleLayers[layer] }
+        }));
+    },
 
-  setSelectedGraph: (graph) => set({ selectedGraph: graph }),
+    setSelectedGraph: graph => set({ selectedGraph: graph }),
 
-  setErrorMessage: (msg) => set({ errorMessage: msg }),
+    setErrorMessage: msg => set({ errorMessage: msg }),
 
-  toggleTheme: () => set((s) => ({ theme: s.theme === 'dark' ? 'light' : 'dark' })),
+    toggleTheme: () => set(s => ({ theme: s.theme === 'dark' ? 'light' : 'dark' }))
 }));

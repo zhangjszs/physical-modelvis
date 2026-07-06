@@ -17,6 +17,20 @@ import { resolve } from 'path';
 // 直接从源码提取 FORMULA_MAP 的所有 keys (不 import React 组件)
 const panelSrc = readFileSync(resolve(__dirname, '../../src/components/formula/FormulaPanel.tsx'), 'utf-8');
 
+/** 定位 scene 块起止位置，兼容 'sceneId': 和 sceneId: 两种键写法 */
+function findSceneBlock(sceneId: string, src: string): { start: number; end: number } {
+  const escaped = sceneId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const startRe = new RegExp(`^(\\s*)'?${escaped}'?\\s*:\\s*\\{`, 'm');
+  const startMatch = src.match(startRe);
+  if (!startMatch || startMatch.index === undefined) return { start: -1, end: -1 };
+  const start = startMatch.index;
+  const indent = (startMatch[1] ?? '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const closeRe = new RegExp(`\\n${indent}\\},?`);
+  const closeMatch = src.slice(start).match(closeRe);
+  const end = closeMatch && closeMatch.index !== undefined ? start + closeMatch.index + closeMatch[0].length : -1;
+  return { start, end };
+}
+
 function extractFormulaMapKeys(src: string): string[] {
   // 匹配 FORMULA_MAP = { ... 'sceneId': { ... } ... }
   // 先定位 FORMULA_MAP 的起止
@@ -39,11 +53,9 @@ function extractFormulaMapKeys(src: string): string[] {
 }
 
 function extractFormulaStrings(sceneId: string, src: string): string[] {
-  const idx = src.indexOf(`'${sceneId}':`);
-  if (idx < 0) return [];
-  // 找到 formula: '...' 或 formula: "..." 列表
-  const blockEnd = src.indexOf('\n  }', idx);
-  const block = src.slice(idx, blockEnd > 0 ? blockEnd : idx + 2000);
+  const { start, end } = findSceneBlock(sceneId, src);
+  if (start < 0) return [];
+  const block = src.slice(start, end > 0 ? end : start + 2000);
   const formulaRe = /formula:\s*['"`]([^'"`]+)['"`]/g;
   const out: string[] = [];
   let m: RegExpExecArray | null;
@@ -54,10 +66,9 @@ function extractFormulaStrings(sceneId: string, src: string): string[] {
 }
 
 function extractTips(sceneId: string, src: string): string[] {
-  const idx = src.indexOf(`'${sceneId}':`);
-  if (idx < 0) return [];
-  const blockEnd = src.indexOf('\n  }', idx);
-  const block = src.slice(idx, blockEnd > 0 ? blockEnd : idx + 5000);
+  const { start, end } = findSceneBlock(sceneId, src);
+  if (start < 0) return [];
+  const block = src.slice(start, end > 0 ? end : start + 5000);
   const tipsRe = /'([^']+)'/g;
   // 简单启发: 找到 tips 段落后, 收据 'string'
   const tipsIdx = block.indexOf('tips:');
@@ -106,10 +117,9 @@ describe('L4: FormulaPanel 公式定义', () => {
   it('所有公式名唯一 (同一 scene 内无重复 name)', () => {
     const nameRe = /name:\s*['"`]([^'"`]+)['"`]/g;
     for (const sceneId of allSceneIds) {
-      const idx = panelSrc.indexOf(`'${sceneId}':`);
-      if (idx < 0) continue;
-      const blockEnd = panelSrc.indexOf('\n  }', idx);
-      const block = panelSrc.slice(idx, blockEnd > 0 ? blockEnd : idx + 5000);
+      const { start, end } = findSceneBlock(sceneId, panelSrc);
+      if (start < 0) continue;
+      const block = panelSrc.slice(start, end > 0 ? end : start + 5000);
       const names: string[] = [];
       let m: RegExpExecArray | null;
       while ((m = nameRe.exec(block)) !== null) {
