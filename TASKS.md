@@ -164,7 +164,7 @@ npm run build          # vite build ≤ 5s
 
 > 通用 `CanvasRenderer.ts` 已覆盖轨迹/向量/场线; 以下场景需要定制渲染
 
-- [x] **J1: 双摆/共振/受迫振动渲染器** (commit `placeholder`)
+- [x] **J1: 双摆/共振/受迫振动渲染器** (commit `3802d04`)
   - 文件: `visualization/src/rendering/chapter2Scenes.ts`
   - 内容: 双摆支架+双线+摆球+相位标记; 共振振幅-频率曲线+当前点; 受迫振动相位差可视化
   - 参考现有 `chapter3Scenes.ts` 模式
