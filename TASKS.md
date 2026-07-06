@@ -185,11 +185,13 @@ npm run build          # vite build ≤ 5s
   - sceneId: alpha-scattering, decay-statistics, fission-chain
   - 3 个渲染器: drawAlphaScatteringScene, drawDecayStatisticsScene, drawFissionChainScene
 
-- [~] **J5: 热学/分子渲染器 (扩散/布朗/熔化曲线/热传递)**
+- [x] **J5: 热学/分子渲染器 (扩散/布朗/熔化曲线/热传递/表面张力/毛细/液晶)** (commit `bfcb2f5`)
   - 文件: `visualization/src/rendering/thermalScenes.ts`
-  - 内容: 分子粒子随机运动+浓度梯度(扩散); 布朗运动颗粒抖动; 熔化/凝固 T-t 平台段; 三种传热 Qdot-t 对比曲线
+  - 内容: 分子粒子随机运动+浓度梯度+菲克定律(扩散); 布朗粒子抖动+轨迹尾巴+爱因斯坦公式; 熔化/凝固 T-t 平台段+晶格/液态对照; 三种传热对比(传导/对流/辐射)+Qdot-t 曲线; 表面张力液膜+吊环受力; 毛细弯月面+Jurin 公式; 液晶分子排列+透射率-温度
+  - sceneId: diffusion, brownian-motion, melting-curve, heat-transfer, surface-tension, capillary, liquid-crystal
+  - 7 个渲染器: drawDiffusionScene, drawBrownianScene, drawMeltingCurveScene, drawHeatTransferScene, drawSurfaceTensionScene, drawCapillaryScene, drawLiquidCrystalScene
 
-- [ ] **J6: 传感器/控制电路渲染器 (霍尔元件/光敏/热敏/干簧管/报警电路)**
+- [~] **J6: 传感器/控制电路渲染器 (霍尔元件/光敏/热敏/干簧管/报警电路)**
   - 文件: `visualization/src/rendering/sensorScenes.ts`
   - 内容: 霍尔片+载流子偏转+电势差表; 光敏/热敏电阻伏安特性曲线; 干簧管+磁场触发; LED+继电器示意电路
 
@@ -221,7 +223,7 @@ npm run build          # vite build ≤ 5s
 | 阶段 | 状态 | 任务 |
 |------|------|------|
 | **I** | ✅ done | SceneConfig ×68 (I1-I7) |
-| **J** | 🔄 next (4/6) | 定制渲染器 ×6 (J1-J4 done, J5 next) |
+| **J** | 🔄 next (5/6) | 定制渲染器 ×6 (J1-J5 done, J6 next) |
 | **K** | ⏳ | FormulaPanel 扩展 ×4 (K1-K4) |
 | **合计** | | **17 任务**, 覆盖 68 个 Model 可视化 + 36 个公式集 + 6 个渲染器 |
 
