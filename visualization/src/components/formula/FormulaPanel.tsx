@@ -68,6 +68,7 @@ const FORMULA_MAP: Record<string, FormulaDef> = {
     formulas: [
       { name: '动量守恒', formula: 'm₁v₁ + m₂v₂ = m₁v₁\' + m₂v₂\'', variables: '碰撞前后总动量不变', condition: '所有碰撞' },
       { name: '动能守恒', formula: '½m₁v₁² + ½m₂v₂² = ½m₁v₁\'² + ½m₂v₂\'²', variables: '弹性碰撞动能守恒', condition: '仅弹性碰撞' },
+      { name: '等质量弹性碰撞速度交换', formula: 'v₁\' = v₂,  v₂\' = v₁', variables: 'm₁=m₂ 时', condition: '等质量弹性对心碰撞' },
     ],
     tips: [
       '弹性碰撞：动量守恒 + 动能守恒',
