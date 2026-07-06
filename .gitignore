@@ -44,3 +44,5 @@ coverage/
 
 # TypeScript
 *.tsbuildinfo
+# Self-check run reports
+.scratch/
