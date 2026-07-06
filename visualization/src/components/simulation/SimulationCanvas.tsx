@@ -34,6 +34,13 @@ import {
   drawSingleSlitScene,
   drawThinFilmScene,
 } from '../../rendering/waveOptScenes';
+import {
+  drawCurrentBalanceScene,
+  drawEmDampingScene,
+  drawMutualInductanceScene,
+  drawSelfInductanceScene,
+  drawLCOscillatorScene,
+} from '../../rendering/emEquipmentScenes';
 
 const SCENES_3D = new Set([
   'projectile',
@@ -74,6 +81,15 @@ const SCENES_WAVEOPT = new Set([
   'sound-interference',
   'single-slit',
   'thin-film',
+]);
+
+/** 选必二「电磁装备」场景集合：电流天平/电磁阻尼/互感/自感/LC 振荡 */
+const SCENES_EM_EQUIP = new Set([
+  'current-balance',
+  'em-damping',
+  'mutual-inductance',
+  'self-inductance',
+  'lc-oscillator',
 ]);
 
 /** 绘制匀强电场线（渐变发光箭头，方向向上） */
@@ -783,6 +799,7 @@ export function SimulationCanvas() {
   const isChapter3 = SCENES_CHAPTER3.has(currentScene);
   const isChapter2 = SCENES_CHAPTER2.has(currentScene);
   const isWaveOpt = SCENES_WAVEOPT.has(currentScene);
+  const isEmEquip = SCENES_EM_EQUIP.has(currentScene);
   const hasCustom2DBackground = SCENES_2D_CUSTOM_BG.has(currentScene);
 
   useEffect(() => {
@@ -817,7 +834,7 @@ export function SimulationCanvas() {
 
   useEffect(() => {
     if (!simulationResult || !transformerRef.current) return;
-    if (isAirTrack || isChapter3 || isChapter2 || isWaveOpt) return;  // 自定义渲染场景使用屏幕坐标，无需 autoFit
+    if (isAirTrack || isChapter3 || isChapter2 || isWaveOpt || isEmEquip) return;  // 自定义渲染场景使用屏幕坐标，无需 autoFit
     const canvas = canvasRef.current;
     if (!canvas) return;
     const allPoints: Array<{ x: number; y: number }> = [];
@@ -834,7 +851,7 @@ export function SimulationCanvas() {
     } else {
       transformerRef.current.autoFit(allPoints, canvas.width, canvas.height);
     }
-  }, [simulationResult, currentScene, is3DScene, isAirTrack, isChapter3, isChapter2, isWaveOpt]);
+  }, [simulationResult, currentScene, is3DScene, isAirTrack, isChapter3, isChapter2, isWaveOpt, isEmEquip]);
 
   const render = useCallback(() => {
     const canvas = canvasRef.current;
@@ -845,7 +862,7 @@ export function SimulationCanvas() {
     const ctx = canvas.getContext('2d')!;
     renderer.clear(canvas.width, canvas.height);
     // 第三章场景使用屏幕坐标系，不需要网格/坐标轴
-    if (!isChapter3 && !isChapter2 && !isWaveOpt) {
+    if (!isChapter3 && !isChapter2 && !isWaveOpt && !isEmEquip) {
       renderer.drawGrid(canvas.width, canvas.height);
       renderer.drawAxes(canvas.width, canvas.height);
     }
@@ -867,7 +884,7 @@ export function SimulationCanvas() {
     }
 
     // 第三章场景：完整自定义渲染 (背景 + 动态元素 + HUD)，跳过标准轨迹/物体流程
-    if (isChapter3 || isChapter2 || isWaveOpt) {
+    if (isChapter3 || isChapter2 || isWaveOpt || isEmEquip) {
       const sceneOpts = {
         ctx, width: canvas.width, height: canvas.height, isDark,
         params: parameters, simulationResult, currentTime,
@@ -886,6 +903,11 @@ export function SimulationCanvas() {
         case 'sound-interference': drawDoubleSlitScene(sceneOpts); break;
         case 'single-slit':       drawSingleSlitScene(sceneOpts); break;
         case 'thin-film':         drawThinFilmScene(sceneOpts); break;
+        case 'current-balance':   drawCurrentBalanceScene(sceneOpts); break;
+        case 'em-damping':        drawEmDampingScene(sceneOpts); break;
+        case 'mutual-inductance': drawMutualInductanceScene(sceneOpts); break;
+        case 'self-inductance':   drawSelfInductanceScene(sceneOpts); break;
+        case 'lc-oscillator':     drawLCOscillatorScene(sceneOpts); break;
       }
       return;
     }
@@ -1057,7 +1079,7 @@ export function SimulationCanvas() {
       ctx.fillText(xText, 16, 50);
       ctx.fillText(yText, 16, 68);
     }
-  }, [simulationResult, currentTime, visibleLayers, isDark, currentScene, parameters, experimentData, is3DScene, isAirTrack, isChapter3, isChapter2, hasCustom2DBackground, isWaveOpt]);
+  }, [simulationResult, currentTime, visibleLayers, isDark, currentScene, parameters, experimentData, is3DScene, isAirTrack, isChapter3, isChapter2, hasCustom2DBackground, isWaveOpt, isEmEquip]);
 
   useEffect(() => {
     let running = true;
