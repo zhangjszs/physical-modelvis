@@ -55,6 +55,15 @@ import {
   drawCapillaryScene,
   drawLiquidCrystalScene,
 } from '../../rendering/thermalScenes';
+import {
+  drawHallEffectScene,
+  drawPhotoresistorScene,
+  drawThermistorScene,
+  drawReedSwitchScene,
+  drawStrainGaugeScene,
+  drawSecurityAlarmScene,
+  drawLightControlSwitchScene,
+} from '../../rendering/sensorScenes';
 
 const SCENES_3D = new Set([
   'projectile',
@@ -111,6 +120,17 @@ const SCENES_NUCLEAR = new Set([
   'alpha-scattering',
   'decay-statistics',
   'fission-chain',
+]);
+
+/** 选必三「传感器 / 控制电路」场景集合：霍尔 / 光敏 / 热敏 / 干簧管 / 应变片 / 报警 / 光控 */
+const SCENES_SENSOR = new Set([
+  'hall-effect',
+  'photoresistor',
+  'thermistor',
+  'reed-switch',
+  'strain-gauge',
+  'security-alarm',
+  'light-control-switch',
 ]);
 
 /** 选必三「热学/分子/热力学」场景集合：扩散/布朗/熔化/热传递/表面张力/毛细/液晶 */
@@ -834,6 +854,7 @@ export function SimulationCanvas() {
   const isEmEquip = SCENES_EM_EQUIP.has(currentScene);
   const isNuclear = SCENES_NUCLEAR.has(currentScene);
   const isThermal = SCENES_THERMAL.has(currentScene);
+  const isSensor = SCENES_SENSOR.has(currentScene);
   const hasCustom2DBackground = SCENES_2D_CUSTOM_BG.has(currentScene);
 
   useEffect(() => {
@@ -868,7 +889,7 @@ export function SimulationCanvas() {
 
   useEffect(() => {
     if (!simulationResult || !transformerRef.current) return;
-    if (isAirTrack || isChapter3 || isChapter2 || isWaveOpt || isEmEquip || isNuclear || isThermal) return;  // 自定义渲染场景使用屏幕坐标，无需 autoFit
+    if (isAirTrack || isChapter3 || isChapter2 || isWaveOpt || isEmEquip || isNuclear || isThermal || isSensor) return;  // 自定义渲染场景使用屏幕坐标，无需 autoFit
     const canvas = canvasRef.current;
     if (!canvas) return;
     const allPoints: Array<{ x: number; y: number }> = [];
@@ -885,7 +906,7 @@ export function SimulationCanvas() {
     } else {
       transformerRef.current.autoFit(allPoints, canvas.width, canvas.height);
     }
-  }, [simulationResult, currentScene, is3DScene, isAirTrack, isChapter3, isChapter2, isWaveOpt, isEmEquip, isNuclear, isThermal]);
+  }, [simulationResult, currentScene, is3DScene, isAirTrack, isChapter3, isChapter2, isWaveOpt, isEmEquip, isNuclear, isThermal, isSensor]);
 
   const render = useCallback(() => {
     const canvas = canvasRef.current;
@@ -896,7 +917,7 @@ export function SimulationCanvas() {
     const ctx = canvas.getContext('2d')!;
     renderer.clear(canvas.width, canvas.height);
     // 第三章场景使用屏幕坐标系，不需要网格/坐标轴
-    if (!isChapter3 && !isChapter2 && !isWaveOpt && !isEmEquip && !isNuclear && !isThermal) {
+    if (!isChapter3 && !isChapter2 && !isWaveOpt && !isEmEquip && !isNuclear && !isThermal && !isSensor) {
       renderer.drawGrid(canvas.width, canvas.height);
       renderer.drawAxes(canvas.width, canvas.height);
     }
@@ -918,7 +939,7 @@ export function SimulationCanvas() {
     }
 
     // 第三章场景：完整自定义渲染 (背景 + 动态元素 + HUD)，跳过标准轨迹/物体流程
-    if (isChapter3 || isChapter2 || isWaveOpt || isEmEquip || isNuclear || isThermal) {
+    if (isChapter3 || isChapter2 || isWaveOpt || isEmEquip || isNuclear || isThermal || isSensor) {
       const sceneOpts = {
         ctx, width: canvas.width, height: canvas.height, isDark,
         params: parameters, simulationResult, currentTime,
@@ -952,6 +973,13 @@ export function SimulationCanvas() {
         case 'surface-tension':   drawSurfaceTensionScene(sceneOpts); break;
         case 'capillary':         drawCapillaryScene(sceneOpts); break;
         case 'liquid-crystal':    drawLiquidCrystalScene(sceneOpts); break;
+        case 'hall-effect':       drawHallEffectScene(sceneOpts); break;
+        case 'photoresistor':     drawPhotoresistorScene(sceneOpts); break;
+        case 'thermistor':        drawThermistorScene(sceneOpts); break;
+        case 'reed-switch':       drawReedSwitchScene(sceneOpts); break;
+        case 'strain-gauge':      drawStrainGaugeScene(sceneOpts); break;
+        case 'security-alarm':    drawSecurityAlarmScene(sceneOpts); break;
+        case 'light-control-switch': drawLightControlSwitchScene(sceneOpts); break;
       }
       return;
     }
@@ -1123,7 +1151,7 @@ export function SimulationCanvas() {
       ctx.fillText(xText, 16, 50);
       ctx.fillText(yText, 16, 68);
     }
-  }, [simulationResult, currentTime, visibleLayers, isDark, currentScene, parameters, experimentData, is3DScene, isAirTrack, isChapter3, isChapter2, hasCustom2DBackground, isWaveOpt, isEmEquip, isNuclear, isThermal]);
+  }, [simulationResult, currentTime, visibleLayers, isDark, currentScene, parameters, experimentData, is3DScene, isAirTrack, isChapter3, isChapter2, hasCustom2DBackground, isWaveOpt, isEmEquip, isNuclear, isThermal, isSensor]);
 
   useEffect(() => {
     let running = true;
