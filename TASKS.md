@@ -147,11 +147,11 @@ npm run build          # vite build ≤ 5s
   - 模型: joule-mechanical, joule-electrical, adiabatic-compression, heat-transfer, energy-transformation, perpetuum-mobile, heat-direction
   - 文件: `visualization/src/scenes/sceneRegistry.ts`
 
-- [~] **I5: 选必三 (原子核物理) 9 个 Model SceneConfig**
+- [x] **I5: 选必三 (原子核物理) 9 个 Model SceneConfig** (f2ae8d7)
   - 模型: alpha-scattering, black-body, electron-diffraction, radiation-deflection, decay-statistics, cosmic-ray, neutron-discovery, fission-chain, bohr (bohr 文件 modelType='bohr', 已存在 sceneId 'bohr' 指向 'bohr-model')
   - 文件: `visualization/src/scenes/sceneRegistry.ts`
 
-- [ ] **I6: 必修三 12 个 Model SceneConfig**
+- [~] **I6: 必修三 12 个 Model SceneConfig**
   - 模型: capacitor-charge, parallel-plate-capacitor, load-voltage, resistance-law, coulomb-force-explore, electroscope, electrostatic-induction, electrostatic-shielding, faraday-cup, ampere-force, em-wave-hertz
   - 文件: `visualization/src/scenes/sceneRegistry.ts`
 
