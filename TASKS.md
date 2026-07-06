@@ -216,11 +216,12 @@ npm run build          # vite build ≤ 5s
   - 文件: `visualization/src/components/formula/FormulaPanel.tsx`
   - 内容: 电流天平 F=BIL / 涡流热功率 / 电磁阻尼力 / 互感 MΦ / 自感 L=IΦ / 电磁波发射功率 / 电磁波谱排序 / 霍尔电压 VH=IB/nqd / 干簧管原理 / 光敏电阻 R-L 曲线 / 热敏电阻 R-T 曲线 / 应变片 ΔR/R=Gε / 报警电路逻辑
 
-- [~] **K3: 选必三 (热学+热力学) 17 场景公式**
+- [x] **K3: 选必三 (热学+热力学) 17 场景公式** (commit `xxxxxxxx`)
   - 文件: `visualization/src/components/formula/FormulaPanel.tsx`
   - 内容: 扩散菲克定律 / 布朗运动爱因斯坦公式 / 油膜法 d=V/S / 分子力曲线 / 熔化曲线平台 / 表面张力系数 / 毛细上升 / 润湿接触角 / 液晶光学各向异性 / 焦耳热 Q=I²Rt / 绝热方程 PVγ=常数 / 热传导傅里叶定律 / 能量守恒 / 热力学第二定律 / 热机效率上限
+  - 10 热学 + 7 热力学 = 17 场景, 每个 ≥3 条公式 + ≥3 tips
 
-- [ ] **K4: 选必三 (原子核) + 必修三 场景公式**
+- [~] **K4: 选必三 (原子核) + 必修三 场景公式**
   - 文件: `visualization/src/components/formula/FormulaPanel.tsx`
   - 内容: 卢瑟福散射公式 / 黑体辐射维恩位移+斯忒藩-玻尔兹曼 / 电子衍射关系 / 放射性衰变 N=N0e^{-λt} / 宇宙线簇射 / 中子裂变 / 波尔轨道能级 / 电容 C=εS/4πkd / 欧姆定律 / 库仑定律 / 安培力
 

@@ -659,6 +659,265 @@ const FORMULA_MAP: Record<string, FormulaDef> = {
       '调节分压电阻 R_fixed 可设定光照阈值',
     ],
   },
+
+  // ========== 选必三 第 3 章 热学 (10 个场景) ==========
+  'diffusion': {
+    title: '扩散现象 (菲克定律 + 爱因斯坦扩散)',
+    formulas: [
+      { name: '菲克第一定律 (扩散通量)', formula: 'J = −D · dC/dx', variables: 'J: 扩散通量(量·m⁻²·s⁻¹), D: 扩散系数(m²/s), C: 浓度(kg/m³ 或 mol/m³)', condition: '稳态扩散' },
+      { name: '浓度梯度', formula: 'dC/dx = (C₂ − C₁) / Δx', variables: '浓度梯度, 方向: 浓度升高方向', condition: '一维线性近似' },
+      { name: '爱因斯坦扩散公式', formula: '⟨r²⟩ = 6Dt (3D)', variables: '⟨r²⟩: 均方位移, D: 扩散系数, t: 扩散时间', condition: '各向同性介质布朗粒子' },
+      { name: '1D 爱因斯坦扩散', formula: '⟨x²⟩ = 2Dt', variables: '⟨x²⟩: 一维均方位移', condition: '一维扩散' },
+    ],
+    tips: [
+      '扩散是分子热运动的宏观表现, 温度越高扩散越快',
+      '扩散系数 D 与温度 T 的关系: D ∝ T (气体) 或 D ~ T/η (斯托克斯-爱因斯坦)',
+      '菲克第一定律是稳态扩散; 非稳态用菲克第二定律 ∂C/∂t = D·∂²C/∂x²',
+      '扩散方向从高浓度向低浓度, 不可自发反向 (符合热力学第二定律)',
+    ],
+  },
+  'brownian-motion': {
+    title: '布朗运动 (爱因斯坦公式)',
+    formulas: [
+      { name: '位移统计 (一维)', formula: '⟨x²⟩ = 2Dt', variables: '⟨x²⟩: 均方位移(m²), D: 扩散系数(m²/s), t: 观测时间(s)', condition: '长时间的统计平均' },
+      { name: '爱因斯坦扩散系数 (球形粒子)', formula: 'D = kT/(6πηr)', variables: 'k: 玻尔兹曼常量, T: 绝对温度, η: 液体粘度, r: 粒子半径', condition: '斯托克斯-爱因斯坦关系 (球形粒子)' },
+      { name: '郎之万方程', formula: 'm · dv/dt = −γv + ξ(t)', variables: 'γ: 阻力系数(=6πηr), ξ(t): 随机分子碰撞力', condition: '微观瞬时方程' },
+      { name: '均方位移 (3D)', formula: '⟨r²⟩ = 6Dt', variables: '三维空间中布朗粒子的均方位移' },
+    ],
+    tips: [
+      '布朗运动间接证明了分子的无规则热运动',
+      '爱因斯坦1905年用统计力学解释布朗运动, 是阿伏伽德罗常数测定方法之一',
+      '布朗粒子越小, 液体温度越高, 布朗运动越剧烈',
+      '布朗运动不是分子热运动本身, 而是分子碰撞的宏观结果',
+    ],
+  },
+  'oil-film': {
+    title: '油膜法测分子直径',
+    formulas: [
+      { name: '分子直径 (油膜法)', formula: 'd = V / S', variables: 'V: 油酸体积(m³), S: 油膜面积(m²), d: 油膜厚度 ≈ 分子直径(m)', condition: '单分子层, 油酸视为球形/立方紧密排列' },
+      { name: '油酸溶液滴体积', formula: 'V_drop = V_solution / n_drops', variables: 'V_solution: 滴入溶液体积, n_drops: 总滴数', condition: '先测每滴体积' },
+      { name: '纯油酸体积', formula: 'V = V_drop × η', variables: 'η: 油酸浓度 (体积分数)', condition: '1mL 油酸酒精溶液浓度约 1:200' },
+      { name: '阿伏伽德罗常数 (球形模型)', formula: 'N_A = 6M / (ρπd³)', variables: 'M: 摩尔质量, ρ: 密度, d: 分子直径', condition: '球形模型, 忽略分子间隙' },
+    ],
+    tips: [
+      '实验中油酸在水面自动铺展为单分子层, 厚度约 10⁻⁹ ~ 10⁻¹⁰ m',
+      '痱子粉 (或石膏粉) 显示油膜轮廓, 轮廓稳定后再描图',
+      '分子直径数量级 ~ 10⁻¹⁰ m (即 0.1 nm)',
+      '此方法提供分子大小的数量级估计, 不精确给出分子形状',
+    ],
+  },
+  'liquid-mixing': {
+    title: '液体混合 (溶液的熵变)',
+    formulas: [
+      { name: '理想溶液混合熵', formula: 'ΔS_mix = −R(n₁lnx₁ + n₂lnx₂)', variables: 'R: 气体常量(8.314 J/mol·K), n₁,n₂: 两液体的物质的量, x₁,x₂: 摩尔分数', condition: '理想溶液等温等压混合' },
+      { name: '摩尔分数', formula: 'xᵢ = nᵢ / Σnⱼ', variables: 'x₁ + x₂ = 1' },
+      { name: '混合焓 (理想溶液)', formula: 'ΔH_mix = 0', variables: '理想溶液无热效应', condition: '理想溶液假设' },
+      { name: '混合自由能', formula: 'ΔG_mix = ΔH_mix − TΔS_mix = RT(n₁lnx₁ + n₂lnx₂)', variables: 'ΔS_mix > 0 → ΔG_mix < 0 → 过程自发', condition: '等温等压' },
+    ],
+    tips: [
+      '混合过程熵增加, 是自发的不可逆过程',
+      '酒精与水混合后总体积小于混合前体积之和 (分子间作用)',
+      '理想溶液假设: 任意比例互溶, ΔV_mix = 0, ΔH_mix = 0',
+      '非理想溶液需引入活度系数修正',
+    ],
+  },
+  'molecular-force': {
+    title: '分子力曲线 (Lennard-Jones)',
+    formulas: [
+      { name: 'Lennard-Jones 势', formula: 'U(r) = 4ε[(σ/r)¹² − (σ/r)⁶]', variables: 'ε: 势阱深度, σ: 分子直径(r = 2^(1/6)σ 时势能零点)', condition: '对势, 适用中性分子' },
+      { name: '分子力', formula: 'F = −dU/dr = 24ε[−2(σ/r)¹³ + (σ/r)⁷]', variables: 'F > 0 斥力, F < 0 引力', condition: '力是势的负梯度' },
+      { name: '平衡位置', formula: 'r₀ = 2^(1/6)σ ≈ 1.122σ', variables: 'F(r₀) = 0, U(r₀) = −ε', condition: '稳定平衡' },
+      { name: 'r⁻¹² 项 (排斥)', formula: 'A/r¹² (Born-Mayer 排斥项)', variables: '物理图像: 电子云重叠导致的泡利排斥', condition: '短程排斥 ~ 原子内部电子不可压缩' },
+    ],
+    tips: [
+      '当 r < r₀ 时, 斥力主导, 随 r 减小急剧增大',
+      '当 r > r₀ 时, 引力主导 (范德华力/色散力)',
+      'Lennard-Jones 势是分子动力学模拟的标准模型',
+      '平衡位置 r₀ 对应固体/液体的特征分子间距 (约 3~4 Å)',
+    ],
+  },
+  'melting-curve': {
+    title: '熔化曲线 (熔点 + 潜热)',
+    formulas: [
+      { name: '熔化吸收的热量 (熔化热)', formula: 'Q = mL', variables: 'm: 物体质量(kg), L: 熔化热(J/kg), 冰 L=3.34×10⁵ J/kg', condition: '温度不变' },
+      { name: '内能增量', formula: 'ΔU = Q + W', variables: 'W: 外界对系统做功', condition: '热力学第一定律' },
+      { name: '固态→液态 (W ≈ 0)', formula: 'ΔU ≈ Q', variables: '几乎不做功时', condition: '大部分固体熔化, 熔化热全部用于增加内能' },
+      { name: '晶体 T-t 图像', formula: '水平段(平台) → 熔化/凝固过程', variables: '平台温度 = 熔点', condition: '晶体熔化时有确定的熔点' },
+    ],
+    tips: [
+      '晶体有固定熔点, 非晶体没有 (玻璃软化, 无平台)',
+      '熔化过程吸收热量但温度不变 → 内能增加 (分子势能增加)',
+      '晶体的 T-t 曲线平台段斜率为 0 (温度不变)',
+      '同一种物质的熔点和凝固点相同',
+    ],
+  },
+  'surface-tension': {
+    title: '表面张力 (系数 σ)',
+    formulas: [
+      { name: '表面张力公式', formula: 'F = σL', variables: 'F: 液面边界张力(N), σ: 表面张力系数(N/m), L: 液面边界长度(m)' },
+      { name: '表面张力系数定义', formula: 'σ = F/L', variables: 'σ: 单位长度上的表面张力 (N/m)' },
+      { name: '表面能与表面积', formula: 'E = σA', variables: 'E: 表面能(J), A: 液膜表面积(m²), σ: 比表面能(J/m²)' },
+            { name: 'Wilson 公式 (σ-T 线性)', formula: 'σ(T) = σ₀ − a(T − T₀)', variables: 'a > 0: 温度升高, σ 线性减小', condition: '远离临界温度时近似线性' },
+    ],
+    tips: [
+      '表面张力由表面层分子引力不平衡导致 (表面层分子稀疏, 引力占优)',
+      '温度升高时 σ 减小, 到临界温度时 σ → 0',
+      '水滴成球形是表面张力最小化面积的结果',
+      '肥皂、洗涤剂是表面活性剂, 降低水的 σ',
+    ],
+  },
+  'capillary': {
+    title: '毛细上升 (Jurin 公式)',
+    formulas: [
+      { name: 'Jurin 公式 (毛细上升高度)', formula: 'h = 2σcosθ / (ρgr)', variables: 'σ: 表面张力系数, θ: 接触角, ρ: 液体密度, g: 重力加速度, r: 毛细管半径', condition: '管内弯月面为球面' },
+      { name: '下降情形', formula: 'h < 0 (θ > 90° 时水银)', variables: 'cosθ < 0 对应下降', condition: '水银在玻璃管中下降' },
+      { name: '弯月面曲率半径', formula: 'R = r / cosθ', variables: 'R: 弯月面球冠半径, r: 毛细管半径', condition: '完全润湿 θ = 0° 时 R = r' },
+      { name: '压强差 (拉普拉斯压强)', formula: 'Δp = 2σ/R = 2σcosθ/r', variables: 'Δp: 弯月面两侧的附加压强', condition: '单侧弯曲表面' },
+    ],
+    tips: [
+      '管径越小, 上升高度越大 (细管中毛细现象更明显)',
+      '完全润湿 (θ = 0°, cosθ = 1) 时上升高度最大',
+      '不润湿 (θ > 90°, 如水银) 时液面下降',
+      '植物根系吸水、砖块吸水、纸巾吸水都利用毛细现象',
+    ],
+  },
+  'wetting': {
+    title: '润湿与不润湿 (Young 方程)',
+    formulas: [
+      { name: 'Young 方程', formula: 'σ_sv = σ_sl + σ_lv·cosθ', variables: 'σ_sv: 固-气界面能, σ_sl: 固-液界面能, σ_lv: 液体表面张力, θ: 平衡接触角', condition: '热力学平衡' },
+            { name: '铺展系数', formula: 'S = σ_sv − σ_sl − σ_lv', variables: 'S > 0 自发铺展; S < 0 形成液滴', condition: 'S 越大铺展越强' },
+      { name: '接触角判据', formula: 'θ < 90° → 润湿; θ > 90° → 不润湿', variables: '水-玻璃 θ≈0°; 水银-玻璃 θ≈139°', condition: '常用判据' },
+      { name: 'Young-Dupré 方程', formula: 'σ(1 + cosθ) = W_ad', variables: 'W_ad: 粘附功 (J/m²)', condition: '热力学平衡, 理想光滑表面' },
+    ],
+    tips: [
+      '接触角 θ 是固-液-气三相接触点的夹角, 决定润湿程度',
+      '水在玻璃上几乎完全润湿 (θ ≈ 0°); 水银在玻璃上完全不润湿 (θ > 90°)',
+      '防水面料 (荷叶效应) 通过微纳结构增大 θ (超疏水 > 150°)',
+      '沙漠甲虫利用背部亲/疏水图案集水',
+    ],
+  },
+  'liquid-crystal': {
+    title: '液晶 (光学各向异性)',
+    formulas: [
+      { name: '寻常/异常折射率之差 (光学各向异性)', formula: 'Δn = n_o − n_e', variables: 'n_o: 寻常光折射率, n_e: 异常光折射率 (e光偏振平行光轴)', condition: '单轴液晶, Δn > 0 为正性液晶' },
+      { name: '双折射光程差', formula: 'Δ = Δn · d', variables: 'Δ: 双折射光程差, d: 液晶盒厚度', condition: '常用 d ~ 5-10 μm' },
+      { name: '介电各向异性', formula: 'Δε = ε_∥ − ε_⊥', variables: 'ε_∥: 平行分子长轴, ε_⊥: 垂直长轴, Δε > 0 正性液晶', condition: '决定液晶在电场中的取向' },
+      { name: 'Fréedericksz 转变阈值', formula: 'V_th = π√(k/|Δε|ε₀)', variables: 'V_th: 阈值电压, k: 弹性常量', condition: '液晶盒外加电压时的取向转变' },
+    ],
+    tips: [
+      '液晶是介于晶体与液体的中间相, 具有取向有序性',
+      '棒状分子易形成向列相、胆甾相、近晶相等',
+      'LCD 显示原理: 偏振片 + 液晶盒 (电控双折射)',
+      '温度越高液晶分子排列越无序 → 超过清亮点温度变为各向同性液体',
+    ],
+  },
+
+  // ========== 选必三 第 4 章 热力学定律 (7 个场景) ==========
+  'joule-mechanical': {
+    title: '焦耳实验 (机械搅拌生热)',
+    formulas: [
+      { name: '重力做功', formula: 'W = mgΔh', variables: 'm: 配重质量(kg), g: 重力加速度(m/s²), Δh: 下落高度(m)', condition: '叶片搅拌水的焦耳实验' },
+      { name: '热质当量 (焦耳实验)', formula: 'W = Q = cmΔT', variables: 'W: 机械功(J), Q: 热量(J), c: 水的比热容, m: 水的质量, ΔT: 温升', condition: '热功当量' },
+      { name: '热功当量 (焦耳测定)', formula: 'J ≈ 4.186 J/cal', variables: '1 cal (卡) = 4.186 J (焦耳)', condition: '焦耳扭秤实验 1840-1878' },
+      { name: '多次做功', formula: 'Q_total = N · mgΔh', variables: 'N: 叶片搅拌次数', condition: '多次搅拌累积升温' },
+    ],
+    tips: [
+      '焦耳热功当量实验将热学从"热质说"转向"能量守恒"',
+      '机械功全部转化为水的内能: ΔU = W (绝热系统)',
+      '现代国际单位制已统一用焦耳 (J), 卡路里只用于食品能量',
+      '该实验否定了热质说, 确立热是分子无序运动的统计宏观表现',
+    ],
+  },
+  'joule-electrical': {
+    title: '焦耳定律 (电流热效应)',
+    formulas: [
+      { name: '焦耳定律', formula: 'Q = I²Rt', variables: 'I: 电流有效值(A), R: 电阻(Ω), t: 通电时间(s), Q: 产生热量(J)', condition: '所有电路均适用' },
+      { name: '等价形式 (1)', formula: 'Q = U²t / R', variables: 'U: 加在电阻两端的电压(V)' },
+      { name: '等价形式 (2)', formula: 'Q = Pt', variables: 'P: 电功率(W), P = UI = I²R' },
+      { name: '电功率', formula: 'P = UI = I²R = U²/R', variables: '三种等价表达式' },
+    ],
+    tips: [
+      '焦耳定律对所有电路 (纯电阻/非纯电阻) 都计算电流通过电阻产生的热量',
+      '非纯电阻电路 (含电动机/电解槽等), W电 > Q热 (部分转化为其他能量)',
+      '电热是分子碰撞导致的无序能量转移',
+      '电热器、电磁炉、白炽灯都是焦耳热应用',
+    ],
+  },
+  'adiabatic-compression': {
+    title: '绝热过程 (无热交换)',
+    formulas: [
+      { name: '绝热方程 (压强-体积)', formula: 'PV^γ = 常量', variables: 'γ = C_p/C_v: 绝热指数 (空气 γ ≈ 1.4, 单原子 ~1.67, 双原子 ~1.4)', condition: '准静态绝热 (快速压缩/膨胀近似)' },
+      { name: '绝热方程 (温度-体积)', formula: 'TV^(γ−1) = 常量', variables: 'T: 绝对温度(K), V: 体积' },
+      { name: '绝热方程 (温度-压强)', formula: 'T^γ · P^(1−γ) = 常量', variables: '等价关系, 可由上述两式推出' },
+      { name: '热力学第一定律 (绝热版)', formula: 'ΔU = W (Q = 0)', variables: 'Q = 0: 系统吸收热量为零, 内能变化等于外界做功', condition: '绝热壁或极端快速过程' },
+    ],
+    tips: [
+      '绝热过程的特征: 系统与外界没有热量交换 (快速或隔绝)',
+      '酒精灯点火、柴油压缩点火、气体快速膨胀降温都是绝热过程',
+      '公式 PV^γ = 常量只适用于准静态绝热 (需做 PV 图验证)',
+      '等温过程是 PV = 常数; 绝热线比等温线更陡',
+    ],
+  },
+  'heat-transfer': {
+    title: '热传导 (傅里叶定律)',
+    formulas: [
+      { name: '傅里叶定律', formula: 'dQ/dt = −kA · dT/dx', variables: 'k: 热导率(W/m·K), A: 截面积, dT/dx: 温度梯度, 负号: 热从高温到低温', condition: '一维稳态热传导' },
+      { name: '热流密度', formula: 'q = Q/(At) = −k · dT/dx', variables: 'q: 单位面积热流(W/m²)' },
+      { name: '串联导热', formula: 'q = (T_h − T_c) / (L₁/k₁A + L₂/k₂A)', variables: '通过多层平壁的总热流', condition: '稳态导热' },
+      { name: '热阻', formula: 'R_th = ΔT/q = L/(kA)', variables: '热阻概念类比串并联电路', condition: '用于复杂导热网络' },
+    ],
+    tips: [
+      '热传导靠分子碰撞传递内能 (金属还自由电子贡献)',
+      'k 金属 >> k 气体 >> k 不良导体 (空气、水、木材)',
+      '对流需要物质宏观流动, 辐射不需要介质 (真空中可传递)',
+      '傅里叶定律类比菲克第一定律 (扩散) 和欧姆定律 (电导)',
+    ],
+  },
+  'energy-transformation': {
+    title: '热力学第一定律 (ΔU=Q+W)',
+    formulas: [
+      { name: '热力学第一定律', formula: 'ΔU = Q + W', variables: 'ΔU: 系统内能变化(J), Q: 系统吸热(正为吸), W: 外界对系统做功(正为外界做功)', condition: '热力学正方向约定' },
+      { name: '正方向约定', formula: 'Q > 0: 吸热; Q < 0: 放热', variables: 'W > 0: 外界对系统做功; W < 0: 系统对外做功' },
+      { name: '内能的微观构成', formula: 'U = ½N·(平动+转动+振动)动能 + 分子势能', variables: 'U 是状态量, 与过程无关', condition: '理想气体 U = U(T)' },
+      { name: '等容过程', formula: 'W = 0 → ΔU = Q', variables: '纯吸热/放热时内能变化', condition: '等容不做体积功' },
+    ],
+    tips: [
+      '热力学第一定律是能量守恒在热学中的具体表达',
+      '内能是状态量 (对应态函数), 热和功是过程量',
+      '第一定律否定了第一类永动机 (不需能量输入就能做功的机器)',
+      '符号约定要统一: 工程上常用 ΔU = Q − W (系统对外功)',
+    ],
+  },
+  'perpetuum-mobile': {
+    title: '永动机 (热力学定律禁令)',
+    formulas: [
+      { name: '第一类永动机', formula: 'W > 0 且 Q = 0, ΔU = 0', variables: '没有能量输入就能持续违反能量守恒', condition: '违反热一律 ΔU = Q + W' },
+      { name: '热一律表述 (永动机)', formula: '第一类永动机不可能制成', variables: '不可能无中生有地创造能量' },
+      { name: '热二律表述 (第二类永动机)', formula: '不可能从单一热源取热完全转化为功而不产生其他影响', variables: '这是开尔文表述', condition: '违反热二律' },
+      { name: '第二类永动机效率限制', formula: 'η = 1 − T_c/T_h < 1 (T_c > 0)', variables: '卡诺效率, 必 T_c > 0 所以 η < 1', condition: '卡诺定理第二定律推论' },
+    ],
+    tips: [
+      '第一类永动机违反能量守恒 (热一律), 第二类违反热二律',
+      '卡诺效率 η = 1 − T_c/T_h < 1 意味着任何热机效率低于 100%',
+      '各种"永动机"尝试最终都归为摩擦损耗/热散失等第二定律原因',
+      '能量是守恒的, 但能量品质在不断下降 (熵增)',
+    ],
+  },
+  'heat-direction': {
+    title: '热力学第二定律 (熵增原理)',
+    formulas: [
+      { name: '克劳修斯不等式', formula: 'ΔS ≥ 0 (孤立系统)', variables: 'S: 熵 (J/K), 孤立系统熵永不减少', condition: 'ΔS = 0 对应可逆, ΔS > 0 对应不可逆' },
+      { name: '开尔文表述', formula: '不能从单一热源取热全部转化为功', variables: '不借助冷源, 100% 热转功不可能', condition: '等价于克劳修斯表述' },
+      { name: '克劳修斯表述', formula: '热量不能自发地从低温传到高温', variables: '需外界做功才能完成', condition: '制冷机做功才能传热' },
+      { name: '玻尔兹曼熵公式', formula: 'S = k lnΩ', variables: 'k: 玻尔兹曼常量(1.38×10⁻²³ J/K), Ω: 微观状态数', condition: '统计力学基础' },
+    ],
+    tips: [
+      '热二律指出宏观过程的方向性: 自发过程都是不可逆的',
+      '熵是世界"无序度"的度量, 孤立系统熵只增不减',
+      '冰箱/空调需要外界做功才能逆方向传热',
+      '热二律是现有物理定律中唯一有时间箭头的定律',
+    ],
+  },
 };
 
 const DEFAULT_FORMULA: FormulaDef = {
