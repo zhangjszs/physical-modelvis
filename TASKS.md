@@ -127,27 +127,27 @@ npm run build          # vite build ≤ 5s
 
 ### 阶段 I: SceneConfig 创建 (68 个孤立 Model 挂入 sceneRegistry)
 
-- [~] **I1: 选必一 13 个 Model SceneConfig**
+- [x] **I1: 选必一 13 个 Model SceneConfig** (commit `d30f0d8`)
   - 模型: double-pendulum, forced-vibration, resonance, projectile-collision, sound-waveform, water-diffraction, sound-interference, doppler, thin-film, hologram, single-slit, diffraction-grating, polarization
   - 文件: `visualization/src/scenes/sceneRegistry.ts`
   - 参考: 现有 SceneConfig 的 `parameters` + `buildProblem` 模式 (如 projectile)
   - 参数规则: 每个 Model 至少 3 个可调参数 + duration 必含
   - buildProblem: constraints key 与 model 的 `requiredParameters` 对齐
 
-- [ ] **I2: 选必二 14 个 Model SceneConfig**
+- [x] **I2: 选必二 14 个 Model SceneConfig** (commit `45d46fc`)
   - 模型: current-balance, eddy-current, em-damping, mutual-inductance, self-inductance, em-wave-communication, em-spectrum, hall-effect, reed-switch, photoresistor, thermistor, strain-gauge, security-alarm, light-control-switch
   - 文件: `visualization/src/scenes/sceneRegistry.ts`
   - 参考: 选必二模型 constraints 接口定义 (reed-switch 用 ReedSwitchConstraint 等)
 
-- [ ] **I3: 选必三 (热学) 10 个 Model SceneConfig**
+- [x] **I3: 选必三 (热学) 10 个 Model SceneConfig** (commit `8e2088f`)
   - 模型: diffusion, brownian-motion, oil-film, liquid-mixing, molecular-force, melting-curve, surface-tension, capillary, wetting, liquid-crystal
   - 文件: `visualization/src/scenes/sceneRegistry.ts`
 
-- [ ] **I4: 选必三 (热力学) 7 个 Model SceneConfig**
+- [x] **I4: 选必三 (热力学) 7 个 Model SceneConfig**
   - 模型: joule-mechanical, joule-electrical, adiabatic-compression, heat-transfer, energy-transformation, perpetuum-mobile, heat-direction
   - 文件: `visualization/src/scenes/sceneRegistry.ts`
 
-- [ ] **I5: 选必三 (原子核物理) 9 个 Model SceneConfig**
+- [~] **I5: 选必三 (原子核物理) 9 个 Model SceneConfig**
   - 模型: alpha-scattering, black-body, electron-diffraction, radiation-deflection, decay-statistics, cosmic-ray, neutron-discovery, fission-chain, bohr (bohr 文件 modelType='bohr', 已存在 sceneId 'bohr' 指向 'bohr-model')
   - 文件: `visualization/src/scenes/sceneRegistry.ts`
 

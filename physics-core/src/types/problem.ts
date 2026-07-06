@@ -1460,7 +1460,7 @@ export interface LiquidCrystalConstraint { temperature: number; voltage: number;
 export interface JouleMechanicalConstraint { mass: number; height: number; drops: number; waterMass: number; specificHeat?: number; gravity?: number; }
 export interface JouleElectricalConstraint { voltage: number; resistance: number; time: number; waterMass: number; specificHeat?: number; sampleCount?: number; }
 export interface AdiabaticCompressionConstraint { initialTemp: number; compressionRatio: number; gamma?: number; gasType?: string; sampleCount?: number; moles?: number; }
-export interface HeatTransferConstraint { mode: string; materialType?: string; temperatureDiff: number; sampleCount?: number; length?: number; area?: number; thickness?: number; initialTemp?: number; ambientTemp?: number; time?: number; }
+export interface HeatTransferConstraint { mode: string; materialType?: string; temperatureDiff?: number; sampleCount?: number; length?: number; area?: number; thickness?: number; initialTemp?: number; ambientTemp?: number; time?: number; }
 export interface EnergyTransformationConstraint { mode: string; inputEnergy: number; efficiency?: number; }
 export interface PerpetuumMobileConstraint { hotTemp: number; coldTemp: number; mode: string; inputHeat?: number; }
 export interface BlackBodyConstraint { temperature: number; freqMin?: number; freqMax?: number; sampleCount?: number; }
