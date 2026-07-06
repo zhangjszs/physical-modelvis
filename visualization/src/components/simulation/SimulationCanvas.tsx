@@ -79,6 +79,20 @@ import {
     drawNewtonFirstLawScene,
     drawNewtonSecondLawScene
 } from '../../rendering/mechanicsScenes';
+import {
+    drawAcCurrentScene,
+    drawAmpereForceScene,
+    drawCapacitorChargeScene,
+    drawCircuitScene,
+    drawEmInductionScene,
+    drawLoadVoltageScene,
+    drawMagneticForceScene,
+    drawMicrometerScene,
+    drawMultimeterScene,
+    drawParallelPlateCapacitorScene,
+    drawResistanceLawScene,
+    drawVernierCaliperScene
+} from '../../rendering/electromagnetismScenes';
 
 const SCENES_3D = new Set(['projectile', 'uniform-accelerated', 'free-fall', 'circular-motion']);
 
@@ -153,6 +167,22 @@ const SCENES_MECHANICS = new Set([
     'inertia',
     'newton-first-law',
     'newton-second-law'
+]);
+
+/** 电学/电磁基础与仪器读数场景集合：完整教学图和读数图 */
+const SCENES_ELECTROMAGNETISM = new Set([
+    'circuit',
+    'ac-current',
+    'em-induction',
+    'magnetic-force',
+    'ampere-force',
+    'capacitor-charge',
+    'parallel-plate-capacitor',
+    'load-voltage',
+    'resistance-law',
+    'multimeter-tool',
+    'vernier-caliper-tool',
+    'micrometer-tool'
 ]);
 
 /** 绘制匀强电场线（渐变发光箭头，方向向上） */
@@ -911,6 +941,7 @@ export function SimulationCanvas() {
     const isThermal = SCENES_THERMAL.has(currentScene);
     const isSensor = SCENES_SENSOR.has(currentScene);
     const isMechanics = SCENES_MECHANICS.has(currentScene);
+    const isElectromagnetism = SCENES_ELECTROMAGNETISM.has(currentScene);
     const hasCustom2DBackground = SCENES_2D_CUSTOM_BG.has(currentScene);
 
     useEffect(() => {
@@ -954,7 +985,8 @@ export function SimulationCanvas() {
             isNuclear ||
             isThermal ||
             isSensor ||
-            isMechanics
+            isMechanics ||
+            isElectromagnetism
         )
             return; // 自定义渲染场景使用屏幕坐标，无需 autoFit
         const canvas = canvasRef.current;
@@ -985,7 +1017,8 @@ export function SimulationCanvas() {
         isNuclear,
         isThermal,
         isSensor,
-        isMechanics
+        isMechanics,
+        isElectromagnetism
     ]);
 
     const render = useCallback(() => {
@@ -1005,7 +1038,8 @@ export function SimulationCanvas() {
             !isNuclear &&
             !isThermal &&
             !isSensor &&
-            !isMechanics
+            !isMechanics &&
+            !isElectromagnetism
         ) {
             renderer.drawGrid(canvas.width, canvas.height);
             renderer.drawAxes(canvas.width, canvas.height);
@@ -1028,7 +1062,17 @@ export function SimulationCanvas() {
         }
 
         // 第三章场景：完整自定义渲染 (背景 + 动态元素 + HUD)，跳过标准轨迹/物体流程
-        if (isChapter3 || isChapter2 || isWaveOpt || isEmEquip || isNuclear || isThermal || isSensor || isMechanics) {
+        if (
+            isChapter3 ||
+            isChapter2 ||
+            isWaveOpt ||
+            isEmEquip ||
+            isNuclear ||
+            isThermal ||
+            isSensor ||
+            isMechanics ||
+            isElectromagnetism
+        ) {
             const sceneOpts = {
                 ctx,
                 width: canvas.width,
@@ -1173,6 +1217,42 @@ export function SimulationCanvas() {
                     break;
                 case 'newton-second-law':
                     drawNewtonSecondLawScene(sceneOpts);
+                    break;
+                case 'circuit':
+                    drawCircuitScene(sceneOpts);
+                    break;
+                case 'ac-current':
+                    drawAcCurrentScene(sceneOpts);
+                    break;
+                case 'em-induction':
+                    drawEmInductionScene(sceneOpts);
+                    break;
+                case 'magnetic-force':
+                    drawMagneticForceScene(sceneOpts);
+                    break;
+                case 'ampere-force':
+                    drawAmpereForceScene(sceneOpts);
+                    break;
+                case 'capacitor-charge':
+                    drawCapacitorChargeScene(sceneOpts);
+                    break;
+                case 'parallel-plate-capacitor':
+                    drawParallelPlateCapacitorScene(sceneOpts);
+                    break;
+                case 'load-voltage':
+                    drawLoadVoltageScene(sceneOpts);
+                    break;
+                case 'resistance-law':
+                    drawResistanceLawScene(sceneOpts);
+                    break;
+                case 'multimeter-tool':
+                    drawMultimeterScene(sceneOpts);
+                    break;
+                case 'vernier-caliper-tool':
+                    drawVernierCaliperScene(sceneOpts);
+                    break;
+                case 'micrometer-tool':
+                    drawMicrometerScene(sceneOpts);
                     break;
             }
             return;
@@ -1400,7 +1480,8 @@ export function SimulationCanvas() {
         isNuclear,
         isThermal,
         isSensor,
-        isMechanics
+        isMechanics,
+        isElectromagnetism
     ]);
 
     useEffect(() => {

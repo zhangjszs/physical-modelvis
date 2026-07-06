@@ -306,6 +306,11 @@ npm run build          # vite build ≤ 5s
   - 范围: free-fall, galileo-incline, reaction-time, ticker-timer, transmission-belt, vertical-circle, center-of-gravity, inertia, newton-first-law, newton-second-law
   - 目标: 从通用 CanvasRenderer fallback 提升为完整屏幕坐标教学图, 通过 L5 renderer routing 检查
 
+- [x] **M3: 电学/电磁基础 + 仪器读数 12 个场景定制渲染器** (commit 本条)
+  - 文件: `visualization/src/rendering/electromagnetismScenes.ts`, `visualization/src/components/simulation/SimulationCanvas.tsx`
+  - 范围: circuit, ac-current, em-induction, magnetic-force, ampere-force, capacitor-charge, parallel-plate-capacitor, load-voltage, resistance-law, multimeter-tool, vernier-caliper-tool, micrometer-tool
+  - 目标: 从通用 CanvasRenderer fallback 提升为屏幕坐标教学图, 通过 L5 renderer routing 检查
+
 ### 自检循环进度
 
 | 层 | 状态 | commit | 文件 |
