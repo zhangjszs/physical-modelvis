@@ -170,16 +170,16 @@ npm run build          # vite build ≤ 5s
   - 参考现有 `chapter3Scenes.ts` 模式
   - 3 个渲染器: `drawDoublePendulumSyncScene`, `drawForcedVibrationScene`, `drawResonanceCurveScene`
 
-- [~] **J2: 波动场景渲染器 (声波/水波/多普勒/干涉/衍射)**
+[x] **J2: 波动场景渲染器 (声波/水波/多普勒/干涉/衍射)** (commit `9ad468f`)
   - 文件: `visualization/src/rendering/wave optScenes.ts`
   - 内容: 波前圆+视疏区域(声波); 水波涟漪+衍射暗区; 多普勒频移+波纹压缩; 双缝干涉条纹; 单缝衍射光强包络; 薄膜等厚干涉
   - 使用 textureFactory 波纹纹理
 
-- [ ] **J3: 电磁装备渲染器 (电流天平/电磁阻尼/互感自感/电磁振荡)**
+- [x] **J3: 电磁装备渲染器 (电流天平/电磁阻尼/互感自感/电磁振荡)** (commit `fd8f80c`)
   - 文件: `visualization/src/rendering/emEquipmentScenes.ts`
-  - 内容: U 形磁铁+水平导体棒+砝码+指针(电流天平); 铝框+阻尼振动曲线; 双线圈+感应电动势波形; LC 振荡电流+磁场能/电场能条
+  - 内容: U 形磁铁+水平导体棒+砝码+指针(电流天平); 铝框+阻尼振动曲线; 双线圈+感应电动势波形; LC 振荡电流+磁场能/磁场能条
 
-- [ ] **J4: 量子/原子核渲染器 (α散射/衰变/裂变链)**
+- [~] **J4: 量子/原子核渲染器 (α散射/衰变/裂变链)**
   - 文件: `visualization/src/rendering/nuclearScenes.ts`
   - 内容: 金核+α 粒子双曲线轨迹(多条+不同瞄准距); 放射性衰变 N-t 曲线+随机闪烁; 中子裂变链式反应树+分支
   - 风格: 闪烁+拖尾效果
@@ -220,7 +220,7 @@ npm run build          # vite build ≤ 5s
 | 阶段 | 状态 | 任务 |
 |------|------|------|
 | **I** | ✅ done | SceneConfig ×68 (I1-I7) |
-| **J** | ⏳ next | 定制渲染器 ×6 (J1-J6) |
+| **J** | 🔄 next (3/6) | 定制渲染器 ×6 (J1-J4 done, J5 next) |
 | **K** | ⏳ | FormulaPanel 扩展 ×4 (K1-K4) |
 | **合计** | | **17 任务**, 覆盖 68 个 Model 可视化 + 36 个公式集 + 6 个渲染器 |
 
