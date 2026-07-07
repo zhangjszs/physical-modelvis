@@ -300,7 +300,19 @@ npm run build          # vite build ≤ 5s
     3. 纯磁场圆周几何: 回旋中心 r_c=(x0+vy0/ω, y0−vx0/ω), 半径 R=m|v|/(|q||B|), 角速度 ω=qB/m (v×B 约定 → +Bz 顺时针)
     4. 收敛阶: sampleCount 翻倍 → 终点误差缩 ~4 倍 (二阶法 O(dt²))
     5. 极端参数 (极小 dt / 极大 E,B): 不产生 NaN/Inf, 不抛异常
-  - ✅ 自查 9/9 通过; 全 core 843 测试绿; `npm run self-check` L0-L6+L8 全 PASS
+  - ✅ 自查 9/9 通过; 全 core 843 测试绿; `npm run self-check` L0-L6+L8 全 PASS (commit `a8a0590`)
+
+- [x] **L9: 跨场景数值鲁棒性 (全 SCENES solveProblem 无 NaN/Inf)** (commit 本条)
+  - 文件: `visualization/tests/accuracy/physics-correctness.test.ts` (新建, 123 用例, 每场景 1 测试), `scripts/self-check.mjs` (LAYERS 追加 L9), `physics-core/src/models/radioactive-decay.ts`, `physics-core/src/models/alpha-scattering.ts`
+  - 遍历 SCENES[] 全部场景, 用 default parameters 走真实链路 `buildProblem → solveProblem` (via adapter), 验证:
+    1. 仿真场景 (buildProblem 含 body) solve 成功 (error === null), 返回 result 非空
+    2. 轨迹: 每点 t/position/velocity 有限; 时间单调非降; 速率有限且 ≥0
+    3. charts: 每点 x/y 有限 (容忍 `{NaN,NaN}` 折线断点约定; 仅 partial-NaN 视为 bug)
+  - 设计: 静态/仪器场景 (buildProblem 无 body, 由定制 canvas 渲染) 与场模型 (有 body 但 0 轨迹, 画场线) 跳过有限性检查
+  - **本轮挖出并修复 2 个真实结构性 bug**:
+    - `radioactive-decay` / `alpha-scattering`: 曾把多个粒子的径迹**拼接进同一条 `trajectories` 数组**, 导致粒子间 t 回退 (0..L-1, 0..L-1...), 违反时间序 (破坏 store 按 t 索引的播放契约)。改为**每条粒子独立 `TrajectoryPoint[]` (trajectories 为 `TrajectoryPoint[][]`), t 单条内单调**。
+    - 自定义渲染器 (`drawDecayStatisticsScene` / `drawAlphaScatteringScene`) 不消费 `trajectories`, 仅读 charts/params, 故重构无视觉回归。
+  - ✅ 自查 123/123 通过; 全 core 843 + 全 viz 244 测试绿; `tsc --noEmit` ✅; `npm run self-check` L0-L6+L8+L9 全 PASS
 
 ---
 
@@ -381,5 +393,6 @@ npm run build          # vite build ≤ 5s
 | L5 | ✅ | `207f0a0` | `renderer-routing.test.ts` |
 | L6 | ✅ | `c0e5dc1` | `parameter-ranges.test.ts` |
 | L7 | ✅ | (当前) | `self-check.mjs`, `docs/self-check-loop.md` |
-| L8 | ✅ | (当前) | `boris-correctness.test.ts`, `self-check.mjs` |
-| **合计** | | **9 commits** | 物理真实性 + 计算正确性全覆盖 |
+| L8 | ✅ | `a8a0590` | `boris-correctness.test.ts`, `self-check.mjs` |
+| L9 | ✅ | (当前) | `physics-correctness.test.ts`, `self-check.mjs`, `radioactive-decay.ts`, `alpha-scattering.ts` |
+| **合计** | | **10 commits** | 物理真实性 + 计算正确性全覆盖 |

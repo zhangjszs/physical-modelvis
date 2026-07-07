@@ -35,6 +35,7 @@ const LAYERS = [
   { id: 'L5', name: '渲染器-场景路由', pkg: 'visualization', test: 'renderer-routing.test.ts' },
   { id: 'L6', name: '参数面板物理范围', pkg: 'visualization', test: 'parameter-ranges.test.ts' },
   { id: 'L8', name: 'Boris 数值积分正确性+收敛', pkg: 'physics-core', test: 'boris-correctness.test.ts' },
+  { id: 'L9', name: '跨场景数值鲁棒性', pkg: 'visualization', test: 'physics-correctness.test.ts' },
 ];
 
 /**
