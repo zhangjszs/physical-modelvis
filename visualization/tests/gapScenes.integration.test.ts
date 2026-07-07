@@ -253,4 +253,52 @@ describe('场景行为正确性 (端到端物理自洽)', () => {
         });
         expect(texts.some(t => t.includes('全反射'))).toBe(true);
     });
+
+    it('小球 x-t: 小摆角(θ₀=15°)下实测周期 ≈ 小角度公式 (误差 < 5%)', () => {
+        const { result, params } = solveScene('ball-xt');
+        const { ctx, texts } = makeRecordingCtx();
+        drawBallXTimeScene({
+            ctx,
+            width: 900,
+            height: 600,
+            isDark: false,
+            params,
+            simulationResult: result,
+            currentTime: params['duration'] ?? 10
+        });
+        const L = params['length'] ?? 1;
+        const g = params['g'] ?? 9.8;
+        const Tsmall = 2 * Math.PI * Math.sqrt(L / g);
+        const tRow = texts.find(t => t.startsWith('T = '));
+        expect(tRow, 'HUD 应包含 T 行').toBeDefined();
+        const Tshown = parseFloat(tRow!.replace('T = ', ''));
+        expect(Math.abs(Tshown - Tsmall)).toBeLessThan(Tsmall * 0.05);
+    });
+
+    it('小球 x-t: 大摆角(θ₀=80°)下 HUD 的 T 反映真实(非线性)周期, 而非小角度公式', () => {
+        const scene = SCENES.find(s => s.id === 'ball-xt')!;
+        const params: Record<string, number> = { ...getDefaultParams('ball-xt'), angle: 80 };
+        const result = solveProblem(scene.buildProblem(params));
+        const { ctx, texts } = makeRecordingCtx();
+        drawBallXTimeScene({
+            ctx,
+            width: 900,
+            height: 600,
+            isDark: false,
+            params,
+            simulationResult: result,
+            currentTime: params['duration'] ?? 10
+        });
+        const L = params['length'] ?? 1;
+        const g = params['g'] ?? 9.8;
+        const Tsmall = 2 * Math.PI * Math.sqrt(L / g);
+        const tRow = texts.find(t => t.startsWith('T = '));
+        expect(tRow, 'HUD 应包含 T 行').toBeDefined();
+        const Tshown = parseFloat(tRow!.replace('T = ', ''));
+        // 80° 单摆真实(非线性)周期约为小角度值的 1.15 倍 (椭圆积分), 远大于小角度公式本身
+        // 阈值 1.1 证明 HUD 报的是实测周期而非写死的小角度值; 1.25 上限排除异常偏差
+        expect(Tshown).toBeGreaterThan(Tsmall * 1.1);
+        expect(Tshown).toBeLessThan(Tsmall * 1.25);
+        expect(tRow).not.toContain('小角度估算'); // 时长足够应能实测, 不回退
+    });
 });

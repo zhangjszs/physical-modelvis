@@ -232,6 +232,50 @@ function interpSeries(series: SeriesLike | undefined, x: number): number {
     return last.y;
 }
 
+/** 取最大值 (用循环代替 Math.max(...arr), 避免大数组展开触发 RangeError) */
+function maxOf(values: Array<number>, base: number): number {
+    let m = base;
+    for (const v of values) if (v > m) m = v;
+    return m;
+}
+
+interface PendTrajPoint {
+    t: number;
+    position: { x: number };
+}
+
+/**
+ * 由摆轨迹过零时刻实测周期。
+ * 摆球起点在极端位置, x 首过零在 t=T/4; 若采到 ≥2 个过零, 相邻过零间距 = T/2。
+ * 窗口太短 (无过零) 返回 null, 由调用方回退小角度公式。
+ */
+function measurePendulumPeriod(traj: PendTrajPoint[] | undefined): number | null {
+    if (!traj || traj.length < 4) return null;
+    const crossings: number[] = [];
+    for (let i = 1; i < traj.length; i++) {
+        const a = traj[i - 1];
+        const b = traj[i];
+        if (!a || !b) continue;
+        const xa = a.position.x;
+        const xb = b.position.x;
+        if (xa * xb < 0) {
+            const f = xa / (xa - xb);
+            crossings.push(a.t + f * (b.t - a.t));
+        } else if (xa === 0) {
+            crossings.push(a.t);
+        }
+    }
+    if (crossings.length >= 2) {
+        const T = (2 * (crossings[crossings.length - 1]! - crossings[0]!)) / (crossings.length - 1);
+        return T > 0 ? T : null;
+    }
+    if (crossings.length === 1) {
+        const T = 4 * crossings[0]!;
+        return T > 0 ? T : null;
+    }
+    return null;
+}
+
 function placeholder(ctx: CanvasRenderingContext2D, w: number, h: number, isDark: boolean): void {
     ctx.fillStyle = isDark ? '#64748b' : '#94a3b8';
     ctx.font = '16px sans-serif';
@@ -270,7 +314,7 @@ export function drawTotalInternalReflectionScene(o: GapSceneOptions): void {
         ctx.lineWidth = 2;
         ctx.strokeRect(fx0, fy0, fx1 - fx0, fy1 - fy0);
         const cy = (fy0 + fy1) / 2;
-        const phi = ((params['angle'] ?? 12) * Math.PI) / 180;
+        const phi = (angleDeg * Math.PI) / 180;
         let x = fx0;
         let y = cy;
         const dx = Math.cos(phi);
@@ -417,7 +461,7 @@ export function drawCurrentMagneticFieldScene(o: GapSceneOptions): void {
     const I = params['current'] ?? 5;
     const lineColor = isDark ? '#38bdf8' : '#0284c7';
 
-    const maxMag = Math.max(1e-9, ...extra.samples.map(s => s.magnitude));
+    const maxMag = maxOf(extra.samples.map(s => s.magnitude), 1e-9);
     // 磁场采样点用 bx/by, 适配矢量场绘制 (统一为 ex/ey)
     const magVectors = extra.samples.map(s => ({ x: s.x, y: s.y, ex: s.bx, ey: s.by, magnitude: s.magnitude }));
     drawVectorField(ctx, magVectors, toScreen, maxMag, isDark ? '#64748b' : '#94a3b8');
@@ -484,7 +528,7 @@ export function drawElectricFieldLinesScene(o: GapSceneOptions): void {
     const scale = Math.min(width, height) * 0.4;
     const toScreen = (x: number, y: number): [number, number] => [cx + x * scale, cy - y * scale];
 
-    const maxMag = Math.max(1e-9, ...extra.samples.map(s => s.magnitude));
+    const maxMag = maxOf(extra.samples.map(s => s.magnitude), 1e-9);
     drawVectorField(ctx, extra.samples, toScreen, maxMag, isDark ? '#64748b' : '#94a3b8');
 
     const lineColor = isDark ? '#f472b6' : '#db2777';
@@ -585,7 +629,7 @@ export function drawNewtonTubeScene(o: GapSceneOptions): void {
             else break;
         }
         const drop = Math.abs(best.position.y);
-        const maxDrop = Math.max(1e-6, ...traj.map(p => Math.abs(p.position.y)));
+        const maxDrop = maxOf(traj.map(p => Math.abs(p.position.y)), 1e-6);
         coinFrac = Math.max(0, Math.min(1, drop / maxDrop));
     }
     // 羽毛: 有空气则受阻力, 终端速度有限; 真空则与硬币一致
@@ -844,14 +888,18 @@ export function drawBallXTimeScene(o: GapSceneOptions): void {
     const duration = params['duration'] ?? 10;
     const L = params['length'] ?? 1.0;
     const g = params['g'] ?? 9.8;
-    const T = 2 * Math.PI * Math.sqrt(Math.max(1e-6, L) / Math.max(1e-6, g));
+    // 优先从真实轨迹过零实测周期 (大摆角下 != 小角度公式); 窗口太短回退小角度估算
+    const Tsmall = 2 * Math.PI * Math.sqrt(Math.max(1e-6, L) / Math.max(1e-6, g));
+    const Tmeasured = measurePendulumPeriod(traj);
+    const T = Tmeasured ?? Tsmall;
+    const Tlabel = Tmeasured ? `${T.toFixed(2)} s` : `${T.toFixed(2)} s (小角度估算)`;
 
     // 图表区 (右侧 60%)
     const gx = width * 0.4;
     const gy = height * 0.18;
     const gw = width * 0.55;
     const gh = height * 0.64;
-    const xMax = Math.max(...traj.map(p => Math.abs(p.position.x)), 1e-6);
+    const xMax = maxOf(traj.map(p => Math.abs(p.position.x)), 1e-6);
     const tMax = duration;
 
     const px = (t: number) => gx + (t / tMax) * gw;
@@ -930,7 +978,7 @@ export function drawBallXTimeScene(o: GapSceneOptions): void {
     drawHud(ctx, isDark, [
         { label: 't', value: `${t.toFixed(2)} s` },
         { label: 'x', value: `${cur.position.x.toFixed(3)} m` },
-        { label: 'T', value: `${T.toFixed(2)} s` }
+        { label: 'T', value: Tlabel }
     ]);
     drawInfoBar(ctx, width, height, '摆球水平位移 x(t) 近似正弦 → 简谐运动', isDark);
 }
@@ -972,13 +1020,17 @@ export function drawGeigerCounterScene(o: GapSceneOptions): void {
     ctx.textAlign = 'center';
     ctx.fillText('GM 计数管', tubeX + tubeW / 2, tubeY - 8);
 
-    // 随机计数闪光 (随活度 A 增多)
+    // 确定性计数闪光: 闪光数随活度 A 增多 (保留物理意义), 但位置/大小由索引伪随机固定, 避免逐帧乱跳不可复现
     const flashes = Math.round(A * 0.4);
+    const hash01 = (n: number) => {
+        const s = Math.sin(n) * 43758.5453;
+        return s - Math.floor(s);
+    };
     for (let i = 0; i < flashes; i++) {
-        const fx = tubeX + 8 + Math.random() * (tubeW - 16);
-        const fy = tubeY + 8 + Math.random() * (tubeH - 16);
-        const fr = 2 + Math.random() * 3;
-        ctx.fillStyle = `rgba(34,197,94,${0.3 + Math.random() * 0.6})`;
+        const fx = tubeX + 8 + hash01(i * 1.7 + 0.5) * (tubeW - 16);
+        const fy = tubeY + 8 + hash01(i * 2.3 + 1.9) * (tubeH - 16);
+        const fr = 2 + hash01(i * 3.1 + 0.2) * 3;
+        ctx.fillStyle = `rgba(34,197,94,${0.3 + hash01(i * 4.7 + 0.8) * 0.6})`;
         ctx.beginPath();
         ctx.arc(fx, fy, fr, 0, Math.PI * 2);
         ctx.fill();
@@ -1003,7 +1055,7 @@ export function drawGeigerCounterScene(o: GapSceneOptions): void {
     const gy = height * 0.18;
     const gw = width * 0.4;
     const gh = height * 0.64;
-    const nMax = Math.max(...Nchart.points.map(p => p.y), 1);
+    const nMax = maxOf(Nchart.points.map(p => p.y), 1);
     const px = (tt: number) => gx + (tt / duration) * gw;
     const py = (nn: number) => gy + gh - (nn / nMax) * gh;
 
