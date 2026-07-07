@@ -50,13 +50,23 @@ import {
     drawFissionChainScene
 } from '../../rendering/nuclearScenes';
 import {
+    drawAdiabaticCompressionScene,
     drawDiffusionScene,
     drawBrownianScene,
+    drawEnergyTransformationScene,
+    drawHeatDirectionScene,
     drawMeltingCurveScene,
     drawHeatTransferScene,
+    drawJouleElectricalScene,
+    drawJouleMechanicalScene,
+    drawLiquidMixingScene,
     drawSurfaceTensionScene,
+    drawMolecularForceScene,
+    drawOilFilmScene,
     drawCapillaryScene,
-    drawLiquidCrystalScene
+    drawLiquidCrystalScene,
+    drawPerpetuumMobileScene,
+    drawWettingScene
 } from '../../rendering/thermalScenes';
 import {
     drawHallEffectScene,
@@ -148,11 +158,21 @@ const SCENES_SENSOR = new Set([
 const SCENES_THERMAL = new Set([
     'diffusion',
     'brownian-motion',
+    'oil-film',
+    'liquid-mixing',
+    'molecular-force',
     'melting-curve',
     'heat-transfer',
     'surface-tension',
     'capillary',
-    'liquid-crystal'
+    'wetting',
+    'liquid-crystal',
+    'joule-mechanical',
+    'joule-electrical',
+    'adiabatic-compression',
+    'energy-transformation',
+    'perpetuum-mobile',
+    'heat-direction'
 ]);
 
 /** 基础力学实验场景集合：自由落体/斜面/惯性/牛顿定律等完整教学图 */
@@ -1166,6 +1186,36 @@ export function SimulationCanvas() {
                     break;
                 case 'liquid-crystal':
                     drawLiquidCrystalScene(sceneOpts);
+                    break;
+                case 'oil-film':
+                    drawOilFilmScene(sceneOpts);
+                    break;
+                case 'liquid-mixing':
+                    drawLiquidMixingScene(sceneOpts);
+                    break;
+                case 'molecular-force':
+                    drawMolecularForceScene(sceneOpts);
+                    break;
+                case 'wetting':
+                    drawWettingScene(sceneOpts);
+                    break;
+                case 'joule-mechanical':
+                    drawJouleMechanicalScene(sceneOpts);
+                    break;
+                case 'joule-electrical':
+                    drawJouleElectricalScene(sceneOpts);
+                    break;
+                case 'adiabatic-compression':
+                    drawAdiabaticCompressionScene(sceneOpts);
+                    break;
+                case 'energy-transformation':
+                    drawEnergyTransformationScene(sceneOpts);
+                    break;
+                case 'perpetuum-mobile':
+                    drawPerpetuumMobileScene(sceneOpts);
+                    break;
+                case 'heat-direction':
+                    drawHeatDirectionScene(sceneOpts);
                     break;
                 case 'hall-effect':
                     drawHallEffectScene(sceneOpts);

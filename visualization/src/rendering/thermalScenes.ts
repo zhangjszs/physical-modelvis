@@ -1779,3 +1779,441 @@ export function drawLiquidCrystalScene(o: ThermalSceneOptions): void {
 
     if (!simulationResult) drawEmptyState(ctx, w, h, isDark);
 }
+
+function drawThermalArrow(
+    ctx: CanvasRenderingContext2D,
+    x1: number,
+    y1: number,
+    x2: number,
+    y2: number,
+    color: string,
+    label?: string
+): void {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const len = Math.hypot(dx, dy);
+    if (len < 3) return;
+    const a = Math.atan2(dy, dx);
+    const head = Math.min(13, len * 0.25);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2.3;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2 - head * 0.55 * Math.cos(a), y2 - head * 0.55 * Math.sin(a));
+    ctx.stroke();
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - head * Math.cos(a - 0.4), y2 - head * Math.sin(a - 0.4));
+    ctx.lineTo(x2 - head * 0.45 * Math.cos(a), y2 - head * 0.45 * Math.sin(a));
+    ctx.lineTo(x2 - head * Math.cos(a + 0.4), y2 - head * Math.sin(a + 0.4));
+    ctx.closePath();
+    ctx.fill();
+    if (label) {
+        ctx.font = 'bold 12px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText(label, x2 + 6, y2 - 6);
+    }
+}
+
+function drawEnergyBar(
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    ratio: number,
+    color: string,
+    label: string,
+    isDark: boolean
+): void {
+    const clamped = Math.max(0, Math.min(1, ratio));
+    ctx.fillStyle = isDark ? 'rgba(15,23,42,0.58)' : 'rgba(255,255,255,0.70)';
+    roundRectPath(ctx, x, y, w, h, 5);
+    ctx.fill();
+    ctx.fillStyle = color;
+    roundRectPath(ctx, x, y + h * (1 - clamped), w, h * clamped, 5);
+    ctx.fill();
+    ctx.strokeStyle = isDark ? '#475569' : '#cbd5e1';
+    ctx.lineWidth = 1;
+    roundRectPath(ctx, x, y, w, h, 5);
+    ctx.stroke();
+    ctx.fillStyle = isDark ? '#cbd5e1' : '#334155';
+    ctx.font = '11px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(label, x + w / 2, y + h + 16);
+}
+
+export function drawOilFilmScene(o: ThermalSceneOptions): void {
+    const { ctx, width: w, height: h, isDark, params, simulationResult } = o;
+    clearScene(ctx, w, h, isDark);
+    drawTitle(ctx, '油膜法测分子直径', w, isDark);
+    const concentration = params['oilConcentration'] ?? 500;
+    const dropsPerMl = params['dropsPerMl'] ?? 50;
+    const filmArea = params['filmArea'] ?? 200;
+    const volumeMm3 = 1000 / Math.max(concentration * dropsPerMl, 1e-6);
+    const diameterNm = (volumeMm3 / Math.max(filmArea, 1e-6)) * 1e6;
+    const cx = w * 0.52;
+    const cy = h * 0.52;
+    const rx = Math.min(w * 0.28, 130 + filmArea * 0.12);
+    const ry = rx * 0.45;
+    ctx.fillStyle = isDark ? 'rgba(14,165,233,0.18)' : 'rgba(14,165,233,0.16)';
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#0ea5e9';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    for (let i = 0; i < 46; i++) {
+        const a = seededRand(i) * Math.PI * 2;
+        const r = Math.sqrt(seededRand(i + 7));
+        ctx.fillStyle = i % 3 === 0 ? '#f59e0b' : '#38bdf8';
+        ctx.beginPath();
+        ctx.arc(cx + Math.cos(a) * rx * r, cy + Math.sin(a) * ry * r, 2.4, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    drawHud(ctx, isDark, [
+        { label: 'V_drop', value: `${volumeMm3.toFixed(3)} mm3` },
+        { label: 'S', value: `${filmArea.toFixed(1)} cm2` },
+        { label: 'd', value: `${diameterNm.toFixed(2)} nm` }
+    ]);
+    drawInfoBar(ctx, w, h, '单分子油膜近似: d = V / S, 面积越大估算直径越小', isDark);
+    if (!simulationResult) drawEmptyState(ctx, w, h, isDark);
+}
+
+export function drawLiquidMixingScene(o: ThermalSceneOptions): void {
+    const { ctx, width: w, height: h, isDark, params, currentTime, simulationResult } = o;
+    clearScene(ctx, w, h, isDark);
+    drawTitle(ctx, '液体混合与扩散', w, isDark);
+    const water = params['volumeWater'] ?? 50;
+    const alcohol = params['volumeAlcohol'] ?? 50;
+    const contraction = 0.04 * Math.min(water, alcohol);
+    const finalVolume = water + alcohol - contraction;
+    const beakerX = w * 0.36;
+    const beakerY = h * 0.22;
+    const beakerW = w * 0.28;
+    const beakerH = h * 0.5;
+    ctx.strokeStyle = isDark ? '#94a3b8' : '#64748b';
+    ctx.lineWidth = 3;
+    roundRectPath(ctx, beakerX, beakerY, beakerW, beakerH, 10);
+    ctx.stroke();
+    const mix = Math.min(1, currentTime / 3);
+    const grad = ctx.createLinearGradient(beakerX, beakerY + beakerH, beakerX, beakerY);
+    grad.addColorStop(0, `rgba(59,130,246,${0.38 + mix * 0.15})`);
+    grad.addColorStop(1, `rgba(245,158,11,${0.38 - mix * 0.22})`);
+    ctx.fillStyle = grad;
+    roundRectPath(ctx, beakerX + 8, beakerY + beakerH * 0.18, beakerW - 16, beakerH * 0.74, 8);
+    ctx.fill();
+    for (let i = 0; i < 70; i++) {
+        const x = beakerX + 16 + seededRand(i) * (beakerW - 32);
+        const baseY = beakerY + beakerH * (i % 2 === 0 ? 0.32 : 0.70);
+        const y = baseY + (seededRand(i + 3) - 0.5) * beakerH * 0.28 * (0.4 + mix);
+        ctx.fillStyle = i % 2 === 0 ? '#60a5fa' : '#f59e0b';
+        ctx.globalAlpha = 0.55;
+        ctx.beginPath();
+        ctx.arc(x, y, 2.2, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    drawHud(ctx, isDark, [
+        { label: 'Vw', value: `${water.toFixed(0)} mL` },
+        { label: 'Va', value: `${alcohol.toFixed(0)} mL` },
+        { label: 'Vmix', value: `${finalVolume.toFixed(1)} mL` }
+    ]);
+    drawInfoBar(ctx, w, h, '水和酒精混合体积小于二者之和, 说明分子间存在空隙', isDark);
+    if (!simulationResult) drawEmptyState(ctx, w, h, isDark);
+}
+
+export function drawMolecularForceScene(o: ThermalSceneOptions): void {
+    const { ctx, width: w, height: h, isDark, params, simulationResult } = o;
+    clearScene(ctx, w, h, isDark);
+    drawTitle(ctx, '分子力曲线', w, isDark);
+    const epsilon = params['epsilon'] ?? 1;
+    const sigma = params['sigma'] ?? 0.34;
+    const xs: number[] = [];
+    const ys: number[] = [];
+    for (let i = 0; i <= 80; i++) {
+        const r = sigma * (0.82 + i * 0.035);
+        const sr = sigma / r;
+        const force = 24 * epsilon * (2 * sr ** 13 - sr ** 7) / sigma;
+        xs.push(parseFloat(r.toFixed(3)));
+        ys.push(Math.max(-8, Math.min(8, force)));
+    }
+    drawMiniChart({
+        ctx,
+        x: w * 0.12,
+        y: h * 0.22,
+        w: w * 0.76,
+        h: h * 0.42,
+        xs,
+        ys,
+        isDark,
+        lineColor: '#a855f7',
+        label: 'F-r 分子力曲线',
+        xLabel: 'r (nm)',
+        yLabel: 'F'
+    });
+    ctx.fillStyle = '#60a5fa';
+    ctx.beginPath();
+    ctx.arc(w * 0.42, h * 0.76, 20, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#f59e0b';
+    ctx.beginPath();
+    ctx.arc(w * 0.58, h * 0.76, 20, 0, Math.PI * 2);
+    ctx.fill();
+    drawThermalArrow(ctx, w * 0.47, h * 0.76, w * 0.53, h * 0.76, '#ef4444', '斥/引随距离变号');
+    drawHud(ctx, isDark, [
+        { label: 'epsilon', value: epsilon.toFixed(2) },
+        { label: 'sigma', value: `${sigma.toFixed(2)} nm` },
+        { label: 'r0', value: `${(1.122 * sigma).toFixed(2)} nm` }
+    ]);
+    drawInfoBar(ctx, w, h, '距离很小时表现为斥力, 稍远处表现为引力, 远距离分子力趋近于零', isDark);
+    if (!simulationResult) drawEmptyState(ctx, w, h, isDark);
+}
+
+export function drawWettingScene(o: ThermalSceneOptions): void {
+    const { ctx, width: w, height: h, isDark, params, simulationResult } = o;
+    clearScene(ctx, w, h, isDark);
+    const medium = params['medium'] ?? 0;
+    const surface = params['surface'] ?? 0;
+    const theta = medium < 0.5 && surface < 0.5 ? 35 : medium < 0.5 ? 105 : 140;
+    drawTitle(ctx, `润湿/不润湿  θ=${theta}°`, w, isDark);
+    const baseY = h * 0.68;
+    ctx.fillStyle = isDark ? '#334155' : '#cbd5e1';
+    ctx.fillRect(w * 0.18, baseY, w * 0.64, 10);
+    const dropW = theta < 90 ? 190 : 130;
+    const dropH = theta < 90 ? 58 : 95;
+    ctx.fillStyle = medium < 0.5 ? 'rgba(14,165,233,0.58)' : 'rgba(148,163,184,0.62)';
+    ctx.beginPath();
+    ctx.ellipse(w * 0.5, baseY - dropH / 2, dropW / 2, dropH, 0, Math.PI, 0);
+    ctx.closePath();
+    ctx.fill();
+    drawThermalArrow(ctx, w * 0.5, baseY, w * 0.64, baseY - 45, '#22c55e', 'γ');
+    ctx.strokeStyle = '#ef4444';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(w * 0.5, baseY, 54, Math.PI, Math.PI + (theta * Math.PI) / 180);
+    ctx.stroke();
+    drawHud(ctx, isDark, [
+        { label: 'theta', value: `${theta} deg` },
+        { label: 'medium', value: medium < 0.5 ? 'water' : 'mercury' },
+        { label: 'state', value: theta < 90 ? 'wetting' : 'non-wetting' }
+    ]);
+    drawInfoBar(ctx, w, h, 'θ < 90° 为润湿, θ > 90° 为不润湿; 接触角由三相界面张力决定', isDark);
+    if (!simulationResult) drawEmptyState(ctx, w, h, isDark);
+}
+
+export function drawJouleMechanicalScene(o: ThermalSceneOptions): void {
+    const { ctx, width: w, height: h, isDark, params, currentTime, simulationResult } = o;
+    clearScene(ctx, w, h, isDark);
+    drawTitle(ctx, '机械功改变内能', w, isDark);
+    const mass = params['mass'] ?? 5;
+    const height = params['height'] ?? 1.5;
+    const drops = params['drops'] ?? 100;
+    const waterMass = params['waterMass'] ?? 0.5;
+    const c = params['specificHeat'] ?? 4184;
+    const work = mass * 9.8 * height * drops;
+    const deltaT = work / (waterMass * c);
+    const tankX = w * 0.42;
+    const tankY = h * 0.36;
+    ctx.strokeStyle = isDark ? '#94a3b8' : '#64748b';
+    ctx.lineWidth = 3;
+    roundRectPath(ctx, tankX, tankY, 160, 120, 8);
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(14,165,233,0.34)';
+    ctx.fillRect(tankX + 8, tankY + 48, 144, 64);
+    for (let i = 0; i < 8; i++) {
+        const a = currentTime * 4 + i;
+        ctx.strokeStyle = '#f59e0b';
+        ctx.beginPath();
+        ctx.moveTo(tankX + 80, tankY + 60);
+        ctx.lineTo(tankX + 80 + Math.cos(a) * 55, tankY + 82 + Math.sin(a) * 25);
+        ctx.stroke();
+    }
+    drawEnergyBar(ctx, w * 0.18, h * 0.34, 46, 130, 1, '#f59e0b', 'mgh', isDark);
+    drawThermalArrow(ctx, w * 0.25, h * 0.48, tankX - 16, tankY + 58, '#ef4444', 'W');
+    drawHud(ctx, isDark, [
+        { label: 'W', value: `${work.toFixed(0)} J` },
+        { label: 'm_water', value: `${waterMass.toFixed(2)} kg` },
+        { label: 'dT', value: `${deltaT.toFixed(2)} K` }
+    ]);
+    drawInfoBar(ctx, w, h, '重物下落做功带动叶片搅拌, 机械功转化为水的内能', isDark);
+    if (!simulationResult) drawEmptyState(ctx, w, h, isDark);
+}
+
+export function drawJouleElectricalScene(o: ThermalSceneOptions): void {
+    const { ctx, width: w, height: h, isDark, params, simulationResult } = o;
+    clearScene(ctx, w, h, isDark);
+    drawTitle(ctx, '电功改变内能', w, isDark);
+    const voltage = params['voltage'] ?? 12;
+    const resistance = params['resistance'] ?? 10;
+    const time = params['time'] ?? 300;
+    const waterMass = params['waterMass'] ?? 0.5;
+    const power = (voltage * voltage) / Math.max(resistance, 1e-6);
+    const heat = power * time;
+    const deltaT = heat / (waterMass * 4184);
+    const cx = w * 0.52;
+    const cy = h * 0.54;
+    ctx.strokeStyle = isDark ? '#94a3b8' : '#64748b';
+    ctx.lineWidth = 3;
+    roundRectPath(ctx, cx - 95, cy - 80, 190, 150, 10);
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(14,165,233,0.34)';
+    ctx.fillRect(cx - 86, cy - 18, 172, 80);
+    ctx.strokeStyle = '#ef4444';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    for (let i = 0; i <= 24; i++) {
+        const x = cx - 60 + i * 5;
+        const y = cy + 18 + Math.sin(i * Math.PI) * 12;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    drawThermalArrow(ctx, w * 0.22, cy, cx - 102, cy, '#f59e0b', 'I');
+    drawHud(ctx, isDark, [
+        { label: 'P', value: `${power.toFixed(1)} W` },
+        { label: 'Q', value: `${heat.toFixed(0)} J` },
+        { label: 'dT', value: `${deltaT.toFixed(2)} K` }
+    ]);
+    drawInfoBar(ctx, w, h, '焦耳定律 Q = I^2Rt = U^2t/R, 电功转化为水的内能', isDark);
+    if (!simulationResult) drawEmptyState(ctx, w, h, isDark);
+}
+
+export function drawAdiabaticCompressionScene(o: ThermalSceneOptions): void {
+    const { ctx, width: w, height: h, isDark, params, currentTime, simulationResult } = o;
+    clearScene(ctx, w, h, isDark);
+    drawTitle(ctx, '绝热压缩', w, isDark);
+    const t0 = params['initialTemp'] ?? 300;
+    const ratio = params['compressionRatio'] ?? 9;
+    const gamma = 1.4;
+    const t2 = t0 * ratio ** (gamma - 1);
+    const progress = Math.min(1, currentTime / 5);
+    const cylX = w * 0.35;
+    const cylY = h * 0.25;
+    const cylW = w * 0.28;
+    const cylH = h * 0.48;
+    ctx.strokeStyle = isDark ? '#94a3b8' : '#64748b';
+    ctx.lineWidth = 3;
+    roundRectPath(ctx, cylX, cylY, cylW, cylH, 8);
+    ctx.stroke();
+    const pistonY = cylY + 18 + progress * (cylH * 0.62);
+    ctx.fillStyle = isDark ? '#64748b' : '#94a3b8';
+    roundRectPath(ctx, cylX - 12, pistonY, cylW + 24, 20, 4);
+    ctx.fill();
+    ctx.fillStyle = `rgba(239,68,68,${0.14 + progress * 0.46})`;
+    roundRectPath(ctx, cylX + 8, pistonY + 24, cylW - 16, cylY + cylH - pistonY - 34, 6);
+    ctx.fill();
+    drawThermalArrow(ctx, cylX + cylW / 2, cylY - 28, cylX + cylW / 2, pistonY - 6, '#ef4444', '压缩');
+    drawHud(ctx, isDark, [
+        { label: 'T0', value: `${t0.toFixed(0)} K` },
+        { label: 'V1/V2', value: ratio.toFixed(1) },
+        { label: 'T2', value: `${t2.toFixed(0)} K` }
+    ]);
+    drawInfoBar(ctx, w, h, '绝热过程近似 Q=0, TV^(gamma-1)=常量, 快速压缩可显著升温', isDark);
+    if (!simulationResult) drawEmptyState(ctx, w, h, isDark);
+}
+
+export function drawEnergyTransformationScene(o: ThermalSceneOptions): void {
+    const { ctx, width: w, height: h, isDark, params, simulationResult } = o;
+    clearScene(ctx, w, h, isDark);
+    drawTitle(ctx, '能量转化与守恒', w, isDark);
+    const input = params['inputEnergy'] ?? 100;
+    const efficiency = params['efficiency'] ?? 0.85;
+    const useful = input * efficiency;
+    const loss = input - useful;
+    const x = w * 0.18;
+    const y = h * 0.46;
+    drawEnergyBar(ctx, x, y - 90, 54, 130, 1, '#3b82f6', '输入', isDark);
+    drawThermalArrow(ctx, x + 72, y - 25, w * 0.47, y - 25, '#22c55e', '转化');
+    drawEnergyBar(ctx, w * 0.52, y - 90, 54, 130, efficiency, '#22c55e', '有用', isDark);
+    drawEnergyBar(ctx, w * 0.66, y - 90, 54, 130, loss / input, '#ef4444', '损失', isDark);
+    ctx.fillStyle = isDark ? '#cbd5e1' : '#334155';
+    ctx.font = 'bold 16px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(`${input.toFixed(0)} J = ${useful.toFixed(0)} J + ${loss.toFixed(0)} J`, w * 0.5, h * 0.75);
+    drawHud(ctx, isDark, [
+        { label: 'Ein', value: `${input.toFixed(0)} J` },
+        { label: 'eta', value: `${(efficiency * 100).toFixed(0)}%` },
+        { label: 'loss', value: `${loss.toFixed(1)} J` }
+    ]);
+    drawInfoBar(ctx, w, h, '能量不会凭空产生或消失, 只会从一种形式转化为另一种形式', isDark);
+    if (!simulationResult) drawEmptyState(ctx, w, h, isDark);
+}
+
+export function drawPerpetuumMobileScene(o: ThermalSceneOptions): void {
+    const { ctx, width: w, height: h, isDark, params, currentTime, simulationResult } = o;
+    clearScene(ctx, w, h, isDark);
+    drawTitle(ctx, '永动机不可能', w, isDark);
+    const hot = params['hotTemp'] ?? 600;
+    const cold = params['coldTemp'] ?? 300;
+    const carnot = 1 - cold / Math.max(hot, 1e-6);
+    const cx = w * 0.5;
+    const cy = h * 0.5;
+    ctx.strokeStyle = isDark ? '#94a3b8' : '#64748b';
+    ctx.lineWidth = 8;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 78, 0, Math.PI * 2);
+    ctx.stroke();
+    for (let i = 0; i < 8; i++) {
+        const a = currentTime * 1.5 + (i * Math.PI * 2) / 8;
+        ctx.strokeStyle = i % 2 === 0 ? '#ef4444' : '#3b82f6';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + Math.cos(a) * 78, cy + Math.sin(a) * 78);
+        ctx.stroke();
+    }
+    drawThermalArrow(ctx, w * 0.2, h * 0.35, cx - 86, cy - 36, '#ef4444', 'Qh');
+    drawThermalArrow(ctx, cx + 86, cy + 36, w * 0.78, h * 0.68, '#3b82f6', 'Qc 必有');
+    ctx.fillStyle = '#ef4444';
+    ctx.font = 'bold 42px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('×', cx, cy + 14);
+    drawHud(ctx, isDark, [
+        { label: 'Th', value: `${hot.toFixed(0)} K` },
+        { label: 'Tc', value: `${cold.toFixed(0)} K` },
+        { label: 'eta_max', value: `${(carnot * 100).toFixed(1)}%` }
+    ]);
+    drawInfoBar(ctx, w, h, '第二类永动机违反热力学第二定律: 单一热源不可能完全变成功', isDark);
+    if (!simulationResult) drawEmptyState(ctx, w, h, isDark);
+}
+
+export function drawHeatDirectionScene(o: ThermalSceneOptions): void {
+    const { ctx, width: w, height: h, isDark, params, currentTime, simulationResult } = o;
+    clearScene(ctx, w, h, isDark);
+    drawTitle(ctx, '热力学方向性', w, isDark);
+    const hot = params['hotTemp'] ?? 400;
+    const cold = params['coldTemp'] ?? 250;
+    const k = params['thermalConductivity'] ?? 5;
+    const qRate = k * (hot - cold);
+    const leftX = w * 0.22;
+    const rightX = w * 0.68;
+    const y = h * 0.46;
+    ctx.fillStyle = 'rgba(239,68,68,0.55)';
+    roundRectPath(ctx, leftX, y, 110, 120, 8);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(59,130,246,0.55)';
+    roundRectPath(ctx, rightX, y, 110, 120, 8);
+    ctx.fill();
+    ctx.fillStyle = isDark ? '#f8fafc' : '#0f172a';
+    ctx.font = 'bold 14px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(`${hot.toFixed(0)} K`, leftX + 55, y + 65);
+    ctx.fillText(`${cold.toFixed(0)} K`, rightX + 55, y + 65);
+    const pulse = Math.sin(currentTime * 4) * 8;
+    drawThermalArrow(ctx, leftX + 126, y + 60, rightX - 16 + pulse, y + 60, '#f59e0b', '热流');
+    ctx.strokeStyle = '#ef4444';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 4]);
+    drawThermalArrow(ctx, rightX - 16, y + 98, leftX + 126, y + 98, '#ef4444', '自发反向 ×');
+    ctx.setLineDash([]);
+    drawHud(ctx, isDark, [
+        { label: 'dT', value: `${(hot - cold).toFixed(0)} K` },
+        { label: 'k', value: `${k.toFixed(1)}` },
+        { label: 'Qdot', value: `${qRate.toFixed(0)} arb` }
+    ]);
+    drawInfoBar(ctx, w, h, '热量自发地从高温物体传到低温物体, 反向过程需要外界做功', isDark);
+    if (!simulationResult) drawEmptyState(ctx, w, h, isDark);
+}

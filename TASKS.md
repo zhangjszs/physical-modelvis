@@ -311,6 +311,11 @@ npm run build          # vite build ≤ 5s
   - 范围: circuit, ac-current, em-induction, magnetic-force, ampere-force, capacitor-charge, parallel-plate-capacitor, load-voltage, resistance-law, multimeter-tool, vernier-caliper-tool, micrometer-tool
   - 目标: 从通用 CanvasRenderer fallback 提升为屏幕坐标教学图, 通过 L5 renderer routing 检查
 
+- [x] **M4: 热学/热力学剩余 10 个场景定制渲染器**
+  - 文件: `visualization/src/rendering/thermalScenes.ts`, `visualization/src/components/simulation/SimulationCanvas.tsx`
+  - 范围: oil-film, liquid-mixing, molecular-force, wetting, joule-mechanical, joule-electrical, adiabatic-compression, energy-transformation, perpetuum-mobile, heat-direction
+  - 目标: 补齐热学与热力学实验装置图、能量流和判据图, 通过 L5 renderer routing 检查
+
 ### 自检循环进度
 
 | 层 | 状态 | commit | 文件 |
