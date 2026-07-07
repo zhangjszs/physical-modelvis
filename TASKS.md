@@ -292,6 +292,16 @@ npm run build          # vite build ≤ 5s
   - 顺序执行 L0-L6, 生成报告到 `.scratch/selfcheck-run-*.jsonl`
   - ✅ 通过 (npm run self-check exit 0)
 
+- [x] **L8: Boris 数值积分正确性 + 收敛性 (电磁复合场)** (commit 本条)
+  - 文件: `physics-core/tests/accuracy/boris-correctness.test.ts` (新建, 9 用例), `scripts/self-check.mjs` (LAYERS 追加 L8 条目)
+  - 验证 5 维物理正确性 (非"不报错"级别):
+    1. 纯电场 (B=0): Boris 精确退化为解析解 (匀速加速 + 梯形积分对常加速度精确, 精度 1e-6)
+    2. 纯磁场 (E=0): 旋转精保持速率 |v(t)| 全程恒定 (<1e-9); 磁场力不做功 → 能量守恒标志 true
+    3. 纯磁场圆周几何: 回旋中心 r_c=(x0+vy0/ω, y0−vx0/ω), 半径 R=m|v|/(|q||B|), 角速度 ω=qB/m (v×B 约定 → +Bz 顺时针)
+    4. 收敛阶: sampleCount 翻倍 → 终点误差缩 ~4 倍 (二阶法 O(dt²))
+    5. 极端参数 (极小 dt / 极大 E,B): 不产生 NaN/Inf, 不抛异常
+  - ✅ 自查 9/9 通过; 全 core 843 测试绿; `npm run self-check` L0-L6+L8 全 PASS
+
 ---
 
 ## 接手补缺: FormulaPanel 全场景覆盖
@@ -371,4 +381,5 @@ npm run build          # vite build ≤ 5s
 | L5 | ✅ | `207f0a0` | `renderer-routing.test.ts` |
 | L6 | ✅ | `c0e5dc1` | `parameter-ranges.test.ts` |
 | L7 | ✅ | (当前) | `self-check.mjs`, `docs/self-check-loop.md` |
-| **合计** | | **8 commits** | 物理真实性 + 计算正确性全覆盖 |
+| L8 | ✅ | (当前) | `boris-correctness.test.ts`, `self-check.mjs` |
+| **合计** | | **9 commits** | 物理真实性 + 计算正确性全覆盖 |

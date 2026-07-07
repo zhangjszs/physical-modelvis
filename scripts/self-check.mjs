@@ -34,6 +34,7 @@ const LAYERS = [
   { id: 'L4', name: 'FormulaPanel 漂移', pkg: 'visualization', test: 'formula-drift.test.ts' },
   { id: 'L5', name: '渲染器-场景路由', pkg: 'visualization', test: 'renderer-routing.test.ts' },
   { id: 'L6', name: '参数面板物理范围', pkg: 'visualization', test: 'parameter-ranges.test.ts' },
+  { id: 'L8', name: 'Boris 数值积分正确性+收敛', pkg: 'physics-core', test: 'boris-correctness.test.ts' },
 ];
 
 /**

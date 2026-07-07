@@ -39,7 +39,7 @@ GitHub Actions 流水线，配置文件位于 `.github/workflows/`。
 2. **ESLint 静态分析** — typescript-eslint recommended 规则集
 3. **Prettier 格式检查** — `format:check`
 4. **单元测试** — physics-core + visualization 各自 `vitest run`
-5. **7 层物理自检** — `node scripts/self-check.mjs`（L0-L6 跨包集成测试）
+5. **8 层物理自检** — `node scripts/self-check.mjs`（L0-L6 + L8 Boris 数值积分；L7 为 CLI 自身）
 6. **构建** — physics-core → visualization（带 `VITE_BASE_PATH` 子路径）
 
 ### 部署流水线 (`deploy.yml`)
