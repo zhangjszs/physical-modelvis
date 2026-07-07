@@ -9555,6 +9555,659 @@ export const SCENES: SceneConfig[] = [
                 timeConfig: { duration, dt: duration / 60, sampleCount: 60 }
             };
         }
+    },
+    {
+        id: 'total-internal-reflection',
+        name: '全反射与光导',
+        model: 'refraction',
+        parameters: [
+            {
+                name: 'n1',
+                label: '介质1 折射率 n₁',
+                unit: '',
+                value: 1.5,
+                min: 1.0,
+                max: 2.5,
+                step: 0.01,
+                default: 1.5,
+                description: '入射侧介质 (光密侧, 如玻璃 1.50)'
+            },
+            {
+                name: 'n2',
+                label: '介质2 折射率 n₂',
+                unit: '',
+                value: 1.0,
+                min: 1.0,
+                max: 2.5,
+                step: 0.01,
+                default: 1.0,
+                description: '透射侧介质 (光疏侧, 如空气 1.00)'
+            },
+            {
+                name: 'angle',
+                label: '入射角 θ₁',
+                unit: '°',
+                value: 50,
+                min: 0,
+                max: 89,
+                step: 1,
+                default: 50,
+                description: '入射光线与法线夹角'
+            },
+            {
+                name: 'mode',
+                label: '模式 (0折射 1全反射 2光导)',
+                unit: '',
+                value: 1,
+                min: 0,
+                max: 2,
+                step: 1,
+                default: 1,
+                description: '0=普通折射; 1=全反射; 2=光导纤维'
+            },
+            {
+                name: 'duration',
+                label: '动画时长',
+                unit: 's',
+                value: 3,
+                min: 1,
+                max: 10,
+                step: 0.5,
+                default: 3,
+                description: '动画播放时长'
+            }
+        ],
+        buildProblem: params => {
+            const n1 = params['n1'] ?? 1.5;
+            const n2 = params['n2'] ?? 1.0;
+            const angleDeg = params['angle'] ?? 50;
+            const duration = params['duration'] ?? 3;
+            return {
+                id: `tir-${Date.now()}`,
+                title: '全反射与光导',
+                model: 'refraction' as const,
+                bodies: [{ id: 'light', mass: { value: 1, unit: 'kg' }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } }],
+                constraints: { refraction: { n1, n2, incidentAngleDeg: angleDeg } },
+                environment: {},
+                timeConfig: { duration, dt: 0.1, sampleCount: 10 }
+            };
+        }
+    },
+    {
+        id: 'current-magnetic',
+        name: '电流的磁场',
+        model: 'current-magnetic-field',
+        parameters: [
+            {
+                name: 'mode',
+                label: '模式 (0直导线 1线圈 2螺线管)',
+                unit: '',
+                value: 0,
+                min: 0,
+                max: 2,
+                step: 1,
+                default: 0,
+                description: '0=通电直导线; 1=圆形线圈; 2=螺线管'
+            },
+            {
+                name: 'current',
+                label: '电流 I',
+                unit: 'A',
+                value: 5,
+                min: -20,
+                max: 20,
+                step: 1,
+                default: 5,
+                description: '电流大小; 负号表示方向翻转 (入纸面)'
+            },
+            {
+                name: 'turns',
+                label: '匝数 N',
+                unit: '',
+                value: 10,
+                min: 1,
+                max: 50,
+                step: 1,
+                default: 10,
+                description: '线圈/螺线管匝数'
+            },
+            {
+                name: 'radius',
+                label: '线圈半径 (场景)',
+                unit: '',
+                value: 0.6,
+                min: 0.2,
+                max: 1.0,
+                step: 0.05,
+                default: 0.6,
+                description: '线圈半径 (归一化场景单位)'
+            },
+            {
+                name: 'duration',
+                label: '动画时长',
+                unit: 's',
+                value: 5,
+                min: 1,
+                max: 10,
+                step: 0.5,
+                default: 5,
+                description: '动画播放时长'
+            }
+        ],
+        buildProblem: params => {
+            const modeNum = Math.round(params['mode'] ?? 0);
+            const mode: 'straight-wire' | 'coil' | 'solenoid' =
+                modeNum === 2 ? 'solenoid' : modeNum === 1 ? 'coil' : 'straight-wire';
+            const current = params['current'] ?? 5;
+            const turns = Math.round(params['turns'] ?? 10);
+            const radius = params['radius'] ?? 0.6;
+            const duration = params['duration'] ?? 5;
+            return {
+                id: `current-magnetic-${Date.now()}`,
+                title: '电流的磁场',
+                model: 'current-magnetic-field' as const,
+                bodies: [],
+                constraints: {
+                    currentMagneticField: { mode, current, turns, radius, steps: 600, maxLength: 6, lineCount: 16 }
+                },
+                environment: {},
+                timeConfig: { duration, dt: duration / 50, sampleCount: 50 }
+            };
+        }
+    },
+    {
+        id: 'efield-lines',
+        name: '电场线分布',
+        model: 'electric-field-lines',
+        parameters: [
+            {
+                name: 'mode',
+                label: '模式 (0点电荷 1偶极 2平行板)',
+                unit: '',
+                value: 0,
+                min: 0,
+                max: 2,
+                step: 1,
+                default: 0,
+                description: '0=点电荷; 1=电偶极; 2=平行板电容器'
+            },
+            {
+                name: 'q',
+                label: '点电荷电量 q',
+                unit: 'nC',
+                value: 5,
+                min: 1,
+                max: 10,
+                step: 0.5,
+                default: 5,
+                description: '点电荷模式下的正电荷量'
+            },
+            {
+                name: 'dipoleCharge',
+                label: '偶极电荷量',
+                unit: 'nC',
+                value: 5,
+                min: 1,
+                max: 10,
+                step: 0.5,
+                default: 5,
+                description: '电偶极模式下的 ±q 大小'
+            },
+            {
+                name: 'dipoleSeparation',
+                label: '偶极间距 (场景)',
+                unit: '',
+                value: 1.0,
+                min: 0.4,
+                max: 2.0,
+                step: 0.1,
+                default: 1.0,
+                description: '电偶极两电荷间距 (归一化场景单位)'
+            },
+            {
+                name: 'plateVoltage',
+                label: '平行板电压 U',
+                unit: 'V',
+                value: 12,
+                min: 1,
+                max: 50,
+                step: 1,
+                default: 12,
+                description: '平行板模式下的极板电压'
+            },
+            {
+                name: 'plateGap',
+                label: '平行板间距 (场景)',
+                unit: '',
+                value: 1.2,
+                min: 0.4,
+                max: 2.0,
+                step: 0.1,
+                default: 1.2,
+                description: '平行板两板间距 (归一化场景单位)'
+            },
+            {
+                name: 'duration',
+                label: '动画时长',
+                unit: 's',
+                value: 5,
+                min: 1,
+                max: 10,
+                step: 0.5,
+                default: 5,
+                description: '动画播放时长'
+            }
+        ],
+        buildProblem: params => {
+            const modeNum = Math.round(params['mode'] ?? 0);
+            const mode: 'point-charge' | 'dipole' | 'parallel-plate' =
+                modeNum === 2 ? 'parallel-plate' : modeNum === 1 ? 'dipole' : 'point-charge';
+            const q = params['q'] ?? 5;
+            const dipoleCharge = params['dipoleCharge'] ?? 5;
+            const dipoleSeparation = params['dipoleSeparation'] ?? 1.0;
+            const plateVoltage = params['plateVoltage'] ?? 12;
+            const plateGap = params['plateGap'] ?? 1.2;
+            const duration = params['duration'] ?? 5;
+            const constraints: {
+                mode: 'point-charge' | 'dipole' | 'parallel-plate';
+                charges?: Array<{ x: number; y: number; q: number }>;
+                dipoleCharge?: number;
+                dipoleSeparation?: number;
+                plateVoltage?: number;
+                plateGap?: number;
+                plateLength?: number;
+                steps?: number;
+                maxLength?: number;
+                lineCount?: number;
+            } = { mode, steps: 600, maxLength: 6, lineCount: 16 };
+            if (mode === 'point-charge') {
+                constraints.charges = [{ x: 0, y: 0, q }];
+            } else if (mode === 'dipole') {
+                constraints.dipoleCharge = dipoleCharge;
+                constraints.dipoleSeparation = dipoleSeparation;
+            } else {
+                constraints.plateVoltage = plateVoltage;
+                constraints.plateGap = plateGap;
+                constraints.plateLength = 2.0;
+            }
+            return {
+                id: `efield-lines-${Date.now()}`,
+                title: '电场线分布',
+                model: 'electric-field-lines' as const,
+                bodies: [],
+                constraints: { electricFieldLines: constraints },
+                environment: {},
+                timeConfig: { duration, dt: duration / 50, sampleCount: 50 }
+            };
+        }
+    },
+    {
+        id: 'newton-tube',
+        name: '牛顿管 (真空 vs 空气)',
+        model: 'uniform-accelerated',
+        parameters: [
+            {
+                name: 'withAir',
+                label: '介质 (1空气 0真空)',
+                unit: '',
+                value: 1,
+                min: 0,
+                max: 1,
+                step: 1,
+                default: 1,
+                description: '1=有空气 (羽毛受阻力); 0=真空 (同时落地)'
+            },
+            {
+                name: 'height',
+                label: '管高',
+                unit: 'm',
+                value: 5,
+                min: 1,
+                max: 10,
+                step: 0.5,
+                default: 5,
+                description: '下落高度 (物理距离)'
+            },
+            {
+                name: 'g',
+                label: '重力加速度 g',
+                unit: 'm/s²',
+                value: 9.8,
+                min: 1,
+                max: 30,
+                step: 0.1,
+                default: 9.8,
+                description: '重力加速度'
+            },
+            {
+                name: 'duration',
+                label: '动画时长',
+                unit: 's',
+                value: 2,
+                min: 0.5,
+                max: 10,
+                step: 0.5,
+                default: 2,
+                description: '动画播放时长'
+            }
+        ],
+        buildProblem: params => {
+            const g = params['g'] ?? 9.8;
+            const duration = params['duration'] ?? 2;
+            return {
+                id: `newton-tube-${Date.now()}`,
+                title: '牛顿管',
+                model: 'uniform-accelerated' as const,
+                bodies: [
+                    { id: 'object', mass: { value: 1, unit: 'kg' }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } }
+                ],
+                environment: { gravity: { enabled: true, value: g } },
+                timeConfig: { duration, dt: duration / 1000, sampleCount: 1000 }
+            };
+        }
+    },
+    {
+        id: 'bulb-vi',
+        name: '小灯泡伏安特性',
+        model: 'circuit',
+        parameters: [
+            {
+                name: 'emf',
+                label: '电动势 E',
+                unit: 'V',
+                value: 12,
+                min: 1,
+                max: 36,
+                step: 0.5,
+                default: 12,
+                description: '电源电动势'
+            },
+            {
+                name: 'r',
+                label: '内阻 r',
+                unit: 'Ω',
+                value: 1,
+                min: 0,
+                max: 10,
+                step: 0.1,
+                default: 1,
+                description: '电源内阻'
+            },
+            {
+                name: 'R_bulb',
+                label: '灯泡冷态电阻 R₀',
+                unit: 'Ω',
+                value: 10,
+                min: 1,
+                max: 50,
+                step: 0.5,
+                default: 10,
+                description: '小灯泡冷态电阻 (温度系数 α=0.01)'
+            },
+            {
+                name: 'duration',
+                label: '动画时长',
+                unit: 's',
+                value: 3,
+                min: 1,
+                max: 10,
+                step: 0.5,
+                default: 3,
+                description: '动画播放时长'
+            }
+        ],
+        buildProblem: params => {
+            const emf = params['emf'] ?? 12;
+            const r = params['r'] ?? 1;
+            const R_bulb = params['R_bulb'] ?? 10;
+            const duration = params['duration'] ?? 3;
+            return {
+                id: `bulb-vi-${Date.now()}`,
+                title: '小灯泡伏安特性',
+                model: 'circuit' as const,
+                bodies: [{ id: 'wire', mass: { value: 1, unit: 'kg' }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } }],
+                constraints: { circuit: { emf, internalResistance: r, resistors: [{ resistance: R_bulb, connection: 'series' }] } },
+                environment: {},
+                timeConfig: { duration, dt: 0.1, sampleCount: 10 }
+            };
+        }
+    },
+    {
+        id: 'work-energy',
+        name: '动能定理 W = ΔEk',
+        model: 'uniform-accelerated',
+        parameters: [
+            {
+                name: 'mass',
+                label: '质量 m',
+                unit: 'kg',
+                value: 1,
+                min: 0.1,
+                max: 10,
+                step: 0.1,
+                default: 1,
+                description: '物体质量'
+            },
+            {
+                name: 'force',
+                label: '合外力 F',
+                unit: 'N',
+                value: 5,
+                min: 0.1,
+                max: 50,
+                step: 0.5,
+                default: 5,
+                description: '物体所受合外力 (沿运动方向)'
+            },
+            {
+                name: 'v0',
+                label: '初速度 v₀',
+                unit: 'm/s',
+                value: 0,
+                min: 0,
+                max: 20,
+                step: 0.5,
+                default: 0,
+                description: '初速度'
+            },
+            {
+                name: 'duration',
+                label: '动画时长',
+                unit: 's',
+                value: 3,
+                min: 0.5,
+                max: 10,
+                step: 0.5,
+                default: 3,
+                description: '动画播放时长'
+            }
+        ],
+        buildProblem: params => {
+            const m = params['mass'] ?? 1;
+            const F = params['force'] ?? 5;
+            const v0 = params['v0'] ?? 0;
+            const duration = params['duration'] ?? 3;
+            const a = F / Math.max(1e-6, m);
+            return {
+                id: `work-energy-${Date.now()}`,
+                title: '动能定理',
+                model: 'uniform-accelerated' as const,
+                bodies: [
+                    {
+                        id: 'object',
+                        mass: { value: m, unit: 'kg' },
+                        position: { x: 0, y: 0 },
+                        velocity: { x: 0, y: v0 }
+                    }
+                ],
+                environment: { gravity: { enabled: true, value: a } },
+                timeConfig: { duration, dt: duration / 1000, sampleCount: 1000 }
+            };
+        }
+    },
+    {
+        id: 'ball-xt',
+        name: '小球 x-t 图像 (简谐运动)',
+        model: 'simple-pendulum',
+        parameters: [
+            {
+                name: 'length',
+                label: '摆长 L',
+                unit: 'm',
+                value: 1.0,
+                min: 0.2,
+                max: 5,
+                step: 0.05,
+                default: 1.0,
+                description: '摆线长度 (m)'
+            },
+            {
+                name: 'angle',
+                label: '初始摆角 θ₀',
+                unit: '°',
+                value: 15,
+                min: 1,
+                max: 80,
+                step: 1,
+                default: 15,
+                description: '初始偏离竖直方向角度'
+            },
+            {
+                name: 'mass',
+                label: '摆球质量 m',
+                unit: 'kg',
+                value: 1,
+                min: 0.1,
+                max: 5,
+                step: 0.1,
+                default: 1,
+                description: '摆球质量'
+            },
+            {
+                name: 'g',
+                label: '重力加速度 g',
+                unit: 'm/s²',
+                value: 9.8,
+                min: 1,
+                max: 30,
+                step: 0.1,
+                default: 9.8,
+                description: '重力加速度'
+            },
+            {
+                name: 'damping',
+                label: '阻尼系数',
+                unit: '',
+                value: 0,
+                min: 0,
+                max: 2,
+                step: 0.05,
+                default: 0,
+                description: '0=无阻尼'
+            },
+            {
+                name: 'duration',
+                label: '动画时长',
+                unit: 's',
+                value: 10,
+                min: 1,
+                max: 60,
+                step: 1,
+                default: 10,
+                description: '动画播放时长'
+            }
+        ],
+        buildProblem: params => {
+            const L = params['length'] ?? 1.0;
+            const angleDeg = params['angle'] ?? 15;
+            const mass = params['mass'] ?? 1;
+            const g = params['g'] ?? 9.8;
+            const damping = params['damping'] ?? 0;
+            const duration = params['duration'] ?? 10;
+            return {
+                id: `ball-xt-${Date.now()}`,
+                title: '小球 x-t 图像',
+                model: 'simple-pendulum' as const,
+                bodies: [
+                    {
+                        id: 'bob',
+                        mass: { value: mass, unit: 'kg' },
+                        position: { x: L * Math.sin((angleDeg * Math.PI) / 180), y: L * Math.cos((angleDeg * Math.PI) / 180) },
+                        velocity: { x: 0, y: 0 }
+                    }
+                ],
+                constraints: { simplePendulum: { length: L, g, initialAngleDeg: angleDeg, damping } },
+                environment: {},
+                timeConfig: { duration, dt: duration / 1000, sampleCount: 1000 }
+            };
+        }
+    },
+    {
+        id: 'geiger-counter',
+        name: '盖革计数器',
+        model: 'radioactive-decay',
+        parameters: [
+            {
+                name: 'N0',
+                label: '初始原子数 N₀',
+                unit: '个',
+                value: 1000,
+                min: 100,
+                max: 10000,
+                step: 100,
+                default: 1000,
+                description: '放射性核素初始原子数'
+            },
+            {
+                name: 'halfLife',
+                label: '半衰期 T₁/₂',
+                unit: 's',
+                value: 10,
+                min: 0.1,
+                max: 3600,
+                step: 0.1,
+                default: 10,
+                description: '半衰期 (秒)'
+            },
+            {
+                name: 'tEnd',
+                label: '模拟时长',
+                unit: 's',
+                value: 50,
+                min: 1,
+                max: 10000,
+                step: 1,
+                default: 50,
+                description: '模拟时间 (建议 ≥ 3×T₁/₂)'
+            },
+            {
+                name: 'rayType',
+                label: '射线 (0α 1β 2γ)',
+                unit: '',
+                value: 0,
+                min: 0,
+                max: 2,
+                step: 1,
+                default: 0,
+                description: 'α=短径迹; β=长弯径迹; γ=极少径迹'
+            }
+        ],
+        buildProblem: params => {
+            const initialAtoms = params['N0'] ?? 1000;
+            const halfLife = params['halfLife'] ?? 10;
+            const duration = params['tEnd'] ?? 50;
+            const rayNum = params['rayType'] ?? 0;
+            const radiationType = rayNum === 1 ? ('beta' as const) : rayNum === 2 ? ('gamma' as const) : ('alpha' as const);
+            return {
+                id: `geiger-counter-${Date.now()}`,
+                title: '盖革计数器',
+                model: 'radioactive-decay' as const,
+                bodies: [{ id: 'nuclei', mass: { value: 1, unit: 'kg' }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } }],
+                constraints: { radioactive: { initialAtoms, halfLife, duration, radiationType } },
+                environment: {},
+                timeConfig: { duration, dt: duration / 300, sampleCount: 300 }
+            };
+        }
     }
 ];
 export function getDefaultParams(sceneId: string): Record<string, number> {

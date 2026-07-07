@@ -104,6 +104,17 @@ import {
     drawVernierCaliperScene
 } from '../../rendering/electromagnetismScenes';
 
+import {
+    drawTotalInternalReflectionScene,
+    drawCurrentMagneticFieldScene,
+    drawElectricFieldLinesScene,
+    drawNewtonTubeScene,
+    drawBulbVIScene,
+    drawWorkEnergyScene,
+    drawBallXTimeScene,
+    drawGeigerCounterScene
+} from '../../rendering/gapScenes';
+
 const SCENES_3D = new Set(['projectile', 'uniform-accelerated', 'free-fall', 'circular-motion']);
 
 const SCENES_2D_CUSTOM_BG = new Set([
@@ -203,6 +214,18 @@ const SCENES_ELECTROMAGNETISM = new Set([
     'multimeter-tool',
     'vernier-caliper-tool',
     'micrometer-tool'
+]);
+
+/** 可视化缺口补建 8 场景集合 (Stage K) */
+const SCENES_GAP = new Set([
+    'total-internal-reflection',
+    'current-magnetic',
+    'efield-lines',
+    'newton-tube',
+    'bulb-vi',
+    'work-energy',
+    'ball-xt',
+    'geiger-counter'
 ]);
 
 /** 绘制匀强电场线（渐变发光箭头，方向向上） */
@@ -962,6 +985,7 @@ export function SimulationCanvas() {
     const isSensor = SCENES_SENSOR.has(currentScene);
     const isMechanics = SCENES_MECHANICS.has(currentScene);
     const isElectromagnetism = SCENES_ELECTROMAGNETISM.has(currentScene);
+    const isGap = SCENES_GAP.has(currentScene);
     const hasCustom2DBackground = SCENES_2D_CUSTOM_BG.has(currentScene);
 
     useEffect(() => {
@@ -1083,6 +1107,7 @@ export function SimulationCanvas() {
 
         // 第三章场景：完整自定义渲染 (背景 + 动态元素 + HUD)，跳过标准轨迹/物体流程
         if (
+            isGap ||
             isChapter3 ||
             isChapter2 ||
             isWaveOpt ||
@@ -1303,6 +1328,30 @@ export function SimulationCanvas() {
                     break;
                 case 'micrometer-tool':
                     drawMicrometerScene(sceneOpts);
+                    break;
+                case 'total-internal-reflection':
+                    drawTotalInternalReflectionScene(sceneOpts);
+                    break;
+                case 'current-magnetic':
+                    drawCurrentMagneticFieldScene(sceneOpts);
+                    break;
+                case 'efield-lines':
+                    drawElectricFieldLinesScene(sceneOpts);
+                    break;
+                case 'newton-tube':
+                    drawNewtonTubeScene(sceneOpts);
+                    break;
+                case 'bulb-vi':
+                    drawBulbVIScene(sceneOpts);
+                    break;
+                case 'work-energy':
+                    drawWorkEnergyScene(sceneOpts);
+                    break;
+                case 'ball-xt':
+                    drawBallXTimeScene(sceneOpts);
+                    break;
+                case 'geiger-counter':
+                    drawGeigerCounterScene(sceneOpts);
                     break;
             }
             return;
