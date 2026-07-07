@@ -1,9 +1,5 @@
 import type { PhysicsProblem } from '../types/problem.js';
-import type {
-    SimulationResult,
-    Keyframe,
-    ChartSeries
-} from '../types/result.js';
+import type { SimulationResult, Keyframe, ChartSeries } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
 import { PhysicsError } from '../errors/index.js';
@@ -192,12 +188,7 @@ export class CurrentMagneticFieldModel extends PhysicsModelBase {
     }
 
     /** 磁偶极子场 (归一化场景坐标), m 沿 +y */
-    private dipoleFieldAt(
-        center: { x: number; y: number },
-        m: number,
-        x: number,
-        y: number
-    ): { x: number; y: number } {
+    private dipoleFieldAt(center: { x: number; y: number }, m: number, x: number, y: number): { x: number; y: number } {
         const dx = x - center.x;
         const dy = y - center.y;
         const r = Math.sqrt(dx * dx + dy * dy);
@@ -211,11 +202,7 @@ export class CurrentMagneticFieldModel extends PhysicsModelBase {
         return { x: bx, y: by };
     }
 
-    private straightWireLines(
-        center: { x: number; y: number },
-        I: number,
-        lineCount: number
-    ): MagFieldLine[] {
+    private straightWireLines(center: { x: number; y: number }, I: number, lineCount: number): MagFieldLine[] {
         const lines: MagFieldLine[] = [];
         const radii = [0.2, 0.35, 0.5, 0.65, 0.8, 0.95].slice(0, lineCount);
         const dir = I >= 0 ? 1 : -1;
@@ -223,7 +210,7 @@ export class CurrentMagneticFieldModel extends PhysicsModelBase {
             const pts: Array<{ x: number; y: number }> = [];
             const seg = 64;
             for (let s = 0; s <= seg; s++) {
-                const a = dir * (2 * Math.PI * s) / seg;
+                const a = (dir * (2 * Math.PI * s)) / seg;
                 pts.push({ x: center.x + r * Math.cos(a), y: center.y + r * Math.sin(a) });
             }
             lines.push({ points: pts });
@@ -351,9 +338,7 @@ export class CurrentMagneticFieldModel extends PhysicsModelBase {
             yLabel: 'B_y (相对)',
             xUnit: 'scene',
             yUnit: 'a.u.',
-            points: samples
-                .filter(s => Math.abs(s.x - center.x) < 1e-6)
-                .map(s => ({ x: s.y - center.y, y: s.by }))
+            points: samples.filter(s => Math.abs(s.x - center.x) < 1e-6).map(s => ({ x: s.y - center.y, y: s.by }))
         };
     }
 }

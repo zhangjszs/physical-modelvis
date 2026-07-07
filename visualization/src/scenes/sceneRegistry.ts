@@ -9626,7 +9626,9 @@ export const SCENES: SceneConfig[] = [
                 id: `tir-${Date.now()}`,
                 title: '全反射与光导',
                 model: 'refraction' as const,
-                bodies: [{ id: 'light', mass: { value: 1, unit: 'kg' }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } }],
+                bodies: [
+                    { id: 'light', mass: { value: 1, unit: 'kg' }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } }
+                ],
                 constraints: { refraction: { n1, n2, incidentAngleDeg: angleDeg } },
                 environment: {},
                 timeConfig: { duration, dt: 0.1, sampleCount: 10 }
@@ -9965,8 +9967,12 @@ export const SCENES: SceneConfig[] = [
                 id: `bulb-vi-${Date.now()}`,
                 title: '小灯泡伏安特性',
                 model: 'circuit' as const,
-                bodies: [{ id: 'wire', mass: { value: 1, unit: 'kg' }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } }],
-                constraints: { circuit: { emf, internalResistance: r, resistors: [{ resistance: R_bulb, connection: 'series' }] } },
+                bodies: [
+                    { id: 'wire', mass: { value: 1, unit: 'kg' }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } }
+                ],
+                constraints: {
+                    circuit: { emf, internalResistance: r, resistors: [{ resistance: R_bulb, connection: 'series' }] }
+                },
                 environment: {},
                 timeConfig: { duration, dt: 0.1, sampleCount: 10 }
             };
@@ -10135,7 +10141,10 @@ export const SCENES: SceneConfig[] = [
                     {
                         id: 'bob',
                         mass: { value: mass, unit: 'kg' },
-                        position: { x: L * Math.sin((angleDeg * Math.PI) / 180), y: L * Math.cos((angleDeg * Math.PI) / 180) },
+                        position: {
+                            x: L * Math.sin((angleDeg * Math.PI) / 180),
+                            y: L * Math.cos((angleDeg * Math.PI) / 180)
+                        },
                         velocity: { x: 0, y: 0 }
                     }
                 ],
@@ -10200,12 +10209,15 @@ export const SCENES: SceneConfig[] = [
             const halfLife = params['halfLife'] ?? 10;
             const duration = params['tEnd'] ?? 50;
             const rayNum = params['rayType'] ?? 0;
-            const radiationType = rayNum === 1 ? ('beta' as const) : rayNum === 2 ? ('gamma' as const) : ('alpha' as const);
+            const radiationType =
+                rayNum === 1 ? ('beta' as const) : rayNum === 2 ? ('gamma' as const) : ('alpha' as const);
             return {
                 id: `geiger-counter-${Date.now()}`,
                 title: '盖革计数器',
                 model: 'radioactive-decay' as const,
-                bodies: [{ id: 'nuclei', mass: { value: 1, unit: 'kg' }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } }],
+                bodies: [
+                    { id: 'nuclei', mass: { value: 1, unit: 'kg' }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } }
+                ],
                 constraints: { radioactive: { initialAtoms, halfLife, duration, radiationType } },
                 environment: {},
                 timeConfig: { duration, dt: duration / 300, sampleCount: 300 }

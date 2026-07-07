@@ -2661,7 +2661,12 @@ const FORMULA_MAP: Record<string, FormulaDef> = {
     'total-internal-reflection': {
         title: '全反射与光导',
         formulas: [
-            { name: '折射定律', formula: 'n₁sinθ₁ = n₂sinθ₂', variables: 'n: 折射率, θ: 入射/折射角', condition: '斯涅尔定律' },
+            {
+                name: '折射定律',
+                formula: 'n₁sinθ₁ = n₂sinθ₂',
+                variables: 'n: 折射率, θ: 入射/折射角',
+                condition: '斯涅尔定律'
+            },
             { name: '临界角', formula: 'sinθc = n₂/n₁', variables: 'n₁ > n₂ 时存在', condition: '折射角达 90°' },
             { name: '全反射条件', formula: 'θ₁ ≥ θc', variables: '光从光密射向光疏介质' },
             { name: '数值孔径', formula: 'NA = √(n₁² − n₂²)', variables: '光纤集光能力', condition: '阶跃型光纤' }
@@ -2675,7 +2680,12 @@ const FORMULA_MAP: Record<string, FormulaDef> = {
     'current-magnetic': {
         title: '电流的磁场',
         formulas: [
-            { name: '直线电流磁场', formula: 'B = μ₀I / (2πr)', variables: 'I: 电流, r: 到导线距离', condition: '无限长直导线' },
+            {
+                name: '直线电流磁场',
+                formula: 'B = μ₀I / (2πr)',
+                variables: 'I: 电流, r: 到导线距离',
+                condition: '无限长直导线'
+            },
             { name: '圆环中心磁场', formula: 'B = μ₀I / (2R)', variables: 'R: 圆环半径' },
             { name: '螺线管内部', formula: 'B = μ₀nI', variables: 'n: 单位长度匝数', condition: '内部近似匀强' },
             { name: '磁通量', formula: 'Φ = B·S·cosθ', variables: 'θ: 磁场与面法线夹角' }
@@ -2689,23 +2699,34 @@ const FORMULA_MAP: Record<string, FormulaDef> = {
     'efield-lines': {
         title: '电场线分布',
         formulas: [
-            { name: '点电荷场强', formula: 'E = kQ / r²', variables: 'k: 静电力常量, Q: 电荷量', condition: '真空中点电荷' },
+            {
+                name: '点电荷场强',
+                formula: 'E = kQ / r²',
+                variables: 'k: 静电力常量, Q: 电荷量',
+                condition: '真空中点电荷'
+            },
             { name: '点电荷电势', formula: 'φ = kQ / r', variables: '以无穷远为零势点' },
             { name: '电偶极矩', formula: 'p = q·l', variables: 'l: 两电荷间距矢量', condition: '±q 相距 l' },
-            { name: '平行板匀强场', formula: 'E = U / d', variables: 'U: 板间电压, d: 板间距', condition: '忽略边缘效应' }
+            {
+                name: '平行板匀强场',
+                formula: 'E = U / d',
+                variables: 'U: 板间电压, d: 板间距',
+                condition: '忽略边缘效应'
+            }
         ],
-        tips: [
-            '电场线起于正电荷、止于负电荷',
-            '电场线疏密表示场强大小',
-            '平行板间为匀强电场，电场线平行等距'
-        ]
+        tips: ['电场线起于正电荷、止于负电荷', '电场线疏密表示场强大小', '平行板间为匀强电场，电场线平行等距']
     },
     'newton-tube': {
         title: '牛顿管（自由落体）',
         formulas: [
             { name: '自由落体位移', formula: 'h = ½gt²', variables: 'g: 重力加速度', condition: '初速为零' },
             { name: '自由落体速度', formula: 'v = gt', variables: '速度随时间线性增大' },
-            { name: '同时落地条件', formula: 'a = g（真空）', variables: '轻重物体加速度相同', condition: '无空气阻力' },
+            {
+                name: '同时落地条件',
+                formula: 'a = g（真空）',
+                variables: '轻重物体加速度相同',
+                condition: '无空气阻力'
+            },
             { name: '终端速度', formula: 'mg = kv_t', variables: 'k: 阻力系数', condition: '有空气阻力时' }
         ],
         tips: [
@@ -2717,7 +2738,12 @@ const FORMULA_MAP: Record<string, FormulaDef> = {
     'bulb-vi': {
         title: '小灯泡伏安特性',
         formulas: [
-            { name: '非线性电阻', formula: 'R = U / I', variables: 'R 随温度明显变化', condition: '钨丝电阻正温度系数' },
+            {
+                name: '非线性电阻',
+                formula: 'R = U / I',
+                variables: 'R 随温度明显变化',
+                condition: '钨丝电阻正温度系数'
+            },
             { name: '电功率', formula: 'P = UI = I²R', variables: 'U: 两端电压, I: 电流' },
             { name: '负载线', formula: 'I = (E − U) / r', variables: 'E: 电源电动势, r: 内阻', condition: '闭合回路' },
             { name: '焦耳热', formula: 'Q = I²Rt', variables: '电能转化为热' }

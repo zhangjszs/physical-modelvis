@@ -1744,4 +1744,3 @@ export interface CurrentMagneticFieldConstraint {
     /** 场线数, 默认 16 */
     readonly lineCount?: number;
 }
-

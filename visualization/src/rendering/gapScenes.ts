@@ -125,7 +125,13 @@ function drawHud(ctx: CanvasRenderingContext2D, isDark: boolean, rows: Array<{ l
     ctx.textBaseline = 'alphabetic';
 }
 
-function drawInfoBar(ctx: CanvasRenderingContext2D, width: number, height: number, text: string, isDark: boolean): void {
+function drawInfoBar(
+    ctx: CanvasRenderingContext2D,
+    width: number,
+    height: number,
+    text: string,
+    isDark: boolean
+): void {
     ctx.font = '12px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'alphabetic';
@@ -304,8 +310,8 @@ export function drawTotalInternalReflectionScene(o: GapSceneOptions): void {
 
     if (mode === 2) {
         // ---- 光导纤维：水平纤芯内的全反射传导 ----
-        const fy0 = height * 0.30;
-        const fy1 = height * 0.70;
+        const fy0 = height * 0.3;
+        const fy1 = height * 0.7;
         const fx0 = width * 0.12;
         const fx1 = width * 0.88;
         ctx.fillStyle = isDark ? 'rgba(34,197,94,0.10)' : 'rgba(34,197,94,0.12)';
@@ -434,7 +440,7 @@ export function drawTotalInternalReflectionScene(o: GapSceneOptions): void {
         arrowHead(ctx, hit[0], hit[1], end[0], end[1], 11, '#22c55e');
         drawHud(ctx, isDark, [
             { label: '入射角 θ₁', value: `${angleDeg.toFixed(0)}°` },
-            { label: '折射角 θ₂', value: `${(th2 * 180 / Math.PI).toFixed(0)}°` },
+            { label: '折射角 θ₂', value: `${((th2 * 180) / Math.PI).toFixed(0)}°` },
             { label: '现象', value: '折射' }
         ]);
         drawInfoBar(ctx, width, height, `n₁sinθ₁ = n₂sinθ₂ (斯涅尔定律)`, isDark);
@@ -461,7 +467,10 @@ export function drawCurrentMagneticFieldScene(o: GapSceneOptions): void {
     const I = params['current'] ?? 5;
     const lineColor = isDark ? '#38bdf8' : '#0284c7';
 
-    const maxMag = maxOf(extra.samples.map(s => s.magnitude), 1e-9);
+    const maxMag = maxOf(
+        extra.samples.map(s => s.magnitude),
+        1e-9
+    );
     // 磁场采样点用 bx/by, 适配矢量场绘制 (统一为 ex/ey)
     const magVectors = extra.samples.map(s => ({ x: s.x, y: s.y, ex: s.bx, ey: s.by, magnitude: s.magnitude }));
     drawVectorField(ctx, magVectors, toScreen, maxMag, isDark ? '#64748b' : '#94a3b8');
@@ -528,7 +537,10 @@ export function drawElectricFieldLinesScene(o: GapSceneOptions): void {
     const scale = Math.min(width, height) * 0.4;
     const toScreen = (x: number, y: number): [number, number] => [cx + x * scale, cy - y * scale];
 
-    const maxMag = maxOf(extra.samples.map(s => s.magnitude), 1e-9);
+    const maxMag = maxOf(
+        extra.samples.map(s => s.magnitude),
+        1e-9
+    );
     drawVectorField(ctx, extra.samples, toScreen, maxMag, isDark ? '#64748b' : '#94a3b8');
 
     const lineColor = isDark ? '#f472b6' : '#db2777';
@@ -629,7 +641,10 @@ export function drawNewtonTubeScene(o: GapSceneOptions): void {
             else break;
         }
         const drop = Math.abs(best.position.y);
-        const maxDrop = maxOf(traj.map(p => Math.abs(p.position.y)), 1e-6);
+        const maxDrop = maxOf(
+            traj.map(p => Math.abs(p.position.y)),
+            1e-6
+        );
         coinFrac = Math.max(0, Math.min(1, drop / maxDrop));
     }
     // 羽毛: 有空气则受阻力, 终端速度有限; 真空则与硬币一致
@@ -899,7 +914,10 @@ export function drawBallXTimeScene(o: GapSceneOptions): void {
     const gy = height * 0.18;
     const gw = width * 0.55;
     const gh = height * 0.64;
-    const xMax = maxOf(traj.map(p => Math.abs(p.position.x)), 1e-6);
+    const xMax = maxOf(
+        traj.map(p => Math.abs(p.position.x)),
+        1e-6
+    );
     const tMax = duration;
 
     const px = (t: number) => gx + (t / tMax) * gw;
@@ -1055,7 +1073,10 @@ export function drawGeigerCounterScene(o: GapSceneOptions): void {
     const gy = height * 0.18;
     const gw = width * 0.4;
     const gh = height * 0.64;
-    const nMax = maxOf(Nchart.points.map(p => p.y), 1);
+    const nMax = maxOf(
+        Nchart.points.map(p => p.y),
+        1
+    );
     const px = (tt: number) => gx + (tt / duration) * gw;
     const py = (nn: number) => gy + gh - (nn / nMax) * gh;
 

@@ -1907,7 +1907,7 @@ export function drawLiquidMixingScene(o: ThermalSceneOptions): void {
     ctx.fill();
     for (let i = 0; i < 70; i++) {
         const x = beakerX + 16 + seededRand(i) * (beakerW - 32);
-        const baseY = beakerY + beakerH * (i % 2 === 0 ? 0.32 : 0.70);
+        const baseY = beakerY + beakerH * (i % 2 === 0 ? 0.32 : 0.7);
         const y = baseY + (seededRand(i + 3) - 0.5) * beakerH * 0.28 * (0.4 + mix);
         ctx.fillStyle = i % 2 === 0 ? '#60a5fa' : '#f59e0b';
         ctx.globalAlpha = 0.55;
@@ -1936,7 +1936,7 @@ export function drawMolecularForceScene(o: ThermalSceneOptions): void {
     for (let i = 0; i <= 80; i++) {
         const r = sigma * (0.82 + i * 0.035);
         const sr = sigma / r;
-        const force = 24 * epsilon * (2 * sr ** 13 - sr ** 7) / sigma;
+        const force = (24 * epsilon * (2 * sr ** 13 - sr ** 7)) / sigma;
         xs.push(parseFloat(r.toFixed(3)));
         ys.push(Math.max(-8, Math.min(8, force)));
     }

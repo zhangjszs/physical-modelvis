@@ -1,9 +1,5 @@
 import type { PhysicsProblem } from '../types/problem.js';
-import type {
-    SimulationResult,
-    Keyframe,
-    ChartSeries
-} from '../types/result.js';
+import type { SimulationResult, Keyframe, ChartSeries } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
 import { PhysicsError } from '../errors/index.js';
@@ -340,9 +336,7 @@ export class ElectricFieldLinesModel extends PhysicsModelBase {
             yLabel: '|E| (相对)',
             xUnit: 'scene',
             yUnit: 'a.u.',
-            points: samples
-                .filter(s => Math.abs(s.y) < 1e-6)
-                .map(s => ({ x: s.x, y: s.magnitude }))
+            points: samples.filter(s => Math.abs(s.y) < 1e-6).map(s => ({ x: s.x, y: s.magnitude }))
         };
     }
 }
