@@ -269,8 +269,8 @@ export class ElectricFieldLinesModel extends PhysicsModelBase {
             const points: Array<{ x: number; y: number }> = [];
             const segs = 40;
             for (let s = 0; s <= segs; s++) {
-                const fy = -1 + (2 * s) / segs; // 从下板到上板
-                const fringe = 0.12 * Math.sin(((fy + 1) / 2) * Math.PI) * (x < 0 ? -1 : 1);
+                const fy = 1 - (2 * s) / segs; // 从上板到下板 (电场线自上而下, 由 + 板指向 − 板)
+                const fringe = 0.12 * Math.sin(((1 - fy) / 2) * Math.PI) * (x < 0 ? -1 : 1);
                 points.push({ x: x + fringe, y: fy });
             }
             lines.push({ points, sign: 1 });
@@ -291,9 +291,9 @@ export class ElectricFieldLinesModel extends PhysicsModelBase {
                 const y = -1 + (2 * j) / (n - 1);
                 let f: { x: number; y: number };
                 if (plates) {
-                    // 平行板: 板间竖直匀强场, 板外近零
+                    // 平行板: 板间竖直匀强场 (自上而下, 由 + 板指向 − 板), 板外近零
                     const inside = x > plates.left && x < plates.right && y > plates.bottom && y < plates.top;
-                    f = inside ? { x: 0, y: 1 } : { x: 0, y: 0 };
+                    f = inside ? { x: 0, y: -1 } : { x: 0, y: 0 };
                 } else {
                     f = this.fieldAt(charges, x, y);
                 }

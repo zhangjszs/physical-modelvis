@@ -85,6 +85,38 @@ describe('ElectricFieldLinesModel', () => {
         expect(dx).toBeLessThan(0.3);
     });
 
+    it('平行板: 板内矢量场方向向下 (ey<0, 由 + 板指向 − 板)', () => {
+        const r = model.solve(
+            makeProblem({
+                electricFieldLines: { mode: 'parallel-plate', plateGap: 1.2, plateVoltage: 12, plateLength: 2.0 }
+            })
+        );
+        const extra = readExtra(r);
+        const plates = extra.plates!;
+        // 上板为 + (y=+gap/2), 下板为 − (y=−gap/2); 物理上电场应自上而下
+        const inside = extra.samples.filter(
+            s => s.x > plates.left && s.x < plates.right && s.y > plates.bottom && s.y < plates.top
+        );
+        expect(inside.length).toBeGreaterThan(0);
+        for (const s of inside) {
+            expect(s.ey).toBeLessThan(0);
+        }
+    });
+
+    it('平行板: 电场线点序自上而下 (起点在上板、终点在下板)', () => {
+        const r = model.solve(
+            makeProblem({
+                electricFieldLines: { mode: 'parallel-plate', plateGap: 1.2, plateVoltage: 12, plateLength: 2.0 }
+            })
+        );
+        const extra = readExtra(r);
+        const line = extra.fieldLines[0]!;
+        const first = line.points[0]!;
+        const last = line.points[line.points.length - 1]!;
+        // 起点 y 应大于终点 y (屏幕/场景坐标均向上为正), 箭头沿行进方向指向下方
+        expect(first.y).toBeGreaterThan(last.y);
+    });
+
     it('缺少约束时抛出 PhysicsError', () => {
         const bad = makeProblem({});
         expect(() => model.solve(bad)).toThrow();
