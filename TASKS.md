@@ -347,6 +347,18 @@ npm run build          # vite build ≤ 5s
   - Suggestion#3 (占位符行为不一致): 判定为合理设计 — 3 个解析自算场景 (TIR/牛顿管/动能定理) 本不需要仿真数据, 未改。
   - 门禁: physics-core 834 测试 ✅ / `npm run build` ✅ / 可视化 116 测试 ✅ / eslint ✅
 
+- [x] **M6: 场景选择器接线 — 隐藏场景接入 + 死链清理** (commit `a258d87`, 已推送 origin/main)
+  - 审计: 脚本比对 `sceneRegistry.ts` 场景级 id vs `SceneSelector.tsx` 的 `SCENE_CATEGORIES` — 注册表 126 场景, 选择器 114 id, 隐藏 23, 死链 14
+  - 纠偏: `object`/`coil`/`wire` 仅是 body id (非场景级), 真实隐藏 = 23; `uniform-linear` 注册表无对应场景 (仅 `model` 被引用); `projectile-horizontal`/`projectile-angular` 已并入 `projectile`
+  - 接线 (仅改 `SCENE_CATEGORIES`): 11 个拼写/重命名错位同分类替换 (vernier-caliper/micrometer/multimeter→*-tool; motion-commission→motion-composition; double-pendulum/forced-vibration/resonance/polarization/doppler/bohr-model/radioactive-decay→sync/freq/curve/malus/effect/bohr/radioactive); 3 个无对应场景移除; 23 个真实隐藏场景按 6 教材分类接入 (含 8 个 M5)
+  - 渲染安全核验: 8 个 M5 走 `SCENES_GAP`; 9 个命中 flag 集合的均有 case; 6 个无 case (energy-conservation/bohr/bohr-orbit/radioactive/polarization-malus/motion-composition) 经核对不在任何 `SCENES_*` 集合, 走标准轨迹兜底 → 不白屏
+  - 门禁: 审计重跑 dead=0/hidden=0; `tsc --noEmit` ✅; `eslint` ✅
+
+- [x] **M6-尾: 选择器覆盖回归测试** (commit `8194572`, 已推送 origin/main)
+  - 导出 `SceneSelector.tsx` 的 `SCENE_CATEGORIES` (`const`→`export const`, 零行为变更)
+  - 新建 `visualization/tests/accuracy/sceneSelector.coverage.test.ts` (5 用例): (A) 分类每个 id 解析到真实场景 (无死链); (B) 每个注册场景可达 (无隐藏); (C) 分类内无重复 id; 双射汇总
+  - 门禁: 新测试 5/5 ✅; accuracy 全套 55/55 ✅; `tsc --noEmit` ✅; `eslint` ✅
+
 ### 自检循环进度
 
 | 层 | 状态 | commit | 文件 |
