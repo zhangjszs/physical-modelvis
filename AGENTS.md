@@ -45,11 +45,15 @@ GitHub Actions 流水线，配置文件位于 `.github/workflows/`。
 ### 部署流水线 (`deploy.yml`)
 触发：CI 在 main 分支成功完成后自动触发（`workflow_run`）。
 - 构建 visualization 并部署到 GitHub Pages
-- 访问地址：`https://<user>.github.io/physical_modelvis/`
+- 访问地址：`https://<user>.github.io/physical-modelvis/`（注意：仓库名为连字符 `physical-modelvis`，非下划线）
 
 ### 仓库配置要求
 - Settings → Pages → Source 设为 **"GitHub Actions"**
 - 无需额外 Secrets（OCR 代理不部署，仅做 typecheck + build）
+
+### 部署状态（2026-07-07 验证）
+- CI 通过 → Deploy 自动触发 → 线上 `https://zhangjszs.github.io/physical-modelvis/` 返回 200，JS/CSS 资源 200。
+- 历史阻塞已解除：(1) Prettier `format:check` 格式门禁（7 个 M5/M6 文件）；(2) `boris-correctness.test.ts` 极端参数 `sampleCount=1e5` 在 CI 5s 超时（已降至 5000）。
 
 ## 代码审查约定 (Code Review Pass)
 

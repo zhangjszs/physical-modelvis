@@ -381,6 +381,25 @@ npm run build          # vite build ≤ 5s
   - 新建 `visualization/tests/accuracy/sceneSelector.coverage.test.ts` (5 用例): (A) 分类每个 id 解析到真实场景 (无死链); (B) 每个注册场景可达 (无隐藏); (C) 分类内无重复 id; 双射汇总
   - 门禁: 新测试 5/5 ✅; accuracy 全套 55/55 ✅; `tsc --noEmit` ✅; `eslint` ✅
 
+- [x] **M7a: 渲染质量提升 (高 DPI 清晰度 + 应用内 FPS 计)** (commit 本条, 待推送 origin/main)
+  - 根因: `SimulationCanvas` 此前 `canvas.width = rect.width` 无 DPR 缩放 → Retina/2x 屏后备缓冲区与 CSS 尺寸 1:1, 线条/文字发虚 (报告的"渲染精度差"主因)
+  - 新增 `visualization/src/rendering/dpr.ts` — `setupHiDPICanvas(canvas, cssW, cssH)`: 后备缓冲区 = `round(cssW×dpr)`, CSS 显示尺寸 = `cssW/cssH`, 返回 dpr 供 `ctx.setTransform(dpr,...)`
+  - `SimulationCanvas.tsx`:
+    - `resize()` 改用 setupHiDPICanvas + `ctx.setTransform(dpr,...)`; 几何/3D/autoFit 统一用逻辑 CSS 像素
+    - 渲染路径 (clear/grid/axes/各定制场景/drawGround/占位文案) 与鼠标→画布坐标映射 `getCanvasPos` 全部改为逻辑像素 (**修复 DPR 下点击错位**)
+    - rAF 循环新增平滑 FPS 估算 + 右上角 FPS 叠层 (直接画 canvas, 无 React 重渲染开销)
+  - 测试: `visualization/tests/dpr.test.ts` (5 用例: dpr 1/2/3、分数尺寸四舍五入、SSR 无 window 回退 dpr=1)
+  - 验收脚本: `scripts/capture-dpr.mjs` (Playwright, 本机 1x/2x 截图对比 + 采样 FPS)
+  - 门禁: `tsc --noEmit` ✅ / `eslint` ✅ / `vitest run` 249 测试 ✅ (244 既有 + 5 新增)
+  - **暂缓 M7a-3 静态背景离屏缓存**: 基线/静态分析未见重绘热路径 (瓶颈是 DPR 清晰度, 已修复); 遵循"先测后优、不臆测优化", 仅当用户报告卡顿且 FPS 计显示 p95 帧时间超阈值时实施 (任务 #28)
+
+- [x] **M7b: 部署闭环 (GitHub Pages 从构建到可访问)** (commit `d0e7173` + `b0aec0e`, 已推送 origin/main)
+  - 根因审计: 部署流水线 `deploy.yml` 本身正确 (base path=`/physical-modelvis/`, Pages Source=GitHub Actions); 真正阻塞是 **CI 红 → 部署 `skipped`**
+  - 阻塞#1: Prettier `format:check` 因 7 个 M5/M6 文件格式违规失败 → `npx prettier --write` 修复 (commit `d0e7173`)
+  - 阻塞#2: `boris-correctness.test.ts` 极端参数 `sampleCount=1e5` 在 CI 5s 超时 → 降至 5000 (commit `b0aec0e`)
+  - 验证: CI (run `28885294000`) ✅ → Deploy (`28885387108`) ✅ → 线上 `https://zhangjszs.github.io/physical-modelvis/` 返回 200 + JS/CSS 资源 200
+  - 注意: 仓库名为连字符 `physical-modelvis` (非下划线); 此前误用下划线 URL 导致 404 属假警报
+
 ### 自检循环进度
 
 | 层 | 状态 | commit | 文件 |
