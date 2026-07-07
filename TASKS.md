@@ -324,6 +324,13 @@ npm run build          # vite build ≤ 5s
   - 修复: 牛顿管硬币按轨迹实际位移归一化 (避免提前触底); 动能定理计入初速度 v0 使 W=ΔEk 自洽
   - 门禁: `tsc -b && vite build` ✅ / `vitest run` 92 测试 ✅ / `eslint` ✅ / L2+L5+L6 accuracy 检查 ✅
 
+- [x] **M5-续: 8 场景端到端集成测试 + 真实 bug 修复** (commit `703b0f1` 测试, `152c77b` 修复)
+  - 测试: `visualization/tests/gapScenes.integration.test.ts` (22 用例) — 走真实链路 `buildProblem → solveProblem → 渲染器`, 验证通道契约 + 行为自洽 + 真实绘制 (非占位符)
+  - 测试抓出 1 个真实 bug: `work-energy` 场景 `buildProblem` 原设 `velocity.y=+v0` (向上), 但模型经 `environment.gravity` 提供向下加速度, v0 与合外力反向 → v0≠0 时模型 speed=|v0−at| 与渲染器 `W=F·s` 分歧 (W≠ΔEk)
+  - 修复: `velocity.y=-v0` 使初速度沿合外力(重力)方向, `W=F·s=ΔEk` 对任意 v0 严格成立 (commit `152c77b`)
+  - 测试断言修正: `current-magnetic` 的 `wire`/`poles` 按模式互斥 (straight-wire 发 wire, coil/solenoid 发 poles), 要求至少其一存在
+  - 门禁: `vitest run` 114 测试 ✅ (原 92 + 22 集成) / 改动文件 `eslint` ✅
+
 ### 自检循环进度
 
 | 层 | 状态 | commit | 文件 |
