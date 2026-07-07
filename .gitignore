@@ -46,3 +46,6 @@ coverage/
 *.tsbuildinfo
 # Self-check run reports
 .scratch/
+
+# WorkBuddy agent state (local memory/cache, must not be committed)
+.workbuddy/
