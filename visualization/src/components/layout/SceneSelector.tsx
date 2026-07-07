@@ -3,7 +3,7 @@ import { useSimulationStore } from '../../store/simulationStore';
 import { SCENES } from '../../scenes/sceneRegistry';
 
 /** 场景分类 — 按 6 大教材分类 + 综合演示 */
-const SCENE_CATEGORIES = [
+export const SCENE_CATEGORIES = [
     {
         label: '必修一 (力学基础)',
         ids: [
