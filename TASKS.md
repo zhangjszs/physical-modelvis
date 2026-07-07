@@ -316,6 +316,14 @@ npm run build          # vite build ≤ 5s
   - 范围: oil-film, liquid-mixing, molecular-force, wetting, joule-mechanical, joule-electrical, adiabatic-compression, energy-transformation, perpetuum-mobile, heat-direction
   - 目标: 补齐热学与热力学实验装置图、能量流和判据图, 通过 L5 renderer routing 检查
 
+- [x] **M5: 可视化缺口清单 8 场景定制渲染器与 SceneConfig** (commit `79bf2bc`)
+  - 依据: `visualization-gap-list.md` 8 个待建场景
+  - 文件: `visualization/src/rendering/gapScenes.ts` (新建), `visualization/src/components/simulation/SimulationCanvas.tsx` (SCENES_GAP 集合 + 8 渲染分支), `visualization/src/scenes/sceneRegistry.ts` (追加 8 个 SceneConfig), `visualization/tests/gapScenes.test.ts` (17 个冒烟测试)
+  - 范围: total-internal-reflection (复用 refraction), current-magnetic (新建模型), efield-lines (新建模型), newton-tube (复用 uniform-accelerated), bulb-vi (复用 circuit), work-energy (复用 uniform-accelerated), ball-xt (复用 simple-pendulum), geiger-counter (复用 radioactive-decay)
+  - 复用策略: 2 个新建场模型在 physics-core 阶段已完成 (commit `eedb37f`); 本任务仅补可视化层
+  - 修复: 牛顿管硬币按轨迹实际位移归一化 (避免提前触底); 动能定理计入初速度 v0 使 W=ΔEk 自洽
+  - 门禁: `tsc -b && vite build` ✅ / `vitest run` 92 测试 ✅ / `eslint` ✅ / L2+L5+L6 accuracy 检查 ✅
+
 ### 自检循环进度
 
 | 层 | 状态 | commit | 文件 |
