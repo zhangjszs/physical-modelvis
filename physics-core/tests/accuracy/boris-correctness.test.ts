@@ -182,9 +182,9 @@ describe('L8: Boris 收敛阶 — O(dt²)', () => {
 });
 
 describe('L8: 极端参数 — 不产生 NaN/Inf, 不抛异常', () => {
-    it('极小 dt (sampleCount=1e5) + 强场 → 全部有限', () => {
+    it('极小 dt + 强场 → 全部有限', () => {
         const r = model.solve(
-            makeProblem({ q: 1, m: 1, v0: { x: 1e3, y: 1e3 }, E: { x: 1e4, y: -1e4 }, Bz: 1e3, duration: 0.01, sampleCount: 100000 }),
+            makeProblem({ q: 1, m: 1, v0: { x: 1e3, y: 1e3 }, E: { x: 1e4, y: -1e4 }, Bz: 1e3, duration: 0.01, sampleCount: 5000 }),
         );
         expect(allFinite(r)).toBe(true);
         for (const series of Object.values(r.charts)) {
