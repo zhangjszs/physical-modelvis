@@ -48,7 +48,7 @@ export class AlphaScatteringModel extends PhysicsModelBase {
         };
         const x_t: ChartSeries = { xLabel: 'x (fm)', yLabel: 'y (fm)', xUnit: 'fm', yUnit: 'fm', points: [] };
         const y_t: ChartSeries = { xLabel: 'x (fm)', yLabel: 'y (fm)', xUnit: 'fm', yUnit: 'fm', points: [] };
-        const trajectory: TrajectoryPoint[] = [];
+        const trajectories: TrajectoryPoint[][] = [];
 
         for (let i = 0; i < n; i++) {
             const b = Math.random() * bMax;
@@ -57,11 +57,12 @@ export class AlphaScatteringModel extends PhysicsModelBase {
             const bin = Math.min(17, Math.floor(thetaDeg / 10));
             thetaDist.points[bin]!.y += 1;
 
-            // trajectory for first few
+            // trajectory for first few (每条粒子独立为一条 TrajectoryPoint[], t 单调非降)
             if (i < 5) {
                 const x0 = -100,
                     y0 = b;
                 const phi = Math.PI - theta;
+                const track: TrajectoryPoint[] = [];
                 for (let s = 0; s <= 20; s++) {
                     const t = s / 20;
                     let x: number, y: number;
@@ -72,12 +73,13 @@ export class AlphaScatteringModel extends PhysicsModelBase {
                         x = x0 + 100 + (t - 0.5) * 2 * 100 * Math.cos(phi);
                         y = y0 + (t - 0.5) * 2 * 100 * Math.sin(phi);
                     }
-                    trajectory.push({
+                    track.push({
                         t: s * 0.1,
                         position: { x: parseFloat(x.toFixed(1)), y: parseFloat(y.toFixed(1)) },
                         velocity: { x: 0, y: 0 }
                     });
                 }
+                trajectories.push(track);
                 x_t.points.push({ x: parseFloat(x0.toFixed(1)), y: parseFloat(y0.toFixed(1)) });
                 y_t.points.push({ x: parseFloat((x0 + 100).toFixed(1)), y: parseFloat(y0.toFixed(1)) });
             }
@@ -91,7 +93,7 @@ export class AlphaScatteringModel extends PhysicsModelBase {
                 timestamp: new Date().toISOString(),
                 version: this.version
             },
-            trajectories: [trajectory],
+            trajectories: trajectories,
             keyframes: [
                 {
                     label: '入射',

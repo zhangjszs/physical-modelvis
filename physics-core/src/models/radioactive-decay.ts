@@ -73,7 +73,9 @@ export class RadioactiveDecayModel extends PhysicsModelBase {
         }
 
         // 粒子径迹模拟 (云室)
-        const trajectories: TrajectoryPoint[] = [];
+        // 每个粒子独立为一条 trajectory (TrajectoryPoint[]), t 在单条轨迹内单调非降;
+        // 之前曾把所有粒子拼接进同一条轨迹, 导致粒子之间 t 回退 (0..L-1, 0..L-1...), 违反时间序。
+        const trajectories: TrajectoryPoint[][] = [];
         const nToShow = Math.min(20, Math.ceil(N0 * 0.1)); // 只展示部分粒子
         for (let k = 0; k < nToShow; k++) {
             // 伪随机 (种子 = 粒子编号, 保证可重现)
@@ -88,7 +90,8 @@ export class RadioactiveDecayModel extends PhysicsModelBase {
             const stepLen = radiationType === 'alpha' ? 2 : radiationType === 'beta' ? 1.5 : 1;
             const straightness = radiationType === 'alpha' ? 0.98 : radiationType === 'beta' ? 0.88 : 0.95;
 
-            trajectories.push({
+            const track: TrajectoryPoint[] = [];
+            track.push({
                 t: 0,
                 position: { x, y },
                 velocity: { x: 0, y: 0 },
@@ -103,7 +106,7 @@ export class RadioactiveDecayModel extends PhysicsModelBase {
                 }
                 x += stepLen * Math.cos(theta);
                 y += stepLen * Math.sin(theta);
-                trajectories.push({
+                track.push({
                     t: s,
                     position: { x, y },
                     velocity: { x: stepLen * Math.cos(theta), y: stepLen * Math.sin(theta) },
@@ -111,6 +114,7 @@ export class RadioactiveDecayModel extends PhysicsModelBase {
                     potentialEnergy: 0
                 });
             }
+            trajectories.push(track);
         }
 
         // 关键帧
@@ -185,7 +189,7 @@ export class RadioactiveDecayModel extends PhysicsModelBase {
                 timestamp: new Date().toISOString(),
                 version: this.version
             },
-            trajectories: [trajectories],
+            trajectories: trajectories,
             keyframes,
             charts: { x_t: N_t, y_t: A_t },
             diagnostics: {
