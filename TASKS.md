@@ -338,6 +338,15 @@ npm run build          # vite build ≤ 5s
   - 门禁: `tsc -b` ✅ / `npm run build` ✅ / `vitest run` 114 测试 ✅ / L4 ✅
   - 推送: 全部 14 个 commit 已 push 至 origin/main (`d14b463..6e5b176`)
 
+- [x] **M5-Review: 8 场景五轴 Code Review 结论落地** (commit `961192d` 模型, `df43f33` 渲染/测试)
+  - Issue#1 (重要, 模型层): `electric-field-lines` parallel-plate 模式电场方向画反 — 上板 +、下板 −, 但板内矢量场硬编码 y:+1 (向上) 且电场线点序下→上, 箭头从 − 指向 +。修复 `sampleField` f.y:1→-1、`parallelPlateLines` 点序上→下。**渲染器忠实画模型输出, 本身没错**。物理-core 补 2 条方向回归测试 (板内 ey<0、线序上→下), 填补此前只查 plates 存在未查场方向的盲区。
+  - Issue#2 (重要, 渲染层): `ball-xt` 用写死小角度公式 `2π√(L/g)` 标 T, 大摆角(≤80°)真实周期非线性别增约 14% 而标注不变 → 误导。新增 `measurePendulumPeriod` 由轨迹过零实测周期, 窗口太短回退并标注「小角度估算」; 集成测试补 15°(误差<5%) 与 80°(实测>T₀*1.1 且<T₀*1.25) 两条。
+  - Suggestion#1: 5 处 `Math.max(...arr)` 大数组展开改 `maxOf()` 循环, 防 RangeError。
+  - Suggestion#2: 盖革闪光 `Math.random()` 逐帧乱跳 → 改基于索引的确定性伪随机 (计数数仍随活度变, 位置/大小稳定可复现)。
+  - Suggestion#4: TIR 光导 `phi` 回退 `??12` 与 `angleDeg` 不一致 → 改用 `angleDeg`。
+  - Suggestion#3 (占位符行为不一致): 判定为合理设计 — 3 个解析自算场景 (TIR/牛顿管/动能定理) 本不需要仿真数据, 未改。
+  - 门禁: physics-core 834 测试 ✅ / `npm run build` ✅ / 可视化 116 测试 ✅ / eslint ✅
+
 ### 自检循环进度
 
 | 层 | 状态 | commit | 文件 |
