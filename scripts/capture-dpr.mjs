@@ -39,7 +39,7 @@ async function capture(dpr, out) {
     // 采样真实帧率（连续 1s 内 rAF 回调次数）
     const fps = await page.evaluate(
         () =>
-            new Promise((res) => {
+            new Promise(res => {
                 let frames = 0;
                 const t0 = performance.now();
                 const tick = () => {
