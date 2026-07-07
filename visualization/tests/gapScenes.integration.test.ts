@@ -136,7 +136,7 @@ describe('缺口 8 场景 — 端到端链路 (buildProblem → solveProblem →
             expect(texts, `${id} 不应落占位符`).not.toContain('点击「运行仿真」开始');
             expect(calls.fillText, `${id} 应绘制 ≥3 处文字`).toBeGreaterThanOrEqual(3);
             expect(calls.beginPath, `${id} 应发出路径构建`).toBeGreaterThanOrEqual(1);
-            expect(calls.stroke + calls.fill, `${id} 应发出绘制调用`).toBeGreaterThanOrEqual(1);
+            expect((calls.stroke ?? 0) + (calls.fill ?? 0), `${id} 应发出绘制调用`).toBeGreaterThanOrEqual(1);
         });
     }
 });
@@ -152,14 +152,14 @@ describe('场景行为正确性 (端到端物理自洽)', () => {
             isDark: false,
             params,
             simulationResult: result,
-            currentTime: params['duration']
+            currentTime: params['duration'] ?? 3
         });
         expect(texts.some(t => t.includes('W=ΔEk') && t.includes('✓'))).toBe(true);
     });
 
     it('动能定理: v0=2 时仍自洽 (复测初速度修复, 否则 W≠ΔEk 会显示 …)', () => {
         const scene = SCENES.find(s => s.id === 'work-energy')!;
-        const params = { ...getDefaultParams('work-energy'), v0: 2 };
+        const params: Record<string, number> = { ...getDefaultParams('work-energy'), v0: 2 };
         const result = solveProblem(scene.buildProblem(params));
         const { ctx, texts } = makeRecordingCtx();
         drawWorkEnergyScene({
@@ -169,7 +169,7 @@ describe('场景行为正确性 (端到端物理自洽)', () => {
             isDark: false,
             params,
             simulationResult: result,
-            currentTime: params['duration']
+            currentTime: params['duration'] ?? 3
         });
         expect(texts.some(t => t.includes('W=ΔEk') && t.includes('✓'))).toBe(true);
     });
@@ -177,8 +177,8 @@ describe('场景行为正确性 (端到端物理自洽)', () => {
     it('牛顿管: 真实轨迹归一化 — t=0 硬币在顶(0.00 m), t=duration 到底(height m)', () => {
         const scene = SCENES.find(s => s.id === 'newton-tube')!;
         const params = getDefaultParams('newton-tube');
-        const height = params['height'];
-        const duration = params['duration'];
+        const height = params['height'] ?? 5;
+        const duration = params['duration'] ?? 2;
         const result = solveProblem(scene.buildProblem(params));
 
         const at0 = makeRecordingCtx();
