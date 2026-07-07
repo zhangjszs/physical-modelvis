@@ -331,6 +331,13 @@ npm run build          # vite build ≤ 5s
   - 测试断言修正: `current-magnetic` 的 `wire`/`poles` 按模式互斥 (straight-wire 发 wire, coil/solenoid 发 poles), 要求至少其一存在
   - 门禁: `vitest run` 114 测试 ✅ (原 92 + 22 集成) / 改动文件 `eslint` ✅
 
+- [x] **M5-尾: 8 场景 FormulaPanel 公式覆盖 + 构建回归修复** (commit `db203d2` 公式, `6e5b176` 测试修复)
+  - 公式覆盖: `FormulaPanel.tsx` 的 `FORMULA_MAP` 补 8 条目 (total-internal-reflection / current-magnetic / efield-lines / newton-tube / bulb-vi / work-energy / ball-xt / geiger-counter), 各 4 条公式 + 教学提示, 物理与渲染器一致
+  - 通过 L4(formula-drift) 检查: 每场景 ≥3 公式、≥1 tip、公式名不重名、无 TODO
+  - 构建回归: `tsc -b` 将 tests 纳入严格检查, 集成测试文件此前实际使 `build` 脚本第一步报错 (被 `vitest`/`eslint` 掩盖); 修复 `calls.stroke/fill ??0`、`params['duration'] ??3` 等 5 处类型错误
+  - 门禁: `tsc -b` ✅ / `npm run build` ✅ / `vitest run` 114 测试 ✅ / L4 ✅
+  - 推送: 全部 14 个 commit 已 push 至 origin/main (`d14b463..6e5b176`)
+
 ### 自检循环进度
 
 | 层 | 状态 | commit | 文件 |
