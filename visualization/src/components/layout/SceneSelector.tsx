@@ -7,10 +7,11 @@ const SCENE_CATEGORIES = [
     {
         label: '必修一 (力学基础)',
         ids: [
-            'uniform-linear',
-            'uniform-accelerated',
             'projectile',
+            'uniform-accelerated',
             'free-fall',
+            'newton-first-law',
+            'newton-tube',
             'inclined-plane',
             'air-track',
             'ticker-timer',
@@ -20,9 +21,9 @@ const SCENE_CATEGORIES = [
             'overweight',
             'center-of-gravity',
             'micro-deformation',
-            'vernier-caliper',
-            'micrometer',
-            'multimeter',
+            'vernier-caliper-tool',
+            'micrometer-tool',
+            'multimeter-tool',
             'force-composition',
             'newton-third-law',
             'sliding-friction',
@@ -36,7 +37,7 @@ const SCENE_CATEGORIES = [
         ids: [
             'curve-velocity-direction',
             'curve-condition',
-            'motion-commission',
+            'motion-composition',
             'transmission-belt',
             'vertical-circle',
             'centrifugal',
@@ -45,16 +46,19 @@ const SCENE_CATEGORIES = [
             'orbital',
             'cavendish',
             'moon-earth-test',
-            'projectile-horizontal',
-            'projectile-angular'
+            'work-energy',
+            'energy-conservation'
         ]
     },
     {
         label: '必修三 (电磁学)',
         ids: [
             'electric-field',
+            'efield-lines',
             'magnetic-field',
+            'current-magnetic',
             'circuit',
+            'bulb-vi',
             'capacitor-charge',
             'parallel-plate-capacitor',
             'resistance-law',
@@ -65,6 +69,7 @@ const SCENE_CATEGORIES = [
             'electrostatic-shielding',
             'faraday-cup',
             'ampere-force',
+            'em-combined',
             'em-wave-hertz'
         ]
     },
@@ -79,15 +84,17 @@ const SCENE_CATEGORIES = [
             'sound-waveform',
             'water-diffraction',
             'sound-interference',
-            'doppler',
+            'doppler-effect',
             'thin-film',
             'hologram',
             'single-slit',
             'diffraction-grating',
-            'polarization',
-            'forced-vibration',
-            'resonance',
-            'double-pendulum',
+            'polarization-malus',
+            'forced-vibration-freq',
+            'resonance-curve',
+            'double-pendulum-sync',
+            'ball-xt',
+            'total-internal-reflection',
             'projectile-collision'
         ]
     },
@@ -119,8 +126,10 @@ const SCENE_CATEGORIES = [
         ids: [
             'gas-law',
             'photoelectric',
-            'bohr-model',
-            'radioactive-decay',
+            'bohr',
+            'bohr-orbit',
+            'radioactive',
+            'geiger-counter',
             'diffusion',
             'brownian-motion',
             'molecular-force',
