@@ -72,7 +72,10 @@ export type {
     HologramConstraint,
     SingleSlitConstraint,
     DiffractionGratingConstraint,
-    PolarizationConstraint
+    PolarizationConstraint,
+    ElectricFieldLinesConstraint,
+    CurrentMagneticFieldConstraint,
+    FieldCharge
 } from './types/problem.js';
 export { RESISTIVITY } from './types/problem.js';
 export type {
@@ -247,6 +250,9 @@ export { HologramModel } from './models/hologram.js';
 export { SingleSlitModel } from './models/single-slit.js';
 export { DiffractionGratingModel } from './models/diffraction-grating.js';
 export { PolarizationModel } from './models/polarization.js';
+// 缺口补建: 电场线 / 磁场线分布
+export { ElectricFieldLinesModel } from './models/electric-field-lines.js';
+export { CurrentMagneticFieldModel } from './models/current-magnetic-field.js';
 
 // === 求解器导出 ===
 export { solveProblem } from './solver/solver-router.js';

@@ -121,6 +121,9 @@ import { HologramModel } from '../models/hologram.js';
 import { SingleSlitModel } from '../models/single-slit.js';
 import { DiffractionGratingModel } from '../models/diffraction-grating.js';
 import { PolarizationModel } from '../models/polarization.js';
+// 缺口补建: 电场线 / 磁场线分布
+import { ElectricFieldLinesModel } from '../models/electric-field-lines.js';
+import { CurrentMagneticFieldModel } from '../models/current-magnetic-field.js';
 
 registerModel(new UniformLinearModel());
 registerModel(new UniformAcceleratedModel());
@@ -271,6 +274,9 @@ registerModel(new DecayStatisticsModel());
 registerModel(new CosmicRayModel());
 registerModel(new NeutronDiscoveryModel());
 registerModel(new FissionChainModel());
+// 缺口补建: 电场线 / 磁场线分布
+registerModel(new ElectricFieldLinesModel());
+registerModel(new CurrentMagneticFieldModel());
 
 export function solveProblem(problem: PhysicsProblem): SimulationResult {
     const model = getModel(problem.model);

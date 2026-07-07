@@ -222,6 +222,12 @@ export interface SimulationResult {
         readonly formulas: FormulaUsage[];
     };
     readonly renderHints?: RenderHint[];
+    /**
+     * 自由格式附加数据通道 — 用于承载不适合 charts/trajectories 的结构化输出
+     * (如电场线/磁场线折线、矢量场采样点、静态示意图顶点等)。
+     * 消费方需自行收窄 unknown 类型。
+     */
+    readonly extra?: Record<string, unknown>;
     readonly errors: Array<{ code: string; message: string }>;
     readonly warnings: string[];
 }

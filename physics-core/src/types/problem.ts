@@ -154,7 +154,10 @@ export type ModelType =
     | 'photoresistor' // 光敏电阻
     | 'strain-gauge' // 电阻应变片
     | 'security-alarm' // 门窗防盗报警
-    | 'light-control-switch'; // 光控开关
+    | 'light-control-switch' // 光控开关
+    // 可视化缺口补建: 静电场/磁场的场线分布 (必修三 第十二章 / 选必二 §1)
+    | 'electric-field-lines' // 电场线分布 (点电荷 / 电偶极 / 平行板)
+    | 'current-magnetic-field'; // 电流的磁场 (奥斯特 / 通电直导线 / 线圈)
 
 /** 重力场配置 */
 export interface GravityConfig {
@@ -1017,6 +1020,10 @@ export interface ConstraintConfig {
     readonly cosmicRay?: CosmicRayConstraint;
     readonly neutronDiscovery?: NeutronDiscoveryConstraint;
     readonly fissionChain?: FissionChainConstraint;
+    /** 电场线分布约束 — 必修三 第十二章 (点电荷 / 电偶极 / 平行板) */
+    readonly electricFieldLines?: ElectricFieldLinesConstraint;
+    /** 电流的磁场约束 — 选必二 §1 (奥斯特 / 通电直导线 / 线圈) */
+    readonly currentMagneticField?: CurrentMagneticFieldConstraint;
 }
 
 /** 电流天平约束 — 选必二 (m*g = n*BIl) */
@@ -1663,3 +1670,78 @@ export interface FissionChainConstraint {
     generations: number;
     initialNeutrons?: number;
 }
+
+// ============================================================
+// 电场线 / 磁场线 分布约束 (缺口补建)
+// ============================================================
+
+/** 电荷源 (坐标系: 归一化场景空间, 原点为中心, 范围约 [-1,1]; q 单位 nC) */
+export interface FieldCharge {
+    /** x 坐标 (归一化场景单位) */
+    readonly x: number;
+    /** y 坐标 (归一化场景单位) */
+    readonly y: number;
+    /** 电荷量 (nC): 正为源(电场线发出), 负为汇(电场线汇入) */
+    readonly q: number;
+}
+
+/**
+ * 电场线分布约束 — 必修三 第十二章
+ *
+ * 支持三种典型静电场配置:
+ * - 'point-charge': 由 charges 指定任意点电荷系
+ * - 'dipole': 由 dipoleCharge (nC) 与 dipoleSeparation (场景单位) 构造等量异荷偶极
+ * - 'parallel-plate': 由 plateGap / plateVoltage / plateLength 构造平行板电容器匀强场
+ */
+export interface ElectricFieldLinesConstraint {
+    readonly mode: 'point-charge' | 'dipole' | 'parallel-plate';
+    /** point-charge 模式: 任意点电荷系 (默认单个 +1nC 位于原点) */
+    readonly charges?: FieldCharge[];
+    /** dipole 模式: 电荷量 (nC), 默认 5 */
+    readonly dipoleCharge?: number;
+    /** dipole 模式: 两电荷间距 (场景单位), 默认 1.0 */
+    readonly dipoleSeparation?: number;
+    /** parallel-plate 模式: 板间距 (场景单位), 默认 1.2 */
+    readonly plateGap?: number;
+    /** parallel-plate 模式: 板间电压 (V), 默认 12 */
+    readonly plateVoltage?: number;
+    /** parallel-plate 模式: 极板长度 (场景单位), 默认 2.0 */
+    readonly plateLength?: number;
+    /** 每条场线积分步数, 默认 600 */
+    readonly steps?: number;
+    /** 场线最大弧长 (场景单位), 默认 6 */
+    readonly maxLength?: number;
+    /** 每条正电荷发出的场线数, 默认 16 */
+    readonly lineCount?: number;
+}
+
+/**
+ * 电流的磁场约束 — 选必二 §1
+ *
+ * 支持三种典型载流导体的磁场分布:
+ * - 'straight-wire': 无限长直导线 (二维截面, 电流垂直纸面), 磁场为同心圆 B=μ₀I/(2πr)
+ * - 'coil': 圆形线圈 (等效磁偶极子, 外部场线从 N 极出发回到 S 极)
+ * - 'solenoid': 螺线管 (内部近似匀强场, 外部近似磁偶极子)
+ *
+ * current 符号约定: + 表示电流垂直纸面向外, − 表示向里 (右手螺旋定则)。
+ */
+export interface CurrentMagneticFieldConstraint {
+    readonly mode: 'straight-wire' | 'coil' | 'solenoid';
+    /** 电流 (A), 符号约定见上, 默认 1.0 */
+    readonly current: number;
+    /** 导线/线圈中心位置 (归一化场景单位), 默认原点 */
+    readonly center?: { readonly x: number; readonly y: number };
+    /** coil/solenoid: 线圈半径 (场景单位), 默认 0.6 */
+    readonly radius?: number;
+    /** solenoid: 半长 (场景单位), 默认 1.0 */
+    readonly halfLength?: number;
+    /** coil/solenoid: 匝数 (用于 B 量级估算), 默认 10 */
+    readonly turns?: number;
+    /** 每条场线积分步数, 默认 600 */
+    readonly steps?: number;
+    /** 场线最大弧长 (场景单位), 默认 6 */
+    readonly maxLength?: number;
+    /** 场线数, 默认 16 */
+    readonly lineCount?: number;
+}
+
