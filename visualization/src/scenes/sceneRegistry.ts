@@ -10037,7 +10037,10 @@ export const SCENES: SceneConfig[] = [
                         id: 'object',
                         mass: { value: m, unit: 'kg' },
                         position: { x: 0, y: 0 },
-                        velocity: { x: 0, y: v0 }
+                        // 初速度对齐合外力方向 (重力向下): 取 -v0, 使 v0 与加速度同向,
+                        // 从而 W = F·s = ½m(v0+at)² − ½mv0² = ΔEk 对任意 v0 严格成立。
+                        // 若取 +v0 (向上), 则模型为上抛, speed=|v0−at|, 与渲染器 W=F·s 在 v0≠0 时分歧。
+                        velocity: { x: 0, y: -v0 }
                     }
                 ],
                 environment: { gravity: { enabled: true, value: a } },
