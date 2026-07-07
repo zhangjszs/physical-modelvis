@@ -2,6 +2,7 @@ import { useRef, useEffect, useCallback } from 'react';
 import { useSimulationStore } from '../../store/simulationStore';
 import { CoordinateTransformer } from '../../rendering/CoordinateTransformer';
 import { CanvasRenderer } from '../../rendering/CanvasRenderer';
+import { setupHiDPICanvas } from '../../rendering/dpr';
 import { COLORS } from '../../utils/colorMap';
 import { findFrameIndex, interpolateFrame, getTotalDuration } from '../../utils/frameUtils';
 import type { TrajectoryPoint } from 'physics-core';
@@ -954,9 +955,11 @@ export function SimulationCanvas() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const rendererRef = useRef<CanvasRenderer | null>(null);
     const transformerRef = useRef<CoordinateTransformer | null>(null);
+    const logicalSizeRef = useRef<{ w: number; h: number }>({ w: 0, h: 0 });
     const animFrameRef = useRef<number>(0);
     const lastTimeRef = useRef<number>(0);
     const airflowParticlesRef = useRef<AirflowParticle[]>([]);
+    const fpsRef = useRef<number>(0);
     const probeRef = useRef<TrajectoryPoint | null>(null);
 
     const {
@@ -996,12 +999,15 @@ export function SimulationCanvas() {
 
         const resize = () => {
             const rect = canvas.parentElement!.getBoundingClientRect();
-            canvas.width = rect.width;
-            canvas.height = rect.height;
-            transformerRef.current = new CoordinateTransformer(canvas.width, canvas.height);
+            const cssW = Math.round(rect.width);
+            const cssH = Math.round(rect.height);
+            logicalSizeRef.current = { w: cssW, h: cssH };
+            const dpr = setupHiDPICanvas(canvas, cssW, cssH);
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            transformerRef.current = new CoordinateTransformer(cssW, cssH);
             rendererRef.current = new CanvasRenderer(ctx, transformerRef.current, visibleLayers, isDark);
             if (is3DScene) {
-                rendererRef.current.set3DEnabled(true, canvas.width, canvas.height);
+                rendererRef.current.set3DEnabled(true, cssW, cssH);
             }
         };
         resize();
@@ -1013,7 +1019,7 @@ export function SimulationCanvas() {
         if (!transformerRef.current || !rendererRef.current) return;
         const canvas = canvasRef.current;
         if (canvas) {
-            rendererRef.current.set3DEnabled(is3DScene, canvas.width, canvas.height);
+            rendererRef.current.set3DEnabled(is3DScene, logicalSizeRef.current.w, logicalSizeRef.current.h);
         }
         rendererRef.current.update(transformerRef.current, visibleLayers, isDark);
     }, [visibleLayers, isDark, is3DScene]);
@@ -1042,12 +1048,12 @@ export function SimulationCanvas() {
             }
         }
         if (is3DScene) {
-            transformerRef.current.autoFit(allPoints, canvas.width, canvas.height, 90, true);
+            transformerRef.current.autoFit(allPoints, logicalSizeRef.current.w, logicalSizeRef.current.h, 90, true);
             if (rendererRef.current) {
-                rendererRef.current.set3DEnabled(true, canvas.width, canvas.height);
+                rendererRef.current.set3DEnabled(true, logicalSizeRef.current.w, logicalSizeRef.current.h);
             }
         } else {
-            transformerRef.current.autoFit(allPoints, canvas.width, canvas.height);
+            transformerRef.current.autoFit(allPoints, logicalSizeRef.current.w, logicalSizeRef.current.h);
         }
     }, [
         simulationResult,
@@ -1072,7 +1078,8 @@ export function SimulationCanvas() {
         if (!canvas || !renderer || !transformer) return;
 
         const ctx = canvas.getContext('2d')!;
-        renderer.clear(canvas.width, canvas.height);
+        const { w: cssW, h: cssH } = logicalSizeRef.current;
+        renderer.clear(cssW, cssH);
         // 第三章场景使用屏幕坐标系，不需要网格/坐标轴
         if (
             !isChapter3 &&
@@ -1085,23 +1092,23 @@ export function SimulationCanvas() {
             !isMechanics &&
             !isElectromagnetism
         ) {
-            renderer.drawGrid(canvas.width, canvas.height);
-            renderer.drawAxes(canvas.width, canvas.height);
+            renderer.drawGrid(cssW, cssH);
+            renderer.drawAxes(cssW, cssH);
         }
 
         if (!is3DScene && hasCustom2DBackground) {
             if (currentScene === 'electric-field') {
-                drawElectricField(ctx, transformer, canvas.width, canvas.height, isDark);
+                drawElectricField(ctx, transformer, cssW, cssH, isDark);
             } else if (currentScene === 'magnetic-field') {
-                drawMagneticField(ctx, transformer, canvas.width, canvas.height, isDark);
+                drawMagneticField(ctx, transformer, cssW, cssH, isDark);
             } else if (currentScene === 'em-combined') {
-                drawEMCombinedField(ctx, transformer, canvas.width, canvas.height, isDark);
+                drawEMCombinedField(ctx, transformer, cssW, cssH, isDark);
             } else if (currentScene === 'collision') {
-                drawCollisionScene(ctx, transformer, canvas.width, canvas.height, isDark, parameters);
+                drawCollisionScene(ctx, transformer, cssW, cssH, isDark, parameters);
             } else if (currentScene === 'spring') {
-                drawSpringScene(ctx, transformer, canvas.width, canvas.height, isDark, parameters);
+                drawSpringScene(ctx, transformer, cssW, cssH, isDark, parameters);
             } else if (currentScene === 'inclined-plane') {
-                drawInclinedPlaneScene(ctx, transformer, canvas.width, canvas.height, isDark, parameters);
+                drawInclinedPlaneScene(ctx, transformer, cssW, cssH, isDark, parameters);
             }
         }
 
@@ -1120,8 +1127,8 @@ export function SimulationCanvas() {
         ) {
             const sceneOpts = {
                 ctx,
-                width: canvas.width,
-                height: canvas.height,
+                width: cssW,
+                height: cssH,
                 isDark,
                 params: parameters,
                 simulationResult,
@@ -1361,7 +1368,7 @@ export function SimulationCanvas() {
             ctx.fillStyle = isDark ? '#64748b' : '#94a3b8';
             ctx.font = '16px sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText('点击「运行仿真」开始', canvas.width / 2, canvas.height / 2);
+            ctx.fillText('点击「运行仿真」开始', cssW / 2, cssH / 2);
             return;
         }
 
@@ -1375,8 +1382,8 @@ export function SimulationCanvas() {
             const frame = interpolateFrame(p0, p1, currentTime);
             airflowParticlesRef.current = drawAirTrackScene(
                 ctx,
-                canvas.width,
-                canvas.height,
+                cssW,
+                cssH,
                 isDark,
                 parameters,
                 currentTime,
@@ -1402,7 +1409,7 @@ export function SimulationCanvas() {
         ];
         const skipGround = noGroundScenes.includes(currentScene) && !is3DScene;
         if (!skipGround) {
-            renderer.drawGround(0, canvas.width);
+            renderer.drawGround(0, cssW);
         }
 
         const isCircular = currentScene === 'circular-motion';
@@ -1591,6 +1598,12 @@ export function SimulationCanvas() {
             const delta = (timestamp - lastTimeRef.current) / 1000;
             lastTimeRef.current = timestamp;
 
+            // 平滑 FPS 估算（用于应用内渲染性能诊断，无 React 重渲染开销）
+            if (delta > 0) {
+                const instFps = 1 / delta;
+                fpsRef.current = fpsRef.current === 0 ? instFps : fpsRef.current * 0.9 + instFps * 0.1;
+            }
+
             if (isPlaying && simulationResult) {
                 const trajectories = simulationResult.trajectories;
                 const totalDuration = getTotalDuration(trajectories);
@@ -1604,6 +1617,21 @@ export function SimulationCanvas() {
             }
 
             render();
+            // FPS 叠层（右上角，逻辑像素坐标，叠加在已按 dpr 缩放的 ctx 上）
+            const fpsCanvas = canvasRef.current;
+            if (fpsCanvas) {
+                const fctx = fpsCanvas.getContext('2d');
+                if (fctx) {
+                    const { w } = logicalSizeRef.current;
+                    fctx.save();
+                    fctx.font = '11px monospace';
+                    fctx.textAlign = 'right';
+                    fctx.textBaseline = 'top';
+                    fctx.fillStyle = isDark ? 'rgba(148,163,184,0.85)' : 'rgba(71,85,105,0.85)';
+                    fctx.fillText(`${Math.round(fpsRef.current)} FPS`, w - 10, 8);
+                    fctx.restore();
+                }
+            }
             animFrameRef.current = requestAnimationFrame(loop);
         };
         animFrameRef.current = requestAnimationFrame(loop);
@@ -1695,8 +1723,10 @@ export function SimulationCanvas() {
 
         function getCanvasPos(e: MouseEvent): { x: number; y: number } {
             const rect = canvas.getBoundingClientRect();
-            const scaleX = canvas.width / rect.width;
-            const scaleY = canvas.height / rect.height;
+            // 绘制坐标系为逻辑 CSS 像素（resize 中已按 dpr 缩放 ctx），
+            // 故鼠标坐标也应映射到逻辑空间，scale ≈ 1。
+            const scaleX = logicalSizeRef.current.w / rect.width || 1;
+            const scaleY = logicalSizeRef.current.h / rect.height || 1;
             return {
                 x: (e.clientX - rect.left) * scaleX,
                 y: (e.clientY - rect.top) * scaleY
