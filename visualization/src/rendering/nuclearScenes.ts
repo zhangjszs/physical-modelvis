@@ -197,7 +197,7 @@ export function drawAlphaScatteringScene(o: NuclearSceneOptions): void {
     const nucleusR = 22;
 
     // 瞄准距离 (绘制多条轨迹)
-    const impactParams = [0.35, 0.55, 0.78, 1.1, 1.6]; // 归一化系数 * kCoeff^(1/2)*h
+    const impactParams = [0.1, 0.35, 0.55, 0.78, 1.1, 1.6]; // 归一化系数；首条小瞄准距使默认参数下出现大角度散射
     const impactRaw = Math.max(8, Math.min(h * 0.2, kCoeff * 4));
     const trackColors = ['#4ade80', '#60a5fa', '#a78bfa', '#fb923c', '#f472b6'];
 
@@ -796,7 +796,7 @@ export function drawFissionChainScene(o: NuclearSceneOptions): void {
         totalFissions = lastPt ? lastPt.y : totalFissions;
     }
     const E_total_MeV = totalFissions * 200;
-    const E_MJ = (E_total_MeV * 1.602e-19) / 1e6;
+    const E_MJ = E_total_MeV * 1.602e-19; // 1 MeV = 1.602e-13 J = 1.602e-19 MJ
 
     const infoRows = [
         `k = ${k.toFixed(2)}`,

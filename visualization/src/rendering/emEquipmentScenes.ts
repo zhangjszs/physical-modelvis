@@ -627,7 +627,7 @@ export function drawEmDampingScene(opts: EmEquipSceneOptions): void {
 
     // --- 顶部: 铝框摆动示意 ---
     const pivotX = width / 2;
-    const pivotY = topY + topH * 0.55;
+    const pivotY = topY + 16; // 悬挂点 = 天花板底边，与摆线起点/铝框绘制点一致
     const rodLen = Math.min(topH * 0.38, 110);
 
     // 当前摆角: θ = θ₀·exp(-γt)·cos(ω't), 近似 ω' ≈ omega0 / 100

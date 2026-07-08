@@ -338,18 +338,12 @@ export function drawHookeLawScene(opts: Chapter3SceneOptions): void {
     const gravityN = m * g;
     const springForceN = k * currentX;
     // 重力 (向下，红色)
-    drawForceArrow(
-        ctx,
-        springX,
-        blockY + blockH,
-        springX,
-        blockY + blockH + (gravityN * forceScale) / 10,
-        '#ef4444',
-        'G=mg',
-        { dx: 8, dy: 0 }
-    );
+    drawForceArrow(ctx, springX, blockY + blockH, springX, blockY + blockH + gravityN * forceScale, '#ef4444', 'G=mg', {
+        dx: 8,
+        dy: 0
+    });
     // 弹簧弹力 (向上，绿色)
-    drawForceArrow(ctx, springX, blockY, springX, blockY - (springForceN * forceScale) / 10, '#22c55e', 'F=kx', {
+    drawForceArrow(ctx, springX, blockY, springX, blockY - springForceN * forceScale, '#22c55e', 'F=kx', {
         dx: 8,
         dy: 0
     });
@@ -730,13 +724,20 @@ export function drawNewtonThirdLawScene(opts: Chapter3SceneOptions): void {
     // --- 物块位置 ---
     const frameA = getCurrentFrame(simulationResult, currentTime, 0);
     const frameB = getCurrentFrame(simulationResult, currentTime, 1);
-    const dxA = frameA ? frameA.position.x - -1 : 0; // 相对初始位置的位移
-    const dxB = frameB ? frameB.position.x - 1 : 0;
-    const xA_offset = dxA * pixelsPerMeter;
-    const xB_offset = dxB * pixelsPerMeter;
-
+    // 初位置从轨迹首帧取，避免硬编码 ±1 与 physics-core 初值耦合
+    const initA = getCurrentFrame(simulationResult, 0, 0);
+    const initB = getCurrentFrame(simulationResult, 0, 1);
+    const initAx = initA ? initA.position.x : -1;
+    const initBx = initB ? initB.position.x : 1;
+    const dxA = frameA ? frameA.position.x - initAx : 0; // 相对初始位置的位移
+    const dxB = frameB ? frameB.position.x - initBx : 0;
     const blockW = 56,
         blockH = 44;
+    // 钳制到画布内，防止大位移越界
+    const maxOff = Math.max(0, width - (startX + gap + blockW) - 10);
+    const minOff = -(startX - 10);
+    const xA_offset = Math.max(minOff, Math.min(maxOff, dxA * pixelsPerMeter));
+    const xB_offset = Math.max(minOff, Math.min(maxOff, dxB * pixelsPerMeter));
     const ax = startX + xA_offset;
     const bx = startX + gap + blockW + xB_offset;
     const blockCY = groundY - blockH / 2;

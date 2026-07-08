@@ -400,6 +400,14 @@ npm run build          # vite build ≤ 5s
   - 验证: CI (run `28885294000`) ✅ → Deploy (`28885387108`) ✅ → 线上 `https://zhangjszs.github.io/physical-modelvis/` 返回 200 + JS/CSS 资源 200
   - 注意: 仓库名为连字符 `physical-modelvis` (非下划线); 此前误用下划线 URL 导致 404 属假警报
 
+- [x] **M7c: 可视化效果代码审查 + 9 个 Critical 修复** (commit 本条, 待推送 origin/main)
+  - 审查: 8 个并行代理对全部 ~90 个 `draw*Scene` 做代码级视觉评审（沙箱无头），8 轴 rubric（暗/亮适配、对比配色、图层顺序、标注文字、缩放映射、save/restore 卫生、物理表征、跨场景一致性）
+  - 产出: `docs/visual-review-2026-07-08.md` — Critical 9 / Important ~30 / Suggestion ~40 + 5 条跨场景共性
+  - 修复 9 个 Critical (C1–C9): 斜面角优角、胡克力箭头不可见、牛顿第三硬编码初值、EM 阻尼 pivotY 脱节、α 散射大角度不触发、裂变能量偏小 6 量级、霍尔极性亮背景不可见、热敏标签画到画布外、光控开关分压接反+阈值未用
+  - 改动文件: `SimulationCanvas.tsx` / `chapter3Scenes.ts` / `emEquipmentScenes.ts` / `nuclearScenes.ts` / `sensorScenes.ts`（5 文件, +41/−38 行）
+  - 门禁: `tsc --noEmit` ✅ / `eslint`(5 文件) ✅ / `prettier --check`(5 文件) ✅ / `vitest run` 249 测试 ✅
+  - 未修 (待排期): Important ~30 + Suggestion ~40；建议下一轮优先共性#1（`save/restore` 状态卫生）
+
 ### 自检循环进度
 
 | 层 | 状态 | commit | 文件 |

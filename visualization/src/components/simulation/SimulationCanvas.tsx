@@ -622,27 +622,30 @@ function drawInclinedPlaneScene(
     }
 
     const arcR = 45;
+    const startAngle = Math.PI;
     const slopeAngleFromBR = Math.atan2(topLeft.y - bottomRight.y, topLeft.x - bottomRight.x);
+    // 取从水平底边(startAngle)到斜面边的最小扫角(=θ)，避免 anticlockwise=true 画出 330° 优角
+    const minorSweep = (((slopeAngleFromBR - startAngle) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+    const midAngle = startAngle + minorSweep / 2;
     ctx.fillStyle = isDark ? 'rgba(251,191,36,0.10)' : 'rgba(217,119,6,0.08)';
     ctx.beginPath();
     ctx.moveTo(bottomRight.x, bottomRight.y);
-    ctx.arc(bottomRight.x, bottomRight.y, arcR, Math.PI, slopeAngleFromBR, true);
+    ctx.arc(bottomRight.x, bottomRight.y, arcR, startAngle, slopeAngleFromBR, false);
     ctx.closePath();
     ctx.fill();
     ctx.strokeStyle = isDark ? '#fbbf24' : '#d97706';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.arc(bottomRight.x, bottomRight.y, arcR, Math.PI, slopeAngleFromBR, true);
+    ctx.arc(bottomRight.x, bottomRight.y, arcR, startAngle, slopeAngleFromBR, false);
     ctx.stroke();
-    const arcMidAngle = (Math.PI + slopeAngleFromBR) / 2;
     ctx.fillStyle = isDark ? '#fbbf24' : '#d97706';
     ctx.font = 'bold 13px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(
         `\u03B8=${thetaDeg}\u00B0`,
-        bottomRight.x + (arcR + 22) * Math.cos(arcMidAngle),
-        bottomRight.y + (arcR + 22) * Math.sin(arcMidAngle)
+        bottomRight.x + (arcR + 22) * Math.cos(midAngle),
+        bottomRight.y + (arcR + 22) * Math.sin(midAngle)
     );
     ctx.textBaseline = 'alphabetic';
 

@@ -385,7 +385,7 @@ export function drawHallEffectScene(o: SensorSceneOptions): void {
 
     // 上方 + 号 (上表面, 电子型载流子则负电荷在下表面)
     const showPolarity = Vh >= 0;
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = isDark ? '#ffffff' : '#1e293b';
     ctx.font = 'bold 14px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -778,7 +778,7 @@ export function drawThermistorScene(o: SensorSceneOptions): void {
         ctx.fillText(`${ti}K`, termX - 18, py + 3);
     }
     // 当前温度液柱
-    const fillH = ((T - tMin) / (tMax - tMin)) * termH;
+    const fillH = Math.max(0, Math.min(termH, ((T - tMin) / (tMax - tMin)) * termH));
     const fillGrad = ctx.createLinearGradient(termX, termY0 + termH, termX, termY0 + termH - fillH);
     fillGrad.addColorStop(0, '#991b1b');
     fillGrad.addColorStop(1, '#ef4444');
@@ -797,7 +797,7 @@ export function drawThermistorScene(o: SensorSceneOptions): void {
     ctx.fillStyle = isDark ? '#cbd5e1' : '#334155';
     ctx.font = '11px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(`= ${Tcelsius.toFixed(0)}°C`, termX, termY0 + termH + termH + 44);
+    ctx.fillText(`= ${Tcelsius.toFixed(0)}°C`, termX, termY0 + termH + 44);
 
     // --- NTC 符号 + 显示 ---
     const symX = w * 0.32;
@@ -837,7 +837,7 @@ export function drawThermistorScene(o: SensorSceneOptions): void {
     const sliderY = symY + 80;
     ctx.fillStyle = isDark ? '#475569' : '#cbd5e1';
     ctx.fillRect(sliderX, sliderY, 140, 6);
-    const sliderF = (T - tMin) / (tMax - tMin);
+    const sliderF = Math.max(0, Math.min(1, (T - tMin) / (tMax - tMin)));
     ctx.fillStyle = '#ef4444';
     ctx.fillRect(sliderX, sliderY, sliderF * 140, 6);
     ctx.fillStyle = isDark ? '#94a3b8' : '#64748b';
@@ -1797,20 +1797,19 @@ export function drawLightControlSwitchScene(o: SensorSceneOptions): void {
     const Rfix = params['Rfix'] ?? 10000;
     const Esupply = params['Esupply'] ?? 12;
 
-    // 夜间: 高亮; 日落后 LDR 阻值升高
-    // 简化模型: R_LDR = Rdark · exp(-k·E)
+    // 夜间: LDR 阻值升高；L 为归一化照度∈[0,1]，映射到 lux 与阈值比较
+    // 简化模型: R_LDR = Rdark · exp(-k·L)，k 取较大值使亮/暗阻值明显变化
     const Rdark2 = 1e6;
-    const k2 = 2e-3;
+    const k2 = 7;
     const Rldr = Rdark2 * Math.exp(-k2 * L);
 
-    // 分压: V_cc = Esupply * Rfix / (Rldr + Rfix)
+    // 分压(当前拓扑: LDR 在上、Rfix 在下): 亮时 Rldr 小→Vcc 高；暗时 Rldr 大→Vcc 低
     const Vcc = (Esupply * Rfix) / (Rldr + Rfix);
-    const Vbe = 0.7;
-    const transistorOn = Vcc >= Vbe;
-    // 路灯: 夜晚(低照度) 亮
-    // 逻辑: Vcc > Vbe → 三极管导通 → 继电器吸合 → 灯亮
-    // 但白天 L<V_low → Rldr 小 → Vcc < 0.7 → 三极管截止 → 灯灭
-    const lampOn = transistorOn;
+    // 照度(lux)与阈值比较：低照度(夜)→灯亮。threshold 单位为 lx，与 24h 曲线一致
+    const currentLux = L * 40000;
+    const lampOn = currentLux < threshold;
+    // 低边 NPN + 继电器：Vcc 低(暗)→三极管截止→继电器吸合→灯亮；故三极管状态与灯相反
+    const transistorOn = !lampOn;
 
     drawTitle(ctx, '光控开关 (路灯自动控制)', w, isDark);
 
