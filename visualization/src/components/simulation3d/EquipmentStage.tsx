@@ -1,0 +1,328 @@
+/**
+ * EquipmentStage — 通用 3D 实验舞台
+ *
+ * 复用抛体模板的 build-once / mutate-via-refs / render-in-rAF 模式，
+ * 把"环境 + 运动证据 + 动画循环"抽象成通用层，
+ * 把"器材 + 坐标映射"下放给各场景的 rig 配置。
+ *
+ * 每个实验只需定义一个 rig：
+ *   - buildEquipment(scene, params)  → 返回 { group, handles }
+ *   - updateEquipment(handles, params) → 参数变化时更新器材
+ *   - getVisualPosition(pos, params) → 物理坐标 → 3D 坐标
+ *   - getOrigin(params)             → 轨迹起点（发射口 / 释放点）
+ */
+import { useEffect, useRef } from 'react';
+import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { useSimulationStore } from '../../store/simulationStore';
+import { findFrameIndex, getTotalDuration, interpolateFrame } from '../../utils/frameUtils';
+import {
+    createEnvironment,
+    makeTrajectoryLine,
+    makeGhostBalls,
+    makeShadowPlate,
+    makeProjectionLine,
+    disposeObject,
+    makeSphere
+} from './primitives';
+
+// ---------------------------------------------------------------------------
+// rig 接口 — 每个实验场景实现此接口即可接入 3D 舞台
+// ---------------------------------------------------------------------------
+
+export interface SceneRig {
+    /** 世界尺度（米 → Three.js 单位），默认 0.16 */
+    worldScale?: number;
+    /** 球的半径，默认 0.22 */
+    ballRadius?: number;
+    /** 是否把球体夹高到地面以上（仅抛体/落体/斜面等有地面实验开启，默认 false） */
+    clampToGround?: boolean;
+    /**
+     * 构建器材，返回挂载到场景的 group 和内部句柄。
+     *
+     * 约定（推荐）：器材全部 add 到 group 内部，Stage 负责 scene.add(group) 和统一 dispose。
+     * 兼容（现状）：也可直接 scene.add(...)，返回空 group — 场景切换时靠 key 整组件 remount +
+     * disposeObject(scene) 清理。新 rig 请遵循推荐写法，避免未来"同 Stage 内重建 rig"时泄漏。
+     */
+    buildEquipment(scene: THREE.Scene, params: Record<string, number>): {
+        group: THREE.Group;
+        handles: Record<string, unknown>;
+    };
+    /** 参数变化时更新器材状态 */
+    updateEquipment(handles: Record<string, unknown>, params: Record<string, number>): void;
+    /** 物理坐标 (米) → 3D 世界坐标 */
+    getVisualPosition(
+        pos: { x: number; y: number },
+        params: Record<string, number>
+    ): THREE.Vector3;
+    /** 轨迹起点在 3D 空间的位置（发射口 / 释放点） */
+    getOrigin(params: Record<string, number>): THREE.Vector3;
+}
+
+interface EquipmentStageProps {
+    rig: SceneRig;
+    /** 相机初始位置 */
+    cameraPosition?: [number, number, number];
+    /** 相机注视目标 */
+    cameraTarget?: [number, number, number];
+    /** 舞台说明文字 */
+    caption?: (params: Record<string, number>) => string;
+}
+
+// ---------------------------------------------------------------------------
+// 内部句柄
+// ---------------------------------------------------------------------------
+
+interface StageHandles {
+    scene: THREE.Scene;
+    camera: THREE.PerspectiveCamera;
+    renderer: THREE.WebGLRenderer;
+    controls: OrbitControls;
+    ball: THREE.Mesh;
+    trajectory: THREE.Line;
+    ghostBalls: THREE.Mesh[];
+    shadowPlate: THREE.Mesh;
+    projectionLine: THREE.Line;
+    equipmentGroup: THREE.Group;
+    equipmentHandles: Record<string, unknown>;
+}
+
+// ---------------------------------------------------------------------------
+// 组件
+// ---------------------------------------------------------------------------
+
+export function EquipmentStage({ rig, cameraPosition, cameraTarget, caption }: EquipmentStageProps) {
+    const hostRef = useRef<HTMLDivElement | null>(null);
+    const handlesRef = useRef<StageHandles | null>(null);
+    const lastTimeRef = useRef(0);
+
+    // 用 ref 保存 rAF 循环需要读取的最新值，避免 effect 依赖 currentTime 导致每帧重建循环
+    const currentTimeRef = useRef(0);
+    const parametersRef = useRef<Record<string, number>>({});
+    const visibleLayersRef = useRef<{ trajectory: boolean; axes: boolean }>({ trajectory: true, axes: true });
+
+    const {
+        simulationResult,
+        currentTime,
+        isPlaying,
+        playbackSpeed,
+        setCurrentTime,
+        pause,
+        parameters,
+        visibleLayers
+    } = useSimulationStore();
+
+    // 每次 render 把最新值写进 ref，rAF 循环只读 ref
+    currentTimeRef.current = currentTime;
+    parametersRef.current = parameters;
+    visibleLayersRef.current = visibleLayers;
+
+    const ballRadius = rig.ballRadius ?? 0.22;
+
+    // —— 1. 初始化：构建环境 + 器材 + 运动证据 ——
+    useEffect(() => {
+        const host = hostRef.current;
+        if (!host) return;
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xf8fafc);
+        scene.fog = new THREE.Fog(0xf8fafc, 18, 36);
+
+        const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+        const defaultCamPos = cameraPosition ?? [6.5, 4.5, 8.0];
+        camera.position.set(...defaultCamPos);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        host.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        const defaultTarget = cameraTarget ?? [3.2, 0.8, 0];
+        controls.target.set(...defaultTarget);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.08;
+        controls.minDistance = 4;
+        controls.maxDistance = 20;
+        controls.maxPolarAngle = Math.PI * 0.48;
+        controls.update();
+
+        createEnvironment(scene);
+
+        // 器材
+        const { group: equipmentGroup, handles: equipmentHandles } = rig.buildEquipment(scene, parameters);
+        scene.add(equipmentGroup);
+
+        // 运动证据
+        const ball = makeSphere(ballRadius, 0x2563eb, {
+            emissive: 0x1d4ed8,
+            emissiveIntensity: 0.1
+        });
+        ball.castShadow = true;
+        scene.add(ball);
+
+        const ghostBalls = makeGhostBalls(9, ballRadius);
+        ghostBalls.forEach(g => scene.add(g));
+
+        const trajectory = makeTrajectoryLine();
+        scene.add(trajectory);
+
+        const projectionLine = makeProjectionLine();
+        scene.add(projectionLine);
+
+        const shadowPlate = makeShadowPlate(ballRadius);
+        scene.add(shadowPlate);
+
+        handlesRef.current = {
+            scene,
+            camera,
+            renderer,
+            controls,
+            ball,
+            trajectory,
+            ghostBalls,
+            shadowPlate,
+            projectionLine,
+            equipmentGroup,
+            equipmentHandles
+        };
+
+        const resize = () => {
+            const rect = host.getBoundingClientRect();
+            const w = Math.max(1, Math.floor(rect.width));
+            const h = Math.max(1, Math.floor(rect.height));
+            renderer.setSize(w, h, false);
+            camera.aspect = w / h;
+            camera.updateProjectionMatrix();
+        };
+        resize();
+        const ro = new ResizeObserver(resize);
+        ro.observe(host);
+
+        return () => {
+            ro.disconnect();
+            controls.dispose();
+            disposeObject(scene);
+            renderer.dispose();
+            if (renderer.domElement.parentElement === host) {
+                host.removeChild(renderer.domElement);
+            }
+            handlesRef.current = null;
+        };
+    }, []);
+
+    // —— 2. 参数变化：更新器材 ——
+    useEffect(() => {
+        const handles = handlesRef.current;
+        if (!handles) return;
+        rig.updateEquipment(handles.equipmentHandles, parameters);
+    }, [parameters, rig]);
+
+    // —— 3. 仿真结果变化：重建轨迹线 + 残影 ——
+    useEffect(() => {
+        const handles = handlesRef.current;
+        if (!handles || !simulationResult) return;
+        const points = simulationResult.trajectories[0] ?? [];
+
+        const visualPoints = points.map(p => rig.getVisualPosition(p.position, parameters));
+        handles.trajectory.geometry.dispose();
+        handles.trajectory.geometry = new THREE.BufferGeometry().setFromPoints(visualPoints);
+        handles.trajectory.visible = visibleLayers.trajectory;
+
+        handles.ghostBalls.forEach((ghost, i) => {
+            if (visualPoints.length === 0) {
+                ghost.visible = false;
+                return;
+            }
+            const idx = Math.min(
+                visualPoints.length - 1,
+                Math.round((i / Math.max(1, handles.ghostBalls.length - 1)) * (visualPoints.length - 1))
+            );
+            ghost.position.copy(visualPoints[idx]!);
+            ghost.visible = visibleLayers.trajectory;
+        });
+    }, [simulationResult, parameters, visibleLayers.trajectory, rig]);
+
+    // —— 4. 动画循环：时间推进 + 球体位置 + 渲染 ——
+    // 依赖保持稳定：只在这几个真正会“换场景/换仿真”时重建循环；
+    // 播放过程中 currentTime 每帧变化，通过 ref 读取，不触发 effect 重建。
+    useEffect(() => {
+        let running = true;
+        const tick = (timestamp: number) => {
+            if (!running) return;
+            const handles = handlesRef.current;
+            if (lastTimeRef.current === 0) lastTimeRef.current = timestamp;
+            const delta = (timestamp - lastTimeRef.current) / 1000;
+            lastTimeRef.current = timestamp;
+
+            // 从 ref 读取最新值（避免 effect 依赖 currentTime）
+            const now = currentTimeRef.current;
+            const params = parametersRef.current;
+            const layers = visibleLayersRef.current;
+
+            if (simulationResult && isPlaying) {
+                const total = getTotalDuration(simulationResult.trajectories);
+                const next = now + delta * playbackSpeed;
+                if (next >= total) {
+                    setCurrentTime(total);
+                    pause();
+                } else {
+                    setCurrentTime(next);
+                }
+            }
+
+            if (handles && simulationResult) {
+                const points = simulationResult.trajectories[0] ?? [];
+                if (points.length > 0) {
+                    const idx = findFrameIndex(simulationResult.trajectories, now);
+                    const p0 = points[idx]!;
+                    const p1 = points[Math.min(idx + 1, points.length - 1)]!;
+                    const frame = interpolateFrame(p0, p1, now);
+                    const ballPos = rig.getVisualPosition(frame.position, params);
+                    if (rig.clampToGround) {
+                        ballPos.y = Math.max(ballRadius, ballPos.y);
+                    }
+                    handles.ball.position.copy(ballPos);
+                    handles.ball.rotation.y += delta * 2.4;
+                    handles.shadowPlate.position.set(ballPos.x, 0.028, ballPos.z);
+
+                    // 投影线
+                    handles.projectionLine.geometry.dispose();
+                    handles.projectionLine.geometry = new THREE.BufferGeometry().setFromPoints([
+                        new THREE.Vector3(ballPos.x, 0.035, ballPos.z),
+                        new THREE.Vector3(ballPos.x, ballPos.y, ballPos.z)
+                    ]);
+                }
+                // 图层可见性
+                handles.trajectory.visible = layers.trajectory;
+                handles.ghostBalls.forEach(g => { g.visible = layers.trajectory; });
+                handles.projectionLine.visible = layers.axes;
+                handles.shadowPlate.visible = layers.trajectory;
+                handles.controls.update();
+                handles.renderer.render(handles.scene, handles.camera);
+            }
+            requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+        return () => {
+            running = false;
+        };
+    }, [simulationResult, isPlaying, playbackSpeed, setCurrentTime, pause, rig, ballRadius]);
+
+    const captionText = caption?.(parameters) ?? '';
+
+    return (
+        <div className="projectile-3d-stage" ref={hostRef}>
+            {captionText && (
+                <div className="stage-caption">
+                    <span>{captionText}</span>
+                    <em>拖动旋转视角，滚轮缩放，右键平移</em>
+                </div>
+            )}
+        </div>
+    );
+}
+
+// 重新导出常用助手，方便 rig 文件使用
+export { makeBox, makeCylinder, makeSphere, makeTextSprite, updateTextSprite, makeLine, makeArrow, clearGroup, disposeObject } from './primitives';

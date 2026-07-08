@@ -9,30 +9,33 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
+    "verify:3d": "node scripts/verify-3d-coverage.mjs",
     "server:dev": "tsx server/ocr-proxy.ts",
     "lint": "eslint src/**/*.{ts,tsx} server/**/*.ts"
   },
   "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.0",
+    "physics-core": "file:../physics-core",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "recharts": "^2.15.0",
-    "zustand": "^5.0.0",
-    "physics-core": "file:../physics-core",
-    "express": "^4.21.0",
-    "cors": "^2.8.5"
+    "three": "^0.185.1",
+    "zustand": "^5.0.0"
   },
   "devDependencies": {
-    "@types/express": "^5.0.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.1.0",
     "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
     "@types/node": "^20.17.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
+    "@types/three": "^0.185.0",
     "@vitejs/plugin-react": "^4.3.4",
+    "jsdom": "^26.0.0",
     "typescript": "~5.6.0",
     "vite": "^6.0.0",
-    "vitest": "^3.1.0",
-    "jsdom": "^26.0.0",
-    "@testing-library/react": "^16.1.0",
-    "@testing-library/jest-dom": "^6.6.3"
+    "vitest": "^3.1.0"
   }
 }
