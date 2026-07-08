@@ -28,6 +28,7 @@ npm-debug.log*
 
 # OMC state
 .omc/
+**/.omc/
 
 # Tool/IDE local folders
 .omo/

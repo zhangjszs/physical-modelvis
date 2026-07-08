@@ -178,9 +178,14 @@ export function SceneSelector() {
                         <button
                             className={`scene-cat-btn ${isActive ? 'active' : ''}`}
                             onClick={() => setOpenCategory(isOpen ? null : cat.label)}
+                            aria-haspopup="true"
+                            aria-expanded={isOpen}
+                            aria-label={cat.label}
                         >
                             {cat.label}
-                            <span className="scene-cat-arrow">{isOpen ? '▴' : '▾'}</span>
+                            <span className="scene-cat-arrow" aria-hidden="true">
+                                {isOpen ? '▴' : '▾'}
+                            </span>
                         </button>
                         {isOpen && (
                             <div className="scene-dropdown">

@@ -34,11 +34,11 @@ export const SCENES: SceneConfig[] = [
                 name: 'h0',
                 label: '发射高度 h₀',
                 unit: 'm',
-                value: 0,
+                value: 2,
                 min: 0,
                 max: 100,
                 step: 1,
-                default: 0,
+                default: 2,
                 description: '发射点相对地面的初始高度'
             },
             {

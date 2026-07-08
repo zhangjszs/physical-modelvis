@@ -44,7 +44,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
     visibleLayers: { ...DEFAULT_LAYERS },
     selectedGraph: 'y_t',
     errorMessage: null,
-    theme: 'dark',
+    theme: 'light',
     experimentData: null,
 
     setScene: sceneId => {

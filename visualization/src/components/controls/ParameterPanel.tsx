@@ -53,6 +53,7 @@ export function ParameterPanel({ onRunSimulation }: ParameterPanelProps) {
                             value={parameters[param.name] ?? param.default}
                             onChange={e => handleChange(param, parseFloat(e.target.value))}
                             className="param-slider"
+                            aria-label={param.label}
                         />
                         <input
                             type="number"
@@ -62,6 +63,7 @@ export function ParameterPanel({ onRunSimulation }: ParameterPanelProps) {
                             value={parameters[param.name] ?? param.default}
                             onChange={e => handleChange(param, parseFloat(e.target.value) || 0)}
                             className="param-input"
+                            aria-label={`${param.label} 数值输入`}
                         />
                     </div>
                     <div className="param-desc">{param.description}</div>
