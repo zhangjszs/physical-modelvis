@@ -43,7 +43,7 @@ jobs:
           cd physics-core && npm run build && cd ../visualization
           VITE_BASE_PATH=/${{ github.event.repository.name }}/ npm run build
 
-      - uses: actions/configure-pages@v5
+      - uses: actions/configure-pages@v6
 
       - uses: actions/upload-pages-artifact@v5
         with:
