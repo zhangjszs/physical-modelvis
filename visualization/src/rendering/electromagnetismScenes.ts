@@ -114,6 +114,7 @@ function drawArrow(
     const dy = y2 - y1;
     const len = Math.hypot(dx, dy);
     if (len < 3) return;
+    ctx.save();
     const angle = Math.atan2(dy, dx);
     const head = Math.min(13, len * 0.28);
     ctx.strokeStyle = color;
@@ -139,9 +140,11 @@ function drawArrow(
         ctx.fillText(label, x2 + 6, y2 - 8);
         ctx.textBaseline = 'alphabetic';
     }
+    ctx.restore();
 }
 
 function drawWire(ctx: CanvasRenderingContext2D, points: Array<[number, number]>, color: string): void {
+    ctx.save();
     ctx.strokeStyle = color;
     ctx.lineWidth = 3;
     ctx.lineJoin = 'round';
@@ -149,6 +152,7 @@ function drawWire(ctx: CanvasRenderingContext2D, points: Array<[number, number]>
     ctx.beginPath();
     points.forEach(([x, y], i) => (i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)));
     ctx.stroke();
+    ctx.restore();
 }
 
 function drawBattery(ctx: CanvasRenderingContext2D, x: number, y: number, isDark: boolean, label: string): void {

@@ -400,13 +400,23 @@ npm run build          # vite build ≤ 5s
   - 验证: CI (run `28885294000`) ✅ → Deploy (`28885387108`) ✅ → 线上 `https://zhangjszs.github.io/physical-modelvis/` 返回 200 + JS/CSS 资源 200
   - 注意: 仓库名为连字符 `physical-modelvis` (非下划线); 此前误用下划线 URL 导致 404 属假警报
 
-- [x] **M7c: 可视化效果代码审查 + 9 个 Critical 修复** (commit 本条, 待推送 origin/main)
+- [x] **M7c: 可视化效果代码审查 + 9 个 Critical 修复** (commit `18890dd`, 已推送 origin/main, 线上已部署)
   - 审查: 8 个并行代理对全部 ~90 个 `draw*Scene` 做代码级视觉评审（沙箱无头），8 轴 rubric（暗/亮适配、对比配色、图层顺序、标注文字、缩放映射、save/restore 卫生、物理表征、跨场景一致性）
   - 产出: `docs/visual-review-2026-07-08.md` — Critical 9 / Important ~30 / Suggestion ~40 + 5 条跨场景共性
   - 修复 9 个 Critical (C1–C9): 斜面角优角、胡克力箭头不可见、牛顿第三硬编码初值、EM 阻尼 pivotY 脱节、α 散射大角度不触发、裂变能量偏小 6 量级、霍尔极性亮背景不可见、热敏标签画到画布外、光控开关分压接反+阈值未用
   - 改动文件: `SimulationCanvas.tsx` / `chapter3Scenes.ts` / `emEquipmentScenes.ts` / `nuclearScenes.ts` / `sensorScenes.ts`（5 文件, +41/−38 行）
   - 门禁: `tsc --noEmit` ✅ / `eslint`(5 文件) ✅ / `prettier --check`(5 文件) ✅ / `vitest run` 249 测试 ✅
   - 未修 (待排期): Important ~30 + Suggestion ~40；建议下一轮优先共性#1（`save/restore` 状态卫生）
+
+- [x] **M7d: Important 批次修复 Round 1（共性#1 状态卫生 + 4 处物理/几何错误）** (commit 本条, 待推送 origin/main)
+  - 共性#1: `drawArrow`(5 份)/`drawThermalArrow`/`drawWire`/`drawCoilHorizontal` 全部加 `ctx.save()`/`restore()`，消除整类 `lineCap`/`lineJoin` 跨帧泄漏（8 处/7 文件）
+  - I1 熔化曲线: `Tm ?? 0` → `?? 50`（默认熔点 0 致平台钉 0、曲线下陷）
+  - I2 传动齿轮: `phase2` 取反条件 `mode===2` → `mode===1`（外啮合齿轮反向，皮带/摩擦轮/同轴同向）
+  - I3 重心铅垂线: 两线改从悬挂点过 G 向下延长（原纯竖直、不过 G、不相交）
+  - I4 伽利略斜面: `inclineH` clamp 到 `baseY-56`（θ 大时冲出画布叠标题）
+  - 复核驳回: 干簧管 `Hrel<Hpull` 报告称"反了"——复核正确（释放阈值应<吸合阈值），视觉物理正确，按"verify don't assume"不修
+  - 改动文件: `mechanicsScenes.ts`/`electromagnetismScenes.ts`/`nuclearScenes.ts`/`emEquipmentScenes.ts`/`sensorScenes.ts`/`thermalScenes.ts`/`chapter3Scenes.ts` + `docs/visual-review-2026-07-08.md`(补第七節)
+  - 门禁: `tsc --noEmit` ✅ / `eslint`(7 文件) ✅ / `prettier --check`(7 文件) ✅ / `vitest run` 249 测试 ✅
 
 ### 自检循环进度
 

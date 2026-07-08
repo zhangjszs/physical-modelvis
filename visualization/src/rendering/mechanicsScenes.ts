@@ -82,6 +82,7 @@ function drawArrow(
     const dy = y2 - y1;
     const len = Math.hypot(dx, dy);
     if (len < 3) return;
+    ctx.save();
     const angle = Math.atan2(dy, dx);
     const head = Math.min(13, len * 0.28);
     ctx.strokeStyle = color;
@@ -108,6 +109,7 @@ function drawArrow(
         ctx.fillText(label, x2 + 6, y2 - 8);
         ctx.textBaseline = 'alphabetic';
     }
+    ctx.restore();
 }
 
 function drawBlock(
@@ -302,7 +304,8 @@ export function drawGalileoInclineScene(opts: MechanicsSceneOptions): void {
     const baseLeft = width * 0.18;
     const baseRight = width * 0.82;
     const baseY = height * 0.78;
-    const inclineH = (baseRight - baseLeft) * Math.tan(theta);
+    const maxInclineH = Math.max(0, baseY - 56);
+    const inclineH = Math.min((baseRight - baseLeft) * Math.tan(theta), maxInclineH);
     const top = { x: baseLeft, y: baseY - inclineH };
     const bottom = { x: baseRight, y: baseY };
     const u = s / Math.max(0.001, length);
@@ -476,7 +479,7 @@ export function drawTransmissionBeltScene(opts: MechanicsSceneOptions): void {
     }
 
     const phase1 = omega1 * currentTime;
-    const phase2 = omega2 * currentTime * (mode === 2 ? -1 : 1);
+    const phase2 = omega2 * currentTime * (mode === 1 ? -1 : 1);
     drawWheel(ctx, left.x, left.y, rr1, phase1, BLUE, isDark, '1');
     drawWheel(ctx, right.x, right.y, rr2, phase2, RED, isDark, '2');
     drawArrow(ctx, left.x, left.y - rr1 - 24, left.x + 80, left.y - rr1 - 24, GREEN, 'v');
@@ -626,8 +629,12 @@ export function drawCenterOfGravityScene(opts: MechanicsSceneOptions): void {
         ctx.strokeStyle = RED;
         ctx.setLineDash([5, 4]);
         ctx.beginPath();
+        const dx = cx - p.x;
+        const dy = cy - p.y;
+        const tEnd = (cy + 115 - p.y) / (dy || 1);
+        const xEnd = p.x + tEnd * dx;
         ctx.moveTo(p.x, p.y);
-        ctx.lineTo(p.x, cy + 115);
+        ctx.lineTo(xEnd, cy + 115);
         ctx.stroke();
         ctx.setLineDash([]);
     }

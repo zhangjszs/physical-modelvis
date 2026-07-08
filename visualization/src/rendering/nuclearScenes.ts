@@ -95,6 +95,7 @@ function drawArrow(
         dy = y2 - y1;
     const len = Math.sqrt(dx * dx + dy * dy);
     if (len < 3) return;
+    ctx.save();
     const angle = Math.atan2(dy, dx);
     const headLen = Math.min(12, len * 0.3);
     ctx.strokeStyle = color;
@@ -119,6 +120,7 @@ function drawArrow(
         ctx.textBaseline = 'middle';
         ctx.fillText(label, x2 + 6, y2 - 4);
     }
+    ctx.restore();
 }
 
 /**

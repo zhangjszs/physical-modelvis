@@ -569,7 +569,7 @@ export function drawMeltingCurveScene(o: ThermalSceneOptions): void {
     clearScene(ctx, w, h, isDark);
 
     const isNonCrystal = (params['medium'] ?? 0) === 1;
-    const Tm = params['meltingPoint'] ?? 0;
+    const Tm = params['meltingPoint'] ?? 50;
     const heatRate = params['heatingRate'] ?? 5;
     const durationMin = params['duration'] ?? 20;
 
@@ -1793,6 +1793,7 @@ function drawThermalArrow(
     const dy = y2 - y1;
     const len = Math.hypot(dx, dy);
     if (len < 3) return;
+    ctx.save();
     const a = Math.atan2(dy, dx);
     const head = Math.min(13, len * 0.25);
     ctx.strokeStyle = color;
@@ -1815,6 +1816,7 @@ function drawThermalArrow(
         ctx.textAlign = 'left';
         ctx.fillText(label, x2 + 6, y2 - 6);
     }
+    ctx.restore();
 }
 
 function drawEnergyBar(

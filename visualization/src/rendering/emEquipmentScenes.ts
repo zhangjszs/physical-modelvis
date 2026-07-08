@@ -221,6 +221,7 @@ function drawArrow(
         dy = y2 - y1;
     const len = Math.sqrt(dx * dx + dy * dy);
     if (len < 2) return;
+    ctx.save();
     const angle = Math.atan2(dy, dx);
     ctx.strokeStyle = color;
     ctx.fillStyle = color;
@@ -236,6 +237,7 @@ function drawArrow(
     ctx.lineTo(x2 - headLen * Math.cos(angle + 0.4), y2 - headLen * Math.sin(angle + 0.4));
     ctx.closePath();
     ctx.fill();
+    ctx.restore();
 }
 
 /** 绘制一个线圈 (水平跑道形) */
@@ -249,6 +251,7 @@ function drawCoilHorizontal(
     lineWidth = 2,
     turns = 6
 ): void {
+    ctx.save();
     ctx.strokeStyle = color;
     ctx.lineWidth = lineWidth;
     ctx.lineCap = 'round';
@@ -279,6 +282,7 @@ function drawCoilHorizontal(
     ctx.beginPath();
     ctx.ellipse(right - 3, cy, 6, h / 2 + 2, 0, 0, Math.PI * 2);
     ctx.stroke();
+    ctx.restore();
 }
 
 // =====================================================================

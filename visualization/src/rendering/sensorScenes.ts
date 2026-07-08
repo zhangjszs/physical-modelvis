@@ -286,6 +286,7 @@ function drawArrow(
         dy = y2 - y1;
     const len = Math.sqrt(dx * dx + dy * dy);
     if (len < 1) return;
+    ctx.save();
     const angle = Math.atan2(dy, dx);
     const hh = Math.min(headLen, len * 0.35);
     ctx.strokeStyle = color;
@@ -303,6 +304,7 @@ function drawArrow(
     ctx.lineTo(x2 - hh * Math.cos(angle + 0.4), y2 - hh * Math.sin(angle + 0.4));
     ctx.closePath();
     ctx.fill();
+    ctx.restore();
 }
 
 /** 磁场 ⊗ 圆圈叉 */

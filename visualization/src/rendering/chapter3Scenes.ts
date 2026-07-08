@@ -64,6 +64,7 @@ function drawForceArrow(
         dy = y2 - y1;
     const len = Math.sqrt(dx * dx + dy * dy);
     if (len < 3) return;
+    ctx.save();
     const angle = Math.atan2(dy, dx);
     const headLen = Math.min(14, len * 0.3);
 
@@ -98,6 +99,7 @@ function drawForceArrow(
         ctx.textBaseline = 'middle';
         ctx.fillText(label, x2 + off.dx, y2 + off.dy);
     }
+    ctx.restore();
 }
 
 /** 绘制 3D 风格方块（带阴影、渐变、高光） */

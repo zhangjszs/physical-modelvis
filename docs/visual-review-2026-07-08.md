@@ -144,3 +144,23 @@
 **统一验证门（提交前）**：`tsc --noEmit` ✅ / `eslint`（5 文件）✅ / `prettier --check`（5 文件）✅ / `vitest run` **249 passed / 0 failed** ✅。
 
 > 已修复 9 个 Critical（教学误导/屏幕外不可见类）。其余 Important（约 30）/ Suggestion（约 40）按报告第五节优先级待排期；其中共性#1（`save/restore` 状态卫生）建议作为下一轮高优先级批次。
+
+## 七、Important 修复状态（Round 1：2026-07-08）
+
+按报告第五节优先级，先做共性#1（最高杠杆）+ 4 个清晰物理/几何错误，干簧管复核后驳回。
+
+### 共性 #1：画布状态卫生（已修）
+`drawArrow`（mechanics/electromagnetism/nuclear/emEquipment/sensor 共 5 份）、`drawThermalArrow`（thermal）、`drawWire`（electromagnetism）、`drawCoilHorizontal`（emEquipment）均在函数内 `lineCap='round'`（/lineJoin）后不复位，canvas 状态跨帧不清污染后续描边。已在**每个辅助函数突变前 `ctx.save()`、函数末 `ctx.restore()`**，一处修好整类泄漏（共 8 处/7 文件）。
+
+### 明确修复（4 处）
+| # | 位置 | 问题 | 修复 |
+|---|------|------|------|
+| I1 | `thermalScenes.ts:572` drawMeltingCurveScene | `Tm ?? 0` 默认熔点 0，平台钉 0°C，预热段已升过 0 → 曲线下陷进平台（物理错） | `?? 50`（非退化平台） |
+| I2 | `mechanicsScenes.ts:481` drawTransmissionBeltScene | `phase2` 取反条件 `mode===2`（摩擦轮），但外啮合齿轮(mode 1)才应反向 | `mode===1`（皮带/摩擦轮/同轴同向） |
+| I3 | `mechanicsScenes.ts:619-635` drawCenterOfGravityScene | 两条铅垂线纯竖直、不过 G 也不相交，"交点即重心"不成立 | 每线从悬挂点过 G 向下延长，交于 G |
+| I4 | `mechanicsScenes.ts:307` drawGalileoInclineScene | `inclineH=base*tan(theta)`，θ≥55° 时斜面顶出画布叠标题 | `inclineH` clamp 到 `baseY-56` |
+
+### 复核驳回（1 处）
+- `sensorScenes.ts:926` drawReedSwitchScene：报告称 `Hrel(30)<Hpull(50)` 反了。**复核不修**——释放阈值 < 吸合阈值本就是正确的迟滞定义（吸合需更强磁场，报告括号亦承认"释放应<吸合"）；实际绘制 `H>=Hpull→close(贴合/橙)`、`H<=Hrel→open(灰)` 物理正确。报告诊断自相矛盾，按"verify don't assume"驳回。真正的"迟滞无跨帧记忆"是静态分段（非死代码），修需存状态，超出本轮范围。
+
+**统一验证门**：`tsc --noEmit` ✅ / `eslint`（7 文件）✅ / `prettier --check`（7 文件）✅ / `vitest run` **249 passed / 0 failed** ✅。
