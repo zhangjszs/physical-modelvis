@@ -44,8 +44,8 @@ export const reactionTimeRig: SceneRig = {
     },
 
     getVisualPosition(pos, _params) {
-        // 小球从顶端下落
-        return new THREE.Vector3(0.5, 3.0 - pos.y * WORLD_SCALE, 0);
+        // physics y-up: pos.y = height above ground. Ball tracks height directly (top=high, ground=0).
+        return new THREE.Vector3(0.5, pos.y * WORLD_SCALE, 0);
     },
 
     getOrigin(_params) {

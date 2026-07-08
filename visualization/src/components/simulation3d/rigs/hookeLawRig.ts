@@ -60,12 +60,14 @@ export const hookeLawRig: SceneRig = {
     },
 
     getVisualPosition(pos, _params) {
-        // 竖直振动
-        return new THREE.Vector3(0.5, 1.6 - pos.y * WORLD_SCALE, 0);
+        // spring-oscillator model emits y-up (pos.y = absolute height, larger=higher).
+        // Anchor hardcoded at physics y=1.6 (= spring visual top). Map physics y-up → visual y-up:
+        // mass below anchor (pos.y<1.6) renders below; stretching down => visual y decreases.
+        return new THREE.Vector3(pos.x * WORLD_SCALE, 1.6 - (1.6 - pos.y) * WORLD_SCALE, 0);
     },
 
     getOrigin(_params) {
-        return new THREE.Vector3(0.5, 1.6, 0);
+        return new THREE.Vector3(0, 1.6, 0);
     }
 };
 

@@ -46,11 +46,10 @@ export const verticalMotionRig: SceneRig = {
     },
 
     getVisualPosition(pos, _params) {
-        // 物理 y 向上为正，3D y 向上；从释放点起算
-        return new THREE.Vector3(pos.x * WORLD_SCALE, ORIGIN_Y * WORLD_SCALE - pos.y * WORLD_SCALE, 0);
+        return new THREE.Vector3(pos.x * WORLD_SCALE, pos.y * WORLD_SCALE, 0);
     },
 
     getOrigin(_params) {
-        return new THREE.Vector3(0, ORIGIN_Y * WORLD_SCALE, 0);
+        return new THREE.Vector3(0, Math.max(0, ORIGIN_Y * WORLD_SCALE), 0);
     }
 };

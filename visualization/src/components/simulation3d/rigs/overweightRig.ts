@@ -51,7 +51,7 @@ export const overweightRig: SceneRig = {
     },
 
     getVisualPosition(pos, _params) {
-        return new THREE.Vector3(0.5, 1.5 - pos.y * WORLD_SCALE, 0);
+        return new THREE.Vector3(0.5, 1.5 + pos.y * WORLD_SCALE, 0);
     },
 
     getOrigin(_params) {
