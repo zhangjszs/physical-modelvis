@@ -490,8 +490,11 @@ export function drawDoublePendulumSyncScene(opts: Chapter2SceneOptions): void {
     ctx.fillText('双单摆步调比较', width / 2, 24);
 
     const sameLen = Math.abs(L1 - L2) < 1e-6;
-    const inPhase = Math.abs(phaseDiffDeg) < 1 || Math.abs(phaseDiffDeg - 360) < 1;
-    const antiPhase = Math.abs(phaseDiffDeg - 180) < 1;
+    // 相位差归一化到 [-180,180]，使 359°≈-1° 正确判定为同相（原边界 359° 落入普通分支）
+    const phaseNorm = ((Math.round(phaseDiffDeg) % 360) + 360) % 360;
+    const phase180 = phaseNorm > 180 ? phaseNorm - 360 : phaseNorm;
+    const inPhase = Math.abs(phase180) <= 1;
+    const antiPhase = Math.abs(Math.abs(phase180) - 180) <= 1;
     let syncLabel: string;
     if (sameLen && inPhase) syncLabel = '步调一致 (同相 + 同摆长)';
     else if (sameLen && antiPhase) syncLabel = '步调相反 (反相)';

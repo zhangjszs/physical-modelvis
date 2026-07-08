@@ -430,11 +430,16 @@ function drawCollisionScene(
     ctx.font = '11px sans-serif';
     ctx.fillText(`v2=${v2}m/s`, width * 0.7, cy + size2 / 2 + 33);
 
+    // 速度箭头按可用宽度归一化并钳制，大速度不再溢出画布
+    const maxV = Math.max(Math.abs(v1), Math.abs(v2), 1);
+    const vPixelScale = Math.min(4, (width * 0.16) / maxV);
     if (v1 !== 0) {
-        drawArrow2(width * 0.25 + size1 / 2 + 5, cy, width * 0.25 + size1 / 2 + 5 + v1 * 4, cy, '#3b82f6');
+        const x1 = width * 0.25 + size1 / 2 + 5;
+        drawArrow2(x1, cy, Math.max(10, Math.min(width - 10, x1 + v1 * vPixelScale)), cy, '#3b82f6');
     }
     if (v2 !== 0) {
-        drawArrow2(width * 0.7 + size2 / 2 + 5, cy, width * 0.7 + size2 / 2 + 5 + v2 * 4, cy, '#ef4444');
+        const x1 = width * 0.7 + size2 / 2 + 5;
+        drawArrow2(x1, cy, Math.max(10, Math.min(width - 10, x1 + v2 * vPixelScale)), cy, '#ef4444');
     }
 
     const typeLabel = e >= 0.99 ? '弹性碰撞' : e < 0.01 ? '完全非弹性碰撞' : '非弹性碰撞';
@@ -469,7 +474,9 @@ function drawSpringScene(
     const blockW = 44;
     const blockH = 34;
     const eqX = width * 0.5;
-    const blockX = eqX + A * 200;
+    // 振幅按画布可用宽度钳制，大 A 时滑块/弹簧不再越出右界
+    const maxOff = Math.max(0, width - 30 - blockW / 2 - eqX);
+    const blockX = eqX + Math.max(-maxOff, Math.min(maxOff, A * 200));
 
     const wallGrad = ctx.createLinearGradient(anchorX - 14, 0, anchorX, 0);
     wallGrad.addColorStop(0, isDark ? '#334155' : '#94a3b8');
@@ -831,7 +838,9 @@ function drawAirTrackScene(
     const trackTopY = Math.round(height * 0.55);
     const trackHeight = 28;
     const rulerY = trackTopY + trackHeight + 28;
-    const timerRect = { x: width - 300, y: 16, width: 280, height: 120 };
+    // 计时器矩形钳制在画布内，窄屏 (width<600) 不再越界到画布外
+    const timerW = Math.min(280, width - 32);
+    const timerRect = { x: Math.max(16, width - timerW - 16), y: 16, width: timerW, height: 120 };
 
     const blockedGates = experimentData ? getBlockedGateIndices(experimentData, currentTime) : new Set<number>();
 

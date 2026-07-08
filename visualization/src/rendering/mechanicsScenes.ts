@@ -732,11 +732,12 @@ export function drawNewtonSecondLawScene(opts: MechanicsSceneOptions): void {
     drawTitle(ctx, width, '牛顿第二定律: F = ma', isDark);
     drawGround(ctx, groundY, width, isDark);
     drawBlock(ctx, x, groundY - 30, 78, 44, BLUE, isDark, `${mass}kg`);
-    drawArrow(ctx, x + 44, groundY - 34, x + 44 + force * 7, groundY - 34, ORANGE, 'F');
+    // 力/摩擦/加速度箭头端点钳制在画布内，大数值不再越出左右界
+    drawArrow(ctx, x + 44, groundY - 34, Math.min(width - 10, x + 44 + force * 7), groundY - 34, ORANGE, 'F');
     if (friction > 0) {
-        drawArrow(ctx, x - 44, groundY - 21, x - 44 - friction * 10, groundY - 21, RED, 'f');
+        drawArrow(ctx, x - 44, groundY - 21, Math.max(10, x - 44 - friction * 10), groundY - 21, RED, 'f');
     }
-    drawArrow(ctx, x + 44, groundY - 56, x + 44 + a * 34, groundY - 56, GREEN, 'a');
+    drawArrow(ctx, x + 44, groundY - 56, Math.min(width - 10, x + 44 + a * 34), groundY - 56, GREEN, 'a');
     ctx.fillStyle = panelFill(isDark);
     roundRectPath(ctx, width * 0.58, height * 0.26, 235, 86, 8);
     ctx.fill();

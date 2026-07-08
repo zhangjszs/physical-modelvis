@@ -418,6 +418,19 @@ npm run build          # vite build ≤ 5s
   - 改动文件: `mechanicsScenes.ts`/`electromagnetismScenes.ts`/`nuclearScenes.ts`/`emEquipmentScenes.ts`/`sensorScenes.ts`/`thermalScenes.ts`/`chapter3Scenes.ts` + `docs/visual-review-2026-07-08.md`(补第七節)
   - 门禁: `tsc --noEmit` ✅ / `eslint`(7 文件) ✅ / `prettier --check`(7 文件) ✅ / `vitest run` 249 测试 ✅
 
+- [ ] **M7e: Important 批次修复 Round 2（越界钳制 + 物理/判定修正，8 处）** (编辑中, 待提交+推送)
+  - 越界钳制类（清晰低风险）:
+    - `SimulationCanvas.drawCollisionScene`: 速度箭头 `v*4` 固定像素 → 按 `width*0.16/maxV` 归一化并钳制 [10,width-10]（大速度不再溢出）
+    - `SimulationCanvas.drawSpringScene`: `blockX=eqX+A*200` 固定 → 按可用宽度钳制（大 A 滑块/弹簧不越右界）
+    - `SimulationCanvas.drawAirTrackScene`: `timerRect.x=width-300` 窄屏越界 → 钳制在画布内
+    - `chapter3.drawSlidingFrictionScene`: `blockScreenX` 按画布钳制（大位移不越右界）
+    - `mechanics.drawNewtonSecondLawScene`: F/f/a 箭头端点钳制在 [10,width-10]（大数值不越界）
+  - 物理/判定修正类:
+    - `chapter2.drawDoublePendulumSyncScene`: 相位差归一化到 [-180,180]，359° 正确判定为同相（原边界落入普通分支）
+    - `gap.drawGeigerCounterScene`: 衰变曲线 `#a78bfa` 亮紫 → `#7c3aed`（亮背景对比）
+    - `chapter3.drawHookeLawScene`: 标尺 `rulerX` 钳制 ≥20（窄画布不越左界）
+  - 留待独立轮次（中等复杂度/需设计）: 共振曲线 `perSeries=121` 硬编码+β 图例、LC 振荡器 Q/I 分轴、共性#3(infoBar 重叠)、B 方向约定、竖直圆周模型不自洽
+
 ### 自检循环进度
 
 | 层 | 状态 | commit | 文件 |

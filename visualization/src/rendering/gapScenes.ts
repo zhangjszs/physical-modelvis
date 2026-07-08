@@ -1087,7 +1087,7 @@ export function drawGeigerCounterScene(o: GapSceneOptions): void {
     ctx.lineTo(gx, gy + gh);
     ctx.lineTo(gx + gw, gy + gh);
     ctx.stroke();
-    ctx.strokeStyle = '#a78bfa';
+    ctx.strokeStyle = '#7c3aed';
     ctx.lineWidth = 2.5;
     ctx.beginPath();
     Nchart.points.forEach((p, idx) => {

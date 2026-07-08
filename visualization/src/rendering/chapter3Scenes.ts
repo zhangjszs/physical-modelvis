@@ -285,7 +285,8 @@ export function drawHookeLawScene(opts: Chapter3SceneOptions): void {
     draw3DBlock(ctx, springX, blockY + blockH / 2, blockW, blockH, '#3b82f6', isDark, `${m.toFixed(2)}kg`);
 
     // --- 刻度尺 (竖直，在弹簧左侧) ---
-    const rulerX = springX - 80;
+    // 标尺 X 钳制在左界内，窄画布不再越出画布左侧
+    const rulerX = Math.max(20, springX - 80);
     ctx.strokeStyle = isDark ? '#94a3b8' : '#475569';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
@@ -443,7 +444,8 @@ export function drawSlidingFrictionScene(opts: Chapter3SceneOptions): void {
     const frame = getCurrentFrame(simulationResult, currentTime);
     const blockX_m = frame ? frame.position.x : 0;
     const blockV = frame ? frame.velocity.x : v0;
-    const blockScreenX = startX + blockX_m * pixelsPerMeter;
+    // 物块屏幕位置按画布钳制，大位移不再越出右界
+    const blockScreenX = Math.max(startX, Math.min(width - 58, startX + blockX_m * pixelsPerMeter));
     const blockW = 48,
         blockH = 40;
     const blockCY = groundY - blockH / 2;

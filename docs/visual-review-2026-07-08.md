@@ -164,3 +164,32 @@
 - `sensorScenes.ts:926` drawReedSwitchScene：报告称 `Hrel(30)<Hpull(50)` 反了。**复核不修**——释放阈值 < 吸合阈值本就是正确的迟滞定义（吸合需更强磁场，报告括号亦承认"释放应<吸合"）；实际绘制 `H>=Hpull→close(贴合/橙)`、`H<=Hrel→open(灰)` 物理正确。报告诊断自相矛盾，按"verify don't assume"驳回。真正的"迟滞无跨帧记忆"是静态分段（非死代码），修需存状态，超出本轮范围。
 
 **统一验证门**：`tsc --noEmit` ✅ / `eslint`（7 文件）✅ / `prettier --check`（7 文件）✅ / `vitest run` **249 passed / 0 failed** ✅。
+
+## 八、Important 修复状态（Round 2：2026-07-08）
+
+按报告第五节，挑清晰、低风险、教学误导/越界类 8 处（不含需跨场景重构/设计决策的项）。
+
+### 越界钳制类（6 处）
+| # | 位置 | 问题 | 修复 |
+|---|------|------|------|
+| R1 | `SimulationCanvas.drawCollisionScene` | 速度箭头 `v*4` 固定像素，大速度溢出画布 | 按 `min(4, width*0.16/maxV)` 归一化并钳制端点 [10,width-10] |
+| R2 | `SimulationCanvas.drawSpringScene` | `blockX=eqX+A*200` 固定，大 A 越右界 | 按 `maxOff=width-30-blockW/2-eqX` 钳制偏移 |
+| R3 | `SimulationCanvas.drawAirTrackScene` | `timerRect.x=width-300` 窄屏越界到画布外 | `timerW=min(280,width-32)`，`x=max(16,width-timerW-16)` |
+| R4 | `chapter3.drawSlidingFrictionScene` | `blockScreenX=startX+blockX_m*80` 无钳制，大位移越界 | `clamp(startX, width-58, …)` |
+| R5 | `mechanics.drawNewtonSecondLawScene` | F/f/a 箭头端点随数值增大越出左右界 | 端点 `clamp(10, width-10, …)` |
+| R6 | `chapter3.drawHookeLawScene` | `rulerX=springX-80` 窄画布越出左界 | `rulerX=max(20, springX-80)` |
+
+### 物理/判定修正类（2 处）
+| # | 位置 | 问题 | 修复 |
+|---|------|------|------|
+| R7 | `chapter2.drawDoublePendulumSyncScene` | 相位差 `359°` 落入普通分支，未判定为同相 | 归一化到 [-180,180]：`phaseNorm=((round(Δφ)%360)+360)%360`，`phase180=phaseNorm>180?phaseNorm-360:phaseNorm`，`|phase180|≤1`→同相 |
+| R8 | `gap.drawGeigerCounterScene` | 衰变曲线 `#a78bfa` 亮紫在亮背景对比低 | `#7c3aed`（深紫） |
+
+### 留待独立轮次（中等复杂度 / 需设计决策）
+- `chapter2.drawResonanceCurveScene`：`perSeries=121` 硬编码（physics-core 改点数静默错位）+ β 图例全用全局 beta
+- `emEquipment.drawLCOscillatorScene`：Q(t)(μC) 与 I(t)(mA) 共用自动缩放 y 轴，Q 压成近零线 → 分轴/各自归一化
+- 共性#3：`drawInfoBar` 带与轴标题/光纤标注重叠（需抽统一组件）
+- `electromagnetism`/`emEquipment`：B 方向约定跨场景不统一（×入纸 vs 纸面箭头）
+- `mechanics.drawVerticalCircleScene`：匀速模型 vs 能量守恒临界速度不自洽
+
+**统一验证门**：`tsc --noEmit` ✅ / `eslint`（5 文件）✅ / `prettier --check`（5 文件）✅ / `vitest run` **249 passed / 0 failed** ✅。
