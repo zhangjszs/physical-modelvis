@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { SceneRig } from '../EquipmentStage';
 import { createInclinedPlane, updateInclinedPlane, InclinedPlaneHandles } from '../equipment/inclinedPlane';
 import { makeCylinder } from '../primitives';
+import { num } from './params';
 
 const WORLD_SCALE = 0.16;
 
@@ -19,7 +20,7 @@ export const inclineRig: SceneRig = {
     clampToGround: true,
 
     buildEquipment(scene, params) {
-        const theta = params['theta'] ?? params['angle'] ?? 30;
+        const theta = num(params['theta'] ?? params['angle'], 30);
 
         const { group: planeGroup, handles: planeHandles } = createInclinedPlane(theta);
         planeGroup.position.set(0, 0, 0);
@@ -36,12 +37,12 @@ export const inclineRig: SceneRig = {
 
     updateEquipment(handles, params) {
         const h = handles as unknown as InclineHandles;
-        const theta = params['theta'] ?? params['angle'] ?? 30;
+        const theta = num(params['theta'] ?? params['angle'], 30);
         updateInclinedPlane(h.planeHandles, theta);
     },
 
     getVisualPosition(pos, params) {
-        const theta = params['theta'] ?? params['angle'] ?? 30;
+        const theta = num(params['theta'] ?? params['angle'], 30);
         const rad = (theta * Math.PI) / 180;
         const origin = this.getOrigin(params);
         // 沿斜面方向的位移
@@ -53,7 +54,7 @@ export const inclineRig: SceneRig = {
     },
 
     getOrigin(params) {
-        const theta = params['theta'] ?? params['angle'] ?? 30;
+        const theta = num(params['theta'] ?? params['angle'], 30);
         const rad = (theta * Math.PI) / 180;
         const panelLen = 3.2;
         // 斜面顶端作为起点

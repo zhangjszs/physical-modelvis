@@ -12,6 +12,7 @@ import {
 import { createRangeTape } from '../equipment/rangeTape';
 import { createHeightRuler, updateHeightRuler } from '../equipment/heightRuler';
 import { makeBox, makeTextSprite } from '../primitives';
+import { num } from './params';
 
 const WORLD_SCALE = 0.16;
 
@@ -67,8 +68,8 @@ export const projectileRig: SceneRig = {
 
     updateEquipment(handles, params) {
         const h = handles as unknown as ProjectileHandles;
-        const angle = params['angle'] ?? 45;
-        const h0 = params['h0'] ?? 0;
+        const angle = num(params['angle'], 45);
+        const h0 = num(params['h0'], 0);
 
         const launchPoint = updateLauncher(h.launcher, angle, h0, WORLD_SCALE);
         h.rangeTape.position.set(launchPoint.x, 0.035, 1.35);
@@ -77,7 +78,7 @@ export const projectileRig: SceneRig = {
     },
 
     getVisualPosition(pos, params) {
-        const h0 = params['h0'] ?? 0;
+        const h0 = num(params['h0'], 0);
         const origin = this.getOrigin(params);
         return new THREE.Vector3(
             origin.x + pos.x * WORLD_SCALE,
@@ -87,8 +88,8 @@ export const projectileRig: SceneRig = {
     },
 
     getOrigin(params) {
-        const angle = params['angle'] ?? 45;
-        const h0 = params['h0'] ?? 0;
+        const angle = num(params['angle'], 45);
+        const h0 = num(params['h0'], 0);
         return getVisualLaunchPoint(angle, h0, WORLD_SCALE);
     }
 };

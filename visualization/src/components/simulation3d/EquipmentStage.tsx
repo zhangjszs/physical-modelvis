@@ -323,6 +323,3 @@ export function EquipmentStage({ rig, cameraPosition, cameraTarget, caption }: E
         </div>
     );
 }
-
-// 重新导出常用助手，方便 rig 文件使用
-export { makeBox, makeCylinder, makeSphere, makeTextSprite, updateTextSprite, makeLine, makeArrow, clearGroup, disposeObject } from './primitives';

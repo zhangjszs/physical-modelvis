@@ -35,8 +35,8 @@ const RIG_MODULES = {
 
 type ModuleKey = keyof typeof RIG_MODULES;
 
-/** 场景 → 模块归属 */
-const SCENE_TO_MODULE: Record<string, ModuleKey> = {
+/** 场景 → 模块归属 (导出供测试/校验脚本使用) */
+export const SCENE_TO_MODULE: Record<string, ModuleKey> = {
     // —— 力学（必修一）——
     projectile: 'mechanics',
     'free-fall': 'mechanics',
@@ -173,13 +173,9 @@ const SCENE_TO_MODULE: Record<string, ModuleKey> = {
     'radiation-deflection': 'modern'
 };
 
-/** 已加载缓存：模块 key → rig 映射 */
 const moduleCache = new Map<ModuleKey, Record<string, SceneRig>>();
 
-/**
- * 异步获取指定场景的 rig。
- * 首次访问某模块时触发动态 import，后续从缓存读取。
- */
+/** 异步加载指定场景的 rig；首次访问某模块时触发动态 import，后续走缓存。 */
 export async function loadSceneRig(sceneId: string): Promise<SceneRig | undefined> {
     const mod = SCENE_TO_MODULE[sceneId];
     if (!mod) return undefined;
