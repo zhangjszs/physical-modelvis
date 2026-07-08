@@ -25,7 +25,7 @@ export function createAirTrack(length = 3.0): {
     for (let i = 0; i < 12; i++) {
         const hole = makeCylinder(0.012, 0.02, 0x3b82f6, 0.3, 0.3);
         hole.rotation.x = Math.PI / 2;
-        hole.position.set(-length / 2 + 0.15 + i * (length - 0.3) / 11, 0.46, 0);
+        hole.position.set(-length / 2 + 0.15 + (i * (length - 0.3)) / 11, 0.46, 0);
         group.add(hole);
     }
 

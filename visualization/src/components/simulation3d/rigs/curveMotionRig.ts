@@ -32,8 +32,7 @@ export const curveMotionRig: SceneRig = {
         return { group: new THREE.Group(), handles: {} };
     },
 
-    updateEquipment(_handles, _params) {
-    },
+    updateEquipment(_handles, _params) {},
 
     getVisualPosition(pos, _params) {
         return new THREE.Vector3(pos.x * WORLD_SCALE, pos.y * WORLD_SCALE, 0);

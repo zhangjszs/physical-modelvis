@@ -14,22 +14,14 @@ export const waveOpticsRig: SceneRig = {
 
     buildEquipment(scene, _params) {
         // 双缝/单缝
-        const slit = makeLine(
-            [new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0.8, 0)],
-            0x475569,
-            0.8
-        );
+        const slit = makeLine([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0.8, 0)], 0x475569, 0.8);
         scene.add(slit);
 
         // 干涉条纹（从缝向外扩散的波纹）
         for (let i = 1; i <= 4; i++) {
             const arcPoints = Array.from({ length: 32 }, (_, j) => {
-                const a = -Math.PI / 3 + (j / 31) * (Math.PI * 2 / 3);
-                return new THREE.Vector3(
-                    Math.sin(a) * i * 0.4,
-                    0.4 + Math.cos(a) * i * 0.4,
-                    0
-                );
+                const a = -Math.PI / 3 + (j / 31) * ((Math.PI * 2) / 3);
+                return new THREE.Vector3(Math.sin(a) * i * 0.4, 0.4 + Math.cos(a) * i * 0.4, 0);
             });
             const arc = makeLine(arcPoints, 0x3b82f6, 0.3 + i * 0.05);
             scene.add(arc);
@@ -42,8 +34,7 @@ export const waveOpticsRig: SceneRig = {
         return { group: new THREE.Group(), handles: {} };
     },
 
-    updateEquipment(_handles, _params) {
-    },
+    updateEquipment(_handles, _params) {},
 
     getVisualPosition(pos, _params) {
         return new THREE.Vector3(pos.x * WORLD_SCALE, 1.0 + pos.y * WORLD_SCALE, 0);

@@ -30,11 +30,7 @@ export const newtonTubeRig: SceneRig = {
 
     getVisualPosition(pos, _params) {
         // 物理引擎 y 轴向上，pos.y 即离地高度（米），直接缩放即可
-        return new THREE.Vector3(
-            pos.x * WORLD_SCALE,
-            Math.max(0, pos.y * WORLD_SCALE),
-            0
-        );
+        return new THREE.Vector3(pos.x * WORLD_SCALE, Math.max(0, pos.y * WORLD_SCALE), 0);
     },
 
     getOrigin(_params) {

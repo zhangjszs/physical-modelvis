@@ -44,8 +44,12 @@ export const vernierCaliperRig: SceneRig = {
         return { group: new THREE.Group(), handles: {} };
     },
     updateEquipment() {},
-    getVisualPosition(pos) { return new THREE.Vector3(pos.x * WORLD_SCALE, 0, 0); },
-    getOrigin() { return new THREE.Vector3(0, 0, 0); }
+    getVisualPosition(pos) {
+        return new THREE.Vector3(pos.x * WORLD_SCALE, 0, 0);
+    },
+    getOrigin() {
+        return new THREE.Vector3(0, 0, 0);
+    }
 };
 
 /** 螺旋测微器 */
@@ -88,8 +92,12 @@ export const micrometerRig: SceneRig = {
         return { group: new THREE.Group(), handles: {} };
     },
     updateEquipment() {},
-    getVisualPosition(pos) { return new THREE.Vector3(pos.x * WORLD_SCALE, 0, 0); },
-    getOrigin() { return new THREE.Vector3(0, 0, 0); }
+    getVisualPosition(pos) {
+        return new THREE.Vector3(pos.x * WORLD_SCALE, 0, 0);
+    },
+    getOrigin() {
+        return new THREE.Vector3(0, 0, 0);
+    }
 };
 
 /** 多用电表 */
@@ -127,6 +135,10 @@ export const multimeterRig: SceneRig = {
         return { group: new THREE.Group(), handles: {} };
     },
     updateEquipment() {},
-    getVisualPosition(pos) { return new THREE.Vector3(pos.x * WORLD_SCALE, 0, 0); },
-    getOrigin() { return new THREE.Vector3(0, 0, 0); }
+    getVisualPosition(pos) {
+        return new THREE.Vector3(pos.x * WORLD_SCALE, 0, 0);
+    },
+    getOrigin() {
+        return new THREE.Vector3(0, 0, 0);
+    }
 };

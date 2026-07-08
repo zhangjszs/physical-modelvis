@@ -47,8 +47,7 @@ export const overweightRig: SceneRig = {
         return { group, handles: { elevator, scaleGroup, weightGroup } };
     },
 
-    updateEquipment(_handles, _params) {
-    },
+    updateEquipment(_handles, _params) {},
 
     getVisualPosition(pos, _params) {
         return new THREE.Vector3(0.5, 1.5 + pos.y * WORLD_SCALE, 0);

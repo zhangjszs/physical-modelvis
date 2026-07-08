@@ -63,14 +63,7 @@ export function createLauncher(): {
     const angleLabel = makeTextSprite('45°', '#2563eb', 34, { x: 0.6, y: 0.22 });
     group.add(angleLabel);
 
-    const launchArrow = makeArrow(
-        new THREE.Vector3(1, 0, 0),
-        new THREE.Vector3(),
-        1,
-        0x16a34a,
-        0.24,
-        0.13
-    );
+    const launchArrow = makeArrow(new THREE.Vector3(1, 0, 0), new THREE.Vector3(), 1, 0x16a34a, 0.24, 0.13);
     group.add(launchArrow);
 
     return {
@@ -89,7 +82,12 @@ export function getVisualLaunchPoint(angleDeg: number, h0: number, worldScale: n
 }
 
 /** 更新发射器状态 */
-export function updateLauncher(handles: LauncherHandles, angleDeg: number, h0: number, worldScale: number): THREE.Vector3 {
+export function updateLauncher(
+    handles: LauncherHandles,
+    angleDeg: number,
+    h0: number,
+    worldScale: number
+): THREE.Vector3 {
     const angleRad = (angleDeg * Math.PI) / 180;
     const dir = new THREE.Vector3(Math.cos(angleRad), Math.sin(angleRad), 0).normalize();
     const pivotPoint = new THREE.Vector3(-0.75, VISUAL_MUZZLE_HEIGHT + h0 * worldScale, 0);

@@ -13,11 +13,7 @@ export const cavendishRig: SceneRig = {
 
     buildEquipment(scene, _params) {
         // 石英丝（竖直细线）
-        const wire = makeLine(
-            [new THREE.Vector3(0, 2.0, 0), new THREE.Vector3(0, 1.0, 0)],
-            0x94a3b8,
-            0.6
-        );
+        const wire = makeLine([new THREE.Vector3(0, 2.0, 0), new THREE.Vector3(0, 1.0, 0)], 0x94a3b8, 0.6);
         scene.add(wire);
 
         // T 形架横杆
@@ -58,8 +54,7 @@ export const cavendishRig: SceneRig = {
         return { group: new THREE.Group(), handles: {} };
     },
 
-    updateEquipment(_handles, _params) {
-    },
+    updateEquipment(_handles, _params) {},
 
     getVisualPosition(pos, _params) {
         return new THREE.Vector3(pos.x * WORLD_SCALE, 1.0 + pos.y * WORLD_SCALE, 0);

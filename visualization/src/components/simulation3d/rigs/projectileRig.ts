@@ -4,11 +4,7 @@
  */
 import * as THREE from 'three';
 import { SceneRig } from '../EquipmentStage';
-import {
-    createLauncher,
-    updateLauncher,
-    getVisualLaunchPoint
-} from '../equipment';
+import { createLauncher, updateLauncher, getVisualLaunchPoint } from '../equipment';
 import { createRangeTape } from '../equipment/rangeTape';
 import { createHeightRuler, updateHeightRuler } from '../equipment/heightRuler';
 import { makeBox, makeTextSprite } from '../primitives';
@@ -74,17 +70,19 @@ export const projectileRig: SceneRig = {
         const launchPoint = updateLauncher(h.launcher, angle, h0, WORLD_SCALE);
         h.rangeTape.position.set(launchPoint.x, 0.035, 1.35);
         h.xLabel.position.set(launchPoint.x + 8.4, 0.2, 1.35);
-        updateHeightRuler(h.heightRuler, launchPoint.x - 0.55, -0.72, Math.max(0.22, launchPoint.y), `h0 = ${h0.toFixed(1)} m`);
+        updateHeightRuler(
+            h.heightRuler,
+            launchPoint.x - 0.55,
+            -0.72,
+            Math.max(0.22, launchPoint.y),
+            `h0 = ${h0.toFixed(1)} m`
+        );
     },
 
     getVisualPosition(pos, params) {
         const h0 = num(params['h0'], 0);
         const origin = this.getOrigin(params);
-        return new THREE.Vector3(
-            origin.x + pos.x * WORLD_SCALE,
-            origin.y + (pos.y - h0) * WORLD_SCALE,
-            0
-        );
+        return new THREE.Vector3(origin.x + pos.x * WORLD_SCALE, origin.y + (pos.y - h0) * WORLD_SCALE, 0);
     },
 
     getOrigin(params) {

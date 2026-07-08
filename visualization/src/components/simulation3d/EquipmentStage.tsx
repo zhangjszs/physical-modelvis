@@ -44,17 +44,17 @@ export interface SceneRig {
      * 兼容（现状）：也可直接 scene.add(...)，返回空 group — 场景切换时靠 key 整组件 remount +
      * disposeObject(scene) 清理。新 rig 请遵循推荐写法，避免未来"同 Stage 内重建 rig"时泄漏。
      */
-    buildEquipment(scene: THREE.Scene, params: Record<string, number>): {
+    buildEquipment(
+        scene: THREE.Scene,
+        params: Record<string, number>
+    ): {
         group: THREE.Group;
         handles: Record<string, unknown>;
     };
     /** 参数变化时更新器材状态 */
     updateEquipment(handles: Record<string, unknown>, params: Record<string, number>): void;
     /** 物理坐标 (米) → 3D 世界坐标 */
-    getVisualPosition(
-        pos: { x: number; y: number },
-        params: Record<string, number>
-    ): THREE.Vector3;
+    getVisualPosition(pos: { x: number; y: number }, params: Record<string, number>): THREE.Vector3;
     /** 轨迹起点在 3D 空间的位置（发射口 / 释放点） */
     getOrigin(params: Record<string, number>): THREE.Vector3;
 }
@@ -296,7 +296,9 @@ export function EquipmentStage({ rig, cameraPosition, cameraTarget, caption }: E
                 }
                 // 图层可见性
                 handles.trajectory.visible = layers.trajectory;
-                handles.ghostBalls.forEach(g => { g.visible = layers.trajectory; });
+                handles.ghostBalls.forEach(g => {
+                    g.visible = layers.trajectory;
+                });
                 handles.projectionLine.visible = layers.axes;
                 handles.shadowPlate.visible = layers.trajectory;
                 handles.controls.update();

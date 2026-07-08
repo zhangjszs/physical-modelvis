@@ -27,8 +27,7 @@ export const newtonFirstLawRig: SceneRig = {
         return { group, handles: { trackGroup, glider } };
     },
 
-    updateEquipment(_handles, _params) {
-    },
+    updateEquipment(_handles, _params) {},
 
     getVisualPosition(pos, _params) {
         return new THREE.Vector3(pos.x * WORLD_SCALE, 0.5, 0);

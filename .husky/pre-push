@@ -1,0 +1,18 @@
+#!/usr/bin/env sh
+# pre-push: 与 CI 等价的本地检查门禁
+# 任意步骤失败即阻止 push，避免远端 CI 红灯
+echo ""
+echo "🔍 pre-push: 运行与 CI 等价的本地检查"
+echo "   (跳过可用: git push --no-verify)"
+echo ""
+
+# 由 hook 触发 precheck: build → typecheck → lint → format:check → test → selfcheck
+npm run precheck || {
+  echo ""
+  echo "❌ pre-push 检查失败，已阻止本次 push"
+  echo "   修复后重试，或紧急情况使用: git push --no-verify"
+  exit 1
+}
+
+echo ""
+echo "✅ pre-push 检查通过，继续 push"

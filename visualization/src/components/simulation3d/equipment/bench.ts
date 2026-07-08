@@ -10,7 +10,10 @@ export interface BenchHandles {
     group: THREE.Group;
 }
 
-export function createBench(length = 3.5, height = 0.1): {
+export function createBench(
+    length = 3.5,
+    height = 0.1
+): {
     group: THREE.Group;
     handles: BenchHandles;
 } {

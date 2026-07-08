@@ -22,21 +22,11 @@ export function createHeightRuler(): {
 }
 
 /** 更新高度尺的位置和标注 */
-export function updateHeightRuler(
-    handles: HeightRulerHandles,
-    x: number,
-    z: number,
-    topY: number,
-    text: string
-): void {
+export function updateHeightRuler(handles: HeightRulerHandles, x: number, z: number, topY: number, text: string): void {
     clearGroup(handles.group);
     handles.group.add(handles.label);
 
-    const line = makeLine(
-        [new THREE.Vector3(x, 0.03, z), new THREE.Vector3(x, topY, z)],
-        0x0f766e,
-        0.78
-    );
+    const line = makeLine([new THREE.Vector3(x, 0.03, z), new THREE.Vector3(x, topY, z)], 0x0f766e, 0.78);
     handles.group.add(line);
 
     // 两端刻度

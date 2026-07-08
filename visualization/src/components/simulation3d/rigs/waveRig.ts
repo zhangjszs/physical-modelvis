@@ -39,8 +39,7 @@ export const waveRig: SceneRig = {
         return { group: new THREE.Group(), handles: {} };
     },
 
-    updateEquipment(_handles, _params) {
-    },
+    updateEquipment(_handles, _params) {},
 
     getVisualPosition(pos, _params) {
         return new THREE.Vector3(pos.x * WORLD_SCALE, 1.0 + pos.y * WORLD_SCALE, 0);

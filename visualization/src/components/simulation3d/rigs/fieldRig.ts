@@ -47,8 +47,7 @@ export const fieldRig: SceneRig = {
         return { group: new THREE.Group(), handles: { fieldArrows, region } };
     },
 
-    updateEquipment(_handles, _params) {
-    },
+    updateEquipment(_handles, _params) {},
 
     getVisualPosition(pos, _params) {
         return new THREE.Vector3(pos.x * WORLD_SCALE, 1.5 + pos.y * WORLD_SCALE, 0);

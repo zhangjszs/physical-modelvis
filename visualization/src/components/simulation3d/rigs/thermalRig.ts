@@ -31,11 +31,7 @@ export const thermalRig: SceneRig = {
         // 内部粒子（分子运动可视化）
         for (let i = 0; i < 8; i++) {
             const particle = makeSphere(0.04, 0x3b82f6, {});
-            particle.position.set(
-                (Math.sin(i * 1.3) * 0.3),
-                0.3 + (i * 0.1),
-                (Math.cos(i * 1.7) * 0.2)
-            );
+            particle.position.set(Math.sin(i * 1.3) * 0.3, 0.3 + i * 0.1, Math.cos(i * 1.7) * 0.2);
             scene.add(particle);
         }
 
@@ -51,8 +47,7 @@ export const thermalRig: SceneRig = {
         return { group: new THREE.Group(), handles: {} };
     },
 
-    updateEquipment(_handles, _params) {
-    },
+    updateEquipment(_handles, _params) {},
 
     getVisualPosition(pos, _params) {
         return new THREE.Vector3(pos.x * WORLD_SCALE, 0.6 + pos.y * WORLD_SCALE, 0);

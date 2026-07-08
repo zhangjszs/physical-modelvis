@@ -33,11 +33,7 @@ export function createPendulum(length = 1.5): {
     group.add(pivot);
 
     // 摆线
-    const string = makeLine(
-        [new THREE.Vector3(0, 2.4, 0), new THREE.Vector3(0, 2.4 - length, 0)],
-        0x475569,
-        0.7
-    );
+    const string = makeLine([new THREE.Vector3(0, 2.4, 0), new THREE.Vector3(0, 2.4 - length, 0)], 0x475569, 0.7);
     group.add(string);
 
     // 摆球

@@ -9,7 +9,10 @@ export interface RangeTapeHandles {
     group: THREE.Group;
 }
 
-export function createRangeTape(length = 8.0, maxMeter = 40): {
+export function createRangeTape(
+    length = 8.0,
+    maxMeter = 40
+): {
     group: THREE.Group;
     handles: RangeTapeHandles;
 } {

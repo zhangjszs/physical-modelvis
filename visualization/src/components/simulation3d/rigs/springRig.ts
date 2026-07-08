@@ -37,8 +37,7 @@ export const springRig: SceneRig = {
         return { group, handles: { wall, spring, block, floor } };
     },
 
-    updateEquipment(_handles, _params) {
-    },
+    updateEquipment(_handles, _params) {},
 
     getVisualPosition(pos, _params) {
         return new THREE.Vector3(pos.x * WORLD_SCALE, 0.25, 0);

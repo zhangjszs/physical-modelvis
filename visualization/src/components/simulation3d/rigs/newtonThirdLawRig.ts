@@ -51,8 +51,7 @@ export const newtonThirdLawRig: SceneRig = {
         return { group, handles: { scaleA, scaleB, connector } };
     },
 
-    updateEquipment(_handles, _params) {
-    },
+    updateEquipment(_handles, _params) {},
 
     getVisualPosition(pos, _params) {
         return new THREE.Vector3(pos.x * WORLD_SCALE, 0.3, 0);

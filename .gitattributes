@@ -1,0 +1,2 @@
+# Husky hooks 必须使用 LF 换行符，否则在 Linux/macOS 上执行会失败
+*.husky/* text eol=lf

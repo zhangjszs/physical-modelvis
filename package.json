@@ -4,17 +4,20 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "prepare": "husky",
     "test": "cd physics-core && npm test && cd ../visualization && npm test",
     "test:core": "cd physics-core && npm test",
     "test:viz": "cd visualization && npm test",
     "build": "cd physics-core && npm run build && cd ../visualization && npm run build",
     "build:core": "cd physics-core && npm run build",
     "build:viz": "cd visualization && npm run build",
+    "typecheck": "cd physics-core && npx tsc --noEmit && cd ../visualization && npx tsc --noEmit",
     "lint": "eslint \"physics-core/src/**/*.ts\" \"visualization/src/**/*.{ts,tsx}\" \"visualization/server/**/*.ts\"",
     "lint:fix": "eslint --fix \"physics-core/src/**/*.ts\" \"visualization/src/**/*.{ts,tsx}\" \"visualization/server/**/*.ts\"",
     "format": "prettier --write \"physics-core/src/**/*.ts\" \"visualization/src/**/*.{ts,tsx}\" \"visualization/server/**/*.ts\"",
     "format:check": "prettier --check \"physics-core/src/**/*.ts\" \"visualization/src/**/*.{ts,tsx}\" \"visualization/server/**/*.ts\"",
-    "selfcheck": "node scripts/self-check.mjs"
+    "selfcheck": "node scripts/self-check.mjs",
+    "precheck": "npm run build:core && npm run typecheck && npm run lint && npm run format:check && npm test && npm run selfcheck"
   },
   "keywords": [],
   "author": "",
@@ -24,6 +27,7 @@
     "@eslint/js": "^9.18.0",
     "eslint": "^9.18.0",
     "eslint-plugin-unused-imports": "^4.4.1",
+    "husky": "^9.1.7",
     "prettier": "^3.8.3",
     "typescript-eslint": "^8.20.0"
   }

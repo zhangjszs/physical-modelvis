@@ -64,8 +64,7 @@ export const circuitRig: SceneRig = {
         return { group: new THREE.Group(), handles: {} };
     },
 
-    updateEquipment(_handles, _params) {
-    },
+    updateEquipment(_handles, _params) {},
 
     getVisualPosition(pos, _params) {
         // 电荷在导线中流动 → 映射为水平运动

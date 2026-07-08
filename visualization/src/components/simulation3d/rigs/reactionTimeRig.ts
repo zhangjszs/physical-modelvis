@@ -40,8 +40,7 @@ export const reactionTimeRig: SceneRig = {
         return { group, handles: {} };
     },
 
-    updateEquipment(_handles, _params) {
-    },
+    updateEquipment(_handles, _params) {},
 
     getVisualPosition(pos, _params) {
         // physics y-up: pos.y = height above ground. Ball tracks height directly (top=high, ground=0).

@@ -18,7 +18,12 @@ export const microDeformationRig: SceneRig = {
         scene.add(table);
 
         // 桌腿
-        const legPositions: [number, number][] = [[-0.9, 0.5], [0.9, 0.5], [-0.9, -0.5], [0.9, -0.5]];
+        const legPositions: [number, number][] = [
+            [-0.9, 0.5],
+            [0.9, 0.5],
+            [-0.9, -0.5],
+            [0.9, -0.5]
+        ];
         for (const [x, z] of legPositions) {
             const leg = makeBox(0.06, 0.4, 0.06, 0x57534e, 0.6);
             leg.position.set(x, 0.2, z);
@@ -65,8 +70,7 @@ export const microDeformationRig: SceneRig = {
         return { group, handles: {} };
     },
 
-    updateEquipment(_handles, _params) {
-    },
+    updateEquipment(_handles, _params) {},
 
     getVisualPosition(pos, _params) {
         return new THREE.Vector3(pos.x * WORLD_SCALE, 0.5, 0);

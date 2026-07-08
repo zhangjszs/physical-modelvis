@@ -50,40 +50,25 @@ export function createInclinedPlane(angleDeg = 30): {
 }
 
 /** 更新斜面角度 */
-export function updateInclinedPlane(
-    handles: InclinedPlaneHandles,
-    angleDeg: number
-): void {
+export function updateInclinedPlane(handles: InclinedPlaneHandles, angleDeg: number): void {
     const angleRad = (angleDeg * Math.PI) / 180;
     const panelLen = 3.2;
 
     // 旋转面板绕低端
     handles.panel.rotation.z = -angleRad;
-    handles.panel.position.set(
-        panelLen * 0.5 * (1 - Math.cos(angleRad)),
-        panelLen * 0.5 * Math.sin(angleRad),
-        0
-    );
+    handles.panel.position.set(panelLen * 0.5 * (1 - Math.cos(angleRad)), panelLen * 0.5 * Math.sin(angleRad), 0);
 
     // 更新角度弧
     const arcRadius = 0.7;
     const arcPoints = Array.from({ length: 24 }, (_, i) => {
         const a = (i / 23) * angleRad;
-        return new THREE.Vector3(
-            Math.cos(a) * arcRadius + panelLen * 0.0,
-            Math.sin(a) * arcRadius + 0.05,
-            0.55
-        );
+        return new THREE.Vector3(Math.cos(a) * arcRadius + panelLen * 0.0, Math.sin(a) * arcRadius + 0.05, 0.55);
     });
     handles.angleArc.geometry.dispose();
     handles.angleArc.geometry = new THREE.BufferGeometry().setFromPoints(arcPoints);
 
     // 更新标签
-    handles.angleLabel.position.set(
-        Math.cos(angleRad / 2) * 0.95,
-        Math.sin(angleRad / 2) * 0.95 + 0.1,
-        0.55
-    );
+    handles.angleLabel.position.set(Math.cos(angleRad / 2) * 0.95, Math.sin(angleRad / 2) * 0.95 + 0.1, 0.55);
     const mat = handles.angleLabel.material as THREE.SpriteMaterial;
     const canvas = mat.map?.image as HTMLCanvasElement;
     if (canvas) {

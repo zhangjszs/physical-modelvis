@@ -9,7 +9,10 @@ export interface WeightHandles {
     group: THREE.Group;
 }
 
-export function createWeight(mass = 0.05, color = 0x64748b): {
+export function createWeight(
+    mass = 0.05,
+    color = 0x64748b
+): {
     group: THREE.Group;
     handles: WeightHandles;
 } {

@@ -19,19 +19,11 @@ export const nuclearRig: SceneRig = {
         scene.add(nucleus);
 
         // α粒子入射轨迹
-        const incident = makeLine(
-            [new THREE.Vector3(-2.0, 1.8, 0), new THREE.Vector3(-0.3, 1.55, 0)],
-            0xef4444,
-            0.6
-        );
+        const incident = makeLine([new THREE.Vector3(-2.0, 1.8, 0), new THREE.Vector3(-0.3, 1.55, 0)], 0xef4444, 0.6);
         scene.add(incident);
 
         // α粒子散射轨迹（大角度偏转）
-        const scattered = makeLine(
-            [new THREE.Vector3(-0.3, 1.55, 0), new THREE.Vector3(1.5, 2.0, 0)],
-            0xef4444,
-            0.6
-        );
+        const scattered = makeLine([new THREE.Vector3(-0.3, 1.55, 0), new THREE.Vector3(1.5, 2.0, 0)], 0xef4444, 0.6);
         scene.add(scattered);
 
         // 放射源标记
@@ -46,8 +38,7 @@ export const nuclearRig: SceneRig = {
         return { group: new THREE.Group(), handles: {} };
     },
 
-    updateEquipment(_handles, _params) {
-    },
+    updateEquipment(_handles, _params) {},
 
     getVisualPosition(pos, _params) {
         return new THREE.Vector3(pos.x * WORLD_SCALE, 1.5 + pos.y * WORLD_SCALE, 0);

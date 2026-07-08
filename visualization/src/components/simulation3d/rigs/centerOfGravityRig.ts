@@ -28,11 +28,7 @@ export const centerOfGravityRig: SceneRig = {
         scene.add(pivot);
 
         // 重垂线
-        const plumbLine = makeLine(
-            [new THREE.Vector3(0.4, 1.8, 0), new THREE.Vector3(0.4, 0.8, 0)],
-            0xdc2626,
-            0.7
-        );
+        const plumbLine = makeLine([new THREE.Vector3(0.4, 1.8, 0), new THREE.Vector3(0.4, 0.8, 0)], 0xdc2626, 0.7);
         scene.add(plumbLine);
 
         // 垂锤
@@ -49,8 +45,7 @@ export const centerOfGravityRig: SceneRig = {
         return { group, handles: { plate, plumbLine, pivot } };
     },
 
-    updateEquipment(_handles, _params) {
-    },
+    updateEquipment(_handles, _params) {},
 
     getVisualPosition(pos, _params) {
         return new THREE.Vector3(pos.x * WORLD_SCALE, 1.5 - pos.y * WORLD_SCALE, 0);

@@ -20,8 +20,7 @@ export const pendulumRig: SceneRig = {
         return { group, handles: { pendHandles } };
     },
 
-    updateEquipment(_handles, _params) {
-    },
+    updateEquipment(_handles, _params) {},
 
     getVisualPosition(pos, _params) {
         // 单摆圆弧运动 → 投影到水平

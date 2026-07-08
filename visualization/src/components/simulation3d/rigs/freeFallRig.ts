@@ -44,7 +44,11 @@ export const freeFallRig: SceneRig = {
     },
 
     updateEquipment(handles, params) {
-        const h = handles as { heightHandles: ReturnType<typeof createHeightRuler>['handles']; releaseLabel: THREE.Sprite; h0: number };
+        const h = handles as {
+            heightHandles: ReturnType<typeof createHeightRuler>['handles'];
+            releaseLabel: THREE.Sprite;
+            h0: number;
+        };
         const h0 = params['h0'] ?? params['height'] ?? 10;
         h.releaseLabel.position.set(-0.5, h0 * WORLD_SCALE + 0.3, 0);
         updateHeightRuler(h.heightHandles, -0.3, -0.6, Math.max(0.3, h0 * WORLD_SCALE), `h0 = ${h0.toFixed(1)} m`);
@@ -52,11 +56,7 @@ export const freeFallRig: SceneRig = {
 
     getVisualPosition(pos, _params) {
         // 物理引擎 y 轴向上，pos.y 即离地高度（米），直接缩放即可
-        return new THREE.Vector3(
-            pos.x * WORLD_SCALE,
-            Math.max(0, pos.y * WORLD_SCALE),
-            0
-        );
+        return new THREE.Vector3(pos.x * WORLD_SCALE, Math.max(0, pos.y * WORLD_SCALE), 0);
     },
 
     getOrigin(params) {

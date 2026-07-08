@@ -13,35 +13,19 @@ export const opticsRig: SceneRig = {
 
     buildEquipment(scene, _params) {
         // 介质分界面
-        const interfaceLine = makeLine(
-            [new THREE.Vector3(-2, 1.0, 0), new THREE.Vector3(2, 1.0, 0)],
-            0x94a3b8,
-            0.5
-        );
+        const interfaceLine = makeLine([new THREE.Vector3(-2, 1.0, 0), new THREE.Vector3(2, 1.0, 0)], 0x94a3b8, 0.5);
         scene.add(interfaceLine);
 
         // 法线
-        const normal = makeLine(
-            [new THREE.Vector3(0, 0.3, 0), new THREE.Vector3(0, 1.7, 0)],
-            0xcbd5e1,
-            0.3
-        );
+        const normal = makeLine([new THREE.Vector3(0, 0.3, 0), new THREE.Vector3(0, 1.7, 0)], 0xcbd5e1, 0.3);
         scene.add(normal);
 
         // 入射光线
-        const incidentRay = makeLine(
-            [new THREE.Vector3(-1.5, 1.6, 0), new THREE.Vector3(0, 1.0, 0)],
-            0xef4444,
-            0.7
-        );
+        const incidentRay = makeLine([new THREE.Vector3(-1.5, 1.6, 0), new THREE.Vector3(0, 1.0, 0)], 0xef4444, 0.7);
         scene.add(incidentRay);
 
         // 折射光线
-        const refractedRay = makeLine(
-            [new THREE.Vector3(0, 1.0, 0), new THREE.Vector3(1.2, 0.5, 0)],
-            0x3b82f6,
-            0.7
-        );
+        const refractedRay = makeLine([new THREE.Vector3(0, 1.0, 0), new THREE.Vector3(1.2, 0.5, 0)], 0x3b82f6, 0.7);
         scene.add(refractedRay);
 
         // 角度标注
@@ -52,8 +36,7 @@ export const opticsRig: SceneRig = {
         return { group: new THREE.Group(), handles: {} };
     },
 
-    updateEquipment(_handles, _params) {
-    },
+    updateEquipment(_handles, _params) {},
 
     getVisualPosition(pos, _params) {
         return new THREE.Vector3(pos.x * WORLD_SCALE, 1.0 + pos.y * WORLD_SCALE, 0);
