@@ -105,6 +105,7 @@
 - **测试**：`tests/dpr.test.ts` 5 用例全绿（dpr 1/2/3、分数尺寸四舍五入、SSR 无 window 回退 dpr=1）。
 - **门禁**：`tsc --noEmit` ✅ / `eslint` ✅ / `vitest run` 249 ✅（244 既有 + 5 新增）。
 - **视觉对比**：提供 `scripts/capture-dpr.mjs`（Playwright 1x/2x 截图 + 采样 FPS），需在参考机器运行（沙箱无浏览器）。
+- **线上部署确认（2026-07-08）**：push 后 CI `28887421091` ✅ → Deploy `28887507943` ✅。抓取线上 `index-jN3Mh9jn.js` 生产包，grep 命中 `setTransform` / `devicePixelRatio` / `getBoundingClientRect`，证明 DPR 代码已真实上线（非仅 commit）。首页 + JS/CSS 资源均 200。
 
 ### M7b（部署闭环）
 - **阻塞点**：`deploy.yml` 本身正确；真正阻塞是 **CI 红 → deploy `skipped`**。已修复两处：
