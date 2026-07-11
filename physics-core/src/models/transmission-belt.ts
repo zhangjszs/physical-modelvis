@@ -2,6 +2,7 @@ import type { PhysicsProblem } from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ForceDiagram } from '../types/result.js';
 import type { ParameterSpec, Vector2D } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
+import { sampleTrajectory } from '../physics/kinematics.js';
 
 /**
  * 几种传动方式模型 — 必修二 §2 (圆周运动)
@@ -90,55 +91,55 @@ export class TransmissionBeltModel extends PhysicsModelBase {
         const vSurface2 = Math.abs(omega2 * r2);
         const dirLabel = direction === 1 ? '同向' : '反向';
 
-        // 生成两轮边缘点的轨迹
-        const traj1: TrajectoryPoint[] = [];
-        const traj2: TrajectoryPoint[] = [];
+        // 解析解采样: 两轮边缘点圆周运动 (公共脚手架 sampleTrajectory)
         const phi1_0 = 0;
         const phi2_0 = direction === 1 ? 0 : Math.PI; // 齿轮反向初始角差 π
-
-        // 物体 1: 主动轮边缘一点
-        // 物体 2: 从动轮边缘一点
-        for (let i = 0; i <= sampleCount; i++) {
-            const t = i * dt;
-            const a1 = phi1_0 + omega1 * t;
-            const a2 = phi2_0 + direction * omega2 * t;
-
-            // 主动轮边缘
-            const p1: Vector2D = {
-                x: center1.x + r1 * Math.cos(a1),
-                y: center1.y + r1 * Math.sin(a1)
-            };
-            const v1: Vector2D = {
-                x: -r1 * omega1 * Math.sin(a1),
-                y: r1 * omega1 * Math.cos(a1)
-            };
-            const speed1 = Math.hypot(v1.x, v1.y);
-            traj1.push({
-                t,
-                position: p1,
-                velocity: v1,
-                acceleration: { x: -r1 * omega1 * omega1 * Math.cos(a1), y: -r1 * omega1 * omega1 * Math.sin(a1) },
-                kineticEnergy: 0.5 * speed1 * speed1 // 单位质量
-            });
-
-            // 从动轮边缘
-            const p2: Vector2D = {
-                x: center2.x + r2 * Math.cos(a2),
-                y: center2.y + r2 * Math.sin(a2)
-            };
-            const v2: Vector2D = {
-                x: -r2 * direction * omega2 * Math.sin(a2),
-                y: r2 * direction * omega2 * Math.cos(a2)
-            };
-            const speed2 = Math.hypot(v2.x, v2.y);
-            traj2.push({
-                t,
-                position: p2,
-                velocity: v2,
-                acceleration: { x: -r2 * omega2 * omega2 * Math.cos(a2), y: -r2 * omega2 * omega2 * Math.sin(a2) },
-                kineticEnergy: 0.5 * speed2 * speed2
-            });
-        }
+        const traj1 = sampleTrajectory({
+            sampleCount, duration,
+            sampleAt: (t) => {
+                // 主动轮边缘
+                const a1 = phi1_0 + omega1 * t;
+                const p1: Vector2D = {
+                    x: center1.x + r1 * Math.cos(a1),
+                    y: center1.y + r1 * Math.sin(a1)
+                };
+                const v1: Vector2D = {
+                    x: -r1 * omega1 * Math.sin(a1),
+                    y: r1 * omega1 * Math.cos(a1)
+                };
+                const speed1 = Math.hypot(v1.x, v1.y);
+                return {
+                    position: p1,
+                    velocity: v1,
+                    acceleration: { x: -r1 * omega1 * omega1 * Math.cos(a1), y: -r1 * omega1 * omega1 * Math.sin(a1) },
+                    kineticEnergy: 0.5 * speed1 * speed1, // 单位质量
+                    potentialEnergy: 0
+                };
+            }
+        });
+        const traj2 = sampleTrajectory({
+            sampleCount, duration,
+            sampleAt: (t) => {
+                // 从动轮边缘
+                const a2 = phi2_0 + direction * omega2 * t;
+                const p2: Vector2D = {
+                    x: center2.x + r2 * Math.cos(a2),
+                    y: center2.y + r2 * Math.sin(a2)
+                };
+                const v2: Vector2D = {
+                    x: -r2 * direction * omega2 * Math.sin(a2),
+                    y: r2 * direction * omega2 * Math.cos(a2)
+                };
+                const speed2 = Math.hypot(v2.x, v2.y);
+                return {
+                    position: p2,
+                    velocity: v2,
+                    acceleration: { x: -r2 * omega2 * omega2 * Math.cos(a2), y: -r2 * omega2 * omega2 * Math.sin(a2) },
+                    kineticEnergy: 0.5 * speed2 * speed2, // 单位质量
+                    potentialEnergy: 0
+                };
+            }
+        });
 
         // 关键帧: 起始点、1/4 周期、1/2 周期...
         const T1 = (2 * Math.PI) / Math.abs(omega1);

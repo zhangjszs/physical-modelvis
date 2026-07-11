@@ -1,5 +1,5 @@
 import type { PhysicsProblem } from '../types/problem.js';
-import { kineticEnergy } from '../physics/kinematics.js';
+import { kineticEnergy, sampleTrajectory } from '../physics/kinematics.js';
 import type {
     SimulationResult,
     TrajectoryPoint,
@@ -76,37 +76,38 @@ export class NewtonThirdLawModel extends PhysicsModelBase {
 
         const duration = problem.timeConfig.duration;
         const sampleCount = problem.timeConfig.sampleCount ?? 500;
-        const dt = duration / sampleCount;
 
-        const trajA: TrajectoryPoint[] = [];
-        const trajB: TrajectoryPoint[] = [];
-
-        for (let i = 0; i <= sampleCount; i++) {
-            const t = i * dt;
-            const v = vA0 + aSystem * t;
-            const dxA = vA0 * t + 0.5 * aSystem * t * t;
-            const xA = xA0 + dxA;
-            const xB = xB0 + dxA; // 绳连接：两物体同步运动
-            const keA = kineticEnergy(mA, v);
-            const keB = kineticEnergy(mB, v);
-
-            trajA.push({
-                t,
-                position: { x: xA, y: 0 },
-                velocity: { x: v, y: 0 },
-                acceleration: { x: aSystem, y: 0 },
-                kineticEnergy: keA,
-                potentialEnergy: 0
-            });
-            trajB.push({
-                t,
-                position: { x: xB, y: 0 },
-                velocity: { x: v, y: 0 },
-                acceleration: { x: aSystem, y: 0 },
-                kineticEnergy: keB,
-                potentialEnergy: 0
-            });
-        }
+        // 解析解采样: 两体绳连接同步运动 xA=xA0+dxA, xB=xB0+dxA (公共脚手架 sampleTrajectory)
+        const trajA = sampleTrajectory({
+            sampleCount, duration,
+            sampleAt: (t) => {
+                const v = vA0 + aSystem * t;
+                const dxA = vA0 * t + 0.5 * aSystem * t * t;
+                const xA = xA0 + dxA;
+                return {
+                    position: { x: xA, y: 0 },
+                    velocity: { x: v, y: 0 },
+                    acceleration: { x: aSystem, y: 0 },
+                    kineticEnergy: kineticEnergy(mA, v),
+                    potentialEnergy: 0
+                };
+            }
+        });
+        const trajB = sampleTrajectory({
+            sampleCount, duration,
+            sampleAt: (t) => {
+                const v = vA0 + aSystem * t;
+                const dxA = vA0 * t + 0.5 * aSystem * t * t;
+                const xB = xB0 + dxA; // 绳连接：两物体同步运动
+                return {
+                    position: { x: xB, y: 0 },
+                    velocity: { x: v, y: 0 },
+                    acceleration: { x: aSystem, y: 0 },
+                    kineticEnergy: kineticEnergy(mB, v),
+                    potentialEnergy: 0
+                };
+            }
+        });
 
         // 关键帧
         const keyframes: Keyframe[] = [

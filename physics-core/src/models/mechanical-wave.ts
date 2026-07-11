@@ -2,6 +2,7 @@ import type { PhysicsProblem } from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
+import { sampleTrajectory } from '../physics/kinematics.js';
 
 /**
  * 机械波模型 — 横波 / 纵波 / 干涉 (选必一 第三章)
@@ -51,7 +52,6 @@ export class MechanicalWaveModel extends PhysicsModelBase {
         const k = (2 * Math.PI) / lambda;
         const duration = problem.timeConfig.duration;
         const sampleCount = problem.timeConfig.sampleCount ?? 300;
-        const dt = duration / sampleCount;
 
         // 第二列波参数 (干涉模式)
         const A2 = wc.amplitude2 ?? A;
@@ -77,40 +77,43 @@ export class MechanicalWaveModel extends PhysicsModelBase {
         ];
         const trajs: TrajectoryPoint[][] = tracked.map(() => []);
 
+        // 被追踪质点的质量 (用于动能计算)
+        const mass = problem.bodies[0]?.mass.value ?? 1;
+
+        // 解析解采样: 9 个 tracked 质点的振动轨迹, 每质点独立调用 sampleTrajectory
+        //   yᵢ(t) = A·sin(ωt − k·xEqᵢ)  (+ A2·sin(ωt + dir2·k·xEqᵢ + φ2) 干涉模式)
+        //  (公共脚手架 sampleTrajectory — 消除原有 time×particle 双层循环)
+        for (let ti = 0; ti < tracked.length; ti++) {
+            const xEq = x0[tracked[ti]!]!;
+            trajs[ti] = sampleTrajectory({
+                sampleCount, duration,
+                sampleAt: (t) => {
+                    const phase1 = omega * t - k * xEq;
+                    const y1 = A * Math.sin(phase1);
+                    const y2 = mode === 'interference' ? A2 * Math.sin(omega * t + dir2 * k * xEq + phi2) : 0;
+                    const y = y1 + y2;
+
+                    const pos = mode === 'longitudinal' ? { x: xEq + y, y: 0 } : { x: xEq, y: -y }; // 屏幕 y 向下, 物理位移 y 为正则屏幕 y 减小
+                    // 速度 (解析微分)
+                    const vPhase1 = A * omega * Math.cos(phase1);
+                    const vPhase2 = mode === 'interference' ? A2 * omega * Math.cos(omega * t + dir2 * k * xEq + phi2) : 0;
+                    const vTotal = vPhase1 + vPhase2;
+                    const vel = mode === 'longitudinal' ? { x: vTotal, y: 0 } : { x: 0, y: -vTotal };
+
+                    return {
+                        position: pos,
+                        velocity: vel,
+                        kineticEnergy: 0.5 * mass * vTotal * vTotal,
+                        potentialEnergy: 0
+                    };
+                }
+            });
+        }
+
         // 波形快照: 把某一时刻的所有 N 个质点位置打包成一条「轨迹」放入 trajectories 末尾
         // 注意：waveSnapshot 中的 TrajectoryPoint.t 字段存的是该质点的 x 坐标 (暂存技巧)
         //       图表 x 坐标使用 position.x, t 字段仅在渲染端标记用
         const waveSnapshot: TrajectoryPoint[] = [];
-
-        for (let s = 0; s <= sampleCount; s++) {
-            const t = s * dt;
-            const allPoints: TrajectoryPoint[] = [];
-            for (let i = 0; i < N; i++) {
-                const xEq = x0[i]!;
-                const phase1 = omega * t - k * xEq;
-                const y1 = A * Math.sin(phase1);
-                const y2 = mode === 'interference' ? A2 * Math.sin(omega * t + dir2 * k * xEq + phi2) : 0;
-                const y = y1 + y2;
-
-                const pos = mode === 'longitudinal' ? { x: xEq + y, y: 0 } : { x: xEq, y: -y }; // 屏幕 y 向下, 物理位移 y 为正则屏幕 y 减小
-                // 速度 (解析微分)
-                const vPhase1 = A * omega * Math.cos(phase1);
-                const vPhase2 = mode === 'interference' ? A2 * omega * Math.cos(omega * t + dir2 * k * xEq + phi2) : 0;
-                const vTotal = vPhase1 + vPhase2;
-                const vel = mode === 'longitudinal' ? { x: vTotal, y: 0 } : { x: 0, y: -vTotal };
-
-                const speed = Math.abs(vTotal);
-                const ke = 0.5 * (problem.bodies[0]?.mass.value ?? 1) * speed * speed;
-                const pt: TrajectoryPoint = { t, position: pos, velocity: vel, kineticEnergy: ke, potentialEnergy: 0 };
-                allPoints.push(pt);
-            }
-
-            // 存储被追踪质点
-            for (let ti = 0; ti < tracked.length; ti++) {
-                const idx = tracked[ti]!;
-                trajs[ti]!.push(allPoints[idx]!);
-            }
-        }
 
         // 最后一个采样点作为典型波形存入 waveSnapshot
         {

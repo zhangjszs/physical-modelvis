@@ -1,5 +1,5 @@
 import type { PhysicsProblem, InertiaMode } from '../types/problem.js';
-import { kineticEnergy } from '../physics/kinematics.js';
+import { kineticEnergy, sampleTrajectory } from '../physics/kinematics.js';
 import type {
     SimulationResult,
     TrajectoryPoint,
@@ -79,8 +79,8 @@ export class InertiaModel extends PhysicsModelBase {
         // 重力加速度方向: y 轴向上为正 (物理坐标系), 重力 a_y = -g
         const gravity = { x: 0, y: -g };
 
-        const trajTop: TrajectoryPoint[] = [];
-        const trajBottom: TrajectoryPoint[] = [];
+        let trajTop: TrajectoryPoint[] = [];
+        let trajBottom: TrajectoryPoint[] = [];
         let keyframes: Keyframe[] = [];
         let v_t_points: Array<{ x: number; y: number }> = [];
         let x_t_points: Array<{ x: number; y: number }> = [];
@@ -105,44 +105,39 @@ export class InertiaModel extends PhysicsModelBase {
             const startTop = { x: 0, y: 1 };
             const startBottom = { x: 0, y: 0 };
 
-            for (let i = 0; i <= sampleCount; i++) {
-                const t = i * dt;
-
-                // 上方棋子: 水平 x 保持不变 (惯性), 自由落体
-                const yTop = Math.max(0, startTop.y + 0.5 * gravity.y * t * t);
-                const xTop = startTop.x; // 水平保持静止
-                const vTopX = 0;
-                const vTopY = gravity.y * t;
-
-                // 下方棋子: 水平减速 (初速度 v0 + 摩擦力), y=0 不变
-                const bottomActive = t < tStop;
-                const xBottom = bottomActive
-                    ? startBottom.x + initialSpeed * t + 0.5 * a_friction * t * t
-                    : startBottom.x + initialSpeed * tStop + 0.5 * a_friction * tStop * tStop;
-                const vBottomX = bottomActive ? initialSpeed + a_friction * t : 0;
-                const vBottomY = 0;
-
-                const keTop = 0.5 * mTop * (vTopX * vTopX + vTopY * vTopY);
-                const peTop = mTop * g * yTop;
-
-                trajTop.push({
-                    t,
-                    position: { x: xTop, y: yTop },
-                    velocity: { x: vTopX, y: vTopY },
-                    acceleration: { x: 0, y: gravity.y },
-                    kineticEnergy: keTop,
-                    potentialEnergy: peTop
-                });
-
-                trajBottom.push({
-                    t,
-                    position: { x: xBottom, y: 0 },
-                    velocity: { x: vBottomX, y: vBottomY },
-                    acceleration: { x: bottomActive ? a_friction : 0, y: 0 },
-                    kineticEnergy: kineticEnergy(mBottom, vBottomX),
-                    potentialEnergy: 0
-                });
-            }
+            // 解析解采样: 棋子叠放打击 — 上方自由落体 + 下方摩擦减速 (公共脚手架 sampleTrajectory)
+            trajTop = sampleTrajectory({
+                sampleCount, duration,
+                sampleAt: (t) => {
+                    // 上方棋子: 水平 x 保持不变 (惯性), 自由落体
+                    const yTop = Math.max(0, startTop.y + 0.5 * gravity.y * t * t);
+                    return {
+                        position: { x: startTop.x, y: yTop },
+                        velocity: { x: 0, y: gravity.y * t },
+                        acceleration: { x: 0, y: gravity.y },
+                        kineticEnergy: 0.5 * mTop * (gravity.y * t * gravity.y * t),
+                        potentialEnergy: mTop * g * yTop
+                    };
+                }
+            });
+            trajBottom = sampleTrajectory({
+                sampleCount, duration,
+                sampleAt: (t) => {
+                    // 下方棋子: 水平减速 (初速度 v0 + 摩擦力), y=0 不变
+                    const bottomActive = t < tStop;
+                    const xBottom = bottomActive
+                        ? startBottom.x + initialSpeed * t + 0.5 * a_friction * t * t
+                        : startBottom.x + initialSpeed * tStop + 0.5 * a_friction * tStop * tStop;
+                    const vBottomX = bottomActive ? initialSpeed + a_friction * t : 0;
+                    return {
+                        position: { x: xBottom, y: 0 },
+                        velocity: { x: vBottomX, y: 0 },
+                        acceleration: { x: bottomActive ? a_friction : 0, y: 0 },
+                        kineticEnergy: kineticEnergy(mBottom, vBottomX),
+                        potentialEnergy: 0
+                    };
+                }
+            });
 
             keyframes = [
                 {
@@ -255,40 +250,42 @@ export class InertiaModel extends PhysicsModelBase {
 
             const aStop = -initialSpeed / tStop; // 小车提供的减速度
 
-            for (let i = 0; i <= sampleCount; i++) {
-                const t = i * dt;
-
-                // 顶部质点 (木块上半): 因惯性继续向前 (匀速, 仅受重力)
-                const xTop = x0 + initialSpeed * t;
-                const yTopPos = Math.max(yBottom, yTop + 0.5 * gravity.y * Math.max(0, t - 0.1) * Math.max(0, t - 0.1));
-                const vTopX = initialSpeed;
-                const vTopY = t > 0.1 ? gravity.y * (t - 0.1) : 0; // 开始倾倒后受重力
-
-                // 底部质点 (随小车): 急停后速度为 0
-                const slowingDown = t < tStop;
-                const xBottom = slowingDown
-                    ? x0 + initialSpeed * t + 0.5 * aStop * t * t
-                    : x0 + initialSpeed * tStop + 0.5 * aStop * tStop * tStop;
-                const vBottomX = slowingDown ? initialSpeed + aStop * t : 0;
-
-                trajTop.push({
-                    t,
-                    position: { x: xTop, y: yTopPos },
-                    velocity: { x: vTopX, y: vTopY },
-                    acceleration: { x: 0, y: t > 0.1 ? gravity.y : 0 },
-                    kineticEnergy: 0.5 * mTop * (vTopX * vTopX + vTopY * vTopY),
-                    potentialEnergy: mTop * g * yTopPos
-                });
-
-                trajBottom.push({
-                    t,
-                    position: { x: xBottom, y: yBottom },
-                    velocity: { x: vBottomX, y: 0 },
-                    acceleration: { x: slowingDown ? aStop : 0, y: 0 },
-                    kineticEnergy: kineticEnergy(mBottom, vBottomX),
-                    potentialEnergy: 0
-                });
-            }
+            // 解析解采样: 小车急停 — 木块上半因惯性继续向前 + 底部随小车急停 (公共脚手架 sampleTrajectory)
+            trajTop = sampleTrajectory({
+                sampleCount, duration,
+                sampleAt: (t) => {
+                    // 顶部质点 (木块上半): 因惯性继续向前 (匀速, 仅受重力)
+                    const xTop = x0 + initialSpeed * t;
+                    const tt = Math.max(0, t - 0.1);
+                    const yTopPos = Math.max(yBottom, yTop + 0.5 * gravity.y * tt * tt);
+                    const vTopY = t > 0.1 ? gravity.y * (t - 0.1) : 0; // 开始倾倒后受重力
+                    return {
+                        position: { x: xTop, y: yTopPos },
+                        velocity: { x: initialSpeed, y: vTopY },
+                        acceleration: { x: 0, y: t > 0.1 ? gravity.y : 0 },
+                        kineticEnergy: 0.5 * mTop * (initialSpeed * initialSpeed + vTopY * vTopY),
+                        potentialEnergy: mTop * g * yTopPos
+                    };
+                }
+            });
+            trajBottom = sampleTrajectory({
+                sampleCount, duration,
+                sampleAt: (t) => {
+                    // 底部质点 (随小车): 急停后速度为 0
+                    const slowingDown = t < tStop;
+                    const xBottom = slowingDown
+                        ? x0 + initialSpeed * t + 0.5 * aStop * t * t
+                        : x0 + initialSpeed * tStop + 0.5 * aStop * tStop * tStop;
+                    const vBottomX = slowingDown ? initialSpeed + aStop * t : 0;
+                    return {
+                        position: { x: xBottom, y: yBottom },
+                        velocity: { x: vBottomX, y: 0 },
+                        acceleration: { x: slowingDown ? aStop : 0, y: 0 },
+                        kineticEnergy: kineticEnergy(mBottom, vBottomX),
+                        potentialEnergy: 0
+                    };
+                }
+            });
 
             const xFrontAtStop = x0 + initialSpeed * tStop + 0.5 * aStop * tStop * tStop;
 
@@ -390,37 +387,36 @@ export class InertiaModel extends PhysicsModelBase {
             const y0 = 0.5; // 鸡蛋初始高度
             const tFall = Math.sqrt((2 * y0) / g); // 自由落体时间
 
-            for (let i = 0; i <= sampleCount; i++) {
-                const t = i * dt;
-
-                // 鸡蛋: x 不变 (惯性), 竖直自由落体
-                const yEgg = Math.max(0, y0 - 0.5 * g * t * t);
-                const xEgg = x0;
-                const vEggX = 0; // 水平惯性使水平速度保持 0
-                const vEggY = -g * t;
-
-                // 纸板: 快速向右飞出 (假设纸板受恒定水平力飞出)
-                const xCard = x0 + vCard * t; // 纸板快速向右
-                const yCard = y0; // 纸板与鸡蛋同一高度向右抽出
-
-                trajTop.push({
-                    t,
-                    position: { x: xEgg, y: yEgg },
-                    velocity: { x: vEggX, y: vEggY },
-                    acceleration: { x: 0, y: gravity.y },
-                    kineticEnergy: 0.5 * mTop * (vEggX * vEggX + vEggY * vEggY),
-                    potentialEnergy: mTop * g * yEgg
-                });
-
-                trajBottom.push({
-                    t,
-                    position: { x: xCard, y: yCard },
-                    velocity: { x: vCard, y: 0 },
-                    acceleration: { x: 0, y: 0 },
-                    kineticEnergy: kineticEnergy(mBottom, vCard),
-                    potentialEnergy: mBottom * g * yCard
-                });
-            }
+            // 解析解采样: 快速抽纸板 — 鸡蛋因惯性自由落体 + 纸板快速向右飞出 (公共脚手架 sampleTrajectory)
+            trajTop = sampleTrajectory({
+                sampleCount, duration,
+                sampleAt: (t) => {
+                    // 鸡蛋: x 不变 (惯性), 竖直自由落体
+                    const yEgg = Math.max(0, y0 - 0.5 * g * t * t);
+                    const vEggY = -g * t;
+                    return {
+                        position: { x: x0, y: yEgg },
+                        velocity: { x: 0, y: vEggY }, // 水平惯性使水平速度保持 0
+                        acceleration: { x: 0, y: gravity.y },
+                        kineticEnergy: 0.5 * mTop * (vEggY * vEggY),
+                        potentialEnergy: mTop * g * yEgg
+                    };
+                }
+            });
+            trajBottom = sampleTrajectory({
+                sampleCount, duration,
+                sampleAt: (t) => {
+                    // 纸板: 快速向右飞出 (假设纸板受恒定水平力飞出)
+                    const xCard = x0 + vCard * t;
+                    return {
+                        position: { x: xCard, y: y0 }, // 纸板与鸡蛋同一高度向右抽出
+                        velocity: { x: vCard, y: 0 },
+                        acceleration: { x: 0, y: 0 },
+                        kineticEnergy: kineticEnergy(mBottom, vCard),
+                        potentialEnergy: mBottom * g * y0
+                    };
+                }
+            });
 
             keyframes = [
                 {
