@@ -1,4 +1,5 @@
 import type { PhysicsProblem } from '../types/problem.js';
+import { sampleTrajectory } from '../physics/kinematics.js';
 import type {
     SimulationResult,
     TrajectoryPoint,
@@ -103,24 +104,18 @@ export class TickerTimerModel extends PhysicsModelBase {
         const T = 1 / f; // 相邻两点时间间隔 (s)
         const N = TickerTimerModel.TICK_COUNT; // tick 总数
 
-        // === 1. 生成 tick 轨迹 (匀变速运动学) ===
-        //   x(t) = x₀ + v₀t + ½at²,  v(t) = v₀ + at,  x₀ = 0
-        const tickTimes: number[] = [];
-        const tickPos: number[] = [];
-        for (let n = 0; n < N; n++) {
-            const t = n * T;
-            const x = v0 * t + 0.5 * a * t * t;
-            tickTimes.push(t);
-            tickPos.push(x);
-        }
-
-        // === 2. 构造 trajectory (沿 x 轴直线) ===
-        const trajectory: TrajectoryPoint[] = tickTimes.map((t, n) => ({
-            t,
-            position: { x: tickPos[n]!, y: 0 },
-            velocity: { x: v0 + a * t, y: 0 },
-            acceleration: { x: a, y: 0 }
-        }));
+        // === 解析解采样: 打点计时器匀加速 x=v₀·t+½a·t² (公共脚手架 sampleTrajectory) ===
+        //   N 个 tick = N-1 个间隔 → sampleCount=N-1, duration=(N-1)·T
+        const trajectory = sampleTrajectory({
+            sampleCount: N - 1, duration: (N - 1) * T,
+            sampleAt: (t) => ({
+                position: { x: v0 * t + 0.5 * a * t * t, y: 0 },
+                velocity: { x: v0 + a * t, y: 0 },
+                acceleration: { x: a, y: 0 },
+                kineticEnergy: 0,
+                potentialEnergy: 0
+            })
+        });
 
         // === 3. 图表 1 — x_t: 纸带点迹 (沿纸带位置 vs 时间) ===
         const tapeChart: ChartSeries = {
@@ -128,7 +123,7 @@ export class TickerTimerModel extends PhysicsModelBase {
             yLabel: '沿纸带位置 x (m)',
             xUnit: 's',
             yUnit: 'm',
-            points: tickTimes.map((t, n) => ({ x: parseFloat(t.toFixed(5)), y: tickPos[n]! }))
+            points: trajectory.map(p => ({ x: parseFloat(p.t.toFixed(5)), y: p.position.x }))
         };
 
         // === 4. 图表 2 — v_t: 相邻 tick 中点速度 vs 时间 ===
@@ -138,8 +133,8 @@ export class TickerTimerModel extends PhysicsModelBase {
         //   这是"纸带数据反推"的标准方法, 返回 v = v₀ + at (一致)
         const vPoints: Array<{ x: number; y: number }> = [];
         for (let n = 0; n < N - 1; n++) {
-            const tMid = (n + 0.5) * T;
-            const vMid = (tickPos[n + 1]! - tickPos[n]!) / T;
+            const tMid = (trajectory[n]!.t + trajectory[n + 1]!.t) / 2; // (n+0.5)·T
+            const vMid = (trajectory[n + 1]!.position.x - trajectory[n]!.position.x) / T; // Δx/T
             vPoints.push({ x: parseFloat(tMid.toFixed(5)), y: vMid });
         }
         const vtChart: ChartSeries = {
@@ -155,7 +150,7 @@ export class TickerTimerModel extends PhysicsModelBase {
         //   Δx_n = x_{n+1} − x_n
         const dxPoints: Array<{ x: number; y: number }> = [];
         for (let n = 0; n < N - 1; n++) {
-            const dx = tickPos[n + 1]! - tickPos[n]!;
+            const dx = trajectory[n + 1]!.position.x - trajectory[n]!.position.x;
             dxPoints.push({ x: n + 1, y: dx }); // 段号从 1 开始 (符合教材习惯)
         }
         const dxChart: ChartSeries = {
@@ -176,7 +171,7 @@ export class TickerTimerModel extends PhysicsModelBase {
         //   其中 s_i = x_i − x_{i−1}, i = 1..6
         const s: number[] = [];
         for (let i = 1; i <= 6; i++) {
-            s[i] = tickPos[i]! - tickPos[i - 1]!;
+            s[i] = trajectory[i]!.position.x - trajectory[i - 1]!.position.x;
         }
         const aDiscrete = (s[4]! + s[5]! + s[6]! - s[1]! - s[2]! - s[3]!) / (9 * T * T);
 
@@ -195,14 +190,14 @@ export class TickerTimerModel extends PhysicsModelBase {
             {
                 label: '计数点 4 (逐差法下组起点)',
                 t: 3 * T,
-                position: { x: tickPos[3]!, y: 0 },
+                position: { x: trajectory[3]!.position.x, y: 0 },
                 velocity: { x: v0 + a * 3 * T, y: 0 },
-                description: `x₃ = ${tickPos[3]!.toFixed(4)} m, s₄ = ${(s[4]! * 100).toFixed(2)} cm`
+                description: `x₃ = ${trajectory[3]!.position.x.toFixed(4)} m, s₄ = ${(s[4]! * 100).toFixed(2)} cm`
             },
             {
                 label: '终点',
                 t: (N - 1) * T,
-                position: { x: tickPos[N - 1]!, y: 0 },
+                position: { x: trajectory[N - 1]!.position.x, y: 0 },
                 velocity: { x: v0 + a * (N - 1) * T, y: 0 },
                 description: `总点数 N=${N}, 总时长 t=${((N - 1) * T).toFixed(3)} s, 末速度 v=${(v0 + a * (N - 1) * T).toFixed(3)} m/s`
             }
@@ -249,7 +244,7 @@ export class TickerTimerModel extends PhysicsModelBase {
                 description: '数据采集 — 纸带与计数点',
                 formula: 'x_n = x(t_n),  t_n = n·T',
                 calculation: `取 N = ${N} 个点, 编号 0..${N - 1}, 每 5 个点取一个计数点 (T₀ = 5T = ${(5 * T * 1000).toFixed(0)} ms)`,
-                result: `测得各点位置 x₀=0, x₁=${tickPos[1]!.toFixed(4)} m, …, x_${N - 1}=${tickPos[N - 1]!.toFixed(4)} m`
+                result: `测得各点位置 x₀=0, x₁=${trajectory[1]!.position.x.toFixed(4)} m, …, x_${N - 1}=${trajectory[N - 1]!.position.x.toFixed(4)} m`
             },
             {
                 order: 3,
@@ -325,7 +320,7 @@ export class TickerTimerModel extends PhysicsModelBase {
                     v0: v0,
                     finalVelocity,
                     totalTime,
-                    tapeLength_m: tickPos[N - 1]!,
+                    tapeLength_m: trajectory[N - 1]!.position.x,
                     a_from_discrete_method: aDiscrete,
                     a_from_least_squares: aLeastSquares,
                     vt_r_squared: rSquared,

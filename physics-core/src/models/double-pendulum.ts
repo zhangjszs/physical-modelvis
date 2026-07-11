@@ -2,6 +2,7 @@ import type { PhysicsProblem } from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
+import { sampleTrajectory } from '../physics/kinematics.js';
 
 /**
  * 双单摆步调比较模型 — 选必一 第二章 (两个单摆的振动步调)
@@ -71,46 +72,39 @@ export class DoublePendulumSyncModel extends PhysicsModelBase {
         const duration = problem.timeConfig.duration;
         const sampleCount = problem.timeConfig.sampleCount ?? 500;
 
+        // 解析解采样: 两单摆独立余弦振动 (公共脚手架 sampleTrajectory)
+        //   θ₁(t) = θ1Amp·cos(ω₁·t),  θ₂(t) = θ2Amp·cos(ω₂·t + φ)
+        // 注: 原始 trajectory 循有 i%5==0 decimation (渲染端临时优化, 非物理必需); 迁移后采用全量更精确
+        const trajectory = sampleTrajectory({
+            sampleCount, duration,
+            sampleAt: (t) => {
+                const th1 = th1Amp * Math.cos(omega1 * t);
+                const dth1 = -th1Amp * omega1 * Math.sin(omega1 * t);
+                return {
+                    position: { x: th1, y: 0 },
+                    velocity: { x: dth1, y: 0 },
+                    acceleration: { x: -omega1 * omega1 * th1, y: 0 },
+                    kineticEnergy: 0.5 * 1 * (dth1 * L1) * (dth1 * L1), // 摆球单位质量能量
+                    potentialEnergy: 1 * g * L1 * (1 - Math.cos(th1))
+                };
+            }
+        });
+
+        // ChartSeries 由 trajectory 派生 (保持与原来 sc+1 全量点一致)
         const theta1Series: ChartSeries = {
             xLabel: '时间 (s)',
             yLabel: '摆1角位移 (度)',
             xUnit: 's',
             yUnit: 'deg',
-            points: []
+            points: trajectory.map(p => ({ x: parseFloat(p.t.toFixed(4)), y: parseFloat((p.position.x * 180 / Math.PI).toFixed(4)) }))
         };
         const theta2Series: ChartSeries = {
             xLabel: '时间 (s)',
             yLabel: '摆2角位移 (度)',
             xUnit: 's',
             yUnit: 'deg',
-            points: []
+            points: trajectory.map(p => { const th2 = th2Amp * Math.cos(omega2 * p.t + phaseDiffRad); return { x: parseFloat(p.t.toFixed(4)), y: parseFloat(((th2 * 180) / Math.PI).toFixed(4)) }; })
         };
-
-        const trajectory: TrajectoryPoint[] = [];
-
-        for (let i = 0; i <= sampleCount; i++) {
-            const t = (i / sampleCount) * duration;
-            const th1 = th1Amp * Math.cos(omega1 * t);
-            const th2 = th2Amp * Math.cos(omega2 * t + phaseDiffRad);
-            const dth1 = -th1Amp * omega1 * Math.sin(omega1 * t);
-
-            const deg1 = (th1 * 180) / Math.PI;
-            const deg2 = (th2 * 180) / Math.PI;
-
-            theta1Series.points.push({ x: parseFloat(t.toFixed(4)), y: parseFloat(deg1.toFixed(4)) });
-            theta2Series.points.push({ x: parseFloat(t.toFixed(4)), y: parseFloat(deg2.toFixed(4)) });
-
-            if (i % 5 === 0) {
-                trajectory.push({
-                    t,
-                    position: { x: th1, y: 0 },
-                    velocity: { x: dth1, y: 0 },
-                    acceleration: { x: -omega1 * omega1 * th1, y: 0 },
-                    kineticEnergy: 0.5 * 1 * (dth1 * L1) * (dth1 * L1), // 摆球单位质量能量
-                    potentialEnergy: 1 * g * L1 * (1 - Math.cos(th1))
-                });
-            }
-        }
 
         const pivot = { x: 0, y: 0 };
         const x1 = pivot.x + L1 * Math.sin(th1Amp);

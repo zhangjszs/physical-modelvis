@@ -1,5 +1,5 @@
 import type { PhysicsProblem } from '../types/problem.js';
-import { kineticEnergy } from '../physics/kinematics.js';
+import { kineticEnergy, sampleTrajectory } from '../physics/kinematics.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ForceDiagram } from '../types/result.js';
 import type { ParameterSpec, Vector2D } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
@@ -108,7 +108,6 @@ export class VerticalCircleModel extends PhysicsModelBase {
                 : v0 * v0 >= 5 * g * r; // 绳/环需 v₀ ≥ √(5gr) 才能做完整圆周
 
         // 轨迹生成 (θ=0 为最低点，θ=π 为最高点)
-        const trajectory: TrajectoryPoint[] = [];
         const omega = v0 / r; // 初始角速度
         const phi0 = -Math.PI / 2; // 最低点时物体在 (0, y=0) 相对于圆心
 
@@ -117,65 +116,50 @@ export class VerticalCircleModel extends PhysicsModelBase {
         const cosCrit = 1 - (v0 * v0) / (2 * g * r);
         const thetaMax = cosCrit >= -1 ? Math.acos(Math.max(-1, cosCrit)) : Math.PI;
 
-        for (let i = 0; i <= sampleCount; i++) {
-            const progress = i / sampleCount;
-            const totalT = duration * progress;
-            const theta = isFullCircle ? omega * totalT : progress * thetaMax;
+        // 解析解采样: 竖直圆周运动 (公共脚手架 sampleTrajectory)
+        //   θ(t) = isFullCircle ? ω·t : (t/duration)·θMax
+        //   v²(θ) = v₀² − 2gr(1−cosθ)
+        // 注: 原始 trailing-fill 内循环 (v²≤0 定格) 在 progress∈[0,1] 下实际不触发，以无状态版本替代
+        const trajectory = sampleTrajectory({
+            sampleCount, duration,
+            sampleAt: (t) => {
+                const theta = isFullCircle ? omega * t : (t / duration) * thetaMax;
 
-            // 角度 (θ=0 最低点, θ=π 最高点)
-            const phi = phi0 + theta; // phi = -π/2 + theta
-            const cosPhi = Math.cos(phi);
-            const sinPhi = Math.sin(phi);
-            // 物体位置 (y 向上为正)
-            const position: Vector2D = {
-                x: center.x + r * cosPhi,
-                y: center.y + r * sinPhi
-            };
+                // 角度 (θ=0 最低点, θ=π 最高点)
+                const phi = phi0 + theta; // phi = -π/2 + theta
+                const cosPhi = Math.cos(phi);
+                const sinPhi = Math.sin(phi);
+                // 物体位置 (y 向上为正)
+                const position: Vector2D = {
+                    x: center.x + r * cosPhi,
+                    y: center.y + r * sinPhi
+                };
 
-            // 速度沿切线方向 (垂直于 位矢)
-            // v(θ)² = v₀² - 2gr(1-cosθ)
-            const vSq = v0 * v0 - 2 * g * r * (1 - Math.cos(theta));
-            const vActual = vSq > 0 ? Math.sqrt(vSq) : 0;
-            // 切线方向: 沿 theta 增大的方向
-            const tangentDir: Vector2D = { x: -sinPhi, y: cosPhi };
-            const velocity: Vector2D = {
-                x: tangentDir.x * vActual,
-                y: tangentDir.y * vActual
-            };
+                // 速度沿切线方向 (垂直于 位矢)
+                const vSq = v0 * v0 - 2 * g * r * (1 - Math.cos(theta));
+                const vActual = vSq > 0 ? Math.sqrt(vSq) : 0;
+                const tangentDir: Vector2D = { x: -sinPhi, y: cosPhi };
+                const velocity: Vector2D = {
+                    x: tangentDir.x * vActual,
+                    y: tangentDir.y * vActual
+                };
 
-            // 向心加速度 a_c = v²/r
-            const aCent = (vActual * vActual) / r;
-            // 合加速度 (向心分量指向圆心)
-            const acceleration: Vector2D = {
-                x: -aCent * cosPhi,
-                y: -aCent * sinPhi
-            };
+                // 向心加速度 a_c = v²/r
+                const aCent = (vActual * vActual) / r;
+                const acceleration: Vector2D = {
+                    x: -aCent * cosPhi,
+                    y: -aCent * sinPhi
+                };
 
-            trajectory.push({
-                t: totalT,
-                position,
-                velocity,
-                acceleration,
-                kineticEnergy: kineticEnergy(m, vActual),
-                potentialEnergy: m * g * (position.y - (center.y - r)) // 最低点为零势面
-            });
-
-            // 一旦到达 v_actual = 0 (摆动情形)，停止增加点
-            if (!isFullCircle && vSq <= 0) {
-                // 用当前点替换余下所有点
-                for (let j = i + 1; j <= sampleCount; j++) {
-                    trajectory.push({
-                        t: duration * (j / sampleCount),
-                        position: { ...position },
-                        velocity: { x: 0, y: 0 },
-                        acceleration: { x: 0, y: 0 },
-                        kineticEnergy: 0,
-                        potentialEnergy: m * g * (position.y - (center.y - r))
-                    });
-                }
-                break;
+                return {
+                    position,
+                    velocity,
+                    acceleration,
+                    kineticEnergy: kineticEnergy(m, vActual),
+                    potentialEnergy: m * g * (position.y - (center.y - r)) // 最低点为零势面
+                };
             }
-        }
+        });
 
         // 关键点
         const keyframes: Keyframe[] = [

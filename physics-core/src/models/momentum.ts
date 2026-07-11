@@ -1,5 +1,5 @@
 import type { PhysicsProblem } from '../types/problem.js';
-import { kineticEnergy } from '../physics/kinematics.js';
+import { kineticEnergy, sampleTrajectory } from '../physics/kinematics.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ConservedQuantity } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
@@ -189,34 +189,30 @@ export class MomentumModel extends PhysicsModelBase {
 
         const duration = problem.timeConfig.duration;
         const sampleCount = problem.timeConfig.sampleCount ?? 500;
-        const dt = duration / sampleCount;
 
-        const traj1: TrajectoryPoint[] = [];
-        const traj2: TrajectoryPoint[] = [];
+        // 解析解采样: 反冲匀速运动 x=xInit+vFinal·t (公共脚手架 sampleTrajectory)
         const x1Init = bodies[0]!.position.x;
         const x2Init = bodies[1]!.position.x;
-
-        for (let i = 0; i <= sampleCount; i++) {
-            const t = i * dt;
-            const x1 = x1Init + v1Final * t;
-            const x2 = x2Init + v2Final * t;
-            traj1.push({
-                t,
-                position: { x: x1, y: 0 },
+        const traj1 = sampleTrajectory({
+            sampleCount, duration,
+            sampleAt: (t) => ({
+                position: { x: x1Init + v1Final * t, y: 0 },
                 velocity: { x: v1Final, y: 0 },
                 acceleration: { x: 0, y: 0 },
                 kineticEnergy: kineticEnergy(m1, v1Final),
                 potentialEnergy: 0
-            });
-            traj2.push({
-                t,
-                position: { x: x2, y: 0 },
+            })
+        });
+        const traj2 = sampleTrajectory({
+            sampleCount, duration,
+            sampleAt: (t) => ({
+                position: { x: x2Init + v2Final * t, y: 0 },
                 velocity: { x: v2Final, y: 0 },
                 acceleration: { x: 0, y: 0 },
                 kineticEnergy: kineticEnergy(m2, v2Final),
                 potentialEnergy: 0
-            });
-        }
+            })
+        });
 
         const keyframes: Keyframe[] = [
             {

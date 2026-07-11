@@ -2,6 +2,7 @@ import type { PhysicsProblem , EMWaveCommConstraint} from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
+import { sampleTrajectory } from '../physics/kinematics.js';
 
 /**
  * 电磁波发射接收约束 — 选必二 第五章 (电磁振荡与电磁波)
@@ -199,23 +200,22 @@ export class EMWaveCommunicationModel extends PhysicsModelBase {
         ];
 
         // ===== 传播轨迹 =====
-        const propagationTraj: TrajectoryPoint[] = [];
-        const Nprop = 100;
-        for (let i = 0; i <= Nprop; i++) {
-            const ratio = i / Nprop;
-            const x = ratio * dist;
-            const t = x / SPEED_OF_LIGHT;
-            // 空间某点的场分量 (以 FM 为例, 简化)
-            const phase = 2 * Math.PI * fc * t + (isFM ? beta * Math.sin(2 * Math.PI * fm * t) : 0);
-            const y = Vc * Math.sin(phase);
-            propagationTraj.push({
-                t,
-                position: { x, y },
-                velocity: { x: SPEED_OF_LIGHT, y: 0 },
-                kineticEnergy: 0,
-                potentialEnergy: 0
-            });
-        }
+        // 解析解采样: 电磁空间传播 — x=t·c, phase=2π·fc·t + β·sin(2π·fm·t) (公共脚手架 sampleTrajectory)
+        //   duration = dist/c (传播时延); x 由 t·c 反推, 与原始 ratio·dist 等价
+        const propagationTraj = sampleTrajectory({
+            sampleCount: 100, duration: dist / SPEED_OF_LIGHT,
+            sampleAt: (t) => {
+                const x = t * SPEED_OF_LIGHT; // 空间位置 = 光速 × 时间
+                const phase = 2 * Math.PI * fc * t + (isFM ? beta * Math.sin(2 * Math.PI * fm * t) : 0);
+                const y = Vc * Math.sin(phase);
+                return {
+                    position: { x, y },
+                    velocity: { x: SPEED_OF_LIGHT, y: 0 },
+                    kineticEnergy: 0,
+                    potentialEnergy: 0
+                };
+            }
+        });
 
         // ===== 警告 =====
         const warnings: string[] = [];
