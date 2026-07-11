@@ -84,8 +84,7 @@ export type ModelType =
     | 'perpetuum-mobile' // 卡诺循环/第二定律
     // 选必三 §4 原子物理
     | 'black-body' // 黑体辐射
-    // 选必三 §5 原子核
-    | 'radioactive-decay' // 放射性衰变
+    // 选必三 §5 原子核 (radioactive-decay 定义在 §5 上方 line 58 — 保留为规范单一出处)
     | 'heat-direction' // 热传导方向性
     | 'alpha-scattering' // α 粒子散射
     | 'electron-diffraction' // 电子衍射
@@ -1442,233 +1441,371 @@ export interface PhysicsProblem {
 // ============================================================
 
 export interface EMWaveCommConstraint {
-    carrierFreq: number;
-    modulationType: string;
-    audioFreq: number;
+    /** 载波频率 fc (Hz) */
+    readonly carrierFreq: number;
+    /** 调制类型: AM (幅度调制) 或 FM (频率调制) */
+    readonly modulationType: 'AM' | 'FM';
+    /** 音频(基带)信号频率 fm (Hz) */
+    readonly audioFreq: number;
+    /** 调制指数 m (AM: 0~1; FM: 调频指数 beta) */
+    readonly modulationIndex?: number;
+    /** 载波峰值电压 Vc (V) */
+    readonly carrierAmplitude?: number;
+    /** 传输距离 (m), 用于计算传播时延 */
+    readonly distance?: number;
 }
 export interface EMSpectrumConstraint {
-    freqMin?: number;
-    freqMax?: number;
-    highlightBand?: string;
+    /** 扫描频率下限 (Hz), 默认 1e6 */
+    readonly freqMin: number;
+    /** 扫描频率上限 (Hz), 默认 1e20 */
+    readonly freqMax: number;
+    /** 高亮显示的波段名称 */
+    readonly highlightBand?: 'radio' | 'infrared' | 'visible' | 'ultraviolet' | 'xray' | 'gamma';
 }
 export interface HallEffectConstraint {
-    current: number;
-    magneticField: number;
-    chargeDensity: number;
-    thickness: number;
+    /** 控制电流 I (A) */
+    readonly current: number;
+    /** 磁感应强度 B (T) */
+    readonly magneticField: number;
+    /** 载流子浓度 n (个 / m^3), 典型半导体 1e21 ~ 1e24 */
+    readonly chargeDensity: number;
+    /** 元件厚度 t (m) */
+    readonly thickness: number;
+    /** 载流子类型: 'electron' (电子, n 型) 或 'hole' (空穴, p 型) */
+    readonly carrierType?: 'electron' | 'hole';
 }
 export interface ReedSwitchConstraint {
-    mode: string;
-    magnetDistance?: number;
-    pullInThreshold?: number;
-    releaseThreshold?: number;
+    /** 磁铁与干簧管间距 (mm), 模式: magnetic */
+    readonly magnetDistance?: number;
+    /** 线圈电流 (mA), 模式: coil */
+    readonly coilCurrent?: number;
+    /** 工作模式: magnetic (磁铁靠近) | coil (线圈驱动) */
+    readonly mode: 'magnetic' | 'coil';
+    /** 吸合阈值 (AT 安匝或 mT), 默认 50 mT */
+    readonly pullInThreshold?: number;
+    /** 释放阈值 (AT 安匝或 mT), 默认 30 mT (释放<吸合, 形成回差) */
+    readonly releaseThreshold?: number;
     sampleCount?: number;
 }
 export interface PhotoresistorConstraint {
-    lightIntensity: number;
-    darkResistance: number;
-    sensitivity: number;
+    /** 光照度 E (lx), 作为参考工作点 */
+    readonly lightIntensity: number;
+    /** 暗电阻 R_dark (Ohm), 无光照时的电阻 */
+    readonly darkResistance: number;
+    /** 灵敏度 k (1/lx), 控制电阻下降速度 */
+    readonly sensitivity: number;
+    /** 温度 (摄氏度), 可选 (影响暗电阻) */
+    readonly temperatureCelsius?: number;
 }
 export interface ThermistorConstraint {
+    /** 目标温度 (K), 默认 300 (约 27 C) */
     temperature: number;
-    mode: string;
+    /** 'NTC' 或 'PTC' */
+    mode: 'NTC' | 'PTC';
+    /** 基准电阻 R0 (Ω) — NTC 时在 T0=298 K 下的阻值 */
     R0: number;
+    /** B 常数 (K) — 典型 NTC 3000~5000 K */
     BValue: number;
+    /** PTC 模式: 居里温度 (K), 默认 380 K (约 107 C) */
     curieTemp?: number;
+    /** PTC 模式: 居里点后的温度系数因子, 默认 15 */
     ptcCoeff?: number;
+    /** 温度扫描范围下限 (K), 默认 250 */
     tempMin?: number;
+    /** 温度扫描范围上限 (K), 默认 400 */
     tempMax?: number;
+    /** 扫描采样点数, 默认 120 */
     sampleCount?: number;
 }
 export interface StrainGaugeConstraint {
+    /** 当前应变 ε (单位 με 微应变, 1 με = 1e-6) */
     strain: number;
+    /** 灵敏系数 K, 金属 K≈2, 半导体 K≈50~200 */
     gaugeFactor: number;
+    /** 桥路供电电压 (V) */
     bridgeVoltage: number;
+    /** 应变扫描范围下限 (με), 默认 -2000 */
+    strainMin?: number;
+    /** 应变扫描范围上限 (με), 默认 2000 */
+    strainMax?: number;
+    /** 扫描采样点数, 默认 100 */
+    sampleCount?: number;
 }
 export interface SecurityAlarmConstraint {
-    doorState: string;
+    /** 当前门状态: open / closed */
+    doorState: 'open' | 'closed';
+    /** 磁铁到干簧管的距离 (mm), 默认: closed=5, open=100 */
     magnetDistance?: number;
+    /** 干簧管释放距离 (mm), 默认 25 */
     releaseDistance?: number;
+    /** 干簧管吸合距离 (mm), 默认 15 */
     operateDistance?: number;
+    /** 扫描步数 (生成不同距离下的状态) */
     sampleCount?: number;
 }
 export interface LightControlSwitchConstraint {
+    /** 当前光照强度 (lux) */
     lightIntensity: number;
+    /** 触发阈值 (lux), 默认 10 */
     threshold?: number;
+    /** 分压电阻 R_fix (Ω), 默认 10000 */
     Rfix?: number;
-    VbeOn?: number;
-    Rdark?: number;
-    Rbright?: number;
-    timeSpanH?: number;
-    sampleCount?: number;
+    /** 电源电压 (V), 默认 12 */
     Esupply?: number;
+    /** 三极管导通阈值 Vbe (V), 默认 0.7 */
+    VbeOn?: number;
+    /** 光敏电阻暗电阻 (Ω), 默认 1e6 */
+    Rdark?: number;
+    /** 光敏电阻亮电阻 (Ω), 默认 5e3 */
+    Rbright?: number;
+    /** 时间扫描范围 (h), 默认 24 */
+    timeSpanH?: number;
+    /** 采样点数, 默认 240 */
+    sampleCount?: number;
 }
 
 export interface DiffusionConstraint {
-    temperature: number;
-    mode: string;
-    particleCount: number;
-    diffusionCoeff?: number;
-    gridSize?: number;
-    timeSteps?: number;
+    /** 温度 (K) */
+    readonly temperature: number;
+    /** 扩散介质 */
+    readonly mode: 'gas' | 'liquid';
+    /** 粒子数 */
+    readonly particleCount: number;
+    /** 扩散系数 (m^2/s), 不提供时按温度估算 */
+    readonly diffusionCoeff?: number;
+    /** 空间尺度 (m), 默认 1e-6 */
+    readonly gridSize?: number;
+    /** 时间采样点数, 默认 100 */
+    readonly timeSteps?: number;
     sampleCount?: number;
 }
 export interface BrownianMotionConstraint {
-    particleRadius: number;
-    liquidTemp: number;
-    fluidViscosity: number;
-    duration: number;
-    dt?: number;
-    nParticles?: number;
+    /** 粒子半径 (m) */
+    readonly particleRadius: number;
+    /** 液体温度 (K) */
+    readonly liquidTemp: number;
+    /** 液体粘度 (Pa·s) */
+    readonly fluidViscosity: number;
+    /** 模拟时长 (s) */
+    readonly duration: number;
+    /** 时间步长 (s), 默认 0.01 */
+    readonly dt?: number;
+    /** 模拟粒子数, 默认 1 */
+    readonly nParticles?: number;
     sampleCount?: number;
 }
 export interface MolecularForceConstraint {
-    epsilon: number;
-    sigma: number;
-    rMin?: number;
-    rMax?: number;
-    sampleCount?: number;
+    /** 势阱深度 (J) */
+    readonly epsilon: number;
+    /** 分子直径 (m) */
+    readonly sigma: number;
+    /** 最小距离 (m), 默认 0.8*sigma */
+    readonly rMin?: number;
+    /** 最大距离 (m), 默认 4*sigma */
+    readonly rMax?: number;
+    /** 采样点数, 默认 200 */
+    readonly sampleCount?: number;
 }
 export interface LiquidMixingConstraint {
-    volumeWater: number;
-    volumeAlcohol: number;
+    /** 水的体积 (mL) */
+    readonly volumeWater: number;
+    /** 酒精体积 (mL) */
+    readonly volumeAlcohol: number;
 }
 export interface OilFilmConstraint {
-    oilConcentration: number;
-    dropsPerMl: number;
-    filmArea: number;
+    /** 油酸溶液浓度 (1:x 的油酸体积分数) */
+    readonly oilConcentration: number;
+    /** 每毫升滴数 (滴/mL) */
+    readonly dropsPerMl: number;
+    /** 油膜面积 (cm²) */
+    readonly filmArea: number;
+    /** 加入滴数, 默认 1 */
+    readonly drops?: number;
     sampleCount?: number;
-    drops?: number;
 }
 export interface MeltingCurveConstraint {
-    mode: string;
-    meltingPoint: number;
-    heatingRate: number;
-    sampleCount?: number;
-    initialTemp?: number;
-    durationMin?: number;
-    latentHeat?: number;
+    /** 模式: 晶体或非晶体 */
+    readonly mode: 'crystal' | 'noncrystal';
+    /** 熔点 (°C), 仅晶体 */
+    readonly meltingPoint: number;
+    /** 加热速率 (°C/min) */
+    readonly heatingRate: number;
+    /** 采样点数, 默认 200 */
+    readonly sampleCount?: number;
+    /** 初始温度 (°C), 默认 0 */
+    readonly initialTemp?: number;
+    /** 总时长 (min), 默认 20 */
+    readonly durationMin?: number;
+    /** 熔化潜热 (J/g) */
+    readonly latentHeat?: number;
 }
 export interface SurfaceTensionConstraint {
-    liquidMode: string;
-    sliderLength: number;
-    temperature: number;
+    /** 液体类型 */
+    readonly liquidMode: 'water' | 'mercury';
+    /** 滑块/吊环长度 (m) */
+    readonly sliderLength: number;
+    /** 温度 (°C) */
+    readonly temperature: number;
 }
 export interface CapillaryConstraint {
-    tubeRadius: number;
-    liquidMode: string;
-    materialMode: string;
+    /** 毛细管半径 (m) */
+    readonly tubeRadius: number;
+    /** 液体类型 */
+    readonly liquidMode: 'water' | 'mercury';
+    /** 管壁材料 */
+    readonly materialMode: 'glass' | 'paraffin';
     sampleCount?: number;
 }
 export interface WettingConstraint {
-    liquidMode: string;
-    surfaceMode: string;
+    readonly liquidMode: 'water' | 'mercury';
+    readonly surfaceMode: 'glass' | 'wax';
 }
 export interface LiquidCrystalConstraint {
-    temperature: number;
-    voltage: number;
-    mode: string;
+    /** 环境温度 (℃) */
+    readonly temperature: number;
+    /** 驱动电压 (V) */
+    readonly voltage: number;
+    /** 液晶模式 */
+    readonly mode: 'nematic' | 'cholesteric';
+    /** 清亮点 Tc (℃), 默认 35 (5CB 典型值) */
+    readonly clearingPoint?: number;
+    /** 阈值电压 Vth (V), 默认 2.0 */
+    readonly thresholdVoltage?: number;
+    /** 螺距 P (um, 仅 cholesteric 模式) */
+    readonly pitchUm?: number;
     sampleCount?: number;
-    thresholdVoltage?: number;
-    pitchUm?: number;
-    clearingPoint?: number;
 }
 export interface JouleMechanicalConstraint {
-    mass: number;
-    height: number;
-    drops: number;
-    waterMass: number;
-    specificHeat?: number;
-    gravity?: number;
+    /** 重物质量 (kg) */
+    readonly mass: number;
+    /** 下落高度 (m) */
+    readonly height: number;
+    /** 下落次数 */
+    readonly drops: number;
+    /** 量热器水当量 (kg 水) */
+    readonly waterMass: number;
+    /** 水的比热容 (J/(kg·K)), 默认 4184 */
+    readonly specificHeat?: number;
+    /** 重力加速度, 默认 9.8 */
+    readonly gravity?: number;
 }
 export interface JouleElectricalConstraint {
-    voltage: number;
-    resistance: number;
-    time: number;
-    waterMass: number;
-    specificHeat?: number;
-    sampleCount?: number;
+    /** 电源电压 (V) */
+    readonly voltage: number;
+    /** 电阻 (Ω) */
+    readonly resistance: number;
+    /** 通电时间 (s) */
+    readonly time: number;
+    /** 水当量 (kg 水) */
+    readonly waterMass: number;
+    /** 水的比热容 (J/(kg·K)), 默认 4184 */
+    readonly specificHeat?: number;
+    /** 时间步数 (采样数) */
+    readonly sampleCount?: number;
 }
 export interface AdiabaticCompressionConstraint {
-    initialTemp: number;
-    compressionRatio: number;
-    gamma?: number;
-    gasType?: string;
-    sampleCount?: number;
-    moles?: number;
+    /** 初始温度 (K) */
+    readonly initialTemp: number;
+    /** 压缩比 V1/V2 */
+    readonly compressionRatio: number;
+    /** 绝热指数 gamma (默认 1.40 为双原子空气) */
+    readonly gamma?: number;
+    /** 气体类型 (argon/nitrogen/air 等, 仅作显示与扩展) */
+    readonly gasType?: string;
+    /** 气体物质的量 (mol), 默认 1 */
+    readonly moles?: number;
+    /** 采样点数 */
+    readonly sampleCount?: number;
 }
 export interface HeatTransferConstraint {
-    mode: string;
-    materialType?: string;
+    /** 传热模式 (全部展示, 也可以单独选一个) */
+    readonly mode: 'conduction' | 'convection' | 'radiation';
+    /** 材料类型 (影响 k / h / ε) */
+    readonly materialType?: 'copper' | 'glass' | 'steel' | 'polystyrene';
+    /** 环境温度 (K) */
+    readonly ambientTemp: number;
+    /** 环境温度 (K) 初始物体温度 (K) */
+    readonly initialTemp: number;
+    /** 环境温度 (K) 时间 (s) */
+    readonly time: number;
+    /** 截面积 (m²), 默认 0.01 */
+    readonly area?: number;
+    /** 导热体厚度 L (m, 仅 conduction, 默认 0.05) */
+    readonly thickness?: number;
+    /** 采样点数 */
+    readonly sampleCount?: number;
     temperatureDiff?: number;
-    sampleCount?: number;
     length?: number;
-    area?: number;
-    thickness?: number;
-    initialTemp?: number;
-    ambientTemp?: number;
-    time?: number;
 }
 export interface EnergyTransformationConstraint {
-    mode: string;
-    inputEnergy: number;
-    efficiency?: number;
+    /** 实验模式 */
+    readonly mode: 'pendulum' | 'generator' | 'photovoltaic';
+    /** 输入能量 (J) */
+    readonly inputEnergy: number;
+    /** 转化效率 (0~1, 默认 0.85) */
+    readonly efficiency?: number;
+    /** 摆长 (m, 仅 pendulum), 默认 1 */
+    readonly length?: number;
 }
 export interface PerpetuumMobileConstraint {
-    hotTemp: number;
-    coldTemp: number;
-    mode: string;
-    inputHeat?: number;
+    /** 热源温度 (K) */
+    readonly hotTemp: number;
+    /** 冷源温度 (K) */
+    readonly coldTemp: number;
+    /** 工作模式 */
+    readonly mode: 'carnot' | 'kelvin';
+    /** 输入热量 (J), 仅 kelvin 模式下使用 */
+    readonly inputHeat?: number;
 }
 export interface BlackBodyConstraint {
-    temperature: number;
-    freqMin?: number;
-    freqMax?: number;
-    sampleCount?: number;
+    readonly temperature: number; // K
+    readonly freqMin?: number; // Hz
+    readonly freqMax?: number; // Hz
+    readonly sampleCount?: number;
 }
 export interface HeatDirectionConstraint {
-    hotTemp: number;
-    coldTemp: number;
-    thermalConductivity: number;
-    duration?: number;
-    sampleCount?: number;
+    readonly hotTemp: number;
+    readonly coldTemp: number;
+    readonly thermalConductivity: number;
+    readonly duration?: number;
+    readonly sampleCount?: number;
 }
 export interface AlphaScatteringConstraint {
-    alphaEnergy: number;
-    targetZ: number;
-    foilThickness: number;
-    nParticles?: number;
-    impactParamMax?: number;
+    readonly alphaEnergy: number; // MeV
+    readonly targetZ: number; // 核电荷数
+    readonly foilThickness?: number;
+    readonly nParticles?: number;
+    readonly impactParamMax?: number;
 }
 export interface ElectronDiffractionConstraint {
-    accVoltage: number;
-    crystalLattice: number;
-    sampleCount?: number;
+    readonly accVoltage: number; // V
+    readonly crystalLattice?: number; // d (nm)
+    readonly sampleCount?: number;
 }
 export interface RadiationDeflectionConstraint {
-    Bfield: number;
-    particleType: string;
-    particleEnergy: number;
+    readonly Bfield: number; // T
+    readonly particleType: 'alpha' | 'beta' | 'gamma';
+    readonly particleEnergy: number; // MeV
 }
 export interface DecayStatisticsConstraint {
-    meanCount: number;
-    nTrials: number;
-    experimentTime?: number;
-    sampleCount?: number;
+    readonly meanCount: number;
+    readonly nTrials: number;
+    readonly experimentTime?: number; // s
+    readonly sampleCount?: number;
 }
 export interface CosmicRayConstraint {
-    altitude: number;
-    shieldingMode: string;
-    shieldThickness?: number;
+    readonly altitude: number; // m
+    readonly shieldingMode: 'air' | 'lead' | 'water';
+    readonly shieldThickness?: number; // cm
 }
 export interface NeutronDiscoveryConstraint {
-    alphaEnergy: number;
-    targetMass: number;
+    readonly alphaEnergy: number; // MeV
+    readonly targetMass: number; // u (氢=1, 氮=14)
 }
 export interface FissionChainConstraint {
-    multiplicationFactor: number;
-    generations: number;
-    initialNeutrons?: number;
+    readonly multiplicationFactor: number;
+    readonly generations: number;
+    readonly initialNeutrons?: number;
 }
 
 // ============================================================
