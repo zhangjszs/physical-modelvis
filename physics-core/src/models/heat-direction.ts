@@ -1,5 +1,5 @@
 import { PhysicsModelBase } from './base.js';
-import type { PhysicsProblem } from '../types/problem.js';
+import type { PhysicsProblem , HeatDirectionConstraint} from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, ChartSeries } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 
@@ -7,14 +7,6 @@ import type { ParameterSpec } from '../types/common.js';
  * 热传导方向性模型 — 选必三 第三章 (克劳修斯表述)
  * 热量自发从高温物体传向低温物体, 最终达到热平衡.
  */
-export interface HeatDirectionConstraint {
-    readonly hotTemp: number;
-    readonly coldTemp: number;
-    readonly thermalConductivity: number;
-    readonly duration?: number;
-    readonly sampleCount?: number;
-}
-
 export class HeatDirectionModel extends PhysicsModelBase {
     readonly name = '热传导方向性';
     readonly version = '1.0.0';
@@ -54,13 +46,7 @@ export class HeatDirectionModel extends PhysicsModelBase {
         }
 
         return {
-            meta: {
-                model: 'heat-direction',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes: [
                 {

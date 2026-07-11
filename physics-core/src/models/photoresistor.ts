@@ -1,4 +1,4 @@
-import type { PhysicsProblem } from '../types/problem.js';
+import type { PhysicsProblem , PhotoresistorConstraint} from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
@@ -12,17 +12,6 @@ import { PhysicsModelBase } from './base.js';
  *   k: 灵敏度系数 (与材料、禁带宽度有关)
  *   E: 光照度 (lx)
  */
-export interface PhotoresistorConstraint {
-    /** 光照度 E (lx), 作为参考工作点 */
-    readonly lightIntensity: number;
-    /** 暗电阻 R_dark (Ohm), 无光照时的电阻 */
-    readonly darkResistance: number;
-    /** 灵敏度 k (1/lx), 控制电阻下降速度 */
-    readonly sensitivity: number;
-    /** 温度 (摄氏度), 可选 (影响暗电阻) */
-    readonly temperatureCelsius?: number;
-}
-
 /**
  * 光敏电阻模型 — 选必二 (光电传感器 / 光电导效应)
  *
@@ -70,8 +59,7 @@ export class PhotoresistorModel extends PhysicsModelBase {
     solve(problem: PhysicsProblem): SimulationResult {
         this.throwIfInvalid(problem);
 
-        const raw = problem.constraints as unknown as { readonly photoresistor?: PhotoresistorConstraint } | undefined;
-        const c = raw?.photoresistor;
+        const c = problem.constraints?.photoresistor;
         if (!c) throw new Error('photoresistor 模型需要 photoresistor 约束配置');
 
         const R_dark = c.darkResistance; // Ohm
@@ -258,13 +246,7 @@ export class PhotoresistorModel extends PhysicsModelBase {
         ];
 
         return {
-            meta: {
-                model: 'photoresistor',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [operationTraj],
             keyframes,
             charts: {

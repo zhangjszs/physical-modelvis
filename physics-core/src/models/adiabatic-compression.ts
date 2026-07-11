@@ -1,4 +1,4 @@
-import type { PhysicsProblem } from '../types/problem.js';
+import type { PhysicsProblem , AdiabaticCompressionConstraint} from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
@@ -17,21 +17,6 @@ import { PhysicsModelBase } from './base.js';
  *   - y_t = p 随 V 变化 (绝热曲线, 横轴 V 纵轴 p)
  *   - v_t = p·V^gamma 守恒校验曲线 (应为常数)
  */
-
-export interface AdiabaticCompressionConstraint {
-    /** 初始温度 (K) */
-    readonly initialTemp: number;
-    /** 压缩比 V1/V2 */
-    readonly compressionRatio: number;
-    /** 绝热指数 gamma (默认 1.40 为双原子空气) */
-    readonly gamma?: number;
-    /** 气体类型 (argon/nitrogen/air 等, 仅作显示与扩展) */
-    readonly gasType?: string;
-    /** 气体物质的量 (mol), 默认 1 */
-    readonly moles?: number;
-    /** 采样点数 */
-    readonly sampleCount?: number;
-}
 
 const GAMMA_AIR = 1.4; // 双原子空气
 const R_GAS = 8.314; // J/(mol·K)
@@ -197,13 +182,7 @@ export class AdiabaticCompressionModel extends PhysicsModelBase {
         if (T2 > 1200) warnings.push('终态温度远超自燃点, 可能引起爆震');
 
         return {
-            meta: {
-                model: 'adiabatic-compression',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: {

@@ -1,4 +1,4 @@
-import type { PhysicsProblem } from '../types/problem.js';
+import type { PhysicsProblem, HallEffectConstraint } from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
@@ -12,19 +12,6 @@ import { PhysicsModelBase } from './base.js';
  *   霍尔电压: UH = I * B / (n * q * t) = RH * I * B / t
  *   霍尔系数: RH = 1 / (n * q)
  */
-export interface HallEffectConstraint {
-    /** 控制电流 I (A) */
-    readonly current: number;
-    /** 磁感应强度 B (T) */
-    readonly magneticField: number;
-    /** 载流子浓度 n (个 / m^3), 典型半导体 1e21 ~ 1e24 */
-    readonly chargeDensity: number;
-    /** 元件厚度 t (m) */
-    readonly thickness: number;
-    /** 载流子类型: 'electron' (电子, n 型) 或 'hole' (空穴, p 型) */
-    readonly carrierType?: 'electron' | 'hole';
-}
-
 /**
  * 霍尔元件模型 — 选必二 第一章 (霍尔效应与应用)
  *
@@ -80,8 +67,7 @@ export class HallEffectModel extends PhysicsModelBase {
     solve(problem: PhysicsProblem): SimulationResult {
         this.throwIfInvalid(problem);
 
-        const raw = problem.constraints as unknown as { readonly hallEffect?: HallEffectConstraint } | undefined;
-        const c = raw?.hallEffect;
+        const c = problem.constraints?.hallEffect;
         if (!c) throw new Error('hall-effect 模型需要 hallEffect 约束配置');
 
         const I = c.current; // A
@@ -92,13 +78,15 @@ export class HallEffectModel extends PhysicsModelBase {
 
         // 元电荷
         const Q_E = 1.602176634e-19; // C
-        // 霍尔系数
-        const RH = 1 / (n * Q_E); // m^3/C
         // 霍尔极性: 电子为负, 空穴为正
         const polaritySign = carrier === 'hole' ? 1 : -1;
-        // 霍尔电压
-        const UH_0 = (I * B) / (n * Q_E * t); // V
-        const UH = polaritySign * UH_0; // 带极性
+        // 霍尔系数 RH = polaritySign / (n * q) — 符号反映载流子类型
+        //   - 电子 (n 型): q < 0 → RH < 0
+        //   - 空穴 (p 型): q > 0 → RH > 0
+        const RH = polaritySign / (n * Q_E); // m^3/C (带极性)
+        // 霍尔电压 (带极性)
+        const UH_0 = (I * B) / (n * Q_E * t); // V (幅值)
+        const UH = polaritySign * UH_0; // V
 
         // ===== UH vs I 曲线 (B 固定, I 变化) =====
         const Imax = I * 1.2;
@@ -252,13 +240,7 @@ export class HallEffectModel extends PhysicsModelBase {
         ];
 
         return {
-            meta: {
-                model: 'hall-effect',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [bodyTraj, carrierTraj],
             keyframes,
             charts: {

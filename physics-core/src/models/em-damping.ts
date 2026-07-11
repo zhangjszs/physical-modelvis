@@ -1,4 +1,5 @@
 import type { PhysicsProblem } from '../types/problem.js';
+import { kineticEnergy } from '../physics/kinematics.js';
 import type {
     SimulationResult,
     TrajectoryPoint,
@@ -85,7 +86,7 @@ export class EMDampingModel extends PhysicsModelBase {
         const J = emd.inertia ?? 0.01; // kg·m^2
         if (J <= 0) throw new Error('转动惯量 inertia 必须为正');
 
-        const R = ((emd as unknown as Record<string, unknown>).radius as number) ?? 0.1; // m
+        const R = emd.radius ?? 0.1; // m
 
         // 涡流力矩系数 k (简化): k ∝ sigma * R^4 / 2
         // 量纲: [k] = N·m·s = kg·m^2/s
@@ -117,7 +118,7 @@ export class EMDampingModel extends PhysicsModelBase {
                 position: { x: t, y: omega }, // x: time (s), y: angular velocity (rad/s)
                 velocity: { x: 1, y: 0 },
                 acceleration: { x: 0, y: 0 },
-                kineticEnergy: 0.5 * J * omega * omega,
+                kineticEnergy: kineticEnergy(J, omega),
                 potentialEnergy: 0
             });
         }
@@ -218,13 +219,7 @@ export class EMDampingModel extends PhysicsModelBase {
         const conservedQuantities: ConservedQuantity[] = [];
 
         return {
-            meta: {
-                model: 'em-damping',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: {

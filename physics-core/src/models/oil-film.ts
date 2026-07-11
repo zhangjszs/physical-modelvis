@@ -1,4 +1,4 @@
-import type { PhysicsProblem } from '../types/problem.js';
+import type { PhysicsProblem , OilFilmConstraint} from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
@@ -10,17 +10,6 @@ import { PhysicsModelBase } from './base.js';
  *   V_oil = 油酸浓度 × 每滴体积 × 滴数
  *   S = 油膜面积
  */
-export interface OilFilmConstraint {
-    /** 油酸溶液浓度 (1:x 的油酸体积分数) */
-    readonly oilConcentration: number;
-    /** 每毫升滴数 (滴/mL) */
-    readonly dropsPerMl: number;
-    /** 油膜面积 (cm²) */
-    readonly filmArea: number;
-    /** 加入滴数, 默认 1 */
-    readonly drops?: number;
-}
-
 /**
  * 油膜法测分子大小模型 — 选必三 分子运动
  *
@@ -169,13 +158,7 @@ export class OilFilmModel extends PhysicsModelBase {
         ];
 
         return {
-            meta: {
-                model: 'oil-film',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: { x_t: histogram, y_t: concentrationCurve },

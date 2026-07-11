@@ -1,4 +1,5 @@
 import type { PhysicsProblem } from '../types/problem.js';
+import { kineticEnergy } from '../physics/kinematics.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
@@ -92,14 +93,14 @@ export class ReactionTimeModel extends PhysicsModelBase {
             const speed = Math.abs(vy);
             // 重力势能 (零点 y=0): U = mgy (当 y>0)
             const potentialEnergy = mass * g * Math.max(y, 0);
-            const kineticEnergy = 0.5 * mass * speed * speed;
+            const ke = kineticEnergy(mass, speed);
 
             trajectory.push({
                 t,
                 position: { x: 0, y: Math.max(y, 0) },
                 velocity: { x: 0, y: vy },
                 acceleration: { x: 0, y: ay },
-                kineticEnergy,
+                kineticEnergy: ke,
                 potentialEnergy
             });
         }
@@ -187,7 +188,7 @@ export class ReactionTimeModel extends PhysicsModelBase {
 
         // diagnostics
         const maxSpeed = g * reactionTime;
-        const finalKE = 0.5 * mass * maxSpeed * maxSpeed;
+        const finalKE = kineticEnergy(mass, maxSpeed);
         const initialPE = mass * g * h;
         const eRatio = initialPE > 0 ? finalKE / initialPE : 1;
 
@@ -225,13 +226,7 @@ export class ReactionTimeModel extends PhysicsModelBase {
         ];
 
         return {
-            meta: {
-                model: 'reaction-time',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: {

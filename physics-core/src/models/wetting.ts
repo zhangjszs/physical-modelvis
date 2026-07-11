@@ -1,4 +1,4 @@
-import type { PhysicsProblem } from '../types/problem.js';
+import type { PhysicsProblem , WettingConstraint} from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
@@ -15,11 +15,6 @@ import { PhysicsModelBase } from './base.js';
  *   - 根据 liquidMode (水/汞) 与 surfaceMode (玻璃/蜡面) 计算接触角
  *   - 生成接触角示意图数据 + 附着力与内聚力对比柱状数据
  */
-
-export interface WettingConstraint {
-    readonly liquidMode: 'water' | 'mercury';
-    readonly surfaceMode: 'glass' | 'wax';
-}
 
 /* 接触角查找表 (高中物理实验参考值, 度): 行=液体, 列=固体 */
 const CONTACT_ANGLE_TABLE: Record<'water' | 'mercury', Record<'glass' | 'wax', number>> = {
@@ -177,13 +172,7 @@ export class WettingModel extends PhysicsModelBase {
         if (theta < 10) warnings.push('θ < 10° 属于超亲水范畴, 铺展系数可能才是真正的判据');
 
         return {
-            meta: {
-                model: 'wetting',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: {

@@ -1,4 +1,4 @@
-import type { PhysicsProblem } from '../types/problem.js';
+import type { PhysicsProblem , MeltingCurveConstraint} from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
@@ -9,23 +9,6 @@ import { PhysicsModelBase } from './base.js';
  * 晶体: 在 T_m 处温度不变, 平台
  * 非晶体: 温度连续上升, 无平台
  */
-export interface MeltingCurveConstraint {
-    /** 模式: 晶体或非晶体 */
-    readonly mode: 'crystal' | 'noncrystal';
-    /** 熔点 (°C), 仅晶体 */
-    readonly meltingPoint: number;
-    /** 加热速率 (°C/min) */
-    readonly heatingRate: number;
-    /** 采样点数, 默认 200 */
-    readonly sampleCount?: number;
-    /** 初始温度 (°C), 默认 0 */
-    readonly initialTemp?: number;
-    /** 总时长 (min), 默认 20 */
-    readonly durationMin?: number;
-    /** 熔化潜热 (J/g) */
-    readonly latentHeat?: number;
-}
-
 /**
  * 晶体熔化曲线模型 — 选必三 物质状态
  *
@@ -215,13 +198,7 @@ export class MeltingCurveModel extends PhysicsModelBase {
         ];
 
         return {
-            meta: {
-                model: 'melting-curve',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: { x_t: tempCurve, y_t: powerCurve, v_t: phaseCurve },

@@ -127,13 +127,7 @@ export class VernierCaliperModel extends PhysicsModelBase {
         ];
 
         return {
-            meta: {
-                model: 'vernier-caliper',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: { x_t: mainScaleMarks, y_t: vernierMarks, 'static-diagram': diagramPoints },

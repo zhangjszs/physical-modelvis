@@ -1,5 +1,5 @@
 import { PhysicsModelBase } from './base.js';
-import type { PhysicsProblem } from '../types/problem.js';
+import type { PhysicsProblem , FissionChainConstraint} from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, ChartSeries } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 
@@ -8,12 +8,6 @@ import type { ParameterSpec } from '../types/common.js';
  * k = 增殖因子: N_gen = N0 · k^gen
  * k=1 临界, k>1 超临界(指数增长), k<1 次临界(衰减)
  */
-export interface FissionChainConstraint {
-    readonly multiplicationFactor: number;
-    readonly generations: number;
-    readonly initialNeutrons?: number;
-}
-
 export class FissionChainModel extends PhysicsModelBase {
     readonly name = '核裂变链式反应';
     readonly version = '1.0.0';
@@ -52,13 +46,7 @@ export class FissionChainModel extends PhysicsModelBase {
         const E_tot = total * 200e6 * 1.602e-19;
 
         return {
-            meta: {
-                model: 'fission-chain',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes: [
                 {

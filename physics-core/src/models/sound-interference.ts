@@ -182,13 +182,7 @@ export class SoundInterferenceModel extends PhysicsModelBase {
         if (obsY < d) warnings.push('观察点距离过近, 远场近似不成立');
 
         return {
-            meta: {
-                model: 'sound-interference',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: {

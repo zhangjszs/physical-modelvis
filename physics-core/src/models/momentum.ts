@@ -1,4 +1,5 @@
 import type { PhysicsProblem } from '../types/problem.js';
+import { kineticEnergy } from '../physics/kinematics.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ConservedQuantity } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
@@ -67,7 +68,7 @@ export class MomentumModel extends PhysicsModelBase {
                 position: { x: body.position.x + v0 * t + 0.5 * (F / m) * t * t, y: 0 },
                 velocity: { x: v, y: 0 },
                 acceleration: { x: F / m, y: 0 },
-                kineticEnergy: 0.5 * m * v * v,
+                kineticEnergy: kineticEnergy(m, v),
                 potentialEnergy: 0
             });
         }
@@ -122,13 +123,7 @@ export class MomentumModel extends PhysicsModelBase {
         };
 
         return {
-            meta: {
-                model: 'momentum',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: { F_t, p_t, v_t, impulse_t },
@@ -210,7 +205,7 @@ export class MomentumModel extends PhysicsModelBase {
                 position: { x: x1, y: 0 },
                 velocity: { x: v1Final, y: 0 },
                 acceleration: { x: 0, y: 0 },
-                kineticEnergy: 0.5 * m1 * v1Final * v1Final,
+                kineticEnergy: kineticEnergy(m1, v1Final),
                 potentialEnergy: 0
             });
             traj2.push({
@@ -218,7 +213,7 @@ export class MomentumModel extends PhysicsModelBase {
                 position: { x: x2, y: 0 },
                 velocity: { x: v2Final, y: 0 },
                 acceleration: { x: 0, y: 0 },
-                kineticEnergy: 0.5 * m2 * v2Final * v2Final,
+                kineticEnergy: kineticEnergy(m2, v2Final),
                 potentialEnergy: 0
             });
         }
@@ -282,13 +277,7 @@ export class MomentumModel extends PhysicsModelBase {
         ];
 
         return {
-            meta: {
-                model: 'momentum',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [traj1, traj2],
             keyframes,
             charts: { p_t, v_t: v1_t, v1_t, v2_t, ke_t },

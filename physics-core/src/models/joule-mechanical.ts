@@ -1,4 +1,4 @@
-import type { PhysicsProblem } from '../types/problem.js';
+import type { PhysicsProblem , JouleMechanicalConstraint} from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
@@ -16,21 +16,6 @@ import { PhysicsModelBase } from './base.js';
  *   - y_t = 吸收热量 Q 随下落次数 i 变化
  *   - v_t = J 的估计值收敛过程
  */
-
-export interface JouleMechanicalConstraint {
-    /** 重物质量 (kg) */
-    readonly mass: number;
-    /** 下落高度 (m) */
-    readonly height: number;
-    /** 下落次数 */
-    readonly drops: number;
-    /** 量热器水当量 (kg 水) */
-    readonly waterMass: number;
-    /** 水的比热容 (J/(kg·K)), 默认 4184 */
-    readonly specificHeat?: number;
-    /** 重力加速度, 默认 9.8 */
-    readonly gravity?: number;
-}
 
 const G_DEFAULT = 9.8;
 const C_WATER = 4184; // J/(kg·K)
@@ -179,13 +164,7 @@ export class JouleMechanicalModel extends PhysicsModelBase {
         if (dT_tot > 5) warnings.push('水温变化过大, 水的比热容与密度会有明显变化');
 
         return {
-            meta: {
-                model: 'joule-mechanical',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: {

@@ -201,13 +201,7 @@ export class MultimeterModel extends PhysicsModelBase {
         }
 
         return {
-            meta: {
-                model: 'multimeter',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: {

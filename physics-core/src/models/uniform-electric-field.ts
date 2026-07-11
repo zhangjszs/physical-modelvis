@@ -1,4 +1,5 @@
 import type { PhysicsProblem } from '../types/problem.js';
+import { kineticEnergy } from '../physics/kinematics.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
@@ -46,14 +47,15 @@ export class UniformElectricModel extends PhysicsModelBase {
             const position = Vec2.add(x0, Vec2.add(Vec2.scale(v0, t), Vec2.scale(a, 0.5 * t * t)));
             const velocity = Vec2.add(v0, Vec2.scale(a, t));
             const speed = Vec2.magnitude(velocity);
-            // 电势能 Ep = -qEy (以 y=0 为零势能点)
-            const potentialEnergy = -q * E.y * position.y;
+            // 电势能 U = q·φ, φ = -(Ex·x + Ey·y)  →  U = -q(Ex·x + Ey·y)
+            // 完整含 Ex 分量, 保证任何匀强电场方向下机械能守恒
+            const potentialEnergy = -q * (E.x * position.x + E.y * position.y);
             trajectory.push({
                 t,
                 position,
                 velocity,
                 acceleration: { ...a },
-                kineticEnergy: 0.5 * m * speed * speed,
+                kineticEnergy: kineticEnergy(m, speed),
                 potentialEnergy
             });
         }
@@ -127,13 +129,7 @@ export class UniformElectricModel extends PhysicsModelBase {
         };
 
         return {
-            meta: {
-                model: 'uniform-electric-field',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: { x_t, y_t, v_t, energy_t },
@@ -188,8 +184,8 @@ export class UniformElectricModel extends PhysicsModelBase {
                     },
                     {
                         name: '电势能',
-                        formula: 'Ep = -qEy',
-                        variables: { q: { value: q, unit: 'C' }, E: { value: E.y, unit: 'N/C' } }
+                        formula: 'U = -q(Ex·x + Ey·y)',
+                        variables: { q: { value: q, unit: 'C' }, E: { value: Vec2.magnitude(E), unit: 'N/C' } }
                     }
                 ]
             },

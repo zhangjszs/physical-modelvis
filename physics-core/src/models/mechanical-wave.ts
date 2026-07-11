@@ -198,13 +198,7 @@ export class MechanicalWaveModel extends PhysicsModelBase {
         ];
 
         return {
-            meta: {
-                model: 'mechanical-wave',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [...trajs, waveSnapshot],
             keyframes,
             charts: { wave_t, y_t, v_t },

@@ -1,4 +1,4 @@
-import type { PhysicsProblem } from '../types/problem.js';
+import type { PhysicsProblem , HeatTransferConstraint} from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
@@ -16,25 +16,6 @@ import { PhysicsModelBase } from './base.js';
  *   - x_t = T vs t 三种模式 (三条曲线在一个图表内)
  *   - y_t = 传热流量 Qdot 随时间递减 (三种曲线的对比)
  */
-
-export interface HeatTransferConstraint {
-    /** 传热模式 (全部展示, 也可以单独选一个) */
-    readonly mode: 'conduction' | 'convection' | 'radiation';
-    /** 材料类型 (影响 k / h / ε) */
-    readonly materialType?: 'copper' | 'glass' | 'steel' | 'polystyrene';
-    /** 环境温度 (K) */
-    readonly ambientTemp: number;
-    /** 环境温度 (K) 初始物体温度 (K) */
-    readonly initialTemp: number;
-    /** 环境温度 (K) 时间 (s) */
-    readonly time: number;
-    /** 截面积 (m²), 默认 0.01 */
-    readonly area?: number;
-    /** 导热体厚度 L (m, 仅 conduction, 默认 0.05) */
-    readonly thickness?: number;
-    /** 采样点数 */
-    readonly sampleCount?: number;
-}
 
 const SIGMA = 5.67e-8; // W/(m²·K⁴)
 
@@ -260,13 +241,7 @@ export class HeatTransferModel extends PhysicsModelBase {
         void pointsQ;
 
         return {
-            meta: {
-                model: 'heat-transfer',
-                solver: 'numerical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('numerical'),
             trajectories: [trajectory],
             keyframes,
             charts: {

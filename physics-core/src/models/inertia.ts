@@ -1,4 +1,5 @@
 import type { PhysicsProblem, InertiaMode } from '../types/problem.js';
+import { kineticEnergy } from '../physics/kinematics.js';
 import type {
     SimulationResult,
     TrajectoryPoint,
@@ -138,7 +139,7 @@ export class InertiaModel extends PhysicsModelBase {
                     position: { x: xBottom, y: 0 },
                     velocity: { x: vBottomX, y: vBottomY },
                     acceleration: { x: bottomActive ? a_friction : 0, y: 0 },
-                    kineticEnergy: 0.5 * mBottom * vBottomX * vBottomX,
+                    kineticEnergy: kineticEnergy(mBottom, vBottomX),
                     potentialEnergy: 0
                 });
             }
@@ -284,7 +285,7 @@ export class InertiaModel extends PhysicsModelBase {
                     position: { x: xBottom, y: yBottom },
                     velocity: { x: vBottomX, y: 0 },
                     acceleration: { x: slowingDown ? aStop : 0, y: 0 },
-                    kineticEnergy: 0.5 * mBottom * vBottomX * vBottomX,
+                    kineticEnergy: kineticEnergy(mBottom, vBottomX),
                     potentialEnergy: 0
                 });
             }
@@ -416,7 +417,7 @@ export class InertiaModel extends PhysicsModelBase {
                     position: { x: xCard, y: yCard },
                     velocity: { x: vCard, y: 0 },
                     acceleration: { x: 0, y: 0 },
-                    kineticEnergy: 0.5 * mBottom * vCard * vCard,
+                    kineticEnergy: kineticEnergy(mBottom, vCard),
                     potentialEnergy: mBottom * g * yCard
                 });
             }
@@ -530,13 +531,7 @@ export class InertiaModel extends PhysicsModelBase {
         const body0 = problem.bodies[0];
 
         return {
-            meta: {
-                model: 'inertia',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajTop, trajBottom],
             keyframes,
             charts: { v_t, x_t },

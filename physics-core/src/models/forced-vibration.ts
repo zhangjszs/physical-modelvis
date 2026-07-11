@@ -1,4 +1,5 @@
 import type { PhysicsProblem } from '../types/problem.js';
+import { kineticEnergy } from '../physics/kinematics.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
@@ -96,7 +97,7 @@ export class ForcedVibrationModel extends PhysicsModelBase {
                 position: { x, y: 0 },
                 velocity: { x: v, y: 0 },
                 acceleration: { x: a, y: 0 },
-                kineticEnergy: 0.5 * m * v * v,
+                kineticEnergy: kineticEnergy(m, v),
                 potentialEnergy: 0.5 * k * x * x
             });
             maxAbsX = Math.max(maxAbsX, Math.abs(x));
@@ -201,13 +202,7 @@ export class ForcedVibrationModel extends PhysicsModelBase {
         if (Math.abs(fDrive - f0) / f0 < 0.05) warnings.push('驱动频率接近固有频率, 发生共振');
 
         return {
-            meta: {
-                model: 'forced-vibration',
-                solver: 'numerical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('numerical'),
             trajectories: [trajectory],
             keyframes,
             charts: {

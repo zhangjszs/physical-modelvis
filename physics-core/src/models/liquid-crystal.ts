@@ -1,4 +1,4 @@
-import type { PhysicsProblem } from '../types/problem.js';
+import type { PhysicsProblem , LiquidCrystalConstraint} from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
@@ -20,21 +20,6 @@ import { PhysicsModelBase } from './base.js';
  *   - y_t = 透射率 vs 电压曲线 (在 T 固定下)
  *   - v_t = 颜色偏移 (chromaticity shift Δλ)
  */
-
-export interface LiquidCrystalConstraint {
-    /** 环境温度 (℃) */
-    readonly temperature: number;
-    /** 驱动电压 (V) */
-    readonly voltage: number;
-    /** 液晶模式 */
-    readonly mode: 'nematic' | 'cholesteric';
-    /** 清亮点 Tc (℃), 默认 35 (5CB 典型值) */
-    readonly clearingPoint?: number;
-    /** 阈值电压 Vth (V), 默认 2.0 */
-    readonly thresholdVoltage?: number;
-    /** 螺距 P (um, 仅 cholesteric 模式) */
-    readonly pitchUm?: number;
-}
 
 /* 材料示例参数 (以 5CB 向列液晶为原型) */
 const DEFAULT_TC = 35; // ℃
@@ -214,13 +199,7 @@ export class LiquidCrystalModel extends PhysicsModelBase {
         if (c.temperature < -10) warnings.push('温度过低可能使液晶结晶, 模型假设不再成立');
 
         return {
-            meta: {
-                model: 'liquid-crystal',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: {

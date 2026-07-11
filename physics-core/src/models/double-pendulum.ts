@@ -183,13 +183,7 @@ export class DoublePendulumSyncModel extends PhysicsModelBase {
         if ((th2Amp * 180) / Math.PI > 15) warnings.push('摆2初始角过大, 小角度近似失效');
 
         return {
-            meta: {
-                model: 'double-pendulum',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: {

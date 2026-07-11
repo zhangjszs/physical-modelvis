@@ -148,13 +148,7 @@ export class AmpereForceModel extends PhysicsModelBase {
         ];
 
         return {
-            meta: {
-                model: 'ampere-force',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: { x_t: F_I_curve, y_t: F_L_curve, vx_t: F_sinTheta_curve },

@@ -311,13 +311,7 @@ export class TickerTimerModel extends PhysicsModelBase {
         ];
 
         return {
-            meta: {
-                model: 'ticker-timer',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: { x_t: tapeChart, v_t: vtChart, y_t: dxChart },

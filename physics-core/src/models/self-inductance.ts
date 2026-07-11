@@ -226,13 +226,7 @@ export class SelfInductanceModel extends PhysicsModelBase {
         const conservedQuantities: ConservedQuantity[] = [];
 
         return {
-            meta: {
-                model: 'self-inductance',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: {

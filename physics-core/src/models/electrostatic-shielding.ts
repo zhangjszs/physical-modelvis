@@ -129,13 +129,7 @@ export class ElectrostaticShieldingModel extends PhysicsModelBase {
         ];
 
         return {
-            meta: {
-                model: 'electrostatic-shielding',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: { grounding_effect: grounding_effect, field_section: field_section },

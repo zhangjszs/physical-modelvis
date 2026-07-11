@@ -1,4 +1,5 @@
 import type { PhysicsProblem, ModelType } from '../types/problem.js';
+import { kineticEnergy } from '../physics/kinematics.js';
 import type {
     SimulationResult,
     TrajectoryPoint,
@@ -92,7 +93,7 @@ export class CollisionModel extends PhysicsModelBase {
                 position: { x: pos1, y: 0 },
                 velocity: { x: vel1, y: 0 },
                 acceleration: { x: 0, y: 0 },
-                kineticEnergy: 0.5 * m1 * speed1 * speed1,
+                kineticEnergy: kineticEnergy(m1, speed1),
                 potentialEnergy: 0
             });
             traj2.push({
@@ -100,7 +101,7 @@ export class CollisionModel extends PhysicsModelBase {
                 position: { x: pos2, y: 0 },
                 velocity: { x: vel2, y: 0 },
                 acceleration: { x: 0, y: 0 },
-                kineticEnergy: 0.5 * m2 * speed2 * speed2,
+                kineticEnergy: kineticEnergy(m2, speed2),
                 potentialEnergy: 0
             });
         }
@@ -165,7 +166,7 @@ export class CollisionModel extends PhysicsModelBase {
 
         const pInit = m1 * v1i + m2 * v2i;
         const pFinal = m1 * (collisionOccurs ? v1f : v1i) + m2 * (collisionOccurs ? v2f : v2i);
-        const keInit = 0.5 * m1 * v1i * v1i + 0.5 * m2 * v2i * v2i;
+        const keInit = kineticEnergy(m1, v1i) + kineticEnergy(m2, v2i);
         const keFinal = 0.5 * m1 * (collisionOccurs ? v1f : v1i) ** 2 + 0.5 * m2 * (collisionOccurs ? v2f : v2i) ** 2;
 
         const conservedQuantities: ConservedQuantity[] = [
@@ -240,13 +241,7 @@ export class CollisionModel extends PhysicsModelBase {
         ];
 
         return {
-            meta: {
-                model: problem.model,
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [traj1, traj2],
             keyframes,
             charts: { v_t, p_t, ke_t },

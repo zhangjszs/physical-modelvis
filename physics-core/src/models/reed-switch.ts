@@ -1,4 +1,4 @@
-import type { PhysicsProblem } from '../types/problem.js';
+import type { PhysicsProblem , ReedSwitchConstraint} from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
@@ -13,19 +13,6 @@ import { PhysicsModelBase } from './base.js';
  *   mode='magnetic': 永磁体靠近, 距离 d 为变量, 触发为吸合 (close)
  *   mode='coil': 线圈电流产生磁场, I 为变量, 触发为吸合 (close)
  */
-export interface ReedSwitchConstraint {
-    /** 磁铁与干簧管间距 (mm), 模式: magnetic */
-    readonly magnetDistance?: number;
-    /** 线圈电流 (mA), 模式: coil */
-    readonly coilCurrent?: number;
-    /** 工作模式: magnetic (磁铁靠近) | coil (线圈驱动) */
-    readonly mode: 'magnetic' | 'coil';
-    /** 吸合阈值 (AT 安匝或 mT), 默认 50 mT */
-    readonly pullInThreshold?: number;
-    /** 释放阈值 (AT 安匝或 mT), 默认 30 mT (释放<吸合, 形成回差) */
-    readonly releaseThreshold?: number;
-}
-
 /**
  * 干簧管模型 — 选必二 (传感器 / 电磁继电器)
  *
@@ -72,8 +59,7 @@ export class ReedSwitchModel extends PhysicsModelBase {
     solve(problem: PhysicsProblem): SimulationResult {
         this.throwIfInvalid(problem);
 
-        const raw = problem.constraints as unknown as { readonly reedSwitch?: ReedSwitchConstraint } | undefined;
-        const c = raw?.reedSwitch;
+        const c = problem.constraints?.reedSwitch;
         if (!c) throw new Error('reed-switch 模型需要 reedSwitch 约束配置');
 
         if (c.mode !== 'magnetic' && c.mode !== 'coil') {
@@ -314,13 +300,7 @@ export class ReedSwitchModel extends PhysicsModelBase {
         ];
 
         return {
-            meta: {
-                model: 'reed-switch',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [reedTraj],
             keyframes: [...keyframes, currentKeyframe],
             charts: {

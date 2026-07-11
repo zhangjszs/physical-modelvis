@@ -205,13 +205,7 @@ export class LoadVoltageModel extends PhysicsModelBase {
         }
 
         return {
-            meta: {
-                model: 'load-voltage',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: {

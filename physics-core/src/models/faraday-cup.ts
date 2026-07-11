@@ -137,13 +137,7 @@ export class FaradayCupModel extends PhysicsModelBase {
         ];
 
         return {
-            meta: {
-                model: 'faraday-cup',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: { probe_position_charge: probe_position_charge },

@@ -1,4 +1,5 @@
 import type { PhysicsProblem } from '../types/problem.js';
+import { kineticEnergy } from '../physics/kinematics.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ForceDiagram } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
@@ -95,7 +96,7 @@ export class UniformCircularMotionModel extends PhysicsModelBase {
                 position,
                 velocity,
                 acceleration,
-                kineticEnergy: 0.5 * mass * speed * speed,
+                kineticEnergy: kineticEnergy(mass, speed),
                 potentialEnergy: 0
             });
         }
@@ -200,13 +201,7 @@ export class UniformCircularMotionModel extends PhysicsModelBase {
         };
 
         return {
-            meta: {
-                model: 'uniform-circular-motion',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: { x_t, y_t, v_t, a_t, theta_t, F_t, force_diagram: forceDiagram },
@@ -215,8 +210,8 @@ export class UniformCircularMotionModel extends PhysicsModelBase {
                     {
                         name: '动能',
                         law: '匀速圆周运动动能守恒',
-                        initialValue: 0.5 * mass * v * v,
-                        finalValue: 0.5 * mass * v * v,
+                        initialValue: kineticEnergy(mass, v),
+                        finalValue: kineticEnergy(mass, v),
                         maxDeviation: 0,
                         tolerance: 1e-6,
                         conserved: true

@@ -193,13 +193,7 @@ export class ElectrostaticInductionModel extends PhysicsModelBase {
         if (thetaBase > 90) warnings.push('张角过大 (>90°), 已超出小角近似范围');
 
         return {
-            meta: {
-                model: 'electrostatic-induction',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: {

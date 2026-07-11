@@ -1,4 +1,4 @@
-import type { PhysicsProblem } from '../types/problem.js';
+import type { PhysicsProblem , EnergyTransformationConstraint} from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
@@ -20,17 +20,6 @@ import { PhysicsModelBase } from './base.js';
  *   - y_t = 能量流转桑基近似 (source → sink list)
  *   - v_t = 效率 η 随输入变化的曲线
  */
-
-export interface EnergyTransformationConstraint {
-    /** 实验模式 */
-    readonly mode: 'pendulum' | 'generator' | 'photovoltaic';
-    /** 输入能量 (J) */
-    readonly inputEnergy: number;
-    /** 转化效率 (0~1, 默认 0.85) */
-    readonly efficiency?: number;
-    /** 摆长 (m, 仅 pendulum), 默认 1 */
-    readonly length?: number;
-}
 
 export class EnergyTransformationModel extends PhysicsModelBase {
     readonly name = '能量守恒与转化';
@@ -188,13 +177,7 @@ export class EnergyTransformationModel extends PhysicsModelBase {
         if (Ein > 1e5) warnings.push('输入能量数量级大, 实际装置的损耗会有所不同');
 
         return {
-            meta: {
-                model: 'energy-transformation',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: {

@@ -180,13 +180,7 @@ export class ResistanceLawModel extends PhysicsModelBase {
         ];
 
         return {
-            meta: {
-                model: 'resistance-law',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: {

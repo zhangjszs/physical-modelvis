@@ -1,4 +1,5 @@
 import type { PhysicsProblem } from '../types/problem.js';
+import { kineticEnergy } from '../physics/kinematics.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ForceDiagram } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
@@ -75,7 +76,7 @@ export class SlidingFrictionModel extends PhysicsModelBase {
                 position: { x, y: 0 },
                 velocity: { x: v, y: 0 },
                 acceleration: { x: a, y: 0 },
-                kineticEnergy: 0.5 * m * v * v,
+                kineticEnergy: kineticEnergy(m, v),
                 potentialEnergy: 0
             });
         }
@@ -156,13 +157,7 @@ export class SlidingFrictionModel extends PhysicsModelBase {
         };
 
         return {
-            meta: {
-                model: 'sliding-friction',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory, frictionTraj],
             keyframes,
             charts: { f_N, v_t, force_diagram: forceDiagram },

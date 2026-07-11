@@ -1,5 +1,5 @@
 import { PhysicsModelBase } from './base.js';
-import type { PhysicsProblem } from '../types/problem.js';
+import type { PhysicsProblem , SecurityAlarmConstraint} from '../types/problem.js';
 import type {
     SimulationResult,
     TrajectoryPoint,
@@ -32,19 +32,6 @@ export type ReedState = 'closed' | 'open';
  *   - magnetDistance: 磁体与干簧管的距离 (mm)
  *   - triggerDistance: 干簧管动作距离阈值 (mm), 超过则断开
  */
-export interface SecurityAlarmConstraint {
-    /** 当前门状态: open / closed */
-    doorState: DoorState;
-    /** 磁铁到干簧管的距离 (mm), 默认: closed=5, open=100 */
-    magnetDistance?: number;
-    /** 干簧管释放距离 (mm), 默认 25 */
-    releaseDistance?: number;
-    /** 干簧管吸合距离 (mm), 默认 15 */
-    operateDistance?: number;
-    /** 扫描步数 (生成不同距离下的状态) */
-    sampleCount?: number;
-}
-
 /**
  * 门窗防盗报警器模型 — 选必二 传感器 (干簧管 / 磁控开关)
  *
@@ -73,8 +60,7 @@ export class SecurityAlarmModel extends PhysicsModelBase {
     solve(problem: PhysicsProblem): SimulationResult {
         this.throwIfInvalid(problem);
 
-        const cc = problem.constraints as unknown as { securityAlarm?: SecurityAlarmConstraint } | undefined;
-        const ic = cc?.securityAlarm;
+        const ic = problem.constraints?.securityAlarm;
         if (!ic) throw new Error('security-alarm 模型需要 securityAlarm 约束配置');
 
         const door = ic.doorState;
@@ -220,13 +206,7 @@ export class SecurityAlarmModel extends PhysicsModelBase {
         ];
 
         return {
-            meta: {
-                model: 'security-alarm',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: {
@@ -257,7 +237,7 @@ export class SecurityAlarmModel extends PhysicsModelBase {
         };
     }
 
-    validate(problem: PhysicsProblem): ReturnType<PhysicsModelBase['validate']> {
-        return { valid: true, errors: [], warnings: [] };
+    protected requiresValidation(): boolean {
+        return false;
     }
 }

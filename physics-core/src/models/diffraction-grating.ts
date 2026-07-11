@@ -197,13 +197,7 @@ export class DiffractionGratingModel extends PhysicsModelBase {
         if (N < 100) warnings.push('缝数较少, 谱线不够锐利');
 
         return {
-            meta: {
-                model: 'diffraction-grating',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: {

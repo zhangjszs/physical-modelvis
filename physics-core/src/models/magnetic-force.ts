@@ -195,13 +195,7 @@ export class MagneticForceModel extends PhysicsModelBase {
         ];
 
         return {
-            meta: {
-                model: 'magnetic-force',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories,
             keyframes,
             charts: { x_t: F_theta },

@@ -1,4 +1,5 @@
 import type { PhysicsProblem } from '../types/problem.js';
+import { kineticEnergy } from '../physics/kinematics.js';
 import type {
     SimulationResult,
     TrajectoryPoint,
@@ -106,7 +107,7 @@ export class SimplePendulumModel extends PhysicsModelBase {
 
             // 能量 (零点在最低点 θ=0: 物理高度 h = L − L·cosθ)
             const h = L * (1 - Math.cos(theta));
-            const KE = 0.5 * mass * speed * speed;
+            const KE = kineticEnergy(mass, speed);
             const PE = mass * g * h;
             const E = KE + PE;
             maxEnergyDrift = Math.max(maxEnergyDrift, Math.abs(E - E0));
@@ -267,13 +268,7 @@ export class SimplePendulumModel extends PhysicsModelBase {
         ];
 
         return {
-            meta: {
-                model: 'simple-pendulum',
-                solver: 'numerical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('numerical'),
             trajectories: [trajectory],
             keyframes,
             charts: { theta_t, omega_t, ke_t, pe_t, energy_t },

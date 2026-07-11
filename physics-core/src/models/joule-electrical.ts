@@ -1,4 +1,4 @@
-import type { PhysicsProblem } from '../types/problem.js';
+import type { PhysicsProblem , JouleElectricalConstraint} from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
@@ -16,21 +16,6 @@ import { PhysicsModelBase } from './base.js';
  *   - y_t = 热量 Q 随时间 t 变化
  *   - v_t = W-Q 散点 (验证线性比例, 斜率即 J 的倒数)
  */
-
-export interface JouleElectricalConstraint {
-    /** 电源电压 (V) */
-    readonly voltage: number;
-    /** 电阻 (Ω) */
-    readonly resistance: number;
-    /** 通电时间 (s) */
-    readonly time: number;
-    /** 水当量 (kg 水) */
-    readonly waterMass: number;
-    /** 水的比热容 (J/(kg·K)), 默认 4184 */
-    readonly specificHeat?: number;
-    /** 时间步数 (采样数) */
-    readonly sampleCount?: number;
-}
 
 const C_WATER = 4184; // J/(kg·K)
 
@@ -174,13 +159,7 @@ export class JouleElectricalModel extends PhysicsModelBase {
         if (dt > 50) warnings.push('电热功率较大, 比热实验数据点较少');
 
         return {
-            meta: {
-                model: 'joule-electrical',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: {

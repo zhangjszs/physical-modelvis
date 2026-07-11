@@ -178,13 +178,7 @@ export class WaterDiffractionModel extends PhysicsModelBase {
         if (ratio < 0.5) warnings.push('缝宽小于波长, 等效于单一波源');
 
         return {
-            meta: {
-                model: 'water-diffraction',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: {

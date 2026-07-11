@@ -209,13 +209,7 @@ export class CircuitModel extends PhysicsModelBase {
         }
 
         return {
-            meta: {
-                model: 'circuit',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: { x_t: U_R_curve, y_t: P_R_curve, vx_t: VI_curve },

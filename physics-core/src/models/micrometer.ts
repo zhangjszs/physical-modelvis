@@ -147,13 +147,7 @@ export class MicrometerModel extends PhysicsModelBase {
         ];
 
         return {
-            meta: {
-                model: 'micrometer',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: { x_t: fixedScale, y_t: movableScale, 'static-diagram': diagram },

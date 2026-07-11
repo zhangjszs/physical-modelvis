@@ -1,4 +1,5 @@
 import type { PhysicsProblem } from '../types/problem.js';
+import { kineticEnergy } from '../physics/kinematics.js';
 import type {
     SimulationResult,
     TrajectoryPoint,
@@ -150,7 +151,7 @@ export class OverweightModel extends PhysicsModelBase {
                 position: { x: 0, y },
                 velocity: { x: 0, y: vy },
                 acceleration: { x: 0, y: aY },
-                kineticEnergy: 0.5 * m * vy * vy,
+                kineticEnergy: kineticEnergy(m, vy),
                 // 重力势能: U = mgy (零点 y=0 处)
                 potentialEnergy: m * g * y
             });
@@ -340,13 +341,7 @@ export class OverweightModel extends PhysicsModelBase {
         const summary = `电梯${modeLabel}阶段 (${OverweightModel.modeDescription(mode)})，m=${m} kg，a_y=${aY >= 0 ? '+' : ''}${aY.toFixed(2)} m/s²，N=${N.toFixed(2)} N，mg=${(m * g).toFixed(2)} N —— ${stateLabel}`;
 
         return {
-            meta: {
-                model: 'overweight',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: { y_t, vy_t, a_y_t, FN_t, mg_ref_t: mgRef_t, FN_a_y, force_diagram: forceDiagram },

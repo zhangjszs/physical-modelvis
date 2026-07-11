@@ -278,13 +278,7 @@ export class CoulombForceExploreModel extends PhysicsModelBase {
         if (Math.abs((k_exp - K_COULOMB) / K_COULOMB) > 0.01) warnings.push('拟合 k 值误差异常 (>1%)');
 
         return {
-            meta: {
-                model: 'coulomb-force-explore',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: { F_q, F_inv_r2, 'static-diagram': staticDiagram },

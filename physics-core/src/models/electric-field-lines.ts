@@ -128,13 +128,7 @@ export class ElectricFieldLinesModel extends PhysicsModelBase {
                 : `静电场 (${charges.length} 个电荷): 电场线从正电荷发出、负电荷汇入, 不相交`;
 
         return {
-            meta: {
-                model: 'electric-field-lines',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [],
             keyframes: this.buildKeyframes(charges, plates),
             charts: {},

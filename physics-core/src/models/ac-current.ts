@@ -128,13 +128,7 @@ export class ACCurrentModel extends PhysicsModelBase {
         }
 
         return {
-            meta: {
-                model: 'ac-current',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: { x_t: e_t, y_t: u2_t },

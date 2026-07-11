@@ -191,13 +191,7 @@ export class HologramModel extends PhysicsModelBase {
         if (deltaSin < 0.01) warnings.push('两光角度差极小, 条纹间距大但信息量低');
 
         return {
-            meta: {
-                model: 'hologram',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: {

@@ -170,13 +170,7 @@ export class SoundWaveformModel extends PhysicsModelBase {
         if (waveType === 'complex' && harmonics.length === 0) warnings.push('复合音模式但 harmonics 为空');
 
         return {
-            meta: {
-                model: 'sound-waveform',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: {

@@ -1,4 +1,5 @@
 import type { PhysicsProblem } from '../types/problem.js';
+import { kineticEnergy } from '../physics/kinematics.js';
 import type {
     SimulationResult,
     TrajectoryPoint,
@@ -90,7 +91,7 @@ export class NewtonSecondLawModel extends PhysicsModelBase {
                 position,
                 velocity,
                 acceleration: { ...a },
-                kineticEnergy: 0.5 * m * speed * speed,
+                kineticEnergy: kineticEnergy(m, speed),
                 potentialEnergy: 0
             });
         }
@@ -199,13 +200,7 @@ export class NewtonSecondLawModel extends PhysicsModelBase {
         ];
 
         return {
-            meta: {
-                model: 'newton-second-law',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: { x_t, v_t, a_t, F_t, ke_t, force_diagram: forceDiagram },

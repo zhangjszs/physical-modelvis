@@ -135,13 +135,7 @@ export class ForceCompositionModel extends PhysicsModelBase {
         const directionCalc = `tanφ = ${F2}×sin${angleDeg}° / (${F1} + ${F2}×cos${angleDeg}°) = ${(F2 * sinTheta).toFixed(4)} / ${(F1 + F2 * cosTheta).toFixed(4)} → φ = ${FangleDeg.toFixed(2)}°`;
 
         return {
-            meta: {
-                model: 'force-composition',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: { F_theta, force_diagram: forceDiagram },

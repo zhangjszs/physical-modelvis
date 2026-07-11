@@ -1,4 +1,5 @@
 import type { PhysicsProblem } from '../types/problem.js';
+import { kineticEnergy } from '../physics/kinematics.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
@@ -47,7 +48,7 @@ export class UniformMagneticModel extends PhysicsModelBase {
                     position,
                     velocity: { ...v0 },
                     acceleration: Vec2.zero(),
-                    kineticEnergy: 0.5 * m * v0Mag * v0Mag,
+                    kineticEnergy: kineticEnergy(m, v0Mag),
                     potentialEnergy: 0
                 });
             }
@@ -102,7 +103,7 @@ export class UniformMagneticModel extends PhysicsModelBase {
                 position,
                 velocity,
                 acceleration,
-                kineticEnergy: 0.5 * m * v0Mag * v0Mag, // 动能守恒
+                kineticEnergy: kineticEnergy(m, v0Mag), // 动能守恒
                 potentialEnergy: 0
             });
         }
@@ -175,13 +176,7 @@ export class UniformMagneticModel extends PhysicsModelBase {
         };
 
         return {
-            meta: {
-                model: 'uniform-magnetic-field',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: { x_t, y_t, v_t },

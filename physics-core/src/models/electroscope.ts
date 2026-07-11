@@ -160,13 +160,7 @@ export class ElectroscopeModel extends PhysicsModelBase {
         if (thetaDeg > 90) warnings.push('张角超过 90°, 物理上不合理');
 
         return {
-            meta: {
-                model: 'electroscope',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: { q_theta },

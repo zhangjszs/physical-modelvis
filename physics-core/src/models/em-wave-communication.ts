@@ -1,4 +1,4 @@
-import type { PhysicsProblem } from '../types/problem.js';
+import type { PhysicsProblem , EMWaveCommConstraint} from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
@@ -10,21 +10,6 @@ import { PhysicsModelBase } from './base.js';
  * AM 调制: V_AM(t) = Vc * [1 + m * sin(2*pi*fm*t)] * sin(2*pi*fc*t)
  * FM 调制: V_FM(t) = Vc * sin(2*pi*fc*t + beta * sin(2*pi*fm*t))
  */
-export interface EMWaveCommConstraint {
-    /** 载波频率 fc (Hz) */
-    readonly carrierFreq: number;
-    /** 调制类型: AM (幅度调制) 或 FM (频率调制) */
-    readonly modulationType: 'AM' | 'FM';
-    /** 音频(基带)信号频率 fm (Hz) */
-    readonly audioFreq: number;
-    /** 调制指数 m (AM: 0~1; FM: 调频指数 beta) */
-    readonly modulationIndex?: number;
-    /** 载波峰值电压 Vc (V) */
-    readonly carrierAmplitude?: number;
-    /** 传输距离 (m), 用于计算传播时延 */
-    readonly distance?: number;
-}
-
 /**
  * 电磁波发射接收模型 — 选必二 第五章 (电磁振荡与电磁波)
  *
@@ -77,8 +62,7 @@ export class EMWaveCommunicationModel extends PhysicsModelBase {
     solve(problem: PhysicsProblem): SimulationResult {
         this.throwIfInvalid(problem);
 
-        const raw = problem.constraints as unknown as { readonly emWaveComm?: EMWaveCommConstraint } | undefined;
-        const c = raw?.emWaveComm;
+        const c = problem.constraints?.emWaveComm;
         if (!c) throw new Error('em-wave-communication 模型需要 emWaveComm 约束配置');
 
         const fc = c.carrierFreq;
@@ -281,13 +265,7 @@ export class EMWaveCommunicationModel extends PhysicsModelBase {
         ];
 
         return {
-            meta: {
-                model: 'em-wave-communication',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [propagationTraj],
             keyframes,
             charts: {

@@ -1,5 +1,5 @@
 import { PhysicsModelBase } from './base.js';
-import type { PhysicsProblem } from '../types/problem.js';
+import type { PhysicsProblem , AlphaScatteringConstraint} from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, ChartSeries } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 
@@ -7,14 +7,6 @@ import type { ParameterSpec } from '../types/common.js';
  * α 粒子散射模型 — 选必三 第五章 (卢瑟福散射)
  * b = (q1*q2)/(4*pi*eps0*m*v^2) * cot(theta/2)
  */
-export interface AlphaScatteringConstraint {
-    readonly alphaEnergy: number; // MeV
-    readonly targetZ: number; // 核电荷数
-    readonly foilThickness?: number;
-    readonly nParticles?: number;
-    readonly impactParamMax?: number;
-}
-
 export class AlphaScatteringModel extends PhysicsModelBase {
     readonly name = 'α 粒子散射';
     readonly version = '1.0.0';
@@ -86,13 +78,7 @@ export class AlphaScatteringModel extends PhysicsModelBase {
         }
 
         return {
-            meta: {
-                model: 'alpha-scattering',
-                solver: 'numerical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('numerical'),
             trajectories: trajectories,
             keyframes: [
                 {

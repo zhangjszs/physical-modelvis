@@ -1,5 +1,6 @@
 import { PhysicsModelBase } from './base.js';
-import type { PhysicsProblem } from '../types/problem.js';
+import type { PhysicsProblem , NeutronDiscoveryConstraint} from '../types/problem.js';
+import { kineticEnergy } from '../physics/kinematics.js';
 import type { SimulationResult, TrajectoryPoint, ChartSeries } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 
@@ -7,11 +8,6 @@ import type { ParameterSpec } from '../types/common.js';
  * 中子发现模型 — 选必三 第五章 (查德威克实验)
  * 动量守恒 + 能量守恒 → m_n ≈ 1.0087 u
  */
-export interface NeutronDiscoveryConstraint {
-    readonly alphaEnergy: number; // MeV
-    readonly targetMass: number; // u (氢=1, 氮=14)
-}
-
 export class NeutronDiscoveryModel extends PhysicsModelBase {
     readonly name = '中子发现';
     readonly version = '1.0.0';
@@ -37,8 +33,8 @@ export class NeutronDiscoveryModel extends PhysicsModelBase {
         const vH = ((2 * m_alpha) / (m_alpha + 1)) * v_alpha;
         const vN = ((2 * m_alpha) / (m_alpha + 14)) * v_alpha;
 
-        const KE_H = 0.5 * 1 * vH * vH;
-        const KE_N = 0.5 * 14 * vN * vN;
+        const KE_H = kineticEnergy(1, vH);
+        const KE_N = kineticEnergy(14, vN);
 
         const vRecoilH = (2 * m_alpha * v_alpha) / (m_alpha + 1);
         const vRecoilN = (2 * m_alpha * v_alpha) / (m_alpha + 14);
@@ -61,19 +57,13 @@ export class NeutronDiscoveryModel extends PhysicsModelBase {
             if (M_i === 1 || M_i === 14)
                 y_t.points.push({
                     x: M_i === 1 ? 1 : 2,
-                    y: parseFloat(((0.5 * M_i * v_rec * v_rec) / v_alpha / v_alpha).toFixed(3))
+                    y: parseFloat(((kineticEnergy(M_i, v_rec)) / v_alpha / v_alpha).toFixed(3))
                 });
             trajectory.push({ t: M_i * 0.1, position: { x: M_i, y: v_rec }, velocity: { x: 0, y: 0 } });
         }
 
         return {
-            meta: {
-                model: 'neutron-discovery',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes: [
                 {

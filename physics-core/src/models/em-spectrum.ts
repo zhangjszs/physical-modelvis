@@ -1,4 +1,4 @@
-import type { PhysicsProblem } from '../types/problem.js';
+import type { PhysicsProblem , EMSpectrumConstraint} from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
@@ -14,15 +14,6 @@ import { PhysicsModelBase } from './base.js';
  *  X 射线:   3e16     - 3e19 Hz  (0.01 - 10 nm)
  *  gamma 射线: > 3e19 Hz          (< 0.01 nm)
  */
-export interface EMSpectrumConstraint {
-    /** 扫描频率下限 (Hz), 默认 1e6 */
-    readonly freqMin: number;
-    /** 扫描频率上限 (Hz), 默认 1e20 */
-    readonly freqMax: number;
-    /** 高亮显示的波段名称 */
-    readonly highlightBand?: SpectrumBandName;
-}
-
 /** 电磁波谱波段名称 */
 export type SpectrumBandName = 'radio' | 'infrared' | 'visible' | 'ultraviolet' | 'xray' | 'gamma';
 
@@ -77,8 +68,7 @@ export class EMSpectrumModel extends PhysicsModelBase {
     solve(problem: PhysicsProblem): SimulationResult {
         this.throwIfInvalid(problem);
 
-        const raw = problem.constraints as unknown as { readonly emSpectrum?: EMSpectrumConstraint } | undefined;
-        const c = raw?.emSpectrum;
+        const c = problem.constraints?.emSpectrum;
         if (!c) throw new Error('em-spectrum 模型需要 emSpectrum 约束配置');
 
         const freqMin = c.freqMin;
@@ -282,13 +272,7 @@ export class EMSpectrumModel extends PhysicsModelBase {
         ];
 
         return {
-            meta: {
-                model: 'em-spectrum',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [bandTable],
             keyframes,
             charts: {

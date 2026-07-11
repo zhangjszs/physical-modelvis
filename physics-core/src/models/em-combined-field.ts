@@ -1,4 +1,5 @@
 import type { PhysicsProblem } from '../types/problem.js';
+import { kineticEnergy } from '../physics/kinematics.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
@@ -173,7 +174,7 @@ export class EMCombinedFieldModel extends PhysicsModelBase {
                     x: qm * (E.x + vy * Bz),
                     y: qm * (E.y - vx * Bz)
                 },
-                kineticEnergy: 0.5 * m * speed * speed,
+                kineticEnergy: kineticEnergy(m, speed),
                 potentialEnergy: pe
             });
 
@@ -291,13 +292,7 @@ export class EMCombinedFieldModel extends PhysicsModelBase {
         const tolerance = solver === 'analytical' ? 1e-6 : 1e-2;
 
         return {
-            meta: {
-                model: 'em-combined-field',
-                solver,
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta(solver),
             trajectories: [trajectory],
             keyframes,
             charts: { x_t, y_t, v_t, energy_t },

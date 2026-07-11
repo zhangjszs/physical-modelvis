@@ -1,4 +1,5 @@
 import type { PhysicsProblem } from '../types/problem.js';
+import { kineticEnergy } from '../physics/kinematics.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ForceDiagram } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
@@ -85,7 +86,7 @@ export class InclinedPlaneModel extends PhysicsModelBase {
                 position,
                 velocity,
                 acceleration: accelVec,
-                kineticEnergy: 0.5 * m * speed * speed,
+                kineticEnergy: kineticEnergy(m, speed),
                 potentialEnergy: m * g * position.y
             });
         }
@@ -199,13 +200,7 @@ export class InclinedPlaneModel extends PhysicsModelBase {
         const criticalAngle = mu > 0 ? (Math.atan(mu) * 180) / Math.PI : 0;
 
         return {
-            meta: {
-                model: 'inclined-plane',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: { x_t, v_t, a_t, force_diagram: forceDiagram },

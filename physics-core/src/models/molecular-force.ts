@@ -1,4 +1,4 @@
-import type { PhysicsProblem } from '../types/problem.js';
+import type { PhysicsProblem , MolecularForceConstraint} from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
@@ -10,19 +10,6 @@ import { PhysicsModelBase } from './base.js';
  * F(r) = -dU/dr = 4·eps·[12·sigma^12/r^13 - 6·sigma^6/r^7]
  *      = (24·eps/r)·[2·(sigma/r)^12 - (sigma/r)^6]
  */
-export interface MolecularForceConstraint {
-    /** 势阱深度 (J) */
-    readonly epsilon: number;
-    /** 分子直径 (m) */
-    readonly sigma: number;
-    /** 最小距离 (m), 默认 0.8*sigma */
-    readonly rMin?: number;
-    /** 最大距离 (m), 默认 4*sigma */
-    readonly rMax?: number;
-    /** 采样点数, 默认 200 */
-    readonly sampleCount?: number;
-}
-
 /**
  * 分子间作用力模型 — Lennard-Jones 势 (选必三 分子运动)
  *
@@ -151,13 +138,7 @@ export class MolecularForceModel extends PhysicsModelBase {
         ];
 
         return {
-            meta: {
-                model: 'molecular-force',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: { x_t: potentialCurve, y_t: forceCurve },

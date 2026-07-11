@@ -1,17 +1,11 @@
 import { PhysicsModelBase } from './base.js';
-import type { PhysicsProblem } from '../types/problem.js';
+import type { PhysicsProblem , ElectronDiffractionConstraint} from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, ChartSeries } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 
 /**
  * 电子衍射模型 — 选必三 第四章 (德布罗意 λ=h/√(2meU), 多晶衍射环)
  */
-export interface ElectronDiffractionConstraint {
-    readonly accVoltage: number; // V
-    readonly crystalLattice?: number; // d (nm)
-    readonly sampleCount?: number;
-}
-
 export class ElectronDiffractionModel extends PhysicsModelBase {
     readonly name = '电子衍射';
     readonly version = '1.0.0';
@@ -64,13 +58,7 @@ export class ElectronDiffractionModel extends PhysicsModelBase {
         }
 
         return {
-            meta: {
-                model: 'electron-diffraction',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes: [
                 {

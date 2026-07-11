@@ -73,8 +73,8 @@ export class EddyCurrentModel extends PhysicsModelBase {
         const d = ec.thickness; // m
         if (d <= 0) throw new Error('厚度 thickness 必须为正');
 
-        const area = ((ec as unknown as Record<string, unknown>).area as number) ?? 0.01; // m²
-        const muR = ((ec as unknown as Record<string, unknown>).muR as number) ?? 1; // 相对磁导率
+        const area = ec.area ?? 0.01; // m²
+        const muR = ec.muR ?? 1; // 相对磁导率
 
         // 电阻率 ρ = 1/σ
         const rho = 1 / sigma; // Ω·m
@@ -238,13 +238,7 @@ export class EddyCurrentModel extends PhysicsModelBase {
         const conservedQuantities: ConservedQuantity[] = [];
 
         return {
-            meta: {
-                model: 'eddy-current',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: {

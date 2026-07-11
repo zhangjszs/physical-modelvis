@@ -174,13 +174,7 @@ export class DopplerModel extends PhysicsModelBase {
         if (fBeat > 1000) warnings.push('拍频较大, 实际听觉难以分辨');
 
         return {
-            meta: {
-                model: 'doppler',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: {

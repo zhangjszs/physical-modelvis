@@ -131,13 +131,7 @@ export class PhotoelectricModel extends PhysicsModelBase {
         ];
 
         return {
-            meta: {
-                model: 'photoelectric',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: { x_t: Uc_nu, y_t: Ek_nu },

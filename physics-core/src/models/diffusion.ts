@@ -1,4 +1,4 @@
-import type { PhysicsProblem } from '../types/problem.js';
+import type { PhysicsProblem , DiffusionConstraint} from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
@@ -9,21 +9,6 @@ import { PhysicsModelBase } from './base.js';
  * 一维扩散: MSD = 2·D·t
  * 高斯浓度分布: C(x,t) = (N / sqrt(4*pi*D*t)) * exp(-x^2 / (4*D*t))
  */
-export interface DiffusionConstraint {
-    /** 温度 (K) */
-    readonly temperature: number;
-    /** 扩散介质 */
-    readonly mode: 'gas' | 'liquid';
-    /** 粒子数 */
-    readonly particleCount: number;
-    /** 扩散系数 (m^2/s), 不提供时按温度估算 */
-    readonly diffusionCoeff?: number;
-    /** 空间尺度 (m), 默认 1e-6 */
-    readonly gridSize?: number;
-    /** 时间采样点数, 默认 100 */
-    readonly timeSteps?: number;
-}
-
 /**
  * 分子扩散模型 — 菲克定律 (选必三 热学/物质状态)
  *
@@ -161,13 +146,7 @@ export class DiffusionModel extends PhysicsModelBase {
         ];
 
         return {
-            meta: {
-                model: 'diffusion',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: { x_t: concentrationProfile, y_t: msdCurve },

@@ -163,13 +163,7 @@ export class ThinFilmModel extends PhysicsModelBase {
         if (d > 4 * lambda) warnings.push('厚度较大, 相干长度可能不足');
 
         return {
-            meta: {
-                model: 'thin-film',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: {

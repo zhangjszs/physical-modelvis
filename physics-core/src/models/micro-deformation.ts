@@ -159,13 +159,7 @@ export class MicroDeformationModel extends PhysicsModelBase {
         const calcDeltaS = `Δs = 2D·tan(2α) = 2×${D}·tan(${(2 * alpha).toExponential(4)}) = ${deltaS.toExponential(4)} m`;
 
         return {
-            meta: {
-                model: 'micro-deformation',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [staticTraj, sweepDeltaH, sweepDeltaS],
             keyframes,
             charts: { pressure_deltaS, pressure_deltaH },

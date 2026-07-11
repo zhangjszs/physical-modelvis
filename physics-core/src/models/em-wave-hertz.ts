@@ -189,13 +189,7 @@ export class HertzExperimentModel extends PhysicsModelBase {
         ];
 
         return {
-            meta: {
-                model: 'em-wave-hertz',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: {

@@ -1,4 +1,5 @@
 import type { PhysicsProblem } from '../types/problem.js';
+import { kineticEnergy } from '../physics/kinematics.js';
 import type {
     SimulationResult,
     TrajectoryPoint,
@@ -74,7 +75,7 @@ export class MotionCompositionModel extends PhysicsModelBase {
                 position: { x, y },
                 velocity: { x: vx, y: vy },
                 acceleration: { x: 0, y: ay },
-                kineticEnergy: 0.5 * m * speed * speed,
+                kineticEnergy: kineticEnergy(m, speed),
                 potentialEnergy: m * Math.max(0, 9.8 * y)
             });
         }
@@ -222,13 +223,7 @@ export class MotionCompositionModel extends PhysicsModelBase {
         ];
 
         return {
-            meta: {
-                model: 'motion-composition',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: { x_t, y_t, v_t, vy_t, vx_t, 'y-x': y_x },

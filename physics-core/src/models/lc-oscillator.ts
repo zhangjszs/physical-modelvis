@@ -142,13 +142,7 @@ export class LCOscillatorModel extends PhysicsModelBase {
         ];
 
         return {
-            meta: {
-                model: 'lc-oscillator',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: { x_t: q_t, y_t: i_t, ke_t: Ee_t, pe_t: Em_t },

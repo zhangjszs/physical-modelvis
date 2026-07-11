@@ -83,13 +83,24 @@ export class GasLawModel extends PhysicsModelBase {
             VFinal = V0;
             TFinal = T0 * factor;
             pFinal = p0 * factor;
-            // p-T 曲线 (等容过程用 p-T 坐标更直观)
+            // p-T 曲线 (等容过程用 p-T 坐标更直观).
+            // 注意: x 轴是温度 (K), 不可复用 generateIsoCurve — 它内置了 m³→L 的 ×1e3 缩放,
+            // 套用会把温度放大 1000 倍 (273 K → 273000 K). 此处内联采样, 温度不缩放.
+            const tMin = T0 * 0.3;
+            const tMax = T0 * 2;
+            const N = 100;
+            const isoPoints: Array<{ x: number; y: number }> = [];
+            for (let i = 0; i <= N; i++) {
+                const T = tMin + ((tMax - tMin) * i) / N;
+                const p = (n * R * T) / V0 / 1e3;
+                isoPoints.push({ x: parseFloat(T.toFixed(3)), y: parseFloat(p.toFixed(3)) });
+            }
             processCurve = {
                 xLabel: '温度 T (K)',
                 yLabel: '压强 p (kPa)',
                 xUnit: 'K',
                 yUnit: 'kPa',
-                points: this.generateIsoCurve(T0 * 0.3, T0 * 2, 100, T => (n * R * T) / V0 / 1e3)
+                points: isoPoints
             };
         }
 
@@ -172,13 +183,7 @@ export class GasLawModel extends PhysicsModelBase {
         ];
 
         return {
-            meta: {
-                model: 'gas-law',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: { x_t: processCurve },

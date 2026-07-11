@@ -186,13 +186,7 @@ export class SingleSlitModel extends PhysicsModelBase {
         if (L < 1) warnings.push('屏幕距离过小, 远场条件不充分');
 
         return {
-            meta: {
-                model: 'single-slit',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: {

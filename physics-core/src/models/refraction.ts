@@ -186,13 +186,7 @@ export class RefractionModel extends PhysicsModelBase {
         ];
 
         return {
-            meta: {
-                model: 'refraction',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: { x_t: sinRelation, y_t: angleRelation },

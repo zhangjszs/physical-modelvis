@@ -1,4 +1,4 @@
-import type { PhysicsProblem } from '../types/problem.js';
+import type { PhysicsProblem , SurfaceTensionConstraint} from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
@@ -9,15 +9,6 @@ import { PhysicsModelBase } from './base.js';
  * F_sigma = 2 * sigma * L (两个表面)
  * sigma(T) = sigma_0 - beta * (T - T_0)
  */
-export interface SurfaceTensionConstraint {
-    /** 液体类型 */
-    readonly liquidMode: 'water' | 'mercury';
-    /** 滑块/吊环长度 (m) */
-    readonly sliderLength: number;
-    /** 温度 (°C) */
-    readonly temperature: number;
-}
-
 /**
  * 表面张力模型 — 选必三 液体表面性质
  *
@@ -156,13 +147,7 @@ export class SurfaceTensionModel extends PhysicsModelBase {
         ];
 
         return {
-            meta: {
-                model: 'surface-tension',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: { x_t: forceCurve, y_t: sigmaCurve },

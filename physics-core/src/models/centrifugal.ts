@@ -1,4 +1,5 @@
 import type { PhysicsProblem } from '../types/problem.js';
+import { kineticEnergy } from '../physics/kinematics.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ForceDiagram } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
@@ -101,7 +102,7 @@ export class CentrifugalModel extends PhysicsModelBase {
                     position: { x, y },
                     velocity: { x: -omega * r * Math.sin(phi), y: omega * r * Math.cos(phi) },
                     acceleration: { x: -omega * omega * r * Math.cos(phi), y: -omega * omega * r * Math.sin(phi) },
-                    kineticEnergy: 0.5 * m * omega * omega * r * r
+                    kineticEnergy: kineticEnergy(m, omega * r)
                 });
 
                 const Fnow = m * omega * omega * r;
@@ -289,13 +290,7 @@ export class CentrifugalModel extends PhysicsModelBase {
         };
 
         return {
-            meta: {
-                model: 'centrifugal',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: {

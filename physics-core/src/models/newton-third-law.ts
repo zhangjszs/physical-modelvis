@@ -1,4 +1,5 @@
 import type { PhysicsProblem } from '../types/problem.js';
+import { kineticEnergy } from '../physics/kinematics.js';
 import type {
     SimulationResult,
     TrajectoryPoint,
@@ -86,8 +87,8 @@ export class NewtonThirdLawModel extends PhysicsModelBase {
             const dxA = vA0 * t + 0.5 * aSystem * t * t;
             const xA = xA0 + dxA;
             const xB = xB0 + dxA; // 绳连接：两物体同步运动
-            const keA = 0.5 * mA * v * v;
-            const keB = 0.5 * mB * v * v;
+            const keA = kineticEnergy(mA, v);
+            const keB = kineticEnergy(mB, v);
 
             trajA.push({
                 t,
@@ -177,13 +178,7 @@ export class NewtonThirdLawModel extends PhysicsModelBase {
         ];
 
         return {
-            meta: {
-                model: 'newton-third-law',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajA, trajB],
             keyframes,
             charts: { F_t, v_t, force_diagram: forceDiagram },

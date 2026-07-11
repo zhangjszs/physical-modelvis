@@ -1,5 +1,5 @@
 import { PhysicsModelBase } from './base.js';
-import type { PhysicsProblem } from '../types/problem.js';
+import type { PhysicsProblem , StrainGaugeConstraint} from '../types/problem.js';
 import type {
     SimulationResult,
     TrajectoryPoint,
@@ -27,21 +27,6 @@ import type { ParameterSpec } from '../types/common.js';
  *   - 加速度传感器
  *   - 应力/应变实验 (杨氏模量测量)
  */
-export interface StrainGaugeConstraint {
-    /** 当前应变 ε (单位 με 微应变, 1 με = 1e-6) */
-    strain: number;
-    /** 灵敏系数 K, 金属 K≈2, 半导体 K≈50~200 */
-    gaugeFactor: number;
-    /** 桥路供电电压 (V) */
-    bridgeVoltage: number;
-    /** 应变扫描范围下限 (με), 默认 -2000 */
-    strainMin?: number;
-    /** 应变扫描范围上限 (με), 默认 2000 */
-    strainMax?: number;
-    /** 扫描采样点数, 默认 100 */
-    sampleCount?: number;
-}
-
 /**
  * 电阻应变片模型 — 选必二 传感器
  *
@@ -83,8 +68,7 @@ export class StrainGaugeModel extends PhysicsModelBase {
     solve(problem: PhysicsProblem): SimulationResult {
         this.throwIfInvalid(problem);
 
-        const cc = problem.constraints as unknown as { strainGauge?: StrainGaugeConstraint } | undefined;
-        const ic = cc?.strainGauge;
+        const ic = problem.constraints?.strainGauge;
         if (!ic) throw new Error('strain-gauge 模型需要 strainGauge 约束配置');
 
         const eps = ic.strain; // 微应变 με
@@ -248,13 +232,7 @@ export class StrainGaugeModel extends PhysicsModelBase {
         ];
 
         return {
-            meta: {
-                model: 'strain-gauge',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: {
@@ -285,7 +263,7 @@ export class StrainGaugeModel extends PhysicsModelBase {
         };
     }
 
-    validate(problem: PhysicsProblem): ReturnType<PhysicsModelBase['validate']> {
-        return { valid: true, errors: [], warnings: [] };
+    protected requiresValidation(): boolean {
+        return false;
     }
 }

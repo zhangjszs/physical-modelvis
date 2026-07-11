@@ -1,5 +1,5 @@
 import { PhysicsModelBase } from './base.js';
-import type { PhysicsProblem } from '../types/problem.js';
+import type { PhysicsProblem , RadiationDeflectionConstraint} from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, ChartSeries } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 
@@ -7,12 +7,6 @@ import type { ParameterSpec } from '../types/common.js';
  * 放射线磁场偏转模型 — 选必三 第五章
  * α: 带正电, 偏转半径大; β: 带负电, 偏转半径小; γ: 不带电, 不偏转
  */
-export interface RadiationDeflectionConstraint {
-    readonly Bfield: number; // T
-    readonly particleType: 'alpha' | 'beta' | 'gamma';
-    readonly particleEnergy: number; // MeV
-}
-
 export class RadiationDeflectionModel extends PhysicsModelBase {
     readonly name = '放射线磁场偏转';
     readonly version = '1.0.0';
@@ -77,13 +71,7 @@ export class RadiationDeflectionModel extends PhysicsModelBase {
         }
 
         return {
-            meta: {
-                model: 'radiation-deflection',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes: [
                 {

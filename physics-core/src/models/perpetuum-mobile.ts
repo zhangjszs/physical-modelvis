@@ -1,4 +1,4 @@
-import type { PhysicsProblem } from '../types/problem.js';
+import type { PhysicsProblem , PerpetuumMobileConstraint} from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
@@ -20,17 +20,6 @@ import { PhysicsModelBase } from './base.js';
  *   - y_t = η 随温差比 ξ = T_cold / T_hot 变化
  *   - v_t = W 与 Q_hot 关系 (功率输出曲线)
  */
-
-export interface PerpetuumMobileConstraint {
-    /** 热源温度 (K) */
-    readonly hotTemp: number;
-    /** 冷源温度 (K) */
-    readonly coldTemp: number;
-    /** 工作模式 */
-    readonly mode: 'carnot' | 'kelvin';
-    /** 输入热量 (J), 仅 kelvin 模式下使用 */
-    readonly inputHeat?: number;
-}
 
 /* 卡诺效率 */
 function carnotEfficiency(Th: number, Tc: number): number {
@@ -198,13 +187,7 @@ export class PerpetuumMobileModel extends PhysicsModelBase {
         if (isPerpetuum1st) warnings.push('η ≥ 1 意味着违反能量守恒, 第一类永动机');
 
         return {
-            meta: {
-                model: 'perpetuum-mobile',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: {

@@ -215,13 +215,7 @@ export class CavendishModel extends PhysicsModelBase {
         );
 
         return {
-            meta: {
-                model: 'cavendish',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [sweepTraj],
             keyframes,
             charts: { displacement_sin, 'static-diagram-cavendish': staticDiagram },

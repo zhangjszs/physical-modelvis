@@ -1,17 +1,11 @@
 import { PhysicsModelBase } from './base.js';
-import type { PhysicsProblem } from '../types/problem.js';
+import type { PhysicsProblem , CosmicRayConstraint} from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, ChartSeries } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 
 /**
  * 宇宙射线模型 — 选必三 第五章 (μ 子计数率 vs 高度/屏蔽)
  */
-export interface CosmicRayConstraint {
-    readonly altitude: number; // m
-    readonly shieldingMode: 'air' | 'lead' | 'water';
-    readonly shieldThickness?: number; // cm
-}
-
 export class CosmicRayModel extends PhysicsModelBase {
     readonly name = '宇宙射线';
     readonly version = '1.0.0';
@@ -57,13 +51,7 @@ export class CosmicRayModel extends PhysicsModelBase {
         }
 
         return {
-            meta: {
-                model: 'cosmic-ray',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes: [
                 {

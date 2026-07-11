@@ -1,5 +1,5 @@
 import { PhysicsModelBase } from './base.js';
-import type { PhysicsProblem } from '../types/problem.js';
+import type { PhysicsProblem , ThermistorConstraint} from '../types/problem.js';
 import type {
     SimulationResult,
     TrajectoryPoint,
@@ -27,27 +27,6 @@ export type ThermistorMode = 'NTC' | 'PTC';
  *   简化模型: R(T) = R0                     , T <= Tc
  *             R(T) = R0 * exp(BPTC*(T-Tc)/Tc), T >  Tc
  */
-export interface ThermistorConstraint {
-    /** 目标温度 (K), 默认 300 (约 27 C) */
-    temperature: number;
-    /** 'NTC' 或 'PTC' */
-    mode: ThermistorMode;
-    /** 基准电阻 R0 (Ω) — NTC 时在 T0=298 K 下的阻值 */
-    R0: number;
-    /** B 常数 (K) — 典型 NTC 3000~5000 K */
-    BValue: number;
-    /** PTC 模式: 居里温度 (K), 默认 380 K (约 107 C) */
-    curieTemp?: number;
-    /** PTC 模式: 居里点后的温度系数因子, 默认 15 */
-    ptcCoeff?: number;
-    /** 温度扫描范围下限 (K), 默认 250 */
-    tempMin?: number;
-    /** 温度扫描范围上限 (K), 默认 400 */
-    tempMax?: number;
-    /** 扫描采样点数, 默认 120 */
-    sampleCount?: number;
-}
-
 /**
  * 热敏电阻模型 — 选必二 传感器 (热敏电阻、NTC/PTC 阻温特性)
  *
@@ -90,8 +69,7 @@ export class ThermistorModel extends PhysicsModelBase {
     solve(problem: PhysicsProblem): SimulationResult {
         this.throwIfInvalid(problem);
 
-        const cc = problem.constraints as unknown as { thermistor?: ThermistorConstraint } | undefined;
-        const ic = cc?.thermistor;
+        const ic = problem.constraints?.thermistor;
         if (!ic) throw new Error('thermistor 模型需要 thermistor 约束配置');
 
         const Ttarget = ic.temperature;
@@ -272,13 +250,7 @@ export class ThermistorModel extends PhysicsModelBase {
         }
 
         return {
-            meta: {
-                model: 'thermistor',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [points],
             keyframes,
             charts,
@@ -323,7 +295,7 @@ export class ThermistorModel extends PhysicsModelBase {
         return R0 * Math.exp((ptcCoeff * (T - curieTemp)) / curieTemp);
     }
 
-    validate(problem: PhysicsProblem): ReturnType<PhysicsModelBase['validate']> {
-        return { valid: true, errors: [], warnings: [] };
+    protected requiresValidation(): boolean {
+        return false;
     }
 }

@@ -1,4 +1,5 @@
 import type { PhysicsProblem } from '../types/problem.js';
+import { kineticEnergy } from '../physics/kinematics.js';
 import type {
     SimulationResult,
     TrajectoryPoint,
@@ -98,9 +99,9 @@ export class ProjectileCollisionModel extends PhysicsModelBase {
         const momentumRelErr = pBefore > 0 ? momentumError / pBefore : 0;
 
         // 动能变化
-        const KE1Before = 0.5 * m1 * v1 * v1;
-        const KE1After = 0.5 * m1 * v1After * v1After;
-        const KE2After = 0.5 * m2 * v2After * v2After;
+        const KE1Before = kineticEnergy(m1, v1);
+        const KE1After = kineticEnergy(m1, v1After);
+        const KE2After = kineticEnergy(m2, v2After);
         const KETotalBefore = KE1Before;
         const KETotalAfter = KE1After + KE2After;
         const KEloss = KETotalBefore - KETotalAfter;
@@ -235,13 +236,7 @@ export class ProjectileCollisionModel extends PhysicsModelBase {
         ];
 
         return {
-            meta: {
-                model: 'projectile-collision',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: {

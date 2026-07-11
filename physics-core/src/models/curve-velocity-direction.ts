@@ -282,13 +282,7 @@ export class CurveVelocityDirectionModel extends PhysicsModelBase {
         ];
 
         return {
-            meta: {
-                model: 'curve-velocity-direction',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: allTrajectories,
             keyframes,
             charts: { x_t, vx_t: v_tang_t, vy_t: v_norm_t },

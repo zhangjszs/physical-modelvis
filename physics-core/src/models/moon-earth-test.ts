@@ -175,13 +175,7 @@ export class MoonEarthTestModel extends PhysicsModelBase {
         );
 
         return {
-            meta: {
-                model: 'moon-earth-test',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [scanTraj],
             keyframes,
             charts: { 'moon-earth-data': moon_earth_data, ratio_R_r },

@@ -198,13 +198,7 @@ export class ResonanceModel extends PhysicsModelBase {
         });
 
         return {
-            meta: {
-                model: 'resonance',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: {

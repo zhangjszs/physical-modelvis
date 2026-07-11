@@ -152,13 +152,7 @@ export class BohrModel extends PhysicsModelBase {
             .join(', ');
 
         return {
-            meta: {
-                model: 'bohr-model',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: { x_t: energyDiagram, y_t: spectrumDiagram },

@@ -196,13 +196,7 @@ export class InterferenceModel extends PhysicsModelBase {
         }
 
         return {
-            meta: {
-                model: 'interference',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [fringes],
             keyframes,
             charts: { x_t: intensityCurve, y_t: fringeOrderCurve },

@@ -1,4 +1,5 @@
 import type { PhysicsProblem } from '../types/problem.js';
+import { kineticEnergy } from '../physics/kinematics.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ForceDiagram } from '../types/result.js';
 import type { ParameterSpec, Vector2D } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
@@ -155,7 +156,7 @@ export class VerticalCircleModel extends PhysicsModelBase {
                 position,
                 velocity,
                 acceleration,
-                kineticEnergy: 0.5 * m * vActual * vActual,
+                kineticEnergy: kineticEnergy(m, vActual),
                 potentialEnergy: m * g * (position.y - (center.y - r)) // 最低点为零势面
             });
 
@@ -339,13 +340,7 @@ export class VerticalCircleModel extends PhysicsModelBase {
         const summary = `${modelLabel}: v₀=${v0.toFixed(2)}m/s, v_min=${vMin.toFixed(2)}m/s, v_top=${vTopActual.toFixed(2)}m/s, ${passesTop ? '能通过最高点' : '无法通过最高点'}`;
 
         return {
-            meta: {
-                model: 'vertical-circle',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: {

@@ -1,18 +1,11 @@
 import { PhysicsModelBase } from './base.js';
-import type { PhysicsProblem } from '../types/problem.js';
+import type { PhysicsProblem , BlackBodyConstraint} from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, ChartSeries } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 
 /**
  * 黑体辐射模型 — 选必三 第四章 (维恩位移律 λT=b, 斯特藩-玻尔兹曼 E=σT⁴)
  */
-export interface BlackBodyConstraint {
-    readonly temperature: number; // K
-    readonly freqMin?: number; // Hz
-    readonly freqMax?: number; // Hz
-    readonly sampleCount?: number;
-}
-
 export class BlackBodyModel extends PhysicsModelBase {
     readonly name = '黑体辐射';
     readonly version = '1.0.0';
@@ -63,13 +56,7 @@ export class BlackBodyModel extends PhysicsModelBase {
         const totalPower = sigma * T * T * T * T;
 
         return {
-            meta: {
-                model: 'black-body',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes: [
                 {

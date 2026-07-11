@@ -1,4 +1,5 @@
 import type { PhysicsProblem } from '../types/problem.js';
+import { kineticEnergy } from '../physics/kinematics.js';
 import type {
     SimulationResult,
     TrajectoryPoint,
@@ -94,7 +95,7 @@ export class CurveConditionModel extends PhysicsModelBase {
                 position: { x, y },
                 velocity: { x: vx, y: vy },
                 acceleration: { x: ax, y: ay },
-                kineticEnergy: 0.5 * m * speed * speed,
+                kineticEnergy: kineticEnergy(m, speed),
                 potentialEnergy: 0
             });
         }
@@ -236,13 +237,7 @@ export class CurveConditionModel extends PhysicsModelBase {
         ];
 
         return {
-            meta: {
-                model: 'curve-condition',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: { x_t, y_t, v_t, vx_t, vy_t },

@@ -249,13 +249,7 @@ export class CenterOfGravityModel extends PhysicsModelBase {
         ];
 
         return {
-            meta: {
-                model: 'center-of-gravity',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: { 'static-diagram': staticDiagram },

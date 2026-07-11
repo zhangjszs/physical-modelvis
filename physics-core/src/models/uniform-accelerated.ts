@@ -1,4 +1,5 @@
 import type { PhysicsProblem } from '../types/problem.js';
+import { kineticEnergy } from '../physics/kinematics.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
@@ -57,7 +58,7 @@ export class UniformAcceleratedModel extends PhysicsModelBase {
                 position,
                 velocity,
                 acceleration: { ...a },
-                kineticEnergy: 0.5 * mass * speed * speed,
+                kineticEnergy: kineticEnergy(mass, speed),
                 potentialEnergy
             });
         }
@@ -140,13 +141,7 @@ export class UniformAcceleratedModel extends PhysicsModelBase {
         };
 
         return {
-            meta: {
-                model: 'uniform-accelerated',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: { x_t, v_t, ke_t, pe_t, energy_t },

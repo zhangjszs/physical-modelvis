@@ -189,13 +189,7 @@ export class PolarizationModel extends PhysicsModelBase {
         if (n > 3) warnings.push('偏振片数量较多, 累积吸收损失大');
 
         return {
-            meta: {
-                model: 'polarization',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: {

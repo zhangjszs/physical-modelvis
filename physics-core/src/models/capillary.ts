@@ -1,4 +1,4 @@
-import type { PhysicsProblem } from '../types/problem.js';
+import type { PhysicsProblem , CapillaryConstraint} from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
@@ -11,15 +11,6 @@ import { PhysicsModelBase } from './base.js';
  * 水+石蜡: theta ≈ 105° (不浸润, h < 0, 下降)
  * 水银+玻璃: theta ≈ 140° (不浸润, h < 0)
  */
-export interface CapillaryConstraint {
-    /** 毛细管半径 (m) */
-    readonly tubeRadius: number;
-    /** 液体类型 */
-    readonly liquidMode: 'water' | 'mercury';
-    /** 管壁材料 */
-    readonly materialMode: 'glass' | 'paraffin';
-}
-
 /**
  * 毛细现象模型 — 选必三 液体表面性质
  *
@@ -182,13 +173,7 @@ export class CapillaryModel extends PhysicsModelBase {
         ];
 
         return {
-            meta: {
-                model: 'capillary',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: { x_t: hCurve, y_t: meniscusCurve },

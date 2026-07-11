@@ -129,13 +129,7 @@ export class CurrentMagneticFieldModel extends PhysicsModelBase {
                 : `载流${c.mode === 'solenoid' ? '螺线管' : '线圈'} (I=${I}A): 外部磁场等效磁偶极子, 内部近似匀强场, 呈 N/S 极分布`;
 
         return {
-            meta: {
-                model: 'current-magnetic-field',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [],
             keyframes: this.buildKeyframes(c, center, wire, poles),
             charts: {},

@@ -1,4 +1,4 @@
-import type { PhysicsProblem } from '../types/problem.js';
+import type { PhysicsProblem , BrownianMotionConstraint} from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
@@ -9,21 +9,6 @@ import { PhysicsModelBase } from './base.js';
  * 随机游走: x(t+dt) = x(t) + sqrt(2D·dt) · randn
  * Stokes-Einstein: D = kT / (6·pi·eta·r)
  */
-export interface BrownianMotionConstraint {
-    /** 粒子半径 (m) */
-    readonly particleRadius: number;
-    /** 液体温度 (K) */
-    readonly liquidTemp: number;
-    /** 液体粘度 (Pa·s) */
-    readonly fluidViscosity: number;
-    /** 模拟时长 (s) */
-    readonly duration: number;
-    /** 时间步长 (s), 默认 0.01 */
-    readonly dt?: number;
-    /** 模拟粒子数, 默认 1 */
-    readonly nParticles?: number;
-}
-
 /**
  * 布朗运动模型 — 选必三 分子运动
  *
@@ -184,13 +169,7 @@ export class BrownianMotionModel extends PhysicsModelBase {
         ];
 
         return {
-            meta: {
-                model: 'brownian-motion',
-                solver: 'numerical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('numerical'),
             trajectories,
             keyframes,
             charts: { x_t: xSeries, y_t: ySeries },

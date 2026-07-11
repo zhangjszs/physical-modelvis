@@ -1,4 +1,5 @@
 import type { PhysicsProblem } from '../types/problem.js';
+import { kineticEnergy } from '../physics/kinematics.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ConservedQuantity } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
@@ -98,7 +99,7 @@ export class SpringOscillatorModel extends PhysicsModelBase {
             const springForce = -k * x;
             const acc = springForce / m;
 
-            const KE = 0.5 * m * v * v;
+            const KE = kineticEnergy(m, v);
             const PE = 0.5 * k * x * x;
 
             trajectory.push({
@@ -217,13 +218,7 @@ export class SpringOscillatorModel extends PhysicsModelBase {
                     : '过阻尼';
 
         return {
-            meta: {
-                model: 'spring-oscillator',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: { x_t, v_t, energy_t },

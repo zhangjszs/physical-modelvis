@@ -1,5 +1,5 @@
 import { PhysicsModelBase } from './base.js';
-import type { PhysicsProblem } from '../types/problem.js';
+import type { PhysicsProblem , LightControlSwitchConstraint} from '../types/problem.js';
 import type {
     SimulationResult,
     TrajectoryPoint,
@@ -32,27 +32,6 @@ import type { ParameterSpec } from '../types/common.js';
  *   - Esupply: 电源电压 (V), 默认 12 V
  *   - Vbe_on: 三极管导通阈值 (V), 默认 0.7 V
  */
-export interface LightControlSwitchConstraint {
-    /** 当前光照强度 (lux) */
-    lightIntensity: number;
-    /** 触发阈值 (lux), 默认 10 */
-    threshold?: number;
-    /** 分压电阻 R_fix (Ω), 默认 10000 */
-    Rfix?: number;
-    /** 电源电压 (V), 默认 12 */
-    Esupply?: number;
-    /** 三极管导通阈值 Vbe (V), 默认 0.7 */
-    VbeOn?: number;
-    /** 光敏电阻暗电阻 (Ω), 默认 1e6 */
-    Rdark?: number;
-    /** 光敏电阻亮电阻 (Ω), 默认 5e3 */
-    Rbright?: number;
-    /** 时间扫描范围 (h), 默认 24 */
-    timeSpanH?: number;
-    /** 采样点数, 默认 240 */
-    sampleCount?: number;
-}
-
 /**
  * 光控开关模型 — 选必二 传感器 (光敏电阻 + 三极管驱动 + 继电器)
  *
@@ -100,8 +79,7 @@ export class LightControlSwitchModel extends PhysicsModelBase {
     solve(problem: PhysicsProblem): SimulationResult {
         this.throwIfInvalid(problem);
 
-        const cc = problem.constraints as unknown as { lightControlSwitch?: LightControlSwitchConstraint } | undefined;
-        const ic = cc?.lightControlSwitch;
+        const ic = problem.constraints?.lightControlSwitch;
         if (!ic) throw new Error('light-control-switch 模型需要 lightControlSwitch 约束配置');
 
         const L = ic.lightIntensity;
@@ -316,13 +294,7 @@ export class LightControlSwitchModel extends PhysicsModelBase {
         ];
 
         return {
-            meta: {
-                model: 'light-control-switch',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: {
@@ -358,7 +330,7 @@ export class LightControlSwitchModel extends PhysicsModelBase {
         };
     }
 
-    validate(problem: PhysicsProblem): ReturnType<PhysicsModelBase['validate']> {
-        return { valid: true, errors: [], warnings: [] };
+    protected requiresValidation(): boolean {
+        return false;
     }
 }

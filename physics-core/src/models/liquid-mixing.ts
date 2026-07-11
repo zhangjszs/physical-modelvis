@@ -1,4 +1,4 @@
-import type { PhysicsProblem } from '../types/problem.js';
+import type { PhysicsProblem , LiquidMixingConstraint} from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
@@ -11,13 +11,6 @@ import { PhysicsModelBase } from './base.js';
  *   更精确: V_final = V_water + V_alcohol * (1 - k * x_water)
  *   其中 k 为收缩系数, x_water 为水的摩尔分数
  */
-export interface LiquidMixingConstraint {
-    /** 水的体积 (mL) */
-    readonly volumeWater: number;
-    /** 酒精体积 (mL) */
-    readonly volumeAlcohol: number;
-}
-
 /**
  * 液体混合体积收缩模型 — 酒精+水 (选必三 分子运动)
  *
@@ -167,13 +160,7 @@ export class LiquidMixingModel extends PhysicsModelBase {
         ];
 
         return {
-            meta: {
-                model: 'liquid-mixing',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: { x_t: compositionCurve, y_t: schematicCurve },

@@ -274,13 +274,7 @@ export class TransmissionBeltModel extends PhysicsModelBase {
                 : Math.abs(gearRatioAbs - 1 / radiusRatio) < slipTolerance;
 
         return {
-            meta: {
-                model: 'transmission-belt',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [traj1, traj2],
             keyframes,
             charts: {

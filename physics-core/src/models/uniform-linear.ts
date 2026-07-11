@@ -79,13 +79,7 @@ export class UniformLinearModel extends PhysicsModelBase {
         const speed = Vec2.magnitude(v0);
 
         return {
-            meta: {
-                model: 'uniform-linear',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: { x_t, v_t },

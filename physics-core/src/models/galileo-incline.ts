@@ -30,6 +30,7 @@
  */
 
 import type { PhysicsProblem } from '../types/problem.js';
+import { kineticEnergy } from '../physics/kinematics.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries } from '../types/result.js';
 import type { ParameterSpec, Vector2D } from '../types/common.js';
 import type { GalileoInclineMode } from '../types/problem.js';
@@ -149,8 +150,8 @@ export class GalileoInclineModel extends PhysicsModelBase {
             name: '机械能守恒 (mgh ↔ ½mv²)',
             law: '机械能守恒',
             initialValue: m * g * h,
-            finalValue: 0.5 * m * vEnd * vEnd,
-            maxDeviation: Math.abs(m * g * h - 0.5 * m * vEnd * vEnd),
+            finalValue: kineticEnergy(m, vEnd),
+            maxDeviation: Math.abs(m * g * h - kineticEnergy(m, vEnd)),
             tolerance: 1e-9 * (m * g * h),
             conserved: energyConserved
         });
@@ -213,7 +214,7 @@ export class GalileoInclineModel extends PhysicsModelBase {
                     position: pos,
                     velocity: vHorizontal,
                     acceleration: Vec2.zero(),
-                    kineticEnergy: 0.5 * m * vEnd * vEnd,
+                    kineticEnergy: kineticEnergy(m, vEnd),
                     potentialEnergy: m * g * pos.y
                 });
             }
@@ -274,13 +275,7 @@ export class GalileoInclineModel extends PhysicsModelBase {
         const halfVSquare = 0.5 * vEnd * vEnd;
 
         return {
-            meta: {
-                model: 'galileo-incline',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: { x_t, theta_a, sin_theta_t_end },
@@ -405,7 +400,7 @@ export class GalileoInclineModel extends PhysicsModelBase {
                 position: pos,
                 velocity: vel,
                 acceleration: acc,
-                kineticEnergy: 0.5 * m * v * v,
+                kineticEnergy: kineticEnergy(m, v),
                 potentialEnergy: m * g * pos.y
             });
         }
@@ -460,7 +455,7 @@ export class GalileoInclineModel extends PhysicsModelBase {
                 position: pos,
                 velocity: vel,
                 acceleration: dockedAccelerationVec,
-                kineticEnergy: 0.5 * m * vProjNow * vProjNow,
+                kineticEnergy: kineticEnergy(m, vProjNow),
                 potentialEnergy: m * g * pos.y
             });
         }

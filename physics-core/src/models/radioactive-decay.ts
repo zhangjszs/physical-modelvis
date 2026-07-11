@@ -182,13 +182,7 @@ export class RadioactiveDecayModel extends PhysicsModelBase {
         });
 
         return {
-            meta: {
-                model: 'radioactive-decay',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: trajectories,
             keyframes,
             charts: { x_t: N_t, y_t: A_t },

@@ -1,4 +1,5 @@
 import type { PhysicsProblem } from '../types/problem.js';
+import { kineticEnergy } from '../physics/kinematics.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries } from '../types/result.js';
 import type { ParameterSpec, Vector2D } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
@@ -81,7 +82,7 @@ export class OrbitalModel extends PhysicsModelBase {
             const speed = Vec2.magnitude(v);
             const rMag = Vec2.magnitude(r);
             const rSafe = Math.max(rMag, 1); // 防止 r→0 时 PE→−∞
-            const ke = 0.5 * m * speed * speed;
+            const ke = kineticEnergy(m, speed);
             const pe = (-GM * m) / rSafe; // 引力势能零点选在无穷远 (rSafe 下限 1m 避免奇点)
             minR = Math.min(minR, rMag);
             maxR = Math.max(maxR, rMag);
@@ -201,13 +202,7 @@ export class OrbitalModel extends PhysicsModelBase {
         };
 
         return {
-            meta: {
-                model: 'orbital',
-                solver: 'numerical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('numerical'),
             trajectories: [trajectory],
             keyframes,
             charts: { r_t, v_t, ke_t, pe_t, energy_t },

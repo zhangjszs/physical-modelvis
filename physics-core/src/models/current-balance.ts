@@ -73,27 +73,23 @@ export class CurrentBalanceModel extends PhysicsModelBase {
         if (m <= 0) throw new Error('砝码质量 mass 必须为正');
 
         const I = cb.current; // A
-        const B =
-            (cb as unknown as Record<string, unknown>).magneticField ??
-            (cb as unknown as Record<string, unknown>).B ??
-            0.5;
-        const Bval = typeof B === 'number' ? B : 0.5; // T
-        if (Bval <= 0) throw new Error('磁感应强度 B 必须为正');
+        const B = cb.magneticField; // T (必填字段, 类型化直接访问)
+        if (B <= 0) throw new Error('磁感应强度 B 必须为正');
 
-        const g = ((cb as unknown as Record<string, unknown>).gravity as number) ?? 9.8; // m/s²
+        const g = cb.gravity ?? 9.8; // m/s²
 
         // 安培力 (n匝导线)
-        const F_ampere = n * Bval * I * l; // N
+        const F_ampere = n * B * I * l; // N
         // 重力
         const F_gravity = m * g; // N
         // 合力 (向下为正方向)
         const F_net = F_gravity - F_ampere; // N
 
         // 平衡时的电流 I_eq
-        const I_eq = F_gravity / (n * Bval * l); // A
+        const I_eq = F_gravity / (n * B * l); // A
 
         // 平衡时的质量 m_eq
-        const m_eq = (n * Bval * I * l) / g; // kg
+        const m_eq = (n * B * I * l) / g; // kg
 
         // 倾角模型：设天平臂长度为 armLen，小角度偏离时回复力矩
         // M_net = F_gravity*armLen*sin(theta) - F_ampere*armLen*sin(theta) = 0 时 theta=0
@@ -139,7 +135,7 @@ export class CurrentBalanceModel extends PhysicsModelBase {
         const N1 = 200;
         for (let i = 0; i <= N1; i++) {
             const Ii = (Imax * i) / N1; // A
-            const Fi = n * Bval * Ii * l; // 安培力
+            const Fi = n * B * Ii * l; // 安培力
             const Fi_net = F_gravity - Fi;
             let theta_i = Fi_net / k;
             theta_i = Math.max(-Math.PI / 4, Math.min(Math.PI / 4, theta_i));
@@ -161,7 +157,7 @@ export class CurrentBalanceModel extends PhysicsModelBase {
         for (let i = 0; i <= N2; i++) {
             const ti = (duration * i) / N2;
             // 加砝码过程：t=0 时 F=Fg，随后 F 减小 (电流增加)
-            const Fi_t = n * Bval * I * (1 - Math.exp(-gamma * ti)) * l;
+            const Fi_t = n * B * I * (1 - Math.exp(-gamma * ti)) * l;
             mgVsT.points.push({
                 x: parseFloat(ti.toFixed(4)),
                 y: parseFloat(Fi_t.toFixed(4))
@@ -207,7 +203,7 @@ export class CurrentBalanceModel extends PhysicsModelBase {
                 order: 1,
                 description: '安培力公式',
                 formula: 'F = n·B·I·l',
-                calculation: `F = ${n} × ${Bval}T × ${I}A × ${l}m = ${F_ampere.toFixed(4)} N`
+                calculation: `F = ${n} × ${B}T × ${I}A × ${l}m = ${F_ampere.toFixed(4)} N`
             },
             {
                 order: 2,
@@ -219,7 +215,7 @@ export class CurrentBalanceModel extends PhysicsModelBase {
                 order: 3,
                 description: '平衡条件',
                 formula: 'm·g = n·B·I·l → I_eq = m·g/(n·B·l)',
-                calculation: `I_eq = ${F_gravity.toFixed(4)}/${(n * Bval * l).toFixed(4)} = ${I_eq.toFixed(4)} A`
+                calculation: `I_eq = ${F_gravity.toFixed(4)}/${(n * B * l).toFixed(4)} = ${I_eq.toFixed(4)} A`
             },
             {
                 order: 4,
@@ -232,13 +228,7 @@ export class CurrentBalanceModel extends PhysicsModelBase {
         const conservedQuantities: ConservedQuantity[] = [];
 
         return {
-            meta: {
-                model: 'current-balance',
-                solver: 'analytical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('analytical'),
             trajectories: [trajectory],
             keyframes,
             charts: {
@@ -255,14 +245,14 @@ export class CurrentBalanceModel extends PhysicsModelBase {
                     m_eq_kg: m_eq,
                     tiltAngleDeg: (thetaTiltClamped * 180) / Math.PI,
                     current_A: I,
-                    magneticField_T: Bval,
+                    magneticField_T: B,
                     wireLen_M: l,
                     turns_N: n
                 },
                 rangeCheck: { withinRange: warnings.length === 0, warnings }
             },
             explanation: {
-                summary: `电流天平: n=${n}匝, l=${l}m, B=${Bval}T, I=${I}A → F_安=${F_ampere.toFixed(4)}N vs m·g=${F_gravity.toFixed(4)}N, 平衡电流 I_eq=${I_eq.toFixed(4)}A`,
+                summary: `电流天平: n=${n}匝, l=${l}m, B=${B}T, I=${I}A → F_安=${F_ampere.toFixed(4)}N vs m·g=${F_gravity.toFixed(4)}N, 平衡电流 I_eq=${I_eq.toFixed(4)}A`,
                 steps,
                 formulas: [
                     {
@@ -270,7 +260,7 @@ export class CurrentBalanceModel extends PhysicsModelBase {
                         formula: 'F = n·B·I·l',
                         variables: {
                             n: { value: n, unit: '匝' },
-                            B: { value: Bval, unit: 'T' },
+                            B: { value: B, unit: 'T' },
                             I: { value: I, unit: 'A' },
                             l: { value: l, unit: 'm' },
                             F: { value: F_ampere, unit: 'N' }

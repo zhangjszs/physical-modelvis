@@ -1,18 +1,11 @@
 import { PhysicsModelBase } from './base.js';
-import type { PhysicsProblem } from '../types/problem.js';
+import type { PhysicsProblem , DecayStatisticsConstraint} from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, ChartSeries } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 
 /**
  * 衰变统计规律模型 — 选必三 第五章 (泊松→高斯, σ≈√N̄)
  */
-export interface DecayStatisticsConstraint {
-    readonly meanCount: number;
-    readonly nTrials: number;
-    readonly experimentTime?: number; // s
-    readonly sampleCount?: number;
-}
-
 export class DecayStatisticsModel extends PhysicsModelBase {
     readonly name = '衰变统计规律';
     readonly version = '1.0.0';
@@ -76,13 +69,7 @@ export class DecayStatisticsModel extends PhysicsModelBase {
         }
 
         return {
-            meta: {
-                model: 'decay-statistics',
-                solver: 'numerical',
-                computationTime: 0,
-                timestamp: new Date().toISOString(),
-                version: this.version
-            },
+            meta: this.makeMeta('numerical'),
             trajectories: [trajectory],
             keyframes: [
                 {
