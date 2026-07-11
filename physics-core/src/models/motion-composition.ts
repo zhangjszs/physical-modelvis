@@ -1,5 +1,5 @@
 import type { PhysicsProblem } from '../types/problem.js';
-import { kineticEnergy } from '../physics/kinematics.js';
+import { kineticEnergy, sampleTrajectory } from '../physics/kinematics.js';
 import type {
     SimulationResult,
     TrajectoryPoint,
@@ -61,24 +61,20 @@ export class MotionCompositionModel extends PhysicsModelBase {
         const body = problem.bodies[0]!;
         const m = body.mass.value;
 
-        // 轨迹生成 (分运动合成)
-        const trajectory: TrajectoryPoint[] = [];
-        for (let i = 0; i <= sampleCount; i++) {
-            const t = i * dt;
-            const x = vxConst * t;
-            const y = 0.5 * ay * t * t;
-            const vx = vxConst;
-            const vy = ay * t;
-            const speed = Math.sqrt(vx * vx + vy * vy);
-            trajectory.push({
-                t,
-                position: { x, y },
-                velocity: { x: vx, y: vy },
-                acceleration: { x: 0, y: ay },
-                kineticEnergy: kineticEnergy(m, speed),
-                potentialEnergy: m * Math.max(0, 9.8 * y)
-            });
-        }
+        // 解析解采样: 水平匀速 x=vx·t + 竖直匀加速 y=½ay·t² (公共脚手架 sampleTrajectory)
+        const trajectory = sampleTrajectory({
+            sampleCount, duration,
+            sampleAt: (t) => {
+                const y = 0.5 * ay * t * t;
+                return {
+                    position: { x: vxConst * t, y },
+                    velocity: { x: vxConst, y: ay * t },
+                    acceleration: { x: 0, y: ay },
+                    kineticEnergy: kineticEnergy(m, Math.hypot(vxConst, ay * t)),
+                    potentialEnergy: m * Math.max(0, 9.8 * y)
+                };
+            }
+        });
 
         // 关键帧: 3 等分点 (t=T/4, T/2, 3T/4) + 起点 + 末点
         const keyframes: Keyframe[] = [];

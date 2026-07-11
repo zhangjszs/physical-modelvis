@@ -1,4 +1,5 @@
 import type { PhysicsProblem } from '../types/problem.js';
+import { sampleTrajectory } from '../physics/kinematics.js';
 import type {
     SimulationResult,
     TrajectoryPoint,
@@ -106,22 +107,22 @@ export class CurrentBalanceModel extends PhysicsModelBase {
         const duration = problem.timeConfig.duration;
         const dt = duration / sampleCount;
 
-        const trajectory: TrajectoryPoint[] = [];
-        // 倾角衰减：theta(t) = theta_init * exp(-gamma*t) * cos(omega_d*t)
+        // 解析解采样: 倾角指数衰减 θ(t)=θ₀·e^{-γt} (公共脚手架 sampleTrajectory)
         // 简化：最大倾角 thetaTiltClamped，5s 内衰减到 5%
         const gamma = 3 / Math.max(duration, 1); // 衰减系数 (5% 误差带)
-        for (let i = 0; i <= sampleCount; i++) {
-            const t = i * dt;
-            const theta = thetaTiltClamped * Math.exp(-gamma * t); // 简谐衰减
-            trajectory.push({
-                t,
-                position: { x: t, y: (theta * 180) / Math.PI }, // x: time (s), y: tilt angle (deg)
-                velocity: { x: 1, y: 0 },
-                acceleration: { x: 0, y: 0 },
-                kineticEnergy: 0,
-                potentialEnergy: 0
-            });
-        }
+        const trajectory = sampleTrajectory({
+            sampleCount, duration,
+            sampleAt: (t) => {
+                const theta = thetaTiltClamped * Math.exp(-gamma * t);
+                return {
+                    position: { x: t, y: (theta * 180) / Math.PI }, // x: time (s), y: tilt angle (deg)
+                    velocity: { x: 1, y: 0 },
+                    acceleration: { x: 0, y: 0 },
+                    kineticEnergy: 0,
+                    potentialEnergy: 0
+                };
+            }
+        });
 
         // 图表 1: 倾角 vs 电流 (在平衡电流处倾角为 0)
         const tiltAngleVsCurrent: ChartSeries = {

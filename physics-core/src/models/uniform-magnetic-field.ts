@@ -1,5 +1,5 @@
 import type { PhysicsProblem } from '../types/problem.js';
-import { kineticEnergy } from '../physics/kinematics.js';
+import { kineticEnergy, sampleTrajectory } from '../physics/kinematics.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
@@ -37,21 +37,18 @@ export class UniformMagneticModel extends PhysicsModelBase {
 
         const v0Mag = Vec2.magnitude(v0);
 
-        // 特殊情况：速度为零或磁场为零 → 匀速直线运动
+        // 特殊情况：速度为零或磁场为零 → 匀速直线运动 (公共脚手架 sampleTrajectory)
         if (v0Mag < 1e-12 || Math.abs(Bz) < 1e-12 || Math.abs(q) < 1e-30) {
-            const trajectory: TrajectoryPoint[] = [];
-            for (let i = 0; i <= sampleCount; i++) {
-                const t = i * dt;
-                const position = Vec2.add(x0, Vec2.scale(v0, t));
-                trajectory.push({
-                    t,
-                    position,
+            const trajectory = sampleTrajectory({
+                sampleCount, duration,
+                sampleAt: (t) => ({
+                    position: Vec2.add(x0, Vec2.scale(v0, t)),
                     velocity: { ...v0 },
                     acceleration: Vec2.zero(),
                     kineticEnergy: kineticEnergy(m, v0Mag),
                     potentialEnergy: 0
-                });
-            }
+                })
+            });
             return this.buildResult(trajectory, problem, x0, v0, 0, 0, m, q, Bz);
         }
 
@@ -71,42 +68,29 @@ export class UniformMagneticModel extends PhysicsModelBase {
         const centerX = x0.x + R * perpX;
         const centerY = x0.y + R * perpY;
 
-        // 生成轨迹
-        const trajectory: TrajectoryPoint[] = [];
-        for (let i = 0; i <= sampleCount; i++) {
-            const t = i * dt;
-            const angle = sign * omega * t;
-            const cosA = Math.cos(angle);
-            const sinA = Math.sin(angle);
-
-            // 位置：绕圆心旋转
-            const dx = x0.x - centerX;
-            const dy = x0.y - centerY;
-            const position = {
-                x: centerX + dx * cosA - dy * sinA,
-                y: centerY + dx * sinA + dy * cosA
-            };
-
-            // 速度：大小不变，方向随角度变化
-            const velocity = {
-                x: v0.x * cosA - v0.y * sinA,
-                y: v0.x * sinA + v0.y * cosA
-            };
-
-            // 向心加速度 a = v²/R 指向圆心
-            const accMag = (v0Mag * v0Mag) / R;
-            const accDir = Vec2.normalize({ x: centerX - position.x, y: centerY - position.y });
-            const acceleration = Vec2.scale(accDir, accMag);
-
-            trajectory.push({
-                t,
-                position,
-                velocity,
-                acceleration,
-                kineticEnergy: kineticEnergy(m, v0Mag), // 动能守恒
-                potentialEnergy: 0
-            });
-        }
+        // 解析解采样: 回旋 ω=sign·ωt 绕圆心旋转 (公共脚手架 sampleTrajectory)
+        const dx0 = x0.x - centerX;
+        const dy0 = x0.y - centerY;
+        const accMag = (v0Mag * v0Mag) / R;
+        const trajectory = sampleTrajectory({
+            sampleCount, duration,
+            sampleAt: (t) => {
+                const angle = sign * omega * t;
+                const cosA = Math.cos(angle);
+                const sinA = Math.sin(angle);
+                const position = {
+                    x: centerX + dx0 * cosA - dy0 * sinA,
+                    y: centerY + dx0 * sinA + dy0 * cosA
+                };
+                return {
+                    position,
+                    velocity: { x: v0.x * cosA - v0.y * sinA, y: v0.x * sinA + v0.y * cosA },
+                    acceleration: Vec2.scale(Vec2.normalize({ x: centerX - position.x, y: centerY - position.y }), accMag),
+                    kineticEnergy: kineticEnergy(m, v0Mag), // 动能守恒
+                    potentialEnergy: 0
+                };
+            }
+        });
 
         return this.buildResult(trajectory, problem, x0, v0, R, T_period, m, q, Bz);
     }
