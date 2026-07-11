@@ -1,5 +1,5 @@
 import type { PhysicsProblem } from '../types/problem.js';
-import { kineticEnergy } from '../physics/kinematics.js';
+import { kineticEnergy, sampleTrajectory } from '../physics/kinematics.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ConservedQuantity } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
@@ -58,62 +58,56 @@ export class SpringOscillatorModel extends PhysicsModelBase {
         const sampleCount = problem.timeConfig.sampleCount ?? 1000;
         const dt = duration / sampleCount;
 
-        const trajectory: TrajectoryPoint[] = [];
         let maxSpeed = 0;
         let maxDisplacement = 0;
 
         const dampingType = this.getDampingType(omega0, beta);
 
-        for (let i = 0; i <= sampleCount; i++) {
-            const t = i * dt;
-            let x: number, v: number;
+        // 解析解采样: 4 支阻尼 (SHM/欠阻尼/临界/过阻尼) 均为 t 的闭式解 (公共脚手架 sampleTrajectory)
+        const trajectory = sampleTrajectory({
+            sampleCount, duration,
+            sampleAt: (t) => {
+                let x: number, v: number;
 
-            if (beta === 0) {
-                const { amplitude, phase } = this.solveSHM(x0, v0, omega0);
-                x = amplitude * Math.cos(omega0 * t + phase);
-                v = -amplitude * omega0 * Math.sin(omega0 * t + phase);
-            } else if (dampingType === 'underdamped') {
-                const omegaD = Math.sqrt(omega0 * omega0 - beta * beta);
-                const { amplitude, phase } = this.solveDamped(x0, v0, beta, omegaD);
-                const decay = Math.exp(-beta * t);
-                x = amplitude * decay * Math.cos(omegaD * t + phase);
-                v = amplitude * decay * (-beta * Math.cos(omegaD * t + phase) - omegaD * Math.sin(omegaD * t + phase));
-            } else if (dampingType === 'critical') {
-                const C1 = x0;
-                const C2 = v0 + beta * x0;
-                x = (C1 + C2 * t) * Math.exp(-beta * t);
-                v = (C2 - beta * (C1 + C2 * t)) * Math.exp(-beta * t);
-            } else {
-                const sqrtDisc = Math.sqrt(beta * beta - omega0 * omega0);
-                const lambda1 = -beta + sqrtDisc;
-                const lambda2 = -beta - sqrtDisc;
-                const C1 = (v0 - x0 * lambda2) / (lambda1 - lambda2);
-                const C2 = x0 - C1;
-                x = C1 * Math.exp(lambda1 * t) + C2 * Math.exp(lambda2 * t);
-                v = C1 * lambda1 * Math.exp(lambda1 * t) + C2 * lambda2 * Math.exp(lambda2 * t);
+                if (beta === 0) {
+                    const { amplitude, phase } = this.solveSHM(x0, v0, omega0);
+                    x = amplitude * Math.cos(omega0 * t + phase);
+                    v = -amplitude * omega0 * Math.sin(omega0 * t + phase);
+                } else if (dampingType === 'underdamped') {
+                    const omegaD = Math.sqrt(omega0 * omega0 - beta * beta);
+                    const { amplitude, phase } = this.solveDamped(x0, v0, beta, omegaD);
+                    const decay = Math.exp(-beta * t);
+                    x = amplitude * decay * Math.cos(omegaD * t + phase);
+                    v = amplitude * decay * (-beta * Math.cos(omegaD * t + phase) - omegaD * Math.sin(omegaD * t + phase));
+                } else if (dampingType === 'critical') {
+                    const C1 = x0;
+                    const C2 = v0 + beta * x0;
+                    x = (C1 + C2 * t) * Math.exp(-beta * t);
+                    v = (C2 - beta * (C1 + C2 * t)) * Math.exp(-beta * t);
+                } else {
+                    const sqrtDisc = Math.sqrt(beta * beta - omega0 * omega0);
+                    const lambda1 = -beta + sqrtDisc;
+                    const lambda2 = -beta - sqrtDisc;
+                    const C1 = (v0 - x0 * lambda2) / (lambda1 - lambda2);
+                    const C2 = x0 - C1;
+                    x = C1 * Math.exp(lambda1 * t) + C2 * Math.exp(lambda2 * t);
+                    v = C1 * lambda1 * Math.exp(lambda1 * t) + C2 * lambda2 * Math.exp(lambda2 * t);
+                }
+
+                const speed = Math.abs(v);
+                // 诊断累加器 (仅用于 maxValues, 不计入帧物理, frame 值与原循环逐位一致)
+                if (speed > maxSpeed) maxSpeed = speed;
+                if (Math.abs(x) > maxDisplacement) maxDisplacement = Math.abs(x);
+
+                return {
+                    position: Vec2.add(anchor, Vec2.scale(axisDir, L0 + x)),
+                    velocity: Vec2.scale(axisDir, v),
+                    acceleration: Vec2.scale(axisDir, (-k * x) / m),
+                    kineticEnergy: kineticEnergy(m, v),
+                    potentialEnergy: 0.5 * k * x * x
+                };
             }
-
-            const pos = Vec2.add(anchor, Vec2.scale(axisDir, L0 + x));
-            const vel = Vec2.scale(axisDir, v);
-            const speed = Math.abs(v);
-            const springForce = -k * x;
-            const acc = springForce / m;
-
-            const KE = kineticEnergy(m, v);
-            const PE = 0.5 * k * x * x;
-
-            trajectory.push({
-                t,
-                position: pos,
-                velocity: vel,
-                acceleration: Vec2.scale(axisDir, acc),
-                kineticEnergy: KE,
-                potentialEnergy: PE
-            });
-
-            if (speed > maxSpeed) maxSpeed = speed;
-            if (Math.abs(x) > maxDisplacement) maxDisplacement = Math.abs(x);
-        }
+        });
 
         const keyframes: Keyframe[] = [];
         keyframes.push({

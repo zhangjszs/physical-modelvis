@@ -9,6 +9,7 @@ import type {
 } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
+import { sampleTrajectory } from '../physics/kinematics.js';
 
 /**
  * 自感现象模型 (选必二第三章 §3)
@@ -90,36 +91,34 @@ export class SelfInductanceModel extends PhysicsModelBase {
         const duration = problem.timeConfig.duration;
         const dt = duration / sampleCount;
 
-        // 时间轨迹
-        const trajectory: TrajectoryPoint[] = [];
+        // 解析解采样: 通电 i=I₀(1-e^{-t/τ}) / 断电 i=I₀e^{-t/τ} (公共脚手架 sampleTrajectory)
         let maxI = 0;
         let maxU = 0;
-        for (let i = 0; i <= sampleCount; i++) {
-            const t = i * dt;
-            let i_t: number;
-            let uL: number;
-            if (mode === 'turnOn') {
-                // i(t) = Iss * (1 - exp(-t/tau))
-                i_t = Iss * (1 - Math.exp(-t / tau));
-                // uL = E * exp(-t/tau)
-                uL = E * Math.exp(-t / tau);
-            } else {
-                // i(t) = I0 * exp(-t/tau)
-                i_t = I0 * Math.exp(-t / tau);
-                // uL = -I0 * R * exp(-t/tau) = -E * exp(-t/tau)
-                uL = -E * Math.exp(-t / tau);
+        const trajectory = sampleTrajectory({
+            sampleCount, duration,
+            sampleAt: (t) => {
+                const decaying = Math.exp(-t / tau);
+                let i_t: number;
+                let uL: number;
+                if (mode === 'turnOn') {
+                    i_t = Iss * (1 - decaying);
+                    uL = E * decaying;
+                } else {
+                    i_t = I0 * decaying;
+                    uL = -E * decaying;
+                }
+                // 诊断累加器 (仅用于 maxValues, 不计入帧物理, frame 值与原循环逐位一致)
+                maxI = Math.max(maxI, Math.abs(i_t));
+                maxU = Math.max(maxU, Math.abs(uL));
+                return {
+                    position: { x: t, y: i_t }, // x: time (s), y: current (A)
+                    velocity: { x: 1, y: uL }, // y: inductor voltage (V)
+                    acceleration: { x: 0, y: 0 },
+                    kineticEnergy: 0.5 * L * i_t * i_t, // 磁能 ½Li² (非动能, 保持原语义)
+                    potentialEnergy: 0
+                };
             }
-            maxI = Math.max(maxI, Math.abs(i_t));
-            maxU = Math.max(maxU, Math.abs(uL));
-            trajectory.push({
-                t,
-                position: { x: t, y: i_t }, // x: time (s), y: current (A)
-                velocity: { x: 1, y: uL }, // y: inductor voltage (V)
-                acceleration: { x: 0, y: 0 },
-                kineticEnergy: 0.5 * L * i_t * i_t,
-                potentialEnergy: 0
-            });
-        }
+        });
 
         // 图表 1: 电流 vs 时间
         const currentVsTime: ChartSeries = {

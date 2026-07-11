@@ -9,6 +9,7 @@ import type {
 } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
+import { sampleTrajectory } from '../physics/kinematics.js';
 
 /**
  * 互感现象模型 (选必二第三章 §2)
@@ -88,26 +89,27 @@ export class MutualInductanceModel extends PhysicsModelBase {
         const duration = problem.timeConfig.duration;
         const dt = duration / sampleCount;
 
-        // 时间轨迹
-        const trajectory: TrajectoryPoint[] = [];
+        // 解析解采样: I1=I₀sin(ωt), E2=-M·dI1/dt (公共脚手架 sampleTrajectory)
         let maxE2 = 0;
         let maxI1 = 0;
-        for (let i = 0; i <= sampleCount; i++) {
-            const t = i * dt;
-            const I1 = I0 * Math.sin(omega * t);
-            const dI1_dt = I0 * omega * Math.cos(omega * t);
-            const E2 = -M * dI1_dt;
-            maxE2 = Math.max(maxE2, Math.abs(E2));
-            maxI1 = Math.max(maxI1, Math.abs(I1));
-            trajectory.push({
-                t,
-                position: { x: t, y: I1 }, // x: time (s), y: primary current (A)
-                velocity: { x: 1, y: dI1_dt },
-                acceleration: { x: 0, y: 0 },
-                kineticEnergy: 0,
-                potentialEnergy: 0
-            });
-        }
+        const trajectory = sampleTrajectory({
+            sampleCount, duration,
+            sampleAt: (t) => {
+                const I1 = I0 * Math.sin(omega * t);
+                const dI1_dt = I0 * omega * Math.cos(omega * t);
+                const E2 = -M * dI1_dt;
+                // 诊断累加器 (仅用于 maxValues, 不计入帧物理, frame 值与原循环逐位一致)
+                maxE2 = Math.max(maxE2, Math.abs(E2));
+                maxI1 = Math.max(maxI1, Math.abs(I1));
+                return {
+                    position: { x: t, y: I1 }, // x: time (s), y: primary current (A)
+                    velocity: { x: 1, y: dI1_dt },
+                    acceleration: { x: 0, y: 0 },
+                    kineticEnergy: 0,
+                    potentialEnergy: 0
+                };
+            }
+        });
 
         // 图表 1: 原线圈电流 vs 时间
         const primaryCurrentVsTime: ChartSeries = {

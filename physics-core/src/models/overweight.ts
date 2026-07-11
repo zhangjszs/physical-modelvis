@@ -1,5 +1,5 @@
 import type { PhysicsProblem } from '../types/problem.js';
-import { kineticEnergy } from '../physics/kinematics.js';
+import { kineticEnergy, sampleTrajectory } from '../physics/kinematics.js';
 import type {
     SimulationResult,
     TrajectoryPoint,
@@ -136,26 +136,27 @@ export class OverweightModel extends PhysicsModelBase {
         const y0 = problem.bodies[0]?.position ?? { x: 0, y: 0 };
         const v0: Vector2D = { x: 0, y: 0 };
 
-        // 轨迹 (仅竖直方向有意义)
-        const trajectory: TrajectoryPoint[] = [];
+        // 解析解采样: 竖直匀加速 y=y₀+v₀t+½at² (公共脚手架 sampleTrajectory)
         let maxY = -Infinity;
         let minY = Infinity;
-        for (let i = 0; i <= sampleCount; i++) {
-            const t = i * dt;
-            const y = y0.y + v0.y * t + 0.5 * aY * t * t;
-            const vy = v0.y + aY * t;
-            maxY = Math.max(maxY, y);
-            minY = Math.min(minY, y);
-            trajectory.push({
-                t,
-                position: { x: 0, y },
-                velocity: { x: 0, y: vy },
-                acceleration: { x: 0, y: aY },
-                kineticEnergy: kineticEnergy(m, vy),
-                // 重力势能: U = mgy (零点 y=0 处)
-                potentialEnergy: m * g * y
-            });
-        }
+        const trajectory = sampleTrajectory({
+            sampleCount, duration,
+            sampleAt: (t) => {
+                const y = y0.y + v0.y * t + 0.5 * aY * t * t;
+                const vy = v0.y + aY * t;
+                // 诊断累加器 (仅用于 maxValues, 不计入帧物理, frame 值与原循环逐位一致)
+                maxY = Math.max(maxY, y);
+                minY = Math.min(minY, y);
+                return {
+                    position: { x: 0, y },
+                    velocity: { x: 0, y: vy },
+                    acceleration: { x: 0, y: aY },
+                    kineticEnergy: kineticEnergy(m, vy),
+                    // 重力势能: U = mgy (零点 y=0 处)
+                    potentialEnergy: m * g * y
+                };
+            }
+        });
 
         // 关键帧 (4 个分界: 起点、阶段中点展示 a_y、速度零点展示 N<mg、终点)
         const keyframes: Keyframe[] = [];
