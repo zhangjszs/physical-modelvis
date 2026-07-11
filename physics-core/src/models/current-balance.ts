@@ -105,7 +105,6 @@ export class CurrentBalanceModel extends PhysicsModelBase {
         // 时间轨迹：电流从 0 增加到 I，倾角从负走向平衡 (小扰动振荡)
         const sampleCount = problem.timeConfig.sampleCount ?? 500;
         const duration = problem.timeConfig.duration;
-        const dt = duration / sampleCount;
 
         // 解析解采样: 倾角指数衰减 θ(t)=θ₀·e^{-γt} (公共脚手架 sampleTrajectory)
         // 简化：最大倾角 thetaTiltClamped，5s 内衰减到 5%

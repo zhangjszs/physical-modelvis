@@ -97,7 +97,6 @@ export class EMDampingModel extends PhysicsModelBase {
 
         const sampleCount = problem.timeConfig.sampleCount ?? 500;
         const duration = problem.timeConfig.duration;
-        const dt = duration / sampleCount;
 
         // 解析解采样: damping → ω=ω₀·e^{-t/τ}, drive → ω=ω₀·(1-e^{-t/τ}) (公共脚手架 sampleTrajectory)
         const trajectory = sampleTrajectory({

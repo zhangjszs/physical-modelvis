@@ -89,7 +89,6 @@ export class SelfInductanceModel extends PhysicsModelBase {
 
         const sampleCount = problem.timeConfig.sampleCount ?? 500;
         const duration = problem.timeConfig.duration;
-        const dt = duration / sampleCount;
 
         // 解析解采样: 通电 i=I₀(1-e^{-t/τ}) / 断电 i=I₀e^{-t/τ} (公共脚手架 sampleTrajectory)
         let maxI = 0;

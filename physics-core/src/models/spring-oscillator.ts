@@ -56,7 +56,6 @@ export class SpringOscillatorModel extends PhysicsModelBase {
 
         const duration = problem.timeConfig.duration;
         const sampleCount = problem.timeConfig.sampleCount ?? 1000;
-        const dt = duration / sampleCount;
 
         let maxSpeed = 0;
         let maxDisplacement = 0;

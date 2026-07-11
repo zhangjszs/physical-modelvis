@@ -63,7 +63,6 @@ export class SlidingFrictionModel extends PhysicsModelBase {
 
         const duration = problem.timeConfig.duration;
         const sampleCount = problem.timeConfig.sampleCount ?? 400;
-        const dt = duration / sampleCount;
 
         // 主轨迹：物体实际运动, 匀加速 x=x₀+v₀t+½at² (公共脚手架 sampleTrajectory)
         const trajectory = sampleTrajectory({

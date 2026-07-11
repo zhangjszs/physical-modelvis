@@ -80,7 +80,7 @@ export class UniformCircularMotionModel extends PhysicsModelBase {
                     position: { x: center.x + radius * cosA, y: center.y + radius * sinA },
                     velocity,
                     acceleration: { x: -radius * omega * omega * cosA, y: -radius * omega * omega * sinA },
-                    kineticEnergy: kineticEnergy(mass, radius * omega),
+                    kineticEnergy: kineticEnergy(mass, Vec2.magnitude(velocity)),
                     potentialEnergy: 0
                 };
             }

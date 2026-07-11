@@ -101,7 +101,6 @@ export class EddyCurrentModel extends PhysicsModelBase {
 
         const sampleCount = problem.timeConfig.sampleCount ?? 500;
         const duration = problem.timeConfig.duration;
-        const dt = duration / sampleCount;
 
         // 时间轨迹：涡流产生温升 (绝热近似，简化), temp=25+(P/mc)·t (公共脚手架 sampleTrajectory)
         const heatCapacity = 385; // 铜比热容 J/(kg·K)，简化

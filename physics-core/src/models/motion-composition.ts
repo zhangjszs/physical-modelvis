@@ -56,7 +56,6 @@ export class MotionCompositionModel extends PhysicsModelBase {
         const ay = c.vyAccel;
         const duration = problem.timeConfig.duration;
         const sampleCount = problem.timeConfig.sampleCount ?? 1000;
-        const dt = duration / sampleCount;
 
         const body = problem.bodies[0]!;
         const m = body.mass.value;

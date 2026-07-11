@@ -116,7 +116,6 @@ export class OverweightModel extends PhysicsModelBase {
         const mode = c.mode;
         const duration = problem.timeConfig.duration;
         const sampleCount = problem.timeConfig.sampleCount ?? 500;
-        const dt = duration / sampleCount;
 
         if (m <= 0) throw new Error('超重/失重模型: mass 必须为正数');
         if (aMag < 0) throw new Error('超重/失重模型: accMagnitude 必须为非负数');

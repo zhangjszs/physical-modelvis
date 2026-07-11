@@ -3,7 +3,7 @@ import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries } from '.
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
 import { Vec2 } from '../math/vector2d.js';
-import { kineticEnergy, sampleTrajectory } from '../physics/kinematics.js';
+import { sampleTrajectory } from '../physics/kinematics.js';
 
 /** 匀速直线运动模型 */
 export class UniformLinearModel extends PhysicsModelBase {
@@ -36,7 +36,7 @@ export class UniformLinearModel extends PhysicsModelBase {
                 position: Vec2.add(x0, Vec2.scale(v0, t)),
                 velocity: { ...v0 },
                 acceleration: Vec2.zero(),
-                kineticEnergy: kineticEnergy(mass, Vec2.magnitude(v0)),
+                kineticEnergy: 0.5 * mass * Vec2.dot(v0, v0),
                 potentialEnergy: 0
             })
         });

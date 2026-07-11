@@ -87,7 +87,6 @@ export class MutualInductanceModel extends PhysicsModelBase {
 
         const sampleCount = problem.timeConfig.sampleCount ?? 1000;
         const duration = problem.timeConfig.duration;
-        const dt = duration / sampleCount;
 
         // 解析解采样: I1=I₀sin(ωt), E2=-M·dI1/dt (公共脚手架 sampleTrajectory)
         let maxE2 = 0;

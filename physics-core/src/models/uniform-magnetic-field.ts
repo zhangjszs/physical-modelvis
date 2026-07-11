@@ -33,7 +33,6 @@ export class UniformMagneticModel extends PhysicsModelBase {
 
         const duration = problem.timeConfig.duration;
         const sampleCount = problem.timeConfig.sampleCount ?? 1000;
-        const dt = duration / sampleCount;
 
         const v0Mag = Vec2.magnitude(v0);
 
