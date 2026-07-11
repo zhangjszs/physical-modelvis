@@ -1,5 +1,5 @@
 import type { PhysicsProblem } from '../types/problem.js';
-import { kineticEnergy } from '../physics/kinematics.js';
+import { kineticEnergy, sampleTrajectory } from '../physics/kinematics.js';
 import type {
     SimulationResult,
     TrajectoryPoint,
@@ -55,26 +55,25 @@ export class ProjectileModel extends PhysicsModelBase {
         const a = { x: 0, y: -g };
         const duration = problem.timeConfig.duration;
         const sampleCount = problem.timeConfig.sampleCount ?? 1000;
-        const dt = duration / sampleCount;
-
-        // 完整轨迹
-        const trajectory: TrajectoryPoint[] = [];
-        for (let i = 0; i <= sampleCount; i++) {
-            const t = i * dt;
-            const x = x0.x + v0.x * t;
-            const y = x0.y + v0.y * t - 0.5 * g * t * t;
-            const vx = v0.x;
-            const vy = v0.y - g * t;
-            const speed = Math.sqrt(vx * vx + vy * vy);
-            trajectory.push({
-                t,
-                position: { x, y },
-                velocity: { x: vx, y: vy },
-                acceleration: { ...a },
-                kineticEnergy: kineticEnergy(m, speed),
-                potentialEnergy: m * g * Math.max(0, y - groundY)
-            });
-        }
+        // 解析解采样: 平抛运动 (公共脚手架 sampleTrajectory)
+        const trajectory = sampleTrajectory({
+            sampleCount,
+            duration,
+            sampleAt: (t) => {
+                const x = x0.x + v0.x * t;
+                const y = x0.y + v0.y * t - 0.5 * g * t * t;
+                const vx = v0.x;
+                const vy = v0.y - g * t;
+                const speed = Math.sqrt(vx * vx + vy * vy);
+                return {
+                    position: { x, y },
+                    velocity: { x: vx, y: vy },
+                    acceleration: { ...a },
+                    kineticEnergy: kineticEnergy(m, speed),
+                    potentialEnergy: m * g * Math.max(0, y - groundY)
+                };
+            }
+        });
 
         // 特征量
         const v0y = v0.y;

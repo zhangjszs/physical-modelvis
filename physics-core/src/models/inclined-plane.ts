@@ -1,5 +1,5 @@
 import type { PhysicsProblem } from '../types/problem.js';
-import { kineticEnergy } from '../physics/kinematics.js';
+import { kineticEnergy, sampleTrajectory } from '../physics/kinematics.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ForceDiagram } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
@@ -59,37 +59,34 @@ export class InclinedPlaneModel extends PhysicsModelBase {
 
         const duration = problem.timeConfig.duration;
         const sampleCount = problem.timeConfig.sampleCount ?? 1000;
-        const dt = duration / sampleCount;
-
-        // 生成轨迹
-        const trajectory: TrajectoryPoint[] = [];
+        // 解析解采样: 斜面运动 (公共脚手架 sampleTrajectory)
         const effectiveAccel = isStationary ? 0 : a;
+        const trajectory = sampleTrajectory({
+            sampleCount,
+            duration,
+            sampleAt: (t) => {
+                // 沿斜面的位移和速度
+                const s = isStationary ? 0 : Vec2.dot(v0, inclineDir) * t + 0.5 * effectiveAccel * t * t;
+                const vAlongIncline = isStationary ? 0 : Vec2.dot(v0, inclineDir) + effectiveAccel * t;
 
-        for (let i = 0; i <= sampleCount; i++) {
-            const t = i * dt;
+                // 位置 = 初始位置 + 沿斜面位移
+                const position = Vec2.add(x0, Vec2.scale(inclineDir, s));
+                // 速度 = 沿斜面速度 (假设物体从静止或沿斜面方向释放)
+                const velocity = Vec2.scale(inclineDir, vAlongIncline);
+                const speed = Math.abs(vAlongIncline);
 
-            // 沿斜面的位移和速度
-            const s = isStationary ? 0 : Vec2.dot(v0, inclineDir) * t + 0.5 * effectiveAccel * t * t;
-            const vAlongIncline = isStationary ? 0 : Vec2.dot(v0, inclineDir) + effectiveAccel * t;
+                // 加速度向量
+                const accelVec = isStationary ? Vec2.zero() : Vec2.scale(inclineDir, effectiveAccel);
 
-            // 位置 = 初始位置 + 沿斜面位移
-            const position = Vec2.add(x0, Vec2.scale(inclineDir, s));
-            // 速度 = 沿斜面速度 (假设物体从静止或沿斜面方向释放)
-            const velocity = Vec2.scale(inclineDir, vAlongIncline);
-            const speed = Math.abs(vAlongIncline);
-
-            // 加速度向量
-            const accelVec = isStationary ? Vec2.zero() : Vec2.scale(inclineDir, effectiveAccel);
-
-            trajectory.push({
-                t,
-                position,
-                velocity,
-                acceleration: accelVec,
-                kineticEnergy: kineticEnergy(m, speed),
-                potentialEnergy: m * g * position.y
-            });
-        }
+                return {
+                    position,
+                    velocity,
+                    acceleration: accelVec,
+                    kineticEnergy: kineticEnergy(m, speed),
+                    potentialEnergy: m * g * position.y
+                };
+            }
+        });
 
         // 斜面几何: 起点 (0, h), 终点 (h/tanθ, 0)
         const h = Math.abs(x0.y) || 10;

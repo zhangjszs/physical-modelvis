@@ -1,5 +1,5 @@
 import type { PhysicsProblem } from '../types/problem.js';
-import { kineticEnergy } from '../physics/kinematics.js';
+import { kineticEnergy, sampleTrajectory } from '../physics/kinematics.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
@@ -38,27 +38,26 @@ export class UniformElectricModel extends PhysicsModelBase {
 
         const duration = problem.timeConfig.duration;
         const sampleCount = problem.timeConfig.sampleCount ?? 1000;
-        const dt = duration / sampleCount;
-
-        // 解析解生成轨迹
-        const trajectory: TrajectoryPoint[] = [];
-        for (let i = 0; i <= sampleCount; i++) {
-            const t = i * dt;
-            const position = Vec2.add(x0, Vec2.add(Vec2.scale(v0, t), Vec2.scale(a, 0.5 * t * t)));
-            const velocity = Vec2.add(v0, Vec2.scale(a, t));
-            const speed = Vec2.magnitude(velocity);
-            // 电势能 U = q·φ, φ = -(Ex·x + Ey·y)  →  U = -q(Ex·x + Ey·y)
-            // 完整含 Ex 分量, 保证任何匀强电场方向下机械能守恒
-            const potentialEnergy = -q * (E.x * position.x + E.y * position.y);
-            trajectory.push({
-                t,
-                position,
-                velocity,
-                acceleration: { ...a },
-                kineticEnergy: kineticEnergy(m, speed),
-                potentialEnergy
-            });
-        }
+        // 解析解采样: 匀强电场 (公共脚手架 sampleTrajectory)
+        const trajectory = sampleTrajectory({
+            sampleCount,
+            duration,
+            sampleAt: (t) => {
+                const position = Vec2.add(x0, Vec2.add(Vec2.scale(v0, t), Vec2.scale(a, 0.5 * t * t)));
+                const velocity = Vec2.add(v0, Vec2.scale(a, t));
+                const speed = Vec2.magnitude(velocity);
+                // 电势能 U = q·φ, φ = -(Ex·x + Ey·y)  →  U = -q(Ex·x + Ey·y)
+                // 完整含 Ex 分量, 保证任何匀强电场方向下机械能守恒
+                const potentialEnergy = -q * (E.x * position.x + E.y * position.y);
+                return {
+                    position,
+                    velocity,
+                    acceleration: { ...a },
+                    kineticEnergy: kineticEnergy(m, speed),
+                    potentialEnergy
+                };
+            }
+        });
 
         // 关键帧
         const keyframes: Keyframe[] = [

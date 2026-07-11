@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { UniformLinearModel } from '../../src/models/uniform-linear.js';
 import { UniformAcceleratedModel } from '../../src/models/uniform-accelerated.js';
+import { sampleTrajectory } from '../../src/physics/kinematics.js';
 import type { PhysicsProblem } from '../../src/types/problem.js';
 
 const linearModel = new UniformLinearModel();
@@ -141,5 +142,53 @@ describe('UniformAcceleratedModel', () => {
     // v = 5 * 4 = 20 m/s
     const speed = Math.sqrt(last.velocity.x ** 2 + last.velocity.y ** 2);
     expect(speed).toBeCloseTo(20, 0);
+  });
+});
+
+describe('sampleTrajectory 脚手架', () => {
+  it('采样点数 = sampleCount + 1 (含首尾帧)', () => {
+    const traj = sampleTrajectory({ sampleCount: 100, duration: 5, sampleAt: (t) => ({ position: { x: t, y: 0 }, velocity: { x: 1, y: 0 } }) });
+    expect(traj.length).toBe(101);
+    expect(traj[0].t).toBe(0);
+    expect(traj[100].t).toBeCloseTo(5);
+  });
+
+  it('t 严格等于 i * dt (与手写循环数值一致)', () => {
+    const sampleCount = 50;
+    const duration = 2;
+    const traj = sampleTrajectory({
+      sampleCount,
+      duration,
+      sampleAt: (t) => ({ position: { x: t * t, y: 0 }, velocity: { x: 2 * t, y: 0 } }),
+    });
+    const dt = duration / sampleCount;
+    for (let i = 0; i <= sampleCount; i++) {
+      expect(traj[i].t).toBeCloseTo(i * dt, 12);
+      expect(traj[i].position.x).toBeCloseTo((i * dt) ** 2, 9); // x = t²
+    }
+  });
+
+  it('回调为纯函数: 输出仅依赖 t (无数值漂移)', () => {
+    // 位置公式 s = v₀t + ½at², 与匀变速模型位移公式同源
+    const v0 = 3, a = 2;
+    const traj = sampleTrajectory({
+      sampleCount: 200,
+      duration: 4,
+      sampleAt: (t) => {
+        const s = v0 * t + 0.5 * a * t * t;
+        return { position: { x: s, y: 0 }, velocity: { x: v0 + a * t, y: 0 }, kineticEnergy: 0.5 * (v0 + a * t) ** 2, potentialEnergy: 0 };
+      },
+    });
+    // 终点: s = 3*4 + 0.5*2*16 = 12 + 16 = 28
+    expect(traj[traj.length - 1].position.x).toBeCloseTo(28, 9);
+  });
+
+  it('可选择性携带 acceleration 字段', () => {
+    const traj = sampleTrajectory({
+      sampleCount: 4,
+      duration: 1,
+      sampleAt: (t) => ({ position: { x: t, y: 0 }, velocity: { x: 1, y: 0 }, acceleration: { x: 0, y: -9.8 } }),
+    });
+    expect(traj[0].acceleration).toEqual({ x: 0, y: -9.8 });
   });
 });
