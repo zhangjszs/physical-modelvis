@@ -27,6 +27,15 @@ export class CanvasRenderer {
     private circularYIsDepth = false;
     private circularBallH = 0;
 
+    /** 静态背景层离屏 canvas (背景 + 网格 + 坐标轴 + 地面 + 完整轨迹) */
+    private staticLayer: HTMLCanvasElement | null = null;
+    private staticLayerCtx: CanvasRenderingContext2D | null = null;
+    /** 当前离屏层的缓存签名；变化时触发重建 */
+    private staticLayerSig = '';
+    /** 当前离屏层对应的稳定轨迹身份 (用于区分不同仿真结果) */
+    private staticLayerTrajectory: object | null = null;
+    private dpr = 1;
+
     setCircularCoordMode(enabled: boolean, ballH = 0.35) {
         this.circularYIsDepth = enabled;
         this.circularBallH = ballH;
@@ -60,6 +69,8 @@ export class CanvasRenderer {
         this.layers = layers;
         this.isDark = isDark;
         if (themeChanged) clearTextureCache();
+        // 主题 / 图层 / 视口任一变化都会改变静态背景层, 必须失效缓存
+        this.invalidateStaticLayer();
     }
 
     set3DEnabled(enabled: boolean, canvasW: number, canvasH: number) {
@@ -69,6 +80,126 @@ export class CanvasRenderer {
         if (enabled) {
             this.recompute3DParams();
         }
+    }
+
+    setDpr(dpr: number) {
+        this.dpr = dpr;
+        this.invalidateStaticLayer();
+    }
+
+    /**
+     * 使静态背景层缓存失效 (主题 / 图层 / 视口 / 仿真结果变化时调用)。
+     */
+    invalidateStaticLayer() {
+        this.staticLayerSig = '';
+        this.staticLayerTrajectory = null;
+    }
+
+    /**
+     * 绘制“静态背景层”: 背景渐变 + 网格 + 坐标轴 + 自定义背景 + 地面 + 完整轨迹 (alpha 0.3)。
+     *
+     * 这些几何在播放期间每帧完全相同, 因此渲染到一个离屏 canvas 并缓存; 后续帧只需一次
+     * drawImage 合成. 仅当缓存签名 (画布尺寸 / 主题 / 图层 / 视口 / 轨迹身份) 变化时才重建.
+     *
+     * 动态元素 (随时间增长的轨迹 / 当前位置粒子 / 向量 / 探针 / HUD) 仍由调用方在主 canvas 绘制.
+     *
+     * @param w 逻辑宽度 (px)
+     * @param h 逻辑高度 (px)
+     * @param trajectoryPositions 完整轨迹点 (静态)
+     * @param trajectoryIdentity 区分不同仿真结果的稳定引用 (如 trajectories[0] 或 simulationResult)
+     * @param trajectoryColor 轨迹颜色
+     * @param skipGround 是否跳过地面绘制
+     * @param extraStaticDraw 在坐标轴之后 / 地面之前注入额外静态绘制 (如匀强电场 / 磁场符号)
+     * @param extraSig 影响 extraStaticDraw 的外部状态签名 (如场景参数), 变化时触发重建
+     * @param drawFullTrajectory 自定义完整轨迹绘制函数 (默认 drawTrajectory); 用于圆周运动 3D 等场景,
+     *                           签名 (positions, color) => void, 绘制时 globalAlpha 已被置为 0.3
+     */
+    drawStaticLayer(
+        w: number,
+        h: number,
+        trajectoryPositions: Vec2[],
+        trajectoryIdentity: object,
+        trajectoryColor: string,
+        skipGround: boolean,
+        extraStaticDraw?: (ctx: CanvasRenderingContext2D) => void,
+        extraSig = '',
+        drawFullTrajectory?: (positions: Vec2[], color: string) => void
+    ): void {
+        const usingCustomTraj = !!drawFullTrajectory;
+        const sig =
+            `${w}|${h}|${this.isDark}|${this.layers.grid}|${this.layers.axes}|${this.layers.trajectory}|` +
+            `${this.use3D}|${this.transformer.getSignature()}|${trajectoryColor}|${skipGround}|` +
+            `${trajectoryPositions.length}|${extraStaticDraw ? 1 : 0}|${extraSig}|${usingCustomTraj}`;
+
+        const cacheMiss =
+            !this.staticLayer ||
+            this.staticLayerSig !== sig ||
+            this.staticLayerTrajectory !== trajectoryIdentity;
+
+        if (cacheMiss) {
+            this.rebuildStaticLayer(
+                w,
+                h,
+                trajectoryPositions,
+                trajectoryColor,
+                skipGround,
+                extraStaticDraw,
+                drawFullTrajectory,
+                sig,
+                trajectoryIdentity
+            );
+        }
+
+        this.ctx.drawImage(this.staticLayer!, 0, 0, w, h);
+    }
+
+    private rebuildStaticLayer(
+        w: number,
+        h: number,
+        trajectoryPositions: Vec2[],
+        trajectoryColor: string,
+        skipGround: boolean,
+        extraStaticDraw: ((ctx: CanvasRenderingContext2D) => void) | undefined,
+        drawFullTrajectory: ((positions: Vec2[], color: string) => void) | undefined,
+        sig: string,
+        trajectoryIdentity: object
+    ): void {
+        if (!this.staticLayer) {
+            this.staticLayer = document.createElement('canvas');
+        }
+        const off = this.staticLayer;
+        const dw = Math.round(w * this.dpr);
+        const dh = Math.round(h * this.dpr);
+        if (off.width !== dw || off.height !== dh) {
+            off.width = dw;
+            off.height = dh;
+        }
+        if (!this.staticLayerCtx) {
+            this.staticLayerCtx = off.getContext('2d');
+        }
+        const offCtx = this.staticLayerCtx!;
+        offCtx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+        offCtx.clearRect(0, 0, w, h);
+
+        // 临时把渲染目标切换到离屏 ctx, 复用现有绘制方法
+        const prevCtx = this.ctx;
+        this.ctx = offCtx;
+        this.clear(w, h);
+        if (this.layers.grid) this.drawGrid(w, h);
+        if (this.layers.axes) this.drawAxes(w, h);
+        if (extraStaticDraw) extraStaticDraw(offCtx);
+        if (!skipGround) this.drawGround(0, w);
+        offCtx.globalAlpha = 0.3;
+        if (drawFullTrajectory) {
+            drawFullTrajectory(trajectoryPositions, trajectoryColor);
+        } else {
+            this.drawTrajectory(trajectoryPositions, trajectoryColor);
+        }
+        offCtx.globalAlpha = 1.0;
+        this.ctx = prevCtx;
+
+        this.staticLayerSig = sig;
+        this.staticLayerTrajectory = trajectoryIdentity;
     }
 
     worldToScreenPoint(p: Vec2): { x: number; y: number } {
@@ -466,7 +597,7 @@ export class CanvasRenderer {
         ctx.textBaseline = 'alphabetic';
     }
 
-    drawTrajectory(points: Vec2[], color = COLORS.trajectory) {
+    drawTrajectory(points: Vec2[], color: string = COLORS.trajectory) {
         if (!this.layers.trajectory || points.length < 2) return;
         if (this.use3D) {
             this.draw3DTrajectory(points, color);
@@ -1609,7 +1740,11 @@ export class CanvasRenderer {
     }
 }
 
+const rgbCache = new Map<string, [number, number, number]>();
+
 function hexToRgb(hex: string): [number, number, number] {
+    const cached = rgbCache.get(hex);
+    if (cached) return cached;
     const h = hex.replace('#', '');
     const full =
         h.length === 3
@@ -1618,7 +1753,13 @@ function hexToRgb(hex: string): [number, number, number] {
                   .map(c => c + c)
                   .join('')
             : h;
-    return [parseInt(full.slice(0, 2), 16), parseInt(full.slice(2, 4), 16), parseInt(full.slice(4, 6), 16)];
+    const rgb: [number, number, number] = [
+        parseInt(full.slice(0, 2), 16),
+        parseInt(full.slice(2, 4), 16),
+        parseInt(full.slice(4, 6), 16)
+    ];
+    rgbCache.set(hex, rgb);
+    return rgb;
 }
 
 function rgbToHex(r: number, g: number, b: number): string {

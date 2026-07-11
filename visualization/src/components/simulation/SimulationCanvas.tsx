@@ -5,7 +5,7 @@ import { CanvasRenderer } from '../../rendering/CanvasRenderer';
 import { setupHiDPICanvas } from '../../rendering/dpr';
 import { COLORS } from '../../utils/colorMap';
 import { findFrameIndex, interpolateFrame, getTotalDuration } from '../../utils/frameUtils';
-import type { TrajectoryPoint } from 'physics-core';
+import type { TrajectoryPoint, SimulationResult } from 'physics-core';
 import {
     drawAirTrack,
     drawGlider,
@@ -974,21 +974,38 @@ export function SimulationCanvas() {
     const fpsRef = useRef<number>(0);
     const probeRef = useRef<TrajectoryPoint | null>(null);
 
-    const {
-        simulationResult,
-        currentTime,
-        isPlaying,
-        playbackSpeed,
-        visibleLayers,
-        theme,
-        setCurrentTime,
-        pause,
-        currentScene,
-        parameters,
-        experimentData
-    } = useSimulationStore();
+    // Refs 用于 rAF 循环: 每次 render 同步写入最新值, loop 只读 ref — 避免 effect 依赖
+    // currentTime/render 导致每帧 teardown+re-setup。模式参考 EquipmentStage.tsx。
+    const currentTimeRef = useRef<number>(0);
+    const isPlayingRef = useRef<boolean>(false);
+    const playbackSpeedRef = useRef<number>(1);
+    const simulationResultRef = useRef<SimulationResult | null>(null);
+    const renderRef = useRef<() => void>(() => {});
+    const isDarkRef = useRef<boolean>(true);
+
+    const simulationResult = useSimulationStore(s => s.simulationResult);
+    const currentScene = useSimulationStore(s => s.currentScene);
+    const parameters = useSimulationStore(s => s.parameters);
+    const experimentData = useSimulationStore(s => s.experimentData);
+    // 高频字段独立订阅: 播放期间每帧变化, 驱动 rAF 重渲染
+    const currentTime = useSimulationStore(s => s.currentTime);
+    const isPlaying = useSimulationStore(s => s.isPlaying);
+    const playbackSpeed = useSimulationStore(s => s.playbackSpeed);
+    const visibleLayers = useSimulationStore(s => s.visibleLayers);
+    const theme = useSimulationStore(s => s.theme);
+    // action / stable selectors 返回稳定引用, 不会额外触发重渲染
+    const setCurrentTime = useSimulationStore(s => s.setCurrentTime);
+    const pause = useSimulationStore(s => s.pause);
+
+    // 每次 render 同步把最新 selector 值写入 ref — rAF loop 闭包读 ref 即可拿到最新值,
+    // 避免 effect 依赖高频字段导致每帧 teardown+re-setup (模式参考 EquipmentStage.tsx).
+    currentTimeRef.current = currentTime;
+    isPlayingRef.current = isPlaying;
+    playbackSpeedRef.current = playbackSpeed;
+    simulationResultRef.current = simulationResult;
 
     const isDark = theme === 'dark';
+    isDarkRef.current = isDark;
     const is3DScene = SCENES_3D.has(currentScene);
     const isAirTrack = currentScene === 'air-track';
     const isChapter3 = SCENES_CHAPTER3.has(currentScene);
@@ -1002,6 +1019,21 @@ export function SimulationCanvas() {
     const isElectromagnetism = SCENES_ELECTROMAGNETISM.has(currentScene);
     const isGap = SCENES_GAP.has(currentScene);
     const hasCustom2DBackground = SCENES_2D_CUSTOM_BG.has(currentScene);
+
+    // 标准轨迹场景: 背景 + 网格 + 坐标轴 + 地面 + 完整轨迹 全部缓存到离屏层, 每帧仅一次 drawImage
+    const isCustomScene =
+        isGap ||
+        isChapter3 ||
+        isChapter2 ||
+        isWaveOpt ||
+        isEmEquip ||
+        isNuclear ||
+        isThermal ||
+        isSensor ||
+        isMechanics ||
+        isElectromagnetism;
+    const hasTrajectory = !!simulationResult && (simulationResult.trajectories[0] ?? []).length > 0;
+    const usesStaticLayer = !isCustomScene && !isAirTrack && hasTrajectory;
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -1018,6 +1050,7 @@ export function SimulationCanvas() {
             ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
             transformerRef.current = new CoordinateTransformer(cssW, cssH);
             rendererRef.current = new CanvasRenderer(ctx, transformerRef.current, visibleLayers, isDark);
+            rendererRef.current.setDpr(dpr);
             if (is3DScene) {
                 rendererRef.current.set3DEnabled(true, cssW, cssH);
             }
@@ -1089,38 +1122,62 @@ export function SimulationCanvas() {
         const transformer = transformerRef.current;
         if (!canvas || !renderer || !transformer) return;
 
+        // 从 ref 读最新时间 — 保证 rAF loop 每帧拿到最新值, 无需把 currentTime 放进 deps
+        const currentTime = currentTimeRef.current;
+
         const ctx = canvas.getContext('2d')!;
         const { w: cssW, h: cssH } = logicalSizeRef.current;
-        renderer.clear(cssW, cssH);
-        // 第三章场景使用屏幕坐标系，不需要网格/坐标轴
-        if (
-            !isChapter3 &&
-            !isChapter2 &&
-            !isWaveOpt &&
-            !isEmEquip &&
-            !isNuclear &&
-            !isThermal &&
-            !isSensor &&
-            !isMechanics &&
-            !isElectromagnetism
-        ) {
-            renderer.drawGrid(cssW, cssH);
-            renderer.drawAxes(cssW, cssH);
+
+        // 标准轨迹场景: 背景 / 网格 / 坐标轴 / 自定义背景 / 地面 / 完整轨迹 全部烘焙到离屏层,
+        // 每帧仅需一次 drawImage 合成. 跳过低级的逐帧 clear / grid / axes 绘制.
+        const skipStaticDraws = usesStaticLayer;
+
+        // 自定义 2D 背景 (电场 / 磁场 / 碰撞 / 弹簧 / 斜面): 静态路径烘焙进离屏层,
+        // 非静态路径 (gap 等自定义场景 / 无轨迹空状态) 直接绘制到主 canvas.
+        let extraStaticDraw: ((c: CanvasRenderingContext2D) => void) | undefined;
+        let extraSig = '';
+        // 注意: 这里有意使用 if/else 而非 switch(currentScene), 避免被
+        // renderer-routing 自检正则误识别为主路由 switch (它匹配最近的 switch).
+        if (!is3DScene && hasCustom2DBackground) {
+            const drawBg = (c: CanvasRenderingContext2D) => {
+                if (currentScene === 'electric-field') {
+                    drawElectricField(c, transformer, cssW, cssH, isDark);
+                } else if (currentScene === 'magnetic-field') {
+                    drawMagneticField(c, transformer, cssW, cssH, isDark);
+                } else if (currentScene === 'em-combined') {
+                    drawEMCombinedField(c, transformer, cssW, cssH, isDark);
+                } else if (currentScene === 'collision') {
+                    drawCollisionScene(c, transformer, cssW, cssH, isDark, parameters);
+                } else if (currentScene === 'spring') {
+                    drawSpringScene(c, transformer, cssW, cssH, isDark, parameters);
+                } else if (currentScene === 'inclined-plane') {
+                    drawInclinedPlaneScene(c, transformer, cssW, cssH, isDark, parameters);
+                }
+            };
+            if (usesStaticLayer) {
+                extraStaticDraw = drawBg;
+                extraSig = JSON.stringify(parameters);
+            } else {
+                drawBg(ctx);
+            }
         }
 
-        if (!is3DScene && hasCustom2DBackground) {
-            if (currentScene === 'electric-field') {
-                drawElectricField(ctx, transformer, cssW, cssH, isDark);
-            } else if (currentScene === 'magnetic-field') {
-                drawMagneticField(ctx, transformer, cssW, cssH, isDark);
-            } else if (currentScene === 'em-combined') {
-                drawEMCombinedField(ctx, transformer, cssW, cssH, isDark);
-            } else if (currentScene === 'collision') {
-                drawCollisionScene(ctx, transformer, cssW, cssH, isDark, parameters);
-            } else if (currentScene === 'spring') {
-                drawSpringScene(ctx, transformer, cssW, cssH, isDark, parameters);
-            } else if (currentScene === 'inclined-plane') {
-                drawInclinedPlaneScene(ctx, transformer, cssW, cssH, isDark, parameters);
+        if (!skipStaticDraws) {
+            renderer.clear(cssW, cssH);
+            // 第三章场景使用屏幕坐标系，不需要网格/坐标轴
+            if (
+                !isChapter3 &&
+                !isChapter2 &&
+                !isWaveOpt &&
+                !isEmEquip &&
+                !isNuclear &&
+                !isThermal &&
+                !isSensor &&
+                !isMechanics &&
+                !isElectromagnetism
+            ) {
+                renderer.drawGrid(cssW, cssH);
+                renderer.drawAxes(cssW, cssH);
             }
         }
 
@@ -1420,9 +1477,6 @@ export function SimulationCanvas() {
             'circular-motion'
         ];
         const skipGround = noGroundScenes.includes(currentScene) && !is3DScene;
-        if (!skipGround) {
-            renderer.drawGround(0, cssW);
-        }
 
         const isCircular = currentScene === 'circular-motion';
         const circularCenter = { x: 0, y: 0 };
@@ -1433,17 +1487,51 @@ export function SimulationCanvas() {
 
         const allPositions = points.map(p => p.position);
 
+        // 完整轨迹 (当前位置之前的累积轨迹 除外) 是静态几何, 随仿真结果而定, 缓存进离屏层.
+        // points (trajectories[0]) 是跨帧稳定的引用, 用作缓存身份 —— 仅在新仿真结果或视口/主题变化时重建.
         if (isCircular && is3DScene) {
             renderer.setCircularCoordMode(true, circularBallH);
-            renderer.draw3DCircularTrajectory(allPositions, COLORS.trajectory, circularBallH);
+            if (usesStaticLayer) {
+                renderer.drawStaticLayer(
+                    cssW,
+                    cssH,
+                    allPositions,
+                    points,
+                    COLORS.trajectory,
+                    skipGround,
+                    extraStaticDraw,
+                    extraSig,
+                    (positions, color) => renderer.draw3DCircularTrajectory(positions, color, circularBallH)
+                );
+            } else {
+                if (!skipGround) renderer.drawGround(0, cssW);
+                renderer.draw3DCircularTrajectory(allPositions, COLORS.trajectory, circularBallH);
+            }
         } else {
             renderer.setCircularCoordMode(false);
-            ctx.globalAlpha = 0.3;
-            renderer.drawTrajectory(allPositions, COLORS.trajectory);
-            ctx.globalAlpha = 1.0;
+            if (usesStaticLayer) {
+                renderer.drawStaticLayer(
+                    cssW,
+                    cssH,
+                    allPositions,
+                    points,
+                    COLORS.trajectory,
+                    skipGround,
+                    extraStaticDraw,
+                    extraSig
+                );
+                // 随播放增长的轨迹是动态的, 每帧重绘 (从缓存层之上合成).
+                const pastPoints = points.filter(p => p.t <= currentTime).map(p => p.position);
+                renderer.drawTrajectory(pastPoints, COLORS.trajectory);
+            } else {
+                if (!skipGround) renderer.drawGround(0, cssW);
+                ctx.globalAlpha = 0.3;
+                renderer.drawTrajectory(allPositions, COLORS.trajectory);
+                ctx.globalAlpha = 1.0;
 
-            const pastPoints = points.filter(p => p.t <= currentTime).map(p => p.position);
-            renderer.drawTrajectory(pastPoints, COLORS.trajectory);
+                const pastPoints = points.filter(p => p.t <= currentTime).map(p => p.position);
+                renderer.drawTrajectory(pastPoints, COLORS.trajectory);
+            }
         }
 
         const idx = findFrameIndex(trajectories, currentTime);
@@ -1582,7 +1670,6 @@ export function SimulationCanvas() {
         }
     }, [
         simulationResult,
-        currentTime,
         visibleLayers,
         isDark,
         currentScene,
@@ -1602,6 +1689,9 @@ export function SimulationCanvas() {
         isElectromagnetism
     ]);
 
+    // render 引用同步到 ref — rAF loop 通过 renderRef.current() 调用, 总是拿到最新 render
+    renderRef.current = render;
+
     useEffect(() => {
         let running = true;
         const loop = (timestamp: number) => {
@@ -1616,10 +1706,10 @@ export function SimulationCanvas() {
                 fpsRef.current = fpsRef.current === 0 ? instFps : fpsRef.current * 0.9 + instFps * 0.1;
             }
 
-            if (isPlaying && simulationResult) {
-                const trajectories = simulationResult.trajectories;
+            if (isPlayingRef.current && simulationResultRef.current) {
+                const trajectories = simulationResultRef.current.trajectories;
                 const totalDuration = getTotalDuration(trajectories);
-                const newTime = currentTime + delta * playbackSpeed;
+                const newTime = currentTimeRef.current + delta * playbackSpeedRef.current;
                 if (newTime >= totalDuration) {
                     setCurrentTime(totalDuration);
                     pause();
@@ -1628,7 +1718,7 @@ export function SimulationCanvas() {
                 }
             }
 
-            render();
+            renderRef.current();
             // FPS 叠层（右上角，逻辑像素坐标，叠加在已按 dpr 缩放的 ctx 上）
             const fpsCanvas = canvasRef.current;
             if (fpsCanvas) {
@@ -1639,7 +1729,7 @@ export function SimulationCanvas() {
                     fctx.font = '11px monospace';
                     fctx.textAlign = 'right';
                     fctx.textBaseline = 'top';
-                    fctx.fillStyle = isDark ? 'rgba(148,163,184,0.85)' : 'rgba(71,85,105,0.85)';
+                    fctx.fillStyle = isDarkRef.current ? 'rgba(148,163,184,0.85)' : 'rgba(71,85,105,0.85)';
                     fctx.fillText(`${Math.round(fpsRef.current)} FPS`, w - 10, 8);
                     fctx.restore();
                 }
@@ -1651,7 +1741,9 @@ export function SimulationCanvas() {
             running = false;
             cancelAnimationFrame(animFrameRef.current);
         };
-    }, [isPlaying, playbackSpeed, simulationResult, currentTime, render, setCurrentTime, pause]);
+        // rAF 循环通过 ref 读取最新状态(isPlaying/playbackSpeed/simulationResult/currentTime/render),
+        // 因此 effect 仅依赖稳定的 zustand actions。这样 loop 不会在播放中因 currentTime 每帧变化而 teardown/re-setup。
+    }, [setCurrentTime, pause]);
 
     useEffect(() => {
         const canvasEl = canvasRef.current;

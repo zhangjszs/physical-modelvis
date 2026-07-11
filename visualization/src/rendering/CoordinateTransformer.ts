@@ -38,6 +38,11 @@ export class CoordinateTransformer {
         return this.scale;
     }
 
+    /** 返回描述当前坐标变换状态的签名字符串 (用于静态层缓存 key) */
+    getSignature(): string {
+        return `${this.scale.toFixed(4)}|${this.originX.toFixed(2)}|${this.originY.toFixed(2)}`;
+    }
+
     /** 自动缩放以适应轨迹范围 */
     autoFit(points: Vec2[], canvasWidth: number, canvasHeight: number, padding = 60, for3D = false): void {
         if (points.length === 0) return;
