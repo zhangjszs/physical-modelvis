@@ -1,4 +1,4 @@
-import type { SimulationResult, PhysicsProblem, ModelType } from 'physics-core';
+import type { SimulationResult, PhysicsProblem, ModelType, Vector2D } from 'physics-core';
 import type { PhotogateMeasurement } from '../utils/photogate';
 
 // ========== 场景参数 ==========
@@ -25,10 +25,8 @@ export interface SceneConfig {
 
 // ========== 渲染相关 ==========
 
-export interface Vec2 {
-    x: number;
-    y: number;
-}
+// 复用 physics-core 规范类型 Vector2D, 消除与 vector2d.ts / gapScenes 的重复定义
+export type Vec2 = Vector2D;
 
 export interface RenderBody {
     id: string;

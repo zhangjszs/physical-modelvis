@@ -17,7 +17,7 @@
  *   - 共享工具函数在本文件内复用
  */
 
-import type { SimulationResult } from 'physics-core';
+import type { SimulationResult, Vector2D } from 'physics-core';
 
 // ========== 共享类型 ==========
 
@@ -32,10 +32,8 @@ export interface GapSceneOptions {
 }
 
 // result.extra 的局部收窄类型 (与 physics-core 模型输出结构一致)
-interface Vec2 {
-    x: number;
-    y: number;
-}
+// 复用规范类型 Vector2D, 消除重复定义
+type Vec2 = Vector2D;
 interface MagFieldLine {
     points: Vec2[];
 }
