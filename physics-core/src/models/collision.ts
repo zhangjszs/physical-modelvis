@@ -1,5 +1,5 @@
 import type { PhysicsProblem, ModelType } from '../types/problem.js';
-import { kineticEnergy } from '../physics/kinematics.js';
+import { kineticEnergy, sampleTrajectory } from '../physics/kinematics.js';
 import type {
     SimulationResult,
     TrajectoryPoint,
@@ -72,39 +72,39 @@ export class CollisionModel extends PhysicsModelBase {
         }
         const collisionOccurs = collisionTime >= 0 && collisionTime <= duration;
 
-        const traj1: TrajectoryPoint[] = [];
-        const traj2: TrajectoryPoint[] = [];
-
-        for (let i = 0; i <= sampleCount; i++) {
-            const t = i * dt;
-            const beforeCollision = !collisionOccurs || t < collisionTime;
-
-            const vel1 = beforeCollision ? v1i : v1f;
-            const vel2 = beforeCollision ? v2i : v2f;
-
-            const pos1 = beforeCollision ? x1i + v1i * t : x1i + v1i * collisionTime + v1f * (t - collisionTime);
-            const pos2 = beforeCollision ? x2i + v2i * t : x2i + v2i * collisionTime + v2f * (t - collisionTime);
-
-            const speed1 = Math.abs(vel1);
-            const speed2 = Math.abs(vel2);
-
-            traj1.push({
-                t,
-                position: { x: pos1, y: 0 },
-                velocity: { x: vel1, y: 0 },
-                acceleration: { x: 0, y: 0 },
-                kineticEnergy: kineticEnergy(m1, speed1),
-                potentialEnergy: 0
-            });
-            traj2.push({
-                t,
-                position: { x: pos2, y: 0 },
-                velocity: { x: vel2, y: 0 },
-                acceleration: { x: 0, y: 0 },
-                kineticEnergy: kineticEnergy(m2, speed2),
-                potentialEnergy: 0
-            });
-        }
+        // 解析解 sampling: 两体碰撞 — 碰前匀速 + 碰后匀速 (公共脚手架 sampleTrajectory)
+        const traj1 = sampleTrajectory({
+            sampleCount, duration,
+            sampleAt: (t) => {
+                const beforeCollision = !collisionOccurs || t < collisionTime;
+                const vel1 = beforeCollision ? v1i : v1f;
+                const pos1 = beforeCollision ? x1i + v1i * t : x1i + v1i * collisionTime + v1f * (t - collisionTime);
+                const speed1 = Math.abs(vel1);
+                return {
+                    position: { x: pos1, y: 0 },
+                    velocity: { x: vel1, y: 0 },
+                    acceleration: { x: 0, y: 0 },
+                    kineticEnergy: kineticEnergy(m1, speed1),
+                    potentialEnergy: 0
+                };
+            }
+        });
+        const traj2 = sampleTrajectory({
+            sampleCount, duration,
+            sampleAt: (t) => {
+                const beforeCollision = !collisionOccurs || t < collisionTime;
+                const vel2 = beforeCollision ? v2i : v2f;
+                const pos2 = beforeCollision ? x2i + v2i * t : x2i + v2i * collisionTime + v2f * (t - collisionTime);
+                const speed2 = Math.abs(vel2);
+                return {
+                    position: { x: pos2, y: 0 },
+                    velocity: { x: vel2, y: 0 },
+                    acceleration: { x: 0, y: 0 },
+                    kineticEnergy: kineticEnergy(m2, speed2),
+                    potentialEnergy: 0
+                };
+            }
+        });
 
         const keyframes: Keyframe[] = [];
         keyframes.push({

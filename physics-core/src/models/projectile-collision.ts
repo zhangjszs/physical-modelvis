@@ -1,5 +1,5 @@
 import type { PhysicsProblem } from '../types/problem.js';
-import { kineticEnergy } from '../physics/kinematics.js';
+import { kineticEnergy, sampleTrajectory } from '../physics/kinematics.js';
 import type {
     SimulationResult,
     TrajectoryPoint,
@@ -106,21 +106,18 @@ export class ProjectileCollisionModel extends PhysicsModelBase {
         const KETotalAfter = KE1After + KE2After;
         const KEloss = KETotalBefore - KETotalAfter;
 
-        // 静态轨迹 (按时间, 两球的水平位置)
+        // 解析解采样: 入射球平抛 (水平匀速 x=v1·t + 竖直落体 y=h-½gt²) (公共脚手架 sampleTrajectory)
         const sampleCount = problem.timeConfig.sampleCount ?? 200;
-        const trajectory: TrajectoryPoint[] = [];
-        for (let i = 0; i <= sampleCount; i++) {
-            const t = (i / sampleCount) * tFall;
-            // 使用质心参考, 轨迹取 m1 的水平射程
-            trajectory.push({
-                t,
+        const trajectory = sampleTrajectory({
+            sampleCount, duration: tFall,
+            sampleAt: (t) => ({
                 position: { x: v1 * t, y: h - 0.5 * g * t * t },
                 velocity: { x: v1, y: -g * t },
                 acceleration: { x: 0, y: -g },
-                kineticEnergy: 0.5 * m1 * (v1 * v1 + g * t * (g * t)),
+                kineticEnergy: 0.5 * m1 * (v1 * v1 + g * t * g * t),
                 potentialEnergy: m1 * g * (h - 0.5 * g * t * t)
-            });
-        }
+            })
+        });
 
         const collisionPoint = { x: 0, y: h }; // 碰撞点 (以轨道末端为原点)
 

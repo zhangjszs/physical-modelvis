@@ -1,5 +1,5 @@
 import type { PhysicsProblem } from '../types/problem.js';
-import { kineticEnergy } from '../physics/kinematics.js';
+import { kineticEnergy, sampleTrajectory } from '../physics/kinematics.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
@@ -80,30 +80,26 @@ export class ReactionTimeModel extends PhysicsModelBase {
 
         const mass = problem.bodies[0]!.mass.value;
 
-        // 生成轨迹: y(t) = h - ½gt², v(t) = -gt, a = -g
-        const trajectory: TrajectoryPoint[] = [];
-        for (let i = 0; i <= sampleCount; i++) {
-            const t = i * dt;
-            // 限制位置不被抓后 (y≥0 即 h - ½gt² ≥ 0)
-            // t ≤ √(2h/g) = reactionTime; 超过后让 y=0, v=0 (已抓住)
-            const isCaught = t > reactionTime;
-            const y = isCaught ? 0 : h - 0.5 * g * t * t;
-            const vy = isCaught ? 0 : -g * t;
-            const ay = isCaught ? 0 : -g;
-            const speed = Math.abs(vy);
-            // 重力势能 (零点 y=0): U = mgy (当 y>0)
-            const potentialEnergy = mass * g * Math.max(y, 0);
-            const ke = kineticEnergy(mass, speed);
-
-            trajectory.push({
-                t,
-                position: { x: 0, y: Math.max(y, 0) },
-                velocity: { x: 0, y: vy },
-                acceleration: { x: 0, y: ay },
-                kineticEnergy: ke,
-                potentialEnergy
-            });
-        }
+        // 解析解采样: 自由落体 y=h-½gt², 抓住后停止 (公共脚手架 sampleTrajectory)
+        //   注意 duration 用 totalTime 握住反应时刻后段
+        const trajectory = sampleTrajectory({
+            sampleCount, duration: totalTime,
+            sampleAt: (t) => {
+                // 限制位置: t ≤ reactionTime 自由落体; t>reactionTime 已抓住 y=0, v=0
+                const isCaught = t > reactionTime;
+                const y = isCaught ? 0 : h - 0.5 * g * t * t;
+                const vy = isCaught ? 0 : -g * t;
+                const ay = isCaught ? 0 : -g;
+                const speed = Math.abs(vy);
+                return {
+                    position: { x: 0, y: Math.max(y, 0) },
+                    velocity: { x: 0, y: vy },
+                    acceleration: { x: 0, y: ay },
+                    kineticEnergy: kineticEnergy(mass, speed),
+                    potentialEnergy: mass * g * Math.max(y, 0)
+                };
+            }
+        });
 
         // 关键帧: 起点(y=h), 中点, 被抓点(y=0)
         const keyframes: Keyframe[] = [

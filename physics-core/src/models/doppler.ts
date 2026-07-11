@@ -2,6 +2,7 @@ import type { PhysicsProblem } from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
+import { sampleTrajectory } from '../physics/kinematics.js';
 
 /**
  * 多普勒效应模型 — 选必一 第三章 (多普勒效应)
@@ -103,17 +104,16 @@ export class DopplerModel extends PhysicsModelBase {
             });
         }
 
-        const trajectory: TrajectoryPoint[] = [];
-        for (let i = 0; i <= 50; i++) {
-            const t = (i / 50) * 10;
-            trajectory.push({
-                t,
+        // 解析解采样: 声源匀速直线运动 x=vs·t·cosθ, y=vs·t·sinθ (公共脚手架 sampleTrajectory)
+        const trajectory = sampleTrajectory({
+            sampleCount: 50, duration: 10,
+            sampleAt: (t) => ({
                 position: { x: vs * t * cosTheta, y: vs * t * Math.sin(thetaRad) },
                 velocity: { x: vs * cosTheta, y: vs * Math.sin(thetaRad) },
                 kineticEnergy: 0,
                 potentialEnergy: 0
-            });
-        }
+            })
+        });
 
         const keyframes: Keyframe[] = [
             {
