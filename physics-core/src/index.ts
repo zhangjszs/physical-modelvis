@@ -41,6 +41,7 @@ export type {
     CurveTrackShape,
     CurveConditionConstraint,
     MotionCompositionConstraint,
+    TimeConfig,
     CavendishConstraint,
     MoonEarthTestConstraint,
     VernierCaliperConstraint,

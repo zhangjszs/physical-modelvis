@@ -1,3 +1,4 @@
+import { makeTimeSeries } from '../../utils/timeSeries.js';
 import type { SceneConfig } from '../../types/visualization';
 import { PHYSICS_CONSTANTS } from 'physics-core';
 
@@ -156,7 +157,7 @@ export const MechanicsScenes: SceneConfig[] = [
                     environment: {
                         gravity: { enabled: true, value: g }
                     },
-                    timeConfig: { duration, dt: 0.01, sampleCount: 1000 }
+                    timeConfig: makeTimeSeries(duration, 1000, 0.01)
                 };
             }
         },
@@ -219,7 +220,7 @@ export const MechanicsScenes: SceneConfig[] = [
                     environment: {
                         gravity: { enabled: true, value: g }
                     },
-                    timeConfig: { duration, dt: 0.01, sampleCount: 1000 }
+                    timeConfig: makeTimeSeries(duration, 1000, 0.01)
                 };
             }
         },
@@ -324,7 +325,7 @@ export const MechanicsScenes: SceneConfig[] = [
                     ],
                     constraints: e < 0.99 ? { collision: { restitution: e } } : {},
                     environment: {},
-                    timeConfig: { duration, dt: 0.001, sampleCount: 1000 }
+                    timeConfig: makeTimeSeries(duration, 1000, 0.001)
                 };
             }
         },
@@ -412,7 +413,7 @@ export const MechanicsScenes: SceneConfig[] = [
                         spring: { springConstant: k, naturalLength: 0, anchorPoint: { x: 0, y: 0 } }
                     },
                     environment: damping > 0 ? { airResistance: { enabled: true, coefficient: damping } } : {},
-                    timeConfig: { duration, dt: 0.001, sampleCount: 1000 }
+                    timeConfig: makeTimeSeries(duration, 1000, 0.001)
                 };
             }
         },
@@ -505,7 +506,7 @@ export const MechanicsScenes: SceneConfig[] = [
                     environment: {
                         gravity: { enabled: true, value: 9.8 }
                     },
-                    timeConfig: { duration, dt: 0.001, sampleCount: 1000 }
+                    timeConfig: makeTimeSeries(duration, 1000, 0.001)
                 };
             }
         },
@@ -652,7 +653,7 @@ export const MechanicsScenes: SceneConfig[] = [
                     environment: {
                         gravity: { enabled: false }
                     },
-                    timeConfig: { duration, dt: duration / 600, sampleCount: 600 }
+                    timeConfig: makeTimeSeries(duration, 600)
                 };
             }
         },
@@ -828,7 +829,7 @@ export const MechanicsScenes: SceneConfig[] = [
                         }
                     ],
                     environment: {},
-                    timeConfig: { duration, dt: duration / 400, sampleCount: 400 }
+                    timeConfig: makeTimeSeries(duration, 400)
                 };
             }
         },
@@ -933,7 +934,7 @@ export const MechanicsScenes: SceneConfig[] = [
                                 ? { enabled: true, y: 0, friction: friction / (mass * g) }
                                 : { enabled: true, y: 0 }
                     },
-                    timeConfig: { duration, dt: duration / 500, sampleCount: 500 }
+                    timeConfig: makeTimeSeries(duration, 500)
                 };
             }
         },
@@ -1054,7 +1055,7 @@ export const MechanicsScenes: SceneConfig[] = [
                         ],
                         constraints: { momentum: { mode: 'recoil' } },
                         environment: {},
-                        timeConfig: { duration, dt: duration / 300, sampleCount: 300 }
+                        timeConfig: makeTimeSeries(duration, 300)
                     };
                 }
     
@@ -1072,7 +1073,7 @@ export const MechanicsScenes: SceneConfig[] = [
                     ],
                     constraints: { momentum: { mode: 'impulse', force } },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 300, sampleCount: 300 }
+                    timeConfig: makeTimeSeries(duration, 300)
                 };
             }
         },
@@ -1171,7 +1172,7 @@ export const MechanicsScenes: SceneConfig[] = [
                         }
                     },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 300, sampleCount: 300 }
+                    timeConfig: makeTimeSeries(duration, 300)
                 };
             }
         },
@@ -1272,7 +1273,7 @@ export const MechanicsScenes: SceneConfig[] = [
                     ],
                     constraints: { simplePendulum: { length: L, g, initialAngleDeg: angleDeg, damping } },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 1000, sampleCount: 1000 }
+                    timeConfig: makeTimeSeries(duration, 1000)
                 };
             }
         },
@@ -1363,7 +1364,7 @@ export const MechanicsScenes: SceneConfig[] = [
                         spring: { springConstant: k, naturalLength: 0, anchorPoint: { x: 0, y: 0 } }
                     },
                     environment: { gravity: { enabled: true, value: g } },
-                    timeConfig: { duration, dt: duration / 200, sampleCount: 200 }
+                    timeConfig: makeTimeSeries(duration, 200)
                 };
             }
         },
@@ -1463,7 +1464,7 @@ export const MechanicsScenes: SceneConfig[] = [
                         slidingFriction: { frictionCoefficient: mu, uniformMotion }
                     },
                     environment: { gravity: { enabled: true, value: g } },
-                    timeConfig: { duration, dt: duration / 400, sampleCount: 400 }
+                    timeConfig: makeTimeSeries(duration, 400)
                 };
             }
         },
@@ -1539,7 +1540,7 @@ export const MechanicsScenes: SceneConfig[] = [
                         forceComposition: { f1, f2, angleDeg, f1AngleDeg: 0 }
                     },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 360, sampleCount: 360 }
+                    timeConfig: makeTimeSeries(duration, 360)
                 };
             }
         },
@@ -1639,7 +1640,7 @@ export const MechanicsScenes: SceneConfig[] = [
                     environment: {
                         ground: { enabled: true, y: 0, friction: includeFriction ? friction : 0 }
                     },
-                    timeConfig: { duration, dt: duration / 500, sampleCount: 500 }
+                    timeConfig: makeTimeSeries(duration, 500)
                 };
             }
         },
@@ -1700,7 +1701,7 @@ export const MechanicsScenes: SceneConfig[] = [
                         }
                     ],
                     environment: {},
-                    timeConfig: { duration, dt: duration / 500, sampleCount: 500 }
+                    timeConfig: makeTimeSeries(duration, 500)
                 };
             }
         },
@@ -1789,7 +1790,7 @@ export const MechanicsScenes: SceneConfig[] = [
                         newtonThirdLaw: { forceAB, allowMotion }
                     },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 300, sampleCount: 300 }
+                    timeConfig: makeTimeSeries(duration, 300)
                 };
             }
         },
@@ -1877,7 +1878,7 @@ export const MechanicsScenes: SceneConfig[] = [
                         tickerTimer: { frequency, acceleration, frictionCoefficient: frictionCoeff, initialVelocity }
                     },
                     environment: { gravity: { enabled: false } },
-                    timeConfig: { duration, dt: duration / 1000, sampleCount: 1000 }
+                    timeConfig: makeTimeSeries(duration, 1000)
                 };
             }
         },
@@ -1940,7 +1941,7 @@ export const MechanicsScenes: SceneConfig[] = [
                     ],
                     constraints: { reactionTime: { distance, gravity } },
                     environment: { gravity: { enabled: true, value: gravity } },
-                    timeConfig: { duration: Math.max(duration, tReact * 1.5), dt: 0.001, sampleCount: 1000 }
+                    timeConfig: makeTimeSeries(Math.max(duration, tReact * 1.5), 1000, 0.001)
                 };
             }
         },
@@ -2023,7 +2024,7 @@ export const MechanicsScenes: SceneConfig[] = [
                     ],
                     constraints: { galileoIncline: { angleDeg, inclineLength, mode, gravity } },
                     environment: { gravity: { enabled: true, value: gravity } },
-                    timeConfig: { duration, dt: duration / 1000, sampleCount: 1000 }
+                    timeConfig: makeTimeSeries(duration, 1000)
                 };
             }
         },
@@ -2093,7 +2094,7 @@ export const MechanicsScenes: SceneConfig[] = [
                     ],
                     constraints: { centerOfGravity: { vertices } },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 100, sampleCount: 100 }
+                    timeConfig: makeTimeSeries(duration, 100)
                 };
             }
         },
@@ -2187,7 +2188,7 @@ export const MechanicsScenes: SceneConfig[] = [
                     ],
                     constraints: { inertia: { mode, initialSpeed, massRatio, frictionCoeff } },
                     environment: { ground: { enabled: true, y: -0.5, friction: frictionCoeff } },
-                    timeConfig: { duration, dt: duration / 500, sampleCount: 500 }
+                    timeConfig: makeTimeSeries(duration, 500)
                 };
             }
         },
@@ -2275,7 +2276,7 @@ export const MechanicsScenes: SceneConfig[] = [
                     ],
                     constraints: { overweight: { mass, accMagnitude, mode, gravity } },
                     environment: { gravity: { enabled: true, value: gravity } },
-                    timeConfig: { duration, dt: duration / 500, sampleCount: 500 }
+                    timeConfig: makeTimeSeries(duration, 500)
                 };
             }
         },
@@ -2352,7 +2353,7 @@ export const MechanicsScenes: SceneConfig[] = [
                         curveVelocity: { trackShape: shapes[shapeIdx] ?? 'circle', angularSpeed, releaseIndex }
                     },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 100, sampleCount: 100 }
+                    timeConfig: makeTimeSeries(duration, 100)
                 };
             }
         },
@@ -2423,7 +2424,7 @@ export const MechanicsScenes: SceneConfig[] = [
                         curveCondition: { forceDirectionDeg: forceAngle, initialSpeed: v0, mass: m, forceMagnitude: m * 2 }
                     },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 500, sampleCount: 500 }
+                    timeConfig: makeTimeSeries(duration, 500)
                 };
             }
         },
@@ -2485,7 +2486,7 @@ export const MechanicsScenes: SceneConfig[] = [
                     ],
                     constraints: { motionComposition: { vxConst, vyAccel } },
                     environment: { gravity: { enabled: true, value: vyAccel } },
-                    timeConfig: { duration, dt: duration / 500, sampleCount: 500 }
+                    timeConfig: makeTimeSeries(duration, 500)
                 };
             }
         },
@@ -2572,7 +2573,7 @@ export const MechanicsScenes: SceneConfig[] = [
                     ],
                     constraints: { transmission: { mode: modes[modeIdx] ?? 'belt', r1, r2, omega1 } },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 100, sampleCount: 100 }
+                    timeConfig: makeTimeSeries(duration, 100)
                 };
             }
         },
@@ -2659,7 +2660,7 @@ export const MechanicsScenes: SceneConfig[] = [
                     ],
                     constraints: { verticalCircle: { length, mass, modelType: types[typeIdx] ?? 'rope', initialSpeed } },
                     environment: { gravity: { enabled: true, value: 9.8 } },
-                    timeConfig: { duration, dt: duration / 500, sampleCount: 500 }
+                    timeConfig: makeTimeSeries(duration, 500)
                 };
             }
         },
@@ -2745,7 +2746,7 @@ export const MechanicsScenes: SceneConfig[] = [
                     ],
                     constraints: { centrifugal: { mass, radius, angularSpeed, frictionCoeff } },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 200, sampleCount: 200 }
+                    timeConfig: makeTimeSeries(duration, 200)
                 };
             }
         },
@@ -2843,7 +2844,7 @@ export const MechanicsScenes: SceneConfig[] = [
                     ],
                     constraints: { cavendish: { m1, m2, distance, torsionConst, mirrorDist, armLength: 1 } },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 50, sampleCount: 50 }
+                    timeConfig: makeTimeSeries(duration, 50)
                 };
             }
         },
@@ -2882,7 +2883,7 @@ export const MechanicsScenes: SceneConfig[] = [
                         }
                     },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 50, sampleCount: 50 }
+                    timeConfig: makeTimeSeries(duration, 50)
                 };
             }
         },
@@ -3007,7 +3008,7 @@ export const MechanicsScenes: SceneConfig[] = [
                         }
                     },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 500, sampleCount: 500 }
+                    timeConfig: makeTimeSeries(duration, 500)
                 };
             }
         },
@@ -3107,7 +3108,7 @@ export const MechanicsScenes: SceneConfig[] = [
                         forcedVibration: { mass, springConstant, dampingBeta, forceAmplitude, drivingFreq }
                     },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 2000, sampleCount: 2000 }
+                    timeConfig: makeTimeSeries(duration, 2000)
                 };
             }
         },
@@ -3210,7 +3211,7 @@ export const MechanicsScenes: SceneConfig[] = [
                     },
                     environment: {},
                     // 静态图 (A-f 曲线): 不需要长时间演化
-                    timeConfig: { duration: 1, dt: 0.1, sampleCount: 100 }
+                    timeConfig: makeTimeSeries(1, 100, 0.1)
                 };
             }
         },
@@ -3313,7 +3314,7 @@ export const MechanicsScenes: SceneConfig[] = [
                         soundWaveform: { frequency, amplitude, waveType, harmonics }
                     },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 500, sampleCount: 500 }
+                    timeConfig: makeTimeSeries(duration, 500)
                 };
             }
         },
@@ -3401,7 +3402,7 @@ export const MechanicsScenes: SceneConfig[] = [
                         doppler: { soundSpeed, sourceFreq, sourceSpeed, directionAngle: dirAngle }
                     },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 50, sampleCount: 50 }
+                    timeConfig: makeTimeSeries(duration, 50)
                 };
             }
         },
@@ -3489,7 +3490,7 @@ export const MechanicsScenes: SceneConfig[] = [
                         waterDiffraction: { wavelength, slitWidth, screenDist, waveAmplitude: waveAmp }
                     },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 200, sampleCount: 200 }
+                    timeConfig: makeTimeSeries(duration, 200)
                 };
             }
         },
@@ -3614,7 +3615,7 @@ export const MechanicsScenes: SceneConfig[] = [
                         }
                     },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 100, sampleCount: 100 }
+                    timeConfig: makeTimeSeries(duration, 100)
                 };
             }
         },
@@ -3738,7 +3739,7 @@ export const MechanicsScenes: SceneConfig[] = [
                         gravity: { enabled: true, value: g },
                         ground: { enabled: true, y: 0 }
                     },
-                    timeConfig: { duration: effDuration, dt: effDuration / 300, sampleCount: 300 }
+                    timeConfig: makeTimeSeries(effDuration, 300)
                 };
             }
         },
@@ -3804,7 +3805,7 @@ export const MechanicsScenes: SceneConfig[] = [
                         { id: 'object', mass: { value: 1, unit: 'kg' }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } }
                     ],
                     environment: { gravity: { enabled: true, value: g } },
-                    timeConfig: { duration, dt: duration / 1000, sampleCount: 1000 }
+                    timeConfig: makeTimeSeries(duration, 1000)
                 };
             }
         },
@@ -3881,7 +3882,7 @@ export const MechanicsScenes: SceneConfig[] = [
                         }
                     ],
                     environment: { gravity: { enabled: true, value: a } },
-                    timeConfig: { duration, dt: duration / 1000, sampleCount: 1000 }
+                    timeConfig: makeTimeSeries(duration, 1000)
                 };
             }
         },
@@ -3982,7 +3983,7 @@ export const MechanicsScenes: SceneConfig[] = [
                     ],
                     constraints: { simplePendulum: { length: L, g, initialAngleDeg: angleDeg, damping } },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 1000, sampleCount: 1000 }
+                    timeConfig: makeTimeSeries(duration, 1000)
                 };
             }
         }

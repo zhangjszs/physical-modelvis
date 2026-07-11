@@ -1,3 +1,4 @@
+import { makeTimeSeries } from '../../utils/timeSeries.js';
 import type { SceneConfig } from '../../types/visualization';
 import { PHYSICS_CONSTANTS } from 'physics-core';
 
@@ -101,7 +102,7 @@ export const ElectromagnetismScenes: SceneConfig[] = [
                     environment: {
                         electricField: { enabled: true, fieldVector: { x: 0, y: Ey } }
                     },
-                    timeConfig: { duration, dt: 0.001, sampleCount: 1000 }
+                    timeConfig: makeTimeSeries(duration, 1000, 0.001)
                 };
             }
         },
@@ -201,7 +202,7 @@ export const ElectromagnetismScenes: SceneConfig[] = [
                     environment: {
                         magneticField: { enabled: true, fieldStrength: Bz, direction: 'out' }
                     },
-                    timeConfig: { duration, dt: duration / 1000, sampleCount: 1000 }
+                    timeConfig: makeTimeSeries(duration, 1000)
                 };
             }
         },
@@ -314,7 +315,7 @@ export const ElectromagnetismScenes: SceneConfig[] = [
                         electricField: { enabled: true, fieldVector: { x: Ex, y: 0 } },
                         magneticField: { enabled: true, fieldStrength: Bz, direction: 'out' }
                     },
-                    timeConfig: { duration, dt: duration / 1000, sampleCount: 1000 }
+                    timeConfig: makeTimeSeries(duration, 1000)
                 };
             }
         },
@@ -428,7 +429,7 @@ export const ElectromagnetismScenes: SceneConfig[] = [
                     ],
                     constraints: { circuit: { emf, internalResistance: r, resistors } },
                     environment: {},
-                    timeConfig: { duration: 1, dt: 0.1, sampleCount: 10 }
+                    timeConfig: makeTimeSeries(1, 10, 0.1)
                 };
             }
         },
@@ -561,7 +562,7 @@ export const ElectromagnetismScenes: SceneConfig[] = [
                         }
                     },
                     environment: {},
-                    timeConfig: { duration: 1, sampleCount: 200, dt: 0.01 }
+                    timeConfig: makeTimeSeries(1, 200, 0.01)
                 };
             }
         },
@@ -669,7 +670,7 @@ export const ElectromagnetismScenes: SceneConfig[] = [
                     ],
                     constraints: { emInduction: ec },
                     environment: {},
-                    timeConfig: { duration: 0.04, dt: 0.001, sampleCount: 40 }
+                    timeConfig: makeTimeSeries(0.04, 40, 0.001)
                 };
             }
         },
@@ -729,7 +730,7 @@ export const ElectromagnetismScenes: SceneConfig[] = [
                     ],
                     constraints: { ac },
                     environment: {},
-                    timeConfig: { duration: 0.04, dt: 0.001, sampleCount: 40 }
+                    timeConfig: makeTimeSeries(0.04, 40, 0.001)
                 };
             }
         },
@@ -789,7 +790,7 @@ export const ElectromagnetismScenes: SceneConfig[] = [
                         }
                     },
                     environment: {},
-                    timeConfig: { duration: 1, dt: 0.01, sampleCount: 100 }
+                    timeConfig: makeTimeSeries(1, 100, 0.01)
                 };
             }
         },
@@ -903,7 +904,7 @@ export const ElectromagnetismScenes: SceneConfig[] = [
                     environment: {
                         gravity: { enabled: true, value: g }
                     },
-                    timeConfig: { duration, dt: duration / 300, sampleCount: 300 }
+                    timeConfig: makeTimeSeries(duration, 300)
                 };
             }
         },
@@ -1003,7 +1004,7 @@ export const ElectromagnetismScenes: SceneConfig[] = [
                         eddyCurrent: { magneticField, frequency, conductivity, thickness, muR }
                     },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 500, sampleCount: 500 }
+                    timeConfig: makeTimeSeries(duration, 500)
                 };
             }
         },
@@ -1098,7 +1099,7 @@ export const ElectromagnetismScenes: SceneConfig[] = [
                         emDamping: { mode: 'damping', magneticField, angularSpeed, conductivity, inertia, radius }
                     },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 500, sampleCount: 500 }
+                    timeConfig: makeTimeSeries(duration, 500)
                 };
             }
         },
@@ -1198,7 +1199,7 @@ export const ElectromagnetismScenes: SceneConfig[] = [
                         mutualInductance: { L1, L2, coupling, frequency, primaryCurrent }
                     },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 1000, sampleCount: 1000 }
+                    timeConfig: makeTimeSeries(duration, 1000)
                 };
             }
         },
@@ -1269,7 +1270,7 @@ export const ElectromagnetismScenes: SceneConfig[] = [
                         selfInductance: { inductance, resistance, emf, mode: 'turnOff' }
                     },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 500, sampleCount: 500 }
+                    timeConfig: makeTimeSeries(duration, 500)
                 };
             }
         },
@@ -1376,7 +1377,7 @@ export const ElectromagnetismScenes: SceneConfig[] = [
                         }
                     },
                     environment: {},
-                    timeConfig: { duration: duration * 1e-6, dt: 1e-7, sampleCount: 800 }
+                    timeConfig: makeTimeSeries(duration * 1e-6, 800, 1e-7)
                 };
             }
         },
@@ -1435,7 +1436,7 @@ export const ElectromagnetismScenes: SceneConfig[] = [
                         emSpectrum: { freqMin, freqMax, highlightBand: 'visible' }
                     },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 100, sampleCount: 400 }
+                    timeConfig: makeTimeSeries(duration, 400, duration / 100)
                 };
             }
         },
@@ -1523,7 +1524,7 @@ export const ElectromagnetismScenes: SceneConfig[] = [
                         hallEffect: { current, magneticField, chargeDensity, thickness, carrierType: 'electron' }
                     },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 200, sampleCount: 200 }
+                    timeConfig: makeTimeSeries(duration, 200)
                 };
             }
         },
@@ -1599,7 +1600,7 @@ export const ElectromagnetismScenes: SceneConfig[] = [
                         reedSwitch: { mode: 'magnetic', magnetDistance, pullInThreshold, releaseThreshold }
                     },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 100, sampleCount: 100 }
+                    timeConfig: makeTimeSeries(duration, 100)
                 };
             }
         },
@@ -1682,7 +1683,7 @@ export const ElectromagnetismScenes: SceneConfig[] = [
                         photoresistor: { darkResistance, sensitivity, lightIntensity, temperatureCelsius }
                     },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 300, sampleCount: 300 }
+                    timeConfig: makeTimeSeries(duration, 300)
                 };
             }
         },
@@ -1758,7 +1759,7 @@ export const ElectromagnetismScenes: SceneConfig[] = [
                         thermistor: { temperature, mode: 'NTC', R0, BValue }
                     },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 200, sampleCount: 200 }
+                    timeConfig: makeTimeSeries(duration, 200)
                 };
             }
         },
@@ -1834,7 +1835,7 @@ export const ElectromagnetismScenes: SceneConfig[] = [
                         strainGauge: { strain, gaugeFactor, bridgeVoltage }
                     },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 200, sampleCount: 200 }
+                    timeConfig: makeTimeSeries(duration, 200)
                 };
             }
         },
@@ -1906,7 +1907,7 @@ export const ElectromagnetismScenes: SceneConfig[] = [
                         securityAlarm: { doorState, magnetDistance, operateDistance, releaseDistance }
                     },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 100, sampleCount: 100 }
+                    timeConfig: makeTimeSeries(duration, 100)
                 };
             }
         },
@@ -1999,7 +2000,7 @@ export const ElectromagnetismScenes: SceneConfig[] = [
                         }
                     },
                     environment: {},
-                    timeConfig: { duration: durationH * 3600, dt: (durationH * 3600) / 240, sampleCount: 240 }
+                    timeConfig: makeTimeSeries(durationH * 3600, 240)
                 };
             }
         },
@@ -2080,7 +2081,7 @@ export const ElectromagnetismScenes: SceneConfig[] = [
                     bodies: [],
                     constraints: { capacitor: { resistance, capacitance, emf, mode } },
                     environment: {},
-                    timeConfig: { duration, dt: 0.01, sampleCount: 100 }
+                    timeConfig: makeTimeSeries(duration, 100, 0.01)
                 };
             }
         },
@@ -2148,7 +2149,7 @@ export const ElectromagnetismScenes: SceneConfig[] = [
                     bodies: [],
                     constraints: { parallelPlate: { area, distance, epsilonR } },
                     environment: {},
-                    timeConfig: { duration, dt: 0.01, sampleCount: 100 }
+                    timeConfig: makeTimeSeries(duration, 100, 0.01)
                 };
             }
         },
@@ -2227,7 +2228,7 @@ export const ElectromagnetismScenes: SceneConfig[] = [
                     bodies: [],
                     constraints: { loadVoltage: { emf, internalResistance, loadRange: [loadRMin, loadRMax] } },
                     environment: {},
-                    timeConfig: { duration, dt: 0.01, sampleCount: 100 }
+                    timeConfig: makeTimeSeries(duration, 100, 0.01)
                 };
             }
         },
@@ -2295,7 +2296,7 @@ export const ElectromagnetismScenes: SceneConfig[] = [
                     bodies: [],
                     constraints: { resistanceLaw: { length, diameter, material } },
                     environment: {},
-                    timeConfig: { duration, dt: 0.01, sampleCount: 100 }
+                    timeConfig: makeTimeSeries(duration, 100, 0.01)
                 };
             }
         },
@@ -2375,7 +2376,7 @@ export const ElectromagnetismScenes: SceneConfig[] = [
                     bodies: [],
                     constraints: { coulombForce: { q1, q2, distance, mode } },
                     environment: {},
-                    timeConfig: { duration, dt: 0.01, sampleCount: 100 }
+                    timeConfig: makeTimeSeries(duration, 100, 0.01)
                 };
             }
         },
@@ -2442,7 +2443,7 @@ export const ElectromagnetismScenes: SceneConfig[] = [
                     bodies: [],
                     constraints: { electroscope: { charge, foilLength, foilMass } },
                     environment: {},
-                    timeConfig: { duration, dt: 0.01, sampleCount: 100 }
+                    timeConfig: makeTimeSeries(duration, 100, 0.01)
                 };
             }
         },
@@ -2509,7 +2510,7 @@ export const ElectromagnetismScenes: SceneConfig[] = [
                     bodies: [],
                     constraints: { electrostaticInduction: { chargeC, separation, distanceAC } },
                     environment: {},
-                    timeConfig: { duration, dt: 0.01, sampleCount: 100 }
+                    timeConfig: makeTimeSeries(duration, 100, 0.01)
                 };
             }
         },
@@ -2576,7 +2577,7 @@ export const ElectromagnetismScenes: SceneConfig[] = [
                     bodies: [],
                     constraints: { electrostaticShielding: { externalField, cavityCharge, isGrounded } },
                     environment: {},
-                    timeConfig: { duration, dt: 0.01, sampleCount: 100 }
+                    timeConfig: makeTimeSeries(duration, 100, 0.01)
                 };
             }
         },
@@ -2643,7 +2644,7 @@ export const ElectromagnetismScenes: SceneConfig[] = [
                     bodies: [],
                     constraints: { faradayCup: { totalCharge, innerProbeDepth, outerProbeDepth } },
                     environment: {},
-                    timeConfig: { duration, dt: 0.01, sampleCount: 100 }
+                    timeConfig: makeTimeSeries(duration, 100, 0.01)
                 };
             }
         },
@@ -2722,7 +2723,7 @@ export const ElectromagnetismScenes: SceneConfig[] = [
                     bodies: [],
                     constraints: { ampereForce: { B, I, L, angle } },
                     environment: {},
-                    timeConfig: { duration, dt: 0.01, sampleCount: 100 }
+                    timeConfig: makeTimeSeries(duration, 100, 0.01)
                 };
             }
         },
@@ -2801,7 +2802,7 @@ export const ElectromagnetismScenes: SceneConfig[] = [
                     bodies: [],
                     constraints: { hertzExperiment: { frequency, turns, sparkGap, distance } },
                     environment: {},
-                    timeConfig: { duration, dt: 0.01, sampleCount: 100 }
+                    timeConfig: makeTimeSeries(duration, 100, 0.01)
                 };
             }
         },
@@ -2870,7 +2871,7 @@ export const ElectromagnetismScenes: SceneConfig[] = [
                     bodies: [],
                     constraints: { multimeter: { mode, range, testValue } },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 60, sampleCount: 60 }
+                    timeConfig: makeTimeSeries(duration, 60)
                 };
             }
         },
@@ -2927,7 +2928,7 @@ export const ElectromagnetismScenes: SceneConfig[] = [
                     bodies: [],
                     constraints: { vernierCaliper: { objectSize, nType } },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 60, sampleCount: 60 }
+                    timeConfig: makeTimeSeries(duration, 60)
                 };
             }
         },
@@ -2970,7 +2971,7 @@ export const ElectromagnetismScenes: SceneConfig[] = [
                     bodies: [],
                     constraints: { micrometer: { thickness } },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 60, sampleCount: 60 }
+                    timeConfig: makeTimeSeries(duration, 60)
                 };
             }
         },
@@ -3053,7 +3054,7 @@ export const ElectromagnetismScenes: SceneConfig[] = [
                         currentMagneticField: { mode, current, turns, radius, steps: 600, maxLength: 6, lineCount: 16 }
                     },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 50, sampleCount: 50 }
+                    timeConfig: makeTimeSeries(duration, 50)
                 };
             }
         },
@@ -3180,7 +3181,7 @@ export const ElectromagnetismScenes: SceneConfig[] = [
                     bodies: [],
                     constraints: { electricFieldLines: constraints },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 50, sampleCount: 50 }
+                    timeConfig: makeTimeSeries(duration, 50)
                 };
             }
         },
@@ -3251,7 +3252,7 @@ export const ElectromagnetismScenes: SceneConfig[] = [
                         circuit: { emf, internalResistance: r, resistors: [{ resistance: R_bulb, connection: 'series' }] }
                     },
                     environment: {},
-                    timeConfig: { duration, dt: 0.1, sampleCount: 10 }
+                    timeConfig: makeTimeSeries(duration, 10, 0.1)
                 };
             }
         }

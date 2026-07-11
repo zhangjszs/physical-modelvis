@@ -1,3 +1,4 @@
+import { makeTimeSeries } from '../../utils/timeSeries.js';
 import type { SceneConfig } from '../../types/visualization';
 
 /**
@@ -90,7 +91,7 @@ export const ThermodynamicsScenes: SceneConfig[] = [
                         }
                     },
                     environment: {},
-                    timeConfig: { duration: 1, dt: 0.1, sampleCount: 10 }
+                    timeConfig: makeTimeSeries(1, 10, 0.1)
                 };
             }
         },
@@ -167,7 +168,7 @@ export const ThermodynamicsScenes: SceneConfig[] = [
                         }
                     },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 100, sampleCount: 100 }
+                    timeConfig: makeTimeSeries(duration, 100)
                 };
             }
         },
@@ -329,7 +330,7 @@ export const ThermodynamicsScenes: SceneConfig[] = [
                         oilFilm: { oilConcentration, dropsPerMl, filmArea, drops: 1 }
                     },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 100, sampleCount: 100 }
+                    timeConfig: makeTimeSeries(duration, 100)
                 };
             }
         },
@@ -388,7 +389,7 @@ export const ThermodynamicsScenes: SceneConfig[] = [
                         liquidMixing: { volumeWater, volumeAlcohol }
                     },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 50, sampleCount: 50 }
+                    timeConfig: makeTimeSeries(duration, 50)
                 };
             }
         },
@@ -445,7 +446,7 @@ export const ThermodynamicsScenes: SceneConfig[] = [
                     ],
                     constraints: { molecularForce: { epsilon, sigma } },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 50, sampleCount: 50 }
+                    timeConfig: makeTimeSeries(duration, 50)
                 };
             }
         },
@@ -524,7 +525,7 @@ export const ThermodynamicsScenes: SceneConfig[] = [
                         }
                     },
                     environment: {},
-                    timeConfig: { duration: durationMin * 60, dt: (durationMin * 60) / 200, sampleCount: 200 }
+                    timeConfig: makeTimeSeries(durationMin * 60, 200)
                 };
             }
         },
@@ -595,7 +596,7 @@ export const ThermodynamicsScenes: SceneConfig[] = [
                         surfaceTension: { liquidMode: medium, sliderLength, temperature }
                     },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 100, sampleCount: 100 }
+                    timeConfig: makeTimeSeries(duration, 100)
                 };
             }
         },
@@ -669,7 +670,7 @@ export const ThermodynamicsScenes: SceneConfig[] = [
                     ],
                     constraints: { capillary: { tubeRadius, liquidMode: medium, materialMode: material } },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 50, sampleCount: 50 }
+                    timeConfig: makeTimeSeries(duration, 50)
                 };
             }
         },
@@ -726,7 +727,7 @@ export const ThermodynamicsScenes: SceneConfig[] = [
                     ],
                     constraints: { wetting: { liquidMode: medium, surfaceMode: surface } },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 50, sampleCount: 50 }
+                    timeConfig: makeTimeSeries(duration, 50)
                 };
             }
         },
@@ -817,7 +818,7 @@ export const ThermodynamicsScenes: SceneConfig[] = [
                         }
                     },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 50, sampleCount: 50 }
+                    timeConfig: makeTimeSeries(duration, 50)
                 };
             }
         },
@@ -923,7 +924,7 @@ export const ThermodynamicsScenes: SceneConfig[] = [
                         }
                     },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 100, sampleCount: 100 }
+                    timeConfig: makeTimeSeries(duration, 100)
                 };
             }
         },
@@ -1011,7 +1012,7 @@ export const ThermodynamicsScenes: SceneConfig[] = [
                         }
                     },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 100, sampleCount: 100 }
+                    timeConfig: makeTimeSeries(duration, 100)
                 };
             }
         },
@@ -1074,7 +1075,7 @@ export const ThermodynamicsScenes: SceneConfig[] = [
                         }
                     },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 100, sampleCount: 100 }
+                    timeConfig: makeTimeSeries(duration, 100)
                 };
             }
         },
@@ -1189,7 +1190,7 @@ export const ThermodynamicsScenes: SceneConfig[] = [
                         }
                     },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 100, sampleCount: 100 }
+                    timeConfig: makeTimeSeries(duration, 100)
                 };
             }
         },
@@ -1270,7 +1271,7 @@ export const ThermodynamicsScenes: SceneConfig[] = [
                         }
                     },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 100, sampleCount: 100 }
+                    timeConfig: makeTimeSeries(duration, 100)
                 };
             }
         },
@@ -1346,7 +1347,7 @@ export const ThermodynamicsScenes: SceneConfig[] = [
                         }
                     },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 100, sampleCount: 100 }
+                    timeConfig: makeTimeSeries(duration, 100)
                 };
             }
         },
@@ -1427,7 +1428,7 @@ export const ThermodynamicsScenes: SceneConfig[] = [
                         }
                     },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 100, sampleCount: 100 }
+                    timeConfig: makeTimeSeries(duration, 100)
                 };
             }
         }

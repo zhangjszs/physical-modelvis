@@ -1,3 +1,4 @@
+import { makeTimeSeries } from '../../utils/timeSeries.js';
 import type { SceneConfig } from '../../types/visualization';
 
 /**
@@ -57,7 +58,7 @@ export const OpticsScenes: SceneConfig[] = [
                     ],
                     constraints: { refraction: { n1, n2, incidentAngleDeg: angleDeg } },
                     environment: {},
-                    timeConfig: { duration: 1, dt: 0.1, sampleCount: 10 }
+                    timeConfig: makeTimeSeries(1, 10, 0.1)
                 };
             }
         },
@@ -153,7 +154,7 @@ export const OpticsScenes: SceneConfig[] = [
                     ],
                     constraints: { interference: ic },
                     environment: {},
-                    timeConfig: { duration: 1, dt: 0.1, sampleCount: 10 }
+                    timeConfig: makeTimeSeries(1, 10, 0.1)
                 };
             }
         },
@@ -248,7 +249,7 @@ export const OpticsScenes: SceneConfig[] = [
                         thinFilm: { thickness, refIndex, wavelength, incidentAngle: incAngle, substrateIndex: subsIndex }
                     },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 100, sampleCount: 100 }
+                    timeConfig: makeTimeSeries(duration, 100)
                 };
             }
         },
@@ -319,7 +320,7 @@ export const OpticsScenes: SceneConfig[] = [
                         singleSlit: { slitWidth, wavelength, screenDist }
                     },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 100, sampleCount: 100 }
+                    timeConfig: makeTimeSeries(duration, 100)
                 };
             }
         },
@@ -414,7 +415,7 @@ export const OpticsScenes: SceneConfig[] = [
                         diffractionGrating: { gratingConstant, slitWidth, wavelength, orderMax, slitCount }
                     },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 100, sampleCount: 100 }
+                    timeConfig: makeTimeSeries(duration, 100)
                 };
             }
         },
@@ -525,7 +526,7 @@ export const OpticsScenes: SceneConfig[] = [
                         polarization: { initialIntensity, nPolarizers, polarizerAngles, incidentAngle }
                     },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 50, sampleCount: 50 }
+                    timeConfig: makeTimeSeries(duration, 50)
                 };
             }
         },
@@ -639,7 +640,7 @@ export const OpticsScenes: SceneConfig[] = [
                         }
                     },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 100, sampleCount: 100 }
+                    timeConfig: makeTimeSeries(duration, 100)
                 };
             }
         },
@@ -719,7 +720,7 @@ export const OpticsScenes: SceneConfig[] = [
                     ],
                     constraints: { refraction: { n1, n2, incidentAngleDeg: angleDeg } },
                     environment: {},
-                    timeConfig: { duration, dt: 0.1, sampleCount: 10 }
+                    timeConfig: makeTimeSeries(duration, 10, 0.1)
                 };
             }
         }

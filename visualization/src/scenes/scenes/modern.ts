@@ -1,3 +1,4 @@
+import { makeTimeSeries } from '../../utils/timeSeries.js';
 import type { SceneConfig } from '../../types/visualization';
 
 /**
@@ -62,7 +63,7 @@ export const ModernScenes: SceneConfig[] = [
                     ],
                     constraints: { photoelectric: { workFunction, freqMinTHz, freqMaxTHz } },
                     environment: {},
-                    timeConfig: { duration: 1, dt: 0.1, sampleCount: 10 }
+                    timeConfig: makeTimeSeries(1, 10, 0.1)
                 };
             }
         },
@@ -114,7 +115,7 @@ export const ModernScenes: SceneConfig[] = [
                     ],
                     constraints: { bohr: { series, maxN } },
                     environment: {},
-                    timeConfig: { duration: 1, dt: 0.1, sampleCount: 10 }
+                    timeConfig: makeTimeSeries(1, 10, 0.1)
                 };
             }
         },
@@ -185,7 +186,7 @@ export const ModernScenes: SceneConfig[] = [
                     ],
                     constraints: { radioactive: { initialAtoms, halfLife, duration, radiationType } },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 300, sampleCount: 300 }
+                    timeConfig: makeTimeSeries(duration, 300)
                 };
             }
         },
@@ -275,7 +276,7 @@ export const ModernScenes: SceneConfig[] = [
                         }
                     },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 100, sampleCount: 100 }
+                    timeConfig: makeTimeSeries(duration, 100)
                 };
             }
         },
@@ -332,7 +333,7 @@ export const ModernScenes: SceneConfig[] = [
                     ],
                     constraints: { alphaScattering: { alphaEnergy, targetZ, foilThickness: 1e-6 } },
                     environment: {},
-                    timeConfig: { duration, dt: 0.01, sampleCount: 100 }
+                    timeConfig: makeTimeSeries(duration, 100, 0.01)
                 };
             }
         },
@@ -377,7 +378,7 @@ export const ModernScenes: SceneConfig[] = [
                     ],
                     constraints: { blackBody: { temperature } },
                     environment: {},
-                    timeConfig: { duration, dt: 0.01, sampleCount: 100 }
+                    timeConfig: makeTimeSeries(duration, 100, 0.01)
                 };
             }
         },
@@ -427,7 +428,7 @@ export const ModernScenes: SceneConfig[] = [
                     ],
                     constraints: { electronDiffraction: { accVoltage, crystalLattice: 0.213 } },
                     environment: {},
-                    timeConfig: { duration, dt: 0.01, sampleCount: 100 }
+                    timeConfig: makeTimeSeries(duration, 100, 0.01)
                 };
             }
         },
@@ -507,7 +508,7 @@ export const ModernScenes: SceneConfig[] = [
                     ],
                     constraints: { radiationDeflection: { Bfield, particleEnergy, particleType } },
                     environment: {},
-                    timeConfig: { duration, dt: 0.01, sampleCount: 100 }
+                    timeConfig: makeTimeSeries(duration, 100, 0.01)
                 };
             }
         },
@@ -569,7 +570,7 @@ export const ModernScenes: SceneConfig[] = [
                     ],
                     constraints: { decayStatistics: { meanCount, nTrials } },
                     environment: {},
-                    timeConfig: { duration, dt: 0.01, sampleCount: 100 }
+                    timeConfig: makeTimeSeries(duration, 100, 0.01)
                 };
             }
         },
@@ -632,7 +633,7 @@ export const ModernScenes: SceneConfig[] = [
                     ],
                     constraints: { cosmicRay: { altitude, shieldingMode } },
                     environment: {},
-                    timeConfig: { duration, dt: 0.01, sampleCount: 100 }
+                    timeConfig: makeTimeSeries(duration, 100, 0.01)
                 };
             }
         },
@@ -689,7 +690,7 @@ export const ModernScenes: SceneConfig[] = [
                     ],
                     constraints: { neutronDiscovery: { alphaEnergy, targetMass } },
                     environment: {},
-                    timeConfig: { duration, dt: 0.01, sampleCount: 100 }
+                    timeConfig: makeTimeSeries(duration, 100, 0.01)
                 };
             }
         },
@@ -751,7 +752,7 @@ export const ModernScenes: SceneConfig[] = [
                     ],
                     constraints: { fissionChain: { multiplicationFactor, generations } },
                     environment: {},
-                    timeConfig: { duration, dt: 0.01, sampleCount: 100 }
+                    timeConfig: makeTimeSeries(duration, 100, 0.01)
                 };
             }
         },
@@ -815,7 +816,7 @@ export const ModernScenes: SceneConfig[] = [
                     ],
                     constraints: { bohr: { series, maxN } },
                     environment: {},
-                    timeConfig: { duration, dt: 0.1, sampleCount: 10 }
+                    timeConfig: makeTimeSeries(duration, 10, 0.1)
                 };
             }
         },
@@ -886,7 +887,7 @@ export const ModernScenes: SceneConfig[] = [
                     ],
                     constraints: { radioactive: { initialAtoms, halfLife, duration, radiationType } },
                     environment: {},
-                    timeConfig: { duration, dt: duration / 300, sampleCount: 300 }
+                    timeConfig: makeTimeSeries(duration, 300)
                 };
             }
         }
