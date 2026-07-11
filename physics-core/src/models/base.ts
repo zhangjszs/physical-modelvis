@@ -3,6 +3,12 @@ import type { SimulationResult } from '../types/result.js';
 import type { ParameterSpec, ValidationResult } from '../types/common.js';
 import { UnsupportedModelError, ParameterOutOfRangeError, PhysicsError } from '../errors/index.js';
 
+/**
+ * performance.now() 在 Node 16+ 与所有浏览器均为全局可用；
+ * 此处提供零依赖的最小类型声明，避免引入 DOM lib 污染。
+ */
+declare const performance: { now(): number };
+
 /** 物理模型抽象基类 */
 export abstract class PhysicsModelBase {
     abstract readonly name: string;
@@ -17,8 +23,20 @@ export abstract class PhysicsModelBase {
     /** 求解 */
     abstract solve(problem: PhysicsProblem): SimulationResult;
 
+    /**
+     * 该模型是否需要参数校验.
+     * 纯传感器 / 场模型 (无 bodies, 仅依赖 constraints) 可 override 返回 false,
+     * 跳过基类中 bodies / mass 等与其无关的校验项. 默认 true — 执行完整校验.
+     */
+    protected requiresValidation(): boolean {
+        return true;
+    }
+
     /** 参数校验 */
     validate(problem: PhysicsProblem): ValidationResult {
+        if (!this.requiresValidation()) {
+            return { valid: true, errors: [], warnings: [] };
+        }
         const errors: Array<{ code: string; message: string; param?: string }> = [];
         const warnings: Array<{ code: string; message: string }> = [];
 
@@ -61,6 +79,31 @@ export abstract class PhysicsModelBase {
         }
 
         return { valid: errors.length === 0, errors, warnings };
+    }
+
+    /**
+     * 构造 SimulationResult.meta — 保证所有模型的 meta 结构一致。
+     * computationTime 由调用方传入（router 测量），模型自身调用时传 0。
+     */
+    protected makeMeta(solver: 'analytical' | 'numerical', computationTime = 0): SimulationResult['meta'] {
+        return {
+            model: this.modelType,
+            solver,
+            computationTime,
+            timestamp: new Date().toISOString(),
+            version: this.version
+        };
+    }
+
+    /**
+     * 带计时的求解入口 — 用 performance.now() 包裹 solve()，
+     * 将真实 computationTime 回填到 meta，保证度量口径统一。
+     */
+    solveWithMeta(problem: PhysicsProblem): SimulationResult {
+        const t0 = performance.now();
+        const result = this.solve(problem);
+        const computationTime = performance.now() - t0;
+        return { ...result, meta: this.makeMeta(result.meta.solver, computationTime) };
     }
 
     protected throwIfInvalid(problem: PhysicsProblem): void {
