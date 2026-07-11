@@ -1,5 +1,5 @@
 import type { PhysicsProblem } from '../types/problem.js';
-import { kineticEnergy } from '../physics/kinematics.js';
+import { kineticEnergy, sampleTrajectory } from '../physics/kinematics.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ForceDiagram } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
@@ -68,38 +68,23 @@ export class UniformCircularMotionModel extends PhysicsModelBase {
         const period = (2 * Math.PI) / omega;
         const frequency = omega / (2 * Math.PI);
 
-        const trajectory: TrajectoryPoint[] = [];
-        for (let i = 0; i <= sampleCount; i++) {
-            const t = i * dt;
-            const angle = phi0 + omega * t;
-            const cosA = Math.cos(angle);
-            const sinA = Math.sin(angle);
-
-            const position = {
-                x: center.x + radius * cosA,
-                y: center.y + radius * sinA
-            };
-
-            const velocity = {
-                x: -radius * omega * sinA,
-                y: radius * omega * cosA
-            };
-
-            const acceleration = {
-                x: -radius * omega * omega * cosA,
-                y: -radius * omega * omega * sinA
-            };
-
-            const speed = Vec2.magnitude(velocity);
-            trajectory.push({
-                t,
-                position,
-                velocity,
-                acceleration,
-                kineticEnergy: kineticEnergy(mass, speed),
-                potentialEnergy: 0
-            });
-        }
+        // 解析解采样: 匀速圆周 φ=φ₀+ωt (公共脚手架 sampleTrajectory)
+        const trajectory = sampleTrajectory({
+            sampleCount, duration,
+            sampleAt: (t) => {
+                const angle = phi0 + omega * t;
+                const cosA = Math.cos(angle);
+                const sinA = Math.sin(angle);
+                const velocity = { x: -radius * omega * sinA, y: radius * omega * cosA };
+                return {
+                    position: { x: center.x + radius * cosA, y: center.y + radius * sinA },
+                    velocity,
+                    acceleration: { x: -radius * omega * omega * cosA, y: -radius * omega * omega * sinA },
+                    kineticEnergy: kineticEnergy(mass, radius * omega),
+                    potentialEnergy: 0
+                };
+            }
+        });
 
         const keyframes: Keyframe[] = [];
         keyframes.push({

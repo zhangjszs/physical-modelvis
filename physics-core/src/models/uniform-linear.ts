@@ -3,6 +3,7 @@ import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries } from '.
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
 import { Vec2 } from '../math/vector2d.js';
+import { kineticEnergy, sampleTrajectory } from '../physics/kinematics.js';
 
 /** 匀速直线运动模型 */
 export class UniformLinearModel extends PhysicsModelBase {
@@ -26,21 +27,19 @@ export class UniformLinearModel extends PhysicsModelBase {
         const x0 = body.position;
         const duration = problem.timeConfig.duration;
         const sampleCount = problem.timeConfig.sampleCount ?? 1000;
+        const mass = body.mass.value;
 
-        // 生成轨迹
-        const dt = duration / sampleCount;
-        const trajectory: TrajectoryPoint[] = [];
-        for (let i = 0; i <= sampleCount; i++) {
-            const t = i * dt;
-            trajectory.push({
-                t,
+        // 解析解采样: x = x₀ + v₀t (公共脚手架 sampleTrajectory)
+        const trajectory = sampleTrajectory({
+            sampleCount, duration,
+            sampleAt: (t) => ({
                 position: Vec2.add(x0, Vec2.scale(v0, t)),
                 velocity: { ...v0 },
                 acceleration: Vec2.zero(),
-                kineticEnergy: 0.5 * body.mass.value * Vec2.dot(v0, v0),
+                kineticEnergy: kineticEnergy(mass, Vec2.magnitude(v0)),
                 potentialEnergy: 0
-            });
-        }
+            })
+        });
 
         // 关键帧
         const keyframes: Keyframe[] = [

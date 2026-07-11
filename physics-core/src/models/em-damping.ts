@@ -1,5 +1,5 @@
 import type { PhysicsProblem } from '../types/problem.js';
-import { kineticEnergy } from '../physics/kinematics.js';
+import { kineticEnergy, sampleTrajectory } from '../physics/kinematics.js';
 import type {
     SimulationResult,
     TrajectoryPoint,
@@ -99,29 +99,23 @@ export class EMDampingModel extends PhysicsModelBase {
         const duration = problem.timeConfig.duration;
         const dt = duration / sampleCount;
 
-        // 时间轨迹
-        const trajectory: TrajectoryPoint[] = [];
-        let omegaMax = 0;
-        for (let i = 0; i <= sampleCount; i++) {
-            const t = i * dt;
-            let omega: number;
-            if (mode === 'damping') {
-                // omega(t) = omega_0 * exp(-t/tau_c)
-                omega = omega0 * Math.exp(-t / tauC);
-            } else {
-                // drive: omega(t) = omega_0 * (1 - exp(-t/tau_c))
-                omega = omega0 * (1 - Math.exp(-t / tauC));
+        // 解析解采样: damping → ω=ω₀·e^{-t/τ}, drive → ω=ω₀·(1-e^{-t/τ}) (公共脚手架 sampleTrajectory)
+        const trajectory = sampleTrajectory({
+            sampleCount, duration,
+            sampleAt: (t) => {
+                const omega = mode === 'damping'
+                    ? omega0 * Math.exp(-t / tauC)
+                    : omega0 * (1 - Math.exp(-t / tauC));
+                return {
+                    position: { x: t, y: omega }, // x: time (s), y: angular velocity (rad/s)
+                    velocity: { x: 1, y: 0 },
+                    acceleration: { x: 0, y: 0 },
+                    kineticEnergy: kineticEnergy(J, omega),
+                    potentialEnergy: 0
+                };
             }
-            omegaMax = Math.max(omegaMax, Math.abs(omega));
-            trajectory.push({
-                t,
-                position: { x: t, y: omega }, // x: time (s), y: angular velocity (rad/s)
-                velocity: { x: 1, y: 0 },
-                acceleration: { x: 0, y: 0 },
-                kineticEnergy: kineticEnergy(J, omega),
-                potentialEnergy: 0
-            });
-        }
+        });
+        const omegaMax = trajectory.reduce((m, p) => Math.max(m, Math.abs(p.position.y)), 0);
 
         // 图表: 角速度 vs 时间
         const angularVelocityVsTime: ChartSeries = {

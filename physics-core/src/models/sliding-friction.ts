@@ -1,5 +1,5 @@
 import type { PhysicsProblem } from '../types/problem.js';
-import { kineticEnergy } from '../physics/kinematics.js';
+import { kineticEnergy, sampleTrajectory } from '../physics/kinematics.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ForceDiagram } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
@@ -65,21 +65,20 @@ export class SlidingFrictionModel extends PhysicsModelBase {
         const sampleCount = problem.timeConfig.sampleCount ?? 400;
         const dt = duration / sampleCount;
 
-        // 主轨迹：物体实际运动
-        const trajectory: TrajectoryPoint[] = [];
-        for (let i = 0; i <= sampleCount; i++) {
-            const t = i * dt;
-            const v = v0 + a * t;
-            const x = x0 + v0 * t + 0.5 * a * t * t;
-            trajectory.push({
-                t,
-                position: { x, y: 0 },
-                velocity: { x: v, y: 0 },
-                acceleration: { x: a, y: 0 },
-                kineticEnergy: kineticEnergy(m, v),
-                potentialEnergy: 0
-            });
-        }
+        // 主轨迹：物体实际运动, 匀加速 x=x₀+v₀t+½at² (公共脚手架 sampleTrajectory)
+        const trajectory = sampleTrajectory({
+            sampleCount, duration,
+            sampleAt: (t) => {
+                const v = v0 + a * t;
+                return {
+                    position: { x: x0 + v0 * t + 0.5 * a * t * t, y: 0 },
+                    velocity: { x: v, y: 0 },
+                    acceleration: { x: a, y: 0 },
+                    kineticEnergy: kineticEnergy(m, Math.abs(v)),
+                    potentialEnergy: 0
+                };
+            }
+        });
 
         // 伪轨迹：扫过正压力 N (从 0 到 2N)，展示 f-N 线性关系
         const frictionTraj: TrajectoryPoint[] = [];

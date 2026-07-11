@@ -1,5 +1,5 @@
 import type { PhysicsProblem } from '../types/problem.js';
-import { kineticEnergy } from '../physics/kinematics.js';
+import { kineticEnergy, sampleTrajectory } from '../physics/kinematics.js';
 import type {
     SimulationResult,
     TrajectoryPoint,
@@ -82,23 +82,21 @@ export class CurveConditionModel extends PhysicsModelBase {
         const sampleCount = problem.timeConfig.sampleCount ?? 1000;
         const dt = duration / sampleCount;
 
-        const trajectory: TrajectoryPoint[] = [];
-        for (let i = 0; i <= sampleCount; i++) {
-            const t = i * dt;
-            const x = v0vec.x * t + 0.5 * ax * t * t;
-            const y = v0vec.y * t + 0.5 * ay * t * t;
-            const vx = v0vec.x + ax * t;
-            const vy = v0vec.y + ay * t;
-            const speed = Math.sqrt(vx * vx + vy * vy);
-            trajectory.push({
-                t,
-                position: { x, y },
-                velocity: { x: vx, y: vy },
-                acceleration: { x: ax, y: ay },
-                kineticEnergy: kineticEnergy(m, speed),
-                potentialEnergy: 0
-            });
-        }
+        // 解析解采样: 匀加速 r=v₀t+½at² (公共脚手架 sampleTrajectory)
+        const trajectory = sampleTrajectory({
+            sampleCount, duration,
+            sampleAt: (t) => {
+                const vx = v0vec.x + ax * t;
+                const vy = v0vec.y + ay * t;
+                return {
+                    position: { x: v0vec.x * t + 0.5 * ax * t * t, y: v0vec.y * t + 0.5 * ay * t * t },
+                    velocity: { x: vx, y: vy },
+                    acceleration: { x: ax, y: ay },
+                    kineticEnergy: kineticEnergy(m, Math.hypot(vx, vy)),
+                    potentialEnergy: 0
+                };
+            }
+        });
 
         // 曲线类型判定
         const thetaMod = ((((theta * 180) / Math.PI) % 360) + 360) % 360;
