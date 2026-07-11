@@ -12,7 +12,10 @@ import { getTimerDisplayValue, getTimerDisplayVelocity, type PhotogateMeasuremen
  * 单一数据源，与 Canvas 内的数字毫秒计仪表盘互补。
  */
 export function PhotogateTimer() {
-    const { experimentData, currentTime, parameters, theme } = useSimulationStore();
+    const experimentData = useSimulationStore(s => s.experimentData);
+    const currentTime = useSimulationStore(s => s.currentTime);
+    const parameters = useSimulationStore(s => s.parameters);
+    const theme = useSimulationStore(s => s.theme);
 
     const isDark = theme === 'dark';
     const flagWidth = parameters['flagWidth'] ?? 0.02;

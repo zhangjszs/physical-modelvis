@@ -15,7 +15,12 @@ const SCENE_MAP: Record<string, () => JSX.Element> = {
 };
 
 export function App() {
-    const { currentScene, errorMessage, setErrorMessage, theme, toggleTheme } = useSimulationStore();
+    const currentScene = useSimulationStore(s => s.currentScene);
+    const errorMessage = useSimulationStore(s => s.errorMessage);
+    const theme = useSimulationStore(s => s.theme);
+    // action selectors 返回稳定引用, 不会触发重渲染
+    const setErrorMessage = useSimulationStore(s => s.setErrorMessage);
+    const toggleTheme = useSimulationStore(s => s.toggleTheme);
     const SceneComponent = SCENE_MAP[currentScene] ?? ProjectileScene;
     const [sidebarOpen, setSidebarOpen] = useState(false);
 

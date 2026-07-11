@@ -12,7 +12,8 @@ const LAYER_OPTIONS: Array<{ key: keyof VisibleLayers; label: string }> = [
 ];
 
 export function LayerToggle() {
-    const { visibleLayers, toggleLayer } = useSimulationStore();
+    const visibleLayers = useSimulationStore(s => s.visibleLayers);
+    const toggleLayer = useSimulationStore(s => s.toggleLayer);
 
     return (
         <div className="layer-toggle">

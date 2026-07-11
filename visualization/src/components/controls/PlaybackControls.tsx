@@ -5,19 +5,18 @@ import { getTotalDuration } from '../../utils/frameUtils';
 const SPEED_OPTIONS = [0.25, 0.5, 1, 2, 5];
 
 export function PlaybackControls() {
-    const {
-        simulationResult,
-        currentTime,
-        isPlaying,
-        playbackSpeed,
-        play,
-        pause,
-        reset,
-        stepForward,
-        stepBackward,
-        setPlaybackSpeed,
-        setCurrentTime
-    } = useSimulationStore();
+    const simulationResult = useSimulationStore(s => s.simulationResult);
+    const currentTime = useSimulationStore(s => s.currentTime);
+    const isPlaying = useSimulationStore(s => s.isPlaying);
+    const playbackSpeed = useSimulationStore(s => s.playbackSpeed);
+    // action selectors 返回稳定引用, 不会触发重渲染
+    const play = useSimulationStore(s => s.play);
+    const pause = useSimulationStore(s => s.pause);
+    const reset = useSimulationStore(s => s.reset);
+    const stepForward = useSimulationStore(s => s.stepForward);
+    const stepBackward = useSimulationStore(s => s.stepBackward);
+    const setPlaybackSpeed = useSimulationStore(s => s.setPlaybackSpeed);
+    const setCurrentTime = useSimulationStore(s => s.setCurrentTime);
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {

@@ -8,7 +8,9 @@ interface ParameterPanelProps {
 }
 
 export function ParameterPanel({ onRunSimulation }: ParameterPanelProps) {
-    const { currentScene, parameters, setParameter } = useSimulationStore();
+    const currentScene = useSimulationStore(s => s.currentScene);
+    const parameters = useSimulationStore(s => s.parameters);
+    const setParameter = useSimulationStore(s => s.setParameter);
     const scene = SCENES.find(s => s.id === currentScene);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 

@@ -2,7 +2,7 @@ import { useSimulationStore } from '../../store/simulationStore';
 import { formatValue } from '../../utils/unitFormat';
 
 export function DiagnosticsPanel() {
-    const { simulationResult } = useSimulationStore();
+    const simulationResult = useSimulationStore(s => s.simulationResult);
 
     if (!simulationResult) {
         return (

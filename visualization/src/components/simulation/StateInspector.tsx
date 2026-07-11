@@ -3,7 +3,8 @@ import { findFrameIndex, interpolateFrame } from '../../utils/frameUtils';
 import { formatQuantity } from '../../utils/unitFormat';
 
 export function StateInspector() {
-    const { simulationResult, currentTime } = useSimulationStore();
+    const simulationResult = useSimulationStore(s => s.simulationResult);
+    const currentTime = useSimulationStore(s => s.currentTime);
 
     if (!simulationResult) {
         return (

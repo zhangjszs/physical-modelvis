@@ -160,7 +160,8 @@ export const SCENE_CATEGORIES = [
 ];
 
 export function SceneSelector() {
-    const { currentScene, setScene } = useSimulationStore();
+    const currentScene = useSimulationStore(s => s.currentScene);
+    const setScene = useSimulationStore(s => s.setScene);
     const [openCategory, setOpenCategory] = useState<string | null>(null);
 
     const sceneMap = new Map(SCENES.map(s => [s.id, s.name]));

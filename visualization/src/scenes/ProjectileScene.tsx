@@ -29,7 +29,8 @@ const PhotogateTimer = lazy(() =>
 );
 
 function TextbookDirectory() {
-    const { currentScene, setScene } = useSimulationStore();
+    const currentScene = useSimulationStore(s => s.currentScene);
+    const setScene = useSimulationStore(s => s.setScene);
     const sceneMap = new Map(SCENES.map(s => [s.id, s.name]));
 
     return (
@@ -62,16 +63,15 @@ function TextbookDirectory() {
 }
 
 export function ProjectileScene() {
-    const {
-        currentScene,
-        parameters,
-        sceneLoadVersion,
-        setSimulationResult,
-        setErrorMessage,
-        ensureSceneParameters,
-        simulationResult,
-        setExperimentData
-    } = useSimulationStore();
+    const currentScene = useSimulationStore(s => s.currentScene);
+    const parameters = useSimulationStore(s => s.parameters);
+    const sceneLoadVersion = useSimulationStore(s => s.sceneLoadVersion);
+    const simulationResult = useSimulationStore(s => s.simulationResult);
+    // action / stable selectors 返回 stable 引用, 不会触发重渲染
+    const setSimulationResult = useSimulationStore(s => s.setSimulationResult);
+    const setErrorMessage = useSimulationStore(s => s.setErrorMessage);
+    const ensureSceneParameters = useSimulationStore(s => s.ensureSceneParameters);
+    const setExperimentData = useSimulationStore(s => s.setExperimentData);
     const [formulaOpen, setFormulaOpen] = useState(false);
     const [dataOpen, setDataOpen] = useState(false);
 

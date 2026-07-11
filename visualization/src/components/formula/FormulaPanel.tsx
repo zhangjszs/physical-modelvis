@@ -2805,7 +2805,8 @@ const DEFAULT_FORMULA: FormulaDef = {
 };
 
 export function FormulaPanel() {
-    const { simulationResult, currentScene } = useSimulationStore();
+    const simulationResult = useSimulationStore(s => s.simulationResult);
+    const currentScene = useSimulationStore(s => s.currentScene);
 
     // 优先使用 physics-core 返回的公式
     const engineFormulas = simulationResult?.explanation.formulas ?? [];

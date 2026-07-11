@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useSimulationStore } from '../../store/simulationStore';
 import { extractGraphSeries } from '../../adapters/simulationResultAdapter';
 import type { GraphType } from '../../types/visualization';
@@ -49,8 +50,13 @@ function isTimeBasedChart(graphType: GraphType): boolean {
 }
 
 export function GraphPanel() {
-    const { simulationResult, selectedGraph, setSelectedGraph, currentTime, theme, currentScene } =
-        useSimulationStore();
+    const simulationResult = useSimulationStore(s => s.simulationResult);
+    const selectedGraph = useSimulationStore(s => s.selectedGraph);
+    const currentScene = useSimulationStore(s => s.currentScene);
+    const theme = useSimulationStore(s => s.theme);
+    // 高频字段独立订阅: 仅用于 ReferenceLine 位置, 不影响图表数据重建
+    const currentTime = useSimulationStore(s => s.currentTime);
+    const setSelectedGraph = useSimulationStore(s => s.setSelectedGraph);
     const isDark = theme === 'dark';
 
     if (!simulationResult) {
@@ -62,11 +68,19 @@ export function GraphPanel() {
         );
     }
 
-    const series = extractGraphSeries(simulationResult, selectedGraph);
+    // extractGraphSeries 构建 ~1000 元素数组, 仅在仿真结果 / 图表类型变化时重建,
+    // 避免每帧 (currentTime 变化) 重复计算导致 Recharts relayout.
+    const series = useMemo(
+        () => extractGraphSeries(simulationResult, selectedGraph),
+        [simulationResult, selectedGraph]
+    );
     const currentSeries = series[0];
     if (!currentSeries) return null;
 
-    const data = currentSeries.data.map(d => ({ t: parseFloat(d.t.toFixed(4)), value: d.value }));
+    const data = useMemo(
+        () => currentSeries.data.map(d => ({ t: parseFloat(d.t.toFixed(4)), value: d.value })),
+        [currentSeries]
+    );
     const axisColor = isDark ? '#94a3b8' : '#64748b';
     const gridColor = isDark ? '#1e293b' : '#e2e8f0';
     const xAxisCfg = X_AXIS_CONFIG[selectedGraph];

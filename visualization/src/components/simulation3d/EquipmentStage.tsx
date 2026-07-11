@@ -101,16 +101,13 @@ export function EquipmentStage({ rig, cameraPosition, cameraTarget, caption }: E
     const parametersRef = useRef<Record<string, number>>({});
     const visibleLayersRef = useRef<{ trajectory: boolean; axes: boolean }>({ trajectory: true, axes: true });
 
-    const {
-        simulationResult,
-        currentTime,
-        isPlaying,
-        playbackSpeed,
-        setCurrentTime,
-        pause,
-        parameters,
-        visibleLayers
-    } = useSimulationStore();
+    const { playbackSpeed, parameters, visibleLayers } = useSimulationStore();
+    const simulationResult = useSimulationStore(s => s.simulationResult);
+    const currentTime = useSimulationStore(s => s.currentTime);
+    const isPlaying = useSimulationStore(s => s.isPlaying);
+    // action / stable selectors 返回稳定引用, 不会触发重渲染
+    const setCurrentTime = useSimulationStore(s => s.setCurrentTime);
+    const pause = useSimulationStore(s => s.pause);
 
     // 每次 render 把最新值写进 ref，rAF 循环只读 ref
     currentTimeRef.current = currentTime;
