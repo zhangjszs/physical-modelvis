@@ -1,10 +1,15 @@
 /**
  * 安培力 / 电流磁场 rig — 蹄形磁铁 + 通电导线
- * 用于 ampere-force、current-magnetic、em-induction
+ * 用于 ampere-force、current-magnetic、em-induction 等
+ *
+ * 参数响应：
+ * - B / I / L / angle：安培力 F = B·I·L·sinθ
+ *   → 安培力箭头长度 ∝ F（方向随正负翻转）；电流箭头长度 ∝ I
  */
 import * as THREE from 'three';
 import { SceneRig } from '../EquipmentStage';
 import { makeBox, makeCylinder, makeTextSprite } from '../primitives';
+import { num } from './params';
 
 const WORLD_SCALE = 0.16;
 
@@ -63,10 +68,29 @@ export const ampereForceRig: SceneRig = {
         labelS.position.set(0.3, 1.5, 0);
         scene.add(labelS);
 
-        return { group: new THREE.Group(), handles: {} };
+        return { group: new THREE.Group(), handles: { forceArrow, currentArrow } };
     },
 
-    updateEquipment(_handles, _params) {},
+    updateEquipment(handles, params) {
+        const forceArrow = handles.forceArrow as THREE.ArrowHelper;
+        const currentArrow = handles.currentArrow as THREE.ArrowHelper;
+        const B = num(params['B'], NaN);
+        const I = num(params['I'], NaN);
+        const L = num(params['L'], NaN);
+        const angle = num(params['angle'], NaN);
+        if (Number.isNaN(B) || Number.isNaN(I) || Number.isNaN(L) || Number.isNaN(angle)) return;
+
+        const F = B * I * L * Math.sin((angle * Math.PI) / 180);
+        // 基准 F≈0.1（B=0.5,I=2,L=0.2,θ=30°）→ 长度 0.3
+        const len = THREE.MathUtils.clamp((Math.abs(F) / 0.1) * 0.3, 0.05, 1.2);
+        forceArrow.setLength(len, len * 0.22, len * 0.14);
+        if (F < 0) forceArrow.setDirection(new THREE.Vector3(0, -1, 0));
+        else forceArrow.setDirection(new THREE.Vector3(0, 1, 0));
+
+        // 电流箭头长度随 I 变化
+        const iLen = THREE.MathUtils.clamp(0.1 + I * 0.04, 0.1, 0.8);
+        currentArrow.setLength(iLen, 0.05, 0.03);
+    },
 
     getVisualPosition(pos, _params) {
         return new THREE.Vector3(pos.x * WORLD_SCALE, 1.0 + pos.y * WORLD_SCALE, 0);

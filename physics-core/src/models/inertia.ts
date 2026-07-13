@@ -107,8 +107,9 @@ export class InertiaModel extends PhysicsModelBase {
 
             // 解析解采样: 棋子叠放打击 — 上方自由落体 + 下方摩擦减速 (公共脚手架 sampleTrajectory)
             trajTop = sampleTrajectory({
-                sampleCount, duration,
-                sampleAt: (t) => {
+                sampleCount,
+                duration,
+                sampleAt: t => {
                     // 上方棋子: 水平 x 保持不变 (惯性), 自由落体
                     const yTop = Math.max(0, startTop.y + 0.5 * gravity.y * t * t);
                     return {
@@ -121,8 +122,9 @@ export class InertiaModel extends PhysicsModelBase {
                 }
             });
             trajBottom = sampleTrajectory({
-                sampleCount, duration,
-                sampleAt: (t) => {
+                sampleCount,
+                duration,
+                sampleAt: t => {
                     // 下方棋子: 水平减速 (初速度 v0 + 摩擦力), y=0 不变
                     const bottomActive = t < tStop;
                     const xBottom = bottomActive
@@ -252,8 +254,9 @@ export class InertiaModel extends PhysicsModelBase {
 
             // 解析解采样: 小车急停 — 木块上半因惯性继续向前 + 底部随小车急停 (公共脚手架 sampleTrajectory)
             trajTop = sampleTrajectory({
-                sampleCount, duration,
-                sampleAt: (t) => {
+                sampleCount,
+                duration,
+                sampleAt: t => {
                     // 顶部质点 (木块上半): 因惯性继续向前 (匀速, 仅受重力)
                     const xTop = x0 + initialSpeed * t;
                     const tt = Math.max(0, t - 0.1);
@@ -269,8 +272,9 @@ export class InertiaModel extends PhysicsModelBase {
                 }
             });
             trajBottom = sampleTrajectory({
-                sampleCount, duration,
-                sampleAt: (t) => {
+                sampleCount,
+                duration,
+                sampleAt: t => {
                     // 底部质点 (随小车): 急停后速度为 0
                     const slowingDown = t < tStop;
                     const xBottom = slowingDown
@@ -389,8 +393,9 @@ export class InertiaModel extends PhysicsModelBase {
 
             // 解析解采样: 快速抽纸板 — 鸡蛋因惯性自由落体 + 纸板快速向右飞出 (公共脚手架 sampleTrajectory)
             trajTop = sampleTrajectory({
-                sampleCount, duration,
-                sampleAt: (t) => {
+                sampleCount,
+                duration,
+                sampleAt: t => {
                     // 鸡蛋: x 不变 (惯性), 竖直自由落体
                     const yEgg = Math.max(0, y0 - 0.5 * g * t * t);
                     const vEggY = -g * t;
@@ -404,8 +409,9 @@ export class InertiaModel extends PhysicsModelBase {
                 }
             });
             trajBottom = sampleTrajectory({
-                sampleCount, duration,
-                sampleAt: (t) => {
+                sampleCount,
+                duration,
+                sampleAt: t => {
                     // 纸板: 快速向右飞出 (假设纸板受恒定水平力飞出)
                     const xCard = x0 + vCard * t;
                     return {

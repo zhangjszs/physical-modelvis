@@ -2,7 +2,6 @@ import type { PhysicsProblem, ModelType } from '../types/problem.js';
 import { kineticEnergy, sampleTrajectory } from '../physics/kinematics.js';
 import type {
     SimulationResult,
-    TrajectoryPoint,
     Keyframe,
     ChartSeries,
     ConservedQuantity,
@@ -53,7 +52,6 @@ export class CollisionModel extends PhysicsModelBase {
 
         const duration = problem.timeConfig.duration;
         const sampleCount = problem.timeConfig.sampleCount ?? 1000;
-        const dt = duration / sampleCount;
 
         const isInelastic = this.isInelastic(problem);
         const e = this.getCoefficientOfRestitution(problem);
@@ -74,8 +72,9 @@ export class CollisionModel extends PhysicsModelBase {
 
         // 解析解 sampling: 两体碰撞 — 碰前匀速 + 碰后匀速 (公共脚手架 sampleTrajectory)
         const traj1 = sampleTrajectory({
-            sampleCount, duration,
-            sampleAt: (t) => {
+            sampleCount,
+            duration,
+            sampleAt: t => {
                 const beforeCollision = !collisionOccurs || t < collisionTime;
                 const vel1 = beforeCollision ? v1i : v1f;
                 const pos1 = beforeCollision ? x1i + v1i * t : x1i + v1i * collisionTime + v1f * (t - collisionTime);
@@ -90,8 +89,9 @@ export class CollisionModel extends PhysicsModelBase {
             }
         });
         const traj2 = sampleTrajectory({
-            sampleCount, duration,
-            sampleAt: (t) => {
+            sampleCount,
+            duration,
+            sampleAt: t => {
                 const beforeCollision = !collisionOccurs || t < collisionTime;
                 const vel2 = beforeCollision ? v2i : v2f;
                 const pos2 = beforeCollision ? x2i + v2i * t : x2i + v2i * collisionTime + v2f * (t - collisionTime);

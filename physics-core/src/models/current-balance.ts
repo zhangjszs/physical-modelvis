@@ -1,13 +1,6 @@
 import type { PhysicsProblem } from '../types/problem.js';
 import { sampleTrajectory } from '../physics/kinematics.js';
-import type {
-    SimulationResult,
-    TrajectoryPoint,
-    Keyframe,
-    ChartSeries,
-    ConservedQuantity,
-    ExplanationStep
-} from '../types/result.js';
+import type { SimulationResult, Keyframe, ChartSeries, ConservedQuantity, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
 
@@ -110,8 +103,9 @@ export class CurrentBalanceModel extends PhysicsModelBase {
         // 简化：最大倾角 thetaTiltClamped，5s 内衰减到 5%
         const gamma = 3 / Math.max(duration, 1); // 衰减系数 (5% 误差带)
         const trajectory = sampleTrajectory({
-            sampleCount, duration,
-            sampleAt: (t) => {
+            sampleCount,
+            duration,
+            sampleAt: t => {
                 const theta = thetaTiltClamped * Math.exp(-gamma * t);
                 return {
                     position: { x: t, y: (theta * 180) / Math.PI }, // x: time (s), y: tilt angle (deg)

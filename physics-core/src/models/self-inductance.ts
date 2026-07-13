@@ -1,12 +1,5 @@
 import type { PhysicsProblem } from '../types/problem.js';
-import type {
-    SimulationResult,
-    TrajectoryPoint,
-    Keyframe,
-    ChartSeries,
-    ConservedQuantity,
-    ExplanationStep
-} from '../types/result.js';
+import type { SimulationResult, Keyframe, ChartSeries, ConservedQuantity, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
 import { sampleTrajectory } from '../physics/kinematics.js';
@@ -94,8 +87,9 @@ export class SelfInductanceModel extends PhysicsModelBase {
         let maxI = 0;
         let maxU = 0;
         const trajectory = sampleTrajectory({
-            sampleCount, duration,
-            sampleAt: (t) => {
+            sampleCount,
+            duration,
+            sampleAt: t => {
                 const decaying = Math.exp(-t / tau);
                 let i_t: number;
                 let uL: number;

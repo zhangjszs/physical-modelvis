@@ -1,6 +1,6 @@
 import type { PhysicsProblem } from '../types/problem.js';
 import { kineticEnergy, sampleTrajectory } from '../physics/kinematics.js';
-import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
+import type { SimulationResult, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
 
@@ -76,15 +76,15 @@ export class ReactionTimeModel extends PhysicsModelBase {
         const duration = problem.timeConfig.duration > 0 ? problem.timeConfig.duration : reactionTime;
         const totalTime = Math.max(duration, reactionTime * 1.1); // 确保至少覆盖 1.1 倍反应时间
         const sampleCount = problem.timeConfig.sampleCount ?? 200;
-        const dt = totalTime / sampleCount;
 
         const mass = problem.bodies[0]!.mass.value;
 
         // 解析解采样: 自由落体 y=h-½gt², 抓住后停止 (公共脚手架 sampleTrajectory)
         //   注意 duration 用 totalTime 握住反应时刻后段
         const trajectory = sampleTrajectory({
-            sampleCount, duration: totalTime,
-            sampleAt: (t) => {
+            sampleCount,
+            duration: totalTime,
+            sampleAt: t => {
                 // 限制位置: t ≤ reactionTime 自由落体; t>reactionTime 已抓住 y=0, v=0
                 const isCaught = t > reactionTime;
                 const y = isCaught ? 0 : h - 0.5 * g * t * t;

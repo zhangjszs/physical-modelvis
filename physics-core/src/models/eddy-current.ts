@@ -1,13 +1,6 @@
 import type { PhysicsProblem } from '../types/problem.js';
 import { sampleTrajectory } from '../physics/kinematics.js';
-import type {
-    SimulationResult,
-    TrajectoryPoint,
-    Keyframe,
-    ChartSeries,
-    ConservedQuantity,
-    ExplanationStep
-} from '../types/result.js';
+import type { SimulationResult, Keyframe, ChartSeries, ConservedQuantity, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
 
@@ -109,8 +102,9 @@ export class EddyCurrentModel extends PhysicsModelBase {
         const tau_thermal = 10; // 简化热时间常数 (s) — 仅用于下方 warning 判定
         const dT_dt = P / (mass * heatCapacity); // 理想温升速率 (绝热)
         const trajectory = sampleTrajectory({
-            sampleCount, duration,
-            sampleAt: (t) => ({
+            sampleCount,
+            duration,
+            sampleAt: t => ({
                 position: { x: t, y: 25 + dT_dt * t }, // x: time (s), y: temperature (degC)
                 velocity: { x: 1, y: dT_dt },
                 acceleration: { x: 0, y: 0 },

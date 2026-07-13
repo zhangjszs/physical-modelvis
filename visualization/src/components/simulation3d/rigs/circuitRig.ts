@@ -1,10 +1,15 @@
 /**
  * 电路 rig — 电源 + 电阻 + 导线 + 测量仪表
- * 用于 circuit、load-voltage、resistance-law、bulb-vi
+ * 用于 circuit、load-voltage、resistance-law、bulb-vi、ac-current、lc-oscillator、security-alarm
+ *
+ * 参数响应：
+ * - emf：电源电动势 → 灯泡亮度（emissiveIntensity）+ 电流方向箭头长度
+ *   （作为电流大小的直观代理；其余场景仅含 emf 时同样生效）
  */
 import * as THREE from 'three';
 import { SceneRig } from '../EquipmentStage';
 import { makeBox, makeCylinder, makeLine, makeTextSprite } from '../primitives';
+import { num } from './params';
 
 const WORLD_SCALE = 0.16;
 
@@ -44,6 +49,8 @@ export const circuitRig: SceneRig = {
         // 灯泡（右）
         const bulb = makeCylinder(0.08, 0.12, 0xfbbf24, 0.2, 0.3);
         bulb.position.set(1.0, 0.14, -0.3);
+        (bulb.material as THREE.MeshStandardMaterial).emissive = new THREE.Color(0xfbbf24);
+        (bulb.material as THREE.MeshStandardMaterial).emissiveIntensity = 0.8;
         scene.add(bulb);
 
         // 电流方向箭头
@@ -61,10 +68,23 @@ export const circuitRig: SceneRig = {
         label.position.set(0, 0.3, 0.3);
         scene.add(label);
 
-        return { group: new THREE.Group(), handles: {} };
+        return { group: new THREE.Group(), handles: { bulb, currentArrow } };
     },
 
-    updateEquipment(_handles, _params) {},
+    updateEquipment(handles, params) {
+        const bulb = handles.bulb as THREE.Mesh;
+        const currentArrow = handles.currentArrow as THREE.ArrowHelper;
+        const emf = num(params['emf'], NaN);
+        if (Number.isNaN(emf)) return;
+
+        // 电动势越大 → 灯泡越亮（emissiveIntensity 随 emf 提升）
+        const glow = THREE.MathUtils.clamp((emf / 12) * 0.8, 0.05, 2.0);
+        (bulb.material as THREE.MeshStandardMaterial).emissiveIntensity = glow;
+
+        // 电流方向箭头长度随电动势变化（电流大小直观代理）
+        const len = THREE.MathUtils.clamp(0.1 + (emf / 36) * 0.6, 0.1, 0.8);
+        currentArrow.setLength(len, 0.06, 0.04);
+    },
 
     getVisualPosition(pos, _params) {
         // 电荷在导线中流动 → 映射为水平运动

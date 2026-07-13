@@ -1,7 +1,7 @@
 import { PhysicsModelBase } from './base.js';
 import { sampleTrajectory } from '../physics/kinematics.js';
-import type { PhysicsProblem , HeatDirectionConstraint} from '../types/problem.js';
-import type { SimulationResult, TrajectoryPoint, ChartSeries } from '../types/result.js';
+import type { PhysicsProblem } from '../types/problem.js';
+import type { SimulationResult, ChartSeries } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 
 /**
@@ -35,8 +35,9 @@ export class HeatDirectionModel extends PhysicsModelBase {
 
         // 解析解采样: 热传导指数趋衡 T(t)=Teq+(T0-Teq)·e^{-t/τ} (公共脚手架 sampleTrajectory)
         const trajectory = sampleTrajectory({
-            sampleCount: N, duration: dur,
-            sampleAt: (t) => ({
+            sampleCount: N,
+            duration: dur,
+            sampleAt: t => ({
                 position: {
                     x: Teq + (T1 - Teq) * Math.exp(-t / tau),
                     y: Teq + (T2 - Teq) * Math.exp(-t / tau)
@@ -47,8 +48,20 @@ export class HeatDirectionModel extends PhysicsModelBase {
             })
         });
         // ChartSeries 由 trajectory 派生 (保持与原来 parseFloat(·.toFixed(2)) 一致的格式化语义)
-        const x_t: ChartSeries = { xLabel: 't (s)', yLabel: 'T_hot (K)', xUnit: 's', yUnit: 'K', points: trajectory.map(p => ({ x: p.t, y: parseFloat(p.position.x.toFixed(2)) })) };
-        const y_t: ChartSeries = { xLabel: 't (s)', yLabel: 'T_cold (K)', xUnit: 's', yUnit: 'K', points: trajectory.map(p => ({ x: p.t, y: parseFloat(p.position.y.toFixed(2)) })) };
+        const x_t: ChartSeries = {
+            xLabel: 't (s)',
+            yLabel: 'T_hot (K)',
+            xUnit: 's',
+            yUnit: 'K',
+            points: trajectory.map(p => ({ x: p.t, y: parseFloat(p.position.x.toFixed(2)) }))
+        };
+        const y_t: ChartSeries = {
+            xLabel: 't (s)',
+            yLabel: 'T_cold (K)',
+            xUnit: 's',
+            yUnit: 'K',
+            points: trajectory.map(p => ({ x: p.t, y: parseFloat(p.position.y.toFixed(2)) }))
+        };
 
         return {
             meta: this.makeMeta('analytical'),

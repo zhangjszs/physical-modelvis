@@ -1,10 +1,12 @@
 /**
  * 弹簧振子 rig — 水平弹簧 + 滑块 + 光滑面
  * 演示简谐振动
+ * 参数响应：质量 m → 滑块大小；振幅 A → 滑块偏离平衡位置 + 弹簧拉伸示意
  */
 import * as THREE from 'three';
 import { SceneRig } from '../EquipmentStage';
 import { makeBox, makeCylinder } from '../primitives';
+import { num } from './params';
 
 const WORLD_SCALE = 0.16;
 
@@ -37,7 +39,19 @@ export const springRig: SceneRig = {
         return { group, handles: { wall, spring, block, floor } };
     },
 
-    updateEquipment(_handles, _params) {},
+    updateEquipment(handles, params) {
+        const block = handles.block as THREE.Mesh;
+        const spring = handles.spring as THREE.Mesh;
+        const m = num(params.m, 1);
+        const A = num(params.A, 0.5);
+        // 质量 → 滑块大小（半径 ∝ 质量立方根）
+        const s = THREE.MathUtils.clamp(Math.cbrt(m), 0.5, 2.2);
+        block.scale.setScalar(s);
+        // 振幅 → 滑块偏离平衡位置 + 弹簧拉伸示意
+        const off = THREE.MathUtils.clamp(A, 0, 3) * 0.2;
+        block.position.x = off;
+        spring.scale.x = 1 + A * 0.3;
+    },
 
     getVisualPosition(pos, _params) {
         return new THREE.Vector3(pos.x * WORLD_SCALE, 0.25, 0);

@@ -1,5 +1,5 @@
 import { PhysicsModelBase } from './base.js';
-import type { PhysicsProblem , ThermistorConstraint} from '../types/problem.js';
+import type { PhysicsProblem } from '../types/problem.js';
 import type {
     SimulationResult,
     TrajectoryPoint,

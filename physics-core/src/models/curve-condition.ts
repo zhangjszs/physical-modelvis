@@ -1,13 +1,6 @@
 import type { PhysicsProblem } from '../types/problem.js';
 import { kineticEnergy, sampleTrajectory } from '../physics/kinematics.js';
-import type {
-    SimulationResult,
-    TrajectoryPoint,
-    Keyframe,
-    ChartSeries,
-    ExplanationStep,
-    FormulaUsage
-} from '../types/result.js';
+import type { SimulationResult, Keyframe, ChartSeries, ExplanationStep, FormulaUsage } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
 
@@ -84,8 +77,9 @@ export class CurveConditionModel extends PhysicsModelBase {
 
         // 解析解采样: 匀加速 r=v₀t+½at² (公共脚手架 sampleTrajectory)
         const trajectory = sampleTrajectory({
-            sampleCount, duration,
-            sampleAt: (t) => {
+            sampleCount,
+            duration,
+            sampleAt: t => {
                 const vx = v0vec.x + ax * t;
                 const vy = v0vec.y + ay * t;
                 return {

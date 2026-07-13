@@ -1,6 +1,6 @@
 import type { PhysicsProblem } from '../types/problem.js';
 import { kineticEnergy, sampleTrajectory } from '../physics/kinematics.js';
-import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ConservedQuantity } from '../types/result.js';
+import type { SimulationResult, Keyframe, ChartSeries, ConservedQuantity } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
 import { Vec2 } from '../math/vector2d.js';
@@ -64,8 +64,9 @@ export class SpringOscillatorModel extends PhysicsModelBase {
 
         // 解析解采样: 4 支阻尼 (SHM/欠阻尼/临界/过阻尼) 均为 t 的闭式解 (公共脚手架 sampleTrajectory)
         const trajectory = sampleTrajectory({
-            sampleCount, duration,
-            sampleAt: (t) => {
+            sampleCount,
+            duration,
+            sampleAt: t => {
                 let x: number, v: number;
 
                 if (beta === 0) {
@@ -77,7 +78,10 @@ export class SpringOscillatorModel extends PhysicsModelBase {
                     const { amplitude, phase } = this.solveDamped(x0, v0, beta, omegaD);
                     const decay = Math.exp(-beta * t);
                     x = amplitude * decay * Math.cos(omegaD * t + phase);
-                    v = amplitude * decay * (-beta * Math.cos(omegaD * t + phase) - omegaD * Math.sin(omegaD * t + phase));
+                    v =
+                        amplitude *
+                        decay *
+                        (-beta * Math.cos(omegaD * t + phase) - omegaD * Math.sin(omegaD * t + phase));
                 } else if (dampingType === 'critical') {
                     const C1 = x0;
                     const C2 = v0 + beta * x0;

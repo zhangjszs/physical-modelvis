@@ -1,6 +1,6 @@
 import type { PhysicsProblem } from '../types/problem.js';
 import { kineticEnergy, sampleTrajectory } from '../physics/kinematics.js';
-import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries } from '../types/result.js';
+import type { SimulationResult, Keyframe, ChartSeries } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
 import { Vec2 } from '../math/vector2d.js';
@@ -42,7 +42,7 @@ export class UniformElectricModel extends PhysicsModelBase {
         const trajectory = sampleTrajectory({
             sampleCount,
             duration,
-            sampleAt: (t) => {
+            sampleAt: t => {
                 const position = Vec2.add(x0, Vec2.add(Vec2.scale(v0, t), Vec2.scale(a, 0.5 * t * t)));
                 const velocity = Vec2.add(v0, Vec2.scale(a, t));
                 const speed = Vec2.magnitude(velocity);

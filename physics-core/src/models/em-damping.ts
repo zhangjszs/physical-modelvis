@@ -1,13 +1,6 @@
 import type { PhysicsProblem } from '../types/problem.js';
 import { kineticEnergy, sampleTrajectory } from '../physics/kinematics.js';
-import type {
-    SimulationResult,
-    TrajectoryPoint,
-    Keyframe,
-    ChartSeries,
-    ConservedQuantity,
-    ExplanationStep
-} from '../types/result.js';
+import type { SimulationResult, Keyframe, ChartSeries, ConservedQuantity, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
 
@@ -100,11 +93,10 @@ export class EMDampingModel extends PhysicsModelBase {
 
         // 解析解采样: damping → ω=ω₀·e^{-t/τ}, drive → ω=ω₀·(1-e^{-t/τ}) (公共脚手架 sampleTrajectory)
         const trajectory = sampleTrajectory({
-            sampleCount, duration,
-            sampleAt: (t) => {
-                const omega = mode === 'damping'
-                    ? omega0 * Math.exp(-t / tauC)
-                    : omega0 * (1 - Math.exp(-t / tauC));
+            sampleCount,
+            duration,
+            sampleAt: t => {
+                const omega = mode === 'damping' ? omega0 * Math.exp(-t / tauC) : omega0 * (1 - Math.exp(-t / tauC));
                 return {
                     position: { x: t, y: omega }, // x: time (s), y: angular velocity (rad/s)
                     velocity: { x: 1, y: 0 },

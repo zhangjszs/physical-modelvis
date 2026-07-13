@@ -1,4 +1,4 @@
-import type { PhysicsProblem , DiffusionConstraint} from '../types/problem.js';
+import type { PhysicsProblem } from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';

@@ -194,8 +194,9 @@ export class MomentumModel extends PhysicsModelBase {
         const x1Init = bodies[0]!.position.x;
         const x2Init = bodies[1]!.position.x;
         const traj1 = sampleTrajectory({
-            sampleCount, duration,
-            sampleAt: (t) => ({
+            sampleCount,
+            duration,
+            sampleAt: t => ({
                 position: { x: x1Init + v1Final * t, y: 0 },
                 velocity: { x: v1Final, y: 0 },
                 acceleration: { x: 0, y: 0 },
@@ -204,8 +205,9 @@ export class MomentumModel extends PhysicsModelBase {
             })
         });
         const traj2 = sampleTrajectory({
-            sampleCount, duration,
-            sampleAt: (t) => ({
+            sampleCount,
+            duration,
+            sampleAt: t => ({
                 position: { x: x2Init + v2Final * t, y: 0 },
                 velocity: { x: v2Final, y: 0 },
                 acceleration: { x: 0, y: 0 },

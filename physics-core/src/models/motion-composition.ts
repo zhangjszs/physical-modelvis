@@ -1,13 +1,6 @@
 import type { PhysicsProblem } from '../types/problem.js';
 import { kineticEnergy, sampleTrajectory } from '../physics/kinematics.js';
-import type {
-    SimulationResult,
-    TrajectoryPoint,
-    Keyframe,
-    ChartSeries,
-    ExplanationStep,
-    FormulaUsage
-} from '../types/result.js';
+import type { SimulationResult, Keyframe, ChartSeries, ExplanationStep, FormulaUsage } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
 
@@ -62,8 +55,9 @@ export class MotionCompositionModel extends PhysicsModelBase {
 
         // 解析解采样: 水平匀速 x=vx·t + 竖直匀加速 y=½ay·t² (公共脚手架 sampleTrajectory)
         const trajectory = sampleTrajectory({
-            sampleCount, duration,
-            sampleAt: (t) => {
+            sampleCount,
+            duration,
+            sampleAt: t => {
                 const y = 0.5 * ay * t * t;
                 return {
                     position: { x: vxConst * t, y },

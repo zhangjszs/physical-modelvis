@@ -1,5 +1,5 @@
-import type { PhysicsProblem , EMWaveCommConstraint} from '../types/problem.js';
-import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
+import type { PhysicsProblem } from '../types/problem.js';
+import type { SimulationResult, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
 import { sampleTrajectory } from '../physics/kinematics.js';
@@ -203,8 +203,9 @@ export class EMWaveCommunicationModel extends PhysicsModelBase {
         // 解析解采样: 电磁空间传播 — x=t·c, phase=2π·fc·t + β·sin(2π·fm·t) (公共脚手架 sampleTrajectory)
         //   duration = dist/c (传播时延); x 由 t·c 反推, 与原始 ratio·dist 等价
         const propagationTraj = sampleTrajectory({
-            sampleCount: 100, duration: dist / SPEED_OF_LIGHT,
-            sampleAt: (t) => {
+            sampleCount: 100,
+            duration: dist / SPEED_OF_LIGHT,
+            sampleAt: t => {
                 const x = t * SPEED_OF_LIGHT; // 空间位置 = 光速 × 时间
                 const phase = 2 * Math.PI * fc * t + (isFM ? beta * Math.sin(2 * Math.PI * fm * t) : 0);
                 const y = Vc * Math.sin(phase);

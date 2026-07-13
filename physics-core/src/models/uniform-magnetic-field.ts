@@ -39,8 +39,9 @@ export class UniformMagneticModel extends PhysicsModelBase {
         // 特殊情况：速度为零或磁场为零 → 匀速直线运动 (公共脚手架 sampleTrajectory)
         if (v0Mag < 1e-12 || Math.abs(Bz) < 1e-12 || Math.abs(q) < 1e-30) {
             const trajectory = sampleTrajectory({
-                sampleCount, duration,
-                sampleAt: (t) => ({
+                sampleCount,
+                duration,
+                sampleAt: t => ({
                     position: Vec2.add(x0, Vec2.scale(v0, t)),
                     velocity: { ...v0 },
                     acceleration: Vec2.zero(),
@@ -72,8 +73,9 @@ export class UniformMagneticModel extends PhysicsModelBase {
         const dy0 = x0.y - centerY;
         const accMag = (v0Mag * v0Mag) / R;
         const trajectory = sampleTrajectory({
-            sampleCount, duration,
-            sampleAt: (t) => {
+            sampleCount,
+            duration,
+            sampleAt: t => {
                 const angle = sign * omega * t;
                 const cosA = Math.cos(angle);
                 const sinA = Math.sin(angle);
@@ -84,7 +86,10 @@ export class UniformMagneticModel extends PhysicsModelBase {
                 return {
                     position,
                     velocity: { x: v0.x * cosA - v0.y * sinA, y: v0.x * sinA + v0.y * cosA },
-                    acceleration: Vec2.scale(Vec2.normalize({ x: centerX - position.x, y: centerY - position.y }), accMag),
+                    acceleration: Vec2.scale(
+                        Vec2.normalize({ x: centerX - position.x, y: centerY - position.y }),
+                        accMag
+                    ),
                     kineticEnergy: kineticEnergy(m, v0Mag), // 动能守恒
                     potentialEnergy: 0
                 };

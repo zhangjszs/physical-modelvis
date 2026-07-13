@@ -1,6 +1,6 @@
 import type { PhysicsProblem } from '../types/problem.js';
 import { kineticEnergy, sampleTrajectory } from '../physics/kinematics.js';
-import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ForceDiagram } from '../types/result.js';
+import type { SimulationResult, Keyframe, ChartSeries, ForceDiagram } from '../types/result.js';
 import type { ParameterSpec, Vector2D } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
 
@@ -121,8 +121,9 @@ export class VerticalCircleModel extends PhysicsModelBase {
         //   v²(θ) = v₀² − 2gr(1−cosθ)
         // 注: 原始 trailing-fill 内循环 (v²≤0 定格) 在 progress∈[0,1] 下实际不触发，以无状态版本替代
         const trajectory = sampleTrajectory({
-            sampleCount, duration,
-            sampleAt: (t) => {
+            sampleCount,
+            duration,
+            sampleAt: t => {
                 const theta = isFullCircle ? omega * t : (t / duration) * thetaMax;
 
                 // 角度 (θ=0 最低点, θ=π 最高点)

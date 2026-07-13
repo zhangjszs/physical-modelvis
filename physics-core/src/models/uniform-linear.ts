@@ -1,5 +1,5 @@
 import type { PhysicsProblem } from '../types/problem.js';
-import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries } from '../types/result.js';
+import type { SimulationResult, Keyframe, ChartSeries } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
 import { Vec2 } from '../math/vector2d.js';
@@ -31,8 +31,9 @@ export class UniformLinearModel extends PhysicsModelBase {
 
         // 解析解采样: x = x₀ + v₀t (公共脚手架 sampleTrajectory)
         const trajectory = sampleTrajectory({
-            sampleCount, duration,
-            sampleAt: (t) => ({
+            sampleCount,
+            duration,
+            sampleAt: t => ({
                 position: Vec2.add(x0, Vec2.scale(v0, t)),
                 velocity: { ...v0 },
                 acceleration: Vec2.zero(),

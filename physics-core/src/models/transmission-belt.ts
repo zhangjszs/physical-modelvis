@@ -1,5 +1,5 @@
 import type { PhysicsProblem } from '../types/problem.js';
-import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ForceDiagram } from '../types/result.js';
+import type { SimulationResult, Keyframe, ChartSeries, ForceDiagram } from '../types/result.js';
 import type { ParameterSpec, Vector2D } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
 import { sampleTrajectory } from '../physics/kinematics.js';
@@ -95,8 +95,9 @@ export class TransmissionBeltModel extends PhysicsModelBase {
         const phi1_0 = 0;
         const phi2_0 = direction === 1 ? 0 : Math.PI; // 齿轮反向初始角差 π
         const traj1 = sampleTrajectory({
-            sampleCount, duration,
-            sampleAt: (t) => {
+            sampleCount,
+            duration,
+            sampleAt: t => {
                 // 主动轮边缘
                 const a1 = phi1_0 + omega1 * t;
                 const p1: Vector2D = {
@@ -118,8 +119,9 @@ export class TransmissionBeltModel extends PhysicsModelBase {
             }
         });
         const traj2 = sampleTrajectory({
-            sampleCount, duration,
-            sampleAt: (t) => {
+            sampleCount,
+            duration,
+            sampleAt: t => {
                 // 从动轮边缘
                 const a2 = phi2_0 + direction * omega2 * t;
                 const p2: Vector2D = {

@@ -2,7 +2,6 @@ import type { PhysicsProblem } from '../types/problem.js';
 import { kineticEnergy, sampleTrajectory } from '../physics/kinematics.js';
 import type {
     SimulationResult,
-    TrajectoryPoint,
     Keyframe,
     ChartSeries,
     ForceDiagram,
@@ -139,8 +138,9 @@ export class OverweightModel extends PhysicsModelBase {
         let maxY = -Infinity;
         let minY = Infinity;
         const trajectory = sampleTrajectory({
-            sampleCount, duration,
-            sampleAt: (t) => {
+            sampleCount,
+            duration,
+            sampleAt: t => {
                 const y = y0.y + v0.y * t + 0.5 * aY * t * t;
                 const vy = v0.y + aY * t;
                 // 诊断累加器 (仅用于 maxValues, 不计入帧物理, frame 值与原循环逐位一致)

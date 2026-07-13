@@ -1,6 +1,6 @@
 import type { PhysicsProblem } from '../types/problem.js';
 import { kineticEnergy, sampleTrajectory } from '../physics/kinematics.js';
-import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ForceDiagram } from '../types/result.js';
+import type { SimulationResult, Keyframe, ChartSeries, ForceDiagram } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
 import { Vec2 } from '../math/vector2d.js';
@@ -64,7 +64,7 @@ export class InclinedPlaneModel extends PhysicsModelBase {
         const trajectory = sampleTrajectory({
             sampleCount,
             duration,
-            sampleAt: (t) => {
+            sampleAt: t => {
                 // 沿斜面的位移和速度
                 const s = isStationary ? 0 : Vec2.dot(v0, inclineDir) * t + 0.5 * effectiveAccel * t * t;
                 const vAlongIncline = isStationary ? 0 : Vec2.dot(v0, inclineDir) + effectiveAccel * t;

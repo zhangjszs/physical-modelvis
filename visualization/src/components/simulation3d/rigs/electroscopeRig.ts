@@ -1,10 +1,16 @@
 /**
  * 验电器 / 静电实验 rig — 金属球 + 导体棒 + 箔片
  * 用于 electroscope、electrostatic-induction、electrostatic-shielding、coulomb-force-explore
+ *
+ * 参数响应：
+ * - charge / chargeC：带电量 → 箔片张角（张角 ∝ 电荷，∝1/质量，∝1/√箔长）
+ * - foilLength：箔片长度 → 箔片几何高度
+ * - foilMass：箔片质量 → 张角反比
  */
 import * as THREE from 'three';
 import { SceneRig } from '../EquipmentStage';
 import { makeBox, makeCylinder, makeSphere, makeTextSprite } from '../primitives';
+import { num } from './params';
 
 const WORLD_SCALE = 0.16;
 
@@ -55,10 +61,27 @@ export const electroscopeRig: SceneRig = {
         label.position.set(0, 2.3, 0);
         scene.add(label);
 
-        return { group: new THREE.Group(), handles: {} };
+        return { group: new THREE.Group(), handles: { foil1, foil2 } };
     },
 
-    updateEquipment(_handles, _params) {},
+    updateEquipment(handles, params) {
+        const foil1 = handles.foil1 as THREE.Mesh;
+        const foil2 = handles.foil2 as THREE.Mesh;
+        // 兼容 electroscope(charge) 与 electrostatic-induction/coulomb(chargeC)
+        const q = num(params['charge'], num(params['chargeC'], 1));
+        const foilLen = num(params['foilLength'], 5); // cm
+        const foilMass = num(params['foilMass'], 1); // g
+
+        // 箔片几何高度随箔长变化（基准 5cm → 高度 0.2）
+        const lenScale = THREE.MathUtils.clamp(foilLen / 5, 0.2, 4);
+        foil1.scale.y = lenScale;
+        foil2.scale.y = lenScale;
+
+        // 张角 ∝ q / (m·√L)，电荷越大张得越开，质量越大/箔越长收得越拢
+        const theta = THREE.MathUtils.clamp((0.03 * q) / (foilMass * Math.sqrt(foilLen)), 0, 0.75);
+        foil1.rotation.z = -theta;
+        foil2.rotation.z = theta;
+    },
 
     getVisualPosition(pos, _params) {
         return new THREE.Vector3(pos.x * WORLD_SCALE, 1.5 + pos.y * WORLD_SCALE, 0);

@@ -50,6 +50,87 @@ function drawSubtitle(ctx: CanvasRenderingContext2D, subtitle: string, x: number
     ctx.fillText(subtitle, x, y);
 }
 
+// ========== 复用自 electromagnetismScenes 的通用工具 ==========
+function clamp(v: number, min: number, max: number): number {
+    return Math.max(min, Math.min(max, v));
+}
+
+function roundRectPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.arcTo(x + w, y, x + w, y + r, r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+    ctx.lineTo(x + r, y + h);
+    ctx.lineTo(x, y + h - r);
+    ctx.arcTo(x, y + h, x, y + h - r, r);
+    ctx.lineTo(x, y + r);
+    ctx.arcTo(x, y, x + r, y, r);
+    ctx.closePath();
+}
+
+function drawArrow(
+    ctx: CanvasRenderingContext2D,
+    x1: number,
+    y1: number,
+    x2: number,
+    y2: number,
+    color: string,
+    label?: string
+): void {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const len = Math.hypot(dx, dy) || 1;
+    const ux = dx / len;
+    const uy = dy / len;
+    const ax = -uy;
+    const ay = ux;
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+    const ah = 9;
+    ctx.beginPath();
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - ux * ah + ax * ah * 0.5, y2 - uy * ah + ay * ah * 0.5);
+    ctx.lineTo(x2 - ux * ah - ax * ah * 0.5, y2 - uy * ah - ay * ah * 0.5);
+    ctx.closePath();
+    ctx.fill();
+    if (label) {
+        ctx.fillStyle = color;
+        ctx.font = 'bold 13px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText(label, x2 + ax * 12 - 6, y2 + ay * 12 + 4);
+    }
+}
+
+function drawHud(ctx: CanvasRenderingContext2D, isDark: boolean, rows: Array<{ label: string; value: string }>): void {
+    const x = 14;
+    const y = 54;
+    const lh = 20;
+    ctx.fillStyle = isDark ? 'rgba(15,23,42,0.7)' : 'rgba(255,255,255,0.82)';
+    roundRectPath(ctx, x - 6, y - 22, 156, rows.length * lh + 10, 8);
+    ctx.fill();
+    ctx.font = '13px sans-serif';
+    ctx.textAlign = 'left';
+    rows.forEach((r, i) => {
+        ctx.fillStyle = isDark ? '#94a3b8' : '#64748b';
+        ctx.fillText(r.label, x, y + i * lh);
+        ctx.fillStyle = isDark ? '#e2e8f0' : '#1e293b';
+        ctx.fillText(r.value, x + 48, y + i * lh);
+    });
+}
+
+const BLUE = '#3b82f6';
+const GREEN = '#22c55e';
+const ORANGE = '#f59e0b';
+const RED = '#ef4444';
+const PURPLE = '#a855f7';
+
 // ========== 1. 声波波形 ==========
 
 export function drawSoundWaveformScene(o: WaveOptSceneOptions) {
@@ -468,4 +549,314 @@ export function drawThinFilmScene(o: WaveOptSceneOptions) {
     }
 
     drawSubtitle(ctx, `n=${nFilm} d=${thickness}nm λ=${lambda}nm Δ=2nd+λ/2`, 20, h - 20, isDark);
+}
+
+// ========== 7. 光的折射 (Snell 定律) ==========
+
+export function drawRefractionScene(o: WaveOptSceneOptions) {
+    const { ctx, width: w, height: h, isDark, params } = o;
+    clearScene(ctx, w, h, isDark);
+    drawTitle(ctx, '光的折射定律 (Snell)', w, isDark);
+
+    const n1 = params.n1 ?? 1.0;
+    const n2 = params.n2 ?? 1.5;
+    const a1 = ((params.angle ?? 30) * Math.PI) / 180;
+    const cy = h / 2;
+    const cx = w * 0.5;
+    const rayLen = h * 0.32;
+
+    // 两种介质背景
+    ctx.fillStyle = isDark ? 'rgba(56,189,248,0.10)' : 'rgba(56,189,248,0.10)';
+    ctx.fillRect(0, 0, w, cy);
+    ctx.fillStyle = isDark ? 'rgba(168,85,247,0.12)' : 'rgba(168,85,247,0.10)';
+    ctx.fillRect(0, cy, w, cy);
+    ctx.fillStyle = isDark ? '#94a3b8' : '#475569';
+    ctx.font = '13px sans-serif';
+    ctx.fillText(`介质1  n₁=${n1.toFixed(2)}`, 14, cy - 12);
+    ctx.fillText(`介质2  n₂=${n2.toFixed(2)}`, 14, cy + 22);
+
+    // 界面 + 法线
+    ctx.strokeStyle = isDark ? '#64748b' : '#94a3b8';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, cy);
+    ctx.lineTo(w, cy);
+    ctx.stroke();
+    ctx.setLineDash([5, 5]);
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - rayLen - 20);
+    ctx.lineTo(cx, cy + rayLen + 20);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = mutedText(isDark);
+    ctx.fillText('法线', cx + 8, cy - rayLen - 20);
+
+    const sinA2 = (n1 / n2) * Math.sin(a1);
+    if (sinA2 > 1) {
+        // 全反射
+        const srcX = cx - Math.sin(a1) * rayLen;
+        const srcY = cy - Math.cos(a1) * rayLen;
+        drawArrow(ctx, srcX, srcY, cx, cy, ORANGE, '');
+        // 反射光线 (介质1 内, 关于界面对称)
+        const rx = cx + Math.sin(a1) * rayLen;
+        const ry = cy - Math.cos(a1) * rayLen;
+        drawArrow(ctx, cx, cy, rx, ry, RED, '');
+        const crit = (Math.asin(n2 / n1) * 180) / Math.PI;
+        drawHud(ctx, isDark, [
+            { label: 'θ₁', value: `${((a1 * 180) / Math.PI).toFixed(0)}°` },
+            { label: 'θ₂', value: '全反射' },
+            { label: 'θc', value: `${crit.toFixed(1)}°` }
+        ]);
+        drawSubtitle(ctx, `n₁>n₂ 且 θ₁>θc → 发生全反射`, 20, h - 20, isDark);
+        return;
+    }
+    const a2 = Math.asin(sinA2);
+    const srcX = cx - Math.sin(a1) * rayLen;
+    const srcY = cy - Math.cos(a1) * rayLen;
+    drawArrow(ctx, srcX, srcY, cx, cy, ORANGE, '');
+    const rX = cx + Math.sin(a2) * rayLen;
+    const rY = cy + Math.cos(a2) * rayLen;
+    drawArrow(ctx, cx, cy, rX, rY, GREEN, '');
+    drawHud(ctx, isDark, [
+        { label: 'θ₁', value: `${((a1 * 180) / Math.PI).toFixed(0)}°` },
+        { label: 'θ₂', value: `${((a2 * 180) / Math.PI).toFixed(1)}°` },
+        { label: 'n₁/n₂', value: `${(n1 / n2).toFixed(2)}` }
+    ]);
+    drawSubtitle(ctx, `n₁sinθ₁ = n₂sinθ₂ → sinθ₂ = (n₁/n₂)sinθ₁`, 20, h - 20, isDark);
+}
+
+function mutedText(isDark: boolean): string {
+    return isDark ? '#94a3b8' : '#64748b';
+}
+
+// ========== 8. 双缝干涉 (杨氏实验, 参数 slitSep/screenDist) ==========
+
+export function drawInterferenceScene(o: WaveOptSceneOptions) {
+    const { ctx, width: w, height: h, isDark, params } = o;
+    clearScene(ctx, w, h, isDark);
+    drawTitle(ctx, '双缝干涉 (杨氏实验)', w, isDark);
+
+    const lambdaNm = params.wavelength ?? 600;
+    const dMm = params.slitSep ?? 0.5;
+    const LM = params.screenDist ?? 2.0;
+    const lambda = lambdaNm * 1e-9;
+    const d = Math.max(dMm * 1e-3, 1e-6);
+    const L = LM;
+    const slitX = w * 0.28;
+    const screenX = slitX + 230;
+    const slitSep = dMm * 60;
+
+    // 光源
+    ctx.fillStyle = RED;
+    ctx.beginPath();
+    ctx.arc(28, h / 2, 8, 0, 2 * Math.PI);
+    ctx.fill();
+    // 双缝
+    ctx.fillStyle = isDark ? '#475569' : '#94a3b8';
+    ctx.fillRect(slitX - 3, 40, 6, h / 2 - slitSep / 2 - 40);
+    ctx.fillRect(slitX - 3, h / 2 - slitSep / 2, 6, slitSep);
+    ctx.fillRect(slitX - 3, h / 2 + slitSep / 2, 6, h - h / 2 - slitSep / 2 - 40);
+    // 屏幕 + 条纹
+    ctx.fillStyle = isDark ? '#1e293b' : '#e2e8f0';
+    ctx.fillRect(screenX, 40, 4, h - 80);
+    const screenH = h - 80;
+    for (let py = 0; py < screenH; py++) {
+        const y = py - screenH / 2;
+        const theta = Math.atan(y / L);
+        const pathDiff = d * Math.sin(theta);
+        const I = Math.cos((Math.PI * pathDiff) / lambda) ** 2;
+        const r = Math.floor(255 * I);
+        ctx.fillStyle = `rgb(${r},${Math.floor(r * 0.9)},${Math.floor(r * 0.3)})`;
+        ctx.fillRect(screenX, 40 + py, 4, 1);
+    }
+    // 光强曲线
+    const curveW = screenX - slitX - 10;
+    ctx.strokeStyle = ORANGE;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    for (let py = 0; py < screenH; py++) {
+        const y = py - screenH / 2;
+        const theta = Math.atan(y / L);
+        const pathDiff = d * Math.sin(theta);
+        const I = Math.cos((Math.PI * pathDiff) / lambda) ** 2;
+        const x = slitX + 10 + I * curveW;
+        if (py === 0) ctx.moveTo(x, 40 + py);
+        else ctx.lineTo(x, 40 + py);
+    }
+    ctx.stroke();
+    const dY = (lambda * L) / d; // m
+    drawHud(ctx, isDark, [
+        { label: 'λ', value: `${lambdaNm.toFixed(0)} nm` },
+        { label: 'd', value: `${dMm.toFixed(2)} mm` },
+        { label: 'Δy', value: `${(dY * 1000).toFixed(2)} mm` }
+    ]);
+    drawSubtitle(
+        ctx,
+        params.filmThickness && params.filmThickness > 0
+            ? '含薄膜模式 (薄膜干涉叠加)'
+            : `Δy = λL/d = ${dY.toExponential(2)} m`,
+        20,
+        h - 20,
+        isDark
+    );
+}
+
+// ========== 9. 光栅衍射 (光栅方程 d sinθ = kλ) ==========
+
+export function drawDiffractionGratingScene(o: WaveOptSceneOptions) {
+    const { ctx, width: w, height: h, isDark, params } = o;
+    clearScene(ctx, w, h, isDark);
+    drawTitle(ctx, '光栅衍射 (光栅方程)', w, isDark);
+
+    const dUm = params.gratingConst ?? 2;
+    const lambdaNm = params.wavelength ?? 550;
+    const orderMax = params.orderMax ?? 4;
+    const N = params.slitCount ?? 500;
+    const d = dUm * 1e-6;
+    const lambda = lambdaNm * 1e-9;
+    const kMax = Math.min(orderMax, Math.floor(d / lambda));
+
+    const cx = w * 0.5;
+    const cy = h * 0.5;
+    const fanLen = h * 0.34;
+    // 光栅 (竖直)
+    ctx.fillStyle = isDark ? '#475569' : '#94a3b8';
+    ctx.fillRect(cx - 4, cy - fanLen, 8, fanLen * 2);
+    // 入射光
+    drawArrow(ctx, cx - 120, cy, cx, cy, ORANGE, '');
+
+    const rows: Array<{ k: number; theta: number }> = [];
+    for (let k = -kMax; k <= kMax; k++) {
+        const sinT = (k * lambda) / d;
+        if (Math.abs(sinT) > 1) continue;
+        const theta = Math.asin(sinT);
+        rows.push({ k, theta });
+        const ex = cx + Math.sin(theta) * fanLen * 1.7;
+        const ey = cy + Math.cos(theta) * fanLen * 1.7;
+        const bright = k === 0 ? 255 : clamp(255 - Math.abs(k) * 40, 90, 255);
+        ctx.strokeStyle = `rgb(${bright},${Math.floor(bright * 0.85)},${Math.floor(bright * 0.2)})`;
+        ctx.lineWidth = clamp(60 / Math.sqrt(N), 1.5, 8);
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(ex, ey);
+        ctx.stroke();
+        ctx.fillStyle = mutedText(isDark);
+        ctx.font = '12px sans-serif';
+        ctx.fillText(`k=${k}`, ex + 4, ey);
+    }
+    const firstOrder = (lambda / d) * (180 / Math.PI);
+    drawHud(ctx, isDark, [
+        { label: 'd', value: `${dUm.toFixed(1)} μm` },
+        { label: 'λ', value: `${lambdaNm.toFixed(0)} nm` },
+        { label: 'k_max', value: `${kMax}` }
+    ]);
+    drawSubtitle(ctx, `d·sinθ = kλ  →  ±1 级 θ ≈ ${firstOrder.toFixed(1)}°  (N=${N} 谱线越锐)`, 20, h - 20, isDark);
+}
+
+// ========== 10. 偏振光 (马吕斯定律) ==========
+
+export function drawPolarizationMalusScene(o: WaveOptSceneOptions) {
+    const { ctx, width: w, height: h, isDark, params } = o;
+    clearScene(ctx, w, h, isDark);
+    drawTitle(ctx, '偏振光 (马吕斯定律)', w, isDark);
+
+    const I0 = params.initIntensity ?? 1;
+    const n = Math.round(params.nPolarizers ?? 2);
+    const a0 = params.angle0 ?? 0;
+    const a1 = params.angle1 ?? 45;
+    const a2 = params.angle2 ?? 90;
+    const incAngle = params.incAngle ?? 0;
+    const angles = [a0, a1, a2].slice(0, n);
+
+    let I = I0;
+    let prev = incAngle;
+    const rowH = 64;
+    const top = h * 0.26;
+    for (let i = 0; i < n; i++) {
+        const p = angles[i] ?? 0;
+        const delta = ((p - prev) * Math.PI) / 180;
+        I *= Math.cos(delta) ** 2;
+        prev = p;
+        const y = top + i * rowH;
+        // 偏振片
+        ctx.fillStyle = isDark ? '#1e293b' : '#e2e8f0';
+        ctx.strokeStyle = isDark ? '#64748b' : '#475569';
+        ctx.lineWidth = 2;
+        roundRectPath(ctx, w * 0.3, y - 22, 26, 44, 5);
+        ctx.fill();
+        ctx.stroke();
+        // 透振方向
+        const ang = (p * Math.PI) / 180;
+        ctx.strokeStyle = PURPLE;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(w * 0.3 + 13 - Math.cos(ang) * 18, y - Math.sin(ang) * 18);
+        ctx.lineTo(w * 0.3 + 13 + Math.cos(ang) * 18, y + Math.sin(ang) * 18);
+        ctx.stroke();
+        ctx.fillStyle = mutedText(isDark);
+        ctx.font = '12px sans-serif';
+        ctx.fillText(`P${i + 1}  ${p.toFixed(0)}°`, w * 0.3 + 36, y + 4);
+        // 强度条
+        const barX = w * 0.6;
+        ctx.fillStyle = isDark ? '#334155' : '#cbd5e1';
+        roundRectPath(ctx, barX, y - 16, 200, 14, 4);
+        ctx.fill();
+        ctx.fillStyle = BLUE;
+        roundRectPath(ctx, barX, y - 16, 200 * clamp(I, 0, 1), 14, 4);
+        ctx.fill();
+    }
+    drawHud(ctx, isDark, [
+        { label: 'I₀', value: I0.toFixed(2) },
+        { label: 'n', value: `${n}` },
+        { label: 'I', value: I.toFixed(3) }
+    ]);
+    drawSubtitle(ctx, `马吕斯定律: I = I₀·Π cos²(Δθᵢ)  →  I=${I.toFixed(3)}`, 20, h - 20, isDark);
+}
+
+// ========== 11. 全息照相 (干涉记录) ==========
+
+export function drawHologramScene(o: WaveOptSceneOptions) {
+    const { ctx, width: w, height: h, isDark, params, currentTime: t } = o;
+    clearScene(ctx, w, h, isDark);
+    drawTitle(ctx, '全息照相 (干涉记录)', w, isDark);
+
+    const thr = ((params.refAngle ?? 30) * Math.PI) / 180;
+    const tho = ((params.objAngle ?? -10) * Math.PI) / 180;
+    const lambdaNm = params.wavelength ?? 632.8;
+    const ar = params.refAmp ?? 1;
+    const ao = params.objAmp ?? 0.5;
+    const k = (2 * Math.PI) / (lambdaNm * 1e-9);
+    const lambda = lambdaNm * 1e-9;
+    const fringeSpacing = lambda / Math.max(Math.abs(Math.sin(thr) - Math.sin(tho)), 1e-3); // m
+
+    const plateX = w * 0.62;
+    const plateTop = h * 0.18;
+    const plateH = h * 0.5;
+    // 参考光 (上) 与 物光 (下) 入射
+    drawArrow(ctx, w * 0.1, plateTop + 20, plateX, plateTop + 20, RED, '参考光');
+    drawArrow(ctx, w * 0.1, plateTop + plateH - 20, plateX, plateTop + plateH - 20, GREEN, '物光');
+    // 干板
+    ctx.fillStyle = isDark ? '#1e293b' : '#e2e8f0';
+    ctx.strokeStyle = isDark ? '#64748b' : '#475569';
+    ctx.lineWidth = 2;
+    ctx.fillRect(plateX, plateTop, 10, plateH);
+    ctx.strokeRect(plateX, plateTop, 10, plateH);
+    // 记录条纹 (cos 调制)
+    const phaseShift = t * 0.6;
+    for (let y = 0; y < plateH; y += 2) {
+        const yy = plateTop + y;
+        const Int = ar * ar + ao * ao + 2 * ar * ao * Math.cos(k * yy * (Math.sin(thr) - Math.sin(tho)) + phaseShift);
+        const norm = clamp(Int / (ar * ar + ao * ao + 2 * ar * ao + 1e-6), 0, 1);
+        const c = Math.floor(255 * norm);
+        ctx.fillStyle = `rgb(${c},${c},${Math.floor(c * 0.7)})`;
+        ctx.fillRect(plateX - 14, yy, 14, 2);
+    }
+    // 再现光束 (重建)
+    drawArrow(ctx, plateX + 30, plateTop + plateH / 2, plateX + 160, plateTop + plateH / 2 - 60, BLUE, '再现');
+    drawHud(ctx, isDark, [
+        { label: 'λ', value: `${lambdaNm.toFixed(1)} nm` },
+        { label: 'θr-θo', value: `${(((thr - tho) * 180) / Math.PI).toFixed(0)}°` },
+        { label: 'Λ', value: `${(fringeSpacing * 1e6).toFixed(2)} μm` }
+    ]);
+    drawSubtitle(ctx, `条纹间距 Λ = λ/|sinθr−sinθo| = ${(fringeSpacing * 1e6).toFixed(2)} μm`, 20, h - 20, isDark);
 }

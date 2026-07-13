@@ -2,7 +2,6 @@ import type { PhysicsProblem } from '../types/problem.js';
 import { sampleTrajectory } from '../physics/kinematics.js';
 import type {
     SimulationResult,
-    TrajectoryPoint,
     Keyframe,
     ChartSeries,
     ExplanationStep,
@@ -107,8 +106,9 @@ export class TickerTimerModel extends PhysicsModelBase {
         // === 解析解采样: 打点计时器匀加速 x=v₀·t+½a·t² (公共脚手架 sampleTrajectory) ===
         //   N 个 tick = N-1 个间隔 → sampleCount=N-1, duration=(N-1)·T
         const trajectory = sampleTrajectory({
-            sampleCount: N - 1, duration: (N - 1) * T,
-            sampleAt: (t) => ({
+            sampleCount: N - 1,
+            duration: (N - 1) * T,
+            sampleAt: t => ({
                 position: { x: v0 * t + 0.5 * a * t * t, y: 0 },
                 velocity: { x: v0 + a * t, y: 0 },
                 acceleration: { x: a, y: 0 },

@@ -789,3 +789,628 @@ export function drawMicrometerScene(opts: ElectromagnetismSceneOptions): void {
     ]);
     drawInfoBar(ctx, width, height, '总读数 = 固定套筒主尺 + 微分筒刻度 * 0.01 mm', isDark);
 }
+
+/** 绘制一个带电小球（正电荷红、负电荷蓝） */
+function drawChargeSymbol(
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    radius: number,
+    sign: number,
+    isDark: boolean
+): void {
+    const positive = sign >= 0;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fillStyle = positive ? RED : BLUE;
+    ctx.fill();
+    ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.85)' : 'rgba(15,23,42,0.85)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(x - radius * 0.5, y);
+    ctx.lineTo(x + radius * 0.5, y);
+    if (positive) {
+        ctx.moveTo(x, y - radius * 0.5);
+        ctx.lineTo(x, y + radius * 0.5);
+    }
+    ctx.stroke();
+}
+
+/** 小工具：绘制一行文字 */
+function drawText(
+    ctx: CanvasRenderingContext2D,
+    text: string,
+    x: number,
+    y: number,
+    isDark: boolean,
+    size = 13,
+    color?: string
+): void {
+    ctx.fillStyle = color ?? labelColor(isDark);
+    ctx.font = `${size}px system-ui, sans-serif`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText(text, x, y);
+}
+
+/** 探究库仑定律：F = k·q₁q₂/r² */
+export function drawCoulombForceExploreScene(opts: ElectromagnetismSceneOptions): void {
+    const { ctx, width, height, isDark, params } = opts;
+    clearScene(ctx, width, height, isDark);
+    drawTitle(ctx, '探究电荷间作用力 (库仑定律)', width, isDark);
+    const K = 8.9875517923e9;
+    const q1 = params['q1'] ?? 1;
+    const q2 = params['q2'] ?? 1;
+    const distance = params['distance'] ?? 5;
+    const mode = (params['mode'] ?? 0) >= 0.5 ? 1 : 0;
+    const q1C = q1 * 1e-6;
+    const q2C = q2 * 1e-6;
+    const r = Math.max(distance * 1e-2, 1e-4);
+    const F = (K * q1C * q2C) / (r * r); // N
+    const repulsive = q1 * q2 > 0;
+
+    const y = height * 0.46;
+    const x1 = width * 0.28;
+    const x2 = width * 0.72;
+    const rad = 22;
+    drawChargeSymbol(ctx, x1, y, rad, q1, isDark);
+    drawChargeSymbol(ctx, x2, y, rad, q2, isDark);
+    // 作用力箭头（沿两球连线）
+    const midX = (x1 + x2) / 2;
+    if (repulsive) {
+        drawArrow(ctx, midX - 6, y - 40, x1 + rad + 6, y - 40, ORANGE, '');
+        drawArrow(ctx, midX + 6, y - 40, x2 - rad - 6, y - 40, ORANGE, 'F');
+    } else {
+        drawArrow(ctx, x1 + rad + 6, y - 40, midX - 6, y - 40, ORANGE, '');
+        drawArrow(ctx, x2 - rad - 6, y - 40, midX + 6, y - 40, ORANGE, 'F');
+    }
+    drawText(ctx, `r = ${distance.toFixed(1)} cm`, midX - 28, y + 50, isDark, 13, mutedColor(isDark));
+
+    // 关系示意图：左 F∝q₁q₂，右 F∝1/r²
+    const bx = width * 0.12;
+    const by = height * 0.72;
+    const bw = width * 0.76;
+    const bh = height * 0.16;
+    ctx.strokeStyle = mutedColor(isDark);
+    ctx.lineWidth = 1;
+    ctx.strokeRect(bx, by, bw, bh);
+    ctx.fillStyle = mutedColor(isDark);
+    ctx.font = '12px system-ui, sans-serif';
+    const label = mode === 0 ? '模式: 固定 r, 改变 q → F ∝ q₁·q₂' : '模式: 固定 q, 改变 r → F ∝ 1/r²';
+    drawText(ctx, label, bx + 8, by - 6, isDark, 12, mutedColor(isDark));
+    ctx.strokeStyle = CYAN;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let i = 0; i <= 60; i++) {
+        const t = i / 60;
+        const px = bx + 8 + t * (bw - 16);
+        const norm = mode === 0 ? t : 1 - t; // q 线性 / r 反比
+        const py = by + bh - 8 - norm * (bh - 18);
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+
+    drawHud(ctx, isDark, [
+        { label: 'q₁', value: `${q1.toFixed(2)} μC` },
+        { label: 'q₂', value: `${q2.toFixed(2)} μC` },
+        { label: 'F', value: `${F < 1e-3 ? (F * 1e6).toFixed(2) + ' μN' : F.toFixed(3) + ' N'}` }
+    ]);
+    drawInfoBar(ctx, width, height, `F = k·q₁q₂/r² = ${F.toExponential(2)} N（k=8.99×10⁹）`, isDark);
+}
+
+/** 验电器：箔片张角随带电量增大 */
+export function drawElectroscopeScene(opts: ElectromagnetismSceneOptions): void {
+    const { ctx, width, height, isDark, params } = opts;
+    clearScene(ctx, width, height, isDark);
+    drawTitle(ctx, '验电器 (箔片张角 vs 电量)', width, isDark);
+    const K = 8.9875517923e9;
+    const q = params['charge'] ?? 1;
+    const foilLength = params['foilLength'] ?? 5;
+    const foilMass = params['foilMass'] ?? 1;
+    const qC = q * 1e-6;
+    const L = Math.max(foilLength * 1e-2, 0.01);
+    const g = 9.8;
+    // 简化模型：箔尖斥力 F = k q² / (2L)²，与重力矩平衡 → tanθ = F/(mg)
+    const repel = (K * qC * qC) / (4 * L * L);
+    const gravity = Math.max(foilMass * 1e-3 * g, 1e-9);
+    const theta = clamp(Math.atan(repel / gravity), 0, (78 * Math.PI) / 180);
+
+    const cx = width * 0.5;
+    const topY = height * 0.2;
+    const domeR = 26;
+    // 顶部金属球 + 杆
+    ctx.fillStyle = isDark ? '#cbd5e1' : '#475569';
+    ctx.beginPath();
+    ctx.arc(cx, topY + domeR, domeR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = isDark ? '#94a3b8' : '#334155';
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(cx, topY + domeR * 2);
+    ctx.lineTo(cx, height * 0.45);
+    ctx.stroke();
+    // 两箔片
+    const pivotY = height * 0.45;
+    const tipLen = height * 0.28 * clamp(foilLength / 10, 0.4, 1.4);
+    ctx.strokeStyle = ORANGE;
+    ctx.lineWidth = 4;
+    for (const dir of [-1, 1]) {
+        ctx.beginPath();
+        ctx.moveTo(cx, pivotY);
+        ctx.lineTo(cx + dir * Math.sin(theta) * tipLen, pivotY + Math.cos(theta) * tipLen);
+        ctx.stroke();
+    }
+    drawText(
+        ctx,
+        `张角 2θ ≈ ${((theta * 2 * 180) / Math.PI).toFixed(1)}°`,
+        cx + 40,
+        pivotY + tipLen * 0.6,
+        isDark,
+        13,
+        labelColor(isDark)
+    );
+    drawHud(ctx, isDark, [
+        { label: 'q', value: `${q.toFixed(2)} μC` },
+        { label: 'L', value: `${foilLength.toFixed(1)} cm` },
+        { label: 'θ', value: `${((theta * 180) / Math.PI).toFixed(1)}°` }
+    ]);
+    drawInfoBar(ctx, width, height, '同种电荷相互排斥，箔片张角随带电量增大', isDark);
+}
+
+/** 静电感应：近端异种电荷、远端同种电荷 */
+export function drawElectrostaticInductionScene(opts: ElectromagnetismSceneOptions): void {
+    const { ctx, width, height, isDark, params } = opts;
+    clearScene(ctx, width, height, isDark);
+    drawTitle(ctx, '静电感应 (近/远端感应电荷)', width, isDark);
+    const chargeC = params['chargeC'] ?? 1;
+    const separation = params['separation'] ?? 2;
+    const distanceAC = params['distanceAC'] ?? 10;
+    const cSign = chargeC >= 0 ? 1 : -1;
+    // 感应强度随电荷量增大、随距离平方减小（定性）
+    const induced = clamp((Math.abs(chargeC) / 100) * (10 / Math.max(distanceAC, 0.5)), 0.1, 1);
+
+    const conductorY = height * 0.5;
+    const aLeft = width * 0.42;
+    const gap = clamp(separation * 2, 6, 60);
+    const aRight = aLeft + 70;
+    const bLeft = aRight + gap;
+    const bRight = bLeft + 70;
+    const conductorH = 46;
+    // 导体 A、B
+    ctx.fillStyle = isDark ? '#1e293b' : '#e2e8f0';
+    ctx.strokeStyle = isDark ? '#64748b' : '#94a3b8';
+    ctx.lineWidth = 2;
+    for (const [x0, x1] of [
+        [aLeft, aRight],
+        [bLeft, bRight]
+    ] as Array<[number, number]>) {
+        roundRectPath(ctx, x0, conductorY - conductorH / 2, x1 - x0, conductorH, 6);
+        ctx.fill();
+        ctx.stroke();
+    }
+    // 外部带电体 C
+    const cX = aLeft - Math.max(distanceAC * 1.6, 40);
+    drawChargeSymbol(ctx, cX, conductorY, 20, cSign, isDark);
+    // 感应电荷标注：A 近端(左)与 C 异种，A 远端(右)同种；B 近端(左)同种
+    const aNearSign = -cSign;
+    const aFarSign = cSign;
+    const bNearSign = cSign;
+    const sym = (s: number) => (s > 0 ? '+' : '−');
+    const col = (s: number) => (s > 0 ? RED : BLUE);
+    ctx.font = 'bold 18px system-ui, sans-serif';
+    ctx.fillStyle = col(aNearSign);
+    ctx.fillText(sym(aNearSign), aLeft + 10, conductorY - conductorH / 2 - 8);
+    ctx.fillStyle = col(aFarSign);
+    ctx.fillText(sym(aFarSign), aRight - 18, conductorY - conductorH / 2 - 8);
+    ctx.fillStyle = col(bNearSign);
+    ctx.fillText(sym(bNearSign), bLeft + 10, conductorY - conductorH / 2 - 8);
+    // 电场线：C → A 近端
+    ctx.strokeStyle = mutedColor(isDark);
+    ctx.lineWidth = 1.5;
+    for (let i = -1; i <= 1; i++) {
+        ctx.beginPath();
+        ctx.moveTo(cX + 20, conductorY + i * 10);
+        ctx.lineTo(aLeft - 2, conductorY + i * 10);
+        ctx.stroke();
+    }
+    drawText(
+        ctx,
+        `感应强度 ≈ ${(induced * 100).toFixed(0)}%`,
+        width * 0.12,
+        height * 0.8,
+        isDark,
+        13,
+        mutedColor(isDark)
+    );
+    drawHud(ctx, isDark, [
+        { label: 'C', value: `${chargeC.toFixed(2)} μC ${cSign > 0 ? '(+)' : '(−)'}` },
+        { label: 'd_AC', value: `${distanceAC.toFixed(1)} cm` },
+        { label: '近端', value: sym(aNearSign) }
+    ]);
+    drawInfoBar(ctx, width, height, '导体近端感应出异种电荷、远端同种电荷', isDark);
+}
+
+/** 静电屏蔽：导体腔内部场强为零 */
+export function drawElectrostaticShieldingScene(opts: ElectromagnetismSceneOptions): void {
+    const { ctx, width, height, isDark, params } = opts;
+    clearScene(ctx, width, height, isDark);
+    drawTitle(ctx, '静电屏蔽 (接地 vs 不接地)', width, isDark);
+    const externalField = params['externalField'] ?? 500;
+    const cavityCharge = params['cavityCharge'] ?? 0;
+    const grounded = (params['isGrounded'] ?? 1) >= 0.5;
+
+    const shellX = width * 0.34;
+    const shellY = height * 0.28;
+    const shellW = width * 0.34;
+    const shellH = height * 0.44;
+    const wall = 22;
+    // 外部电场线（水平，遇导体壳偏折）
+    ctx.strokeStyle = CYAN;
+    ctx.lineWidth = 1.5;
+    for (let i = 1; i <= 4; i++) {
+        const ly = height * 0.3 + i * height * 0.1;
+        ctx.beginPath();
+        ctx.moveTo(10, ly);
+        ctx.lineTo(shellX, ly);
+        ctx.stroke();
+        // 壳外绕过
+        ctx.beginPath();
+        ctx.moveTo(shellX + shellW, ly);
+        ctx.lineTo(width - 10, ly);
+        ctx.stroke();
+    }
+    // 导体壳（外框 + 空腔）
+    ctx.fillStyle = isDark ? '#1e293b' : '#e2e8f0';
+    ctx.strokeStyle = isDark ? '#64748b' : '#475569';
+    ctx.lineWidth = 2;
+    roundRectPath(ctx, shellX, shellY, shellW, shellH, 10);
+    ctx.fill();
+    ctx.stroke();
+    // 空腔
+    ctx.fillStyle = isDark ? '#0f172a' : '#f8fafc';
+    roundRectPath(ctx, shellX + wall, shellY + wall, shellW - wall * 2, shellH - wall * 2, 6);
+    ctx.fill();
+    ctx.strokeStyle = isDark ? '#334155' : '#94a3b8';
+    ctx.stroke();
+    // 接地符号
+    if (grounded) {
+        const gx = shellX + shellW / 2;
+        const gy = shellY + shellH;
+        ctx.strokeStyle = GREEN;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(gx, gy);
+        ctx.lineTo(gx, gy + 18);
+        for (let i = 0; i < 3; i++) {
+            ctx.moveTo(gx - 9 + i * 9, gy + 18 + i * 5);
+            ctx.lineTo(gx + 9 - i * 9, gy + 18 + i * 5);
+        }
+        ctx.stroke();
+    }
+    // 腔内电荷
+    if (cavityCharge !== 0) {
+        drawChargeSymbol(ctx, shellX + shellW / 2, shellY + shellH / 2, 14, cavityCharge >= 0 ? 1 : -1, isDark);
+    }
+    const eInside = cavityCharge !== 0 ? '≠ 0 (腔内电荷)' : '= 0';
+    drawText(ctx, `导体内部场强 ${eInside}`, shellX, shellY - 10, isDark, 13, labelColor(isDark));
+    drawHud(ctx, isDark, [
+        { label: 'E_ext', value: `${externalField.toFixed(0)} V/m` },
+        { label: '接地', value: grounded ? '是' : '否' },
+        { label: 'E_in', value: cavityCharge !== 0 ? '见腔内' : '0' }
+    ]);
+    drawInfoBar(ctx, width, height, '静电平衡时导体内部场强为零，外电场被屏蔽', isDark);
+}
+
+/** 法拉第圆筒：电荷全部分布在外表面，内表面为零 */
+export function drawFaradayCupScene(opts: ElectromagnetismSceneOptions): void {
+    const { ctx, width, height, isDark, params } = opts;
+    clearScene(ctx, width, height, isDark);
+    drawTitle(ctx, '法拉第圆筒 (内表面电荷=0)', width, isDark);
+    const totalCharge = params['totalCharge'] ?? 5;
+    const cx = width * 0.5;
+    const topY = height * 0.26;
+    const cupW = width * 0.26;
+    const cupH = height * 0.4;
+    const wall = 16;
+    // 圆筒外壳（U 形）
+    ctx.fillStyle = isDark ? '#1e293b' : '#e2e8f0';
+    ctx.strokeStyle = isDark ? '#64748b' : '#475569';
+    ctx.lineWidth = 2;
+    roundRectPath(ctx, cx - cupW / 2, topY, cupW, cupH, 8);
+    ctx.fill();
+    ctx.stroke();
+    // 内部掏空
+    ctx.fillStyle = isDark ? '#0f172a' : '#f8fafc';
+    roundRectPath(ctx, cx - cupW / 2 + wall, topY + wall, cupW - wall * 2, cupH - wall, 4);
+    ctx.fill();
+    // 外表面电荷（+ 号）
+    ctx.fillStyle = RED;
+    ctx.font = 'bold 15px system-ui, sans-serif';
+    const nOuter = 7;
+    for (let i = 0; i < nOuter; i++) {
+        const x = cx - cupW / 2 + wall / 2;
+        const y = topY + 18 + (i / (nOuter - 1)) * (cupH - 30);
+        ctx.fillText('+', x - 4, y);
+        ctx.fillText('+', cx + cupW / 2 - wall / 2 - 4, y);
+    }
+    // 探针
+    const innerProbeY = topY + cupH * 0.5;
+    ctx.strokeStyle = ORANGE;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(cx, topY - 26);
+    ctx.lineTo(cx, innerProbeY);
+    ctx.stroke();
+    drawText(ctx, '内探针: 0', cx + 18, innerProbeY, isDark, 13, mutedColor(isDark));
+    drawText(ctx, `外探针: ${totalCharge.toFixed(1)} μC`, cx + 18, topY + 14, isDark, 13, ORANGE);
+    drawHud(ctx, isDark, [
+        { label: 'Q', value: `${totalCharge.toFixed(1)} μC` },
+        { label: '内表面', value: '0' },
+        { label: '外表面', value: `${totalCharge.toFixed(1)} μC` }
+    ]);
+    drawInfoBar(ctx, width, height, '静电平衡时净电荷只分布在外表面，内表面电荷为零', isDark);
+}
+
+/** 赫兹电磁波实验：发射端火花振子 → 接收端共振环 */
+export function drawEmWaveHertzScene(opts: ElectromagnetismSceneOptions): void {
+    const { ctx, width, height, isDark, params, currentTime } = opts;
+    clearScene(ctx, width, height, isDark);
+    drawTitle(ctx, '赫兹电磁波实验 (LC 振荡 + 驻波)', width, isDark);
+    const C = 2.99792458e8;
+    const frequency = (params['frequency'] ?? 100) * 1e6;
+    const turns = params['turns'] ?? 10;
+    const sparkGap = params['sparkGap'] ?? 1;
+    const distance = params['distance'] ?? 5;
+    const lambda = C / frequency; // m
+
+    const emitX = width * 0.16;
+    const recvX = width * 0.8;
+    const midY = height * 0.46;
+    // 发射端：火花间隙 + 线圈
+    drawChargeSymbol(ctx, emitX, midY - 28, 12, 1, isDark);
+    ctx.strokeStyle = labelColor(isDark);
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(emitX, midY - 16);
+    ctx.lineTo(emitX, midY + 16);
+    ctx.stroke();
+    drawChargeSymbol(ctx, emitX, midY + 28, 12, -1, isDark);
+    drawCoil(ctx, emitX - 30, midY, 50, 5, BLUE);
+    // 接收端：共振环
+    ctx.strokeStyle = GREEN;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(recvX, midY, 26, 0, Math.PI * 2);
+    ctx.stroke();
+    drawText(ctx, `N=${turns}`, recvX - 14, midY + 44, isDark, 12, mutedColor(isDark));
+    // 传播的正弦电磁波（行进波）
+    ctx.strokeStyle = ORANGE;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    const waves = 6;
+    for (let i = 0; i <= 200; i++) {
+        const t = i / 200;
+        const x = emitX + 40 + t * (recvX - emitX - 80);
+        const phase = 2 * Math.PI * waves * t - currentTime * 6;
+        const y = midY + Math.sin(phase) * 26;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    drawText(
+        ctx,
+        `λ = ${(lambda * 100).toFixed(1)} cm`,
+        (emitX + recvX) / 2 - 40,
+        midY - 40,
+        isDark,
+        13,
+        mutedColor(isDark)
+    );
+    drawHud(ctx, isDark, [
+        { label: 'f', value: `${frequency.toExponential(2)} Hz` },
+        { label: 'λ', value: `${(lambda * 100).toFixed(1)} cm` },
+        { label: 'd', value: `${distance.toFixed(1)} m` }
+    ]);
+    drawInfoBar(
+        ctx,
+        width,
+        height,
+        `火花间隙 ${sparkGap.toFixed(1)} mm 产生振荡，发射端辐射电磁波被接收环共振接收`,
+        isDark
+    );
+}
+
+/** 涡流：导体板摆动受涡流阻尼，振幅指数衰减 */
+export function drawEddyCurrentScene(opts: ElectromagnetismSceneOptions): void {
+    const { ctx, width, height, isDark, params, currentTime } = opts;
+    clearScene(ctx, width, height, isDark);
+    drawTitle(ctx, '涡流现象 (阻尼摆动)', width, isDark);
+    const magneticField = params['magneticField'] ?? 0.2;
+    const frequency = params['frequency'] ?? 50;
+    const conductivity = params['conductivity'] ?? 5.8e7;
+    const thickness = params['thickness'] ?? 0.001;
+    const muR = params['muR'] ?? 1;
+    // 阻尼时间常数随 σ、B²、t² 增大而减小（定性）
+    const dampingRate =
+        (conductivity / 1e7) * (magneticField * magneticField) * (thickness * 1000) * (thickness * 1000) * muR;
+    const tau = clamp(1 / Math.max(dampingRate, 1e-3), 0.4, 25);
+    const A0 = 0.5;
+    const amp = A0 * Math.exp(-currentTime / tau);
+    const omega = 2 * Math.PI * 0.6;
+    const angle = amp * Math.sin(currentTime * omega);
+
+    const pivotX = width * 0.3;
+    const pivotY = height * 0.22;
+    const rodLen = height * 0.42;
+    ctx.strokeStyle = isDark ? '#94a3b8' : '#475569';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(pivotX, pivotY);
+    const plateX = pivotX + Math.sin(angle) * rodLen;
+    const plateY = pivotY + Math.cos(angle) * rodLen;
+    ctx.lineTo(plateX, plateY);
+    ctx.stroke();
+    // 金属板
+    ctx.save();
+    ctx.translate(plateX, plateY);
+    ctx.rotate(-angle);
+    ctx.fillStyle = isDark ? '#475569' : '#cbd5e1';
+    ctx.strokeStyle = isDark ? '#64748b' : '#334155';
+    ctx.lineWidth = 2;
+    roundRectPath(ctx, -34, -26, 68, 52, 6);
+    ctx.fill();
+    ctx.stroke();
+    // 涡流环（强度随速度）
+    const speed = Math.abs(amp * omega * Math.cos(currentTime * omega));
+    if (speed > 0.02) {
+        ctx.strokeStyle = ORANGE;
+        ctx.lineWidth = 2;
+        for (const cyc of [-12, 12]) {
+            ctx.beginPath();
+            ctx.arc(0, cyc, 12, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(0, cyc, 6, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+    }
+    ctx.restore();
+    // 磁铁
+    drawText(ctx, 'N', plateX - 6, plateY + 70, isDark, 13, RED);
+    drawText(ctx, 'S', plateX + 6, plateY + 70, isDark, 13, BLUE);
+    drawHud(ctx, isDark, [
+        { label: 'B', value: `${magneticField.toFixed(2)} T` },
+        { label: 'f', value: `${frequency.toFixed(0)} Hz` },
+        { label: 'τ', value: `${tau.toFixed(1)} s` }
+    ]);
+    drawInfoBar(ctx, width, height, '变化的磁场在导体中产生涡流，涡流阻碍相对运动（电磁阻尼）', isDark);
+}
+
+/** 电磁波发射接收：AM 调幅波（载波 × 包络） */
+export function drawEmWaveCommunicationScene(opts: ElectromagnetismSceneOptions): void {
+    const { ctx, width, height, isDark, params, currentTime } = opts;
+    clearScene(ctx, width, height, isDark);
+    drawTitle(ctx, '电磁波发射接收 (AM 调幅)', width, isDark);
+    const carrierFreq = params['carrierFreq'] ?? 1;
+    const audioFreq = params['audioFreq'] ?? 1;
+    const m = params['modulationIndex'] ?? 0.8;
+    const Ac = params['carrierAmplitude'] ?? 1;
+    const ampScale = clamp(Ac, 0.2, 2);
+    const distance = params['distance'] ?? 10;
+
+    const ax = width * 0.1;
+    const aw = width * 0.8;
+    // 三段图：载波 / 调制信号 / 已调波
+    const rows = [
+        { y: height * 0.28, kind: 'carrier' as const, color: BLUE, title: '载波' },
+        { y: height * 0.46, kind: 'audio' as const, color: GREEN, title: '调制信号 (音频)' },
+        { y: height * 0.66, kind: 'am' as const, color: ORANGE, title: '已调波 (AM)' }
+    ];
+    const carrierCycles = 22;
+    const audioCycles = 2;
+    for (const row of rows) {
+        ctx.strokeStyle = mutedColor(isDark);
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(ax, row.y);
+        ctx.lineTo(ax + aw, row.y);
+        ctx.stroke();
+        ctx.strokeStyle = row.color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        for (let i = 0; i <= 240; i++) {
+            const t = i / 240;
+            const x = ax + t * aw;
+            const phaseC = currentTime * 2 * Math.PI * 0.5 + t * carrierCycles * 2 * Math.PI;
+            const phaseA = t * audioCycles * 2 * Math.PI;
+            let yv = 0;
+            if (row.kind === 'carrier') yv = ampScale * Math.sin(phaseC);
+            else if (row.kind === 'audio') yv = Math.sin(phaseA);
+            else yv = ampScale * (1 + m * Math.sin(phaseA)) * Math.sin(phaseC);
+            const py = row.y - yv * 34;
+            if (i === 0) ctx.moveTo(x, py);
+            else ctx.lineTo(x, py);
+        }
+        ctx.stroke();
+        drawText(ctx, row.title, ax, row.y - 42, isDark, 12, mutedColor(isDark));
+    }
+    drawHud(ctx, isDark, [
+        { label: 'f_c', value: `${carrierFreq.toFixed(2)} MHz` },
+        { label: 'f_m', value: `${audioFreq.toFixed(2)} kHz` },
+        { label: 'm', value: m.toFixed(2) }
+    ]);
+    drawInfoBar(ctx, width, height, `已调波 s(t)=A꜀(1+m·cosωₘt)cosω_ct，传输距离 ${distance.toFixed(1)} km`, isDark);
+}
+
+/** 电磁波谱：按频率对数轴分段着色 */
+export function drawEmSpectrumScene(opts: ElectromagnetismSceneOptions): void {
+    const { ctx, width, height, isDark, params } = opts;
+    clearScene(ctx, width, height, isDark);
+    drawTitle(ctx, '电磁波谱 (频段分布)', width, isDark);
+    const fMin = Math.pow(10, params['freqMinExp'] ?? 1);
+    const fMax = Math.pow(10, params['freqMaxExp'] ?? 16);
+    const logMin = Math.log10(fMin);
+    const logMax = Math.log10(fMax);
+
+    const bands: Array<{ name: string; f0: number; f1: number; color: string }> = [
+        { name: '无线电', f0: 1, f1: 1e9, color: '#6366f1' },
+        { name: '微波', f0: 1e9, f1: 3e11, color: '#06b6d4' },
+        { name: '红外', f0: 3e11, f1: 4e14, color: '#f59e0b' },
+        { name: '可见光', f0: 4e14, f1: 7.9e14, color: '#22c55e' },
+        { name: '紫外', f0: 7.9e14, f1: 3e17, color: '#3b82f6' },
+        { name: 'X 射线', f0: 3e17, f1: 3e19, color: '#ec4899' },
+        { name: 'γ 射线', f0: 3e19, f1: 1e24, color: '#ef4444' }
+    ];
+    const x0 = width * 0.1;
+    const x1 = width * 0.9;
+    const barY = height * 0.42;
+    const barH = 40;
+    const toX = (f: number) => {
+        const lf = Math.log10(Math.min(Math.max(f, fMin), fMax));
+        return x0 + ((lf - logMin) / Math.max(logMax - logMin, 1e-6)) * (x1 - x0);
+    };
+    for (const b of bands) {
+        const bx = toX(b.f0);
+        const bw = toX(b.f1) - bx;
+        if (bw <= 0.5) continue;
+        ctx.fillStyle = b.color;
+        ctx.globalAlpha = 0.85;
+        roundRectPath(ctx, bx, barY, Math.max(bw, 1), barH, 4);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        if (bw > 34) {
+            ctx.fillStyle = '#0f172a';
+            ctx.font = 'bold 12px system-ui, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(b.name, bx + bw / 2, barY + barH / 2 + 4);
+            ctx.textAlign = 'left';
+        }
+    }
+    // 高亮可见光
+    ctx.strokeStyle = '#22c55e';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(toX(4e14), barY - 4, toX(7.9e14) - toX(4e14), barH + 8);
+    // 刻度
+    ctx.fillStyle = mutedColor(isDark);
+    ctx.font = '11px system-ui, sans-serif';
+    for (let p = Math.ceil(logMin); p <= Math.floor(logMax); p += 1) {
+        const tx = toX(Math.pow(10, p));
+        ctx.strokeStyle = mutedColor(isDark);
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(tx, barY + barH);
+        ctx.lineTo(tx, barY + barH + 6);
+        ctx.stroke();
+        ctx.fillText(`10^${p}`, tx - 14, barY + barH + 20);
+    }
+    drawHud(ctx, isDark, [
+        { label: 'f_min', value: `${logMin.toFixed(0)} Hz` },
+        { label: 'f_max', value: `${logMax.toFixed(0)} Hz` },
+        { label: 'c', value: '3×10⁸ m/s' }
+    ]);
+    drawInfoBar(ctx, width, height, '电磁波按频率递增分为七段，真空中波速 c 恒定、λ = c/f', isDark);
+}

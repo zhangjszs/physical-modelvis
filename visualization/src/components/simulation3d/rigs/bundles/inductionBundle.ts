@@ -7,9 +7,10 @@ import { ampereForceRig } from '../ampereForceRig';
 import { circuitRig } from '../circuitRig';
 import { emWaveRig } from '../emWaveRig';
 import { fieldRig } from '../fieldRig';
-import { electroscopeRig } from '../electroscopeRig';
-import { thermalRig } from '../thermalRig';
-import { springRig } from '../springRig';
+import { thermistorRig } from '../thermistorRig';
+import { photoresistorRig } from '../photoresistorRig';
+import { reedSwitchRig } from '../reedSwitchRig';
+import { strainGaugeRig } from '../strainGaugeRig';
 
 export default {
     'magnetic-force': ampereForceRig,
@@ -22,10 +23,10 @@ export default {
     'self-inductance': ampereForceRig,
     'em-spectrum': emWaveRig,
     'hall-effect': fieldRig,
-    'reed-switch': electroscopeRig,
-    thermistor: thermalRig,
-    photoresistor: electroscopeRig,
-    'strain-gauge': springRig,
+    'reed-switch': reedSwitchRig,
+    thermistor: thermistorRig,
+    photoresistor: photoresistorRig,
+    'strain-gauge': strainGaugeRig,
     'security-alarm': circuitRig,
     'light-control-switch': circuitRig
 } as Record<string, SceneRig>;

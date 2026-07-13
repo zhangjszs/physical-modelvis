@@ -1,12 +1,18 @@
 /**
  * 微小形变 rig — 桌面 + 双平面镜光杠杆 + 激光笔
- * 演示光杠杆放大法观察桌面微小形变
+ * 演示光杠杆放大法观察桌面微小形变（micro-deformation）
+ *
+ * 参数响应：
+ * - pressure / youngModulus：桌面压力与杨氏模量 → 桌面形变 ∝ p/E
+ *   → 平面镜 M1 倾角随之变化（光杠杆放大，反射光斑明显偏移）
  */
 import * as THREE from 'three';
 import { SceneRig } from '../EquipmentStage';
 import { makeBox, makeCylinder, makeLine, makeTextSprite } from '../primitives';
+import { num } from './params';
 
 const WORLD_SCALE = 0.16;
+const MIRROR_BASE_YAW = 0.2;
 
 export const microDeformationRig: SceneRig = {
     worldScale: WORLD_SCALE,
@@ -33,7 +39,7 @@ export const microDeformationRig: SceneRig = {
         // 平面镜 M1（置于桌面）
         const mirror1 = makeBox(0.3, 0.02, 0.01, 0xbfdbfe, 0.1, 0.5);
         mirror1.position.set(-0.5, 0.45, 0.3);
-        mirror1.rotation.y = 0.2;
+        mirror1.rotation.y = MIRROR_BASE_YAW;
         scene.add(mirror1);
 
         // 平面镜 M2（远处）
@@ -67,10 +73,29 @@ export const microDeformationRig: SceneRig = {
         scene.add(label);
 
         const group = new THREE.Group();
-        return { group, handles: {} };
+        return { group, handles: { table, mirror1, mirror2, laserBeam } };
     },
 
-    updateEquipment(_handles, _params) {},
+    updateEquipment(handles, params) {
+        const mirror1 = handles.mirror1 as THREE.Mesh;
+        const laserBeam = handles.laserBeam as THREE.Line;
+
+        const pressure = num(params['pressure'], 100); // N
+        const youngGPa = num(params['youngModulus'], 10); // GPa
+
+        // 形变/镜面倾角 ∝ 压力、∝ 1/杨氏模量（材料越软、压得越重 → 倾角越大）
+        const tilt = THREE.MathUtils.clamp((0.0006 * pressure) / youngGPa, 0, 0.35);
+        mirror1.rotation.z = tilt;
+
+        // 反射光斑随镜面倾角在远处上下偏移（光杠杆放大）
+        const beam = laserBeam.geometry.attributes.position;
+        if (beam) {
+            // 远端落点 y 随 tilt 变化（约 2·tilt·臂长）
+            const endY = 0.4 - tilt * 2.0;
+            beam.setY(3, endY);
+            beam.needsUpdate = true;
+        }
+    },
 
     getVisualPosition(pos, _params) {
         return new THREE.Vector3(pos.x * WORLD_SCALE, 0.5, 0);

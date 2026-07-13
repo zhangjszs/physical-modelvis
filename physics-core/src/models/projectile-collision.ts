@@ -1,13 +1,6 @@
 import type { PhysicsProblem } from '../types/problem.js';
 import { kineticEnergy, sampleTrajectory } from '../physics/kinematics.js';
-import type {
-    SimulationResult,
-    TrajectoryPoint,
-    Keyframe,
-    ChartSeries,
-    ConservedQuantity,
-    ExplanationStep
-} from '../types/result.js';
+import type { SimulationResult, Keyframe, ChartSeries, ConservedQuantity, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
 
@@ -109,8 +102,9 @@ export class ProjectileCollisionModel extends PhysicsModelBase {
         // 解析解采样: 入射球平抛 (水平匀速 x=v1·t + 竖直落体 y=h-½gt²) (公共脚手架 sampleTrajectory)
         const sampleCount = problem.timeConfig.sampleCount ?? 200;
         const trajectory = sampleTrajectory({
-            sampleCount, duration: tFall,
-            sampleAt: (t) => ({
+            sampleCount,
+            duration: tFall,
+            sampleAt: t => ({
                 position: { x: v1 * t, y: h - 0.5 * g * t * t },
                 velocity: { x: v1, y: -g * t },
                 acceleration: { x: 0, y: -g },

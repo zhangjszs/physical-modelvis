@@ -36,7 +36,12 @@ import {
     drawDopplerScene,
     drawDoubleSlitScene,
     drawSingleSlitScene,
-    drawThinFilmScene
+    drawThinFilmScene,
+    drawRefractionScene,
+    drawInterferenceScene,
+    drawDiffractionGratingScene,
+    drawPolarizationMalusScene,
+    drawHologramScene
 } from '../../rendering/waveOptScenes';
 import {
     drawCurrentBalanceScene,
@@ -51,10 +56,23 @@ import {
     drawFissionChainScene
 } from '../../rendering/nuclearScenes';
 import {
+    drawPhotoelectricScene,
+    drawBohrScene,
+    drawRadioactiveScene,
+    drawMicroDeformationScene,
+    drawBlackBodyScene,
+    drawElectronDiffractionScene,
+    drawRadiationDeflectionScene,
+    drawCosmicRayScene,
+    drawNeutronDiscoveryScene,
+    drawBohrOrbitScene
+} from '../../rendering/modernScenes';
+import {
     drawAdiabaticCompressionScene,
     drawDiffusionScene,
     drawBrownianScene,
     drawEnergyTransformationScene,
+    drawGasLawScene,
     drawHeatDirectionScene,
     drawMeltingCurveScene,
     drawHeatTransferScene,
@@ -88,7 +106,20 @@ import {
     drawCenterOfGravityScene,
     drawInertiaScene,
     drawNewtonFirstLawScene,
-    drawNewtonSecondLawScene
+    drawNewtonSecondLawScene,
+    drawCurveConditionScene,
+    drawMotionCompositionScene,
+    drawCurveVelocityDirectionScene,
+    drawSimplePendulumScene,
+    drawEnergyConservationScene,
+    drawOverweightScene,
+    drawCentrifugalScene,
+    drawOrbitalScene,
+    drawMomentumScene,
+    drawProjectileCollisionScene,
+    drawMechanicalWaveScene,
+    drawCavendishScene,
+    drawMoonEarthTestScene
 } from '../../rendering/mechanicsScenes';
 import {
     drawAcCurrentScene,
@@ -102,7 +133,16 @@ import {
     drawMultimeterScene,
     drawParallelPlateCapacitorScene,
     drawResistanceLawScene,
-    drawVernierCaliperScene
+    drawVernierCaliperScene,
+    drawCoulombForceExploreScene,
+    drawElectroscopeScene,
+    drawElectrostaticInductionScene,
+    drawElectrostaticShieldingScene,
+    drawFaradayCupScene,
+    drawEmWaveHertzScene,
+    drawEddyCurrentScene,
+    drawEmWaveCommunicationScene,
+    drawEmSpectrumScene
 } from '../../rendering/electromagnetismScenes';
 
 import {
@@ -140,7 +180,12 @@ const SCENES_WAVEOPT = new Set([
     'doppler-effect',
     'sound-interference',
     'single-slit',
-    'thin-film'
+    'thin-film',
+    'refraction',
+    'interference',
+    'diffraction-grating',
+    'polarization-malus',
+    'hologram'
 ]);
 
 /** 选必二「电磁装备」场景集合：电流天平/电磁阻尼/互感/自感/LC 振荡 */
@@ -154,6 +199,20 @@ const SCENES_EM_EQUIP = new Set([
 
 /** 选必三「量子/原子核」场景集合：α 散射/衰变统计/裂变链式反应 */
 const SCENES_NUCLEAR = new Set(['alpha-scattering', 'decay-statistics', 'fission-chain']);
+
+/** 选必三「近代物理」场景集合：光电/玻尔/衰变/光杠杆/黑体/电子衍射/放射偏转/宇宙射线/中子/轨道 */
+const SCENES_MODERN = new Set([
+    'photoelectric',
+    'bohr',
+    'radioactive',
+    'micro-deformation',
+    'black-body',
+    'electron-diffraction',
+    'radiation-deflection',
+    'cosmic-ray',
+    'neutron-discovery',
+    'bohr-orbit'
+]);
 
 /** 选必三「传感器 / 控制电路」场景集合：霍尔 / 光敏 / 热敏 / 干簧管 / 应变片 / 报警 / 光控 */
 const SCENES_SENSOR = new Set([
@@ -184,7 +243,8 @@ const SCENES_THERMAL = new Set([
     'adiabatic-compression',
     'energy-transformation',
     'perpetuum-mobile',
-    'heat-direction'
+    'heat-direction',
+    'gas-law'
 ]);
 
 /** 基础力学实验场景集合：自由落体/斜面/惯性/牛顿定律等完整教学图 */
@@ -198,7 +258,20 @@ const SCENES_MECHANICS = new Set([
     'center-of-gravity',
     'inertia',
     'newton-first-law',
-    'newton-second-law'
+    'newton-second-law',
+    'curve-condition',
+    'motion-composition',
+    'curve-velocity-direction',
+    'simple-pendulum',
+    'energy-conservation',
+    'overweight',
+    'centrifugal',
+    'orbital',
+    'momentum',
+    'projectile-collision',
+    'mechanical-wave',
+    'cavendish',
+    'moon-earth-test'
 ]);
 
 /** 电学/电磁基础与仪器读数场景集合：完整教学图和读数图 */
@@ -214,7 +287,16 @@ const SCENES_ELECTROMAGNETISM = new Set([
     'resistance-law',
     'multimeter-tool',
     'vernier-caliper-tool',
-    'micrometer-tool'
+    'micrometer-tool',
+    'coulomb-force-explore',
+    'electroscope',
+    'electrostatic-induction',
+    'electrostatic-shielding',
+    'faraday-cup',
+    'em-wave-hertz',
+    'eddy-current',
+    'em-wave-communication',
+    'em-spectrum'
 ]);
 
 /** 可视化缺口补建 8 场景集合 (Stage K) */
@@ -1018,6 +1100,7 @@ export function SimulationCanvas() {
     const isMechanics = SCENES_MECHANICS.has(currentScene);
     const isElectromagnetism = SCENES_ELECTROMAGNETISM.has(currentScene);
     const isGap = SCENES_GAP.has(currentScene);
+    const isModern = SCENES_MODERN.has(currentScene);
     const hasCustom2DBackground = SCENES_2D_CUSTOM_BG.has(currentScene);
 
     // 标准轨迹场景: 背景 + 网格 + 坐标轴 + 地面 + 完整轨迹 全部缓存到离屏层, 每帧仅一次 drawImage
@@ -1031,7 +1114,8 @@ export function SimulationCanvas() {
         isThermal ||
         isSensor ||
         isMechanics ||
-        isElectromagnetism;
+        isElectromagnetism ||
+        isModern;
     const hasTrajectory = !!simulationResult && (simulationResult.trajectories[0] ?? []).length > 0;
     const usesStaticLayer = !isCustomScene && !isAirTrack && hasTrajectory;
 
@@ -1081,7 +1165,8 @@ export function SimulationCanvas() {
             isThermal ||
             isSensor ||
             isMechanics ||
-            isElectromagnetism
+            isElectromagnetism ||
+            isModern
         )
             return; // 自定义渲染场景使用屏幕坐标，无需 autoFit
         const canvas = canvasRef.current;
@@ -1113,7 +1198,8 @@ export function SimulationCanvas() {
         isThermal,
         isSensor,
         isMechanics,
-        isElectromagnetism
+        isElectromagnetism,
+        isModern
     ]);
 
     const render = useCallback(() => {
@@ -1174,7 +1260,8 @@ export function SimulationCanvas() {
                 !isThermal &&
                 !isSensor &&
                 !isMechanics &&
-                !isElectromagnetism
+                !isElectromagnetism &&
+                !isModern
             ) {
                 renderer.drawGrid(cssW, cssH);
                 renderer.drawAxes(cssW, cssH);
@@ -1192,7 +1279,8 @@ export function SimulationCanvas() {
             isThermal ||
             isSensor ||
             isMechanics ||
-            isElectromagnetism
+            isElectromagnetism ||
+            isModern
         ) {
             const sceneOpts = {
                 ctx,
@@ -1243,6 +1331,21 @@ export function SimulationCanvas() {
                 case 'thin-film':
                     drawThinFilmScene(sceneOpts);
                     break;
+                case 'refraction':
+                    drawRefractionScene(sceneOpts);
+                    break;
+                case 'interference':
+                    drawInterferenceScene(sceneOpts);
+                    break;
+                case 'diffraction-grating':
+                    drawDiffractionGratingScene(sceneOpts);
+                    break;
+                case 'polarization-malus':
+                    drawPolarizationMalusScene(sceneOpts);
+                    break;
+                case 'hologram':
+                    drawHologramScene(sceneOpts);
+                    break;
                 case 'current-balance':
                     drawCurrentBalanceScene(sceneOpts);
                     break;
@@ -1266,6 +1369,36 @@ export function SimulationCanvas() {
                     break;
                 case 'fission-chain':
                     drawFissionChainScene(sceneOpts);
+                    break;
+                case 'photoelectric':
+                    drawPhotoelectricScene(sceneOpts);
+                    break;
+                case 'bohr':
+                    drawBohrScene(sceneOpts);
+                    break;
+                case 'radioactive':
+                    drawRadioactiveScene(sceneOpts);
+                    break;
+                case 'micro-deformation':
+                    drawMicroDeformationScene(sceneOpts);
+                    break;
+                case 'black-body':
+                    drawBlackBodyScene(sceneOpts);
+                    break;
+                case 'electron-diffraction':
+                    drawElectronDiffractionScene(sceneOpts);
+                    break;
+                case 'radiation-deflection':
+                    drawRadiationDeflectionScene(sceneOpts);
+                    break;
+                case 'cosmic-ray':
+                    drawCosmicRayScene(sceneOpts);
+                    break;
+                case 'neutron-discovery':
+                    drawNeutronDiscoveryScene(sceneOpts);
+                    break;
+                case 'bohr-orbit':
+                    drawBohrOrbitScene(sceneOpts);
                     break;
                 case 'diffusion':
                     drawDiffusionScene(sceneOpts);
@@ -1318,6 +1451,9 @@ export function SimulationCanvas() {
                 case 'heat-direction':
                     drawHeatDirectionScene(sceneOpts);
                     break;
+                case 'gas-law':
+                    drawGasLawScene(sceneOpts);
+                    break;
                 case 'hall-effect':
                     drawHallEffectScene(sceneOpts);
                     break;
@@ -1369,6 +1505,45 @@ export function SimulationCanvas() {
                 case 'newton-second-law':
                     drawNewtonSecondLawScene(sceneOpts);
                     break;
+                case 'curve-condition':
+                    drawCurveConditionScene(sceneOpts);
+                    break;
+                case 'motion-composition':
+                    drawMotionCompositionScene(sceneOpts);
+                    break;
+                case 'curve-velocity-direction':
+                    drawCurveVelocityDirectionScene(sceneOpts);
+                    break;
+                case 'simple-pendulum':
+                    drawSimplePendulumScene(sceneOpts);
+                    break;
+                case 'energy-conservation':
+                    drawEnergyConservationScene(sceneOpts);
+                    break;
+                case 'overweight':
+                    drawOverweightScene(sceneOpts);
+                    break;
+                case 'centrifugal':
+                    drawCentrifugalScene(sceneOpts);
+                    break;
+                case 'orbital':
+                    drawOrbitalScene(sceneOpts);
+                    break;
+                case 'momentum':
+                    drawMomentumScene(sceneOpts);
+                    break;
+                case 'projectile-collision':
+                    drawProjectileCollisionScene(sceneOpts);
+                    break;
+                case 'mechanical-wave':
+                    drawMechanicalWaveScene(sceneOpts);
+                    break;
+                case 'cavendish':
+                    drawCavendishScene(sceneOpts);
+                    break;
+                case 'moon-earth-test':
+                    drawMoonEarthTestScene(sceneOpts);
+                    break;
                 case 'circuit':
                     drawCircuitScene(sceneOpts);
                     break;
@@ -1386,6 +1561,33 @@ export function SimulationCanvas() {
                     break;
                 case 'capacitor-charge':
                     drawCapacitorChargeScene(sceneOpts);
+                    break;
+                case 'coulomb-force-explore':
+                    drawCoulombForceExploreScene(sceneOpts);
+                    break;
+                case 'electroscope':
+                    drawElectroscopeScene(sceneOpts);
+                    break;
+                case 'electrostatic-induction':
+                    drawElectrostaticInductionScene(sceneOpts);
+                    break;
+                case 'electrostatic-shielding':
+                    drawElectrostaticShieldingScene(sceneOpts);
+                    break;
+                case 'faraday-cup':
+                    drawFaradayCupScene(sceneOpts);
+                    break;
+                case 'em-wave-hertz':
+                    drawEmWaveHertzScene(sceneOpts);
+                    break;
+                case 'eddy-current':
+                    drawEddyCurrentScene(sceneOpts);
+                    break;
+                case 'em-wave-communication':
+                    drawEmWaveCommunicationScene(sceneOpts);
+                    break;
+                case 'em-spectrum':
+                    drawEmSpectrumScene(sceneOpts);
                     break;
                 case 'parallel-plate-capacitor':
                     drawParallelPlateCapacitorScene(sceneOpts);
@@ -1686,7 +1888,8 @@ export function SimulationCanvas() {
         isThermal,
         isSensor,
         isMechanics,
-        isElectromagnetism
+        isElectromagnetism,
+        isModern
     ]);
 
     // render 引用同步到 ref — rAF loop 通过 renderRef.current() 调用, 总是拿到最新 render

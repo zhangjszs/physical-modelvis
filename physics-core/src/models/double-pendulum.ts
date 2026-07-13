@@ -1,5 +1,5 @@
 import type { PhysicsProblem } from '../types/problem.js';
-import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
+import type { SimulationResult, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
 import { sampleTrajectory } from '../physics/kinematics.js';
@@ -76,8 +76,9 @@ export class DoublePendulumSyncModel extends PhysicsModelBase {
         //   θ₁(t) = θ1Amp·cos(ω₁·t),  θ₂(t) = θ2Amp·cos(ω₂·t + φ)
         // 注: 原始 trajectory 循有 i%5==0 decimation (渲染端临时优化, 非物理必需); 迁移后采用全量更精确
         const trajectory = sampleTrajectory({
-            sampleCount, duration,
-            sampleAt: (t) => {
+            sampleCount,
+            duration,
+            sampleAt: t => {
                 const th1 = th1Amp * Math.cos(omega1 * t);
                 const dth1 = -th1Amp * omega1 * Math.sin(omega1 * t);
                 return {
@@ -96,14 +97,20 @@ export class DoublePendulumSyncModel extends PhysicsModelBase {
             yLabel: '摆1角位移 (度)',
             xUnit: 's',
             yUnit: 'deg',
-            points: trajectory.map(p => ({ x: parseFloat(p.t.toFixed(4)), y: parseFloat((p.position.x * 180 / Math.PI).toFixed(4)) }))
+            points: trajectory.map(p => ({
+                x: parseFloat(p.t.toFixed(4)),
+                y: parseFloat(((p.position.x * 180) / Math.PI).toFixed(4))
+            }))
         };
         const theta2Series: ChartSeries = {
             xLabel: '时间 (s)',
             yLabel: '摆2角位移 (度)',
             xUnit: 's',
             yUnit: 'deg',
-            points: trajectory.map(p => { const th2 = th2Amp * Math.cos(omega2 * p.t + phaseDiffRad); return { x: parseFloat(p.t.toFixed(4)), y: parseFloat(((th2 * 180) / Math.PI).toFixed(4)) }; })
+            points: trajectory.map(p => {
+                const th2 = th2Amp * Math.cos(omega2 * p.t + phaseDiffRad);
+                return { x: parseFloat(p.t.toFixed(4)), y: parseFloat(((th2 * 180) / Math.PI).toFixed(4)) };
+            })
         };
 
         const pivot = { x: 0, y: 0 };

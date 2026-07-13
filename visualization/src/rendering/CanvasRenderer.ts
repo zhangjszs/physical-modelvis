@@ -132,9 +132,7 @@ export class CanvasRenderer {
             `${trajectoryPositions.length}|${extraStaticDraw ? 1 : 0}|${extraSig}|${usingCustomTraj}`;
 
         const cacheMiss =
-            !this.staticLayer ||
-            this.staticLayerSig !== sig ||
-            this.staticLayerTrajectory !== trajectoryIdentity;
+            !this.staticLayer || this.staticLayerSig !== sig || this.staticLayerTrajectory !== trajectoryIdentity;
 
         if (cacheMiss) {
             this.rebuildStaticLayer(

@@ -1,10 +1,16 @@
 /**
  * 电场/磁场 rig — 匀强场区域 + 带电粒子运动
- * 用于 electric-field、magnetic-field、em-combined、efield-lines
+ * 用于 electric-field、magnetic-field、em-combined、efield-lines、current-magnetic、hall-effect
+ *
+ * 参数响应：
+ * - Ey：匀强电场强度 → 场箭头长度 ∝ |Ey|，方向随正负翻转（竖直）
+ * - Bz：匀强磁感应强度 → 场箭头长度 ∝ |Bz|
+ * （各场景仅含其一，NaN 安全跳过另一项）
  */
 import * as THREE from 'three';
 import { SceneRig } from '../EquipmentStage';
 import { makeTextSprite } from '../primitives';
+import { num } from './params';
 
 const WORLD_SCALE = 0.16;
 
@@ -47,7 +53,27 @@ export const fieldRig: SceneRig = {
         return { group: new THREE.Group(), handles: { fieldArrows, region } };
     },
 
-    updateEquipment(_handles, _params) {},
+    updateEquipment(handles, params) {
+        const arrows = handles.fieldArrows as THREE.ArrowHelper[];
+        const Ey = num(params['Ey'], NaN);
+        const Bz = num(params['Bz'], NaN);
+
+        if (Number.isNaN(Ey) && Number.isNaN(Bz)) return;
+
+        // 电场景用 Ey，磁场景用 Bz（不同量纲，分别归一化）
+        const isElectric = !Number.isNaN(Ey);
+        const mag = isElectric ? Ey : Bz;
+        const ref = isElectric ? 100 : 0.01;
+        const len = THREE.MathUtils.clamp((Math.abs(mag) / ref) * 0.3, 0.05, 0.9);
+
+        for (const arr of arrows) {
+            if (isElectric) {
+                // 电场竖直，方向随 Ey 正负翻转
+                arr.setDirection(new THREE.Vector3(0, Math.sign(mag) || 1, 0));
+            }
+            arr.setLength(len, len * 0.3, len * 0.18);
+        }
+    },
 
     getVisualPosition(pos, _params) {
         return new THREE.Vector3(pos.x * WORLD_SCALE, 1.5 + pos.y * WORLD_SCALE, 0);

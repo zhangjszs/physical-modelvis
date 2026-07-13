@@ -1,5 +1,5 @@
 import type { PhysicsProblem } from '../types/problem.js';
-import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
+import type { SimulationResult, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
 import { sampleTrajectory } from '../physics/kinematics.js';
@@ -106,8 +106,9 @@ export class DopplerModel extends PhysicsModelBase {
 
         // 解析解采样: 声源匀速直线运动 x=vs·t·cosθ, y=vs·t·sinθ (公共脚手架 sampleTrajectory)
         const trajectory = sampleTrajectory({
-            sampleCount: 50, duration: 10,
-            sampleAt: (t) => ({
+            sampleCount: 50,
+            duration: 10,
+            sampleAt: t => ({
                 position: { x: vs * t * cosTheta, y: vs * t * Math.sin(thetaRad) },
                 velocity: { x: vs * cosTheta, y: vs * Math.sin(thetaRad) },
                 kineticEnergy: 0,

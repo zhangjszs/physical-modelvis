@@ -66,8 +66,9 @@ export class SlidingFrictionModel extends PhysicsModelBase {
 
         // 主轨迹：物体实际运动, 匀加速 x=x₀+v₀t+½at² (公共脚手架 sampleTrajectory)
         const trajectory = sampleTrajectory({
-            sampleCount, duration,
-            sampleAt: (t) => {
+            sampleCount,
+            duration,
+            sampleAt: t => {
                 const v = v0 + a * t;
                 return {
                     position: { x: x0 + v0 * t + 0.5 * a * t * t, y: 0 },

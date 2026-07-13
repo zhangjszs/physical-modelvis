@@ -1,12 +1,5 @@
 import type { PhysicsProblem } from '../types/problem.js';
-import type {
-    SimulationResult,
-    TrajectoryPoint,
-    Keyframe,
-    ChartSeries,
-    ConservedQuantity,
-    ExplanationStep
-} from '../types/result.js';
+import type { SimulationResult, Keyframe, ChartSeries, ConservedQuantity, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
 import { sampleTrajectory } from '../physics/kinematics.js';
@@ -92,8 +85,9 @@ export class MutualInductanceModel extends PhysicsModelBase {
         let maxE2 = 0;
         let maxI1 = 0;
         const trajectory = sampleTrajectory({
-            sampleCount, duration,
-            sampleAt: (t) => {
+            sampleCount,
+            duration,
+            sampleAt: t => {
                 const I1 = I0 * Math.sin(omega * t);
                 const dI1_dt = I0 * omega * Math.cos(omega * t);
                 const E2 = -M * dI1_dt;

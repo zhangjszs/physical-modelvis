@@ -86,8 +86,9 @@ export class MechanicalWaveModel extends PhysicsModelBase {
         for (let ti = 0; ti < tracked.length; ti++) {
             const xEq = x0[tracked[ti]!]!;
             trajs[ti] = sampleTrajectory({
-                sampleCount, duration,
-                sampleAt: (t) => {
+                sampleCount,
+                duration,
+                sampleAt: t => {
                     const phase1 = omega * t - k * xEq;
                     const y1 = A * Math.sin(phase1);
                     const y2 = mode === 'interference' ? A2 * Math.sin(omega * t + dir2 * k * xEq + phi2) : 0;
@@ -96,7 +97,8 @@ export class MechanicalWaveModel extends PhysicsModelBase {
                     const pos = mode === 'longitudinal' ? { x: xEq + y, y: 0 } : { x: xEq, y: -y }; // 屏幕 y 向下, 物理位移 y 为正则屏幕 y 减小
                     // 速度 (解析微分)
                     const vPhase1 = A * omega * Math.cos(phase1);
-                    const vPhase2 = mode === 'interference' ? A2 * omega * Math.cos(omega * t + dir2 * k * xEq + phi2) : 0;
+                    const vPhase2 =
+                        mode === 'interference' ? A2 * omega * Math.cos(omega * t + dir2 * k * xEq + phi2) : 0;
                     const vTotal = vPhase1 + vPhase2;
                     const vel = mode === 'longitudinal' ? { x: vTotal, y: 0 } : { x: 0, y: -vTotal };
 

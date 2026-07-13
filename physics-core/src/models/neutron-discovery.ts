@@ -1,5 +1,5 @@
 import { PhysicsModelBase } from './base.js';
-import type { PhysicsProblem , NeutronDiscoveryConstraint} from '../types/problem.js';
+import type { PhysicsProblem } from '../types/problem.js';
 import { kineticEnergy } from '../physics/kinematics.js';
 import type { SimulationResult, TrajectoryPoint, ChartSeries } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
@@ -57,7 +57,7 @@ export class NeutronDiscoveryModel extends PhysicsModelBase {
             if (M_i === 1 || M_i === 14)
                 y_t.points.push({
                     x: M_i === 1 ? 1 : 2,
-                    y: parseFloat(((kineticEnergy(M_i, v_rec)) / v_alpha / v_alpha).toFixed(3))
+                    y: parseFloat((kineticEnergy(M_i, v_rec) / v_alpha / v_alpha).toFixed(3))
                 });
             trajectory.push({ t: M_i * 0.1, position: { x: M_i, y: v_rec }, velocity: { x: 0, y: 0 } });
         }

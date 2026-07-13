@@ -8,10 +8,6 @@
  */
 import type { TimeConfig } from 'physics-core';
 
-export function makeTimeSeries(
-    duration: number,
-    sampleCount: number,
-    dtOverride?: number
-): TimeConfig {
+export function makeTimeSeries(duration: number, sampleCount: number, dtOverride?: number): TimeConfig {
     return { duration, dt: dtOverride ?? duration / sampleCount, sampleCount };
 }

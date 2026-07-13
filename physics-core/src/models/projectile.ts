@@ -1,13 +1,6 @@
 import type { PhysicsProblem } from '../types/problem.js';
 import { kineticEnergy, sampleTrajectory } from '../physics/kinematics.js';
-import type {
-    SimulationResult,
-    TrajectoryPoint,
-    Keyframe,
-    ChartSeries,
-    ExplanationStep,
-    FormulaUsage
-} from '../types/result.js';
+import type { SimulationResult, Keyframe, ChartSeries, ExplanationStep, FormulaUsage } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
 import { Vec2 } from '../math/vector2d.js';
@@ -59,7 +52,7 @@ export class ProjectileModel extends PhysicsModelBase {
         const trajectory = sampleTrajectory({
             sampleCount,
             duration,
-            sampleAt: (t) => {
+            sampleAt: t => {
                 const x = x0.x + v0.x * t;
                 const y = x0.y + v0.y * t - 0.5 * g * t * t;
                 const vx = v0.x;

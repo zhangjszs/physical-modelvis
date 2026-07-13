@@ -1,13 +1,6 @@
 import type { PhysicsProblem } from '../types/problem.js';
 import { kineticEnergy, sampleTrajectory } from '../physics/kinematics.js';
-import type {
-    SimulationResult,
-    TrajectoryPoint,
-    Keyframe,
-    ChartSeries,
-    ForceDiagram,
-    ConservedQuantity
-} from '../types/result.js';
+import type { SimulationResult, Keyframe, ChartSeries, ForceDiagram, ConservedQuantity } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
 
@@ -79,8 +72,9 @@ export class NewtonThirdLawModel extends PhysicsModelBase {
 
         // 解析解采样: 两体绳连接同步运动 xA=xA0+dxA, xB=xB0+dxA (公共脚手架 sampleTrajectory)
         const trajA = sampleTrajectory({
-            sampleCount, duration,
-            sampleAt: (t) => {
+            sampleCount,
+            duration,
+            sampleAt: t => {
                 const v = vA0 + aSystem * t;
                 const dxA = vA0 * t + 0.5 * aSystem * t * t;
                 const xA = xA0 + dxA;
@@ -94,8 +88,9 @@ export class NewtonThirdLawModel extends PhysicsModelBase {
             }
         });
         const trajB = sampleTrajectory({
-            sampleCount, duration,
-            sampleAt: (t) => {
+            sampleCount,
+            duration,
+            sampleAt: t => {
                 const v = vA0 + aSystem * t;
                 const dxA = vA0 * t + 0.5 * aSystem * t * t;
                 const xB = xB0 + dxA; // 绳连接：两物体同步运动
