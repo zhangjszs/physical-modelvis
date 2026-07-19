@@ -33,6 +33,7 @@ import {
     E_CHARGE,
     K_BOLTZMANN
 } from './constants';
+import { clamp, clearScene, drawTitle, drawHud, drawArrow } from './renderingUtils';
 
 // ========== 共享类型 ==========
 
@@ -46,101 +47,7 @@ export interface ModernSceneOptions {
     currentTime: number;
 }
 
-// ========== 共享工具函数 ==========
-
-function clamp(v: number, lo: number, hi: number): number {
-    return Math.max(lo, Math.min(hi, v));
-}
-
-function clearScene(ctx: CanvasRenderingContext2D, w: number, h: number, isDark: boolean): void {
-    ctx.fillStyle = isDark ? '#0f172a' : '#f8fafc';
-    ctx.fillRect(0, 0, w, h);
-}
-
-function drawTitle(ctx: CanvasRenderingContext2D, title: string, w: number, isDark: boolean): void {
-    ctx.fillStyle = isDark ? '#f1f5f9' : '#1e293b';
-    ctx.font = 'bold 18px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(title, w / 2, 28);
-    ctx.textAlign = 'left';
-}
-
-function drawHud(ctx: CanvasRenderingContext2D, isDark: boolean, rows: Array<{ label: string; value: string }>): void {
-    if (rows.length === 0) return;
-    const padding = 8;
-    const lineH = 16;
-    const boxH = rows.length * lineH + padding * 2;
-    const boxW = 230;
-
-    ctx.fillStyle = isDark ? 'rgba(15,23,42,0.78)' : 'rgba(255,255,255,0.88)';
-    roundRectPath(ctx, 8, 8, boxW, boxH, 6);
-    ctx.fill();
-
-    rows.forEach((row, i) => {
-        const y = 8 + padding + i * lineH;
-        ctx.font = 'bold 11px monospace';
-        ctx.fillStyle = isDark ? '#e2e8f0' : '#1e293b';
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'top';
-        ctx.fillText(`${row.label} = ${row.value}`, 16, y);
-    });
-    ctx.textBaseline = 'alphabetic';
-}
-
-function roundRectPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.lineTo(x + w - r, y);
-    ctx.arcTo(x + w, y, x + w, y + r, r);
-    ctx.lineTo(x + w, y + h - r);
-    ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
-    ctx.lineTo(x + r, y + h);
-    ctx.arcTo(x, y + h, x, y + h - r, r);
-    ctx.lineTo(x, y + r);
-    ctx.arcTo(x, y, x + r, y, r);
-    ctx.closePath();
-}
-
-function drawArrow(
-    ctx: CanvasRenderingContext2D,
-    x1: number,
-    y1: number,
-    x2: number,
-    y2: number,
-    color: string,
-    label?: string
-): void {
-    const dx = x2 - x1,
-        dy = y2 - y1;
-    const len = Math.sqrt(dx * dx + dy * dy);
-    if (len < 3) return;
-    ctx.save();
-    const angle = Math.atan2(dy, dx);
-    const headLen = Math.min(12, len * 0.3);
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2 - headLen * 0.6 * Math.cos(angle), y2 - headLen * 0.6 * Math.sin(angle));
-    ctx.stroke();
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.moveTo(x2, y2);
-    ctx.lineTo(x2 - headLen * Math.cos(angle - 0.38), y2 - headLen * Math.sin(angle - 0.38));
-    ctx.lineTo(x2 - headLen * 0.45 * Math.cos(angle), y2 - headLen * 0.45 * Math.sin(angle));
-    ctx.lineTo(x2 - headLen * Math.cos(angle + 0.38), y2 - headLen * Math.sin(angle + 0.38));
-    ctx.closePath();
-    ctx.fill();
-    if (label) {
-        ctx.fillStyle = color;
-        ctx.font = 'bold 11px sans-serif';
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(label, x2 + 6, y2 - 4);
-    }
-    ctx.restore();
-}
+// ========== 共享工具函数 (基础绘制已迁移至 renderingUtils) ==========
 
 /**
  * 脉冲/闪烁发光圆, 用于标注激活的核/电子.
@@ -258,7 +165,7 @@ function drawCloudTracks(
 export function drawPhotoelectricScene(o: ModernSceneOptions): void {
     const { ctx, width: w, height: h, isDark, params, currentTime } = o;
     clearScene(ctx, w, h, isDark);
-    drawTitle(ctx, '光电效应 — 爱因斯坦方程 K_max = hν − W₀', w, isDark);
+    drawTitle(ctx, '光电效应 — 爱因斯坦方程 K_max = hν − W₀', w, isDark, { size: 18, y: 28 });
 
     const W0 = params['W0'] ?? 2.3;
     const nuMin = params['nuMin'] ?? 300;
@@ -348,12 +255,17 @@ export function drawPhotoelectricScene(o: ModernSceneOptions): void {
         ctx.fillText('e⁻', photonX + 6, ey);
     }
 
-    drawHud(ctx, isDark, [
-        { label: 'W₀', value: `${W0.toFixed(2)} eV` },
-        { label: 'ν₀', value: `${nu0.toFixed(0)} THz` },
-        { label: 'ν_max', value: `${nuMax} THz` },
-        { label: 'K_max', value: `${(h_eV_per_THz * nuMax - W0).toFixed(2)} eV` }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'W₀', value: `${W0.toFixed(2)} eV` },
+            { label: 'ν₀', value: `${nu0.toFixed(0)} THz` },
+            { label: 'ν_max', value: `${nuMax} THz` },
+            { label: 'K_max', value: `${(h_eV_per_THz * nuMax - W0).toFixed(2)} eV` }
+        ],
+        { boxW: 230, lineH: 16 }
+    );
 }
 
 // =====================================================================
@@ -363,7 +275,7 @@ export function drawPhotoelectricScene(o: ModernSceneOptions): void {
 export function drawBohrScene(o: ModernSceneOptions): void {
     const { ctx, width: w, height: h, isDark, params } = o;
     clearScene(ctx, w, h, isDark);
-    drawTitle(ctx, '玻尔氢原子模型 — 能级与发射光谱', w, isDark);
+    drawTitle(ctx, '玻尔氢原子模型 — 能级与发射光谱', w, isDark, { size: 18, y: 28 });
 
     const seriesNum = params['seriesB'] ?? 1;
     const maxN = Math.max(3, Math.round(params['maxN'] ?? 6));
@@ -441,12 +353,17 @@ export function drawBohrScene(o: ModernSceneOptions): void {
     ctx.font = '11px sans-serif';
     ctx.fillText('发射光谱 (波长)', specX, specY - 16);
 
-    drawHud(ctx, isDark, [
-        { label: '线系', value: seriesName },
-        { label: 'n₁', value: `${n1}` },
-        { label: 'n_max', value: `${maxN}` },
-        { label: '谱线条数', value: `${Math.max(0, maxN - n1)}` }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: '线系', value: seriesName },
+            { label: 'n₁', value: `${n1}` },
+            { label: 'n_max', value: `${maxN}` },
+            { label: '谱线条数', value: `${Math.max(0, maxN - n1)}` }
+        ],
+        { boxW: 230, lineH: 16 }
+    );
 }
 
 // =====================================================================
@@ -456,7 +373,7 @@ export function drawBohrScene(o: ModernSceneOptions): void {
 export function drawRadioactiveScene(o: ModernSceneOptions): void {
     const { ctx, width: w, height: h, isDark, params, currentTime } = o;
     clearScene(ctx, w, h, isDark);
-    drawTitle(ctx, '放射性衰变 — 云室径迹与指数衰减', w, isDark);
+    drawTitle(ctx, '放射性衰变 — 云室径迹与指数衰减', w, isDark, { size: 18, y: 28 });
 
     const N0 = params['N0'] ?? 1000;
     const T = params['halfLife'] ?? 10;
@@ -519,13 +436,18 @@ export function drawRadioactiveScene(o: ModernSceneOptions): void {
     ctx.textAlign = 'left';
     drawCloudTracks(ctx, chX + 10, chY + 20, chW - 20, chH - 40, rayNum, isDark);
 
-    drawHud(ctx, isDark, [
-        { label: 'N₀', value: `${N0}` },
-        { label: 'T½', value: `${T} s` },
-        { label: 't', value: `${tNow.toFixed(1)} s` },
-        { label: 'N(t)', value: `${Nnow.toFixed(0)}` },
-        { label: '射线', value: rayType }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'N₀', value: `${N0}` },
+            { label: 'T½', value: `${T} s` },
+            { label: 't', value: `${tNow.toFixed(1)} s` },
+            { label: 'N(t)', value: `${Nnow.toFixed(0)}` },
+            { label: '射线', value: rayType }
+        ],
+        { boxW: 230, lineH: 16 }
+    );
 }
 
 // =====================================================================
@@ -535,7 +457,7 @@ export function drawRadioactiveScene(o: ModernSceneOptions): void {
 export function drawMicroDeformationScene(o: ModernSceneOptions): void {
     const { ctx, width: w, height: h, isDark, params } = o;
     clearScene(ctx, w, h, isDark);
-    drawTitle(ctx, '光杠杆放大微小形变', w, isDark);
+    drawTitle(ctx, '光杠杆放大微小形变', w, isDark, { size: 18, y: 28 });
 
     const F = params['pressure'] ?? 100; // N
     const L = params['laserDist'] ?? 1; // 激光到镜面 (杠杆臂, m)
@@ -620,13 +542,18 @@ export function drawMicroDeformationScene(o: ModernSceneOptions): void {
     ctx.fillText('平面镜', mirrorX - 18, baseY + 4);
     ctx.fillText('投影屏', screenX + 6, baseY - 50);
 
-    drawHud(ctx, isDark, [
-        { label: 'F', value: `${F} N` },
-        { label: 'E', value: `${E} GPa` },
-        { label: 'δ (形变量)', value: `${(delta * 1e9).toFixed(3)} nm` },
-        { label: '放大 2D/L', value: `${amp.toFixed(1)}×` },
-        { label: '光斑位移', value: `${(spotShift * 1e3).toFixed(3)} mm` }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'F', value: `${F} N` },
+            { label: 'E', value: `${E} GPa` },
+            { label: 'δ (形变量)', value: `${(delta * 1e9).toFixed(3)} nm` },
+            { label: '放大 2D/L', value: `${amp.toFixed(1)}×` },
+            { label: '光斑位移', value: `${(spotShift * 1e3).toFixed(3)} mm` }
+        ],
+        { boxW: 230, lineH: 16 }
+    );
 }
 
 // =====================================================================
@@ -636,7 +563,7 @@ export function drawMicroDeformationScene(o: ModernSceneOptions): void {
 export function drawBlackBodyScene(o: ModernSceneOptions): void {
     const { ctx, width: w, height: h, isDark, params } = o;
     clearScene(ctx, w, h, isDark);
-    drawTitle(ctx, '黑体辐射 — 普朗克谱与维恩位移', w, isDark);
+    drawTitle(ctx, '黑体辐射 — 普朗克谱与维恩位移', w, isDark, { size: 18, y: 28 });
 
     const T = params['temperature'] ?? 3000;
     const lamPeakNm = wienPeakWavelength(T) * 1e9; // nm
@@ -704,11 +631,16 @@ export function drawBlackBodyScene(o: ModernSceneOptions): void {
     ctx.textAlign = 'left';
     ctx.fillText(`λ_max = ${lamPeakNm.toFixed(0)} nm`, lamToX(lamPeakNm) + 6, plotY + 16);
 
-    drawHud(ctx, isDark, [
-        { label: 'T', value: `${T} K` },
-        { label: 'λ_max', value: `${lamPeakNm.toFixed(0)} nm` },
-        { label: 'M=σT⁴', value: `${M.toExponential(2)} W/m²` }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'T', value: `${T} K` },
+            { label: 'λ_max', value: `${lamPeakNm.toFixed(0)} nm` },
+            { label: 'M=σT⁴', value: `${M.toExponential(2)} W/m²` }
+        ],
+        { boxW: 230, lineH: 16 }
+    );
 }
 
 // =====================================================================
@@ -720,7 +652,7 @@ const REF_LAMBDA_PM = 12.3; // 参考: 10 kV 电子德布罗意波长 ≈ 12.3 p
 export function drawElectronDiffractionScene(o: ModernSceneOptions): void {
     const { ctx, width: w, height: h, isDark, params } = o;
     clearScene(ctx, w, h, isDark);
-    drawTitle(ctx, '电子衍射 — 德布罗意波与晶体衍射环', w, isDark);
+    drawTitle(ctx, '电子衍射 — 德布罗意波与晶体衍射环', w, isDark, { size: 18, y: 28 });
 
     const V = params['accVoltage'] ?? 10000; // V
     const me = 9.10938356e-31;
@@ -788,11 +720,16 @@ export function drawElectronDiffractionScene(o: ModernSceneOptions): void {
     ctx.stroke();
     ctx.setLineDash([]);
 
-    drawHud(ctx, isDark, [
-        { label: '加速电压 V', value: `${(V / 1000).toFixed(1)} kV` },
-        { label: 'λ(德布罗意)', value: `${lambdaPm.toFixed(1)} pm` },
-        { label: '公式', value: 'λ=h/√(2meV)' }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: '加速电压 V', value: `${(V / 1000).toFixed(1)} kV` },
+            { label: 'λ(德布罗意)', value: `${lambdaPm.toFixed(1)} pm` },
+            { label: '公式', value: 'λ=h/√(2meV)' }
+        ],
+        { boxW: 230, lineH: 16 }
+    );
 }
 
 // =====================================================================
@@ -802,7 +739,7 @@ export function drawElectronDiffractionScene(o: ModernSceneOptions): void {
 export function drawRadiationDeflectionScene(o: ModernSceneOptions): void {
     const { ctx, width: w, height: h, isDark, params, currentTime } = o;
     clearScene(ctx, w, h, isDark);
-    drawTitle(ctx, '放射线在磁场中的偏转', w, isDark);
+    drawTitle(ctx, '放射线在磁场中的偏转', w, isDark, { size: 18, y: 28 });
 
     const B = params['Bfield'] ?? 0.5;
     const K_MeV = params['particleEnergy'] ?? 5;
@@ -866,15 +803,20 @@ export function drawRadiationDeflectionScene(o: ModernSceneOptions): void {
     ctx.arc(px, startY, 5, 0, Math.PI * 2);
     ctx.fill();
 
-    drawHud(ctx, isDark, [
-        { label: 'B', value: `${B} T` },
-        { label: 'K', value: `${K_MeV} MeV` },
-        { label: '类型', value: typeName },
-        {
-            label: '曲率半径 r',
-            value: pt === 2 ? '∞(不偏)' : `${(Math.sqrt(2 * m * K_J) / (Math.abs(q) * B)).toExponential(2)} m`
-        }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'B', value: `${B} T` },
+            { label: 'K', value: `${K_MeV} MeV` },
+            { label: '类型', value: typeName },
+            {
+                label: '曲率半径 r',
+                value: pt === 2 ? '∞(不偏)' : `${(Math.sqrt(2 * m * K_J) / (Math.abs(q) * B)).toExponential(2)} m`
+            }
+        ],
+        { boxW: 230, lineH: 16 }
+    );
 }
 
 // =====================================================================
@@ -884,7 +826,7 @@ export function drawRadiationDeflectionScene(o: ModernSceneOptions): void {
 export function drawCosmicRayScene(o: ModernSceneOptions): void {
     const { ctx, width: w, height: h, isDark, params } = o;
     clearScene(ctx, w, h, isDark);
-    drawTitle(ctx, '宇宙射线 — 大气簇射与屏蔽衰减', w, isDark);
+    drawTitle(ctx, '宇宙射线 — 大气簇射与屏蔽衰减', w, isDark, { size: 18, y: 28 });
 
     const alt = params['altitude'] ?? 0; // m
     const sm = params['shieldingMode'] ?? 0;
@@ -989,11 +931,16 @@ export function drawCosmicRayScene(o: ModernSceneOptions): void {
     ctx.fillText('μ 子通量 N(d) = N₀·e^(−d/λ)', plotX + plotW / 2, plotY + plotH + 34);
     ctx.textAlign = 'left';
 
-    drawHud(ctx, isDark, [
-        { label: '海拔', value: `${alt} m` },
-        { label: '屏蔽', value: shieldName },
-        { label: 'λ_eff', value: `${lambdaEff} km` }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: '海拔', value: `${alt} m` },
+            { label: '屏蔽', value: shieldName },
+            { label: 'λ_eff', value: `${lambdaEff} km` }
+        ],
+        { boxW: 230, lineH: 16 }
+    );
 }
 
 // =====================================================================
@@ -1003,7 +950,7 @@ export function drawCosmicRayScene(o: ModernSceneOptions): void {
 export function drawNeutronDiscoveryScene(o: ModernSceneOptions): void {
     const { ctx, width: w, height: h, isDark, params } = o;
     clearScene(ctx, w, h, isDark);
-    drawTitle(ctx, '中子发现 (查德威克实验)', w, isDark);
+    drawTitle(ctx, '中子发现 (查德威克实验)', w, isDark, { size: 18, y: 28 });
 
     const alphaE = params['alphaEnergy'] ?? 5; // MeV
     const targetA = params['targetMass'] ?? 1; // u
@@ -1079,12 +1026,17 @@ export function drawNeutronDiscoveryScene(o: ModernSceneOptions): void {
     ctx.fillText('① α 轰击铍 → 释放中子 (电中性, 不偏折)', w * 0.1, y1 - 26);
     ctx.fillText('② 中子撞击含氢/氮靶 → 反冲核证明其质量≈质子', w * 0.1, y2 - 26);
 
-    drawHud(ctx, isDark, [
-        { label: 'α 能量', value: `${alphaE} MeV` },
-        { label: '靶核', value: targetA <= 1 ? '氢(H)' : targetA >= 14 ? '氮(N)' : `A=${targetA}` },
-        { label: '中子 K', value: `${neutronKE.toFixed(2)} MeV` },
-        { label: '反冲核 K', value: `${recoilKE.toFixed(2)} MeV` }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'α 能量', value: `${alphaE} MeV` },
+            { label: '靶核', value: targetA <= 1 ? '氢(H)' : targetA >= 14 ? '氮(N)' : `A=${targetA}` },
+            { label: '中子 K', value: `${neutronKE.toFixed(2)} MeV` },
+            { label: '反冲核 K', value: `${recoilKE.toFixed(2)} MeV` }
+        ],
+        { boxW: 230, lineH: 16 }
+    );
 }
 
 // =====================================================================
@@ -1094,7 +1046,7 @@ export function drawNeutronDiscoveryScene(o: ModernSceneOptions): void {
 export function drawBohrOrbitScene(o: ModernSceneOptions): void {
     const { ctx, width: w, height: h, isDark, params, currentTime } = o;
     clearScene(ctx, w, h, isDark);
-    drawTitle(ctx, '玻尔氢原子模型 — 轨道能级 (rₙ ∝ n²)', w, isDark);
+    drawTitle(ctx, '玻尔氢原子模型 — 轨道能级 (rₙ ∝ n²)', w, isDark, { size: 18, y: 28 });
 
     const seriesNum = params['seriesB'] ?? 1;
     const maxN = Math.max(3, Math.round(params['maxN'] ?? 6));
@@ -1147,10 +1099,15 @@ export function drawBohrOrbitScene(o: ModernSceneOptions): void {
         ctx.fillText(`  n=${n2} → ${n1}: ΔE=${dE.toFixed(2)} eV`, rx, ry + 22 + (n2 - n1) * 16);
     }
 
-    drawHud(ctx, isDark, [
-        { label: 'a₀', value: `${a0} nm` },
-        { label: 'n_max', value: `${maxN}` },
-        { label: 'r₁', value: `${a0.toFixed(3)} nm` },
-        { label: 'r_max', value: `${(a0 * maxN * maxN).toFixed(1)} nm` }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'a₀', value: `${a0} nm` },
+            { label: 'n_max', value: `${maxN}` },
+            { label: 'r₁', value: `${a0.toFixed(3)} nm` },
+            { label: 'r_max', value: `${(a0 * maxN * maxN).toFixed(1)} nm` }
+        ],
+        { boxW: 230, lineH: 16 }
+    );
 }
