@@ -18,6 +18,7 @@
  */
 
 import type { SimulationResult, Vector2D } from 'physics-core';
+import { roundRectPath, clearScene, drawTitle, drawInfoBar } from './renderingUtils';
 
 // ========== 共享类型 ==========
 
@@ -71,32 +72,7 @@ interface SeriesLike {
     points: Array<{ x: number; y: number }>;
 }
 
-// ========== 共享工具函数 ==========
-
-function clearScene(ctx: CanvasRenderingContext2D, w: number, h: number, isDark: boolean): void {
-    ctx.fillStyle = isDark ? '#0f172a' : '#f8fafc';
-    ctx.fillRect(0, 0, w, h);
-}
-
-function roundRectPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {
-    const rr = Math.min(r, w / 2, h / 2);
-    ctx.beginPath();
-    ctx.moveTo(x + rr, y);
-    ctx.arcTo(x + w, y, x + w, y + h, rr);
-    ctx.arcTo(x + w, y + h, x, y + h, rr);
-    ctx.arcTo(x, y + h, x, y, rr);
-    ctx.arcTo(x, y, x + w, y, rr);
-    ctx.closePath();
-}
-
-function drawTitle(ctx: CanvasRenderingContext2D, title: string, w: number, isDark: boolean): void {
-    ctx.fillStyle = isDark ? '#f1f5f9' : '#1e293b';
-    ctx.font = 'bold 18px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'alphabetic';
-    ctx.fillText(title, w / 2, 28);
-    ctx.textAlign = 'left';
-}
+// ========== 共享工具函数 (基础绘制已迁移至 renderingUtils; drawHud 保留本地布局) ==========
 
 function drawHud(ctx: CanvasRenderingContext2D, isDark: boolean, rows: Array<{ label: string; value: string }>): void {
     if (rows.length === 0) return;
@@ -121,24 +97,6 @@ function drawHud(ctx: CanvasRenderingContext2D, isDark: boolean, rows: Array<{ l
         ctx.fillText(`${row.label} = ${row.value}`, x + padding, ry);
     });
     ctx.textBaseline = 'alphabetic';
-}
-
-function drawInfoBar(
-    ctx: CanvasRenderingContext2D,
-    width: number,
-    height: number,
-    text: string,
-    isDark: boolean
-): void {
-    ctx.font = '12px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'alphabetic';
-    const tw = ctx.measureText(text).width;
-    ctx.fillStyle = isDark ? 'rgba(15,23,42,0.7)' : 'rgba(255,255,255,0.8)';
-    roundRectPath(ctx, width / 2 - tw / 2 - 8, height - 34, tw + 16, 22, 4);
-    ctx.fill();
-    ctx.fillStyle = isDark ? '#94a3b8' : '#64748b';
-    ctx.fillText(text, width / 2, height - 18);
 }
 
 /** 在 (x1,y1)->(x2,y2) 方向末端画箭头 */
@@ -304,7 +262,7 @@ export function drawTotalInternalReflectionScene(o: GapSceneOptions): void {
     const fg = isDark ? '#e2e8f0' : '#1e293b';
     const grid = isDark ? '#334155' : '#cbd5e1';
 
-    drawTitle(ctx, '全反射与光导', width, isDark);
+    drawTitle(ctx, '全反射与光导', width, isDark, { size: 18, y: 28 });
 
     if (mode === 2) {
         // ---- 光导纤维：水平纤芯内的全反射传导 ----
@@ -425,7 +383,10 @@ export function drawTotalInternalReflectionScene(o: GapSceneOptions): void {
             { label: '临界角 θc', value: `${critDeg.toFixed(1)}°` },
             { label: '现象', value: '全反射' }
         ]);
-        drawInfoBar(ctx, width, height, `θ₁ > θc → 光全部反射回光密介质 (光导/全反射棱镜原理)`, isDark);
+        drawInfoBar(ctx, width, height, `θ₁ > θc → 光全部反射回光密介质 (光导/全反射棱镜原理)`, isDark, {
+            height: 22,
+            yOffset: 34
+        });
     } else {
         const sinTh2 = Math.min(1, (n1 * Math.sin(th1)) / Math.max(1e-6, n2));
         const th2 = Math.asin(sinTh2);
@@ -441,7 +402,7 @@ export function drawTotalInternalReflectionScene(o: GapSceneOptions): void {
             { label: '折射角 θ₂', value: `${((th2 * 180) / Math.PI).toFixed(0)}°` },
             { label: '现象', value: '折射' }
         ]);
-        drawInfoBar(ctx, width, height, `n₁sinθ₁ = n₂sinθ₂ (斯涅尔定律)`, isDark);
+        drawInfoBar(ctx, width, height, `n₁sinθ₁ = n₂sinθ₂ (斯涅尔定律)`, isDark, { height: 22, yOffset: 34 });
     }
 }
 
@@ -452,7 +413,7 @@ export function drawTotalInternalReflectionScene(o: GapSceneOptions): void {
 export function drawCurrentMagneticFieldScene(o: GapSceneOptions): void {
     const { ctx, width, height, isDark, params, simulationResult } = o;
     clearScene(ctx, width, height, isDark);
-    drawTitle(ctx, '电流的磁场', width, isDark);
+    drawTitle(ctx, '电流的磁场', width, isDark, { size: 18, y: 28 });
     if (!simulationResult || !simulationResult.extra) {
         placeholder(ctx, width, height, isDark);
         return;
@@ -524,7 +485,7 @@ export function drawCurrentMagneticFieldScene(o: GapSceneOptions): void {
 export function drawElectricFieldLinesScene(o: GapSceneOptions): void {
     const { ctx, width, height, isDark, params, simulationResult } = o;
     clearScene(ctx, width, height, isDark);
-    drawTitle(ctx, '电场线分布', width, isDark);
+    drawTitle(ctx, '电场线分布', width, isDark, { size: 18, y: 28 });
     if (!simulationResult || !simulationResult.extra) {
         placeholder(ctx, width, height, isDark);
         return;
@@ -605,7 +566,7 @@ export function drawElectricFieldLinesScene(o: GapSceneOptions): void {
 export function drawNewtonTubeScene(o: GapSceneOptions): void {
     const { ctx, width, height, isDark, params, simulationResult, currentTime } = o;
     clearScene(ctx, width, height, isDark);
-    drawTitle(ctx, '牛顿管 (真空 vs 空气)', width, isDark);
+    drawTitle(ctx, '牛顿管 (真空 vs 空气)', width, isDark, { size: 18, y: 28 });
 
     const heightM = params['height'] ?? 5;
     const duration = params['duration'] ?? 2;
@@ -685,7 +646,8 @@ export function drawNewtonTubeScene(o: GapSceneOptions): void {
         width,
         height,
         withAir ? '空气中: 羽毛受空气阻力下落更慢; 真空时两者同时落地' : '真空中: 轻重物体同时落地 (伽利略)',
-        isDark
+        isDark,
+        { height: 22, yOffset: 34 }
     );
 }
 
@@ -696,7 +658,7 @@ export function drawNewtonTubeScene(o: GapSceneOptions): void {
 export function drawBulbVIScene(o: GapSceneOptions): void {
     const { ctx, width, height, isDark, params, simulationResult } = o;
     clearScene(ctx, width, height, isDark);
-    drawTitle(ctx, '小灯泡伏安特性 (I-U 曲线)', width, isDark);
+    drawTitle(ctx, '小灯泡伏安特性 (I-U 曲线)', width, isDark, { size: 18, y: 28 });
     if (!simulationResult || !simulationResult.charts) {
         placeholder(ctx, width, height, isDark);
         return;
@@ -784,7 +746,10 @@ export function drawBulbVIScene(o: GapSceneOptions): void {
             { label: 'P_op', value: `${(op.u * op.i).toFixed(2)} W` }
         ]);
     }
-    drawInfoBar(ctx, width, height, '非线性电阻: 温度↑→电阻↑, I-U 曲线上凸 (与负载线交点为工作点)', isDark);
+    drawInfoBar(ctx, width, height, '非线性电阻: 温度↑→电阻↑, I-U 曲线上凸 (与负载线交点为工作点)', isDark, {
+        height: 22,
+        yOffset: 34
+    });
 }
 
 // ============================================================================
@@ -794,7 +759,7 @@ export function drawBulbVIScene(o: GapSceneOptions): void {
 export function drawWorkEnergyScene(o: GapSceneOptions): void {
     const { ctx, width, height, isDark, params, simulationResult, currentTime } = o;
     clearScene(ctx, width, height, isDark);
-    drawTitle(ctx, '动能定理 W = ΔEk', width, isDark);
+    drawTitle(ctx, '动能定理 W = ΔEk', width, isDark, { size: 18, y: 28 });
 
     const m = params['mass'] ?? 1;
     const F = params['force'] ?? 5;
@@ -891,7 +856,7 @@ export function drawWorkEnergyScene(o: GapSceneOptions): void {
 export function drawBallXTimeScene(o: GapSceneOptions): void {
     const { ctx, width, height, isDark, params, simulationResult, currentTime } = o;
     clearScene(ctx, width, height, isDark);
-    drawTitle(ctx, '小球 x-t 图像 (简谐运动)', width, isDark);
+    drawTitle(ctx, '小球 x-t 图像 (简谐运动)', width, isDark, { size: 18, y: 28 });
 
     const traj = simulationResult?.trajectories?.[0];
     if (!traj || traj.length === 0) {
@@ -996,7 +961,7 @@ export function drawBallXTimeScene(o: GapSceneOptions): void {
         { label: 'x', value: `${cur.position.x.toFixed(3)} m` },
         { label: 'T', value: Tlabel }
     ]);
-    drawInfoBar(ctx, width, height, '摆球水平位移 x(t) 近似正弦 → 简谐运动', isDark);
+    drawInfoBar(ctx, width, height, '摆球水平位移 x(t) 近似正弦 → 简谐运动', isDark, { height: 22, yOffset: 34 });
 }
 
 // ============================================================================
@@ -1006,7 +971,7 @@ export function drawBallXTimeScene(o: GapSceneOptions): void {
 export function drawGeigerCounterScene(o: GapSceneOptions): void {
     const { ctx, width, height, isDark, params, simulationResult, currentTime } = o;
     clearScene(ctx, width, height, isDark);
-    drawTitle(ctx, '盖革计数器 (射线探测)', width, isDark);
+    drawTitle(ctx, '盖革计数器 (射线探测)', width, isDark, { size: 18, y: 28 });
 
     const Nchart = simulationResult?.charts?.x_t;
     const Achart = simulationResult?.charts?.y_t;
@@ -1113,5 +1078,5 @@ export function drawGeigerCounterScene(o: GapSceneOptions): void {
         { label: 'N(t)', value: `${N.toFixed(0)}` },
         { label: '活度 A', value: `${A.toFixed(1)} Bq` }
     ]);
-    drawInfoBar(ctx, width, height, '活度 A=λN 越大, 单位时间计数闪光越多', isDark);
+    drawInfoBar(ctx, width, height, '活度 A=λN 越大, 单位时间计数闪光越多', isDark, { height: 22, yOffset: 34 });
 }
