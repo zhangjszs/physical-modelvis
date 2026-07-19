@@ -6,6 +6,18 @@
  */
 
 import type { SimulationResult } from 'physics-core';
+import {
+    roundRectPath,
+    clamp,
+    textColor,
+    mutedColor,
+    panelFill,
+    clearScene,
+    drawTitle,
+    drawHud,
+    drawInfoBar,
+    drawArrow
+} from './renderingUtils';
 
 export interface ElectromagnetismSceneOptions {
     ctx: CanvasRenderingContext2D;
@@ -25,124 +37,6 @@ const RED = '#ef4444';
 const PURPLE = '#a855f7';
 const AMBER = '#f59e0b';
 
-function roundRectPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.lineTo(x + w - r, y);
-    ctx.arcTo(x + w, y, x + w, y + r, r);
-    ctx.lineTo(x + w, y + h - r);
-    ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
-    ctx.lineTo(x + r, y + h);
-    ctx.arcTo(x, y + h, x, y + h - r, r);
-    ctx.lineTo(x, y + r);
-    ctx.arcTo(x, y, x + r, y, r);
-    ctx.closePath();
-}
-
-function clamp(v: number, min: number, max: number): number {
-    return Math.max(min, Math.min(max, v));
-}
-
-function labelColor(isDark: boolean): string {
-    return isDark ? '#e2e8f0' : '#1e293b';
-}
-
-function mutedColor(isDark: boolean): string {
-    return isDark ? '#94a3b8' : '#64748b';
-}
-
-function panelFill(isDark: boolean): string {
-    return isDark ? 'rgba(15,23,42,0.76)' : 'rgba(255,255,255,0.88)';
-}
-
-function clearScene(ctx: CanvasRenderingContext2D, width: number, height: number, isDark: boolean): void {
-    ctx.fillStyle = isDark ? '#0f172a' : '#f8fafc';
-    ctx.fillRect(0, 0, width, height);
-}
-
-function drawTitle(ctx: CanvasRenderingContext2D, title: string, width: number, isDark: boolean): void {
-    ctx.fillStyle = labelColor(isDark);
-    ctx.font = 'bold 18px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(title, width / 2, 28);
-}
-
-function drawHud(ctx: CanvasRenderingContext2D, isDark: boolean, rows: Array<{ label: string; value: string }>): void {
-    const lineH = 18;
-    const boxW = 214;
-    const boxH = rows.length * lineH + 18;
-    ctx.fillStyle = panelFill(isDark);
-    roundRectPath(ctx, 8, 10, boxW, boxH, 6);
-    ctx.fill();
-    rows.forEach((row, i) => {
-        ctx.font = 'bold 12px monospace';
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'top';
-        ctx.fillStyle = labelColor(isDark);
-        ctx.fillText(`${row.label} = ${row.value}`, 16, 19 + i * lineH);
-    });
-    ctx.textBaseline = 'alphabetic';
-}
-
-function drawInfoBar(
-    ctx: CanvasRenderingContext2D,
-    width: number,
-    height: number,
-    text: string,
-    isDark: boolean
-): void {
-    ctx.font = '12px sans-serif';
-    ctx.textAlign = 'center';
-    const tw = ctx.measureText(text).width;
-    ctx.fillStyle = panelFill(isDark);
-    roundRectPath(ctx, width / 2 - tw / 2 - 10, height - 36, tw + 20, 24, 5);
-    ctx.fill();
-    ctx.fillStyle = mutedColor(isDark);
-    ctx.fillText(text, width / 2, height - 19);
-}
-
-function drawArrow(
-    ctx: CanvasRenderingContext2D,
-    x1: number,
-    y1: number,
-    x2: number,
-    y2: number,
-    color: string,
-    label?: string
-): void {
-    const dx = x2 - x1;
-    const dy = y2 - y1;
-    const len = Math.hypot(dx, dy);
-    if (len < 3) return;
-    ctx.save();
-    const angle = Math.atan2(dy, dx);
-    const head = Math.min(13, len * 0.28);
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 2.4;
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2 - head * 0.55 * Math.cos(angle), y2 - head * 0.55 * Math.sin(angle));
-    ctx.stroke();
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.moveTo(x2, y2);
-    ctx.lineTo(x2 - head * Math.cos(angle - 0.4), y2 - head * Math.sin(angle - 0.4));
-    ctx.lineTo(x2 - head * 0.45 * Math.cos(angle), y2 - head * 0.45 * Math.sin(angle));
-    ctx.lineTo(x2 - head * Math.cos(angle + 0.4), y2 - head * Math.sin(angle + 0.4));
-    ctx.closePath();
-    ctx.fill();
-    if (label) {
-        ctx.fillStyle = color;
-        ctx.font = 'bold 12px sans-serif';
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(label, x2 + 6, y2 - 8);
-        ctx.textBaseline = 'alphabetic';
-    }
-    ctx.restore();
-}
-
 function drawWire(ctx: CanvasRenderingContext2D, points: Array<[number, number]>, color: string): void {
     ctx.save();
     ctx.strokeStyle = color;
@@ -156,7 +50,7 @@ function drawWire(ctx: CanvasRenderingContext2D, points: Array<[number, number]>
 }
 
 function drawBattery(ctx: CanvasRenderingContext2D, x: number, y: number, isDark: boolean, label: string): void {
-    ctx.strokeStyle = labelColor(isDark);
+    ctx.strokeStyle = textColor(isDark);
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(x - 18, y - 20);
@@ -205,7 +99,7 @@ function drawCapacitorSymbol(
     isDark: boolean,
     label: string
 ): void {
-    ctx.strokeStyle = labelColor(isDark);
+    ctx.strokeStyle = textColor(isDark);
     ctx.lineWidth = 2.5;
     ctx.beginPath();
     ctx.moveTo(x - 10, y - 24);
@@ -247,7 +141,7 @@ function drawMeter(
     }
     const angle = Math.PI * (1.15 + 0.7 * clamp(ratio, 0, 1));
     drawArrow(ctx, x, y, x + Math.cos(angle) * (r - 22), y + Math.sin(angle) * (r - 22), RED);
-    ctx.fillStyle = labelColor(isDark);
+    ctx.fillStyle = textColor(isDark);
     ctx.font = 'bold 12px sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(label, x, y + 8);
@@ -310,7 +204,7 @@ function drawCoil(ctx: CanvasRenderingContext2D, x: number, y: number, w: number
 export function drawCircuitScene(opts: ElectromagnetismSceneOptions): void {
     const { ctx, width, height, isDark, params } = opts;
     clearScene(ctx, width, height, isDark);
-    drawTitle(ctx, '直流电路分析', width, isDark);
+    drawTitle(ctx, '直流电路分析', width, isDark, { size: 18, y: 28 });
     const emf = params['emf'] ?? 12;
     const r = params['r'] ?? 1;
     const r1 = params['r1'] ?? 10;
@@ -342,18 +236,23 @@ export function drawCircuitScene(opts: ElectromagnetismSceneOptions): void {
     drawResistor(ctx, right, height * 0.58, 80, isDark, `R3 ${r3}Ω`);
     drawArrow(ctx, width * 0.34, top - 24, width * 0.5, top - 24, ORANGE, 'I');
     drawMeter(ctx, width * 0.31, bottom, 34, clamp(current / 2, 0, 1), isDark, 'A', `${current.toFixed(2)} A`);
-    drawHud(ctx, isDark, [
-        { label: 'E', value: `${emf.toFixed(1)} V` },
-        { label: 'R_eq', value: `${req.toFixed(2)} Ω` },
-        { label: 'I', value: `${current.toFixed(2)} A` }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'E', value: `${emf.toFixed(1)} V` },
+            { label: 'R_eq', value: `${req.toFixed(2)} Ω` },
+            { label: 'I', value: `${current.toFixed(2)} A` }
+        ],
+        { boxW: 214 }
+    );
     drawInfoBar(ctx, width, height, parallel ? 'R2 与 R3 并联后再与 R1、内阻串联' : 'R1、R2、R3 与内阻串联', isDark);
 }
 
 export function drawAcCurrentScene(opts: ElectromagnetismSceneOptions): void {
     const { ctx, width, height, isDark, params, currentTime } = opts;
     clearScene(ctx, width, height, isDark);
-    drawTitle(ctx, '交变电流与变压器', width, isDark);
+    drawTitle(ctx, '交变电流与变压器', width, isDark, { size: 18, y: 28 });
     const em = params['Em'] ?? 311;
     const freq = params['freq'] ?? 50;
     const nRatio = params['nRatio'] ?? 0.1;
@@ -390,18 +289,23 @@ export function drawAcCurrentScene(opts: ElectromagnetismSceneOptions): void {
     ctx.moveTo(width * 0.48, height * 0.6);
     ctx.lineTo(width * 0.48, height * 0.76);
     ctx.stroke();
-    drawHud(ctx, isDark, [
-        { label: 'U1m', value: `${em.toFixed(0)} V` },
-        { label: 'f', value: `${freq.toFixed(0)} Hz` },
-        { label: 'U2/U1', value: nRatio.toFixed(2) }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'U1m', value: `${em.toFixed(0)} V` },
+            { label: 'f', value: `${freq.toFixed(0)} Hz` },
+            { label: 'U2/U1', value: nRatio.toFixed(2) }
+        ],
+        { boxW: 214 }
+    );
     drawInfoBar(ctx, width, height, `瞬时值 u1=${u.toFixed(1)} V, u2=${u2.toFixed(1)} V`, isDark);
 }
 
 export function drawEmInductionScene(opts: ElectromagnetismSceneOptions): void {
     const { ctx, width, height, isDark, params, currentTime } = opts;
     clearScene(ctx, width, height, isDark);
-    drawTitle(ctx, '电磁感应', width, isDark);
+    drawTitle(ctx, '电磁感应', width, isDark, { size: 18, y: 28 });
     const b = params['Bind'] ?? 0.5;
     const area = params['A'] ?? 0.01;
     const n = params['Nturns'] ?? 100;
@@ -421,18 +325,23 @@ export function drawEmInductionScene(opts: ElectromagnetismSceneOptions): void {
     ctx.stroke();
     ctx.restore();
     drawMeter(ctx, width * 0.77, cy, 38, clamp(Math.abs(Math.sin(currentTime * 2)), 0, 1), isDark, 'G', '感应电流');
-    drawHud(ctx, isDark, [
-        { label: 'B', value: `${b.toFixed(2)} T` },
-        { label: 'N', value: `${n.toFixed(0)}` },
-        { label: 'Phi', value: `${flux.toFixed(3)} Wb` }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'B', value: `${b.toFixed(2)} T` },
+            { label: 'N', value: `${n.toFixed(0)}` },
+            { label: 'Phi', value: `${flux.toFixed(3)} Wb` }
+        ],
+        { boxW: 214 }
+    );
     drawInfoBar(ctx, width, height, '磁通量变化产生感应电动势: E = -N dPhi/dt', isDark);
 }
 
 export function drawMagneticForceScene(opts: ElectromagnetismSceneOptions): void {
     const { ctx, width, height, isDark, params } = opts;
     clearScene(ctx, width, height, isDark);
-    drawTitle(ctx, '安培力与洛伦兹力', width, isDark);
+    drawTitle(ctx, '安培力与洛伦兹力', width, isDark, { size: 18, y: 28 });
     const b = params['B'] ?? 0.5;
     const i = params['I'] ?? 2;
     const l = params['L'] ?? 0.3;
@@ -471,18 +380,23 @@ export function drawMagneticForceScene(opts: ElectromagnetismSceneOptions): void
     ctx.fill();
     drawArrow(ctx, width * 0.68, height * 0.6, width * 0.82, height * 0.6, GREEN, 'v');
     drawArrow(ctx, width * 0.68, height * 0.6, width * 0.68, height * 0.43, RED, 'qvB');
-    drawHud(ctx, isDark, [
-        { label: 'B', value: `${b.toFixed(2)} T` },
-        { label: 'F_A', value: `${fAmp.toFixed(3)} N` },
-        { label: 'F_L', value: `${fLorentz.toFixed(3)} arb` }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'B', value: `${b.toFixed(2)} T` },
+            { label: 'F_A', value: `${fAmp.toFixed(3)} N` },
+            { label: 'F_L', value: `${fLorentz.toFixed(3)} arb` }
+        ],
+        { boxW: 214 }
+    );
     drawInfoBar(ctx, width, height, '安培力 F=BILsinθ, 洛伦兹力 F=qvBsinφ', isDark);
 }
 
 export function drawAmpereForceScene(opts: ElectromagnetismSceneOptions): void {
     const { ctx, width, height, isDark, params } = opts;
     clearScene(ctx, width, height, isDark);
-    drawTitle(ctx, '安培力因素', width, isDark);
+    drawTitle(ctx, '安培力因素', width, isDark, { size: 18, y: 28 });
     const b = params['B'] ?? 0.5;
     const i = params['I'] ?? 2;
     const l = params['L'] ?? 0.2;
@@ -507,18 +421,23 @@ export function drawAmpereForceScene(opts: ElectromagnetismSceneOptions): void {
     drawArrow(ctx, -70, -18, 55, -18, ORANGE, 'I');
     ctx.restore();
     drawArrow(ctx, cx, cy, cx, cy - clamp(f * 220, 30, 125), RED, 'F');
-    drawHud(ctx, isDark, [
-        { label: 'B', value: `${b.toFixed(2)} T` },
-        { label: 'I', value: `${i.toFixed(2)} A` },
-        { label: 'F', value: `${f.toFixed(3)} N` }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'B', value: `${b.toFixed(2)} T` },
+            { label: 'I', value: `${i.toFixed(2)} A` },
+            { label: 'F', value: `${f.toFixed(3)} N` }
+        ],
+        { boxW: 214 }
+    );
     drawInfoBar(ctx, width, height, `导线与磁场夹角 ${((angle * 180) / Math.PI).toFixed(0)}°, F = BIL sinθ`, isDark);
 }
 
 export function drawCapacitorChargeScene(opts: ElectromagnetismSceneOptions): void {
     const { ctx, width, height, isDark, params, currentTime } = opts;
     clearScene(ctx, width, height, isDark);
-    drawTitle(ctx, 'RC 电容充放电', width, isDark);
+    drawTitle(ctx, 'RC 电容充放电', width, isDark, { size: 18, y: 28 });
     const r = params['resistance'] ?? 1000;
     const cMicro = params['capacitance'] ?? 100;
     const emf = params['emf'] ?? 10;
@@ -552,18 +471,23 @@ export function drawCapacitorChargeScene(opts: ElectromagnetismSceneOptions): vo
         isDark,
         label: 'U_C(t)'
     });
-    drawHud(ctx, isDark, [
-        { label: 'tau', value: `${tau.toFixed(3)} s` },
-        { label: 'Uc', value: `${u.toFixed(2)} V` },
-        { label: 'mode', value: mode < 0.5 ? 'charge' : 'discharge' }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'tau', value: `${tau.toFixed(3)} s` },
+            { label: 'Uc', value: `${u.toFixed(2)} V` },
+            { label: 'mode', value: mode < 0.5 ? 'charge' : 'discharge' }
+        ],
+        { boxW: 214 }
+    );
     drawInfoBar(ctx, width, height, mode < 0.5 ? '充电: Uc=E(1-e^-t/RC)' : '放电: Uc=U0 e^-t/RC', isDark);
 }
 
 export function drawParallelPlateCapacitorScene(opts: ElectromagnetismSceneOptions): void {
     const { ctx, width, height, isDark, params } = opts;
     clearScene(ctx, width, height, isDark);
-    drawTitle(ctx, '平行板电容器', width, isDark);
+    drawTitle(ctx, '平行板电容器', width, isDark, { size: 18, y: 28 });
     const area = params['area'] ?? 0.01;
     const distanceMm = params['distance'] ?? 1;
     const er = params['epsilonR'] ?? 3;
@@ -584,18 +508,23 @@ export function drawParallelPlateCapacitorScene(opts: ElectromagnetismSceneOptio
     ctx.fillStyle = `rgba(34,197,94,${clamp(er / 8, 0.12, 0.5)})`;
     roundRectPath(ctx, cx - gap / 2 + 12, cy - plateH / 2, gap - 12, plateH, 4);
     ctx.fill();
-    drawHud(ctx, isDark, [
-        { label: 'S', value: `${area.toFixed(3)} m2` },
-        { label: 'd', value: `${distanceMm.toFixed(2)} mm` },
-        { label: 'C', value: `${(cap * 1e12).toFixed(1)} pF` }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'S', value: `${area.toFixed(3)} m2` },
+            { label: 'd', value: `${distanceMm.toFixed(2)} mm` },
+            { label: 'C', value: `${(cap * 1e12).toFixed(1)} pF` }
+        ],
+        { boxW: 214 }
+    );
     drawInfoBar(ctx, width, height, 'C = epsilon0 * epsilonR * S / d, 极板越大/间距越小电容越大', isDark);
 }
 
 export function drawLoadVoltageScene(opts: ElectromagnetismSceneOptions): void {
     const { ctx, width, height, isDark, params } = opts;
     clearScene(ctx, width, height, isDark);
-    drawTitle(ctx, '路端电压与负载', width, isDark);
+    drawTitle(ctx, '路端电压与负载', width, isDark, { size: 18, y: 28 });
     const emf = params['emf'] ?? 12;
     const r = params['internalResistance'] ?? 2;
     const rMin = params['loadRMin'] ?? 1;
@@ -619,18 +548,23 @@ export function drawLoadVoltageScene(opts: ElectromagnetismSceneOptions): void {
     drawResistor(ctx, width * 0.43, y, 82, isDark, `r ${r}Ω`);
     drawResistor(ctx, width * 0.66, y, 90, isDark, `R ${load.toFixed(1)}Ω`);
     drawMeter(ctx, width * 0.66, y + 90, 34, clamp(u / emf, 0, 1), isDark, 'V', `${u.toFixed(2)} V`);
-    drawHud(ctx, isDark, [
-        { label: 'E', value: `${emf.toFixed(1)} V` },
-        { label: 'I', value: `${current.toFixed(2)} A` },
-        { label: 'U', value: `${u.toFixed(2)} V` }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'E', value: `${emf.toFixed(1)} V` },
+            { label: 'I', value: `${current.toFixed(2)} A` },
+            { label: 'U', value: `${u.toFixed(2)} V` }
+        ],
+        { boxW: 214 }
+    );
     drawInfoBar(ctx, width, height, '负载越小电流越大, 内阻分压越明显: U = E - Ir', isDark);
 }
 
 export function drawResistanceLawScene(opts: ElectromagnetismSceneOptions): void {
     const { ctx, width, height, isDark, params } = opts;
     clearScene(ctx, width, height, isDark);
-    drawTitle(ctx, '电阻定律', width, isDark);
+    drawTitle(ctx, '电阻定律', width, isDark, { size: 18, y: 28 });
     const len = params['length'] ?? 1;
     const diameterMm = params['diameter'] ?? 1;
     const material = params['material'] ?? 0;
@@ -653,18 +587,23 @@ export function drawResistanceLawScene(opts: ElectromagnetismSceneOptions): void
     ctx.lineTo(x2, y);
     ctx.stroke();
     drawArrow(ctx, x1, y + 50, x2, y + 50, GREEN, 'L');
-    drawHud(ctx, isDark, [
-        { label: 'L', value: `${len.toFixed(2)} m` },
-        { label: 'd', value: `${diameterMm.toFixed(2)} mm` },
-        { label: 'R', value: `${resistance.toFixed(3)} Ω` }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'L', value: `${len.toFixed(2)} m` },
+            { label: 'd', value: `${diameterMm.toFixed(2)} mm` },
+            { label: 'R', value: `${resistance.toFixed(3)} Ω` }
+        ],
+        { boxW: 214 }
+    );
     drawInfoBar(ctx, width, height, 'R = rho * L / S, 长度越长电阻越大, 横截面积越大电阻越小', isDark);
 }
 
 export function drawMultimeterScene(opts: ElectromagnetismSceneOptions): void {
     const { ctx, width, height, isDark, params } = opts;
     clearScene(ctx, width, height, isDark);
-    drawTitle(ctx, '多用电表读数', width, isDark);
+    drawTitle(ctx, '多用电表读数', width, isDark, { size: 18, y: 28 });
     const mode = params['mode'] ?? 0;
     const range = params['range'] ?? 10;
     const value = params['testValue'] ?? 4.5;
@@ -693,18 +632,23 @@ export function drawMultimeterScene(opts: ElectromagnetismSceneOptions): void {
         knobY + Math.sin(-Math.PI / 2 + mode) * 32,
         ORANGE
     );
-    drawHud(ctx, isDark, [
-        { label: 'range', value: `${range}` },
-        { label: 'value', value: `${value.toFixed(2)}` },
-        { label: 'ratio', value: `${(ratio * 100).toFixed(0)}%` }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'range', value: `${range}` },
+            { label: 'value', value: `${value.toFixed(2)}` },
+            { label: 'ratio', value: `${(ratio * 100).toFixed(0)}%` }
+        ],
+        { boxW: 214 }
+    );
     drawInfoBar(ctx, width, height, '读数 = 指针比例 * 所选量程, 电压并联/电流串联/欧姆档先调零', isDark);
 }
 
 export function drawVernierCaliperScene(opts: ElectromagnetismSceneOptions): void {
     const { ctx, width, height, isDark, params } = opts;
     clearScene(ctx, width, height, isDark);
-    drawTitle(ctx, '游标卡尺读数', width, isDark);
+    drawTitle(ctx, '游标卡尺读数', width, isDark, { size: 18, y: 28 });
     const size = params['objectSize'] ?? 23.4;
     const nType = params['nType'] ?? 1;
     const precision = nType < 0.5 ? 0.1 : nType < 1.5 ? 0.05 : 0.02;
@@ -713,7 +657,7 @@ export function drawVernierCaliperScene(opts: ElectromagnetismSceneOptions): voi
     const x0 = width * 0.16;
     const y = height * 0.48;
     const scale = 8;
-    ctx.strokeStyle = labelColor(isDark);
+    ctx.strokeStyle = textColor(isDark);
     ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.moveTo(x0, y);
@@ -737,24 +681,29 @@ export function drawVernierCaliperScene(opts: ElectromagnetismSceneOptions): voi
     roundRectPath(ctx, vx - 44, y + 14, 96, 40, 4);
     ctx.fill();
     drawArrow(ctx, vx, y - 42, vx, y - 4, RED, '测量爪');
-    drawHud(ctx, isDark, [
-        { label: 'main', value: `${main} mm` },
-        { label: 'vernier', value: `${vernier} * ${precision}` },
-        { label: 'L', value: `${size.toFixed(2)} mm` }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'main', value: `${main} mm` },
+            { label: 'vernier', value: `${vernier} * ${precision}` },
+            { label: 'L', value: `${size.toFixed(2)} mm` }
+        ],
+        { boxW: 214 }
+    );
     drawInfoBar(ctx, width, height, '总读数 = 主尺读数 + 游标对齐格数 * 精度', isDark);
 }
 
 export function drawMicrometerScene(opts: ElectromagnetismSceneOptions): void {
     const { ctx, width, height, isDark, params } = opts;
     clearScene(ctx, width, height, isDark);
-    drawTitle(ctx, '螺旋测微器读数', width, isDark);
+    drawTitle(ctx, '螺旋测微器读数', width, isDark, { size: 18, y: 28 });
     const thickness = params['thickness'] ?? 5.75;
     const main = Math.floor(thickness * 2) / 2;
     const drum = Math.round((thickness - main) / 0.01);
     const cx = width * 0.5;
     const cy = height * 0.52;
-    ctx.strokeStyle = labelColor(isDark);
+    ctx.strokeStyle = textColor(isDark);
     ctx.lineWidth = 9;
     ctx.beginPath();
     ctx.arc(cx - 115, cy, 62, Math.PI * 0.55, Math.PI * 1.45);
@@ -782,11 +731,16 @@ export function drawMicrometerScene(opts: ElectromagnetismSceneOptions): void {
     ctx.fillStyle = ORANGE;
     roundRectPath(ctx, cx - 104, cy - 14, clamp(thickness * 10, 18, 86), 28, 4);
     ctx.fill();
-    drawHud(ctx, isDark, [
-        { label: 'main', value: `${main.toFixed(2)} mm` },
-        { label: 'drum', value: `${drum} * 0.01` },
-        { label: 'L', value: `${thickness.toFixed(2)} mm` }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'main', value: `${main.toFixed(2)} mm` },
+            { label: 'drum', value: `${drum} * 0.01` },
+            { label: 'L', value: `${thickness.toFixed(2)} mm` }
+        ],
+        { boxW: 214 }
+    );
     drawInfoBar(ctx, width, height, '总读数 = 固定套筒主尺 + 微分筒刻度 * 0.01 mm', isDark);
 }
 
@@ -829,7 +783,7 @@ function drawText(
     size = 13,
     color?: string
 ): void {
-    ctx.fillStyle = color ?? labelColor(isDark);
+    ctx.fillStyle = color ?? textColor(isDark);
     ctx.font = `${size}px system-ui, sans-serif`;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
@@ -840,7 +794,7 @@ function drawText(
 export function drawCoulombForceExploreScene(opts: ElectromagnetismSceneOptions): void {
     const { ctx, width, height, isDark, params } = opts;
     clearScene(ctx, width, height, isDark);
-    drawTitle(ctx, '探究电荷间作用力 (库仑定律)', width, isDark);
+    drawTitle(ctx, '探究电荷间作用力 (库仑定律)', width, isDark, { size: 18, y: 28 });
     const K = 8.9875517923e9;
     const q1 = params['q1'] ?? 1;
     const q2 = params['q2'] ?? 1;
@@ -894,11 +848,16 @@ export function drawCoulombForceExploreScene(opts: ElectromagnetismSceneOptions)
     }
     ctx.stroke();
 
-    drawHud(ctx, isDark, [
-        { label: 'q₁', value: `${q1.toFixed(2)} μC` },
-        { label: 'q₂', value: `${q2.toFixed(2)} μC` },
-        { label: 'F', value: `${F < 1e-3 ? (F * 1e6).toFixed(2) + ' μN' : F.toFixed(3) + ' N'}` }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'q₁', value: `${q1.toFixed(2)} μC` },
+            { label: 'q₂', value: `${q2.toFixed(2)} μC` },
+            { label: 'F', value: `${F < 1e-3 ? (F * 1e6).toFixed(2) + ' μN' : F.toFixed(3) + ' N'}` }
+        ],
+        { boxW: 214 }
+    );
     drawInfoBar(ctx, width, height, `F = k·q₁q₂/r² = ${F.toExponential(2)} N（k=8.99×10⁹）`, isDark);
 }
 
@@ -906,7 +865,7 @@ export function drawCoulombForceExploreScene(opts: ElectromagnetismSceneOptions)
 export function drawElectroscopeScene(opts: ElectromagnetismSceneOptions): void {
     const { ctx, width, height, isDark, params } = opts;
     clearScene(ctx, width, height, isDark);
-    drawTitle(ctx, '验电器 (箔片张角 vs 电量)', width, isDark);
+    drawTitle(ctx, '验电器 (箔片张角 vs 电量)', width, isDark, { size: 18, y: 28 });
     const K = 8.9875517923e9;
     const q = params['charge'] ?? 1;
     const foilLength = params['foilLength'] ?? 5;
@@ -951,13 +910,18 @@ export function drawElectroscopeScene(opts: ElectromagnetismSceneOptions): void 
         pivotY + tipLen * 0.6,
         isDark,
         13,
-        labelColor(isDark)
+        textColor(isDark)
     );
-    drawHud(ctx, isDark, [
-        { label: 'q', value: `${q.toFixed(2)} μC` },
-        { label: 'L', value: `${foilLength.toFixed(1)} cm` },
-        { label: 'θ', value: `${((theta * 180) / Math.PI).toFixed(1)}°` }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'q', value: `${q.toFixed(2)} μC` },
+            { label: 'L', value: `${foilLength.toFixed(1)} cm` },
+            { label: 'θ', value: `${((theta * 180) / Math.PI).toFixed(1)}°` }
+        ],
+        { boxW: 214 }
+    );
     drawInfoBar(ctx, width, height, '同种电荷相互排斥，箔片张角随带电量增大', isDark);
 }
 
@@ -965,7 +929,7 @@ export function drawElectroscopeScene(opts: ElectromagnetismSceneOptions): void 
 export function drawElectrostaticInductionScene(opts: ElectromagnetismSceneOptions): void {
     const { ctx, width, height, isDark, params } = opts;
     clearScene(ctx, width, height, isDark);
-    drawTitle(ctx, '静电感应 (近/远端感应电荷)', width, isDark);
+    drawTitle(ctx, '静电感应 (近/远端感应电荷)', width, isDark, { size: 18, y: 28 });
     const chargeC = params['chargeC'] ?? 1;
     const separation = params['separation'] ?? 2;
     const distanceAC = params['distanceAC'] ?? 10;
@@ -1026,11 +990,16 @@ export function drawElectrostaticInductionScene(opts: ElectromagnetismSceneOptio
         13,
         mutedColor(isDark)
     );
-    drawHud(ctx, isDark, [
-        { label: 'C', value: `${chargeC.toFixed(2)} μC ${cSign > 0 ? '(+)' : '(−)'}` },
-        { label: 'd_AC', value: `${distanceAC.toFixed(1)} cm` },
-        { label: '近端', value: sym(aNearSign) }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'C', value: `${chargeC.toFixed(2)} μC ${cSign > 0 ? '(+)' : '(−)'}` },
+            { label: 'd_AC', value: `${distanceAC.toFixed(1)} cm` },
+            { label: '近端', value: sym(aNearSign) }
+        ],
+        { boxW: 214 }
+    );
     drawInfoBar(ctx, width, height, '导体近端感应出异种电荷、远端同种电荷', isDark);
 }
 
@@ -1038,7 +1007,7 @@ export function drawElectrostaticInductionScene(opts: ElectromagnetismSceneOptio
 export function drawElectrostaticShieldingScene(opts: ElectromagnetismSceneOptions): void {
     const { ctx, width, height, isDark, params } = opts;
     clearScene(ctx, width, height, isDark);
-    drawTitle(ctx, '静电屏蔽 (接地 vs 不接地)', width, isDark);
+    drawTitle(ctx, '静电屏蔽 (接地 vs 不接地)', width, isDark, { size: 18, y: 28 });
     const externalField = params['externalField'] ?? 500;
     const cavityCharge = params['cavityCharge'] ?? 0;
     const grounded = (params['isGrounded'] ?? 1) >= 0.5;
@@ -1096,12 +1065,17 @@ export function drawElectrostaticShieldingScene(opts: ElectromagnetismSceneOptio
         drawChargeSymbol(ctx, shellX + shellW / 2, shellY + shellH / 2, 14, cavityCharge >= 0 ? 1 : -1, isDark);
     }
     const eInside = cavityCharge !== 0 ? '≠ 0 (腔内电荷)' : '= 0';
-    drawText(ctx, `导体内部场强 ${eInside}`, shellX, shellY - 10, isDark, 13, labelColor(isDark));
-    drawHud(ctx, isDark, [
-        { label: 'E_ext', value: `${externalField.toFixed(0)} V/m` },
-        { label: '接地', value: grounded ? '是' : '否' },
-        { label: 'E_in', value: cavityCharge !== 0 ? '见腔内' : '0' }
-    ]);
+    drawText(ctx, `导体内部场强 ${eInside}`, shellX, shellY - 10, isDark, 13, textColor(isDark));
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'E_ext', value: `${externalField.toFixed(0)} V/m` },
+            { label: '接地', value: grounded ? '是' : '否' },
+            { label: 'E_in', value: cavityCharge !== 0 ? '见腔内' : '0' }
+        ],
+        { boxW: 214 }
+    );
     drawInfoBar(ctx, width, height, '静电平衡时导体内部场强为零，外电场被屏蔽', isDark);
 }
 
@@ -1109,7 +1083,7 @@ export function drawElectrostaticShieldingScene(opts: ElectromagnetismSceneOptio
 export function drawFaradayCupScene(opts: ElectromagnetismSceneOptions): void {
     const { ctx, width, height, isDark, params } = opts;
     clearScene(ctx, width, height, isDark);
-    drawTitle(ctx, '法拉第圆筒 (内表面电荷=0)', width, isDark);
+    drawTitle(ctx, '法拉第圆筒 (内表面电荷=0)', width, isDark, { size: 18, y: 28 });
     const totalCharge = params['totalCharge'] ?? 5;
     const cx = width * 0.5;
     const topY = height * 0.26;
@@ -1147,11 +1121,16 @@ export function drawFaradayCupScene(opts: ElectromagnetismSceneOptions): void {
     ctx.stroke();
     drawText(ctx, '内探针: 0', cx + 18, innerProbeY, isDark, 13, mutedColor(isDark));
     drawText(ctx, `外探针: ${totalCharge.toFixed(1)} μC`, cx + 18, topY + 14, isDark, 13, ORANGE);
-    drawHud(ctx, isDark, [
-        { label: 'Q', value: `${totalCharge.toFixed(1)} μC` },
-        { label: '内表面', value: '0' },
-        { label: '外表面', value: `${totalCharge.toFixed(1)} μC` }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'Q', value: `${totalCharge.toFixed(1)} μC` },
+            { label: '内表面', value: '0' },
+            { label: '外表面', value: `${totalCharge.toFixed(1)} μC` }
+        ],
+        { boxW: 214 }
+    );
     drawInfoBar(ctx, width, height, '静电平衡时净电荷只分布在外表面，内表面电荷为零', isDark);
 }
 
@@ -1159,7 +1138,7 @@ export function drawFaradayCupScene(opts: ElectromagnetismSceneOptions): void {
 export function drawEmWaveHertzScene(opts: ElectromagnetismSceneOptions): void {
     const { ctx, width, height, isDark, params, currentTime } = opts;
     clearScene(ctx, width, height, isDark);
-    drawTitle(ctx, '赫兹电磁波实验 (LC 振荡 + 驻波)', width, isDark);
+    drawTitle(ctx, '赫兹电磁波实验 (LC 振荡 + 驻波)', width, isDark, { size: 18, y: 28 });
     const C = 2.99792458e8;
     const frequency = (params['frequency'] ?? 100) * 1e6;
     const turns = params['turns'] ?? 10;
@@ -1172,7 +1151,7 @@ export function drawEmWaveHertzScene(opts: ElectromagnetismSceneOptions): void {
     const midY = height * 0.46;
     // 发射端：火花间隙 + 线圈
     drawChargeSymbol(ctx, emitX, midY - 28, 12, 1, isDark);
-    ctx.strokeStyle = labelColor(isDark);
+    ctx.strokeStyle = textColor(isDark);
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(emitX, midY - 16);
@@ -1210,11 +1189,16 @@ export function drawEmWaveHertzScene(opts: ElectromagnetismSceneOptions): void {
         13,
         mutedColor(isDark)
     );
-    drawHud(ctx, isDark, [
-        { label: 'f', value: `${frequency.toExponential(2)} Hz` },
-        { label: 'λ', value: `${(lambda * 100).toFixed(1)} cm` },
-        { label: 'd', value: `${distance.toFixed(1)} m` }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'f', value: `${frequency.toExponential(2)} Hz` },
+            { label: 'λ', value: `${(lambda * 100).toFixed(1)} cm` },
+            { label: 'd', value: `${distance.toFixed(1)} m` }
+        ],
+        { boxW: 214 }
+    );
     drawInfoBar(
         ctx,
         width,
@@ -1228,7 +1212,7 @@ export function drawEmWaveHertzScene(opts: ElectromagnetismSceneOptions): void {
 export function drawEddyCurrentScene(opts: ElectromagnetismSceneOptions): void {
     const { ctx, width, height, isDark, params, currentTime } = opts;
     clearScene(ctx, width, height, isDark);
-    drawTitle(ctx, '涡流现象 (阻尼摆动)', width, isDark);
+    drawTitle(ctx, '涡流现象 (阻尼摆动)', width, isDark, { size: 18, y: 28 });
     const magneticField = params['magneticField'] ?? 0.2;
     const frequency = params['frequency'] ?? 50;
     const conductivity = params['conductivity'] ?? 5.8e7;
@@ -1282,11 +1266,16 @@ export function drawEddyCurrentScene(opts: ElectromagnetismSceneOptions): void {
     // 磁铁
     drawText(ctx, 'N', plateX - 6, plateY + 70, isDark, 13, RED);
     drawText(ctx, 'S', plateX + 6, plateY + 70, isDark, 13, BLUE);
-    drawHud(ctx, isDark, [
-        { label: 'B', value: `${magneticField.toFixed(2)} T` },
-        { label: 'f', value: `${frequency.toFixed(0)} Hz` },
-        { label: 'τ', value: `${tau.toFixed(1)} s` }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'B', value: `${magneticField.toFixed(2)} T` },
+            { label: 'f', value: `${frequency.toFixed(0)} Hz` },
+            { label: 'τ', value: `${tau.toFixed(1)} s` }
+        ],
+        { boxW: 214 }
+    );
     drawInfoBar(ctx, width, height, '变化的磁场在导体中产生涡流，涡流阻碍相对运动（电磁阻尼）', isDark);
 }
 
@@ -1294,7 +1283,7 @@ export function drawEddyCurrentScene(opts: ElectromagnetismSceneOptions): void {
 export function drawEmWaveCommunicationScene(opts: ElectromagnetismSceneOptions): void {
     const { ctx, width, height, isDark, params, currentTime } = opts;
     clearScene(ctx, width, height, isDark);
-    drawTitle(ctx, '电磁波发射接收 (AM 调幅)', width, isDark);
+    drawTitle(ctx, '电磁波发射接收 (AM 调幅)', width, isDark, { size: 18, y: 28 });
     const carrierFreq = params['carrierFreq'] ?? 1;
     const audioFreq = params['audioFreq'] ?? 1;
     const m = params['modulationIndex'] ?? 0.8;
@@ -1338,11 +1327,16 @@ export function drawEmWaveCommunicationScene(opts: ElectromagnetismSceneOptions)
         ctx.stroke();
         drawText(ctx, row.title, ax, row.y - 42, isDark, 12, mutedColor(isDark));
     }
-    drawHud(ctx, isDark, [
-        { label: 'f_c', value: `${carrierFreq.toFixed(2)} MHz` },
-        { label: 'f_m', value: `${audioFreq.toFixed(2)} kHz` },
-        { label: 'm', value: m.toFixed(2) }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'f_c', value: `${carrierFreq.toFixed(2)} MHz` },
+            { label: 'f_m', value: `${audioFreq.toFixed(2)} kHz` },
+            { label: 'm', value: m.toFixed(2) }
+        ],
+        { boxW: 214 }
+    );
     drawInfoBar(ctx, width, height, `已调波 s(t)=A꜀(1+m·cosωₘt)cosω_ct，传输距离 ${distance.toFixed(1)} km`, isDark);
 }
 
@@ -1350,7 +1344,7 @@ export function drawEmWaveCommunicationScene(opts: ElectromagnetismSceneOptions)
 export function drawEmSpectrumScene(opts: ElectromagnetismSceneOptions): void {
     const { ctx, width, height, isDark, params } = opts;
     clearScene(ctx, width, height, isDark);
-    drawTitle(ctx, '电磁波谱 (频段分布)', width, isDark);
+    drawTitle(ctx, '电磁波谱 (频段分布)', width, isDark, { size: 18, y: 28 });
     const fMin = Math.pow(10, params['freqMinExp'] ?? 1);
     const fMax = Math.pow(10, params['freqMaxExp'] ?? 16);
     const logMin = Math.log10(fMin);
@@ -1407,10 +1401,15 @@ export function drawEmSpectrumScene(opts: ElectromagnetismSceneOptions): void {
         ctx.stroke();
         ctx.fillText(`10^${p}`, tx - 14, barY + barH + 20);
     }
-    drawHud(ctx, isDark, [
-        { label: 'f_min', value: `${logMin.toFixed(0)} Hz` },
-        { label: 'f_max', value: `${logMax.toFixed(0)} Hz` },
-        { label: 'c', value: '3×10⁸ m/s' }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'f_min', value: `${logMin.toFixed(0)} Hz` },
+            { label: 'f_max', value: `${logMax.toFixed(0)} Hz` },
+            { label: 'c', value: '3×10⁸ m/s' }
+        ],
+        { boxW: 214 }
+    );
     drawInfoBar(ctx, width, height, '电磁波按频率递增分为七段，真空中波速 c 恒定、λ = c/f', isDark);
 }
