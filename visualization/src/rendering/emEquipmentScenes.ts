@@ -16,6 +16,7 @@
  */
 
 import type { SimulationResult } from 'physics-core';
+import { roundRectPath, drawEmptyState, drawHud, drawInfoBar, drawArrow } from './renderingUtils';
 
 // ========== 共享类型 ==========
 
@@ -30,77 +31,6 @@ export interface EmEquipSceneOptions {
 }
 
 // ========== 共享工具函数 ==========
-
-/** 圆角矩形路径 */
-function roundRectPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.lineTo(x + w - r, y);
-    ctx.arcTo(x + w, y, x + w, y + r, r);
-    ctx.lineTo(x + w, y + h - r);
-    ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
-    ctx.lineTo(x + r, y + h);
-    ctx.arcTo(x, y + h, x, y + h - r, r);
-    ctx.lineTo(x, y + r);
-    ctx.arcTo(x, y, x + r, y, r);
-    ctx.closePath();
-}
-
-/** 绘制"点击运行仿真"提示 */
-function drawEmptyState(ctx: CanvasRenderingContext2D, width: number, height: number, isDark: boolean): void {
-    ctx.fillStyle = isDark ? '#64748b' : '#94a3b8';
-    ctx.font = '16px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('点击「运行仿真」开始', width / 2, height / 2);
-    ctx.textBaseline = 'alphabetic';
-}
-
-/** 绘制左上角 HUD */
-function drawHud(
-    ctx: CanvasRenderingContext2D,
-    isDark: boolean,
-    rows: Array<{ label: string; value: string }>,
-    boxW = 200
-): void {
-    if (rows.length === 0) return;
-    const padding = 10;
-    const lineH = 18;
-    const boxH = rows.length * lineH + padding * 2;
-
-    ctx.fillStyle = isDark ? 'rgba(15,23,42,0.75)' : 'rgba(255,255,255,0.85)';
-    roundRectPath(ctx, 8, 10, boxW, boxH, 6);
-    ctx.fill();
-
-    rows.forEach((row, i) => {
-        const y = 10 + padding + i * lineH;
-        ctx.font = 'bold 12px monospace';
-        ctx.fillStyle = isDark ? '#e2e8f0' : '#1e293b';
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'top';
-        ctx.fillText(`${row.label} = ${row.value}`, 16, y);
-    });
-    ctx.textBaseline = 'alphabetic';
-}
-
-/** 绘制底部信息条 */
-function drawInfoBar(
-    ctx: CanvasRenderingContext2D,
-    width: number,
-    height: number,
-    text: string,
-    isDark: boolean
-): void {
-    ctx.font = '12px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'alphabetic';
-    const tw = ctx.measureText(text).width;
-    ctx.fillStyle = isDark ? 'rgba(15,23,42,0.7)' : 'rgba(255,255,255,0.8)';
-    roundRectPath(ctx, width / 2 - tw / 2 - 8, height - 34, tw + 16, 22, 4);
-    ctx.fill();
-    ctx.fillStyle = isDark ? '#94a3b8' : '#64748b';
-    ctx.fillText(text, width / 2, height - 18);
-}
 
 /** 迷你折线图: 在指定区域内绘制 x-y 数据 */
 function drawMiniChart(opts: {
@@ -204,40 +134,6 @@ function drawMiniChart(opts: {
         ctx.textAlign = 'left';
         ctx.fillText(label, x + 4, y + h + 4);
     }
-}
-
-/** 绘制一根磁通量箭头: 从 (x1,y1) 到 (x2,y2) */
-function drawArrow(
-    ctx: CanvasRenderingContext2D,
-    x1: number,
-    y1: number,
-    x2: number,
-    y2: number,
-    color: string,
-    lineWidth = 2,
-    headLen = 10
-): void {
-    const dx = x2 - x1,
-        dy = y2 - y1;
-    const len = Math.sqrt(dx * dx + dy * dy);
-    if (len < 2) return;
-    ctx.save();
-    const angle = Math.atan2(dy, dx);
-    ctx.strokeStyle = color;
-    ctx.fillStyle = color;
-    ctx.lineWidth = lineWidth;
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2 - headLen * 0.5 * Math.cos(angle), y2 - headLen * 0.5 * Math.sin(angle));
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(x2, y2);
-    ctx.lineTo(x2 - headLen * Math.cos(angle - 0.4), y2 - headLen * Math.sin(angle - 0.4));
-    ctx.lineTo(x2 - headLen * Math.cos(angle + 0.4), y2 - headLen * Math.sin(angle + 0.4));
-    ctx.closePath();
-    ctx.fill();
-    ctx.restore();
 }
 
 /** 绘制一个线圈 (水平跑道形) */
@@ -435,7 +331,7 @@ export function drawCurrentBalanceScene(opts: EmEquipSceneOptions): void {
     const iDir = I >= 0 ? 1 : -1;
     const arrowX1 = rodMidX - 20 * iDir;
     const arrowX2 = rodMidX + 20 * iDir;
-    drawArrow(ctx, arrowX1, rodY - 10, arrowX2, rodY - 10, '#fbbf24', 2.5, 8);
+    drawArrow(ctx, arrowX1, rodY - 10, arrowX2, rodY - 10, '#fbbf24');
     ctx.fillStyle = '#fbbf24';
     ctx.font = 'bold 11px sans-serif';
     ctx.textAlign = 'center';
@@ -444,7 +340,7 @@ export function drawCurrentBalanceScene(opts: EmEquipSceneOptions): void {
     // --- 安培力箭头 (沿导体棒向上/下) ---
     const fDir = F_net < 0 ? -1 : 1; // F_net<0 → 安培力向上 → 箭头画在下方表示力向上 ? 用颜色+标签
     const fEndY = rodY - fDir * 60;
-    drawArrow(ctx, rodMidX + 30, rodY, rodMidX + 30, fEndY, '#22c55e', 3, 10);
+    drawArrow(ctx, rodMidX + 30, rodY, rodMidX + 30, fEndY, '#22c55e');
     ctx.fillStyle = '#22c55e';
     ctx.font = 'bold 11px sans-serif';
     ctx.textAlign = 'left';
@@ -478,7 +374,7 @@ export function drawCurrentBalanceScene(opts: EmEquipSceneOptions): void {
     ctx.textAlign = 'center';
     ctx.fillText(`${m.toFixed(3)}kg`, leftX, cordY + panH + wH - 4);
     // 重力箭头
-    drawArrow(ctx, leftX - 36, cordY + panH + wH, leftX - 36, cordY + panH + wH + 40, '#ef4444', 2.5, 8);
+    drawArrow(ctx, leftX - 36, cordY + panH + wH, leftX - 36, cordY + panH + wH + 40, '#ef4444');
     ctx.fillStyle = '#ef4444';
     ctx.font = 'bold 10px sans-serif';
     ctx.textAlign = 'right';
@@ -583,7 +479,8 @@ export function drawCurrentBalanceScene(opts: EmEquipSceneOptions): void {
         width,
         height,
         `I_eq=${I_eq.toFixed(3)}A  m_eq=${(m_eq * 1000).toFixed(1)}g  n=${n}匝  l=${l}m`,
-        isDark
+        isDark,
+        { height: 22, yOffset: 34 }
     );
 
     if (!simulationResult) drawEmptyState(ctx, width, height, isDark);
@@ -844,7 +741,7 @@ export function drawEmDampingScene(opts: EmEquipSceneOptions): void {
             { label: 'τ_c', value: `${tauC.toFixed(4)} s` },
             { label: 'A(t)', value: `${((A_t * 180) / Math.PI).toFixed(2)} °` }
         ],
-        210
+        { boxW: 210 }
     );
 
     drawInfoBar(
@@ -852,7 +749,8 @@ export function drawEmDampingScene(opts: EmEquipSceneOptions): void {
         width,
         height,
         `B=${B}T  ω₀=${omega0}rad/s  J=${J}kg·m²  R=${R}m  τ_c=${tauC.toFixed(4)}s`,
-        isDark
+        isDark,
+        { height: 22, yOffset: 34 }
     );
 
     if (!simulationResult) drawEmptyState(ctx, width, height, isDark);
@@ -922,7 +820,7 @@ export function drawMutualInductanceScene(opts: EmEquipSceneOptions): void {
     const fluxX = (coilLeftX + coilRightX) / 2;
     const fluxY = coreY + coreH / 2;
     const fluxDir = Math.sin(omega * currentTime) >= 0 ? 1 : -1;
-    drawArrow(ctx, fluxX - 30 * fluxDir, fluxY, fluxX + 30 * fluxDir, fluxDir > 0 ? fluxY : fluxY, '#a855f7', 2.5, 8);
+    drawArrow(ctx, fluxX - 30 * fluxDir, fluxY, fluxX + 30 * fluxDir, fluxDir > 0 ? fluxY : fluxY, '#a855f7');
     ctx.fillStyle = '#a855f7';
     ctx.font = '10px sans-serif';
     ctx.textAlign = 'center';
@@ -1201,7 +1099,7 @@ export function drawMutualInductanceScene(opts: EmEquipSceneOptions): void {
             { label: 'M', value: `${M.toExponential(2)} H` },
             { label: 'E2pk', value: `${E2pk.toFixed(3)} V` }
         ],
-        210
+        { boxW: 210 }
     );
 
     drawInfoBar(
@@ -1209,7 +1107,8 @@ export function drawMutualInductanceScene(opts: EmEquipSceneOptions): void {
         width,
         height,
         `L1=${L1}H  L2=${L2}H  k=${k}  f=${f}Hz  I0=${I0}A  M=${M.toExponential(3)}H  E2pk=${E2pk.toFixed(3)}V`,
-        isDark
+        isDark,
+        { height: 22, yOffset: 34 }
     );
 
     if (!simulationResult) drawEmptyState(ctx, width, height, isDark);
@@ -1544,7 +1443,7 @@ export function drawSelfInductanceScene(opts: EmEquipSceneOptions): void {
             { label: 'I_ss', value: `${Iss.toFixed(3)} A` },
             { label: 'i(t)', value: `${iNow.toFixed(4)} A` }
         ],
-        210
+        { boxW: 210 }
     );
 
     drawInfoBar(
@@ -1552,7 +1451,8 @@ export function drawSelfInductanceScene(opts: EmEquipSceneOptions): void {
         width,
         height,
         `L=${L}H  R=${R}Ω  E=${E}V  τ=${(tau * 1000).toFixed(2)}ms  I_ss=${Iss.toFixed(3)}A  i(t)=${iNow.toFixed(4)}A`,
-        isDark
+        isDark,
+        { height: 22, yOffset: 34 }
     );
 
     if (!simulationResult) drawEmptyState(ctx, width, height, isDark);
@@ -1900,7 +1800,7 @@ export function drawLCOscillatorScene(opts: EmEquipSceneOptions): void {
             { label: 'T', value: `${(T * 1e6).toFixed(2)} μs` },
             { label: 'E_total', value: `${(E_total * 1e6).toFixed(3)} μJ` }
         ],
-        220
+        { boxW: 220 }
     );
 
     drawInfoBar(
@@ -1908,7 +1808,8 @@ export function drawLCOscillatorScene(opts: EmEquipSceneOptions): void {
         width,
         height,
         `L=${L_uh}μH  C=${C_pf}pF  f=${(f / 1e3).toFixed(2)}kHz  T=${(T * 1e6).toFixed(2)}μs  Q0=${Q0_uc}μC  Im=${(Im * 1e3).toFixed(2)}mA`,
-        isDark
+        isDark,
+        { height: 22, yOffset: 34 }
     );
 
     if (!simulationResult) drawEmptyState(ctx, width, height, isDark);
