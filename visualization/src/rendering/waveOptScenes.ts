@@ -16,6 +16,7 @@
  */
 
 import type { SimulationResult } from 'physics-core';
+import { clearScene, drawTitle, drawSubtitle, clamp, roundRectPath, drawArrow } from './renderingUtils';
 
 // ========== 共享类型 ==========
 
@@ -30,83 +31,6 @@ export interface WaveOptSceneOptions {
 }
 
 // ========== 共享工具 ==========
-
-function clearScene(ctx: CanvasRenderingContext2D, w: number, h: number, isDark: boolean) {
-    ctx.fillStyle = isDark ? '#0f172a' : '#f8fafc';
-    ctx.fillRect(0, 0, w, h);
-}
-
-function drawTitle(ctx: CanvasRenderingContext2D, title: string, w: number, isDark: boolean) {
-    ctx.fillStyle = isDark ? '#f1f5f9' : '#1e293b';
-    ctx.font = 'bold 20px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(title, w / 2, 32);
-    ctx.textAlign = 'left';
-}
-
-function drawSubtitle(ctx: CanvasRenderingContext2D, subtitle: string, x: number, y: number, isDark: boolean) {
-    ctx.fillStyle = isDark ? '#cbd5e1' : '#475569';
-    ctx.font = '13px sans-serif';
-    ctx.fillText(subtitle, x, y);
-}
-
-// ========== 复用自 electromagnetismScenes 的通用工具 ==========
-function clamp(v: number, min: number, max: number): number {
-    return Math.max(min, Math.min(max, v));
-}
-
-function roundRectPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.lineTo(x + w - r, y);
-    ctx.arcTo(x + w, y, x + w, y + r, r);
-    ctx.lineTo(x + w, y + h - r);
-    ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
-    ctx.lineTo(x + r, y + h);
-    ctx.lineTo(x, y + h - r);
-    ctx.arcTo(x, y + h, x, y + h - r, r);
-    ctx.lineTo(x, y + r);
-    ctx.arcTo(x, y, x + r, y, r);
-    ctx.closePath();
-}
-
-function drawArrow(
-    ctx: CanvasRenderingContext2D,
-    x1: number,
-    y1: number,
-    x2: number,
-    y2: number,
-    color: string,
-    label?: string
-): void {
-    const dx = x2 - x1;
-    const dy = y2 - y1;
-    const len = Math.hypot(dx, dy) || 1;
-    const ux = dx / len;
-    const uy = dy / len;
-    const ax = -uy;
-    const ay = ux;
-    ctx.strokeStyle = color;
-    ctx.fillStyle = color;
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
-    ctx.stroke();
-    const ah = 9;
-    ctx.beginPath();
-    ctx.moveTo(x2, y2);
-    ctx.lineTo(x2 - ux * ah + ax * ah * 0.5, y2 - uy * ah + ay * ah * 0.5);
-    ctx.lineTo(x2 - ux * ah - ax * ah * 0.5, y2 - uy * ah - ay * ah * 0.5);
-    ctx.closePath();
-    ctx.fill();
-    if (label) {
-        ctx.fillStyle = color;
-        ctx.font = 'bold 13px sans-serif';
-        ctx.textAlign = 'left';
-        ctx.fillText(label, x2 + ax * 12 - 6, y2 + ay * 12 + 4);
-    }
-}
 
 function drawHud(ctx: CanvasRenderingContext2D, isDark: boolean, rows: Array<{ label: string; value: string }>): void {
     const x = 14;
@@ -136,7 +60,7 @@ const PURPLE = '#a855f7';
 export function drawSoundWaveformScene(o: WaveOptSceneOptions) {
     const { ctx, width: w, height: h, isDark, params, currentTime: t } = o;
     clearScene(ctx, w, h, isDark);
-    drawTitle(ctx, '声波波形', w, isDark);
+    drawTitle(ctx, '声波波形', w, isDark, { size: 20, y: 32 });
 
     const freq = params.frequency ?? 440;
     const waveSpeed = params.waveSpeed ?? 340;
@@ -202,7 +126,7 @@ export function drawSoundWaveformScene(o: WaveOptSceneOptions) {
 export function drawWaterDiffractionScene(o: WaveOptSceneOptions) {
     const { ctx, width: w, height: h, isDark, params, currentTime: t } = o;
     clearScene(ctx, w, h, isDark);
-    drawTitle(ctx, '水波单缝衍射', w, isDark);
+    drawTitle(ctx, '水波单缝衍射', w, isDark, { size: 20, y: 32 });
 
     const lambda = params.wavelength ?? 30;
     const slitWidth = params.slitWidth ?? 60;
@@ -278,7 +202,7 @@ export function drawWaterDiffractionScene(o: WaveOptSceneOptions) {
 export function drawDopplerScene(o: WaveOptSceneOptions) {
     const { ctx, width: w, height: h, isDark, params, currentTime: t } = o;
     clearScene(ctx, w, h, isDark);
-    drawTitle(ctx, '多普勒效应', w, isDark);
+    drawTitle(ctx, '多普勒效应', w, isDark, { size: 20, y: 32 });
 
     const vSource = params.sourceSpeed ?? 50;
     const vWave = params.waveSpeed ?? 340;
@@ -340,7 +264,7 @@ export function drawDopplerScene(o: WaveOptSceneOptions) {
 export function drawDoubleSlitScene(o: WaveOptSceneOptions) {
     const { ctx, width: w, height: h, isDark, params } = o;
     clearScene(ctx, w, h, isDark);
-    drawTitle(ctx, '杨氏双缝干涉', w, isDark);
+    drawTitle(ctx, '杨氏双缝干涉', w, isDark, { size: 20, y: 32 });
 
     const lambda = params.wavelength ?? 5;
     const d = params.slitDistance ?? 20;
@@ -411,7 +335,7 @@ export function drawDoubleSlitScene(o: WaveOptSceneOptions) {
 export function drawSingleSlitScene(o: WaveOptSceneOptions) {
     const { ctx, width: w, height: h, isDark, params } = o;
     clearScene(ctx, w, h, isDark);
-    drawTitle(ctx, '单缝衍射', w, isDark);
+    drawTitle(ctx, '单缝衍射', w, isDark, { size: 20, y: 32 });
 
     const a = params.slitWidth ?? 15;
     const lambda = params.wavelength ?? 5;
@@ -468,7 +392,7 @@ export function drawSingleSlitScene(o: WaveOptSceneOptions) {
 export function drawThinFilmScene(o: WaveOptSceneOptions) {
     const { ctx, width: w, height: h, isDark, params } = o;
     clearScene(ctx, w, h, isDark);
-    drawTitle(ctx, '薄膜干涉', w, isDark);
+    drawTitle(ctx, '薄膜干涉', w, isDark, { size: 20, y: 32 });
 
     const nFilm = params.refractiveIndex ?? 1.33;
     const thickness = params.thickness ?? 500;
@@ -556,7 +480,7 @@ export function drawThinFilmScene(o: WaveOptSceneOptions) {
 export function drawRefractionScene(o: WaveOptSceneOptions) {
     const { ctx, width: w, height: h, isDark, params } = o;
     clearScene(ctx, w, h, isDark);
-    drawTitle(ctx, '光的折射定律 (Snell)', w, isDark);
+    drawTitle(ctx, '光的折射定律 (Snell)', w, isDark, { size: 20, y: 32 });
 
     const n1 = params.n1 ?? 1.0;
     const n2 = params.n2 ?? 1.5;
@@ -634,7 +558,7 @@ function mutedText(isDark: boolean): string {
 export function drawInterferenceScene(o: WaveOptSceneOptions) {
     const { ctx, width: w, height: h, isDark, params } = o;
     clearScene(ctx, w, h, isDark);
-    drawTitle(ctx, '双缝干涉 (杨氏实验)', w, isDark);
+    drawTitle(ctx, '双缝干涉 (杨氏实验)', w, isDark, { size: 20, y: 32 });
 
     const lambdaNm = params.wavelength ?? 600;
     const dMm = params.slitSep ?? 0.5;
@@ -706,7 +630,7 @@ export function drawInterferenceScene(o: WaveOptSceneOptions) {
 export function drawDiffractionGratingScene(o: WaveOptSceneOptions) {
     const { ctx, width: w, height: h, isDark, params } = o;
     clearScene(ctx, w, h, isDark);
-    drawTitle(ctx, '光栅衍射 (光栅方程)', w, isDark);
+    drawTitle(ctx, '光栅衍射 (光栅方程)', w, isDark, { size: 20, y: 32 });
 
     const dUm = params.gratingConst ?? 2;
     const lambdaNm = params.wavelength ?? 550;
@@ -758,7 +682,7 @@ export function drawDiffractionGratingScene(o: WaveOptSceneOptions) {
 export function drawPolarizationMalusScene(o: WaveOptSceneOptions) {
     const { ctx, width: w, height: h, isDark, params } = o;
     clearScene(ctx, w, h, isDark);
-    drawTitle(ctx, '偏振光 (马吕斯定律)', w, isDark);
+    drawTitle(ctx, '偏振光 (马吕斯定律)', w, isDark, { size: 20, y: 32 });
 
     const I0 = params.initIntensity ?? 1;
     const n = Math.round(params.nPolarizers ?? 2);
@@ -818,7 +742,7 @@ export function drawPolarizationMalusScene(o: WaveOptSceneOptions) {
 export function drawHologramScene(o: WaveOptSceneOptions) {
     const { ctx, width: w, height: h, isDark, params, currentTime: t } = o;
     clearScene(ctx, w, h, isDark);
-    drawTitle(ctx, '全息照相 (干涉记录)', w, isDark);
+    drawTitle(ctx, '全息照相 (干涉记录)', w, isDark, { size: 20, y: 32 });
 
     const thr = ((params.refAngle ?? 30) * Math.PI) / 180;
     const tho = ((params.objAngle ?? -10) * Math.PI) / 180;
