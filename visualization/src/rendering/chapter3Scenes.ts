@@ -14,8 +14,8 @@
  *   - 与 SimulationCanvas 中已有的 drawCollisionScene / drawSpringScene 风格一致
  */
 
-import type { SimulationResult, TrajectoryPoint } from 'physics-core';
-import { findFrameIndex, interpolateFrame } from '../utils/frameUtils';
+import type { SimulationResult } from 'physics-core';
+import { roundRectPath, getFrame, drawEmptyState, drawHud, drawInfoBar, draw3DBlock } from './renderingUtils';
 
 // ========== 共享类型 ==========
 
@@ -30,21 +30,6 @@ export interface Chapter3SceneOptions {
 }
 
 // ========== 共享工具函数 ==========
-
-/** 圆角矩形路径 */
-function roundRectPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.lineTo(x + w - r, y);
-    ctx.arcTo(x + w, y, x + w, y + r, r);
-    ctx.lineTo(x + w, y + h - r);
-    ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
-    ctx.lineTo(x + r, y + h);
-    ctx.arcTo(x, y + h, x, y + h - r, r);
-    ctx.lineTo(x, y + r);
-    ctx.arcTo(x, y, x + r, y, r);
-    ctx.closePath();
-}
 
 /**
  * 绘制带渐变和箭头的力向量。
@@ -102,101 +87,6 @@ function drawForceArrow(
     ctx.restore();
 }
 
-/** 绘制 3D 风格方块（带阴影、渐变、高光） */
-function draw3DBlock(
-    ctx: CanvasRenderingContext2D,
-    cx: number,
-    cy: number,
-    w: number,
-    h: number,
-    baseColor: string,
-    isDark: boolean,
-    label?: string
-): void {
-    const x = cx - w / 2,
-        y = cy - h / 2;
-    // 阴影
-    ctx.fillStyle = isDark ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.12)';
-    roundRectPath(ctx, x + 3, y + 3, w, h, 4);
-    ctx.fill();
-    // 主体渐变
-    const grad = ctx.createLinearGradient(x, y, x + w, y + h);
-    grad.addColorStop(0, baseColor);
-    grad.addColorStop(1, shadeColor(baseColor, -30));
-    ctx.fillStyle = grad;
-    roundRectPath(ctx, x, y, w, h, 4);
-    ctx.fill();
-    // 高光
-    ctx.fillStyle = 'rgba(255,255,255,0.18)';
-    roundRectPath(ctx, x + 3, y + 3, w - 6, h * 0.3, 3);
-    ctx.fill();
-    // 标签
-    if (label) {
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 11px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(label, cx, cy);
-    }
-}
-
-/** 颜色加深/变亮 */
-function shadeColor(hex: string, amount: number): string {
-    const h = hex.replace('#', '');
-    const full =
-        h.length === 3
-            ? h
-                  .split('')
-                  .map(c => c + c)
-                  .join('')
-            : h;
-    const r = Math.max(0, Math.min(255, parseInt(full.slice(0, 2), 16) + amount));
-    const g = Math.max(0, Math.min(255, parseInt(full.slice(2, 4), 16) + amount));
-    const b = Math.max(0, Math.min(255, parseInt(full.slice(4, 6), 16) + amount));
-    return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
-}
-
-/** 绘制底部信息条 */
-function drawInfoBar(
-    ctx: CanvasRenderingContext2D,
-    width: number,
-    height: number,
-    text: string,
-    isDark: boolean
-): void {
-    ctx.font = '12px sans-serif';
-    ctx.textAlign = 'center';
-    const tw = ctx.measureText(text).width;
-    ctx.fillStyle = isDark ? 'rgba(15,23,42,0.7)' : 'rgba(255,255,255,0.8)';
-    roundRectPath(ctx, width / 2 - tw / 2 - 8, height - 34, tw + 16, 22, 4);
-    ctx.fill();
-    ctx.fillStyle = isDark ? '#94a3b8' : '#64748b';
-    ctx.fillText(text, width / 2, height - 18);
-}
-
-/** 从轨迹中获取当前帧（插值后） */
-function getCurrentFrame(
-    simulationResult: SimulationResult | null,
-    currentTime: number,
-    trajectoryIndex = 0
-): TrajectoryPoint | null {
-    if (!simulationResult) return null;
-    const traj = simulationResult.trajectories[trajectoryIndex];
-    if (!traj || traj.length === 0) return null;
-    const idx = findFrameIndex([traj], currentTime);
-    const p0 = traj[idx]!;
-    const p1 = traj[Math.min(idx + 1, traj.length - 1)]!;
-    return interpolateFrame(p0, p1, currentTime);
-}
-
-/** 绘制"点击运行仿真"提示 */
-function drawEmptyState(ctx: CanvasRenderingContext2D, width: number, height: number, isDark: boolean): void {
-    ctx.fillStyle = isDark ? '#64748b' : '#94a3b8';
-    ctx.font = '16px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('点击「运行仿真」开始', width / 2, height / 2);
-}
-
 // =====================================================================
 // 场景 1: 胡克定律 F=kx (竖直弹簧 + 钩码)
 // =====================================================================
@@ -225,7 +115,7 @@ export function drawHookeLawScene(opts: Chapter3SceneOptions): void {
     const pixelsPerMeter = 120; // 1m = 120px
 
     // 当前帧的弹簧伸长量
-    const frame = getCurrentFrame(simulationResult, currentTime);
+    const frame = getFrame(simulationResult, currentTime);
     const currentX = frame ? frame.position.x : x_eq;
     const extensionPx = Math.max(20, currentX * pixelsPerMeter);
     const blockY = ceilingY + extensionPx;
@@ -357,7 +247,8 @@ export function drawHookeLawScene(opts: Chapter3SceneOptions): void {
         width,
         height,
         `k=${k}N/m  m=${m.toFixed(2)}kg  x=${currentX.toFixed(3)}m  F=kx=${(k * currentX).toFixed(2)}N  G=mg=${gravityN.toFixed(2)}N`,
-        isDark
+        isDark,
+        { height: 22, yOffset: 34 }
     );
 
     // --- 左上角 HUD ---
@@ -441,7 +332,7 @@ export function drawSlidingFrictionScene(opts: Chapter3SceneOptions): void {
     ctx.fillText('x (m)', width - 30, groundY + 8);
 
     // --- 物块位置 ---
-    const frame = getCurrentFrame(simulationResult, currentTime);
+    const frame = getFrame(simulationResult, currentTime);
     const blockX_m = frame ? frame.position.x : 0;
     const blockV = frame ? frame.velocity.x : v0;
     // 物块屏幕位置按画布钳制，大位移不再越出右界
@@ -504,7 +395,8 @@ export function drawSlidingFrictionScene(opts: Chapter3SceneOptions): void {
         width,
         height,
         `μ=${mu}  m=${mass}kg  N=mg=${N.toFixed(2)}N  f=μN=${f.toFixed(2)}N  F_pull=${F_pull.toFixed(2)}N`,
-        isDark
+        isDark,
+        { height: 22, yOffset: 34 }
     );
 
     // --- 左上角 HUD ---
@@ -663,7 +555,8 @@ export function drawForceCompositionScene(opts: Chapter3SceneOptions): void {
         width,
         height,
         `F₁=${F1}N  F₂=${F2}N  θ=${angleDeg}°  →  F=${Fmag.toFixed(3)}N  φ=${FangleDeg.toFixed(2)}°`,
-        isDark
+        isDark,
+        { height: 22, yOffset: 34 }
     );
 
     // --- 左上角 HUD ---
@@ -726,11 +619,11 @@ export function drawNewtonThirdLawScene(opts: Chapter3SceneOptions): void {
     }
 
     // --- 物块位置 ---
-    const frameA = getCurrentFrame(simulationResult, currentTime, 0);
-    const frameB = getCurrentFrame(simulationResult, currentTime, 1);
+    const frameA = getFrame(simulationResult, currentTime, 0);
+    const frameB = getFrame(simulationResult, currentTime, 1);
     // 初位置从轨迹首帧取，避免硬编码 ±1 与 physics-core 初值耦合
-    const initA = getCurrentFrame(simulationResult, 0, 0);
-    const initB = getCurrentFrame(simulationResult, 0, 1);
+    const initA = getFrame(simulationResult, 0, 0);
+    const initB = getFrame(simulationResult, 0, 1);
     const initAx = initA ? initA.position.x : -1;
     const initBx = initB ? initB.position.x : 1;
     const dxA = frameA ? frameA.position.x - initAx : 0; // 相对初始位置的位移
@@ -814,7 +707,8 @@ export function drawNewtonThirdLawScene(opts: Chapter3SceneOptions): void {
         width,
         height,
         `F_AB=${F_AB}N  F_BA=${F_BA}N  |F_AB|=|F_BA|=${Math.abs(F_AB)}N  mA=${massA}kg  mB=${massB}kg`,
-        isDark
+        isDark,
+        { height: 22, yOffset: 34 }
     );
 
     // --- 左上角 HUD ---
@@ -832,25 +726,3 @@ export function drawNewtonThirdLawScene(opts: Chapter3SceneOptions): void {
 // =====================================================================
 // 共享 HUD 绘制
 // =====================================================================
-
-/** 绘制左上角状态 HUD */
-function drawHud(ctx: CanvasRenderingContext2D, isDark: boolean, rows: Array<{ label: string; value: string }>): void {
-    const padding = 10;
-    const lineH = 18;
-    const boxH = rows.length * lineH + padding * 2;
-    const boxW = 180;
-
-    ctx.fillStyle = isDark ? 'rgba(15,23,42,0.75)' : 'rgba(255,255,255,0.85)';
-    roundRectPath(ctx, 8, 10, boxW, boxH, 6);
-    ctx.fill();
-
-    rows.forEach((row, i) => {
-        const y = 10 + padding + i * lineH;
-        ctx.font = 'bold 13px monospace';
-        ctx.fillStyle = isDark ? '#e2e8f0' : '#1e293b';
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'top';
-        ctx.fillText(`${row.label} = ${row.value}`, 16, y);
-    });
-    ctx.textBaseline = 'alphabetic';
-}
