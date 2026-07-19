@@ -18,6 +18,7 @@
  */
 
 import type { SimulationResult } from 'physics-core';
+import { roundRectPath, clearScene, drawTitle, drawHud, drawArrow } from './renderingUtils';
 
 // ========== 共享类型 ==========
 
@@ -31,97 +32,7 @@ export interface NuclearSceneOptions {
     currentTime: number;
 }
 
-// ========== 共享工具函数 ==========
-
-function clearScene(ctx: CanvasRenderingContext2D, w: number, h: number, isDark: boolean): void {
-    ctx.fillStyle = isDark ? '#0f172a' : '#f8fafc';
-    ctx.fillRect(0, 0, w, h);
-}
-
-function drawTitle(ctx: CanvasRenderingContext2D, title: string, w: number, isDark: boolean): void {
-    ctx.fillStyle = isDark ? '#f1f5f9' : '#1e293b';
-    ctx.font = 'bold 18px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(title, w / 2, 28);
-    ctx.textAlign = 'left';
-}
-
-function drawHud(ctx: CanvasRenderingContext2D, isDark: boolean, rows: Array<{ label: string; value: string }>): void {
-    if (rows.length === 0) return;
-    const padding = 8;
-    const lineH = 16;
-    const boxH = rows.length * lineH + padding * 2;
-    const boxW = 200;
-
-    ctx.fillStyle = isDark ? 'rgba(15,23,42,0.75)' : 'rgba(255,255,255,0.85)';
-    roundRectPath(ctx, 8, 8, boxW, boxH, 6);
-    ctx.fill();
-
-    rows.forEach((row, i) => {
-        const y = 8 + padding + i * lineH;
-        ctx.font = 'bold 11px monospace';
-        ctx.fillStyle = isDark ? '#e2e8f0' : '#1e293b';
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'top';
-        ctx.fillText(`${row.label} = ${row.value}`, 16, y);
-    });
-    ctx.textBaseline = 'alphabetic';
-}
-
-function roundRectPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.lineTo(x + w - r, y);
-    ctx.arcTo(x + w, y, x + w, y + r, r);
-    ctx.lineTo(x + w, y + h - r);
-    ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
-    ctx.lineTo(x + r, y + h);
-    ctx.arcTo(x, y + h, x, y + h - r, r);
-    ctx.lineTo(x, y + r);
-    ctx.arcTo(x, y, x + r, y, r);
-    ctx.closePath();
-}
-
-function drawArrow(
-    ctx: CanvasRenderingContext2D,
-    x1: number,
-    y1: number,
-    x2: number,
-    y2: number,
-    color: string,
-    label?: string
-): void {
-    const dx = x2 - x1,
-        dy = y2 - y1;
-    const len = Math.sqrt(dx * dx + dy * dy);
-    if (len < 3) return;
-    ctx.save();
-    const angle = Math.atan2(dy, dx);
-    const headLen = Math.min(12, len * 0.3);
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2 - headLen * 0.6 * Math.cos(angle), y2 - headLen * 0.6 * Math.sin(angle));
-    ctx.stroke();
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.moveTo(x2, y2);
-    ctx.lineTo(x2 - headLen * Math.cos(angle - 0.38), y2 - headLen * Math.sin(angle - 0.38));
-    ctx.lineTo(x2 - headLen * 0.45 * Math.cos(angle), y2 - headLen * 0.45 * Math.sin(angle));
-    ctx.lineTo(x2 - headLen * Math.cos(angle + 0.38), y2 - headLen * Math.sin(angle + 0.38));
-    ctx.closePath();
-    ctx.fill();
-    if (label) {
-        ctx.fillStyle = color;
-        ctx.font = 'bold 11px sans-serif';
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(label, x2 + 6, y2 - 4);
-    }
-    ctx.restore();
-}
+// ========== 共享工具函数 (基础绘制已迁移至 renderingUtils) ==========
 
 /**
  * 渲染脉冲/闪烁发光圆, 用于标注激活的核/裂变的 U-235 / 放射线. alpha 在 [0, 1].
@@ -346,15 +257,20 @@ export function drawAlphaScatteringScene(o: NuclearSceneOptions): void {
     ctx.fillText(counterText, w - ctw - 18, h - 20);
 
     // --- 标题 ---
-    drawTitle(ctx, 'α 粒子卢瑟福散射', w, isDark);
+    drawTitle(ctx, 'α 粒子卢瑟福散射', w, isDark, { size: 18, y: 28 });
 
     // --- HUD ---
-    drawHud(ctx, isDark, [
-        { label: 'E_k', value: `${E_MeV.toFixed(1)} MeV` },
-        { label: 'Z (靶核)', value: `${Z}` },
-        { label: 'k', value: `${kCoeff.toFixed(2)} fm` },
-        { label: 'b≈', value: `(${impactParams.length} 条)` }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'E_k', value: `${E_MeV.toFixed(1)} MeV` },
+            { label: 'Z (靶核)', value: `${Z}` },
+            { label: 'k', value: `${kCoeff.toFixed(2)} fm` },
+            { label: 'b≈', value: `(${impactParams.length} 条)` }
+        ],
+        { boxW: 200, lineH: 16 }
+    );
 
     // 散射公式底部
     const formulaText = `θ = 2·arctan(k/b),  k = 2Z·e²/(E_α·c)  ≈ ${kCoeff.toFixed(2)} fm`;
@@ -399,7 +315,7 @@ export function drawDecayStatisticsScene(o: NuclearSceneOptions): void {
     const chartH = h * 0.55;
 
     // --- 标题 ---
-    drawTitle(ctx, '衰变统计规律 (泊松→高斯)', w, isDark);
+    drawTitle(ctx, '衰变统计规律 (泊松→高斯)', w, isDark, { size: 18, y: 28 });
 
     // --- 直方图背景 ---
     ctx.fillStyle = isDark ? 'rgba(15,23,42,0.55)' : 'rgba(248,250,252,0.7)';
@@ -576,12 +492,17 @@ export function drawDecayStatisticsScene(o: NuclearSceneOptions): void {
     }
 
     // --- HUD ---
-    drawHud(ctx, isDark, [
-        { label: 'λ (= N̄)', value: `${meanCount}` },
-        { label: 'σ (= √λ)', value: sigma.toFixed(2) },
-        { label: 'n 试验', value: `${nTrials}` },
-        { label: '分布', value: meanCount < 20 ? '泊松' : '高斯' }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'λ (= N̄)', value: `${meanCount}` },
+            { label: 'σ (= √λ)', value: sigma.toFixed(2) },
+            { label: 'n 试验', value: `${nTrials}` },
+            { label: '分布', value: meanCount < 20 ? '泊松' : '高斯' }
+        ],
+        { boxW: 200, lineH: 16 }
+    );
 
     // 底部公式
     const formulaText = `P(N) = λ^N·e^(-λ)/N!   σ = √λ`;
@@ -619,7 +540,7 @@ export function drawFissionChainScene(o: NuclearSceneOptions): void {
     // --- 标题 ---
     const statusText = Math.abs(k - 1) < 1e-6 ? '临界 (k=1)' : k > 1 ? '超临界 (k>1)' : '次临界 (k<1)';
     const statusColor = Math.abs(k - 1) < 1e-6 ? '#fbbf24' : k > 1 ? '#ef4444' : '#22c55e';
-    drawTitle(ctx, '核裂变链式反应', w, isDark);
+    drawTitle(ctx, '核裂变链式反应', w, isDark, { size: 18, y: 28 });
 
     // 状态徽章
     ctx.font = 'bold 13px sans-serif';
@@ -845,12 +766,17 @@ export function drawFissionChainScene(o: NuclearSceneOptions): void {
     // --- HUD ---
     const lastU = nucleusPositions[maxDepth]?.[0];
     const nOnScreen = lastU ? (neuPerGen[maxDepth]?.toFixed(0) ?? '—') : '—';
-    drawHud(ctx, isDark, [
-        { label: 'k (增殖因子)', value: k.toFixed(2) },
-        { label: '当前代数', value: `${maxDepth}` },
-        { label: 'N_本代中子', value: nOnScreen },
-        { label: '状态', value: statusText.split(' ')[0] ?? '' }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'k (增殖因子)', value: k.toFixed(2) },
+            { label: '当前代数', value: `${maxDepth}` },
+            { label: 'N_本代中子', value: nOnScreen },
+            { label: '状态', value: statusText.split(' ')[0] ?? '' }
+        ],
+        { boxW: 200, lineH: 16 }
+    );
 
     // 底部公式
     const formulaText = 'N_g = N₀·k^g    U-235 + n → 碎片 + (2~3)n  + ~200 MeV';
