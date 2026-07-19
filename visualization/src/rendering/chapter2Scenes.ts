@@ -19,8 +19,8 @@
  *   - 因此「rodLength1/rodLength2」对应本模型的 length1/length2 参数.
  */
 
-import type { SimulationResult, TrajectoryPoint } from 'physics-core';
-import { findFrameIndex, interpolateFrame } from '../utils/frameUtils';
+import type { SimulationResult } from 'physics-core';
+import { roundRectPath, getFrame, drawEmptyState, drawHud, drawInfoBar, draw3DBlock } from './renderingUtils';
 
 // ========== 共享类型 ==========
 
@@ -32,140 +32,6 @@ export interface Chapter2SceneOptions {
     params: Record<string, number>;
     simulationResult: SimulationResult | null;
     currentTime: number;
-}
-
-// ========== 共享工具函数 ==========
-
-/** 圆角矩形路径 */
-function roundRectPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.lineTo(x + w - r, y);
-    ctx.arcTo(x + w, y, x + w, y + r, r);
-    ctx.lineTo(x + w, y + h - r);
-    ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
-    ctx.lineTo(x + r, y + h);
-    ctx.arcTo(x, y + h, x, y + h - r, r);
-    ctx.lineTo(x, y + r);
-    ctx.arcTo(x, y, x + r, y, r);
-    ctx.closePath();
-}
-
-/** 颜色加深/变亮 */
-function shadeColor(hex: string, amount: number): string {
-    const h = hex.replace('#', '');
-    const full =
-        h.length === 3
-            ? h
-                  .split('')
-                  .map(c => c + c)
-                  .join('')
-            : h;
-    const r = Math.max(0, Math.min(255, parseInt(full.slice(0, 2), 16) + amount));
-    const g = Math.max(0, Math.min(255, parseInt(full.slice(2, 4), 16) + amount));
-    const b = Math.max(0, Math.min(255, parseInt(full.slice(4, 6), 16) + amount));
-    return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
-}
-
-/** 从轨迹中获取当前帧 (插值后) */
-function getCurrentFrame(
-    simulationResult: SimulationResult | null,
-    currentTime: number,
-    trajectoryIndex = 0
-): TrajectoryPoint | null {
-    if (!simulationResult) return null;
-    const traj = simulationResult.trajectories[trajectoryIndex];
-    if (!traj || traj.length === 0) return null;
-    const idx = findFrameIndex([traj], currentTime);
-    const p0 = traj[idx]!;
-    const p1 = traj[Math.min(idx + 1, traj.length - 1)]!;
-    return interpolateFrame(p0, p1, currentTime);
-}
-
-/** 绘制"点击运行仿真"提示 */
-function drawEmptyState(ctx: CanvasRenderingContext2D, width: number, height: number, isDark: boolean): void {
-    ctx.fillStyle = isDark ? '#64748b' : '#94a3b8';
-    ctx.font = '16px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('点击「运行仿真」开始', width / 2, height / 2);
-    ctx.textBaseline = 'alphabetic';
-}
-
-/** 绘制左上角状态 HUD */
-function drawHud(ctx: CanvasRenderingContext2D, isDark: boolean, rows: Array<{ label: string; value: string }>): void {
-    if (rows.length === 0) return;
-    const padding = 10;
-    const lineH = 18;
-    const boxH = rows.length * lineH + padding * 2;
-    const boxW = 190;
-
-    ctx.fillStyle = isDark ? 'rgba(15,23,42,0.75)' : 'rgba(255,255,255,0.85)';
-    roundRectPath(ctx, 8, 10, boxW, boxH, 6);
-    ctx.fill();
-
-    rows.forEach((row, i) => {
-        const y = 10 + padding + i * lineH;
-        ctx.font = 'bold 12px monospace';
-        ctx.fillStyle = isDark ? '#e2e8f0' : '#1e293b';
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'top';
-        ctx.fillText(`${row.label} = ${row.value}`, 16, y);
-    });
-    ctx.textBaseline = 'alphabetic';
-}
-
-/** 绘制底部信息条 */
-function drawInfoBar(
-    ctx: CanvasRenderingContext2D,
-    width: number,
-    height: number,
-    text: string,
-    isDark: boolean
-): void {
-    ctx.font = '12px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'alphabetic';
-    const tw = ctx.measureText(text).width;
-    ctx.fillStyle = isDark ? 'rgba(15,23,42,0.7)' : 'rgba(255,255,255,0.8)';
-    roundRectPath(ctx, width / 2 - tw / 2 - 8, height - 34, tw + 16, 22, 4);
-    ctx.fill();
-    ctx.fillStyle = isDark ? '#94a3b8' : '#64748b';
-    ctx.fillText(text, width / 2, height - 18);
-}
-
-/** 3D 风格方块 */
-function draw3DBlock(
-    ctx: CanvasRenderingContext2D,
-    cx: number,
-    cy: number,
-    w: number,
-    h: number,
-    baseColor: string,
-    isDark: boolean,
-    label?: string
-): void {
-    const x = cx - w / 2,
-        y = cy - h / 2;
-    ctx.fillStyle = isDark ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.12)';
-    roundRectPath(ctx, x + 3, y + 3, w, h, 4);
-    ctx.fill();
-    const grad = ctx.createLinearGradient(x, y, x + w, y + h);
-    grad.addColorStop(0, baseColor);
-    grad.addColorStop(1, shadeColor(baseColor, -30));
-    ctx.fillStyle = grad;
-    roundRectPath(ctx, x, y, w, h, 4);
-    ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,0.18)';
-    roundRectPath(ctx, x + 3, y + 3, w - 6, h * 0.3, 3);
-    ctx.fill();
-    if (label) {
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 11px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(label, cx, cy);
-    }
 }
 
 /** 精致弹簧绘制 (水平) */
@@ -575,7 +441,7 @@ export function drawForcedVibrationScene(opts: Chapter2SceneOptions): void {
     // 从轨迹获取当前位移 (或退化为解析稳态预测)
     let xNow = 0;
     let vNow = 0;
-    const frame = getCurrentFrame(simulationResult, currentTime);
+    const frame = getFrame(simulationResult, currentTime);
     if (frame) {
         xNow = frame.position.x;
         vNow = frame.velocity.x;
