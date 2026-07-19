@@ -26,6 +26,7 @@
  */
 
 import type { SimulationResult } from 'physics-core';
+import { roundRectPath, clearScene, drawTitle, drawHud, drawInfoBar, drawEmptyState } from './renderingUtils';
 
 // ========== 共享类型 ==========
 
@@ -39,84 +40,7 @@ export interface ThermalSceneOptions {
     currentTime: number;
 }
 
-// ========== 共享工具函数 ==========
-
-function clearScene(ctx: CanvasRenderingContext2D, w: number, h: number, isDark: boolean): void {
-    ctx.fillStyle = isDark ? '#0f172a' : '#f8fafc';
-    ctx.fillRect(0, 0, w, h);
-}
-
-function drawTitle(ctx: CanvasRenderingContext2D, title: string, w: number, isDark: boolean): void {
-    ctx.fillStyle = isDark ? '#f1f5f9' : '#1e293b';
-    ctx.font = 'bold 18px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(title, w / 2, 28);
-    ctx.textAlign = 'left';
-}
-
-function drawHud(ctx: CanvasRenderingContext2D, isDark: boolean, rows: Array<{ label: string; value: string }>): void {
-    if (rows.length === 0) return;
-    const padding = 8;
-    const lineH = 16;
-    const boxH = rows.length * lineH + padding * 2;
-    const boxW = 200;
-
-    ctx.fillStyle = isDark ? 'rgba(15,23,42,0.75)' : 'rgba(255,255,255,0.85)';
-    roundRectPath(ctx, 8, 8, boxW, boxH, 6);
-    ctx.fill();
-
-    rows.forEach((row, i) => {
-        const y = 8 + padding + i * lineH;
-        ctx.font = 'bold 11px monospace';
-        ctx.fillStyle = isDark ? '#e2e8f0' : '#1e293b';
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'top';
-        ctx.fillText(`${row.label} = ${row.value}`, 16, y);
-    });
-    ctx.textBaseline = 'alphabetic';
-}
-
-function drawInfoBar(
-    ctx: CanvasRenderingContext2D,
-    width: number,
-    height: number,
-    text: string,
-    isDark: boolean
-): void {
-    ctx.font = '12px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'alphabetic';
-    const tw = ctx.measureText(text).width;
-    ctx.fillStyle = isDark ? 'rgba(15,23,42,0.7)' : 'rgba(255,255,255,0.8)';
-    roundRectPath(ctx, width / 2 - tw / 2 - 8, height - 34, tw + 16, 22, 4);
-    ctx.fill();
-    ctx.fillStyle = isDark ? '#94a3b8' : '#64748b';
-    ctx.fillText(text, width / 2, height - 18);
-}
-
-function roundRectPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.lineTo(x + w - r, y);
-    ctx.arcTo(x + w, y, x + w, y + r, r);
-    ctx.lineTo(x + w, y + h - r);
-    ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
-    ctx.lineTo(x + r, y + h);
-    ctx.arcTo(x, y + h, x, y + h - r, r);
-    ctx.lineTo(x, y + r);
-    ctx.arcTo(x, y, x + r, y, r);
-    ctx.closePath();
-}
-
-/** 绘制"点击运行仿真"提示 */
-function drawEmptyState(ctx: CanvasRenderingContext2D, width: number, height: number, isDark: boolean): void {
-    ctx.fillStyle = isDark ? '#64748b' : '#94a3b8';
-    ctx.font = '16px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('点击「运行仿真」开始', width / 2, height / 2);
-    ctx.textBaseline = 'alphabetic';
-}
+// ========== 共享工具函数 (基础绘制已迁移至 renderingUtils) ==========
 
 /** 伪随机数 (固定种子, 每帧一致) */
 function seededRand(seed: number): number {
@@ -276,7 +200,7 @@ export function drawDiffusionScene(o: ThermalSceneOptions): void {
     const N = params['particleCount'] ?? 500;
     const D = isLiquid ? 1e-9 * Math.pow(T / 300, 1.5) : 1e-5 * Math.pow(T / 300, 1.5);
 
-    drawTitle(ctx, '扩散现象 (浓度梯度)', w, isDark);
+    drawTitle(ctx, '扩散现象 (浓度梯度)', w, isDark, { size: 18, y: 28 });
 
     // 粒子区域
     const partY0 = 50;
@@ -384,19 +308,25 @@ export function drawDiffusionScene(o: ThermalSceneOptions): void {
     }
 
     // HUD
-    drawHud(ctx, isDark, [
-        { label: 't', value: `${currentTime.toFixed(2)} s` },
-        { label: 'T', value: `${T} K` },
-        { label: 'D', value: `${D.toExponential(1)} m²/s` },
-        { label: 'N', value: `${N}` }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 't', value: `${currentTime.toFixed(2)} s` },
+            { label: 'T', value: `${T} K` },
+            { label: 'D', value: `${D.toExponential(1)} m²/s` },
+            { label: 'N', value: `${N}` }
+        ],
+        { boxW: 200, lineH: 16 }
+    );
 
     drawInfoBar(
         ctx,
         w,
         h,
         `T=${T}K  medium=${isLiquid ? '液体' : '气体'}  D=${D.toExponential(2)} m²/s  N=${N}`,
-        isDark
+        isDark,
+        { height: 22, yOffset: 34 }
     );
 
     if (!simulationResult) drawEmptyState(ctx, w, h, isDark);
@@ -424,7 +354,7 @@ export function drawBrownianScene(o: ThermalSceneOptions): void {
     const kB = 1.38e-23;
     const D = (kB * T) / (6 * Math.PI * eta * 1e-3 * rUm * 1e-6);
 
-    drawTitle(ctx, '布朗运动 (微粒抖动)', w, isDark);
+    drawTitle(ctx, '布朗运动 (微粒抖动)', w, isDark, { size: 18, y: 28 });
 
     // 粒子区域
     const partY0 = 50;
@@ -540,14 +470,22 @@ export function drawBrownianScene(o: ThermalSceneOptions): void {
     }
 
     // HUD
-    drawHud(ctx, isDark, [
-        { label: 't', value: `${currentTime.toFixed(2)} s` },
-        { label: 'T', value: `${T} K` },
-        { label: 'D', value: `${D.toExponential(1)} m²/s` },
-        { label: 'r', value: `${rUm} μm` }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 't', value: `${currentTime.toFixed(2)} s` },
+            { label: 'T', value: `${T} K` },
+            { label: 'D', value: `${D.toExponential(1)} m²/s` },
+            { label: 'r', value: `${rUm} μm` }
+        ],
+        { boxW: 200, lineH: 16 }
+    );
 
-    drawInfoBar(ctx, w, h, `r=${rUm}μm  T=${T}K  η=${eta}cP  D=${D.toExponential(2)} m²/s  N=${nParts}`, isDark);
+    drawInfoBar(ctx, w, h, `r=${rUm}μm  T=${T}K  η=${eta}cP  D=${D.toExponential(2)} m²/s  N=${nParts}`, isDark, {
+        height: 22,
+        yOffset: 34
+    });
 
     if (!simulationResult) drawEmptyState(ctx, w, h, isDark);
 }
@@ -573,7 +511,7 @@ export function drawMeltingCurveScene(o: ThermalSceneOptions): void {
     const heatRate = params['heatingRate'] ?? 5;
     const durationMin = params['duration'] ?? 20;
 
-    drawTitle(ctx, isNonCrystal ? '非晶体熔化 (连续软化)' : '晶体熔化/凝固曲线 (T-t)', w, isDark);
+    drawTitle(ctx, isNonCrystal ? '非晶体熔化 (连续软化)' : '晶体熔化/凝固曲线 (T-t)', w, isDark, { size: 18, y: 28 });
 
     // 主图区域
     const chartX = 60;
@@ -816,19 +754,25 @@ export function drawMeltingCurveScene(o: ThermalSceneOptions): void {
     }
 
     // HUD
-    drawHud(ctx, isDark, [
-        { label: 't', value: `${(currentTime % (tMax + 1)).toFixed(1)} min` },
-        { label: 'Tm', value: `${Tm} °C` },
-        { label: 'rate', value: `${heatRate} °C/min` },
-        { label: 'type', value: isNonCrystal ? '非晶体' : '晶体' }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 't', value: `${(currentTime % (tMax + 1)).toFixed(1)} min` },
+            { label: 'Tm', value: `${Tm} °C` },
+            { label: 'rate', value: `${heatRate} °C/min` },
+            { label: 'type', value: isNonCrystal ? '非晶体' : '晶体' }
+        ],
+        { boxW: 200, lineH: 16 }
+    );
 
     drawInfoBar(
         ctx,
         w,
         h,
         `Tm=${Tm}°C  rate=${heatRate}°C/min  ${isNonCrystal ? '非晶体 (连续软化)' : '晶体 (平台段)'}`,
-        isDark
+        isDark,
+        { height: 22, yOffset: 34 }
     );
 
     if (!simulationResult) drawEmptyState(ctx, w, h, isDark);
@@ -855,7 +799,7 @@ export function drawHeatTransferScene(o: ThermalSceneOptions): void {
     const Tenv = params['ambientTemp'] ?? 350;
     const T0 = params['initialTemp'] ?? 300;
 
-    drawTitle(ctx, `热传递 (三种模式对比) — 当前: ${modeLabel}`, w, isDark);
+    drawTitle(ctx, `热传递 (三种模式对比) — 当前: ${modeLabel}`, w, isDark, { size: 18, y: 28 });
 
     const panelW = w - 60;
     const panelX = 30;
@@ -1107,14 +1051,22 @@ export function drawHeatTransferScene(o: ThermalSceneOptions): void {
     }
 
     // HUD
-    drawHud(ctx, isDark, [
-        { label: 't', value: `${currentTime.toFixed(2)} s` },
-        { label: 'T0', value: `${T0} K` },
-        { label: 'Tenv', value: `${Tenv} K` },
-        { label: 'mode', value: modeLabel }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 't', value: `${currentTime.toFixed(2)} s` },
+            { label: 'T0', value: `${T0} K` },
+            { label: 'Tenv', value: `${Tenv} K` },
+            { label: 'mode', value: modeLabel }
+        ],
+        { boxW: 200, lineH: 16 }
+    );
 
-    drawInfoBar(ctx, w, h, `T0=${T0}K  Tenv=${Tenv}K  mode=${modeLabel}  傅里叶/牛顿/斯忒藩-玻尔兹曼`, isDark);
+    drawInfoBar(ctx, w, h, `T0=${T0}K  Tenv=${Tenv}K  mode=${modeLabel}  傅里叶/牛顿/斯忒藩-玻尔兹曼`, isDark, {
+        height: 22,
+        yOffset: 34
+    });
 
     if (!simulationResult) drawEmptyState(ctx, w, h, isDark);
 }
@@ -1187,7 +1139,7 @@ export function drawSurfaceTensionScene(o: ThermalSceneOptions): void {
     const sigma = sigma0 * (1 - 0.002 * (Tdeg - 20));
     const F = 2 * sigma * (L / 100);
 
-    drawTitle(ctx, '表面张力 (液膜收缩)', w, isDark);
+    drawTitle(ctx, '表面张力 (液膜收缩)', w, isDark, { size: 18, y: 28 });
 
     // 左: 吊环 + 液膜示意
     const leftW = w * 0.45;
@@ -1350,19 +1302,25 @@ export function drawSurfaceTensionScene(o: ThermalSceneOptions): void {
     }
 
     // HUD
-    drawHud(ctx, isDark, [
-        { label: 't', value: `${currentTime.toFixed(2)} s` },
-        { label: 'σ', value: `${sigma.toFixed(4)} N/m` },
-        { label: 'L', value: `${L} cm` },
-        { label: 'F', value: `${(F * 1000).toFixed(3)} mN` }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 't', value: `${currentTime.toFixed(2)} s` },
+            { label: 'σ', value: `${sigma.toFixed(4)} N/m` },
+            { label: 'L', value: `${L} cm` },
+            { label: 'F', value: `${(F * 1000).toFixed(3)} mN` }
+        ],
+        { boxW: 200, lineH: 16 }
+    );
 
     drawInfoBar(
         ctx,
         w,
         h,
         `${isMercury ? '水银' : '水'}  σ₀=${sigma0}N/m  T=${Tdeg}°C  σ=${sigma.toFixed(4)}N/m  L=${L}cm`,
-        isDark
+        isDark,
+        { height: 22, yOffset: 34 }
     );
 
     if (!simulationResult) drawEmptyState(ctx, w, h, isDark);
@@ -1396,7 +1354,7 @@ export function drawCapillaryScene(o: ThermalSceneOptions): void {
     const capillaryHM = (2 * sigma * Math.cos(thetaRad)) / (rho * g * r); // m
     const hMm = capillaryHM * 1000;
 
-    drawTitle(ctx, '毛细现象 (液面升降)', w, isDark);
+    drawTitle(ctx, '毛细现象 (液面升降)', w, isDark, { size: 18, y: 28 });
 
     // 左: 毛细管示意
     const leftW = w * 0.4;
@@ -1570,19 +1528,25 @@ export function drawCapillaryScene(o: ThermalSceneOptions): void {
     }
 
     // HUD
-    drawHud(ctx, isDark, [
-        { label: 't', value: `${currentTime.toFixed(2)} s` },
-        { label: 'h', value: `${hMm.toFixed(2)} mm` },
-        { label: 'θ', value: `${thetaDeg}°` },
-        { label: 'r', value: `${rMm} mm` }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 't', value: `${currentTime.toFixed(2)} s` },
+            { label: 'h', value: `${hMm.toFixed(2)} mm` },
+            { label: 'θ', value: `${thetaDeg}°` },
+            { label: 'r', value: `${rMm} mm` }
+        ],
+        { boxW: 200, lineH: 16 }
+    );
 
     drawInfoBar(
         ctx,
         w,
         canvasH,
         `${isMercury ? '水银' : '水'}  ${isParaffin ? '石蜡' : '玻璃'}  r=${rMm}mm  θ=${thetaDeg}°  h=${hMm.toFixed(2)}mm`,
-        isDark
+        isDark,
+        { height: 22, yOffset: 34 }
     );
 
     if (!simulationResult) drawEmptyState(ctx, w, canvasH, isDark);
@@ -1609,7 +1573,7 @@ export function drawLiquidCrystalScene(o: ThermalSceneOptions): void {
     const Tc = 35; // 清亮点
     const Vth = 2; // 阈值电压
 
-    drawTitle(ctx, `液晶 (${isCholesteric ? '胆甾型' : '向列型'}) — 光学各向异性`, w, isDark);
+    drawTitle(ctx, `液晶 (${isCholesteric ? '胆甾型' : '向列型'}) — 光学各向异性`, w, isDark, { size: 18, y: 28 });
 
     // 左: 分子排列示意
     const leftW = w * 0.4;
@@ -1762,19 +1726,25 @@ export function drawLiquidCrystalScene(o: ThermalSceneOptions): void {
     }
 
     // HUD
-    drawHud(ctx, isDark, [
-        { label: 't', value: `${currentTime.toFixed(2)} s` },
-        { label: 'V', value: `${voltage} V` },
-        { label: 'Vth', value: `${Vth} V` },
-        { label: 'Tc', value: `${Tc} °C` }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 't', value: `${currentTime.toFixed(2)} s` },
+            { label: 'V', value: `${voltage} V` },
+            { label: 'Vth', value: `${Vth} V` },
+            { label: 'Tc', value: `${Tc} °C` }
+        ],
+        { boxW: 200, lineH: 16 }
+    );
 
     drawInfoBar(
         ctx,
         w,
         h,
         `${isCholesteric ? '胆甾型' : '向列型'}  V=${voltage}V  Vth=${Vth}V  Tc=${Tc}°C  ${isOn ? '开启' : '关闭'}`,
-        isDark
+        isDark,
+        { height: 22, yOffset: 34 }
     );
 
     if (!simulationResult) drawEmptyState(ctx, w, h, isDark);
@@ -1850,7 +1820,7 @@ function drawEnergyBar(
 export function drawOilFilmScene(o: ThermalSceneOptions): void {
     const { ctx, width: w, height: h, isDark, params, simulationResult } = o;
     clearScene(ctx, w, h, isDark);
-    drawTitle(ctx, '油膜法测分子直径', w, isDark);
+    drawTitle(ctx, '油膜法测分子直径', w, isDark, { size: 18, y: 28 });
     const concentration = params['oilConcentration'] ?? 500;
     const dropsPerMl = params['dropsPerMl'] ?? 50;
     const filmArea = params['filmArea'] ?? 200;
@@ -1875,19 +1845,24 @@ export function drawOilFilmScene(o: ThermalSceneOptions): void {
         ctx.arc(cx + Math.cos(a) * rx * r, cy + Math.sin(a) * ry * r, 2.4, 0, Math.PI * 2);
         ctx.fill();
     }
-    drawHud(ctx, isDark, [
-        { label: 'V_drop', value: `${volumeMm3.toFixed(3)} mm3` },
-        { label: 'S', value: `${filmArea.toFixed(1)} cm2` },
-        { label: 'd', value: `${diameterNm.toFixed(2)} nm` }
-    ]);
-    drawInfoBar(ctx, w, h, '单分子油膜近似: d = V / S, 面积越大估算直径越小', isDark);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'V_drop', value: `${volumeMm3.toFixed(3)} mm3` },
+            { label: 'S', value: `${filmArea.toFixed(1)} cm2` },
+            { label: 'd', value: `${diameterNm.toFixed(2)} nm` }
+        ],
+        { boxW: 200, lineH: 16 }
+    );
+    drawInfoBar(ctx, w, h, '单分子油膜近似: d = V / S, 面积越大估算直径越小', isDark, { height: 22, yOffset: 34 });
     if (!simulationResult) drawEmptyState(ctx, w, h, isDark);
 }
 
 export function drawLiquidMixingScene(o: ThermalSceneOptions): void {
     const { ctx, width: w, height: h, isDark, params, currentTime, simulationResult } = o;
     clearScene(ctx, w, h, isDark);
-    drawTitle(ctx, '液体混合与扩散', w, isDark);
+    drawTitle(ctx, '液体混合与扩散', w, isDark, { size: 18, y: 28 });
     const water = params['volumeWater'] ?? 50;
     const alcohol = params['volumeAlcohol'] ?? 50;
     const contraction = 0.04 * Math.min(water, alcohol);
@@ -1918,19 +1893,24 @@ export function drawLiquidMixingScene(o: ThermalSceneOptions): void {
         ctx.fill();
     }
     ctx.globalAlpha = 1;
-    drawHud(ctx, isDark, [
-        { label: 'Vw', value: `${water.toFixed(0)} mL` },
-        { label: 'Va', value: `${alcohol.toFixed(0)} mL` },
-        { label: 'Vmix', value: `${finalVolume.toFixed(1)} mL` }
-    ]);
-    drawInfoBar(ctx, w, h, '水和酒精混合体积小于二者之和, 说明分子间存在空隙', isDark);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'Vw', value: `${water.toFixed(0)} mL` },
+            { label: 'Va', value: `${alcohol.toFixed(0)} mL` },
+            { label: 'Vmix', value: `${finalVolume.toFixed(1)} mL` }
+        ],
+        { boxW: 200, lineH: 16 }
+    );
+    drawInfoBar(ctx, w, h, '水和酒精混合体积小于二者之和, 说明分子间存在空隙', isDark, { height: 22, yOffset: 34 });
     if (!simulationResult) drawEmptyState(ctx, w, h, isDark);
 }
 
 export function drawMolecularForceScene(o: ThermalSceneOptions): void {
     const { ctx, width: w, height: h, isDark, params, simulationResult } = o;
     clearScene(ctx, w, h, isDark);
-    drawTitle(ctx, '分子力曲线', w, isDark);
+    drawTitle(ctx, '分子力曲线', w, isDark, { size: 18, y: 28 });
     const epsilon = params['epsilon'] ?? 1;
     const sigma = params['sigma'] ?? 0.34;
     const xs: number[] = [];
@@ -1965,12 +1945,20 @@ export function drawMolecularForceScene(o: ThermalSceneOptions): void {
     ctx.arc(w * 0.58, h * 0.76, 20, 0, Math.PI * 2);
     ctx.fill();
     drawThermalArrow(ctx, w * 0.47, h * 0.76, w * 0.53, h * 0.76, '#ef4444', '斥/引随距离变号');
-    drawHud(ctx, isDark, [
-        { label: 'epsilon', value: epsilon.toFixed(2) },
-        { label: 'sigma', value: `${sigma.toFixed(2)} nm` },
-        { label: 'r0', value: `${(1.122 * sigma).toFixed(2)} nm` }
-    ]);
-    drawInfoBar(ctx, w, h, '距离很小时表现为斥力, 稍远处表现为引力, 远距离分子力趋近于零', isDark);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'epsilon', value: epsilon.toFixed(2) },
+            { label: 'sigma', value: `${sigma.toFixed(2)} nm` },
+            { label: 'r0', value: `${(1.122 * sigma).toFixed(2)} nm` }
+        ],
+        { boxW: 200, lineH: 16 }
+    );
+    drawInfoBar(ctx, w, h, '距离很小时表现为斥力, 稍远处表现为引力, 远距离分子力趋近于零', isDark, {
+        height: 22,
+        yOffset: 34
+    });
     if (!simulationResult) drawEmptyState(ctx, w, h, isDark);
 }
 
@@ -1980,7 +1968,7 @@ export function drawWettingScene(o: ThermalSceneOptions): void {
     const medium = params['medium'] ?? 0;
     const surface = params['surface'] ?? 0;
     const theta = medium < 0.5 && surface < 0.5 ? 35 : medium < 0.5 ? 105 : 140;
-    drawTitle(ctx, `润湿/不润湿  θ=${theta}°`, w, isDark);
+    drawTitle(ctx, `润湿/不润湿  θ=${theta}°`, w, isDark, { size: 18, y: 28 });
     const baseY = h * 0.68;
     ctx.fillStyle = isDark ? '#334155' : '#cbd5e1';
     ctx.fillRect(w * 0.18, baseY, w * 0.64, 10);
@@ -1997,19 +1985,27 @@ export function drawWettingScene(o: ThermalSceneOptions): void {
     ctx.beginPath();
     ctx.arc(w * 0.5, baseY, 54, Math.PI, Math.PI + (theta * Math.PI) / 180);
     ctx.stroke();
-    drawHud(ctx, isDark, [
-        { label: 'theta', value: `${theta} deg` },
-        { label: 'medium', value: medium < 0.5 ? 'water' : 'mercury' },
-        { label: 'state', value: theta < 90 ? 'wetting' : 'non-wetting' }
-    ]);
-    drawInfoBar(ctx, w, h, 'θ < 90° 为润湿, θ > 90° 为不润湿; 接触角由三相界面张力决定', isDark);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'theta', value: `${theta} deg` },
+            { label: 'medium', value: medium < 0.5 ? 'water' : 'mercury' },
+            { label: 'state', value: theta < 90 ? 'wetting' : 'non-wetting' }
+        ],
+        { boxW: 200, lineH: 16 }
+    );
+    drawInfoBar(ctx, w, h, 'θ < 90° 为润湿, θ > 90° 为不润湿; 接触角由三相界面张力决定', isDark, {
+        height: 22,
+        yOffset: 34
+    });
     if (!simulationResult) drawEmptyState(ctx, w, h, isDark);
 }
 
 export function drawJouleMechanicalScene(o: ThermalSceneOptions): void {
     const { ctx, width: w, height: h, isDark, params, currentTime, simulationResult } = o;
     clearScene(ctx, w, h, isDark);
-    drawTitle(ctx, '机械功改变内能', w, isDark);
+    drawTitle(ctx, '机械功改变内能', w, isDark, { size: 18, y: 28 });
     const mass = params['mass'] ?? 5;
     const height = params['height'] ?? 1.5;
     const drops = params['drops'] ?? 100;
@@ -2035,19 +2031,24 @@ export function drawJouleMechanicalScene(o: ThermalSceneOptions): void {
     }
     drawEnergyBar(ctx, w * 0.18, h * 0.34, 46, 130, 1, '#f59e0b', 'mgh', isDark);
     drawThermalArrow(ctx, w * 0.25, h * 0.48, tankX - 16, tankY + 58, '#ef4444', 'W');
-    drawHud(ctx, isDark, [
-        { label: 'W', value: `${work.toFixed(0)} J` },
-        { label: 'm_water', value: `${waterMass.toFixed(2)} kg` },
-        { label: 'dT', value: `${deltaT.toFixed(2)} K` }
-    ]);
-    drawInfoBar(ctx, w, h, '重物下落做功带动叶片搅拌, 机械功转化为水的内能', isDark);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'W', value: `${work.toFixed(0)} J` },
+            { label: 'm_water', value: `${waterMass.toFixed(2)} kg` },
+            { label: 'dT', value: `${deltaT.toFixed(2)} K` }
+        ],
+        { boxW: 200, lineH: 16 }
+    );
+    drawInfoBar(ctx, w, h, '重物下落做功带动叶片搅拌, 机械功转化为水的内能', isDark, { height: 22, yOffset: 34 });
     if (!simulationResult) drawEmptyState(ctx, w, h, isDark);
 }
 
 export function drawJouleElectricalScene(o: ThermalSceneOptions): void {
     const { ctx, width: w, height: h, isDark, params, simulationResult } = o;
     clearScene(ctx, w, h, isDark);
-    drawTitle(ctx, '电功改变内能', w, isDark);
+    drawTitle(ctx, '电功改变内能', w, isDark, { size: 18, y: 28 });
     const voltage = params['voltage'] ?? 12;
     const resistance = params['resistance'] ?? 10;
     const time = params['time'] ?? 300;
@@ -2074,19 +2075,24 @@ export function drawJouleElectricalScene(o: ThermalSceneOptions): void {
     }
     ctx.stroke();
     drawThermalArrow(ctx, w * 0.22, cy, cx - 102, cy, '#f59e0b', 'I');
-    drawHud(ctx, isDark, [
-        { label: 'P', value: `${power.toFixed(1)} W` },
-        { label: 'Q', value: `${heat.toFixed(0)} J` },
-        { label: 'dT', value: `${deltaT.toFixed(2)} K` }
-    ]);
-    drawInfoBar(ctx, w, h, '焦耳定律 Q = I^2Rt = U^2t/R, 电功转化为水的内能', isDark);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'P', value: `${power.toFixed(1)} W` },
+            { label: 'Q', value: `${heat.toFixed(0)} J` },
+            { label: 'dT', value: `${deltaT.toFixed(2)} K` }
+        ],
+        { boxW: 200, lineH: 16 }
+    );
+    drawInfoBar(ctx, w, h, '焦耳定律 Q = I^2Rt = U^2t/R, 电功转化为水的内能', isDark, { height: 22, yOffset: 34 });
     if (!simulationResult) drawEmptyState(ctx, w, h, isDark);
 }
 
 export function drawAdiabaticCompressionScene(o: ThermalSceneOptions): void {
     const { ctx, width: w, height: h, isDark, params, currentTime, simulationResult } = o;
     clearScene(ctx, w, h, isDark);
-    drawTitle(ctx, '绝热压缩', w, isDark);
+    drawTitle(ctx, '绝热压缩', w, isDark, { size: 18, y: 28 });
     const t0 = params['initialTemp'] ?? 300;
     const ratio = params['compressionRatio'] ?? 9;
     const gamma = 1.4;
@@ -2108,19 +2114,27 @@ export function drawAdiabaticCompressionScene(o: ThermalSceneOptions): void {
     roundRectPath(ctx, cylX + 8, pistonY + 24, cylW - 16, cylY + cylH - pistonY - 34, 6);
     ctx.fill();
     drawThermalArrow(ctx, cylX + cylW / 2, cylY - 28, cylX + cylW / 2, pistonY - 6, '#ef4444', '压缩');
-    drawHud(ctx, isDark, [
-        { label: 'T0', value: `${t0.toFixed(0)} K` },
-        { label: 'V1/V2', value: ratio.toFixed(1) },
-        { label: 'T2', value: `${t2.toFixed(0)} K` }
-    ]);
-    drawInfoBar(ctx, w, h, '绝热过程近似 Q=0, TV^(gamma-1)=常量, 快速压缩可显著升温', isDark);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'T0', value: `${t0.toFixed(0)} K` },
+            { label: 'V1/V2', value: ratio.toFixed(1) },
+            { label: 'T2', value: `${t2.toFixed(0)} K` }
+        ],
+        { boxW: 200, lineH: 16 }
+    );
+    drawInfoBar(ctx, w, h, '绝热过程近似 Q=0, TV^(gamma-1)=常量, 快速压缩可显著升温', isDark, {
+        height: 22,
+        yOffset: 34
+    });
     if (!simulationResult) drawEmptyState(ctx, w, h, isDark);
 }
 
 export function drawEnergyTransformationScene(o: ThermalSceneOptions): void {
     const { ctx, width: w, height: h, isDark, params, simulationResult } = o;
     clearScene(ctx, w, h, isDark);
-    drawTitle(ctx, '能量转化与守恒', w, isDark);
+    drawTitle(ctx, '能量转化与守恒', w, isDark, { size: 18, y: 28 });
     const input = params['inputEnergy'] ?? 100;
     const efficiency = params['efficiency'] ?? 0.85;
     const useful = input * efficiency;
@@ -2135,19 +2149,27 @@ export function drawEnergyTransformationScene(o: ThermalSceneOptions): void {
     ctx.font = 'bold 16px sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(`${input.toFixed(0)} J = ${useful.toFixed(0)} J + ${loss.toFixed(0)} J`, w * 0.5, h * 0.75);
-    drawHud(ctx, isDark, [
-        { label: 'Ein', value: `${input.toFixed(0)} J` },
-        { label: 'eta', value: `${(efficiency * 100).toFixed(0)}%` },
-        { label: 'loss', value: `${loss.toFixed(1)} J` }
-    ]);
-    drawInfoBar(ctx, w, h, '能量不会凭空产生或消失, 只会从一种形式转化为另一种形式', isDark);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'Ein', value: `${input.toFixed(0)} J` },
+            { label: 'eta', value: `${(efficiency * 100).toFixed(0)}%` },
+            { label: 'loss', value: `${loss.toFixed(1)} J` }
+        ],
+        { boxW: 200, lineH: 16 }
+    );
+    drawInfoBar(ctx, w, h, '能量不会凭空产生或消失, 只会从一种形式转化为另一种形式', isDark, {
+        height: 22,
+        yOffset: 34
+    });
     if (!simulationResult) drawEmptyState(ctx, w, h, isDark);
 }
 
 export function drawPerpetuumMobileScene(o: ThermalSceneOptions): void {
     const { ctx, width: w, height: h, isDark, params, currentTime, simulationResult } = o;
     clearScene(ctx, w, h, isDark);
-    drawTitle(ctx, '永动机不可能', w, isDark);
+    drawTitle(ctx, '永动机不可能', w, isDark, { size: 18, y: 28 });
     const hot = params['hotTemp'] ?? 600;
     const cold = params['coldTemp'] ?? 300;
     const carnot = 1 - cold / Math.max(hot, 1e-6);
@@ -2173,19 +2195,27 @@ export function drawPerpetuumMobileScene(o: ThermalSceneOptions): void {
     ctx.font = 'bold 42px sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('×', cx, cy + 14);
-    drawHud(ctx, isDark, [
-        { label: 'Th', value: `${hot.toFixed(0)} K` },
-        { label: 'Tc', value: `${cold.toFixed(0)} K` },
-        { label: 'eta_max', value: `${(carnot * 100).toFixed(1)}%` }
-    ]);
-    drawInfoBar(ctx, w, h, '第二类永动机违反热力学第二定律: 单一热源不可能完全变成功', isDark);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'Th', value: `${hot.toFixed(0)} K` },
+            { label: 'Tc', value: `${cold.toFixed(0)} K` },
+            { label: 'eta_max', value: `${(carnot * 100).toFixed(1)}%` }
+        ],
+        { boxW: 200, lineH: 16 }
+    );
+    drawInfoBar(ctx, w, h, '第二类永动机违反热力学第二定律: 单一热源不可能完全变成功', isDark, {
+        height: 22,
+        yOffset: 34
+    });
     if (!simulationResult) drawEmptyState(ctx, w, h, isDark);
 }
 
 export function drawHeatDirectionScene(o: ThermalSceneOptions): void {
     const { ctx, width: w, height: h, isDark, params, currentTime, simulationResult } = o;
     clearScene(ctx, w, h, isDark);
-    drawTitle(ctx, '热力学方向性', w, isDark);
+    drawTitle(ctx, '热力学方向性', w, isDark, { size: 18, y: 28 });
     const hot = params['hotTemp'] ?? 400;
     const cold = params['coldTemp'] ?? 250;
     const k = params['thermalConductivity'] ?? 5;
@@ -2211,12 +2241,20 @@ export function drawHeatDirectionScene(o: ThermalSceneOptions): void {
     ctx.setLineDash([5, 4]);
     drawThermalArrow(ctx, rightX - 16, y + 98, leftX + 126, y + 98, '#ef4444', '自发反向 ×');
     ctx.setLineDash([]);
-    drawHud(ctx, isDark, [
-        { label: 'dT', value: `${(hot - cold).toFixed(0)} K` },
-        { label: 'k', value: `${k.toFixed(1)}` },
-        { label: 'Qdot', value: `${qRate.toFixed(0)} arb` }
-    ]);
-    drawInfoBar(ctx, w, h, '热量自发地从高温物体传到低温物体, 反向过程需要外界做功', isDark);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'dT', value: `${(hot - cold).toFixed(0)} K` },
+            { label: 'k', value: `${k.toFixed(1)}` },
+            { label: 'Qdot', value: `${qRate.toFixed(0)} arb` }
+        ],
+        { boxW: 200, lineH: 16 }
+    );
+    drawInfoBar(ctx, w, h, '热量自发地从高温物体传到低温物体, 反向过程需要外界做功', isDark, {
+        height: 22,
+        yOffset: 34
+    });
     if (!simulationResult) drawEmptyState(ctx, w, h, isDark);
 }
 
@@ -2229,7 +2267,7 @@ export function drawHeatDirectionScene(o: ThermalSceneOptions): void {
 export function drawGasLawScene(o: ThermalSceneOptions): void {
     const { ctx, width: w, height: h, isDark, params, currentTime } = o;
     clearScene(ctx, w, h, isDark);
-    drawTitle(ctx, '理想气体状态方程  pV = nRT', w, isDark);
+    drawTitle(ctx, '理想气体状态方程  pV = nRT', w, isDark, { size: 18, y: 28 });
 
     const n = params['n'] ?? 1;
     const modeNum = params['modeG'] ?? 0;
@@ -2452,13 +2490,18 @@ export function drawGasLawScene(o: ThermalSceneOptions): void {
     ctx.fillText(`nRT  = ${rhs.toFixed(0)} J`, txtX, cylTop + 138);
 
     // HUD (左上): 初始条件
-    drawHud(ctx, isDark, [
-        { label: 'n', value: `${n.toFixed(2)} mol` },
-        { label: 'mode', value: `${modeNum}` },
-        { label: 'p₀', value: `${p0.toFixed(1)} kPa` },
-        { label: 'V₀', value: `${V0.toFixed(1)} L` },
-        { label: 'T₀', value: `${T0.toFixed(0)} K` }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'n', value: `${n.toFixed(2)} mol` },
+            { label: 'mode', value: `${modeNum}` },
+            { label: 'p₀', value: `${p0.toFixed(1)} kPa` },
+            { label: 'V₀', value: `${V0.toFixed(1)} L` },
+            { label: 'T₀', value: `${T0.toFixed(0)} K` }
+        ],
+        { boxW: 200, lineH: 16 }
+    );
 
     // 信息条
     const info =
@@ -2467,5 +2510,5 @@ export function drawGasLawScene(o: ThermalSceneOptions): void {
             : mode === 'isobaric'
               ? '等压: V/T = 常数, 温度升高则体积膨胀 (查理定律)'
               : '等容: p/T = 常数, 温度升高则压强增大 (盖-吕萨克定律)';
-    drawInfoBar(ctx, w, h, info, isDark);
+    drawInfoBar(ctx, w, h, info, isDark, { height: 22, yOffset: 34 });
 }
