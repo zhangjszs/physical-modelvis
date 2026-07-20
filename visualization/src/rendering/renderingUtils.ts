@@ -149,26 +149,69 @@ export function drawSubtitle(
 /**
  * HUD 数据面板（左上角圆角矩形 + 多行 key=value）。
  * 默认 mechanics 风格：boxW=190, lineH=18, padding=8。
+ * 支持变体：自定义位置 (boxX/boxY)、边框 (borderStroke)、两列布局 (twoColumn + gapScenes 位置变体)。
  */
 export function drawHud(
     ctx: CanvasRenderingContext2D,
     isDark: boolean,
     rows: Array<{ label: string; value: string }>,
-    opts?: { boxW?: number; lineH?: number; padding?: number }
+    opts?: {
+        boxW?: number;
+        lineH?: number;
+        padding?: number;
+        boxX?: number;
+        boxY?: number;
+        borderRadius?: number;
+        borderStroke?: string;
+        bgAlpha?: { dark: number; light: number };
+        font?: string;
+        textBaseline?: CanvasTextBaseline;
+        textStartY?: number;
+        labelColor?: (isDark: boolean) => string;
+        twoColumn?: boolean;
+        valueX?: number;
+        boxH?: number;
+    }
 ): void {
+    if (rows.length === 0) return;
     const lineH = opts?.lineH ?? 18;
     const boxW = opts?.boxW ?? 190;
     const padding = opts?.padding ?? 8;
-    const boxH = rows.length * lineH + 18;
-    ctx.fillStyle = panelFill(isDark);
-    roundRectPath(ctx, padding, 10, boxW, boxH, 6);
+    const boxX = opts?.boxX ?? padding;
+    const boxY = opts?.boxY ?? 10;
+    const radius = opts?.borderRadius ?? 6;
+    const bgDark = opts?.bgAlpha?.dark ?? 0.75;
+    const bgLight = opts?.bgAlpha?.light ?? 0.86;
+    const font = opts?.font ?? 'bold 12px monospace';
+    const textBase = opts?.textBaseline ?? 'top';
+    const getLabelColor = opts?.labelColor ?? textColor;
+    const twoCol = opts?.twoColumn ?? false;
+    const valueX = opts?.valueX ?? boxX + padding + 48;
+
+    const boxH = opts?.boxH ?? rows.length * lineH + 18;
+    ctx.fillStyle = isDark ? `rgba(15,23,42,${bgDark})` : `rgba(255,255,255,${bgLight})`;
+    roundRectPath(ctx, boxX, boxY, boxW, boxH, radius);
     ctx.fill();
+    if (opts?.borderStroke) {
+        ctx.strokeStyle = opts.borderStroke;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+    }
+    const textStartY = opts?.textStartY ?? boxY + 9;
     rows.forEach((row, i) => {
-        ctx.font = 'bold 12px monospace';
+        const y = textStartY + i * lineH;
+        ctx.font = font;
         ctx.textAlign = 'left';
-        ctx.textBaseline = 'top';
-        ctx.fillStyle = textColor(isDark);
-        ctx.fillText(`${row.label} = ${row.value}`, padding + 8, 19 + i * lineH);
+        ctx.textBaseline = textBase;
+        if (twoCol) {
+            ctx.fillStyle = mutedColor(isDark);
+            ctx.fillText(row.label, boxX + padding, y);
+            ctx.fillStyle = getLabelColor(isDark);
+            ctx.fillText(row.value, valueX, y);
+        } else {
+            ctx.fillStyle = getLabelColor(isDark);
+            ctx.fillText(`${row.label} = ${row.value}`, boxX + padding, y);
+        }
     });
     ctx.textBaseline = 'alphabetic';
 }

@@ -18,7 +18,7 @@
  */
 
 import type { SimulationResult, Vector2D } from 'physics-core';
-import { roundRectPath, clearScene, drawTitle, drawInfoBar } from './renderingUtils';
+import { roundRectPath, clearScene, drawTitle, drawInfoBar, drawHud } from './renderingUtils';
 
 // ========== 共享类型 ==========
 
@@ -72,32 +72,7 @@ interface SeriesLike {
     points: Array<{ x: number; y: number }>;
 }
 
-// ========== 共享工具函数 (基础绘制已迁移至 renderingUtils; drawHud 保留本地布局) ==========
-
-function drawHud(ctx: CanvasRenderingContext2D, isDark: boolean, rows: Array<{ label: string; value: string }>): void {
-    if (rows.length === 0) return;
-    const padding = 8;
-    const lineH = 16;
-    const boxH = rows.length * lineH + padding * 2;
-    const boxW = 210;
-    const x = 10;
-    const y = 42;
-    ctx.fillStyle = isDark ? 'rgba(15,23,42,0.78)' : 'rgba(255,255,255,0.88)';
-    roundRectPath(ctx, x, y, boxW, boxH, 6);
-    ctx.fill();
-    ctx.strokeStyle = isDark ? 'rgba(148,163,184,0.3)' : 'rgba(100,116,139,0.25)';
-    ctx.lineWidth = 1;
-    ctx.stroke();
-    rows.forEach((row, i) => {
-        const ry = y + padding + i * lineH;
-        ctx.font = 'bold 11px monospace';
-        ctx.fillStyle = isDark ? '#e2e8f0' : '#1e293b';
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'top';
-        ctx.fillText(`${row.label} = ${row.value}`, x + padding, ry);
-    });
-    ctx.textBaseline = 'alphabetic';
-}
+// ========== 共享工具函数 (基础绘制已迁移至 renderingUtils) ==========
 
 /** 在 (x1,y1)->(x2,y2) 方向末端画箭头 */
 function arrowHead(
@@ -306,11 +281,23 @@ export function drawTotalInternalReflectionScene(o: GapSceneOptions): void {
         ctx.textAlign = 'left';
         ctx.fillText(`纤芯 n₁=${n1.toFixed(2)}  /  包层 n₂=${n2.toFixed(2)}`, 12, height - 40);
         ctx.fillText(`入射角 φ=${angleDeg.toFixed(0)}° → 全反射在芯-包层界面上传导`, 12, height - 22);
-        drawHud(ctx, isDark, [
-            { label: 'n₁(芯)', value: n1.toFixed(2) },
-            { label: 'n₂(包层)', value: n2.toFixed(2) },
-            { label: 'φ', value: `${angleDeg.toFixed(0)}°` }
-        ]);
+        drawHud(
+            ctx,
+            isDark,
+            [
+                { label: 'n₁(芯)', value: n1.toFixed(2) },
+                { label: 'n₂(包层)', value: n2.toFixed(2) },
+                { label: 'φ', value: `${angleDeg.toFixed(0)}°` }
+            ],
+            {
+                boxX: 10,
+                boxY: 42,
+                boxW: 210,
+                lineH: 16,
+                borderStroke: isDark ? 'rgba(148,163,184,0.3)' : 'rgba(100,116,139,0.25)',
+                bgAlpha: { dark: 0.78, light: 0.88 }
+            }
+        );
         return;
     }
 
@@ -378,11 +365,23 @@ export function drawTotalInternalReflectionScene(o: GapSceneOptions): void {
         ctx.stroke();
         arrowHead(ctx, hit[0], hit[1], end[0], end[1], 11, '#ef4444');
         const critDeg = isNaN(critical) ? 0 : (critical * 180) / Math.PI;
-        drawHud(ctx, isDark, [
-            { label: '入射角 θ₁', value: `${angleDeg.toFixed(0)}°` },
-            { label: '临界角 θc', value: `${critDeg.toFixed(1)}°` },
-            { label: '现象', value: '全反射' }
-        ]);
+        drawHud(
+            ctx,
+            isDark,
+            [
+                { label: '入射角 θ₁', value: `${angleDeg.toFixed(0)}°` },
+                { label: '临界角 θc', value: `${critDeg.toFixed(1)}°` },
+                { label: '现象', value: '全反射' }
+            ],
+            {
+                boxX: 10,
+                boxY: 42,
+                boxW: 210,
+                lineH: 16,
+                borderStroke: isDark ? 'rgba(148,163,184,0.3)' : 'rgba(100,116,139,0.25)',
+                bgAlpha: { dark: 0.78, light: 0.88 }
+            }
+        );
         drawInfoBar(ctx, width, height, `θ₁ > θc → 光全部反射回光密介质 (光导/全反射棱镜原理)`, isDark, {
             height: 22,
             yOffset: 34
@@ -397,11 +396,23 @@ export function drawTotalInternalReflectionScene(o: GapSceneOptions): void {
         ctx.lineTo(end[0], end[1]);
         ctx.stroke();
         arrowHead(ctx, hit[0], hit[1], end[0], end[1], 11, '#22c55e');
-        drawHud(ctx, isDark, [
-            { label: '入射角 θ₁', value: `${angleDeg.toFixed(0)}°` },
-            { label: '折射角 θ₂', value: `${((th2 * 180) / Math.PI).toFixed(0)}°` },
-            { label: '现象', value: '折射' }
-        ]);
+        drawHud(
+            ctx,
+            isDark,
+            [
+                { label: '入射角 θ₁', value: `${angleDeg.toFixed(0)}°` },
+                { label: '折射角 θ₂', value: `${((th2 * 180) / Math.PI).toFixed(0)}°` },
+                { label: '现象', value: '折射' }
+            ],
+            {
+                boxX: 10,
+                boxY: 42,
+                boxW: 210,
+                lineH: 16,
+                borderStroke: isDark ? 'rgba(148,163,184,0.3)' : 'rgba(100,116,139,0.25)',
+                bgAlpha: { dark: 0.78, light: 0.88 }
+            }
+        );
         drawInfoBar(ctx, width, height, `n₁sinθ₁ = n₂sinθ₂ (斯涅尔定律)`, isDark, { height: 22, yOffset: 34 });
     }
 }
@@ -471,11 +482,23 @@ export function drawCurrentMagneticFieldScene(o: GapSceneOptions): void {
     }
 
     const modeLabel = params['mode'] === 2 ? '螺线管' : params['mode'] === 1 ? '线圈' : '直导线';
-    drawHud(ctx, isDark, [
-        { label: '模式', value: modeLabel },
-        { label: 'I', value: `${I}A` },
-        { label: '方向', value: I >= 0 ? '逆时针' : '顺时针' }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: '模式', value: modeLabel },
+            { label: 'I', value: `${I}A` },
+            { label: '方向', value: I >= 0 ? '逆时针' : '顺时针' }
+        ],
+        {
+            boxX: 10,
+            boxY: 42,
+            boxW: 210,
+            lineH: 16,
+            borderStroke: isDark ? 'rgba(148,163,184,0.3)' : 'rgba(100,116,139,0.25)',
+            bgAlpha: { dark: 0.78, light: 0.88 }
+        }
+    );
 }
 
 // ============================================================================
@@ -552,11 +575,23 @@ export function drawElectricFieldLinesScene(o: GapSceneOptions): void {
     }
 
     const modeLabel = params['mode'] === 2 ? '平行板' : params['mode'] === 1 ? '电偶极' : '点电荷';
-    drawHud(ctx, isDark, [
-        { label: '模式', value: modeLabel },
-        { label: '电场线', value: `${extra.fieldLines.length} 条` },
-        { label: '采样点', value: `${extra.samples.length}` }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: '模式', value: modeLabel },
+            { label: '电场线', value: `${extra.fieldLines.length} 条` },
+            { label: '采样点', value: `${extra.samples.length}` }
+        ],
+        {
+            boxX: 10,
+            boxY: 42,
+            boxW: 210,
+            lineH: 16,
+            borderStroke: isDark ? 'rgba(148,163,184,0.3)' : 'rgba(100,116,139,0.25)',
+            bgAlpha: { dark: 0.78, light: 0.88 }
+        }
+    );
 }
 
 // ============================================================================
@@ -635,12 +670,24 @@ export function drawNewtonTubeScene(o: GapSceneOptions): void {
     ctx.stroke();
     ctx.textAlign = 'left';
 
-    drawHud(ctx, isDark, [
-        { label: 't', value: `${t.toFixed(2)} s` },
-        { label: '介质', value: withAir ? '空气' : '真空' },
-        { label: '硬币', value: `${(coinFrac * heightM).toFixed(2)} m` },
-        { label: '羽毛', value: `${(featherFrac * heightM).toFixed(2)} m` }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 't', value: `${t.toFixed(2)} s` },
+            { label: '介质', value: withAir ? '空气' : '真空' },
+            { label: '硬币', value: `${(coinFrac * heightM).toFixed(2)} m` },
+            { label: '羽毛', value: `${(featherFrac * heightM).toFixed(2)} m` }
+        ],
+        {
+            boxX: 10,
+            boxY: 42,
+            boxW: 210,
+            lineH: 16,
+            borderStroke: isDark ? 'rgba(148,163,184,0.3)' : 'rgba(100,116,139,0.25)',
+            bgAlpha: { dark: 0.78, light: 0.88 }
+        }
+    );
     drawInfoBar(
         ctx,
         width,
@@ -740,11 +787,23 @@ export function drawBulbVIScene(o: GapSceneOptions): void {
         ctx.beginPath();
         ctx.arc(ox, oy, 6, 0, Math.PI * 2);
         ctx.fill();
-        drawHud(ctx, isDark, [
-            { label: 'U_op', value: `${op.u.toFixed(2)} V` },
-            { label: 'I_op', value: `${op.i.toFixed(3)} A` },
-            { label: 'P_op', value: `${(op.u * op.i).toFixed(2)} W` }
-        ]);
+        drawHud(
+            ctx,
+            isDark,
+            [
+                { label: 'U_op', value: `${op.u.toFixed(2)} V` },
+                { label: 'I_op', value: `${op.i.toFixed(3)} A` },
+                { label: 'P_op', value: `${(op.u * op.i).toFixed(2)} W` }
+            ],
+            {
+                boxX: 10,
+                boxY: 42,
+                boxW: 210,
+                lineH: 16,
+                borderStroke: isDark ? 'rgba(148,163,184,0.3)' : 'rgba(100,116,139,0.25)',
+                bgAlpha: { dark: 0.78, light: 0.88 }
+            }
+        );
     }
     drawInfoBar(ctx, width, height, '非线性电阻: 温度↑→电阻↑, I-U 曲线上凸 (与负载线交点为工作点)', isDark, {
         height: 22,
@@ -840,13 +899,25 @@ export function drawWorkEnergyScene(o: GapSceneOptions): void {
     ctx.textAlign = 'left';
 
     const equal = Math.abs(W - dEk) < Math.max(1e-6, Math.abs(W) * 0.02);
-    drawHud(ctx, isDark, [
-        { label: 'm', value: `${m} kg` },
-        { label: 'F', value: `${F} N` },
-        { label: 'W', value: `${W.toFixed(2)} J` },
-        { label: 'ΔEk', value: `${dEk.toFixed(2)} J` },
-        { label: 'W=ΔEk', value: equal ? '✓' : '…' }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'm', value: `${m} kg` },
+            { label: 'F', value: `${F} N` },
+            { label: 'W', value: `${W.toFixed(2)} J` },
+            { label: 'ΔEk', value: `${dEk.toFixed(2)} J` },
+            { label: 'W=ΔEk', value: equal ? '✓' : '…' }
+        ],
+        {
+            boxX: 10,
+            boxY: 42,
+            boxW: 210,
+            lineH: 16,
+            borderStroke: isDark ? 'rgba(148,163,184,0.3)' : 'rgba(100,116,139,0.25)',
+            bgAlpha: { dark: 0.78, light: 0.88 }
+        }
+    );
 }
 
 // ============================================================================
@@ -956,11 +1027,23 @@ export function drawBallXTimeScene(o: GapSceneOptions): void {
     ctx.arc(bx, by, 10, 0, Math.PI * 2);
     ctx.fill();
 
-    drawHud(ctx, isDark, [
-        { label: 't', value: `${t.toFixed(2)} s` },
-        { label: 'x', value: `${cur.position.x.toFixed(3)} m` },
-        { label: 'T', value: Tlabel }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 't', value: `${t.toFixed(2)} s` },
+            { label: 'x', value: `${cur.position.x.toFixed(3)} m` },
+            { label: 'T', value: Tlabel }
+        ],
+        {
+            boxX: 10,
+            boxY: 42,
+            boxW: 210,
+            lineH: 16,
+            borderStroke: isDark ? 'rgba(148,163,184,0.3)' : 'rgba(100,116,139,0.25)',
+            bgAlpha: { dark: 0.78, light: 0.88 }
+        }
+    );
     drawInfoBar(ctx, width, height, '摆球水平位移 x(t) 近似正弦 → 简谐运动', isDark, { height: 22, yOffset: 34 });
 }
 
@@ -1073,10 +1156,22 @@ export function drawGeigerCounterScene(o: GapSceneOptions): void {
     ctx.textAlign = 'center';
     ctx.fillText('N(t) 剩余核数', gx + gw / 2, gy + gh + 18);
 
-    drawHud(ctx, isDark, [
-        { label: 't', value: `${t.toFixed(1)} s` },
-        { label: 'N(t)', value: `${N.toFixed(0)}` },
-        { label: '活度 A', value: `${A.toFixed(1)} Bq` }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 't', value: `${t.toFixed(1)} s` },
+            { label: 'N(t)', value: `${N.toFixed(0)}` },
+            { label: '活度 A', value: `${A.toFixed(1)} Bq` }
+        ],
+        {
+            boxX: 10,
+            boxY: 42,
+            boxW: 210,
+            lineH: 16,
+            borderStroke: isDark ? 'rgba(148,163,184,0.3)' : 'rgba(100,116,139,0.25)',
+            bgAlpha: { dark: 0.78, light: 0.88 }
+        }
+    );
     drawInfoBar(ctx, width, height, '活度 A=λN 越大, 单位时间计数闪光越多', isDark, { height: 22, yOffset: 34 });
 }

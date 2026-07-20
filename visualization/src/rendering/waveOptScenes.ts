@@ -16,7 +16,7 @@
  */
 
 import type { SimulationResult } from 'physics-core';
-import { clearScene, drawTitle, drawSubtitle, clamp, roundRectPath, drawArrow } from './renderingUtils';
+import { clearScene, drawTitle, drawSubtitle, clamp, roundRectPath, drawArrow, drawHud } from './renderingUtils';
 
 // ========== 共享类型 ==========
 
@@ -31,23 +31,6 @@ export interface WaveOptSceneOptions {
 }
 
 // ========== 共享工具 ==========
-
-function drawHud(ctx: CanvasRenderingContext2D, isDark: boolean, rows: Array<{ label: string; value: string }>): void {
-    const x = 14;
-    const y = 54;
-    const lh = 20;
-    ctx.fillStyle = isDark ? 'rgba(15,23,42,0.7)' : 'rgba(255,255,255,0.82)';
-    roundRectPath(ctx, x - 6, y - 22, 156, rows.length * lh + 10, 8);
-    ctx.fill();
-    ctx.font = '13px sans-serif';
-    ctx.textAlign = 'left';
-    rows.forEach((r, i) => {
-        ctx.fillStyle = isDark ? '#94a3b8' : '#64748b';
-        ctx.fillText(r.label, x, y + i * lh);
-        ctx.fillStyle = isDark ? '#e2e8f0' : '#1e293b';
-        ctx.fillText(r.value, x + 48, y + i * lh);
-    });
-}
 
 const BLUE = '#3b82f6';
 const GREEN = '#22c55e';
@@ -526,11 +509,29 @@ export function drawRefractionScene(o: WaveOptSceneOptions) {
         const ry = cy - Math.cos(a1) * rayLen;
         drawArrow(ctx, cx, cy, rx, ry, RED, '');
         const crit = (Math.asin(n2 / n1) * 180) / Math.PI;
-        drawHud(ctx, isDark, [
-            { label: 'θ₁', value: `${((a1 * 180) / Math.PI).toFixed(0)}°` },
-            { label: 'θ₂', value: '全反射' },
-            { label: 'θc', value: `${crit.toFixed(1)}°` }
-        ]);
+        drawHud(
+            ctx,
+            isDark,
+            [
+                { label: 'θ₁', value: `${((a1 * 180) / Math.PI).toFixed(0)}°` },
+                { label: 'θ₂', value: '全反射' },
+                { label: 'θc', value: `${crit.toFixed(1)}°` }
+            ],
+            {
+                boxX: 8,
+                boxY: 32,
+                boxW: 156,
+                lineH: 20,
+                borderRadius: 8,
+                bgAlpha: { dark: 0.7, light: 0.82 },
+                font: '13px sans-serif',
+                textBaseline: 'alphabetic',
+                textStartY: 54,
+                twoColumn: true,
+                valueX: 62,
+                boxH: 70
+            }
+        );
         drawSubtitle(ctx, `n₁>n₂ 且 θ₁>θc → 发生全反射`, 20, h - 20, isDark);
         return;
     }
@@ -541,11 +542,29 @@ export function drawRefractionScene(o: WaveOptSceneOptions) {
     const rX = cx + Math.sin(a2) * rayLen;
     const rY = cy + Math.cos(a2) * rayLen;
     drawArrow(ctx, cx, cy, rX, rY, GREEN, '');
-    drawHud(ctx, isDark, [
-        { label: 'θ₁', value: `${((a1 * 180) / Math.PI).toFixed(0)}°` },
-        { label: 'θ₂', value: `${((a2 * 180) / Math.PI).toFixed(1)}°` },
-        { label: 'n₁/n₂', value: `${(n1 / n2).toFixed(2)}` }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'θ₁', value: `${((a1 * 180) / Math.PI).toFixed(0)}°` },
+            { label: 'θ₂', value: `${((a2 * 180) / Math.PI).toFixed(1)}°` },
+            { label: 'n₁/n₂', value: `${(n1 / n2).toFixed(2)}` }
+        ],
+        {
+            boxX: 8,
+            boxY: 32,
+            boxW: 156,
+            lineH: 20,
+            borderRadius: 8,
+            bgAlpha: { dark: 0.7, light: 0.82 },
+            font: '13px sans-serif',
+            textBaseline: 'alphabetic',
+            textStartY: 54,
+            twoColumn: true,
+            valueX: 62,
+            boxH: 70
+        }
+    );
     drawSubtitle(ctx, `n₁sinθ₁ = n₂sinθ₂ → sinθ₂ = (n₁/n₂)sinθ₁`, 20, h - 20, isDark);
 }
 
@@ -609,11 +628,29 @@ export function drawInterferenceScene(o: WaveOptSceneOptions) {
     }
     ctx.stroke();
     const dY = (lambda * L) / d; // m
-    drawHud(ctx, isDark, [
-        { label: 'λ', value: `${lambdaNm.toFixed(0)} nm` },
-        { label: 'd', value: `${dMm.toFixed(2)} mm` },
-        { label: 'Δy', value: `${(dY * 1000).toFixed(2)} mm` }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'λ', value: `${lambdaNm.toFixed(0)} nm` },
+            { label: 'd', value: `${dMm.toFixed(2)} mm` },
+            { label: 'Δy', value: `${(dY * 1000).toFixed(2)} mm` }
+        ],
+        {
+            boxX: 8,
+            boxY: 32,
+            boxW: 156,
+            lineH: 20,
+            borderRadius: 8,
+            bgAlpha: { dark: 0.7, light: 0.82 },
+            font: '13px sans-serif',
+            textBaseline: 'alphabetic',
+            textStartY: 54,
+            twoColumn: true,
+            valueX: 62,
+            boxH: 70
+        }
+    );
     drawSubtitle(
         ctx,
         params.filmThickness && params.filmThickness > 0
@@ -669,11 +706,29 @@ export function drawDiffractionGratingScene(o: WaveOptSceneOptions) {
         ctx.fillText(`k=${k}`, ex + 4, ey);
     }
     const firstOrder = (lambda / d) * (180 / Math.PI);
-    drawHud(ctx, isDark, [
-        { label: 'd', value: `${dUm.toFixed(1)} μm` },
-        { label: 'λ', value: `${lambdaNm.toFixed(0)} nm` },
-        { label: 'k_max', value: `${kMax}` }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'd', value: `${dUm.toFixed(1)} μm` },
+            { label: 'λ', value: `${lambdaNm.toFixed(0)} nm` },
+            { label: 'k_max', value: `${kMax}` }
+        ],
+        {
+            boxX: 8,
+            boxY: 32,
+            boxW: 156,
+            lineH: 20,
+            borderRadius: 8,
+            bgAlpha: { dark: 0.7, light: 0.82 },
+            font: '13px sans-serif',
+            textBaseline: 'alphabetic',
+            textStartY: 54,
+            twoColumn: true,
+            valueX: 62,
+            boxH: 70
+        }
+    );
     drawSubtitle(ctx, `d·sinθ = kλ  →  ±1 级 θ ≈ ${firstOrder.toFixed(1)}°  (N=${N} 谱线越锐)`, 20, h - 20, isDark);
 }
 
@@ -729,11 +784,29 @@ export function drawPolarizationMalusScene(o: WaveOptSceneOptions) {
         roundRectPath(ctx, barX, y - 16, 200 * clamp(I, 0, 1), 14, 4);
         ctx.fill();
     }
-    drawHud(ctx, isDark, [
-        { label: 'I₀', value: I0.toFixed(2) },
-        { label: 'n', value: `${n}` },
-        { label: 'I', value: I.toFixed(3) }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'I₀', value: I0.toFixed(2) },
+            { label: 'n', value: `${n}` },
+            { label: 'I', value: I.toFixed(3) }
+        ],
+        {
+            boxX: 8,
+            boxY: 32,
+            boxW: 156,
+            lineH: 20,
+            borderRadius: 8,
+            bgAlpha: { dark: 0.7, light: 0.82 },
+            font: '13px sans-serif',
+            textBaseline: 'alphabetic',
+            textStartY: 54,
+            twoColumn: true,
+            valueX: 62,
+            boxH: 70
+        }
+    );
     drawSubtitle(ctx, `马吕斯定律: I = I₀·Π cos²(Δθᵢ)  →  I=${I.toFixed(3)}`, 20, h - 20, isDark);
 }
 
@@ -777,10 +850,28 @@ export function drawHologramScene(o: WaveOptSceneOptions) {
     }
     // 再现光束 (重建)
     drawArrow(ctx, plateX + 30, plateTop + plateH / 2, plateX + 160, plateTop + plateH / 2 - 60, BLUE, '再现');
-    drawHud(ctx, isDark, [
-        { label: 'λ', value: `${lambdaNm.toFixed(1)} nm` },
-        { label: 'θr-θo', value: `${(((thr - tho) * 180) / Math.PI).toFixed(0)}°` },
-        { label: 'Λ', value: `${(fringeSpacing * 1e6).toFixed(2)} μm` }
-    ]);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'λ', value: `${lambdaNm.toFixed(1)} nm` },
+            { label: 'θr-θo', value: `${(((thr - tho) * 180) / Math.PI).toFixed(0)}°` },
+            { label: 'Λ', value: `${(fringeSpacing * 1e6).toFixed(2)} μm` }
+        ],
+        {
+            boxX: 8,
+            boxY: 32,
+            boxW: 156,
+            lineH: 20,
+            borderRadius: 8,
+            bgAlpha: { dark: 0.7, light: 0.82 },
+            font: '13px sans-serif',
+            textBaseline: 'alphabetic',
+            textStartY: 54,
+            twoColumn: true,
+            valueX: 62,
+            boxH: 70
+        }
+    );
     drawSubtitle(ctx, `条纹间距 Λ = λ/|sinθr−sinθo| = ${(fringeSpacing * 1e6).toFixed(2)} μm`, 20, h - 20, isDark);
 }
