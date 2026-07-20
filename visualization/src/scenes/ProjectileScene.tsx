@@ -17,6 +17,7 @@ import { StateInspector } from '../components/simulation/StateInspector';
 import { LayerToggle } from '../components/layout/LayerToggle';
 import { SCENE_CATEGORIES } from '../components/layout/SceneSelector';
 import { computePhotogateMeasurements } from '../utils/photogate';
+import { ErrorBoundary } from '../components/common/ErrorBoundary';
 
 // 底部面板 & 诊断面板：非首屏关键，懒加载以减少主 chunk 体积
 const GraphPanel = lazy(() => import('../components/charts/GraphPanel').then(m => ({ default: m.GraphPanel })));
@@ -187,6 +188,17 @@ export function ProjectileScene() {
                 </div>
 
                 <div className="stage-viewport">
+                    <ErrorBoundary
+                        label="3D 实验舞台"
+                        fallback={
+                            <>
+                                <SimulationCanvas />
+                                <div className="equipment-error" role="alert">
+                                    ⚠ 该实验 3D 渲染出错，已回退到 2D 画面
+                                </div>
+                            </>
+                        }
+                    >
                     {is3DScene ? (
                         rig ? (
                             <Suspense
@@ -208,6 +220,7 @@ export function ProjectileScene() {
                     ) : (
                         <SimulationCanvas />
                     )}
+                    </ErrorBoundary>
                 </div>
                 {rigError && (
                     <div className="equipment-error" role="alert">
@@ -218,39 +231,69 @@ export function ProjectileScene() {
 
                 {dataOpen && (
                     <div className="classroom-data-drawer">
-                        <Suspense
+                        <ErrorBoundary
+                            label="数据图表"
                             fallback={
-                                <div className="panel-section" style={{ padding: 12, color: '#94a3b8', fontSize: 12 }}>
-                                    加载中...
+                                <div className="panel-section">
+                                    <div className="panel-title">数据图表</div>
+                                    <div style={{ padding: 12, color: '#94a3b8', fontSize: 12 }}>图表加载失败</div>
                                 </div>
                             }
                         >
-                            <GraphPanel />
-                        </Suspense>
+                            <Suspense
+                                fallback={
+                                    <div className="panel-section" style={{ padding: 12, color: '#94a3b8', fontSize: 12 }}>
+                                        加载中...
+                                    </div>
+                                }
+                            >
+                                <GraphPanel />
+                            </Suspense>
+                        </ErrorBoundary>
                         <div className="classroom-data-side">
                             {currentScene === 'air-track' && (
+                                    <ErrorBoundary
+                                        label="数字毫秒计"
+                                        fallback={
+                                            <div className="panel-section">
+                                                <div className="panel-title">数字毫秒计</div>
+                                                <div style={{ padding: 12, color: '#94a3b8', fontSize: 12 }}>加载失败</div>
+                                            </div>
+                                        }
+                                    >
+                                        <Suspense
+                                            fallback={
+                                                <div className="panel-section">
+                                                    <div className="panel-title">数字毫秒计</div>
+                                                    <div style={{ padding: 12, color: '#94a3b8', fontSize: 12 }}>加载中...</div>
+                                                </div>
+                                            }
+                                        >
+                                            <PhotogateTimer />
+                                        </Suspense>
+                                    </ErrorBoundary>
+                            )}
+                            <StateInspector />
+                            <ErrorBoundary
+                                label="诊断报告"
+                                fallback={
+                                    <div className="panel-section">
+                                        <div className="panel-title">诊断报告</div>
+                                        <div style={{ padding: 12, color: '#94a3b8', fontSize: 12 }}>加载失败</div>
+                                    </div>
+                                }
+                            >
                                 <Suspense
                                     fallback={
                                         <div className="panel-section">
-                                            <div className="panel-title">数字毫秒计</div>
+                                            <div className="panel-title">诊断报告</div>
                                             <div style={{ padding: 12, color: '#94a3b8', fontSize: 12 }}>加载中...</div>
                                         </div>
                                     }
                                 >
-                                    <PhotogateTimer />
+                                    <DiagnosticsPanel />
                                 </Suspense>
-                            )}
-                            <StateInspector />
-                            <Suspense
-                                fallback={
-                                    <div className="panel-section">
-                                        <div className="panel-title">诊断报告</div>
-                                        <div style={{ padding: 12, color: '#94a3b8', fontSize: 12 }}>加载中...</div>
-                                    </div>
-                                }
-                            >
-                                <DiagnosticsPanel />
-                            </Suspense>
+                            </ErrorBoundary>
                         </div>
                     </div>
                 )}
@@ -277,16 +320,26 @@ export function ProjectileScene() {
                                 关闭
                             </button>
                         </div>
-                        <Suspense
+                        <ErrorBoundary
+                            label="公式推导"
                             fallback={
                                 <div className="panel-section">
                                     <div className="panel-title">公式说明</div>
-                                    <div style={{ padding: 12, color: '#94a3b8', fontSize: 12 }}>加载中...</div>
+                                    <div style={{ padding: 12, color: '#94a3b8', fontSize: 12 }}>加载失败</div>
                                 </div>
                             }
                         >
-                            <FormulaPanel />
-                        </Suspense>
+                            <Suspense
+                                fallback={
+                                    <div className="panel-section">
+                                        <div className="panel-title">公式说明</div>
+                                        <div style={{ padding: 12, color: '#94a3b8', fontSize: 12 }}>加载中...</div>
+                                    </div>
+                                }
+                            >
+                                <FormulaPanel />
+                            </Suspense>
+                        </ErrorBoundary>
                     </aside>
                 </div>
             )}

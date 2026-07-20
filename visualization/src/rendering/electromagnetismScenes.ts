@@ -236,16 +236,11 @@ export function drawCircuitScene(opts: ElectromagnetismSceneOptions): void {
     drawResistor(ctx, right, height * 0.58, 80, isDark, `R3 ${r3}Ω`);
     drawArrow(ctx, width * 0.34, top - 24, width * 0.5, top - 24, ORANGE, 'I');
     drawMeter(ctx, width * 0.31, bottom, 34, clamp(current / 2, 0, 1), isDark, 'A', `${current.toFixed(2)} A`);
-    drawHud(
-        ctx,
-        isDark,
-        [
-            { label: 'E', value: `${emf.toFixed(1)} V` },
-            { label: 'R_eq', value: `${req.toFixed(2)} Ω` },
-            { label: 'I', value: `${current.toFixed(2)} A` }
-        ],
-        { boxW: 214 }
-    );
+    drawHud(ctx, isDark, [
+        { label: 'E', value: `${emf.toFixed(1)} V` },
+        { label: 'R_eq', value: `${req.toFixed(2)} Ω` },
+        { label: 'I', value: `${current.toFixed(2)} A` }
+    ], { boxW: 214 });
     drawInfoBar(ctx, width, height, parallel ? 'R2 与 R3 并联后再与 R1、内阻串联' : 'R1、R2、R3 与内阻串联', isDark);
 }
 
@@ -289,16 +284,11 @@ export function drawAcCurrentScene(opts: ElectromagnetismSceneOptions): void {
     ctx.moveTo(width * 0.48, height * 0.6);
     ctx.lineTo(width * 0.48, height * 0.76);
     ctx.stroke();
-    drawHud(
-        ctx,
-        isDark,
-        [
-            { label: 'U1m', value: `${em.toFixed(0)} V` },
-            { label: 'f', value: `${freq.toFixed(0)} Hz` },
-            { label: 'U2/U1', value: nRatio.toFixed(2) }
-        ],
-        { boxW: 214 }
-    );
+    drawHud(ctx, isDark, [
+        { label: 'U1m', value: `${em.toFixed(0)} V` },
+        { label: 'f', value: `${freq.toFixed(0)} Hz` },
+        { label: 'U2/U1', value: nRatio.toFixed(2) }
+    ], { boxW: 214 });
     drawInfoBar(ctx, width, height, `瞬时值 u1=${u.toFixed(1)} V, u2=${u2.toFixed(1)} V`, isDark);
 }
 
@@ -325,16 +315,11 @@ export function drawEmInductionScene(opts: ElectromagnetismSceneOptions): void {
     ctx.stroke();
     ctx.restore();
     drawMeter(ctx, width * 0.77, cy, 38, clamp(Math.abs(Math.sin(currentTime * 2)), 0, 1), isDark, 'G', '感应电流');
-    drawHud(
-        ctx,
-        isDark,
-        [
-            { label: 'B', value: `${b.toFixed(2)} T` },
-            { label: 'N', value: `${n.toFixed(0)}` },
-            { label: 'Phi', value: `${flux.toFixed(3)} Wb` }
-        ],
-        { boxW: 214 }
-    );
+    drawHud(ctx, isDark, [
+        { label: 'B', value: `${b.toFixed(2)} T` },
+        { label: 'N', value: `${n.toFixed(0)}` },
+        { label: 'Phi', value: `${flux.toFixed(3)} Wb` }
+    ], { boxW: 214 });
     drawInfoBar(ctx, width, height, '磁通量变化产生感应电动势: E = -N dPhi/dt', isDark);
 }
 
@@ -380,16 +365,11 @@ export function drawMagneticForceScene(opts: ElectromagnetismSceneOptions): void
     ctx.fill();
     drawArrow(ctx, width * 0.68, height * 0.6, width * 0.82, height * 0.6, GREEN, 'v');
     drawArrow(ctx, width * 0.68, height * 0.6, width * 0.68, height * 0.43, RED, 'qvB');
-    drawHud(
-        ctx,
-        isDark,
-        [
-            { label: 'B', value: `${b.toFixed(2)} T` },
-            { label: 'F_A', value: `${fAmp.toFixed(3)} N` },
-            { label: 'F_L', value: `${fLorentz.toFixed(3)} arb` }
-        ],
-        { boxW: 214 }
-    );
+    drawHud(ctx, isDark, [
+        { label: 'B', value: `${b.toFixed(2)} T` },
+        { label: 'F_A', value: `${fAmp.toFixed(3)} N` },
+        { label: 'F_L', value: `${fLorentz.toFixed(3)} arb` }
+    ], { boxW: 214 });
     drawInfoBar(ctx, width, height, '安培力 F=BILsinθ, 洛伦兹力 F=qvBsinφ', isDark);
 }
 
@@ -421,16 +401,11 @@ export function drawAmpereForceScene(opts: ElectromagnetismSceneOptions): void {
     drawArrow(ctx, -70, -18, 55, -18, ORANGE, 'I');
     ctx.restore();
     drawArrow(ctx, cx, cy, cx, cy - clamp(f * 220, 30, 125), RED, 'F');
-    drawHud(
-        ctx,
-        isDark,
-        [
-            { label: 'B', value: `${b.toFixed(2)} T` },
-            { label: 'I', value: `${i.toFixed(2)} A` },
-            { label: 'F', value: `${f.toFixed(3)} N` }
-        ],
-        { boxW: 214 }
-    );
+    drawHud(ctx, isDark, [
+        { label: 'B', value: `${b.toFixed(2)} T` },
+        { label: 'I', value: `${i.toFixed(2)} A` },
+        { label: 'F', value: `${f.toFixed(3)} N` }
+    ], { boxW: 214 });
     drawInfoBar(ctx, width, height, `导线与磁场夹角 ${((angle * 180) / Math.PI).toFixed(0)}°, F = BIL sinθ`, isDark);
 }
 
@@ -471,16 +446,11 @@ export function drawCapacitorChargeScene(opts: ElectromagnetismSceneOptions): vo
         isDark,
         label: 'U_C(t)'
     });
-    drawHud(
-        ctx,
-        isDark,
-        [
-            { label: 'tau', value: `${tau.toFixed(3)} s` },
-            { label: 'Uc', value: `${u.toFixed(2)} V` },
-            { label: 'mode', value: mode < 0.5 ? 'charge' : 'discharge' }
-        ],
-        { boxW: 214 }
-    );
+    drawHud(ctx, isDark, [
+        { label: 'tau', value: `${tau.toFixed(3)} s` },
+        { label: 'Uc', value: `${u.toFixed(2)} V` },
+        { label: 'mode', value: mode < 0.5 ? 'charge' : 'discharge' }
+    ], { boxW: 214 });
     drawInfoBar(ctx, width, height, mode < 0.5 ? '充电: Uc=E(1-e^-t/RC)' : '放电: Uc=U0 e^-t/RC', isDark);
 }
 
@@ -508,16 +478,11 @@ export function drawParallelPlateCapacitorScene(opts: ElectromagnetismSceneOptio
     ctx.fillStyle = `rgba(34,197,94,${clamp(er / 8, 0.12, 0.5)})`;
     roundRectPath(ctx, cx - gap / 2 + 12, cy - plateH / 2, gap - 12, plateH, 4);
     ctx.fill();
-    drawHud(
-        ctx,
-        isDark,
-        [
-            { label: 'S', value: `${area.toFixed(3)} m2` },
-            { label: 'd', value: `${distanceMm.toFixed(2)} mm` },
-            { label: 'C', value: `${(cap * 1e12).toFixed(1)} pF` }
-        ],
-        { boxW: 214 }
-    );
+    drawHud(ctx, isDark, [
+        { label: 'S', value: `${area.toFixed(3)} m2` },
+        { label: 'd', value: `${distanceMm.toFixed(2)} mm` },
+        { label: 'C', value: `${(cap * 1e12).toFixed(1)} pF` }
+    ], { boxW: 214 });
     drawInfoBar(ctx, width, height, 'C = epsilon0 * epsilonR * S / d, 极板越大/间距越小电容越大', isDark);
 }
 
@@ -548,16 +513,11 @@ export function drawLoadVoltageScene(opts: ElectromagnetismSceneOptions): void {
     drawResistor(ctx, width * 0.43, y, 82, isDark, `r ${r}Ω`);
     drawResistor(ctx, width * 0.66, y, 90, isDark, `R ${load.toFixed(1)}Ω`);
     drawMeter(ctx, width * 0.66, y + 90, 34, clamp(u / emf, 0, 1), isDark, 'V', `${u.toFixed(2)} V`);
-    drawHud(
-        ctx,
-        isDark,
-        [
-            { label: 'E', value: `${emf.toFixed(1)} V` },
-            { label: 'I', value: `${current.toFixed(2)} A` },
-            { label: 'U', value: `${u.toFixed(2)} V` }
-        ],
-        { boxW: 214 }
-    );
+    drawHud(ctx, isDark, [
+        { label: 'E', value: `${emf.toFixed(1)} V` },
+        { label: 'I', value: `${current.toFixed(2)} A` },
+        { label: 'U', value: `${u.toFixed(2)} V` }
+    ], { boxW: 214 });
     drawInfoBar(ctx, width, height, '负载越小电流越大, 内阻分压越明显: U = E - Ir', isDark);
 }
 
@@ -587,16 +547,11 @@ export function drawResistanceLawScene(opts: ElectromagnetismSceneOptions): void
     ctx.lineTo(x2, y);
     ctx.stroke();
     drawArrow(ctx, x1, y + 50, x2, y + 50, GREEN, 'L');
-    drawHud(
-        ctx,
-        isDark,
-        [
-            { label: 'L', value: `${len.toFixed(2)} m` },
-            { label: 'd', value: `${diameterMm.toFixed(2)} mm` },
-            { label: 'R', value: `${resistance.toFixed(3)} Ω` }
-        ],
-        { boxW: 214 }
-    );
+    drawHud(ctx, isDark, [
+        { label: 'L', value: `${len.toFixed(2)} m` },
+        { label: 'd', value: `${diameterMm.toFixed(2)} mm` },
+        { label: 'R', value: `${resistance.toFixed(3)} Ω` }
+    ], { boxW: 214 });
     drawInfoBar(ctx, width, height, 'R = rho * L / S, 长度越长电阻越大, 横截面积越大电阻越小', isDark);
 }
 
@@ -632,16 +587,11 @@ export function drawMultimeterScene(opts: ElectromagnetismSceneOptions): void {
         knobY + Math.sin(-Math.PI / 2 + mode) * 32,
         ORANGE
     );
-    drawHud(
-        ctx,
-        isDark,
-        [
-            { label: 'range', value: `${range}` },
-            { label: 'value', value: `${value.toFixed(2)}` },
-            { label: 'ratio', value: `${(ratio * 100).toFixed(0)}%` }
-        ],
-        { boxW: 214 }
-    );
+    drawHud(ctx, isDark, [
+        { label: 'range', value: `${range}` },
+        { label: 'value', value: `${value.toFixed(2)}` },
+        { label: 'ratio', value: `${(ratio * 100).toFixed(0)}%` }
+    ], { boxW: 214 });
     drawInfoBar(ctx, width, height, '读数 = 指针比例 * 所选量程, 电压并联/电流串联/欧姆档先调零', isDark);
 }
 
@@ -681,16 +631,11 @@ export function drawVernierCaliperScene(opts: ElectromagnetismSceneOptions): voi
     roundRectPath(ctx, vx - 44, y + 14, 96, 40, 4);
     ctx.fill();
     drawArrow(ctx, vx, y - 42, vx, y - 4, RED, '测量爪');
-    drawHud(
-        ctx,
-        isDark,
-        [
-            { label: 'main', value: `${main} mm` },
-            { label: 'vernier', value: `${vernier} * ${precision}` },
-            { label: 'L', value: `${size.toFixed(2)} mm` }
-        ],
-        { boxW: 214 }
-    );
+    drawHud(ctx, isDark, [
+        { label: 'main', value: `${main} mm` },
+        { label: 'vernier', value: `${vernier} * ${precision}` },
+        { label: 'L', value: `${size.toFixed(2)} mm` }
+    ], { boxW: 214 });
     drawInfoBar(ctx, width, height, '总读数 = 主尺读数 + 游标对齐格数 * 精度', isDark);
 }
 
@@ -731,16 +676,11 @@ export function drawMicrometerScene(opts: ElectromagnetismSceneOptions): void {
     ctx.fillStyle = ORANGE;
     roundRectPath(ctx, cx - 104, cy - 14, clamp(thickness * 10, 18, 86), 28, 4);
     ctx.fill();
-    drawHud(
-        ctx,
-        isDark,
-        [
-            { label: 'main', value: `${main.toFixed(2)} mm` },
-            { label: 'drum', value: `${drum} * 0.01` },
-            { label: 'L', value: `${thickness.toFixed(2)} mm` }
-        ],
-        { boxW: 214 }
-    );
+    drawHud(ctx, isDark, [
+        { label: 'main', value: `${main.toFixed(2)} mm` },
+        { label: 'drum', value: `${drum} * 0.01` },
+        { label: 'L', value: `${thickness.toFixed(2)} mm` }
+    ], { boxW: 214 });
     drawInfoBar(ctx, width, height, '总读数 = 固定套筒主尺 + 微分筒刻度 * 0.01 mm', isDark);
 }
 
@@ -848,16 +788,11 @@ export function drawCoulombForceExploreScene(opts: ElectromagnetismSceneOptions)
     }
     ctx.stroke();
 
-    drawHud(
-        ctx,
-        isDark,
-        [
-            { label: 'q₁', value: `${q1.toFixed(2)} μC` },
-            { label: 'q₂', value: `${q2.toFixed(2)} μC` },
-            { label: 'F', value: `${F < 1e-3 ? (F * 1e6).toFixed(2) + ' μN' : F.toFixed(3) + ' N'}` }
-        ],
-        { boxW: 214 }
-    );
+    drawHud(ctx, isDark, [
+        { label: 'q₁', value: `${q1.toFixed(2)} μC` },
+        { label: 'q₂', value: `${q2.toFixed(2)} μC` },
+        { label: 'F', value: `${F < 1e-3 ? (F * 1e6).toFixed(2) + ' μN' : F.toFixed(3) + ' N'}` }
+    ], { boxW: 214 });
     drawInfoBar(ctx, width, height, `F = k·q₁q₂/r² = ${F.toExponential(2)} N（k=8.99×10⁹）`, isDark);
 }
 
@@ -912,16 +847,11 @@ export function drawElectroscopeScene(opts: ElectromagnetismSceneOptions): void 
         13,
         textColor(isDark)
     );
-    drawHud(
-        ctx,
-        isDark,
-        [
-            { label: 'q', value: `${q.toFixed(2)} μC` },
-            { label: 'L', value: `${foilLength.toFixed(1)} cm` },
-            { label: 'θ', value: `${((theta * 180) / Math.PI).toFixed(1)}°` }
-        ],
-        { boxW: 214 }
-    );
+    drawHud(ctx, isDark, [
+        { label: 'q', value: `${q.toFixed(2)} μC` },
+        { label: 'L', value: `${foilLength.toFixed(1)} cm` },
+        { label: 'θ', value: `${((theta * 180) / Math.PI).toFixed(1)}°` }
+    ], { boxW: 214 });
     drawInfoBar(ctx, width, height, '同种电荷相互排斥，箔片张角随带电量增大', isDark);
 }
 
@@ -990,16 +920,11 @@ export function drawElectrostaticInductionScene(opts: ElectromagnetismSceneOptio
         13,
         mutedColor(isDark)
     );
-    drawHud(
-        ctx,
-        isDark,
-        [
-            { label: 'C', value: `${chargeC.toFixed(2)} μC ${cSign > 0 ? '(+)' : '(−)'}` },
-            { label: 'd_AC', value: `${distanceAC.toFixed(1)} cm` },
-            { label: '近端', value: sym(aNearSign) }
-        ],
-        { boxW: 214 }
-    );
+    drawHud(ctx, isDark, [
+        { label: 'C', value: `${chargeC.toFixed(2)} μC ${cSign > 0 ? '(+)' : '(−)'}` },
+        { label: 'd_AC', value: `${distanceAC.toFixed(1)} cm` },
+        { label: '近端', value: sym(aNearSign) }
+    ], { boxW: 214 });
     drawInfoBar(ctx, width, height, '导体近端感应出异种电荷、远端同种电荷', isDark);
 }
 
@@ -1066,16 +991,11 @@ export function drawElectrostaticShieldingScene(opts: ElectromagnetismSceneOptio
     }
     const eInside = cavityCharge !== 0 ? '≠ 0 (腔内电荷)' : '= 0';
     drawText(ctx, `导体内部场强 ${eInside}`, shellX, shellY - 10, isDark, 13, textColor(isDark));
-    drawHud(
-        ctx,
-        isDark,
-        [
-            { label: 'E_ext', value: `${externalField.toFixed(0)} V/m` },
-            { label: '接地', value: grounded ? '是' : '否' },
-            { label: 'E_in', value: cavityCharge !== 0 ? '见腔内' : '0' }
-        ],
-        { boxW: 214 }
-    );
+    drawHud(ctx, isDark, [
+        { label: 'E_ext', value: `${externalField.toFixed(0)} V/m` },
+        { label: '接地', value: grounded ? '是' : '否' },
+        { label: 'E_in', value: cavityCharge !== 0 ? '见腔内' : '0' }
+    ], { boxW: 214 });
     drawInfoBar(ctx, width, height, '静电平衡时导体内部场强为零，外电场被屏蔽', isDark);
 }
 
@@ -1121,16 +1041,11 @@ export function drawFaradayCupScene(opts: ElectromagnetismSceneOptions): void {
     ctx.stroke();
     drawText(ctx, '内探针: 0', cx + 18, innerProbeY, isDark, 13, mutedColor(isDark));
     drawText(ctx, `外探针: ${totalCharge.toFixed(1)} μC`, cx + 18, topY + 14, isDark, 13, ORANGE);
-    drawHud(
-        ctx,
-        isDark,
-        [
-            { label: 'Q', value: `${totalCharge.toFixed(1)} μC` },
-            { label: '内表面', value: '0' },
-            { label: '外表面', value: `${totalCharge.toFixed(1)} μC` }
-        ],
-        { boxW: 214 }
-    );
+    drawHud(ctx, isDark, [
+        { label: 'Q', value: `${totalCharge.toFixed(1)} μC` },
+        { label: '内表面', value: '0' },
+        { label: '外表面', value: `${totalCharge.toFixed(1)} μC` }
+    ], { boxW: 214 });
     drawInfoBar(ctx, width, height, '静电平衡时净电荷只分布在外表面，内表面电荷为零', isDark);
 }
 
@@ -1189,16 +1104,11 @@ export function drawEmWaveHertzScene(opts: ElectromagnetismSceneOptions): void {
         13,
         mutedColor(isDark)
     );
-    drawHud(
-        ctx,
-        isDark,
-        [
-            { label: 'f', value: `${frequency.toExponential(2)} Hz` },
-            { label: 'λ', value: `${(lambda * 100).toFixed(1)} cm` },
-            { label: 'd', value: `${distance.toFixed(1)} m` }
-        ],
-        { boxW: 214 }
-    );
+    drawHud(ctx, isDark, [
+        { label: 'f', value: `${frequency.toExponential(2)} Hz` },
+        { label: 'λ', value: `${(lambda * 100).toFixed(1)} cm` },
+        { label: 'd', value: `${distance.toFixed(1)} m` }
+    ], { boxW: 214 });
     drawInfoBar(
         ctx,
         width,
@@ -1266,16 +1176,11 @@ export function drawEddyCurrentScene(opts: ElectromagnetismSceneOptions): void {
     // 磁铁
     drawText(ctx, 'N', plateX - 6, plateY + 70, isDark, 13, RED);
     drawText(ctx, 'S', plateX + 6, plateY + 70, isDark, 13, BLUE);
-    drawHud(
-        ctx,
-        isDark,
-        [
-            { label: 'B', value: `${magneticField.toFixed(2)} T` },
-            { label: 'f', value: `${frequency.toFixed(0)} Hz` },
-            { label: 'τ', value: `${tau.toFixed(1)} s` }
-        ],
-        { boxW: 214 }
-    );
+    drawHud(ctx, isDark, [
+        { label: 'B', value: `${magneticField.toFixed(2)} T` },
+        { label: 'f', value: `${frequency.toFixed(0)} Hz` },
+        { label: 'τ', value: `${tau.toFixed(1)} s` }
+    ], { boxW: 214 });
     drawInfoBar(ctx, width, height, '变化的磁场在导体中产生涡流，涡流阻碍相对运动（电磁阻尼）', isDark);
 }
 
@@ -1327,16 +1232,11 @@ export function drawEmWaveCommunicationScene(opts: ElectromagnetismSceneOptions)
         ctx.stroke();
         drawText(ctx, row.title, ax, row.y - 42, isDark, 12, mutedColor(isDark));
     }
-    drawHud(
-        ctx,
-        isDark,
-        [
-            { label: 'f_c', value: `${carrierFreq.toFixed(2)} MHz` },
-            { label: 'f_m', value: `${audioFreq.toFixed(2)} kHz` },
-            { label: 'm', value: m.toFixed(2) }
-        ],
-        { boxW: 214 }
-    );
+    drawHud(ctx, isDark, [
+        { label: 'f_c', value: `${carrierFreq.toFixed(2)} MHz` },
+        { label: 'f_m', value: `${audioFreq.toFixed(2)} kHz` },
+        { label: 'm', value: m.toFixed(2) }
+    ], { boxW: 214 });
     drawInfoBar(ctx, width, height, `已调波 s(t)=A꜀(1+m·cosωₘt)cosω_ct，传输距离 ${distance.toFixed(1)} km`, isDark);
 }
 
@@ -1401,15 +1301,10 @@ export function drawEmSpectrumScene(opts: ElectromagnetismSceneOptions): void {
         ctx.stroke();
         ctx.fillText(`10^${p}`, tx - 14, barY + barH + 20);
     }
-    drawHud(
-        ctx,
-        isDark,
-        [
-            { label: 'f_min', value: `${logMin.toFixed(0)} Hz` },
-            { label: 'f_max', value: `${logMax.toFixed(0)} Hz` },
-            { label: 'c', value: '3×10⁸ m/s' }
-        ],
-        { boxW: 214 }
-    );
+    drawHud(ctx, isDark, [
+        { label: 'f_min', value: `${logMin.toFixed(0)} Hz` },
+        { label: 'f_max', value: `${logMax.toFixed(0)} Hz` },
+        { label: 'c', value: '3×10⁸ m/s' }
+    ], { boxW: 214 });
     drawInfoBar(ctx, width, height, '电磁波按频率递增分为七段，真空中波速 c 恒定、λ = c/f', isDark);
 }

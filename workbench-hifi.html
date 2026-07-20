@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PhysVis · 仿真工作台高保真稿（玻璃拟态）</title>
+<style>
+  :root {
+    --sidebar-w: 290px;
+    --inspector-w: 320px;
+    --topbar-h: 58px;
+
+    --bg: #0b1020;
+    --bg2: #111a30;
+    --bg3: #1b2742;
+    --text: #f1f5f9;
+    --text2: #cbd5e1;
+    --text3: #94a3b8;
+    --border: #2a3a5c;
+
+    --brand: #3b82f6;
+    --brand-2: #8b5cf6;
+    --brand-gradient: linear-gradient(135deg, #3b82f6 0%, #6366f1 50%, #8b5cf6 100%);
+    --accent: var(--brand);
+    --accent2: #60a5fa;
+
+    --ok: #22c55e;
+    --warn: #f59e0b;
+    --err: #ef4444;
+    --info: var(--brand);
+
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 18px;
+    --radius-pill: 999px;
+
+    --glass-bg: linear-gradient(180deg, rgba(30,41,59,0.55), rgba(15,23,42,0.42));
+    --glass-bg-strong: linear-gradient(180deg, rgba(30,41,59,0.80), rgba(15,23,42,0.68));
+    --glass-border: rgba(148,163,184,0.16);
+    --glass-border-hover: rgba(148,163,184,0.34);
+    --glass-blur: 18px;
+    --glass-saturate: 140%;
+
+    --shadow-sm: 0 2px 8px rgba(2,6,23,0.45);
+    --shadow-md: 0 10px 30px rgba(2,6,23,0.55);
+    --shadow-lg: 0 24px 70px rgba(2,6,23,0.65);
+    --glow-brand: 0 8px 26px rgba(99,102,241,0.38), inset 0 1px 0 rgba(255,255,255,0.22);
+    --glow-brand-strong: 0 0 28px rgba(139,92,246,0.45);
+    --glow-ok: 0 0 18px rgba(34,197,94,0.35);
+    --glow-err: 0 0 18px rgba(239,68,68,0.35);
+
+    --ring: rgba(59,130,246,0.40);
+    --ring-strong: rgba(59,130,246,0.62);
+    --transition: 220ms cubic-bezier(0.4,0,0.2,1);
+  }
+  [data-theme="light"] {
+    --bg: #eef2fb; --bg2: #ffffff; --bg3: #f1f5f9;
+    --text: #0f172a; --text2: #334155; --text3: #64748b; --border: #d8e0f0;
+    --brand: #2563eb; --brand-2: #7c3aed;
+    --glass-bg: linear-gradient(180deg, rgba(255,255,255,0.74), rgba(238,242,251,0.56));
+    --glass-bg-strong: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(238,242,251,0.80));
+    --glass-border: rgba(30,41,59,0.10); --glass-border-hover: rgba(30,41,59,0.22);
+    --shadow-md: 0 10px 30px rgba(15,23,42,0.12); --shadow-lg: 0 24px 70px rgba(15,23,42,0.18);
+    --glow-brand: 0 8px 26px rgba(37,99,235,0.30), inset 0 1px 0 rgba(255,255,255,0.6);
+  }
+
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    font-family:'Inter','Segoe UI','Microsoft YaHei',system-ui,sans-serif;
+    color:var(--text); background:var(--bg); -webkit-font-smoothing:antialiased;
+    overflow-x:hidden; transition:background var(--transition),color var(--transition);
+  }
+  body::before{content:"";position:fixed;inset:0;z-index:-2;
+    background:
+      radial-gradient(900px 600px at 10% -10%, rgba(59,130,246,0.22), transparent 60%),
+      radial-gradient(820px 620px at 94% 110%, rgba(139,92,246,0.20), transparent 60%),
+      var(--bg);}
+  body::after{content:"";position:fixed;inset:0;z-index:-1;
+    background-image:linear-gradient(rgba(148,163,184,0.05) 1px,transparent 1px),linear-gradient(90deg,rgba(148,163,184,0.05) 1px,transparent 1px);
+    background-size:48px 48px; mask-image:radial-gradient(circle at 50% 30%, black, transparent 82%);}
+  :focus{outline:none;}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:var(--radius-sm);}
+  ::-webkit-scrollbar{width:6px;height:6px;}
+  ::-webkit-scrollbar-thumb{background:var(--glass-border-hover);border-radius:3px;}
+  @media (prefers-reduced-motion: reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;}}
+
+  .glass{background:var(--glass-bg);backdrop-filter:blur(var(--glass-blur)) saturate(var(--glass-saturate));-webkit-backdrop-filter:blur(var(--glass-blur)) saturate(var(--glass-saturate));border:1px solid var(--glass-border);box-shadow:var(--shadow-md),inset 0 1px 0 rgba(255,255,255,0.06);border-radius:var(--radius-lg);}
+  .glass-strong{background:var(--glass-bg-strong);}
+
+  /* ===== 顶栏 ===== */
+  .topbar{position:sticky;top:0;z-index:50;height:var(--topbar-h);display:flex;align-items:center;justify-content:space-between;padding:0 18px;
+    background:var(--glass-bg-strong);backdrop-filter:blur(var(--glass-blur)) saturate(var(--glass-saturate));-webkit-backdrop-filter:blur(var(--glass-blur)) saturate(var(--glass-saturate));border-bottom:1px solid var(--glass-border);}
+  .brand{display:flex;align-items:center;gap:11px;}
+  .brand-mark{width:36px;height:36px;border-radius:11px;background:var(--brand-gradient);box-shadow:var(--glow-brand);display:grid;place-items:center;font-weight:800;color:#fff;font-size:17px;}
+  .brand-title{font-size:16px;font-weight:800;letter-spacing:.2px;background:var(--brand-gradient);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+  .brand-sub{font-size:11px;color:var(--text3);}
+  .scene-tabs{display:flex;gap:4px;background:rgba(11,16,32,0.40);padding:4px;border-radius:var(--radius-pill);border:1px solid var(--glass-border);}
+  .scene-tab{padding:7px 15px;border-radius:var(--radius-pill);border:none;background:transparent;color:var(--text2);font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;transition:all var(--transition);white-space:nowrap;}
+  .scene-tab:hover{color:var(--text);}
+  .scene-tab.active{background:var(--brand-gradient);color:#fff;box-shadow:var(--glow-brand);}
+  .topbar-right{display:flex;align-items:center;gap:9px;}
+
+  /* ===== 按钮 ===== */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:0 17px;border-radius:var(--radius-md);border:1px solid transparent;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;user-select:none;white-space:nowrap;transition:transform var(--transition),box-shadow var(--transition),background var(--transition),border-color var(--transition);}
+  .btn:active{transform:translateY(1px) scale(.99);}
+  .btn:disabled{opacity:.45;cursor:not-allowed;pointer-events:none;}
+  .btn-primary{background:var(--brand-gradient);color:#fff;box-shadow:var(--glow-brand);}
+  .btn-primary:hover{box-shadow:var(--glow-brand),var(--glow-brand-strong);transform:translateY(-1px);}
+  .btn-glass{background:rgba(148,163,184,0.08);border-color:var(--glass-border);color:var(--text);backdrop-filter:blur(8px);}
+  .btn-glass:hover{border-color:var(--glass-border-hover);background:rgba(148,163,184,0.16);transform:translateY(-1px);}
+  .btn-ghost{background:transparent;color:var(--text2);}
+  .btn-ghost:hover{color:var(--text);background:rgba(148,163,184,0.10);}
+  .btn-sm{min-height:34px;padding:0 13px;font-size:12px;border-radius:var(--radius-sm);}
+  .btn-icon{width:40px;padding:0;}
+  .btn.active{background:var(--brand-gradient);color:#fff;box-shadow:var(--glow-brand);}
+
+  /* ===== 布局 ===== */
+  .shell{display:grid;grid-template-columns:var(--sidebar-w) minmax(0,1fr) var(--inspector-w);gap:16px;padding:16px;align-items:start;}
+  @media (max-width:1180px){.shell{grid-template-columns:var(--sidebar-w) minmax(0,1fr);}.inspector-col{display:none;}}
+  @media (max-width:820px){.shell{grid-template-columns:1fr;}.sidebar-col{display:none;}}
+  .col{display:flex;flex-direction:column;gap:14px;}
+  .sidebar-col,.inspector-col{position:sticky;top:calc(var(--topbar-h) + 16px);}
+
+  /* ===== 面板标题 ===== */
+  .panel-title{font-size:11px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--accent);padding:15px 16px 10px;}
+  .panel-card{padding-bottom:16px;}
+
+  /* ===== 参数 ===== */
+  .field{margin:0 16px 15px;}
+  .field-label{display:flex;justify-content:space-between;font-size:12.5px;font-weight:600;color:var(--text);margin-bottom:7px;}
+  .field-unit{font-size:11px;color:var(--text3);font-family:ui-monospace,monospace;}
+  .input{width:100%;padding:9px 12px;background:rgba(11,16,32,0.45);color:var(--text);border:1px solid var(--glass-border);border-radius:var(--radius-md);font-size:13px;font-family:inherit;transition:border-color var(--transition),box-shadow var(--transition);}
+  .input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 4px var(--ring);}
+  .range-row{display:flex;align-items:center;gap:11px;}
+  input[type=range]{-webkit-appearance:none;appearance:none;flex:1;height:6px;border-radius:999px;background:linear-gradient(90deg,var(--brand),var(--brand-2));cursor:pointer;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#fff;border:3px solid var(--brand);box-shadow:0 0 0 4px var(--ring),var(--glow-brand);cursor:pointer;}
+  input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#fff;border:3px solid var(--brand);box-shadow:0 0 0 4px var(--ring);cursor:pointer;}
+  .switch{position:relative;display:inline-flex;align-items:center;cursor:pointer;}
+  .switch input{position:absolute;opacity:0;width:0;height:0;}
+  .switch .track{width:42px;height:23px;border-radius:999px;background:rgba(148,163,184,0.25);border:1px solid var(--glass-border);transition:background var(--transition);position:relative;}
+  .switch .track::after{content:"";position:absolute;top:2px;left:2px;width:17px;height:17px;border-radius:50%;background:#fff;box-shadow:var(--shadow-sm);transition:transform var(--transition);}
+  .switch input:checked+.track{background:var(--brand-gradient);border-color:transparent;}
+  .switch input:checked+.track::after{transform:translateX(19px);}
+  .switch input:focus-visible+.track{box-shadow:0 0 0 4px var(--ring);}
+  .toggle-row{display:flex;align-items:center;justify-content:space-between;margin:0 16px 11px;}
+  .toggle-row span{font-size:13px;color:var(--text2);}
+  .preset-row{display:flex;flex-wrap:wrap;gap:8px;margin:0 16px;}
+  .chip{padding:6px 12px;border-radius:var(--radius-pill);font-size:11.5px;color:var(--text);background:rgba(148,163,184,0.10);border:1px solid var(--glass-border);cursor:pointer;font-family:inherit;transition:all var(--transition);}
+  .chip:hover{border-color:var(--glass-border-hover);}
+  .chip.active{color:#fff;background:var(--brand-gradient);border-color:transparent;box-shadow:var(--glow-brand);}
+
+  /* ===== 舞台 ===== */
+  .stage{display:flex;flex-direction:column;overflow:hidden;}
+  .stage-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;border-bottom:1px solid var(--glass-border);}
+  .stage-toolbar h2{font-size:17px;font-weight:800;}
+  .stage-toolbar .meta{font-size:12px;color:var(--text3);margin-top:2px;}
+  .stage-canvas{position:relative;min-height:340px;flex:1;background:radial-gradient(600px 420px at 28% 18%, rgba(59,130,246,0.10), transparent 60%),radial-gradient(520px 400px at 82% 92%, rgba(139,92,246,0.10), transparent 60%);}
+  .stage-canvas canvas{display:block;width:100%;height:100%;}
+  .stage-caption{position:absolute;top:14px;left:14px;padding:9px 12px;border-radius:var(--radius-md);background:rgba(11,16,32,0.55);border:1px solid var(--glass-border);backdrop-filter:blur(10px);font-size:12px;color:var(--text2);}
+  .stage-caption b{color:var(--text);}
+  .stage-hint{position:absolute;right:14px;bottom:14px;padding:7px 11px;border-radius:var(--radius-pill);font-size:11.5px;color:var(--text2);background:rgba(11,16,32,0.55);border:1px solid var(--glass-border);backdrop-filter:blur(10px);}
+
+  /* ===== 播放 ===== */
+  .playback{padding:12px 18px;border-top:1px solid var(--glass-border);display:flex;flex-direction:column;gap:10px;}
+  .playback-btns{display:flex;justify-content:center;gap:8px;}
+  .playback-row{display:flex;align-items:center;gap:12px;}
+  .time-label{font-size:11px;font-family:ui-monospace,monospace;color:var(--text2);min-width:46px;text-align:center;}
+
+  /* ===== 图表 ===== */
+  .graph-panel{padding:14px 16px 16px;}
+  .graph-tabs{display:flex;gap:5px;margin-bottom:12px;flex-wrap:wrap;}
+  .graph-tab{padding:6px 13px;border-radius:var(--radius-sm);border:1px solid var(--glass-border);background:transparent;color:var(--text2);font-size:12px;cursor:pointer;font-family:inherit;transition:all var(--transition);}
+  .graph-tab:hover{color:var(--text);border-color:var(--glass-border-hover);}
+  .graph-tab.active{background:rgba(59,130,246,0.16);color:var(--accent);border-color:rgba(59,130,246,0.40);font-weight:700;}
+  .chart-wrap{width:100%;}
+  .chart-svg{width:100%;height:200px;display:block;}
+  .chart-axis{stroke:var(--glass-border);stroke-width:1;}
+  .chart-grid{stroke:rgba(148,163,184,0.10);stroke-width:1;}
+  .chart-line{fill:none;stroke:url(#lineGrad);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;}
+  .chart-area{fill:url(#areaGrad);opacity:.9;}
+  .chart-dot{fill:#fff;stroke:var(--brand);stroke-width:2.5;}
+  .chart-label{fill:var(--text3);font-size:10px;font-family:ui-monospace,monospace;}
+
+  /* ===== 状态检查器 ===== */
+  .state-row{display:flex;justify-content:space-between;align-items:center;padding:9px 16px;font-size:12.5px;border-radius:var(--radius-sm);margin:0 8px;}
+  .state-row:nth-child(odd){background:rgba(148,163,184,0.07);}
+  .state-label{color:var(--text2);}
+  .state-value{font-family:ui-monospace,monospace;color:var(--ok);font-weight:700;}
+
+  .diag{display:flex;justify-content:space-between;align-items:center;padding:8px 14px;border-radius:var(--radius-sm);font-size:12px;margin:0 8px 5px;}
+  .diag.ok{color:var(--ok);}
+  .diag.warn{color:var(--warn);background:rgba(245,158,11,0.10);}
+  .diag.err{color:var(--err);background:rgba(239,68,68,0.10);}
+
+  .formula-block{padding:0 16px;}
+  .formula-expr{font-family:'Times New Roman',serif;font-size:16px;color:var(--accent);margin:8px 0;text-align:center;}
+  .formula-note{font-size:12px;color:var(--text2);line-height:1.65;}
+  .formula-var{display:inline-block;margin-right:10px;font-size:11.5px;color:var(--text3);}
+</style>
+</head>
+<body>
+
+<!-- 顶栏 -->
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-mark">Φ</div>
+    <div>
+      <div class="brand-title">PhysVis</div>
+      <div class="brand-sub">高中物理交互仿真工作台</div>
+    </div>
+  </div>
+  <nav class="scene-tabs" aria-label="场景分类">
+    <button class="scene-tab active">力学</button>
+    <button class="scene-tab">曲线运动</button>
+    <button class="scene-tab">电磁场</button>
+    <button class="scene-tab">热学</button>
+    <button class="scene-tab">现代物理</button>
+  </nav>
+  <div class="topbar-right">
+    <button class="btn btn-glass btn-sm" id="themeToggle">🌗 主题</button>
+    <button class="btn btn-ghost btn-sm" onclick="toast('已同步到云端','ok')">☁ 同步</button>
+    <button class="btn btn-primary btn-sm">＋ 新建场景</button>
+  </div>
+</header>
+
+<div class="shell">
+  <!-- 左：参数 -->
+  <aside class="col sidebar-col">
+    <section class="glass panel-card">
+      <div class="panel-title">参数设置</div>
+      <div class="field">
+        <div class="field-label">初速度 v₀ <span class="field-unit">m/s</span></div>
+        <div class="range-row"><input type="range" id="pV0" min="0" max="40" value="18" step="0.5"><span class="field-unit" id="vV0" style="min-width:42px;">18.0</span></div>
+      </div>
+      <div class="field">
+        <div class="field-label">发射高度 h <span class="field-unit">m</span></div>
+        <div class="range-row"><input type="range" id="pH" min="0" max="60" value="25" step="0.5"><span class="field-unit" id="vH" style="min-width:42px;">25.0</span></div>
+      </div>
+      <div class="field">
+        <div class="field-label">发射角 θ <span class="field-unit">°</span></div>
+        <div class="range-row"><input type="range" id="pTheta" min="0" max="90" value="35" step="1"><span class="field-unit" id="vTheta" style="min-width:42px;">35</span></div>
+      </div>
+      <div class="field">
+        <div class="field-label">重力加速度 g <span class="field-unit">m/s²</span></div>
+        <div class="range-row"><input type="range" id="pG" min="1" max="25" value="9.8" step="0.1"><span class="field-unit" id="vG" style="min-width:42px;">9.8</span></div>
+      </div>
+      <div class="preset-row">
+        <button class="chip active" data-preset="proj">平抛</button>
+        <button class="chip" data-preset="oblique">斜抛</button>
+        <button class="chip" data-preset="free">自由落体</button>
+      </div>
+    </section>
+
+    <section class="glass panel-card">
+      <div class="panel-title">显示图层</div>
+      <div class="toggle-row"><span>运动轨迹</span><label class="switch"><input type="checkbox" id="tTraj" checked><span class="track"></span></label></div>
+      <div class="toggle-row"><span>速度矢量</span><label class="switch"><input type="checkbox" id="tVec" checked><span class="track"></span></label></div>
+      <div class="toggle-row"><span>网格与坐标轴</span><label class="switch"><input type="checkbox" id="tGrid" checked><span class="track"></span></label></div>
+      <div class="toggle-row"><span>受力分析</span><label class="switch"><input type="checkbox"><span class="track"></span></label></div>
+      <div class="toggle-row" style="margin-bottom:16px;"><span>数据显示点</span><label class="switch"><input type="checkbox" id="tDot" checked><span class="track"></span></label></div>
+    </section>
+  </aside>
+
+  <!-- 中：舞台 + 播放 + 图表 -->
+  <main class="col">
+    <section class="glass stage">
+      <div class="stage-toolbar">
+        <div>
+          <h2>平抛 / 斜抛运动</h2>
+          <div class="meta">解析解 · 实时仿真 · 模型 #MECH-02</div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-glass btn-sm">↺ 重置</button>
+          <button class="btn btn-glass btn-sm">⤢ 全屏</button>
+        </div>
+      </div>
+      <div class="stage-canvas">
+        <canvas id="scene"></canvas>
+        <div class="stage-caption">当前状态 · <b id="capT">t = 0.00 s</b></div>
+        <div class="stage-hint">拖拽时间轴或点击 ▶ 播放</div>
+      </div>
+      <div class="playback">
+        <div class="playback-btns">
+          <button class="btn btn-glass btn-icon btn-sm">⏮</button>
+          <button class="btn btn-primary btn-icon btn-sm" id="playBtn">▶</button>
+          <button class="btn btn-glass btn-icon btn-sm">⏭</button>
+        </div>
+        <div class="playback-row">
+          <span class="time-label" id="tNow">0.0s</span>
+          <input type="range" id="timeline" min="0" max="1000" value="0">
+          <span class="time-label" id="tMax">0.0s</span>
+        </div>
+        <div class="playback-row" style="justify-content:center;">
+          <span class="field-unit">速度</span>
+          <button class="btn btn-ghost btn-sm">0.5×</button>
+          <button class="btn btn-ghost btn-sm active">1×</button>
+          <button class="btn btn-ghost btn-sm">2×</button>
+          <button class="btn btn-ghost btn-sm">4×</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="glass graph-panel">
+      <div class="graph-tabs" id="graphTabs">
+        <button class="graph-tab active" data-chart="x">水平位移 x(t)</button>
+        <button class="graph-tab" data-chart="y">竖直高度 y(t)</button>
+        <button class="graph-tab" data-chart="v">速率 v(t)</button>
+        <button class="graph-tab" data-chart="e">动能 Eₖ(t)</button>
+      </div>
+      <div class="chart-wrap">
+        <svg class="chart-svg" id="chart" viewBox="0 0 600 200" preserveAspectRatio="none" role="img" aria-label="物理量随时间变化折线图">
+          <defs>
+            <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="#3b82f6"/><stop offset="100%" stop-color="#8b5cf6"/>
+            </linearGradient>
+            <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="rgba(99,102,241,0.30)"/><stop offset="100%" stop-color="rgba(99,102,241,0)"/>
+            </linearGradient>
+          </defs>
+          <g id="chartGrid"></g>
+          <path id="chartArea" class="chart-area" d=""/>
+          <path id="chartLine" class="chart-line" d=""/>
+          <circle id="chartDot" class="chart-dot" r="4" cx="0" cy="0"/>
+          <text id="chartXMax" class="chart-label" x="592" y="195" text-anchor="end"></text>
+          <text id="chartYMax" class="chart-label" x="6" y="12" text-anchor="start"></text>
+        </svg>
+      </div>
+    </section>
+  </main>
+
+  <!-- 右：状态 + 诊断 + 公式 -->
+  <aside class="col inspector-col">
+    <section class="glass">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:15px 16px 12px;border-bottom:1px solid var(--glass-border);">
+        <span style="font-size:15px;font-weight:800;">实时状态</span>
+        <span class="chip active" style="padding:3px 10px;">● 运行中</span>
+      </div>
+      <div style="padding:8px 0;">
+        <div class="state-row"><span class="state-label">时间 t</span><span class="state-value" id="sT">0.00 s</span></div>
+        <div class="state-row"><span class="state-label">水平位移 x</span><span class="state-value" id="sX">0.00 m</span></div>
+        <div class="state-row"><span class="state-label">竖直高度 y</span><span class="state-value" id="sY">25.00 m</span></div>
+        <div class="state-row"><span class="state-label">合速度 v</span><span class="state-value" id="sV">18.00 m/s</span></div>
+        <div class="state-row"><span class="state-label">水平分速 vₓ</span><span class="state-value" id="sVx">14.74 m/s</span></div>
+        <div class="state-row"><span class="state-label">竖直分速 v_y</span><span class="state-value" id="sVy">10.32 m/s</span></div>
+      </div>
+    </section>
+
+    <section class="glass">
+      <div class="panel-title">数值诊断</div>
+      <div style="padding-bottom:8px;">
+        <div class="diag ok"><span>✓ 求解器稳定性 L2</span><span>通过</span></div>
+        <div class="diag ok"><span>✓ 机械能守恒</span><span>ΔE=0.00%</span></div>
+        <div class="diag warn"><span>⚠ 时间步长</span><span>建议 ≤2ms</span></div>
+        <div class="diag ok"><span>✓ 边界检测</span><span>落地 1 次</span></div>
+      </div>
+    </section>
+
+    <section class="glass">
+      <div class="panel-title">公式推导</div>
+      <div class="formula-block" style="padding-bottom:16px;">
+        <div class="formula-expr">x = v₀·cosθ · t</div>
+        <div class="formula-expr">y = h + v₀·sinθ·t − ½ g t²</div>
+        <div class="formula-expr">v = √(vₓ² + v_y²)</div>
+        <div class="formula-note">将初速度分解为水平与竖直分量；水平方向匀速，竖直方向受重力匀加速。当 θ=0 时退化为平抛。</div>
+        <div style="margin-top:10px;">
+          <span class="formula-var">v₀ 初速度</span><span class="formula-var">θ 仰角</span><span class="formula-var">g 重力</span><span class="formula-var">h 高度</span>
+        </div>
+      </div>
+    </section>
+  </aside>
+</div>
+
+<script>
+  // 主题
+  document.getElementById('themeToggle').addEventListener('click', () => {
+    const h = document.documentElement;
+    h.dataset.theme = h.dataset.theme === 'dark' ? 'light' : 'dark';
+  });
+
+  // 物理模型
+  const P = { v0:18, h:25, theta:35, g:9.8 };
+  let tMax = 1, t = 0, playing = false, raf, curChart = 'x';
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function computeTmax(){
+    const th = P.theta*Math.PI/180, vy = P.v0*Math.sin(th);
+    tMax = (vy + Math.sqrt(vy*vy + 2*P.g*P.h)) / P.g;
+    document.getElementById('tMax').textContent = tMax.toFixed(1)+'s';
+  }
+  function pos(tt){
+    const th = P.theta*Math.PI/180;
+    const vx = P.v0*Math.cos(th), vy = P.v0*Math.sin(th);
+    return {
+      x: vx*tt,
+      y: P.h + vy*tt - 0.5*P.g*tt*tt,
+      vx, vy: vy - P.g*tt,
+      v: Math.sqrt(vx*vx + (vy - P.g*tt)**2)
+    };
+  }
+  function energy(tt){ const p=pos(tt); const m=1; return 0.5*m*p.v*p.v + m*P.g*p.y; }
+
+  // 画布
+  const canvas = document.getElementById('scene'), ctx = canvas.getContext('2d');
+  let W,H,dpr;
+  function resize(){
+    const r = canvas.parentElement.getBoundingClientRect();
+    dpr = window.devicePixelRatio||1;
+    canvas.width=r.width*dpr; canvas.height=r.height*dpr;
+    ctx.setTransform(dpr,0,0,dpr,0,0); W=r.width; H=r.height; draw();
+  }
+  window.addEventListener('resize', resize);
+
+  function draw(){
+    computeTmax();
+    ctx.clearRect(0,0,W,H);
+    const padL=44, padB=34, padT=18, padR=18;
+    const x0=padL, y0=H-padB, x1=W-padR, y1=padT;
+    // 世界范围
+    const end = pos(tMax);
+    const worldX = Math.max(end.x*1.05, 1), worldY = Math.max(P.h*1.1, 1);
+    const sx = (x1-x0)/worldX, sy = (y1-y0)/(-worldY);
+    const X = wx => x0 + wx*sx, Y = wy => y0 + wy*sy;
+
+    // 网格
+    if (document.getElementById('tGrid').checked){
+      ctx.strokeStyle='rgba(148,163,184,0.10)'; ctx.lineWidth=1;
+      for(let i=0;i<=5;i++){ const gx=X(worldX*i/5); ctx.beginPath(); ctx.moveTo(gx,y0); ctx.lineTo(gx,y1); ctx.stroke(); }
+      for(let i=0;i<=4;i++){ const gy=Y(worldY*i/4); ctx.beginPath(); ctx.moveTo(x0,gy); ctx.lineTo(x1,gy); ctx.stroke(); }
+    }
+    // 坐标轴
+    ctx.strokeStyle='rgba(148,163,184,0.35)'; ctx.lineWidth=1.4;
+    ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y0); ctx.moveTo(x0,y0); ctx.lineTo(x0,y1); ctx.stroke();
+    // 地面
+    ctx.fillStyle='rgba(34,197,94,0.10)'; ctx.fillRect(x0, y0, x1-x0, H-y0);
+
+    // 轨迹
+    if (document.getElementById('tTraj').checked){
+      ctx.strokeStyle='rgba(59,130,246,0.55)'; ctx.lineWidth=2.5; ctx.beginPath();
+      const N=120;
+      for(let i=0;i<=N;i++){ const tt=tMax*i/N; const p=pos(tt);
+        const px=X(p.x), py=Y(Math.max(p.y,0));
+        i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+      }
+      ctx.stroke();
+    }
+    // 当前点
+    const p = pos(Math.min(t,tMax));
+    const cx=X(p.x), cy=Y(Math.max(p.y,0));
+    if (document.getElementById('tDot').checked){
+      const grd=ctx.createRadialGradient(cx,cy,0,cx,cy,18);
+      grd.addColorStop(0,'rgba(139,92,246,0.9)'); grd.addColorStop(1,'rgba(139,92,246,0)');
+      ctx.fillStyle=grd; ctx.beginPath(); ctx.arc(cx,cy,18,0,7); ctx.fill();
+      ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(cx,cy,5,0,7); ctx.fill();
+    }
+    // 速度矢量
+    if (document.getElementById('tVec').checked){
+      const k=0.5;
+      ctx.strokeStyle='rgba(245,158,11,0.9)'; ctx.lineWidth=2.5;
+      ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx+p.vx*k, cy-p.vy*k); ctx.stroke();
+      ctx.fillStyle='rgba(245,158,11,0.95)'; ctx.beginPath(); ctx.arc(cx+p.vx*k, cy-p.vy*k, 3.5,0,7); ctx.fill();
+    }
+    // 读数
+    document.getElementById('capT').textContent = 't = '+Math.min(t,tMax).toFixed(2)+' s';
+    document.getElementById('sT').textContent = Math.min(t,tMax).toFixed(2)+' s';
+    document.getElementById('sX').textContent = p.x.toFixed(2)+' m';
+    document.getElementById('sY').textContent = Math.max(p.y,0).toFixed(2)+' m';
+    document.getElementById('sV').textContent = p.v.toFixed(2)+' m/s';
+    document.getElementById('sVx').textContent = p.vx.toFixed(2)+' m/s';
+    document.getElementById('sVy').textContent = p.vy.toFixed(2)+' m/s';
+    document.getElementById('tNow').textContent = Math.min(t,tMax).toFixed(1)+'s';
+    document.getElementById('timeline').value = (Math.min(t,tMax)/tMax*1000).toFixed(0);
+    updateChart();
+  }
+
+  // 图表
+  function series(){
+    const N=80, arr=[];
+    for(let i=0;i<=N;i++){ const tt=tMax*i/N; const p=pos(tt);
+      let val;
+      if(curChart==='x') val=p.x;
+      else if(curChart==='y') val=Math.max(p.y,0);
+      else if(curChart==='v') val=p.v;
+      else val=energy(tt);
+      arr.push({t:tt, v:val});
+    }
+    return arr;
+  }
+  function updateChart(){
+    const arr=series(); const maxV=Math.max(...arr.map(d=>d.v), 0.001);
+    const Wc=600, Hc=200, pl=8, pr=8, pt=14, pb=18;
+    const X = t => pl + (Wc-pl-pr)*(t/tMax);
+    const Y = v => (Hc-pb) - (Hc-pt-pb)*(v/maxV);
+    let dLine='', dArea='';
+    arr.forEach((d,i)=>{ const x=X(d.t).toFixed(1), y=Y(d.v).toFixed(1);
+      dLine += (i===0?'M':'L')+x+' '+y+' '; });
+    dArea = 'M'+X(0).toFixed(1)+' '+(Hc-pb)+' ' + dLine + 'L'+X(tMax).toFixed(1)+' '+(Hc-pb)+' Z';
+    document.getElementById('chartLine').setAttribute('d', dLine);
+    document.getElementById('chartArea').setAttribute('d', dArea);
+    const cx=X(Math.min(t,tMax)).toFixed(1), cy=Y(arr[Math.round(Math.min(t,tMax)/tMax*80)].v).toFixed(1);
+    document.getElementById('chartDot').setAttribute('cx',cx);
+    document.getElementById('chartDot').setAttribute('cy',cy);
+    document.getElementById('chartXMax').textContent = tMax.toFixed(1)+'s';
+    document.getElementById('chartYMax').textContent = maxV.toFixed(1);
+    // 网格线
+    let g='';
+    for(let i=0;i<=4;i++){ const gy=(pt + (Hc-pt-pb)*i/4).toFixed(1);
+      g+=`<line class="chart-grid" x1="${pl}" y1="${gy}" x2="${Wc-pr}" y2="${gy}"/>`; }
+    document.getElementById('chartGrid').innerHTML=g;
+  }
+
+  // 播放
+  function loop(){ if(!playing) return; t += 0.016*1; if(t>tMax){ t=0; } draw(); raf=requestAnimationFrame(loop); }
+  document.getElementById('playBtn').addEventListener('click', e=>{
+    playing=!playing; e.target.textContent = playing?'❚❚':'▶';
+    if(playing) loop(); else cancelAnimationFrame(raf);
+  });
+  document.getElementById('timeline').addEventListener('input', e=>{ t=(+e.target.value/1000)*tMax; draw(); });
+
+  // 参数联动
+  function bind(id, key, label){
+    const el=document.getElementById(id), out=document.getElementById(label);
+    el.addEventListener('input', ()=>{ P[key]=+el.value; out.textContent=(key==='theta'?el.value:(+el.value).toFixed(1)); draw(); });
+  }
+  bind('pV0','v0','vV0'); bind('pH','h','vH'); bind('pTheta','theta','vTheta'); bind('pG','g','vG');
+  ['tTraj','tVec','tGrid','tDot'].forEach(id=>document.getElementById(id).addEventListener('change', draw));
+
+  // 预设
+  document.querySelectorAll('.chip[data-preset]').forEach(c=>c.addEventListener('click',()=>{
+    document.querySelectorAll('.chip[data-preset]').forEach(x=>x.classList.remove('active'));
+    c.classList.add('active');
+    const pr=c.dataset.preset;
+    if(pr==='proj'){ setP(18,25,0,9.8); }
+    if(pr==='oblique'){ setP(20,20,45,9.8); }
+    if(pr==='free'){ setP(0,30,0,9.8); }
+    draw();
+  }));
+  function setP(v0,h,theta,g){
+    P.v0=v0;P.h=h;P.theta=theta;P.g=g;
+    sync('pV0','vV0',v0); sync('pH','vH',h); sync('pTheta','vTheta',theta); sync('pG','vG',g);
+  }
+  function sync(rId,oId,val){ document.getElementById(rId).value=val; document.getElementById(oId).textContent=(rId==='pTheta'?val:(+val).toFixed(1)); }
+
+  // 图表 tab
+  document.querySelectorAll('.graph-tab').forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll('.graph-tab').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active'); curChart=b.dataset.chart; updateChart();
+  }));
+
+  // Toast
+  function toast(msg,type){
+    const el=document.createElement('div');
+    el.style.cssText='position:fixed;right:20px;bottom:20px;z-index:300;padding:12px 16px;border-radius:12px;font-size:13px;color:var(--text);background:var(--glass-bg-strong);backdrop-filter:blur(18px);border:1px solid var(--glass-border);border-left:3px solid var(--brand);box-shadow:var(--shadow-lg);transition:opacity .28s,transform .28s;';
+    el.textContent=(type==='ok'?'✓ ':'ℹ ')+msg;
+    document.body.appendChild(el);
+    setTimeout(()=>{ el.style.opacity='0'; el.style.transform='translateY(10px)'; setTimeout(()=>el.remove(),280); },2400);
+  }
+
+  computeTmax();
+  if(reduce){ t=tMax*0.4; resize(); } else resize();
+</script>
+</body>
+</html>

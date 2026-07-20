@@ -368,27 +368,21 @@ export function drawHallEffectScene(o: SensorSceneOptions): void {
     ctx.fillText(`= ${Vh.toExponential(3)} V`, 30, h - 46);
 
     // HUD
-    drawHud(
-        ctx,
-        isDark,
-        [
-            { label: 'I', value: `${I.toFixed(2)} A` },
-            { label: 'B', value: `${B.toFixed(3)} T` },
-            { label: 'n', value: `${n.toExponential(1)} m^-3` },
-            { label: 't', value: `${(t * 1000).toFixed(3)} mm` },
-            { label: 'V_H', value: `${(Vh * 1000).toFixed(3)} mV` },
-            { label: 't(s)', value: `${currentTime.toFixed(2)} s` }
-        ],
-        { boxW: 210, lineH: 16 }
-    );
+    drawHud(ctx, isDark, [
+        { label: 'I', value: `${I.toFixed(2)} A` },
+        { label: 'B', value: `${B.toFixed(3)} T` },
+        { label: 'n', value: `${n.toExponential(1)} m^-3` },
+        { label: 't', value: `${(t * 1000).toFixed(3)} mm` },
+        { label: 'V_H', value: `${(Vh * 1000).toFixed(3)} mV` },
+        { label: 't(s)', value: `${currentTime.toFixed(2)} s` }
+    ], { boxW: 210, lineH: 16 });
 
     drawInfoBar(
         ctx,
         w,
         h,
         `V_H=IB/(nqt)  I=${I.toFixed(1)}A  B=${B.toFixed(2)}T  t=${(t * 1000).toFixed(2)}mm`,
-        isDark,
-        { height: 22, yOffset: 34 }
+        isDark, { height: 22, yOffset: 34 }
     );
 
     if (!simulationResult) drawEmptyState(ctx, w, h, isDark);
@@ -609,27 +603,21 @@ export function drawPhotoresistorScene(o: SensorSceneOptions): void {
     ctx.fillText(`当前 R = ${R >= 1e3 ? (R / 1e3).toFixed(1) + ' kΩ' : R.toFixed(0) + ' Ω'}`, w / 2 + 80, formY + 38);
 
     // HUD
-    drawHud(
-        ctx,
-        isDark,
-        [
-            { label: 'E', value: `${E.toFixed(1)} lx` },
-            { label: 'R', value: `${R >= 1e3 ? (R / 1e3).toFixed(1) + ' k' : R.toFixed(0)} Ω` },
-            { label: 'R_dark', value: `${Rdark.toExponential(0)} Ω` },
-            { label: 'k', value: `${k}` },
-            { label: 'T', value: `${T} °C` },
-            { label: 't', value: `${currentTime.toFixed(1)} s` }
-        ],
-        { boxW: 210, lineH: 16 }
-    );
+    drawHud(ctx, isDark, [
+        { label: 'E', value: `${E.toFixed(1)} lx` },
+        { label: 'R', value: `${R >= 1e3 ? (R / 1e3).toFixed(1) + ' k' : R.toFixed(0)} Ω` },
+        { label: 'R_dark', value: `${Rdark.toExponential(0)} Ω` },
+        { label: 'k', value: `${k}` },
+        { label: 'T', value: `${T} °C` },
+        { label: 't', value: `${currentTime.toFixed(1)} s` }
+    ], { boxW: 210, lineH: 16 });
 
     drawInfoBar(
         ctx,
         w,
         h,
         `R(E)=R_dark·exp(-kE)  E=${E}lx  R=${R >= 1e6 ? (R / 1e6).toFixed(2) + 'M' : R >= 1e3 ? (R / 1e3).toFixed(1) + 'k' : R.toFixed(0)}Ω`,
-        isDark,
-        { height: 22, yOffset: 34 }
+        isDark, { height: 22, yOffset: 34 }
     );
 
     if (!simulationResult) drawEmptyState(ctx, w, h, isDark);
@@ -806,27 +794,21 @@ export function drawThermistorScene(o: SensorSceneOptions): void {
     ctx.fillText(`R = ${R >= 1e3 ? (R / 1e3).toFixed(1) + ' kΩ' : R.toFixed(0) + ' Ω'}`, w - 40, formY + 50);
 
     // HUD
-    drawHud(
-        ctx,
-        isDark,
-        [
-            { label: 'T', value: `${T.toFixed(1)} K` },
-            { label: 'R', value: `${R >= 1e3 ? (R / 1e3).toFixed(2) + ' k' : R.toFixed(0)} Ω` },
-            { label: 'R₀', value: `${R0.toExponential(0)} Ω` },
-            { label: 'B', value: `${B} K` },
-            { label: 'T₀', value: `${T0} K` },
-            { label: 't', value: `${currentTime.toFixed(1)} s` }
-        ],
-        { boxW: 210, lineH: 16 }
-    );
+    drawHud(ctx, isDark, [
+        { label: 'T', value: `${T.toFixed(1)} K` },
+        { label: 'R', value: `${R >= 1e3 ? (R / 1e3).toFixed(2) + ' k' : R.toFixed(0)} Ω` },
+        { label: 'R₀', value: `${R0.toExponential(0)} Ω` },
+        { label: 'B', value: `${B} K` },
+        { label: 'T₀', value: `${T0} K` },
+        { label: 't', value: `${currentTime.toFixed(1)} s` }
+    ], { boxW: 210, lineH: 16 });
 
     drawInfoBar(
         ctx,
         w,
         h,
         `R=R₀·exp(B(1/T-1/T₀))  T=${T}K  R=${R >= 1e3 ? (R / 1e3).toFixed(1) + 'k' : R.toFixed(0)}Ω  B=${B}K`,
-        isDark,
-        { height: 22, yOffset: 34 }
+        isDark, { height: 22, yOffset: 34 }
     );
 
     if (!simulationResult) drawEmptyState(ctx, w, h, isDark);
@@ -1090,27 +1072,21 @@ export function drawReedSwitchScene(o: SensorSceneOptions): void {
     ctx.textBaseline = 'alphabetic';
 
     // HUD
-    drawHud(
-        ctx,
-        isDark,
-        [
-            { label: 'd', value: `${d.toFixed(1)} mm` },
-            { label: 'H', value: `${H.toFixed(1)} mT` },
-            { label: 'H_pull', value: `${Hpull} mT` },
-            { label: 'H_rel', value: `${Hrel} mT` },
-            { label: '状态', value: state === 'close' ? '闭合' : '断开' },
-            { label: 't', value: `${currentTime.toFixed(1)} s` }
-        ],
-        { boxW: 210, lineH: 16 }
-    );
+    drawHud(ctx, isDark, [
+        { label: 'd', value: `${d.toFixed(1)} mm` },
+        { label: 'H', value: `${H.toFixed(1)} mT` },
+        { label: 'H_pull', value: `${Hpull} mT` },
+        { label: 'H_rel', value: `${Hrel} mT` },
+        { label: '状态', value: state === 'close' ? '闭合' : '断开' },
+        { label: 't', value: `${currentTime.toFixed(1)} s` }
+    ], { boxW: 210, lineH: 16 });
 
     drawInfoBar(
         ctx,
         w,
         h,
         `干簧管: d=${d}mm  H=${H.toFixed(1)}mT  ${state === 'close' ? '通路(吸合)' : '断路(断开)'}`,
-        isDark,
-        { height: 22, yOffset: 34 }
+        isDark, { height: 22, yOffset: 34 }
     );
 
     if (!simulationResult) drawEmptyState(ctx, w, h, isDark);
@@ -1382,24 +1358,16 @@ export function drawStrainGaugeScene(o: SensorSceneOptions): void {
     ctx.fillText(`ΔR = R·K·ε = ${deltaR.toFixed(4)} Ω (R₀=${R0}Ω)`, formX + 80, formY + 72);
 
     // HUD
-    drawHud(
-        ctx,
-        isDark,
-        [
-            { label: 'ε', value: `${strain} με` },
-            { label: 'K', value: `${K}` },
-            { label: 'ΔR/R', value: `${deltaRR.toExponential(2)}` },
-            { label: 'ΔU', value: `${(deltaU * 1000).toFixed(3)} mV` },
-            { label: 'U_K', value: `${UK} V` },
-            { label: 't', value: `${currentTime.toFixed(1)} s` }
-        ],
-        { boxW: 210, lineH: 16 }
-    );
+    drawHud(ctx, isDark, [
+        { label: 'ε', value: `${strain} με` },
+        { label: 'K', value: `${K}` },
+        { label: 'ΔR/R', value: `${deltaRR.toExponential(2)}` },
+        { label: 'ΔU', value: `${(deltaU * 1000).toFixed(3)} mV` },
+        { label: 'U_K', value: `${UK} V` },
+        { label: 't', value: `${currentTime.toFixed(1)} s` }
+    ], { boxW: 210, lineH: 16 });
 
-    drawInfoBar(ctx, w, h, `惠斯通电桥: ΔR/R=K·ε  ε=${strain}με  K=${K}  ΔU=${(deltaU * 1000).toFixed(3)}mV`, isDark, {
-        height: 22,
-        yOffset: 34
-    });
+    drawInfoBar(ctx, w, h, `惠斯通电桥: ΔR/R=K·ε  ε=${strain}με  K=${K}  ΔU=${(deltaU * 1000).toFixed(3)}mV`, isDark, { height: 22, yOffset: 34 });
 
     if (!simulationResult) drawEmptyState(ctx, w, h, isDark);
 }
@@ -1692,27 +1660,21 @@ export function drawSecurityAlarmScene(o: SensorSceneOptions): void {
     ctx.fillText(`输出  : ${doorOpen ? 'H (=1, 报警)' : 'L (=0, 正常)'}`, tvX - 4, rowy + 12);
 
     // HUD
-    drawHud(
-        ctx,
-        isDark,
-        [
-            { label: 'd', value: `${magnetDistance.toFixed(1)} mm` },
-            { label: '吸合阈', value: `${operateDist} mm` },
-            { label: '释放阈', value: `${releaseDist} mm` },
-            { label: '门', value: doorOpen ? '开启' : '关闭' },
-            { label: '干簧管', value: doorOpen ? '断开' : '吸合' },
-            { label: '报警', value: alarm ? '激活' : '关闭' }
-        ],
-        { boxW: 210, lineH: 16 }
-    );
+    drawHud(ctx, isDark, [
+        { label: 'd', value: `${magnetDistance.toFixed(1)} mm` },
+        { label: '吸合阈', value: `${operateDist} mm` },
+        { label: '释放阈', value: `${releaseDist} mm` },
+        { label: '门', value: doorOpen ? '开启' : '关闭' },
+        { label: '干簧管', value: doorOpen ? '断开' : '吸合' },
+        { label: '报警', value: alarm ? '激活' : '关闭' }
+    ], { boxW: 210, lineH: 16 });
 
     drawInfoBar(
         ctx,
         w,
         h,
         `磁控报警: d=${magnetDistance.toFixed(1)}mm  吸合阈=${operateDist}mm  释放阈=${releaseDist}mm`,
-        isDark,
-        { height: 22, yOffset: 34 }
+        isDark, { height: 22, yOffset: 34 }
     );
 
     if (!simulationResult) drawEmptyState(ctx, w, h, isDark);
@@ -1798,7 +1760,14 @@ export function drawLightControlSwitchScene(o: SensorSceneOptions): void {
     ctx.stroke();
     // 光箭头
     for (let ai = 0; ai < 2; ai++) {
-        drawArrow(ctx, ldrX2 - 26 + ai * 10, ldrY2 - 24 - ai * 8, ldrX2 - 22 + ai * 10, ldrY2 - 28 - ai * 8, '#fbbf24');
+        drawArrow(
+            ctx,
+            ldrX2 - 26 + ai * 10,
+            ldrY2 - 24 - ai * 8,
+            ldrX2 - 22 + ai * 10,
+            ldrY2 - 28 - ai * 8,
+            '#fbbf24'
+        );
     }
     ctx.fillStyle = isDark ? '#cbd5e1' : '#334155';
     ctx.font = '10px sans-serif';
@@ -2101,27 +2070,21 @@ export function drawLightControlSwitchScene(o: SensorSceneOptions): void {
     ctx.fillText('LDR: 光照↓ → R↑ → V_cc↑ → 三极管导通 → 灯亮', w * 0.5 + 60, formY3 + 30);
 
     // HUD
-    drawHud(
-        ctx,
-        isDark,
-        [
-            { label: 'E', value: `${L.toFixed(2)} lx` },
-            { label: 'R_LDR', value: `${Rldr >= 1e3 ? (Rldr / 1e3).toFixed(1) + ' k' : Rldr.toFixed(0)} Ω` },
-            { label: 'R_fix', value: `${(Rfix / 1e3).toFixed(0)} kΩ` },
-            { label: 'V_cc', value: `${Vcc.toFixed(3)} V` },
-            { label: '阈值', value: `${threshold} lx` },
-            { label: 't', value: `${currentTime.toFixed(1)} s` }
-        ],
-        { boxW: 210, lineH: 16 }
-    );
+    drawHud(ctx, isDark, [
+        { label: 'E', value: `${L.toFixed(2)} lx` },
+        { label: 'R_LDR', value: `${Rldr >= 1e3 ? (Rldr / 1e3).toFixed(1) + ' k' : Rldr.toFixed(0)} Ω` },
+        { label: 'R_fix', value: `${(Rfix / 1e3).toFixed(0)} kΩ` },
+        { label: 'V_cc', value: `${Vcc.toFixed(3)} V` },
+        { label: '阈值', value: `${threshold} lx` },
+        { label: 't', value: `${currentTime.toFixed(1)} s` }
+    ], { boxW: 210, lineH: 16 });
 
     drawInfoBar(
         ctx,
         w,
         h,
         `Vcc=E·Rfix/(Rldr+Rfix)  E=${L}lx  Rldr=${Rldr >= 1e3 ? (Rldr / 1e3).toFixed(0) + 'k' : Rldr.toFixed(0)}  Vcc=${Vcc.toFixed(3)}V  阈值=${threshold}lx`,
-        isDark,
-        { height: 22, yOffset: 34 }
+        isDark, { height: 22, yOffset: 34 }
     );
 
     if (!simulationResult) drawEmptyState(ctx, w, h, isDark);

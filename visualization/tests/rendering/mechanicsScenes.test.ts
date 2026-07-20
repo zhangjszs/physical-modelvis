@@ -30,17 +30,14 @@ import {
     drawCurveConditionScene,
     drawMotionCompositionScene,
     drawCurveVelocityDirectionScene,
-    drawSimplePendulumScene,
-    drawEnergyConservationScene,
-    drawOverweightScene,
     drawCentrifugalScene,
-    drawOrbitalScene,
-    drawMomentumScene,
-    drawProjectileCollisionScene,
-    drawMechanicalWaveScene,
-    drawCavendishScene,
-    drawMoonEarthTestScene
-} from '../../src/rendering/mechanicsScenes';
+    drawProjectileCollisionScene
+} from '../../src/rendering/chapter5Scenes';
+import { drawOverweightScene, drawMomentumScene } from '../../src/rendering/chapter4Scenes';
+import { drawOrbitalScene, drawCavendishScene, drawMoonEarthTestScene } from '../../src/rendering/chapter6Scenes';
+import { drawSimplePendulumScene, drawEnergyConservationScene } from '../../src/rendering/chapter7Scenes';
+import { drawMechanicalWaveScene } from '../../src/rendering/mechanicalWaveScenes';
+import type { MechanicsSceneOptions } from '../../src/rendering/chapter5Scenes';
 
 // ============================================================
 // Mock SimulationResult 工厂
@@ -601,7 +598,7 @@ describe('drawMoonEarthTestScene', () => {
 describe('mechanicsScenes — 主题与边界回归', () => {
     const allRenderers: Array<{
         name: string;
-        fn: (opts: import('../../src/rendering/mechanicsScenes').MechanicsSceneOptions) => void;
+        fn: (opts: MechanicsSceneOptions) => void;
     }> = [
         { name: 'drawCurveConditionScene', fn: drawCurveConditionScene },
         { name: 'drawMotionCompositionScene', fn: drawMotionCompositionScene },

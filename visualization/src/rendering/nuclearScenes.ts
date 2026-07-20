@@ -260,17 +260,12 @@ export function drawAlphaScatteringScene(o: NuclearSceneOptions): void {
     drawTitle(ctx, 'α 粒子卢瑟福散射', w, isDark, { size: 18, y: 28 });
 
     // --- HUD ---
-    drawHud(
-        ctx,
-        isDark,
-        [
-            { label: 'E_k', value: `${E_MeV.toFixed(1)} MeV` },
-            { label: 'Z (靶核)', value: `${Z}` },
-            { label: 'k', value: `${kCoeff.toFixed(2)} fm` },
-            { label: 'b≈', value: `(${impactParams.length} 条)` }
-        ],
-        { boxW: 200, lineH: 16 }
-    );
+    drawHud(ctx, isDark, [
+        { label: 'E_k', value: `${E_MeV.toFixed(1)} MeV` },
+        { label: 'Z (靶核)', value: `${Z}` },
+        { label: 'k', value: `${kCoeff.toFixed(2)} fm` },
+        { label: 'b≈', value: `(${impactParams.length} 条)` }
+    ], { boxW: 200, lineH: 16 });
 
     // 散射公式底部
     const formulaText = `θ = 2·arctan(k/b),  k = 2Z·e²/(E_α·c)  ≈ ${kCoeff.toFixed(2)} fm`;
@@ -492,17 +487,12 @@ export function drawDecayStatisticsScene(o: NuclearSceneOptions): void {
     }
 
     // --- HUD ---
-    drawHud(
-        ctx,
-        isDark,
-        [
-            { label: 'λ (= N̄)', value: `${meanCount}` },
-            { label: 'σ (= √λ)', value: sigma.toFixed(2) },
-            { label: 'n 试验', value: `${nTrials}` },
-            { label: '分布', value: meanCount < 20 ? '泊松' : '高斯' }
-        ],
-        { boxW: 200, lineH: 16 }
-    );
+    drawHud(ctx, isDark, [
+        { label: 'λ (= N̄)', value: `${meanCount}` },
+        { label: 'σ (= √λ)', value: sigma.toFixed(2) },
+        { label: 'n 试验', value: `${nTrials}` },
+        { label: '分布', value: meanCount < 20 ? '泊松' : '高斯' }
+    ], { boxW: 200, lineH: 16 });
 
     // 底部公式
     const formulaText = `P(N) = λ^N·e^(-λ)/N!   σ = √λ`;
@@ -766,17 +756,12 @@ export function drawFissionChainScene(o: NuclearSceneOptions): void {
     // --- HUD ---
     const lastU = nucleusPositions[maxDepth]?.[0];
     const nOnScreen = lastU ? (neuPerGen[maxDepth]?.toFixed(0) ?? '—') : '—';
-    drawHud(
-        ctx,
-        isDark,
-        [
-            { label: 'k (增殖因子)', value: k.toFixed(2) },
-            { label: '当前代数', value: `${maxDepth}` },
-            { label: 'N_本代中子', value: nOnScreen },
-            { label: '状态', value: statusText.split(' ')[0] ?? '' }
-        ],
-        { boxW: 200, lineH: 16 }
-    );
+    drawHud(ctx, isDark, [
+        { label: 'k (增殖因子)', value: k.toFixed(2) },
+        { label: '当前代数', value: `${maxDepth}` },
+        { label: 'N_本代中子', value: nOnScreen },
+        { label: '状态', value: statusText.split(' ')[0] ?? '' }
+    ], { boxW: 200, lineH: 16 });
 
     // 底部公式
     const formulaText = 'N_g = N₀·k^g    U-235 + n → 碎片 + (2~3)n  + ~200 MeV';
