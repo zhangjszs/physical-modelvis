@@ -648,3 +648,231 @@ export function drawEnergyBar(
     ctx.textAlign = 'center';
     ctx.fillText(label, x + w / 2, y + h + 16);
 }
+
+// ============================================================
+// Group 10: 电路/电磁学绘图元件
+// ============================================================
+
+/** 绘制折线导线 */
+export function drawWire(ctx: CanvasRenderingContext2D, points: Array<[number, number]>, color: string): void {
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 3;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    points.forEach(([x, y], i) => (i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)));
+    ctx.stroke();
+    ctx.restore();
+}
+
+/** 绘制电池符号 (长/短竖线 + 标签) */
+export function drawBattery(ctx: CanvasRenderingContext2D, x: number, y: number, isDark: boolean, label: string): void {
+    ctx.strokeStyle = textColor(isDark);
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x - 18, y - 20);
+    ctx.lineTo(x - 18, y + 20);
+    ctx.moveTo(x + 14, y - 12);
+    ctx.lineTo(x + 14, y + 12);
+    ctx.stroke();
+    ctx.fillStyle = mutedColor(isDark);
+    ctx.font = '11px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(label, x, y + 38);
+    ctx.fillStyle = COLORS.RED;
+    ctx.fillText('+', x - 18, y - 26);
+    ctx.fillStyle = COLORS.BLUE;
+    ctx.fillText('-', x + 14, y - 20);
+}
+
+/** 绘制电阻符号 (锯齿形) */
+export function drawResistor(
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    w: number,
+    isDark: boolean,
+    label: string
+): void {
+    ctx.strokeStyle = isDark ? '#cbd5e1' : '#334155';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x - w / 2, y);
+    for (let i = 0; i < 6; i++) {
+        const px = x - w / 2 + ((i + 0.5) * w) / 6;
+        ctx.lineTo(px, y + (i % 2 === 0 ? -12 : 12));
+    }
+    ctx.lineTo(x + w / 2, y);
+    ctx.stroke();
+    ctx.fillStyle = mutedColor(isDark);
+    ctx.font = '11px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(label, x, y - 22);
+}
+
+/** 绘制电容器符号 (两竖线 + 标签) */
+export function drawCapacitorSymbol(
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    isDark: boolean,
+    label: string
+): void {
+    ctx.strokeStyle = textColor(isDark);
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(x - 10, y - 24);
+    ctx.lineTo(x - 10, y + 24);
+    ctx.moveTo(x + 10, y - 24);
+    ctx.lineTo(x + 10, y + 24);
+    ctx.stroke();
+    ctx.fillStyle = mutedColor(isDark);
+    ctx.font = '11px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(label, x, y + 42);
+}
+
+/** 圆形指针电表 (V/A/Ω/G) */
+export function drawMeter(
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    r: number,
+    ratio: number,
+    isDark: boolean,
+    label: string,
+    value: string
+): void {
+    ctx.fillStyle = panelFill(isDark);
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = isDark ? '#64748b' : '#94a3b8';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    for (let i = 0; i <= 10; i++) {
+        const a = Math.PI * (1.15 + (0.7 * i) / 10);
+        const r1 = r - 8;
+        const r2 = r - (i % 5 === 0 ? 18 : 13);
+        ctx.beginPath();
+        ctx.moveTo(x + Math.cos(a) * r1, y + Math.sin(a) * r1);
+        ctx.lineTo(x + Math.cos(a) * r2, y + Math.sin(a) * r2);
+        ctx.stroke();
+    }
+    const angle = Math.PI * (1.15 + 0.7 * clamp(ratio, 0, 1));
+    drawArrow(ctx, x, y, x + Math.cos(angle) * (r - 22), y + Math.sin(angle) * (r - 22), COLORS.RED);
+    ctx.fillStyle = textColor(isDark);
+    ctx.font = 'bold 12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(label, x, y + 8);
+    ctx.fillStyle = mutedColor(isDark);
+    ctx.font = '11px monospace';
+    ctx.fillText(value, x, y + r + 18);
+}
+
+/** 小型正弦波图表 (用于交流电/振荡显示) */
+export function drawSineChart(opts: {
+    ctx: CanvasRenderingContext2D;
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+    phase: number;
+    color: string;
+    isDark: boolean;
+    label: string;
+}): void {
+    const { ctx, x, y, w, h, phase, color, isDark, label } = opts;
+    ctx.fillStyle = panelFill(isDark);
+    roundRectPath(ctx, x, y, w, h, 6);
+    ctx.fill();
+    ctx.strokeStyle = isDark ? 'rgba(148,163,184,0.22)' : 'rgba(100,116,139,0.18)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x, y + h / 2);
+    ctx.lineTo(x + w, y + h / 2);
+    ctx.stroke();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let i = 0; i <= 120; i++) {
+        const px = x + (i / 120) * w;
+        const py = y + h / 2 - Math.sin((i / 120) * Math.PI * 4 + phase) * (h * 0.36);
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+    ctx.fillStyle = mutedColor(isDark);
+    ctx.font = '11px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(label, x + 8, y + 16);
+}
+
+/** 绘制螺线管/线圈 (正弦形绕线) */
+export function drawCoil(
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    w: number,
+    turns: number,
+    color: string
+): void {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    for (let i = 0; i <= turns * 16; i++) {
+        const t = i / (turns * 16);
+        const px = x + t * w;
+        const py = y + Math.sin(t * turns * Math.PI * 2) * 14;
+        ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+}
+
+/** 正/负电荷符号 (圆形 + ±号) */
+export function drawChargeSymbol(
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    radius: number,
+    sign: number,
+    isDark: boolean
+): void {
+    const positive = sign >= 0;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fillStyle = positive ? COLORS.RED : COLORS.BLUE;
+    ctx.fill();
+    ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.85)' : 'rgba(15,23,42,0.85)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(x - radius * 0.5, y);
+    ctx.lineTo(x + radius * 0.5, y);
+    if (positive) {
+        ctx.moveTo(x, y - radius * 0.5);
+        ctx.lineTo(x, y + radius * 0.5);
+    }
+    ctx.stroke();
+}
+
+/** 单行文字快捷绘制 */
+export function drawText(
+    ctx: CanvasRenderingContext2D,
+    text: string,
+    x: number,
+    y: number,
+    isDark: boolean,
+    size = 13,
+    color?: string
+): void {
+    ctx.fillStyle = color ?? textColor(isDark);
+    ctx.font = `${size}px system-ui, sans-serif`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText(text, x, y);
+}

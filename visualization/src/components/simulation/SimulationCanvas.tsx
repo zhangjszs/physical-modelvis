@@ -126,28 +126,29 @@ import { drawOrbitalScene, drawCavendishScene, drawMoonEarthTestScene } from '..
 import { drawEnergyConservationScene, drawSimplePendulumScene } from '../../rendering/chapter7Scenes';
 import { drawMechanicalWaveScene } from '../../rendering/mechanicalWaveScenes';
 import {
-    drawAcCurrentScene,
-    drawAmpereForceScene,
-    drawCapacitorChargeScene,
-    drawCircuitScene,
-    drawEmInductionScene,
-    drawLoadVoltageScene,
-    drawMagneticForceScene,
-    drawMicrometerScene,
-    drawMultimeterScene,
-    drawParallelPlateCapacitorScene,
-    drawResistanceLawScene,
-    drawVernierCaliperScene,
     drawCoulombForceExploreScene,
     drawElectroscopeScene,
     drawElectrostaticInductionScene,
     drawElectrostaticShieldingScene,
-    drawFaradayCupScene,
+    drawFaradayCupScene
+} from '../../rendering/electrostaticFieldScenes';
+import { drawParallelPlateCapacitorScene, drawCapacitorChargeScene } from '../../rendering/electrostaticEnergyScenes';
+import {
+    drawCircuitScene,
+    drawResistanceLawScene,
+    drawLoadVoltageScene,
+    drawMultimeterScene,
+    drawVernierCaliperScene,
+    drawMicrometerScene
+} from '../../rendering/electricCircuitScenes';
+import { drawMagneticForceScene, drawAmpereForceScene } from '../../rendering/magneticFieldScenes';
+import { drawEmInductionScene, drawEddyCurrentScene } from '../../rendering/emInductionScenes';
+import {
+    drawAcCurrentScene,
     drawEmWaveHertzScene,
-    drawEddyCurrentScene,
     drawEmWaveCommunicationScene,
     drawEmSpectrumScene
-} from '../../rendering/electromagnetismScenes';
+} from '../../rendering/emWaveScenes';
 
 import {
     drawTotalInternalReflectionScene,
