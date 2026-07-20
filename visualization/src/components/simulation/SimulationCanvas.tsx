@@ -101,26 +101,27 @@ import {
     drawGalileoInclineScene,
     drawReactionTimeScene,
     drawTickerTimerScene,
-    drawTransmissionBeltScene,
-    drawVerticalCircleScene,
-    drawCenterOfGravityScene,
+    drawCenterOfGravityScene
+} from '../../rendering/chapter1Scenes';
+import {
     drawInertiaScene,
     drawNewtonFirstLawScene,
     drawNewtonSecondLawScene,
+    drawOverweightScene,
+    drawMomentumScene
+} from '../../rendering/chapter4Scenes';
+import {
     drawCurveConditionScene,
     drawMotionCompositionScene,
     drawCurveVelocityDirectionScene,
-    drawSimplePendulumScene,
-    drawEnergyConservationScene,
-    drawOverweightScene,
-    drawCentrifugalScene,
-    drawOrbitalScene,
-    drawMomentumScene,
     drawProjectileCollisionScene,
-    drawMechanicalWaveScene,
-    drawCavendishScene,
-    drawMoonEarthTestScene
-} from '../../rendering/mechanicsScenes';
+    drawVerticalCircleScene,
+    drawCentrifugalScene,
+    drawTransmissionBeltScene
+} from '../../rendering/chapter5Scenes';
+import { drawOrbitalScene, drawCavendishScene, drawMoonEarthTestScene } from '../../rendering/chapter6Scenes';
+import { drawEnergyConservationScene, drawSimplePendulumScene } from '../../rendering/chapter7Scenes';
+import { drawMechanicalWaveScene } from '../../rendering/mechanicalWaveScenes';
 import {
     drawAcCurrentScene,
     drawAmpereForceScene,
