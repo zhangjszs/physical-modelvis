@@ -68,34 +68,37 @@ import {
     drawBohrOrbitScene
 } from '../../rendering/modernScenes';
 import {
-    drawAdiabaticCompressionScene,
     drawDiffusionScene,
     drawBrownianScene,
-    drawEnergyTransformationScene,
-    drawGasLawScene,
-    drawHeatDirectionScene,
-    drawMeltingCurveScene,
-    drawHeatTransferScene,
-    drawJouleElectricalScene,
-    drawJouleMechanicalScene,
-    drawLiquidMixingScene,
-    drawSurfaceTensionScene,
     drawMolecularForceScene,
     drawOilFilmScene,
+    drawLiquidMixingScene
+} from '../../rendering/molecularKineticScenes';
+import { drawGasLawScene } from '../../rendering/gasThermalScenes';
+import {
+    drawMeltingCurveScene,
+    drawSurfaceTensionScene,
     drawCapillaryScene,
-    drawLiquidCrystalScene,
+    drawWettingScene,
+    drawLiquidCrystalScene
+} from '../../rendering/solidLiquidScenes';
+import {
+    drawHeatTransferScene,
+    drawJouleMechanicalScene,
+    drawJouleElectricalScene,
+    drawAdiabaticCompressionScene,
+    drawEnergyTransformationScene,
     drawPerpetuumMobileScene,
-    drawWettingScene
-} from '../../rendering/thermalScenes';
+    drawHeatDirectionScene
+} from '../../rendering/thermodynamicLawScenes';
 import {
     drawHallEffectScene,
     drawPhotoresistorScene,
     drawThermistorScene,
     drawReedSwitchScene,
-    drawStrainGaugeScene,
-    drawSecurityAlarmScene,
-    drawLightControlSwitchScene
-} from '../../rendering/sensorScenes';
+    drawStrainGaugeScene
+} from '../../rendering/sensorElementScenes';
+import { drawSecurityAlarmScene, drawLightControlSwitchScene } from '../../rendering/sensorApplicationScenes';
 import {
     drawFreeFallScene,
     drawGalileoInclineScene,

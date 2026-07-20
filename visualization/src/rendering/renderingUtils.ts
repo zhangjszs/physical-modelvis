@@ -428,3 +428,223 @@ export function getFrame(
     if (!p0 || !p1) return null;
     return interpolateFrame(p0, p1, currentTime);
 }
+
+/** 伪随机数 (固定种子, 每帧一致) */
+export function seededRand(seed: number): number {
+    const v = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
+    return v - Math.floor(v);
+}
+
+/** 绘制一个 mini 折线图 (带坐标轴) */
+export function drawMiniChart(opts: {
+    ctx: CanvasRenderingContext2D;
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+    xs: number[];
+    ys: number[];
+    isDark: boolean;
+    lineColor: string;
+    label?: string;
+    xLabel?: string;
+    yLabel?: string;
+    showPeakX?: number;
+    peakLabel?: string;
+    fillUnder?: string;
+    logX?: boolean;
+    logY?: boolean;
+}): void {
+    const { ctx, x, y, w, h, xs, ys, isDark, label, xLabel, yLabel, showPeakX, peakLabel, fillUnder, logX, logY } =
+        opts;
+    if (xs.length === 0 || ys.length === 0) return;
+
+    const xMin = xs[0]!;
+    const xMax = xs[xs.length - 1]!;
+    let yMin = Math.min(...ys);
+    let yMax = Math.max(...ys);
+    if (yMax - yMin < 1e-9) {
+        yMax = yMin + 1;
+    }
+    const padY = (yMax - yMin) * 0.12;
+    yMin -= padY;
+    yMax += padY;
+
+    ctx.fillStyle = isDark ? 'rgba(15,23,42,0.55)' : 'rgba(255,255,255,0.65)';
+    roundRectPath(ctx, x, y, w, h, 6);
+    ctx.fill();
+    ctx.strokeStyle = isDark ? 'rgba(100,116,139,0.4)' : 'rgba(100,116,139,0.25)';
+    ctx.lineWidth = 1;
+    roundRectPath(ctx, x, y, w, h, 6);
+    ctx.stroke();
+
+    const useLogX = logX && xMin > 0 && xMax > 0;
+    const useLogY = logY && yMin > 0 && yMax > 0;
+    const logXMin = useLogX ? Math.log10(xMin) : 0;
+    const logXMax = useLogX ? Math.log10(xMax) : 1;
+    const logYMin = useLogY ? Math.log10(yMin) : 0;
+    const logYMax = useLogY ? Math.log10(yMax) : 1;
+
+    const sx = (xv: number) => {
+        if (useLogX) return x + ((Math.log10(Math.max(xMin, xv)) - logXMin) / (logXMax - logXMin)) * w;
+        return x + ((xv - xMin) / (xMax - xMin)) * w;
+    };
+    const sy = (yv: number) => {
+        if (useLogY) return y + h - ((Math.log10(Math.max(yMin, yv)) - logYMin) / (logYMax - logYMin)) * h;
+        return y + h - ((yv - yMin) / (yMax - yMin)) * h;
+    };
+
+    ctx.strokeStyle = isDark ? 'rgba(148,163,184,0.15)' : 'rgba(100,116,139,0.10)';
+    ctx.lineWidth = 1;
+    for (let i = 1; i < 4; i++) {
+        const gx = x + (w * i) / 4;
+        ctx.beginPath();
+        ctx.moveTo(gx, y);
+        ctx.lineTo(gx, y + h);
+        ctx.stroke();
+    }
+
+    if (fillUnder) {
+        ctx.fillStyle = fillUnder;
+        ctx.beginPath();
+        ctx.moveTo(sx(xs[0]!), y + h);
+        for (let i = 0; i < xs.length; i++) ctx.lineTo(sx(xs[i]!), sy(ys[i]!));
+        ctx.lineTo(sx(xs[xs.length - 1]!), y + h);
+        ctx.closePath();
+        ctx.fill();
+    }
+
+    ctx.strokeStyle = opts.lineColor;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let i = 0; i < xs.length; i++) {
+        const px = sx(xs[i]!);
+        const py = sy(ys[i]!);
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+
+    if (showPeakX !== undefined) {
+        const px = sx(showPeakX);
+        if (px >= x && px <= x + w) {
+            ctx.strokeStyle = '#ef4444';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([4, 3]);
+            ctx.beginPath();
+            ctx.moveTo(px, y);
+            ctx.lineTo(px, y + h);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            if (peakLabel) {
+                ctx.fillStyle = '#ef4444';
+                ctx.font = 'bold 10px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(peakLabel, px, y - 4);
+            }
+        }
+    }
+
+    const formatVal = (v: number) =>
+        Math.abs(v) > 1e4 || (Math.abs(v) < 1e-3 && v !== 0) ? v.toExponential(1) : v.toFixed(2);
+
+    ctx.fillStyle = isDark ? '#94a3b8' : '#64748b';
+    ctx.font = '10px monospace';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText(formatVal(yMax), x + 4, y + 4);
+    ctx.fillText(formatVal(yMin), x + 4, y + h - 14);
+
+    if (label) {
+        ctx.fillStyle = isDark ? '#cbd5e1' : '#334155';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText(label, x + 4, y + h + 4);
+    }
+    if (xLabel) {
+        ctx.fillStyle = isDark ? '#94a3b8' : '#64748b';
+        ctx.font = '10px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(xLabel, x + w / 2, y + h + 16);
+    }
+    if (yLabel) {
+        ctx.save();
+        ctx.translate(x - 28, y + h / 2);
+        ctx.rotate(-Math.PI / 2);
+        ctx.fillStyle = isDark ? '#94a3b8' : '#64748b';
+        ctx.font = '10px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(yLabel, 0, 0);
+        ctx.restore();
+    }
+}
+
+/** 带标签的能量/热流箭头 */
+export function drawThermalArrow(
+    ctx: CanvasRenderingContext2D,
+    x1: number,
+    y1: number,
+    x2: number,
+    y2: number,
+    color: string,
+    label?: string
+): void {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const len = Math.hypot(dx, dy);
+    if (len < 3) return;
+    ctx.save();
+    const a = Math.atan2(dy, dx);
+    const head = Math.min(13, len * 0.25);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2.3;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2 - head * 0.55 * Math.cos(a), y2 - head * 0.55 * Math.sin(a));
+    ctx.stroke();
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - head * Math.cos(a - 0.4), y2 - head * Math.sin(a - 0.4));
+    ctx.lineTo(x2 - head * 0.45 * Math.cos(a), y2 - head * 0.45 * Math.sin(a));
+    ctx.lineTo(x2 - head * Math.cos(a + 0.4), y2 - head * Math.sin(a + 0.4));
+    ctx.closePath();
+    ctx.fill();
+    if (label) {
+        ctx.font = 'bold 12px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText(label, x2 + 6, y2 - 6);
+    }
+    ctx.restore();
+}
+
+/** 竖直能量条 (从底部向上填充) */
+export function drawEnergyBar(
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    ratio: number,
+    color: string,
+    label: string,
+    isDark: boolean
+): void {
+    const clamped = Math.max(0, Math.min(1, ratio));
+    ctx.fillStyle = isDark ? 'rgba(15,23,42,0.58)' : 'rgba(255,255,255,0.70)';
+    roundRectPath(ctx, x, y, w, h, 5);
+    ctx.fill();
+    ctx.fillStyle = color;
+    roundRectPath(ctx, x, y + h * (1 - clamped), w, h * clamped, 5);
+    ctx.fill();
+    ctx.strokeStyle = isDark ? '#475569' : '#cbd5e1';
+    ctx.lineWidth = 1;
+    roundRectPath(ctx, x, y, w, h, 5);
+    ctx.stroke();
+    ctx.fillStyle = isDark ? '#cbd5e1' : '#334155';
+    ctx.font = '11px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(label, x + w / 2, y + h + 16);
+}

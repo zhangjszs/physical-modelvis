@@ -255,12 +255,17 @@ export function drawPhotoelectricScene(o: ModernSceneOptions): void {
         ctx.fillText('e⁻', photonX + 6, ey);
     }
 
-    drawHud(ctx, isDark, [
-        { label: 'W₀', value: `${W0.toFixed(2)} eV` },
-        { label: 'ν₀', value: `${nu0.toFixed(0)} THz` },
-        { label: 'ν_max', value: `${nuMax} THz` },
-        { label: 'K_max', value: `${(h_eV_per_THz * nuMax - W0).toFixed(2)} eV` }
-    ], { boxW: 230, lineH: 16 });
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'W₀', value: `${W0.toFixed(2)} eV` },
+            { label: 'ν₀', value: `${nu0.toFixed(0)} THz` },
+            { label: 'ν_max', value: `${nuMax} THz` },
+            { label: 'K_max', value: `${(h_eV_per_THz * nuMax - W0).toFixed(2)} eV` }
+        ],
+        { boxW: 230, lineH: 16 }
+    );
 }
 
 // =====================================================================
@@ -348,12 +353,17 @@ export function drawBohrScene(o: ModernSceneOptions): void {
     ctx.font = '11px sans-serif';
     ctx.fillText('发射光谱 (波长)', specX, specY - 16);
 
-    drawHud(ctx, isDark, [
-        { label: '线系', value: seriesName },
-        { label: 'n₁', value: `${n1}` },
-        { label: 'n_max', value: `${maxN}` },
-        { label: '谱线条数', value: `${Math.max(0, maxN - n1)}` }
-    ], { boxW: 230, lineH: 16 });
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: '线系', value: seriesName },
+            { label: 'n₁', value: `${n1}` },
+            { label: 'n_max', value: `${maxN}` },
+            { label: '谱线条数', value: `${Math.max(0, maxN - n1)}` }
+        ],
+        { boxW: 230, lineH: 16 }
+    );
 }
 
 // =====================================================================
@@ -426,13 +436,18 @@ export function drawRadioactiveScene(o: ModernSceneOptions): void {
     ctx.textAlign = 'left';
     drawCloudTracks(ctx, chX + 10, chY + 20, chW - 20, chH - 40, rayNum, isDark);
 
-    drawHud(ctx, isDark, [
-        { label: 'N₀', value: `${N0}` },
-        { label: 'T½', value: `${T} s` },
-        { label: 't', value: `${tNow.toFixed(1)} s` },
-        { label: 'N(t)', value: `${Nnow.toFixed(0)}` },
-        { label: '射线', value: rayType }
-    ], { boxW: 230, lineH: 16 });
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'N₀', value: `${N0}` },
+            { label: 'T½', value: `${T} s` },
+            { label: 't', value: `${tNow.toFixed(1)} s` },
+            { label: 'N(t)', value: `${Nnow.toFixed(0)}` },
+            { label: '射线', value: rayType }
+        ],
+        { boxW: 230, lineH: 16 }
+    );
 }
 
 // =====================================================================
@@ -527,13 +542,18 @@ export function drawMicroDeformationScene(o: ModernSceneOptions): void {
     ctx.fillText('平面镜', mirrorX - 18, baseY + 4);
     ctx.fillText('投影屏', screenX + 6, baseY - 50);
 
-    drawHud(ctx, isDark, [
-        { label: 'F', value: `${F} N` },
-        { label: 'E', value: `${E} GPa` },
-        { label: 'δ (形变量)', value: `${(delta * 1e9).toFixed(3)} nm` },
-        { label: '放大 2D/L', value: `${amp.toFixed(1)}×` },
-        { label: '光斑位移', value: `${(spotShift * 1e3).toFixed(3)} mm` }
-    ], { boxW: 230, lineH: 16 });
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'F', value: `${F} N` },
+            { label: 'E', value: `${E} GPa` },
+            { label: 'δ (形变量)', value: `${(delta * 1e9).toFixed(3)} nm` },
+            { label: '放大 2D/L', value: `${amp.toFixed(1)}×` },
+            { label: '光斑位移', value: `${(spotShift * 1e3).toFixed(3)} mm` }
+        ],
+        { boxW: 230, lineH: 16 }
+    );
 }
 
 // =====================================================================
@@ -611,11 +631,16 @@ export function drawBlackBodyScene(o: ModernSceneOptions): void {
     ctx.textAlign = 'left';
     ctx.fillText(`λ_max = ${lamPeakNm.toFixed(0)} nm`, lamToX(lamPeakNm) + 6, plotY + 16);
 
-    drawHud(ctx, isDark, [
-        { label: 'T', value: `${T} K` },
-        { label: 'λ_max', value: `${lamPeakNm.toFixed(0)} nm` },
-        { label: 'M=σT⁴', value: `${M.toExponential(2)} W/m²` }
-    ], { boxW: 230, lineH: 16 });
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'T', value: `${T} K` },
+            { label: 'λ_max', value: `${lamPeakNm.toFixed(0)} nm` },
+            { label: 'M=σT⁴', value: `${M.toExponential(2)} W/m²` }
+        ],
+        { boxW: 230, lineH: 16 }
+    );
 }
 
 // =====================================================================
@@ -695,11 +720,16 @@ export function drawElectronDiffractionScene(o: ModernSceneOptions): void {
     ctx.stroke();
     ctx.setLineDash([]);
 
-    drawHud(ctx, isDark, [
-        { label: '加速电压 V', value: `${(V / 1000).toFixed(1)} kV` },
-        { label: 'λ(德布罗意)', value: `${lambdaPm.toFixed(1)} pm` },
-        { label: '公式', value: 'λ=h/√(2meV)' }
-    ], { boxW: 230, lineH: 16 });
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: '加速电压 V', value: `${(V / 1000).toFixed(1)} kV` },
+            { label: 'λ(德布罗意)', value: `${lambdaPm.toFixed(1)} pm` },
+            { label: '公式', value: 'λ=h/√(2meV)' }
+        ],
+        { boxW: 230, lineH: 16 }
+    );
 }
 
 // =====================================================================
@@ -773,15 +803,20 @@ export function drawRadiationDeflectionScene(o: ModernSceneOptions): void {
     ctx.arc(px, startY, 5, 0, Math.PI * 2);
     ctx.fill();
 
-    drawHud(ctx, isDark, [
-        { label: 'B', value: `${B} T` },
-        { label: 'K', value: `${K_MeV} MeV` },
-        { label: '类型', value: typeName },
-        {
-            label: '曲率半径 r',
-            value: pt === 2 ? '∞(不偏)' : `${(Math.sqrt(2 * m * K_J) / (Math.abs(q) * B)).toExponential(2)} m`
-        }
-    ], { boxW: 230, lineH: 16 });
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'B', value: `${B} T` },
+            { label: 'K', value: `${K_MeV} MeV` },
+            { label: '类型', value: typeName },
+            {
+                label: '曲率半径 r',
+                value: pt === 2 ? '∞(不偏)' : `${(Math.sqrt(2 * m * K_J) / (Math.abs(q) * B)).toExponential(2)} m`
+            }
+        ],
+        { boxW: 230, lineH: 16 }
+    );
 }
 
 // =====================================================================
@@ -896,11 +931,16 @@ export function drawCosmicRayScene(o: ModernSceneOptions): void {
     ctx.fillText('μ 子通量 N(d) = N₀·e^(−d/λ)', plotX + plotW / 2, plotY + plotH + 34);
     ctx.textAlign = 'left';
 
-    drawHud(ctx, isDark, [
-        { label: '海拔', value: `${alt} m` },
-        { label: '屏蔽', value: shieldName },
-        { label: 'λ_eff', value: `${lambdaEff} km` }
-    ], { boxW: 230, lineH: 16 });
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: '海拔', value: `${alt} m` },
+            { label: '屏蔽', value: shieldName },
+            { label: 'λ_eff', value: `${lambdaEff} km` }
+        ],
+        { boxW: 230, lineH: 16 }
+    );
 }
 
 // =====================================================================
@@ -986,12 +1026,17 @@ export function drawNeutronDiscoveryScene(o: ModernSceneOptions): void {
     ctx.fillText('① α 轰击铍 → 释放中子 (电中性, 不偏折)', w * 0.1, y1 - 26);
     ctx.fillText('② 中子撞击含氢/氮靶 → 反冲核证明其质量≈质子', w * 0.1, y2 - 26);
 
-    drawHud(ctx, isDark, [
-        { label: 'α 能量', value: `${alphaE} MeV` },
-        { label: '靶核', value: targetA <= 1 ? '氢(H)' : targetA >= 14 ? '氮(N)' : `A=${targetA}` },
-        { label: '中子 K', value: `${neutronKE.toFixed(2)} MeV` },
-        { label: '反冲核 K', value: `${recoilKE.toFixed(2)} MeV` }
-    ], { boxW: 230, lineH: 16 });
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'α 能量', value: `${alphaE} MeV` },
+            { label: '靶核', value: targetA <= 1 ? '氢(H)' : targetA >= 14 ? '氮(N)' : `A=${targetA}` },
+            { label: '中子 K', value: `${neutronKE.toFixed(2)} MeV` },
+            { label: '反冲核 K', value: `${recoilKE.toFixed(2)} MeV` }
+        ],
+        { boxW: 230, lineH: 16 }
+    );
 }
 
 // =====================================================================
@@ -1054,10 +1099,15 @@ export function drawBohrOrbitScene(o: ModernSceneOptions): void {
         ctx.fillText(`  n=${n2} → ${n1}: ΔE=${dE.toFixed(2)} eV`, rx, ry + 22 + (n2 - n1) * 16);
     }
 
-    drawHud(ctx, isDark, [
-        { label: 'a₀', value: `${a0} nm` },
-        { label: 'n_max', value: `${maxN}` },
-        { label: 'r₁', value: `${a0.toFixed(3)} nm` },
-        { label: 'r_max', value: `${(a0 * maxN * maxN).toFixed(1)} nm` }
-    ], { boxW: 230, lineH: 16 });
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'a₀', value: `${a0} nm` },
+            { label: 'n_max', value: `${maxN}` },
+            { label: 'r₁', value: `${a0.toFixed(3)} nm` },
+            { label: 'r_max', value: `${(a0 * maxN * maxN).toFixed(1)} nm` }
+        ],
+        { boxW: 230, lineH: 16 }
+    );
 }

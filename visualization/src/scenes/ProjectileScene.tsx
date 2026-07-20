@@ -199,27 +199,27 @@ export function ProjectileScene() {
                             </>
                         }
                     >
-                    {is3DScene ? (
-                        rig ? (
-                            <Suspense
-                                fallback={
-                                    <div className="equipment-loading">
-                                        <div className="loading-spinner" />
-                                        <span>加载 3D 实验器材…</span>
-                                    </div>
-                                }
-                            >
-                                <LazyEquipmentStage key={currentScene} rig={rig} />
-                            </Suspense>
+                        {is3DScene ? (
+                            rig ? (
+                                <Suspense
+                                    fallback={
+                                        <div className="equipment-loading">
+                                            <div className="loading-spinner" />
+                                            <span>加载 3D 实验器材…</span>
+                                        </div>
+                                    }
+                                >
+                                    <LazyEquipmentStage key={currentScene} rig={rig} />
+                                </Suspense>
+                            ) : (
+                                <div className="equipment-loading">
+                                    <div className="loading-spinner" />
+                                    <span>加载 3D 实验器材…</span>
+                                </div>
+                            )
                         ) : (
-                            <div className="equipment-loading">
-                                <div className="loading-spinner" />
-                                <span>加载 3D 实验器材…</span>
-                            </div>
-                        )
-                    ) : (
-                        <SimulationCanvas />
-                    )}
+                            <SimulationCanvas />
+                        )}
                     </ErrorBoundary>
                 </div>
                 {rigError && (
@@ -242,7 +242,10 @@ export function ProjectileScene() {
                         >
                             <Suspense
                                 fallback={
-                                    <div className="panel-section" style={{ padding: 12, color: '#94a3b8', fontSize: 12 }}>
+                                    <div
+                                        className="panel-section"
+                                        style={{ padding: 12, color: '#94a3b8', fontSize: 12 }}
+                                    >
                                         加载中...
                                     </div>
                                 }
@@ -252,26 +255,28 @@ export function ProjectileScene() {
                         </ErrorBoundary>
                         <div className="classroom-data-side">
                             {currentScene === 'air-track' && (
-                                    <ErrorBoundary
-                                        label="数字毫秒计"
+                                <ErrorBoundary
+                                    label="数字毫秒计"
+                                    fallback={
+                                        <div className="panel-section">
+                                            <div className="panel-title">数字毫秒计</div>
+                                            <div style={{ padding: 12, color: '#94a3b8', fontSize: 12 }}>加载失败</div>
+                                        </div>
+                                    }
+                                >
+                                    <Suspense
                                         fallback={
                                             <div className="panel-section">
                                                 <div className="panel-title">数字毫秒计</div>
-                                                <div style={{ padding: 12, color: '#94a3b8', fontSize: 12 }}>加载失败</div>
+                                                <div style={{ padding: 12, color: '#94a3b8', fontSize: 12 }}>
+                                                    加载中...
+                                                </div>
                                             </div>
                                         }
                                     >
-                                        <Suspense
-                                            fallback={
-                                                <div className="panel-section">
-                                                    <div className="panel-title">数字毫秒计</div>
-                                                    <div style={{ padding: 12, color: '#94a3b8', fontSize: 12 }}>加载中...</div>
-                                                </div>
-                                            }
-                                        >
-                                            <PhotogateTimer />
-                                        </Suspense>
-                                    </ErrorBoundary>
+                                        <PhotogateTimer />
+                                    </Suspense>
+                                </ErrorBoundary>
                             )}
                             <StateInspector />
                             <ErrorBoundary
