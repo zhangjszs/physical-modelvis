@@ -3380,6 +3380,40 @@ export const MechanicsScenes: SceneConfig[] = [
                 description: '仿真总时长 (仅影响声源运动轨迹动画)'
             }
         ],
+        presets: [
+            {
+                id: 'approaching',
+                name: '靠近观察者',
+                description: 'θ=0° 声源靠近',
+                parameters: { soundSpeed: 340, sourceFreq: 500, sourceSpeed: 30, dirAngle: 0, duration: 10 }
+            },
+            {
+                id: 'receding',
+                name: '远离观察者',
+                description: 'θ=180° 声源远离',
+                parameters: { soundSpeed: 340, sourceFreq: 500, sourceSpeed: 30, dirAngle: 180, duration: 10 }
+            },
+            {
+                id: 'siren',
+                name: '救护车警笛',
+                description: 'f=800Hz vs=20m/s',
+                parameters: { soundSpeed: 340, sourceFreq: 800, sourceSpeed: 20, dirAngle: 0, duration: 10 }
+            },
+            {
+                id: 'high-speed',
+                name: '超音速',
+                description: 'vs=300m/s 近音速',
+                parameters: { soundSpeed: 340, sourceFreq: 500, sourceSpeed: 300, dirAngle: 0, duration: 10 }
+            },
+            {
+                id: 'crossing',
+                name: '擦肩而过',
+                description: 'θ=90° 横向掠过',
+                parameters: { soundSpeed: 340, sourceFreq: 500, sourceSpeed: 30, dirAngle: 90, duration: 10 }
+            }
+        ],
+        liveUpdate: true,
+        hasTrajectory: true,
         buildProblem: params => {
             const soundSpeed = params['soundSpeed'] ?? 340;
             const sourceFreq = params['sourceFreq'] ?? 500;

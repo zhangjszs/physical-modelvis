@@ -94,6 +94,15 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
         set(s => ({ parameters: { ...s.parameters, [name]: value } }));
     },
 
+    applyPreset: parameters => {
+        set(s => ({
+            parameters: { ...parameters },
+            currentTime: 0,
+            currentFrameIndex: 0,
+            sceneLoadVersion: s.sceneLoadVersion + 1
+        }));
+    },
+
     setSimulationResult: result => {
         set({
             simulationResult: result,

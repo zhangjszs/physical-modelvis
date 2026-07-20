@@ -124,6 +124,39 @@ export const OpticsScenes: SceneConfig[] = [
                 description: '薄膜材料折射率 (MgF₂=1.38, 玻璃=1.5)'
             }
         ],
+        presets: [
+            {
+                id: 'red-light',
+                name: '红光',
+                description: 'λ=650nm 红光干涉',
+                parameters: { wavelength: 650, slitSep: 0.5, screenDist: 2.0, filmThickness: 0, filmN: 1.38 }
+            },
+            {
+                id: 'green-light',
+                name: '绿光',
+                description: 'λ=550nm 绿光干涉',
+                parameters: { wavelength: 550, slitSep: 0.5, screenDist: 2.0, filmThickness: 0, filmN: 1.38 }
+            },
+            {
+                id: 'blue-light',
+                name: '蓝光',
+                description: 'λ=450nm 蓝光干涉',
+                parameters: { wavelength: 450, slitSep: 0.5, screenDist: 2.0, filmThickness: 0, filmN: 1.38 }
+            },
+            {
+                id: 'thin-film',
+                name: '薄膜干涉',
+                description: 'MgF₂ 薄膜 500nm',
+                parameters: { wavelength: 550, slitSep: 0.5, screenDist: 2.0, filmThickness: 0.5, filmN: 1.38 }
+            },
+            {
+                id: 'narrow-slit',
+                name: '窄缝',
+                description: 'd=0.2mm 条纹更宽',
+                parameters: { wavelength: 600, slitSep: 0.2, screenDist: 2.0, filmThickness: 0, filmN: 1.38 }
+            }
+        ],
+        liveUpdate: true,
         buildProblem: params => {
             const wavelengthNm = params['wavelength'] ?? 600;
             const slitSeparationMm = params['slitSep'] ?? 0.5;

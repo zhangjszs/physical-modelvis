@@ -15,12 +15,22 @@ export interface SceneParameter {
     description: string;
 }
 
+export interface ScenePreset {
+    id: string;
+    name: string;
+    parameters: Record<string, number>;
+    description?: string;
+}
+
 export interface SceneConfig {
     id: string;
     name: string;
     model: ModelType;
     parameters: SceneParameter[];
     buildProblem: (params: Record<string, number>) => PhysicsProblem;
+    presets?: ScenePreset[];
+    liveUpdate?: boolean;
+    hasTrajectory?: boolean;
 }
 
 // ========== 渲染相关 ==========
@@ -97,6 +107,7 @@ export interface SimulationState {
     setSceneWithParameters: (sceneId: string, parameters: Record<string, number>) => void;
     ensureSceneParameters: (sceneId: string, defaults: Record<string, number>) => void;
     setParameter: (name: string, value: number) => void;
+    applyPreset: (parameters: Record<string, number>) => void;
     setSimulationResult: (result: SimulationResult) => void;
     setExperimentData: (data: PhotogateMeasurement[] | null) => void;
     setCurrentTime: (t: number) => void;

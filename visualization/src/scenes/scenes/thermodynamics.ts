@@ -67,6 +67,39 @@ export const ThermodynamicsScenes: SceneConfig[] = [
                 description: '初始温度 (标况 = 273.15 K)'
             }
         ],
+        presets: [
+            {
+                id: 'stp',
+                name: '标准状况',
+                description: '1mol, 101.3kPa, 273.15K, 22.4L',
+                parameters: { n: 1, modeG: 0, p0: 101.3, V0: 22.4, T0: 273.15 }
+            },
+            {
+                id: 'isothermal',
+                name: '等温过程',
+                description: '玻意耳定律 pV=常数',
+                parameters: { n: 1, modeG: 0, p0: 101.3, V0: 22.4, T0: 293.15 }
+            },
+            {
+                id: 'isobaric',
+                name: '等压过程',
+                description: '盖-吕萨克定律 V/T=常数',
+                parameters: { n: 1, modeG: 1, p0: 101.3, V0: 22.4, T0: 273.15 }
+            },
+            {
+                id: 'isochoric',
+                name: '等容过程',
+                description: '查理定律 p/T=常数',
+                parameters: { n: 1, modeG: 2, p0: 101.3, V0: 22.4, T0: 273.15 }
+            },
+            {
+                id: 'high-pressure',
+                name: '高压气瓶',
+                description: '10MPa, 50L 工业气瓶',
+                parameters: { n: 20, modeG: 2, p0: 500, V0: 50, T0: 293.15 }
+            }
+        ],
+        liveUpdate: true,
         buildProblem: params => {
             const moles = params['n'] ?? 1;
             const modeNum = params['modeG'] ?? 0;

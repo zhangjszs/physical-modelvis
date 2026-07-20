@@ -639,6 +639,39 @@ export const ElectromagnetismScenes: SceneConfig[] = [
                 description: '导线切割速度'
             }
         ],
+        presets: [
+            {
+                id: 'strong-field',
+                name: '强磁场',
+                description: 'B=2T 大面积线圈',
+                parameters: { Bind: 2, A: 0.01, Nturns: 100, angleBind: 0, Lcut: 0, vCut: 0 }
+            },
+            {
+                id: 'small-coil',
+                name: '小线圈',
+                description: 'N=500 匝细线圈',
+                parameters: { Bind: 0.5, A: 0.001, Nturns: 500, angleBind: 0, Lcut: 0, vCut: 0 }
+            },
+            {
+                id: 'tilted',
+                name: '倾斜角',
+                description: 'θ=60° 磁通量减半',
+                parameters: { Bind: 0.5, A: 0.01, Nturns: 100, angleBind: 60, Lcut: 0, vCut: 0 }
+            },
+            {
+                id: 'cutting-wire',
+                name: '切割导线',
+                description: 'E=BLv 动生电动势',
+                parameters: { Bind: 0.5, A: 0.01, Nturns: 0, angleBind: 0, Lcut: 0.5, vCut: 10 }
+            },
+            {
+                id: 'high-speed-cut',
+                name: '高速切割',
+                description: 'v=50m/s 高速切割',
+                parameters: { Bind: 1, A: 0.01, Nturns: 0, angleBind: 0, Lcut: 1, vCut: 50 }
+            }
+        ],
+        liveUpdate: true,
         buildProblem: params => {
             const ec: {
                 magneticField: number;
