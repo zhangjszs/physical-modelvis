@@ -5,8 +5,23 @@
  * 物理计算仍来自 physics-core；本模块只负责把参数和当前时刻转成可读图像。
  */
 
-import type { SimulationResult, TrajectoryPoint } from 'physics-core';
-import { findFrameIndex, interpolateFrame } from '../utils/frameUtils';
+import type { SimulationResult } from 'physics-core';
+import {
+    roundRectPath,
+    shadeColor,
+    textColor,
+    mutedColor,
+    panelFill,
+    clamp,
+    drawTitle,
+    drawHud,
+    drawInfoBar,
+    drawEmptyState,
+    drawArrow,
+    drawBlock,
+    drawGround,
+    getFrame
+} from './renderingUtils';
 
 export interface MechanicsSceneOptions {
     ctx: CanvasRenderingContext2D;
@@ -24,210 +39,6 @@ const ORANGE = '#f59e0b';
 const RED = '#ef4444';
 const PURPLE = '#a855f7';
 
-function roundRectPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.lineTo(x + w - r, y);
-    ctx.arcTo(x + w, y, x + w, y + r, r);
-    ctx.lineTo(x + w, y + h - r);
-    ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
-    ctx.lineTo(x + r, y + h);
-    ctx.arcTo(x, y + h, x, y + h - r, r);
-    ctx.lineTo(x, y + r);
-    ctx.arcTo(x, y, x + r, y, r);
-    ctx.closePath();
-}
-
-function shadeColor(hex: string, amount: number): string {
-    const h = hex.replace('#', '');
-    const full =
-        h.length === 3
-            ? h
-                  .split('')
-                  .map(c => c + c)
-                  .join('')
-            : h;
-    const r = Math.max(0, Math.min(255, parseInt(full.slice(0, 2), 16) + amount));
-    const g = Math.max(0, Math.min(255, parseInt(full.slice(2, 4), 16) + amount));
-    const b = Math.max(0, Math.min(255, parseInt(full.slice(4, 6), 16) + amount));
-    return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
-}
-
-function textColor(isDark: boolean): string {
-    return isDark ? '#e2e8f0' : '#1e293b';
-}
-
-function mutedColor(isDark: boolean): string {
-    return isDark ? '#94a3b8' : '#64748b';
-}
-
-function panelFill(isDark: boolean): string {
-    return isDark ? 'rgba(15,23,42,0.75)' : 'rgba(255,255,255,0.86)';
-}
-
-function clamp(v: number, min: number, max: number): number {
-    return Math.max(min, Math.min(max, v));
-}
-
-function drawArrow(
-    ctx: CanvasRenderingContext2D,
-    x1: number,
-    y1: number,
-    x2: number,
-    y2: number,
-    color: string,
-    label?: string
-): void {
-    const dx = x2 - x1;
-    const dy = y2 - y1;
-    const len = Math.hypot(dx, dy);
-    if (len < 3) return;
-    ctx.save();
-    const angle = Math.atan2(dy, dx);
-    const head = Math.min(13, len * 0.28);
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 2.4;
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2 - head * 0.55 * Math.cos(angle), y2 - head * 0.55 * Math.sin(angle));
-    ctx.stroke();
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.moveTo(x2, y2);
-    ctx.lineTo(x2 - head * Math.cos(angle - 0.4), y2 - head * Math.sin(angle - 0.4));
-    ctx.lineTo(x2 - head * 0.45 * Math.cos(angle), y2 - head * 0.45 * Math.sin(angle));
-    ctx.lineTo(x2 - head * Math.cos(angle + 0.4), y2 - head * Math.sin(angle + 0.4));
-    ctx.closePath();
-    ctx.fill();
-
-    if (label) {
-        ctx.fillStyle = color;
-        ctx.font = 'bold 12px sans-serif';
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(label, x2 + 6, y2 - 8);
-        ctx.textBaseline = 'alphabetic';
-    }
-    ctx.restore();
-}
-
-function drawBlock(
-    ctx: CanvasRenderingContext2D,
-    cx: number,
-    cy: number,
-    w: number,
-    h: number,
-    color: string,
-    isDark: boolean,
-    label?: string
-): void {
-    const x = cx - w / 2;
-    const y = cy - h / 2;
-    ctx.fillStyle = isDark ? 'rgba(0,0,0,0.34)' : 'rgba(0,0,0,0.14)';
-    roundRectPath(ctx, x + 4, y + 4, w, h, 5);
-    ctx.fill();
-    const grad = ctx.createLinearGradient(x, y, x + w, y + h);
-    grad.addColorStop(0, shadeColor(color, 35));
-    grad.addColorStop(0.55, color);
-    grad.addColorStop(1, shadeColor(color, -40));
-    ctx.fillStyle = grad;
-    roundRectPath(ctx, x, y, w, h, 5);
-    ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,0.18)';
-    roundRectPath(ctx, x + 4, y + 4, w - 8, h * 0.32, 4);
-    ctx.fill();
-    if (label) {
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 12px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(label, cx, cy);
-        ctx.textBaseline = 'alphabetic';
-    }
-}
-
-function drawGround(ctx: CanvasRenderingContext2D, y: number, width: number, isDark: boolean): void {
-    ctx.strokeStyle = isDark ? '#475569' : '#94a3b8';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(width, y);
-    ctx.stroke();
-    ctx.strokeStyle = isDark ? 'rgba(100,116,139,0.28)' : 'rgba(0,0,0,0.10)';
-    ctx.lineWidth = 1;
-    for (let x = 0; x < width; x += 12) {
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-        ctx.lineTo(x - 9, y + 9);
-        ctx.stroke();
-    }
-}
-
-function drawInfoBar(
-    ctx: CanvasRenderingContext2D,
-    width: number,
-    height: number,
-    text: string,
-    isDark: boolean
-): void {
-    ctx.font = '12px sans-serif';
-    ctx.textAlign = 'center';
-    const tw = ctx.measureText(text).width;
-    ctx.fillStyle = panelFill(isDark);
-    roundRectPath(ctx, width / 2 - tw / 2 - 10, height - 36, tw + 20, 24, 5);
-    ctx.fill();
-    ctx.fillStyle = mutedColor(isDark);
-    ctx.fillText(text, width / 2, height - 19);
-}
-
-function drawHud(ctx: CanvasRenderingContext2D, isDark: boolean, rows: Array<{ label: string; value: string }>): void {
-    const lineH = 18;
-    const boxW = 190;
-    const boxH = rows.length * lineH + 18;
-    ctx.fillStyle = panelFill(isDark);
-    roundRectPath(ctx, 8, 10, boxW, boxH, 6);
-    ctx.fill();
-    rows.forEach((row, i) => {
-        ctx.font = 'bold 12px monospace';
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'top';
-        ctx.fillStyle = textColor(isDark);
-        ctx.fillText(`${row.label} = ${row.value}`, 16, 19 + i * lineH);
-    });
-    ctx.textBaseline = 'alphabetic';
-}
-
-function drawEmptyState(ctx: CanvasRenderingContext2D, width: number, height: number, isDark: boolean): void {
-    ctx.fillStyle = mutedColor(isDark);
-    ctx.font = '16px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('点击「运行仿真」开始', width / 2, height / 2);
-    ctx.textBaseline = 'alphabetic';
-}
-
-function getFrame(
-    simulationResult: SimulationResult | null,
-    currentTime: number,
-    trajectoryIndex = 0
-): TrajectoryPoint | null {
-    const traj = simulationResult?.trajectories[trajectoryIndex];
-    if (!traj || traj.length === 0) return null;
-    const idx = findFrameIndex([traj], currentTime);
-    const p0 = traj[idx];
-    const p1 = traj[Math.min(idx + 1, traj.length - 1)];
-    if (!p0 || !p1) return null;
-    return interpolateFrame(p0, p1, currentTime);
-}
-
-function drawTitle(ctx: CanvasRenderingContext2D, width: number, title: string, isDark: boolean): void {
-    ctx.fillStyle = textColor(isDark);
-    ctx.font = 'bold 15px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(title, width / 2, 24);
-}
-
 export function drawFreeFallScene(opts: MechanicsSceneOptions): void {
     const { ctx, width, height, isDark, params, simulationResult, currentTime } = opts;
     const h0 = params['height'] ?? 20;
@@ -243,7 +54,7 @@ export function drawFreeFallScene(opts: MechanicsSceneOptions): void {
     const scale = (groundY - topY) / Math.max(1, h0);
     const ballY = clamp(topY + fallen * scale, topY, groundY);
 
-    drawTitle(ctx, width, '自由落体: h = 1/2 gt^2', isDark);
+    drawTitle(ctx, '自由落体: h = 1/2 gt^2', width, isDark);
     drawGround(ctx, groundY, width, isDark);
 
     ctx.strokeStyle = mutedColor(isDark);
@@ -312,7 +123,7 @@ export function drawGalileoInclineScene(opts: MechanicsSceneOptions): void {
     const bx = top.x + (bottom.x - top.x) * u;
     const by = top.y + (bottom.y - top.y) * u;
 
-    drawTitle(ctx, width, '伽利略斜面实验: s = 1/2 at^2', isDark);
+    drawTitle(ctx, '伽利略斜面实验: s = 1/2 at^2', width, isDark);
     ctx.fillStyle = isDark ? '#334155' : '#cbd5e1';
     ctx.beginPath();
     ctx.moveTo(top.x, top.y);
@@ -354,7 +165,7 @@ export function drawReactionTimeScene(opts: MechanicsSceneOptions): void {
     const rulerH = Math.max(180, targetDistance * scale + 80);
     const handY = 85 + targetDistance * scale;
 
-    drawTitle(ctx, width, '反应时间测量: t = sqrt(2h/g)', isDark);
+    drawTitle(ctx, '反应时间测量: t = sqrt(2h/g)', width, isDark);
     ctx.fillStyle = isDark ? '#f8fafc' : '#fefce8';
     roundRectPath(ctx, rulerX - 18, rulerTop, 36, rulerH, 3);
     ctx.fill();
@@ -414,7 +225,7 @@ export function drawTickerTimerScene(opts: MechanicsSceneOptions): void {
     const startX = 55;
     const scale = 70;
 
-    drawTitle(ctx, width, '打点计时器: 相等时间间隔记录位置', isDark);
+    drawTitle(ctx, '打点计时器: 相等时间间隔记录位置', width, isDark);
     drawGround(ctx, groundY, width, isDark);
     ctx.fillStyle = isDark ? '#f8fafc' : '#fff7ed';
     roundRectPath(ctx, 44, groundY - 12, width - 88, 24, 4);
@@ -460,7 +271,7 @@ export function drawTransmissionBeltScene(opts: MechanicsSceneOptions): void {
     const rr1 = 34 + r1 * 55;
     const rr2 = 34 + r2 * 55;
 
-    drawTitle(ctx, width, '传动装置: v = ωr', isDark);
+    drawTitle(ctx, '传动装置: v = ωr', width, isDark);
     ctx.strokeStyle = isDark ? '#64748b' : '#475569';
     ctx.lineWidth = mode === 1 ? 3 : 10;
     ctx.beginPath();
@@ -553,7 +364,7 @@ export function drawVerticalCircleScene(opts: MechanicsSceneOptions): void {
     const critical = Math.sqrt(g * length);
     const topOk = v0 >= critical;
 
-    drawTitle(ctx, width, '竖直圆周运动: 最高点临界条件', isDark);
+    drawTitle(ctx, '竖直圆周运动: 最高点临界条件', width, isDark);
     ctx.strokeStyle = mutedColor(isDark);
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -591,7 +402,7 @@ export function drawCenterOfGravityScene(opts: MechanicsSceneOptions): void {
     const cx = width * 0.52;
     const cy = height * 0.48;
 
-    drawTitle(ctx, width, '悬挂法确定重心', isDark);
+    drawTitle(ctx, '悬挂法确定重心', width, isDark);
     ctx.strokeStyle = mutedColor(isDark);
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -654,7 +465,7 @@ export function drawInertiaScene(opts: MechanicsSceneOptions): void {
     const mode = Math.round(params['mode'] ?? 0);
     const groundY = height * 0.67;
     const shake = Math.sin(currentTime * 12) * 5;
-    drawTitle(ctx, width, '惯性实验: 物体保持原有运动状态', isDark);
+    drawTitle(ctx, '惯性实验: 物体保持原有运动状态', width, isDark);
     drawGround(ctx, groundY, width, isDark);
     if (mode === 1) {
         drawBlock(ctx, width * 0.5 + shake, groundY - 14, 160, 14, BLUE, isDark, '纸板');
@@ -699,7 +510,7 @@ export function drawNewtonFirstLawScene(opts: MechanicsSceneOptions): void {
     const groundY = height * 0.66;
     const startX = width * 0.2;
     const x = clamp(startX + v0 * currentTime * 18, startX, width - 90);
-    drawTitle(ctx, width, '牛顿第一定律: 合外力为零时保持匀速直线运动', isDark);
+    drawTitle(ctx, '牛顿第一定律: 合外力为零时保持匀速直线运动', width, isDark);
     drawGround(ctx, groundY, width, isDark);
     for (let i = 0; i < 5; i++) {
         const gx = startX + i * v0 * 0.5 * 18;
@@ -743,7 +554,7 @@ export function drawCurveConditionScene(opts: MechanicsSceneOptions): void {
     const screenX = originX + px * scale;
     const screenY = originY - py * scale;
 
-    drawTitle(ctx, width, '曲线运动条件: F 与 v₀ 不共线 → 曲线', isDark);
+    drawTitle(ctx, '曲线运动条件: F 与 v₀ 不共线 → 曲线', width, isDark);
 
     // 坐标轴
     ctx.strokeStyle = mutedColor(isDark);
@@ -857,7 +668,7 @@ export function drawMotionCompositionScene(opts: MechanicsSceneOptions): void {
     const screenX = originX + px * sc;
     const screenY = originY - py * sc;
 
-    drawTitle(ctx, width, '运动的合成与分解: x=vₓt, y=½aᵧt²', isDark);
+    drawTitle(ctx, '运动的合成与分解: x=vₓt, y=½aᵧt²', width, isDark);
 
     // 坐标轴
     ctx.strokeStyle = mutedColor(isDark);
@@ -980,7 +791,7 @@ export function drawCurveVelocityDirectionScene(opts: MechanicsSceneOptions): vo
     const cy = height * 0.5;
     const R = Math.min(width, height) * 0.22;
 
-    drawTitle(ctx, width, '曲线运动速度方向: 脱离后沿切线飞出', isDark);
+    drawTitle(ctx, '曲线运动速度方向: 脱离后沿切线飞出', width, isDark);
 
     // 画曲线轨道
     ctx.strokeStyle = isDark ? '#475569' : '#94a3b8';
@@ -1148,7 +959,7 @@ export function drawNewtonSecondLawScene(opts: MechanicsSceneOptions): void {
     const groundY = height * 0.66;
     const x = clamp(width * 0.18 + (v0 * currentTime + 0.5 * a * currentTime * currentTime) * 28, 80, width - 100);
 
-    drawTitle(ctx, width, '牛顿第二定律: F = ma', isDark);
+    drawTitle(ctx, '牛顿第二定律: F = ma', width, isDark);
     drawGround(ctx, groundY, width, isDark);
     drawBlock(ctx, x, groundY - 30, 78, 44, BLUE, isDark, `${mass}kg`);
     // 力/摩擦/加速度箭头端点钳制在画布内，大数值不再越出左右界
@@ -1201,7 +1012,7 @@ export function drawSimplePendulumScene(opts: MechanicsSceneOptions): void {
     const bobY = pivotY + ropeLen * Math.cos(theta);
     const bobR = 18 + mass * 2;
 
-    drawTitle(ctx, width, `单摆: T = 2π√(L/g) = ${T.toFixed(3)}s`, isDark);
+    drawTitle(ctx, `单摆: T = 2π√(L/g) = ${T.toFixed(3)}s`, width, isDark);
 
     // 支架
     ctx.fillStyle = isDark ? '#475569' : '#94a3b8';
@@ -1339,7 +1150,7 @@ export function drawEnergyConservationScene(opts: MechanicsSceneOptions): void {
     const scale = (groundY - topY) / Math.max(1, h0);
     const ballY = clamp(topY + (h0 - h) * scale, topY, groundY);
 
-    drawTitle(ctx, width, '机械能守恒定律: Ek + Ep = const', isDark);
+    drawTitle(ctx, '机械能守恒定律: Ek + Ep = const', width, isDark);
     drawGround(ctx, groundY, width, isDark);
 
     // 高度标尺
@@ -1499,7 +1310,7 @@ export function drawOverweightScene(opts: MechanicsSceneOptions): void {
     const elevH = 200;
     const floorY = elevTop + elevH;
 
-    drawTitle(ctx, width, `超重与失重: N = m(g + aᵧ)`, isDark);
+    drawTitle(ctx, `超重与失重: N = m(g + aᵧ)`, width, isDark);
 
     // 电梯外框
     ctx.strokeStyle = isDark ? '#475569' : '#94a3b8';
@@ -1636,7 +1447,7 @@ export function drawCentrifugalScene(opts: MechanicsSceneOptions): void {
     const cy = height * 0.5;
     const R = Math.min(width, height) * 0.25;
 
-    drawTitle(ctx, width, `离心现象: F需=mω²r vs F实=μmg`, isDark);
+    drawTitle(ctx, `离心现象: F需=mω²r vs F实=μmg`, width, isDark);
 
     // 转盘
     const diskGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, R);
@@ -1740,7 +1551,7 @@ export function drawOrbitalScene(opts: MechanicsSceneOptions): void {
     const earthR = Math.min(width, height) * 0.12;
     const orbitR = earthR + (h_km / 36000) * (Math.min(width, height) * 0.3);
 
-    drawTitle(ctx, width, '万有引力与航天: 卫星轨道运动', isDark);
+    drawTitle(ctx, '万有引力与航天: 卫星轨道运动', width, isDark);
 
     // 地球
     const earthGrad = ctx.createRadialGradient(cx - earthR * 0.3, cy - earthR * 0.3, earthR * 0.1, cx, cy, earthR);
@@ -1841,7 +1652,7 @@ export function drawMomentumScene(opts: MechanicsSceneOptions): void {
     const v0 = params['v0'] ?? 0;
 
     const groundY = height * 0.65;
-    drawTitle(ctx, width, isRecoil ? '反冲运动: m₁v₁ + m₂v₂ = 0' : '动量定理: F·Δt = Δp', isDark);
+    drawTitle(ctx, isRecoil ? '反冲运动: m₁v₁ + m₂v₂ = 0' : '动量定理: F·Δt = Δp', width, isDark);
     drawGround(ctx, groundY, width, isDark);
 
     if (isRecoil) {
@@ -1940,7 +1751,7 @@ export function drawProjectileCollisionScene(opts: MechanicsSceneOptions): void 
     const tableLeft = width * 0.15;
     const tableRight = width * 0.5;
 
-    drawTitle(ctx, width, '平抛碰撞 (验证动量守恒)', isDark);
+    drawTitle(ctx, '平抛碰撞 (验证动量守恒)', width, isDark);
     drawGround(ctx, groundY, width, isDark);
 
     // 实验台
@@ -2077,7 +1888,7 @@ export function drawMechanicalWaveScene(opts: MechanicsSceneOptions): void {
     const spacing = (rightX - leftX) / particleCount;
     const ampPx = Math.min(height * 0.18, amplitude * 600);
 
-    drawTitle(ctx, width, `机械波: ${modeNames[waveMode]}`, isDark);
+    drawTitle(ctx, `机械波: ${modeNames[waveMode]}`, width, isDark);
 
     // 传播方向箭头
     drawArrow(ctx, width * 0.4, cy - ampPx - 30, width * 0.6, cy - ampPx - 30, BLUE, '传播方向');
@@ -2195,7 +2006,7 @@ export function drawCavendishScene(opts: MechanicsSceneOptions): void {
     const cy = height * 0.48;
     const armPx = Math.min(width * 0.2, 140);
 
-    drawTitle(ctx, width, '卡文迪什扭秤测万有引力常数 G', isDark);
+    drawTitle(ctx, '卡文迪什扭秤测万有引力常数 G', width, isDark);
 
     ctx.strokeStyle = isDark ? '#94a3b8' : '#475569';
     ctx.lineWidth = 2;
@@ -2316,7 +2127,7 @@ export function drawMoonEarthTestScene(opts: MechanicsSceneOptions): void {
     const earthR = 45;
     const moonOrbitR = Math.min(width * 0.25, 160);
 
-    drawTitle(ctx, width, '月地检验: 验证万有引力平方反比律', isDark);
+    drawTitle(ctx, '月地检验: 验证万有引力平方反比律', width, isDark);
 
     const earthGrad = ctx.createRadialGradient(cx - earthR * 0.3, cy - earthR * 0.3, earthR * 0.1, cx, cy, earthR);
     earthGrad.addColorStop(0, '#60a5fa');
