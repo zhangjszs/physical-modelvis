@@ -57,16 +57,17 @@ import {
 } from '../../rendering/nuclearScenes';
 import {
     drawPhotoelectricScene,
-    drawBohrScene,
-    drawRadioactiveScene,
-    drawMicroDeformationScene,
     drawBlackBodyScene,
     drawElectronDiffractionScene,
+    drawMicroDeformationScene
+} from '../../rendering/waveParticleDualityScenes';
+import { drawBohrScene, drawBohrOrbitScene } from '../../rendering/atomicModelScenes';
+import {
+    drawRadioactiveScene,
     drawRadiationDeflectionScene,
     drawCosmicRayScene,
-    drawNeutronDiscoveryScene,
-    drawBohrOrbitScene
-} from '../../rendering/modernScenes';
+    drawNeutronDiscoveryScene
+} from '../../rendering/nuclearRadiationScenes';
 import {
     drawDiffusionScene,
     drawBrownianScene,
