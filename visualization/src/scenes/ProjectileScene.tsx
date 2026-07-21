@@ -133,6 +133,7 @@ export function ProjectileScene() {
         let cancelled = false;
         const sceneId = currentScene;
         const is3D = hasSceneRig(sceneId);
+        setRig(undefined);
         setRigLoading(is3D);
         setRigError(null);
 

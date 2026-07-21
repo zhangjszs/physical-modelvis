@@ -83,11 +83,12 @@ export function getVisualLaunchPoint(angleDeg: number, h0: number, worldScale: n
 
 /** 更新发射器状态 */
 export function updateLauncher(
-    handles: LauncherHandles,
+    handles: LauncherHandles | undefined,
     angleDeg: number,
     h0: number,
     worldScale: number
 ): THREE.Vector3 {
+    if (!handles || !handles.barrel) return new THREE.Vector3(0, 0, 0);
     const angleRad = (angleDeg * Math.PI) / 180;
     const dir = new THREE.Vector3(Math.cos(angleRad), Math.sin(angleRad), 0).normalize();
     const pivotPoint = new THREE.Vector3(-0.75, VISUAL_MUZZLE_HEIGHT + h0 * worldScale, 0);

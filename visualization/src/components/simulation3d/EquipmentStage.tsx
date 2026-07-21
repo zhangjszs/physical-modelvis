@@ -13,7 +13,7 @@
  */
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { useSimulationStore } from '../../store/simulationStore';
 import { findFrameIndex, getTotalDuration, interpolateFrame } from '../../utils/frameUtils';
 import {
@@ -132,7 +132,7 @@ export function EquipmentStage({ rig, cameraPosition, cameraTarget, caption }: E
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         renderer.shadowMap.enabled = true;
-        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.shadowMap.type = THREE.PCFShadowMap;
         host.appendChild(renderer.domElement);
 
         const controls = new OrbitControls(camera, renderer.domElement);
@@ -213,7 +213,11 @@ export function EquipmentStage({ rig, cameraPosition, cameraTarget, caption }: E
     useEffect(() => {
         const handles = handlesRef.current;
         if (!handles) return;
-        rig.updateEquipment(handles.equipmentHandles, parameters);
+        try {
+            rig.updateEquipment(handles.equipmentHandles, parameters);
+        } catch (err) {
+            console.error('[EquipmentStage] updateEquipment failed:', err);
+        }
     }, [parameters, rig]);
 
     // —— 3. 仿真结果变化：重建轨迹线 + 残影 ——
@@ -222,7 +226,13 @@ export function EquipmentStage({ rig, cameraPosition, cameraTarget, caption }: E
         if (!handles || !simulationResult) return;
         const points = simulationResult.trajectories[0] ?? [];
 
-        const visualPoints = points.map(p => rig.getVisualPosition(p.position, parameters));
+        let visualPoints: THREE.Vector3[];
+        try {
+            visualPoints = points.map(p => rig.getVisualPosition(p.position, parameters));
+        } catch (err) {
+            console.error('[EquipmentStage] getVisualPosition failed:', err);
+            return;
+        }
         handles.trajectory.geometry.dispose();
         handles.trajectory.geometry = new THREE.BufferGeometry().setFromPoints(visualPoints);
         handles.trajectory.visible = visibleLayers.trajectory;
@@ -276,7 +286,13 @@ export function EquipmentStage({ rig, cameraPosition, cameraTarget, caption }: E
                     const p0 = points[idx]!;
                     const p1 = points[Math.min(idx + 1, points.length - 1)]!;
                     const frame = interpolateFrame(p0, p1, now);
-                    const ballPos = rig.getVisualPosition(frame.position, params);
+                    let ballPos: THREE.Vector3;
+                    try {
+                        ballPos = rig.getVisualPosition(frame.position, params);
+                    } catch (err) {
+                        console.error('[EquipmentStage] getVisualPosition in tick failed:', err);
+                        ballPos = new THREE.Vector3(0, 1, 0);
+                    }
                     if (rig.clampToGround) {
                         ballPos.y = Math.max(ballRadius, ballPos.y);
                     }

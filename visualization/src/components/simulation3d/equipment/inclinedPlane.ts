@@ -50,7 +50,8 @@ export function createInclinedPlane(angleDeg = 30): {
 }
 
 /** 更新斜面角度 */
-export function updateInclinedPlane(handles: InclinedPlaneHandles, angleDeg: number): void {
+export function updateInclinedPlane(handles: InclinedPlaneHandles | undefined, angleDeg: number): void {
+    if (!handles || !handles.panel) return;
     const angleRad = (angleDeg * Math.PI) / 180;
     const panelLen = 3.2;
 

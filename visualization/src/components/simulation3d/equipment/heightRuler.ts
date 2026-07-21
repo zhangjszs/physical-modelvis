@@ -22,7 +22,14 @@ export function createHeightRuler(): {
 }
 
 /** 更新高度尺的位置和标注 */
-export function updateHeightRuler(handles: HeightRulerHandles, x: number, z: number, topY: number, text: string): void {
+export function updateHeightRuler(
+    handles: HeightRulerHandles | undefined,
+    x: number,
+    z: number,
+    topY: number,
+    text: string
+): void {
+    if (!handles || !handles.group) return;
     clearGroup(handles.group);
     handles.group.add(handles.label);
 

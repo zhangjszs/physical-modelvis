@@ -204,6 +204,14 @@ export function createEnvironment(scene: THREE.Scene, bgColor = 0xf8fafc): Envir
     key.position.set(-3, 7, 5);
     key.castShadow = true;
     key.shadow.mapSize.set(2048, 2048);
+    key.shadow.radius = 3;
+    key.shadow.bias = -0.0005;
+    key.shadow.camera.left = -8;
+    key.shadow.camera.right = 8;
+    key.shadow.camera.top = 8;
+    key.shadow.camera.bottom = -8;
+    key.shadow.camera.near = 0.1;
+    key.shadow.camera.far = 30;
     scene.add(key);
 
     const fill = new THREE.PointLight(0x93c5fd, 28, 18);
