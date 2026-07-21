@@ -10,16 +10,14 @@
 
 import { describe, it, expect } from 'vitest';
 import type { SimulationResult } from 'physics-core';
-import {
-    drawTotalInternalReflectionScene,
-    drawCurrentMagneticFieldScene,
-    drawElectricFieldLinesScene,
-    drawNewtonTubeScene,
-    drawBulbVIScene,
-    drawWorkEnergyScene,
-    drawBallXTimeScene,
-    drawGeigerCounterScene
-} from '../src/rendering/gapScenes';
+import { drawTotalInternalReflectionScene } from '../src/rendering/waveOptScenes';
+import { drawCurrentMagneticFieldScene } from '../src/rendering/magneticFieldScenes';
+import { drawElectricFieldLinesScene } from '../src/rendering/electrostaticFieldScenes';
+import { drawNewtonTubeScene } from '../src/rendering/chapter2Scenes';
+import { drawBulbVIScene } from '../src/rendering/electricCircuitScenes';
+import { drawWorkEnergyScene } from '../src/rendering/chapter7Scenes';
+import { drawBallXTimeScene } from '../src/rendering/mechanicalWaveScenes';
+import { drawGeigerCounterScene } from '../src/rendering/nuclearRadiationScenes';
 
 function makeFakeCtx(): CanvasRenderingContext2D {
     const handler: ProxyHandler<object> = {

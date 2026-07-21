@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 选必一 第二章「机械振动」场景渲染模块
  *
  * 包含 3 个可视化场景：
@@ -20,7 +20,17 @@
  */
 
 import type { SimulationResult } from 'physics-core';
-import { roundRectPath, getFrame, drawEmptyState, drawHud, drawInfoBar, draw3DBlock } from './renderingUtils';
+import {
+    roundRectPath,
+    getFrame,
+    drawEmptyState,
+    drawHud,
+    drawInfoBar,
+    draw3DBlock,
+    maxOf,
+    clearScene,
+    drawTitle
+} from './renderingUtils';
 
 // ========== 共享类型 ==========
 
@@ -1217,4 +1227,104 @@ export function drawResonanceCurveScene(opts: Chapter2SceneOptions): void {
     ]);
 
     if (!simulationResult) drawEmptyState(ctx, width, height, isDark);
+}
+
+export function drawNewtonTubeScene(o: Chapter2SceneOptions): void {
+    const { ctx, width, height, isDark, params, simulationResult, currentTime } = o;
+    clearScene(ctx, width, height, isDark);
+    drawTitle(ctx, '牛顿管 (真空 vs 空气)', width, isDark, { size: 18, y: 28 });
+
+    const heightM = params['height'] ?? 5;
+    const duration = params['duration'] ?? 2;
+    const withAir = Math.round(params['withAir'] ?? 1) === 1;
+    const t = Math.max(0, Math.min(duration, currentTime));
+
+    const tubeLeft = width * 0.36;
+    const tubeRight = width * 0.64;
+    const tubeTop = height * 0.14;
+    const tubeBottom = height * 0.9;
+    const tubeH = tubeBottom - tubeTop;
+    const tubeCx = (tubeLeft + tubeRight) / 2;
+
+    // 玻璃管
+    ctx.strokeStyle = isDark ? '#94a3b8' : '#475569';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(tubeLeft, tubeTop, tubeRight - tubeLeft, tubeH);
+    ctx.fillStyle = isDark ? 'rgba(148,163,184,0.06)' : 'rgba(148,163,184,0.08)';
+    ctx.fillRect(tubeLeft, tubeTop, tubeRight - tubeLeft, tubeH);
+
+    // 硬币位移 (来自模型轨迹, 物理下落距离 → 管内比例)
+    // 注意: 模型按真实 g 自由下落, 总位移 = 0.5·g·duration² 不一定等于 height 参数;
+    // 用轨迹自身最大位移归一化, 保证硬币恰好在动画结束时抵达管底, 与 height 标注一致。
+    let coinFrac = 0;
+    const traj = simulationResult?.trajectories?.[0];
+    if (traj && traj.length > 0) {
+        // 轨迹点按 t 排序; 取当前 t 的 |y| 位移
+        let best = traj[0]!;
+        for (const p of traj) {
+            if (p.t <= t) best = p;
+            else break;
+        }
+        const drop = Math.abs(best.position.y);
+        const maxDrop = maxOf(
+            traj.map(p => Math.abs(p.position.y)),
+            1e-6
+        );
+        coinFrac = Math.max(0, Math.min(1, drop / maxDrop));
+    }
+    // 羽毛: 有空气则受阻力, 终端速度有限; 真空则与硬币一致
+    const featherFrac = withAir ? 1 - Math.exp((-3 * t) / Math.max(1e-6, duration)) : coinFrac;
+
+    const coinY = tubeTop + coinFrac * tubeH;
+    const featherY = tubeTop + featherFrac * tubeH;
+
+    // 硬币
+    ctx.fillStyle = '#f59e0b';
+    ctx.beginPath();
+    ctx.arc(tubeCx - 14, coinY, 11, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = isDark ? '#0f172a' : '#fff';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('¢', tubeCx - 14, coinY);
+    ctx.textBaseline = 'alphabetic';
+
+    // 羽毛
+    ctx.strokeStyle = withAir ? '#a78bfa' : '#22c55e';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(tubeCx + 14, featherY - 12);
+    ctx.quadraticCurveTo(tubeCx + 22, featherY, tubeCx + 14, featherY + 12);
+    ctx.moveTo(tubeCx + 14, featherY - 12);
+    ctx.lineTo(tubeCx + 14, featherY + 12);
+    ctx.stroke();
+    ctx.textAlign = 'left';
+
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 't', value: `${t.toFixed(2)} s` },
+            { label: '介质', value: withAir ? '空气' : '真空' },
+            { label: '硬币', value: `${(coinFrac * heightM).toFixed(2)} m` },
+            { label: '羽毛', value: `${(featherFrac * heightM).toFixed(2)} m` }
+        ],
+        {
+            boxX: 10,
+            boxY: 42,
+            boxW: 210,
+            lineH: 16,
+            borderStroke: isDark ? 'rgba(148,163,184,0.3)' : 'rgba(100,116,139,0.25)',
+            bgAlpha: { dark: 0.78, light: 0.88 }
+        }
+    );
+    drawInfoBar(
+        ctx,
+        width,
+        height,
+        withAir ? '空气中: 羽毛受空气阻力下落更慢; 真空时两者同时落地' : '真空中: 轻重物体同时落地 (伽利略)',
+        isDark,
+        { height: 22, yOffset: 34 }
+    );
 }

@@ -27,7 +27,8 @@ import {
     drawWire,
     drawBattery,
     drawResistor,
-    drawMeter
+    drawMeter,
+    placeholder
 } from './renderingUtils';
 
 export interface ElectromagnetismSceneOptions {
@@ -313,4 +314,113 @@ export function drawMicrometerScene(opts: ElectromagnetismSceneOptions): void {
         { boxW: 214 }
     );
     drawInfoBar(ctx, width, height, '总读数 = 固定套筒主尺 + 微分筒刻度 * 0.01 mm', isDark);
+}
+
+export function drawBulbVIScene(o: ElectromagnetismSceneOptions): void {
+    const { ctx, width, height, isDark, params, simulationResult } = o;
+    clearScene(ctx, width, height, isDark);
+    drawTitle(ctx, '小灯泡伏安特性 (I-U 曲线)', width, isDark, { size: 18, y: 28 });
+    if (!simulationResult || !simulationResult.charts) {
+        placeholder(ctx, width, height, isDark);
+        return;
+    }
+    const vi = simulationResult.charts.vx_t;
+    const E = params['emf'] ?? 12;
+    const r = params['r'] ?? 1;
+    if (!vi || vi.points.length === 0) {
+        placeholder(ctx, width, height, isDark);
+        return;
+    }
+    const padL = 70;
+    const padB = 50;
+    const padT = 50;
+    const padR = 30;
+    const gx = padL;
+    const gy = height - padB;
+    const gw = width - padL - padR;
+    const gh = height - padT - padB;
+    const uMax = E;
+    const iMax = Math.max(0.1, E / Math.max(0.1, r));
+
+    const ux = (u: number) => gx + (u / uMax) * gw;
+    const iy = (i: number) => gy - (i / iMax) * gh;
+
+    // 坐标轴
+    ctx.strokeStyle = isDark ? '#64748b' : '#475569';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(gx, padT);
+    ctx.lineTo(gx, gy);
+    ctx.lineTo(gx + gw, gy);
+    ctx.stroke();
+    ctx.fillStyle = isDark ? '#cbd5e1' : '#334155';
+    ctx.font = '12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('电压 U (V)', gx + gw / 2, height - 14);
+    ctx.save();
+    ctx.translate(18, padT + gh / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText('电流 I (A)', 0, 0);
+    ctx.restore();
+
+    // 灯泡伏安曲线
+    ctx.strokeStyle = '#f59e0b';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    vi.points.forEach((p, idx) => {
+        const X = ux(p.x);
+        const Y = iy(p.y);
+        if (idx === 0) ctx.moveTo(X, Y);
+        else ctx.lineTo(X, Y);
+    });
+    ctx.stroke();
+
+    // 负载线: I = (E - U)/r
+    ctx.strokeStyle = '#3b82f6';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 4]);
+    ctx.beginPath();
+    ctx.moveTo(ux(0), iy(E / Math.max(0.1, r)));
+    ctx.lineTo(ux(E), iy(0));
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // 工作点: 伏安曲线与负载线交点 (数值找穿越)
+    let op: { u: number; i: number } | null = null;
+    for (const p of vi.points) {
+        const loadI = (E - p.x) / Math.max(0.1, r);
+        if (Math.abs(loadI - p.y) < Math.max(1e-3, loadI * 0.02)) {
+            op = { u: p.x, i: p.y };
+            break;
+        }
+    }
+    if (op) {
+        const ox = ux(op.u);
+        const oy = iy(op.i);
+        ctx.fillStyle = '#22c55e';
+        ctx.beginPath();
+        ctx.arc(ox, oy, 6, 0, Math.PI * 2);
+        ctx.fill();
+        drawHud(
+            ctx,
+            isDark,
+            [
+                { label: 'U_op', value: `${op.u.toFixed(2)} V` },
+                { label: 'I_op', value: `${op.i.toFixed(3)} A` },
+                { label: 'P_op', value: `${(op.u * op.i).toFixed(2)} W` }
+            ],
+            {
+                boxX: 10,
+                boxY: 42,
+                boxW: 210,
+                lineH: 16,
+                borderStroke: isDark ? 'rgba(148,163,184,0.3)' : 'rgba(100,116,139,0.25)',
+                bgAlpha: { dark: 0.78, light: 0.88 }
+            }
+        );
+    }
+    drawInfoBar(ctx, width, height, '非线性电阻: 温度↑→电阻↑, I-U 曲线上凸 (与负载线交点为工作点)', isDark, {
+        height: 22,
+        yOffset: 34
+    });
 }

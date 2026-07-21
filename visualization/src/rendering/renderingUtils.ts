@@ -876,3 +876,139 @@ export function drawText(
     ctx.textBaseline = 'alphabetic';
     ctx.fillText(text, x, y);
 }
+
+// ============================================================
+// Group 11: 场线/矢量场/插值工具
+// ============================================================
+
+/** 在 (x1,y1)->(x2,y2) 方向末端画箭头 */
+export function arrowHead(
+    ctx: CanvasRenderingContext2D,
+    x1: number,
+    y1: number,
+    x2: number,
+    y2: number,
+    size: number,
+    color: string
+): void {
+    const ang = Math.atan2(y2 - y1, x2 - x1);
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - size * Math.cos(ang - 0.4), y2 - size * Math.sin(ang - 0.4));
+    ctx.lineTo(x2 - size * Math.cos(ang + 0.4), y2 - size * Math.sin(ang + 0.4));
+    ctx.closePath();
+    ctx.fill();
+}
+
+/** 画一条带方向箭头(沿线中段)的折线 */
+export function drawFieldLine(
+    ctx: CanvasRenderingContext2D,
+    pts: Array<[number, number]>,
+    color: string,
+    size = 8
+): void {
+    if (pts.length < 2) return;
+    const p0 = pts[0];
+    if (!p0) return;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.moveTo(p0[0], p0[1]);
+    for (let i = 1; i < pts.length; i++) {
+        const pi = pts[i];
+        if (!pi) continue;
+        ctx.lineTo(pi[0], pi[1]);
+    }
+    ctx.stroke();
+    const n = pts.length;
+    const marks = [Math.floor(n * 0.32), Math.floor(n * 0.62), Math.floor(n * 0.88)].filter(i => i > 0 && i < n - 1);
+    for (const i of marks) {
+        const a = pts[i - 1];
+        const b = pts[i + 1];
+        if (!a || !b) continue;
+        arrowHead(ctx, a[0], a[1], b[0], b[1], size, color);
+    }
+}
+
+/** 矢量场样本接口 */
+export interface VectorFieldSample {
+    x: number;
+    y: number;
+    ex: number;
+    ey: number;
+    magnitude: number;
+}
+
+/** 画矢量场箭头 (math 坐标, 屏幕 y 翻转) */
+export function drawVectorField(
+    ctx: CanvasRenderingContext2D,
+    samples: VectorFieldSample[],
+    toScreen: (x: number, y: number) => [number, number],
+    maxMag: number,
+    color: string
+): void {
+    if (maxMag <= 0) return;
+    for (const s of samples) {
+        if (s.magnitude < maxMag * 0.04) continue;
+        const [px, py] = toScreen(s.x, s.y);
+        const len = 16 * Math.min(1, s.magnitude / maxMag);
+        const mag = Math.hypot(s.ex, s.ey) || 1e-9;
+        const dx = (s.ex / mag) * len;
+        const dy = -(s.ey / mag) * len;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(px, py);
+        ctx.lineTo(px + dx, py + dy);
+        ctx.stroke();
+        arrowHead(ctx, px, py, px + dx, py + dy, 5, color);
+    }
+}
+
+/** 序列点接口 (用于 charts 数据) */
+export interface SeriesLike {
+    points: Array<{ x: number; y: number }>;
+}
+
+/** 在序列点上按 x 线性插值取 y */
+export function interpSeries(series: SeriesLike | undefined, x: number): number {
+    if (!series || series.points.length === 0) return 0;
+    const pts = series.points;
+    const first = pts[0];
+    if (!first) return 0;
+    if (x <= first.x) return first.y;
+    const last = pts[pts.length - 1];
+    if (!last) return 0;
+    if (x >= last.x) return last.y;
+    for (let i = 1; i < pts.length; i++) {
+        const pi = pts[i];
+        if (!pi) continue;
+        if (x <= pi.x) {
+            const a = pts[i - 1];
+            const b = pts[i];
+            if (!a || !b) return last.y;
+            const f = (x - a.x) / Math.max(1e-9, b.x - a.x);
+            return a.y + f * (b.y - a.y);
+        }
+    }
+    return last.y;
+}
+
+/** 取最大值 (用循环代替 Math.max(...arr), 避免大数组展开触发 RangeError) */
+export function maxOf(values: Array<number>, base: number): number {
+    let m = base;
+    for (const v of values) if (v > m) m = v;
+    return m;
+}
+
+/** 空态占位文字 (点击运行仿真开始) */
+export function placeholder(ctx: CanvasRenderingContext2D, w: number, h: number, isDark: boolean): void {
+    ctx.fillStyle = isDark ? '#64748b' : '#94a3b8';
+    ctx.font = '16px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('点击「运行仿真」开始', w / 2, h / 2);
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+}

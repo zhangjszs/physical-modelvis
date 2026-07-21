@@ -10,7 +10,18 @@
  * 设计原则：纯函数 + 屏幕坐标, 零依赖 React/Zustand/CoordinateTransformer
  */
 import type { SimulationResult } from 'physics-core';
-import { clamp, clearScene, drawTitle, drawHud, drawArrow } from './renderingUtils';
+import {
+    clamp,
+    clearScene,
+    drawTitle,
+    drawHud,
+    drawArrow,
+    placeholder,
+    interpSeries,
+    maxOf,
+    roundRectPath,
+    drawInfoBar
+} from './renderingUtils';
 import { E_CHARGE } from './constants';
 
 export interface ModernSceneOptions {
@@ -456,4 +467,129 @@ export function drawNeutronDiscoveryScene(o: ModernSceneOptions): void {
         ],
         { boxW: 230, lineH: 16 }
     );
+}
+
+export function drawGeigerCounterScene(o: ModernSceneOptions): void {
+    const { ctx, width, height, isDark, params, simulationResult, currentTime } = o;
+    clearScene(ctx, width, height, isDark);
+    drawTitle(ctx, '盖革计数器 (射线探测)', width, isDark, { size: 18, y: 28 });
+
+    const Nchart = simulationResult?.charts?.x_t;
+    const Achart = simulationResult?.charts?.y_t;
+    if (!Nchart || !Achart) {
+        placeholder(ctx, width, height, isDark);
+        return;
+    }
+    const duration = params['tEnd'] ?? 50;
+    const t = Math.max(0, Math.min(duration, currentTime));
+    const N = interpSeries(Nchart, t);
+    const A = interpSeries(Achart, t);
+    const A0 = Achart.points[0]?.y ?? 1;
+
+    // 盖革管 (左侧)
+    const tubeX = width * 0.08;
+    const tubeY = height * 0.2;
+    const tubeW = width * 0.26;
+    const tubeH = height * 0.6;
+    ctx.strokeStyle = isDark ? '#94a3b8' : '#475569';
+    ctx.lineWidth = 3;
+    roundRectPath(ctx, tubeX, tubeY, tubeW, tubeH, 10);
+    ctx.stroke();
+    ctx.fillStyle = isDark ? 'rgba(34,197,94,0.08)' : 'rgba(34,197,94,0.10)';
+    ctx.fill();
+    ctx.fillStyle = isDark ? '#e2e8f0' : '#1e293b';
+    ctx.font = '12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('GM 计数管', tubeX + tubeW / 2, tubeY - 8);
+
+    // 确定性计数闪光: 闪光数随活度 A 增多 (保留物理意义), 但位置/大小由索引伪随机固定, 避免逐帧乱跳不可复现
+    const flashes = Math.round(A * 0.4);
+    const hash01 = (n: number) => {
+        const s = Math.sin(n) * 43758.5453;
+        return s - Math.floor(s);
+    };
+    for (let i = 0; i < flashes; i++) {
+        const fx = tubeX + 8 + hash01(i * 1.7 + 0.5) * (tubeW - 16);
+        const fy = tubeY + 8 + hash01(i * 2.3 + 1.9) * (tubeH - 16);
+        const fr = 2 + hash01(i * 3.1 + 0.2) * 3;
+        ctx.fillStyle = `rgba(34,197,94,${0.3 + hash01(i * 4.7 + 0.8) * 0.6})`;
+        ctx.beginPath();
+        ctx.arc(fx, fy, fr, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // 计数率表 (条形)
+    const meterX = tubeX + tubeW + width * 0.05;
+    const meterY = tubeY + tubeH * 0.3;
+    const meterH = tubeH * 0.4;
+    const meterW = width * 0.05;
+    const ratio = Math.max(0, Math.min(1, A / Math.max(1e-6, A0)));
+    ctx.fillStyle = isDark ? '#1e293b' : '#e2e8f0';
+    roundRectPath(ctx, meterX, meterY, meterW, meterH, 4);
+    ctx.fill();
+    ctx.fillStyle = '#22c55e';
+    const fillH = ratio * meterH;
+    roundRectPath(ctx, meterX, meterY + meterH - fillH, meterW, fillH, 4);
+    ctx.fill();
+
+    // 衰变曲线 N(t) (右侧)
+    const gx = width * 0.55;
+    const gy = height * 0.18;
+    const gw = width * 0.4;
+    const gh = height * 0.64;
+    const nMax = maxOf(
+        Nchart.points.map(p => p.y),
+        1
+    );
+    const px = (tt: number) => gx + (tt / duration) * gw;
+    const py = (nn: number) => gy + gh - (nn / nMax) * gh;
+
+    ctx.strokeStyle = isDark ? '#64748b' : '#475569';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(gx, gy);
+    ctx.lineTo(gx, gy + gh);
+    ctx.lineTo(gx + gw, gy + gh);
+    ctx.stroke();
+    ctx.strokeStyle = '#7c3aed';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    Nchart.points.forEach((p, idx) => {
+        const X = px(p.x);
+        const Y = py(p.y);
+        if (idx === 0) ctx.moveTo(X, Y);
+        else ctx.lineTo(X, Y);
+    });
+    ctx.stroke();
+    // 当前时刻标记
+    const mx = px(t);
+    const my = py(N);
+    ctx.fillStyle = '#22c55e';
+    ctx.beginPath();
+    ctx.arc(mx, my, 6, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = isDark ? '#cbd5e1' : '#334155';
+    ctx.font = '12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('N(t) 剩余核数', gx + gw / 2, gy + gh + 18);
+
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 't', value: `${t.toFixed(1)} s` },
+            { label: 'N(t)', value: `${N.toFixed(0)}` },
+            { label: '活度 A', value: `${A.toFixed(1)} Bq` }
+        ],
+        {
+            boxX: 10,
+            boxY: 42,
+            boxW: 210,
+            lineH: 16,
+            borderStroke: isDark ? 'rgba(148,163,184,0.3)' : 'rgba(100,116,139,0.25)',
+            bgAlpha: { dark: 0.78, light: 0.88 }
+        }
+    );
+    drawInfoBar(ctx, width, height, '活度 A=λN 越大, 单位时间计数闪光越多', isDark, { height: 22, yOffset: 34 });
 }

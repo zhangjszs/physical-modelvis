@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 选必一 第四章「波动/光学」场景渲染模块
  *
  * 包含 6 个可视化场景：
@@ -16,7 +16,17 @@
  */
 
 import type { SimulationResult } from 'physics-core';
-import { clearScene, drawTitle, drawSubtitle, clamp, roundRectPath, drawArrow, drawHud } from './renderingUtils';
+import {
+    clearScene,
+    drawTitle,
+    drawSubtitle,
+    clamp,
+    roundRectPath,
+    drawArrow,
+    drawHud,
+    arrowHead,
+    drawInfoBar
+} from './renderingUtils';
 
 // ========== 共享类型 ==========
 
@@ -874,4 +884,194 @@ export function drawHologramScene(o: WaveOptSceneOptions) {
         }
     );
     drawSubtitle(ctx, `条纹间距 Λ = λ/|sinθr−sinθo| = ${(fringeSpacing * 1e6).toFixed(2)} μm`, 20, h - 20, isDark);
+}
+
+export function drawTotalInternalReflectionScene(o: WaveOptSceneOptions): void {
+    const { ctx, width, height, isDark, params } = o;
+    clearScene(ctx, width, height, isDark);
+    const n1 = params['n1'] ?? 1.5;
+    const n2 = params['n2'] ?? 1.0;
+    const angleDeg = params['angle'] ?? 50;
+    const mode = Math.round(params['mode'] ?? 1); // 0=普通折射 1=全反射 2=光导纤维
+    const fg = isDark ? '#e2e8f0' : '#1e293b';
+    const grid = isDark ? '#334155' : '#cbd5e1';
+
+    drawTitle(ctx, '全反射与光导', width, isDark, { size: 18, y: 28 });
+
+    if (mode === 2) {
+        // ---- 光导纤维：水平纤芯内的全反射传导 ----
+        const fy0 = height * 0.3;
+        const fy1 = height * 0.7;
+        const fx0 = width * 0.12;
+        const fx1 = width * 0.88;
+        ctx.fillStyle = isDark ? 'rgba(34,197,94,0.10)' : 'rgba(34,197,94,0.12)';
+        ctx.fillRect(fx0, fy0, fx1 - fx0, fy1 - fy0);
+        ctx.strokeStyle = grid;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(fx0, fy0, fx1 - fx0, fy1 - fy0);
+        const cy = (fy0 + fy1) / 2;
+        const phi = (angleDeg * Math.PI) / 180;
+        let x = fx0;
+        let y = cy;
+        const dx = Math.cos(phi);
+        let dy = Math.sin(phi);
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        const stepLen = 4;
+        for (let i = 0; i < 4000; i++) {
+            x += dx * stepLen;
+            y += dy * stepLen;
+            if (y <= fy0) {
+                y = fy0;
+                dy = -dy;
+            } else if (y >= fy1) {
+                y = fy1;
+                dy = -dy;
+            }
+            ctx.lineTo(x, y);
+            if (x >= fx1) break;
+        }
+        ctx.stroke();
+        arrowHead(ctx, fx0, cy, fx0 + Math.cos(phi) * 30, cy + Math.sin(phi) * 30, 10, '#f59e0b');
+        ctx.fillStyle = fg;
+        ctx.font = '13px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText(`纤芯 n₁=${n1.toFixed(2)}  /  包层 n₂=${n2.toFixed(2)}`, 12, height - 40);
+        ctx.fillText(`入射角 φ=${angleDeg.toFixed(0)}° → 全反射在芯-包层界面上传导`, 12, height - 22);
+        drawHud(
+            ctx,
+            isDark,
+            [
+                { label: 'n₁(芯)', value: n1.toFixed(2) },
+                { label: 'n₂(包层)', value: n2.toFixed(2) },
+                { label: 'φ', value: `${angleDeg.toFixed(0)}°` }
+            ],
+            {
+                boxX: 10,
+                boxY: 42,
+                boxW: 210,
+                lineH: 16,
+                borderStroke: isDark ? 'rgba(148,163,184,0.3)' : 'rgba(100,116,139,0.25)',
+                bgAlpha: { dark: 0.78, light: 0.88 }
+            }
+        );
+        return;
+    }
+
+    // ---- 界面折射 / 全反射 ----
+    const cx = width / 2;
+    const cy = height / 2;
+    const scale = Math.min(width, height) * 0.34;
+    const math = (x: number, y: number): [number, number] => [cx + x * scale, cy - y * scale];
+
+    // 两种介质
+    ctx.fillStyle = isDark ? 'rgba(56,189,248,0.08)' : 'rgba(56,189,248,0.10)';
+    ctx.fillRect(0, 0, width, cy);
+    ctx.fillStyle = isDark ? 'rgba(168,85,247,0.08)' : 'rgba(168,85,247,0.10)';
+    ctx.fillRect(0, cy, width, height - cy);
+
+    // 界面
+    ctx.strokeStyle = grid;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    const [lx, ly] = math(-2, 0);
+    const [rx, ry] = math(2, 0);
+    ctx.moveTo(lx, ly);
+    ctx.lineTo(rx, ry);
+    ctx.stroke();
+
+    // 法线
+    ctx.strokeStyle = grid;
+    ctx.setLineDash([6, 6]);
+    ctx.beginPath();
+    const [nx0, ny0] = math(0, 1.6);
+    const [nx1, ny1] = math(0, -1.6);
+    ctx.moveTo(nx0, ny0);
+    ctx.lineTo(nx1, ny1);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.fillStyle = fg;
+    ctx.font = '13px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(`介质1  n₁=${n1.toFixed(2)}`, 12, 20);
+    ctx.fillText(`介质2  n₂=${n2.toFixed(2)}`, 12, height - 12);
+
+    const th1 = (angleDeg * Math.PI) / 180;
+    const critical = n1 > n2 ? Math.asin(Math.min(1, n2 / n1)) : NaN;
+    const hit = math(0, 0);
+
+    // 入射光线 (自左上射向界面)
+    const L = 2.2;
+    const start = math(-L * Math.sin(th1), L * Math.cos(th1));
+    ctx.strokeStyle = '#f59e0b';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(start[0], start[1]);
+    ctx.lineTo(hit[0], hit[1]);
+    ctx.stroke();
+    arrowHead(ctx, start[0], start[1], hit[0], hit[1], 11, '#f59e0b');
+
+    const isTIR = mode === 1 || (n1 > n2 && !isNaN(critical) && th1 > critical);
+    if (isTIR) {
+        const end = math(L * Math.sin(th1), L * Math.cos(th1)); // 反射回介质1 (向上)
+        ctx.strokeStyle = '#ef4444';
+        ctx.beginPath();
+        ctx.moveTo(hit[0], hit[1]);
+        ctx.lineTo(end[0], end[1]);
+        ctx.stroke();
+        arrowHead(ctx, hit[0], hit[1], end[0], end[1], 11, '#ef4444');
+        const critDeg = isNaN(critical) ? 0 : (critical * 180) / Math.PI;
+        drawHud(
+            ctx,
+            isDark,
+            [
+                { label: '入射角 θ₁', value: `${angleDeg.toFixed(0)}°` },
+                { label: '临界角 θc', value: `${critDeg.toFixed(1)}°` },
+                { label: '现象', value: '全反射' }
+            ],
+            {
+                boxX: 10,
+                boxY: 42,
+                boxW: 210,
+                lineH: 16,
+                borderStroke: isDark ? 'rgba(148,163,184,0.3)' : 'rgba(100,116,139,0.25)',
+                bgAlpha: { dark: 0.78, light: 0.88 }
+            }
+        );
+        drawInfoBar(ctx, width, height, `θ₁ > θc → 光全部反射回光密介质 (光导/全反射棱镜原理)`, isDark, {
+            height: 22,
+            yOffset: 34
+        });
+    } else {
+        const sinTh2 = Math.min(1, (n1 * Math.sin(th1)) / Math.max(1e-6, n2));
+        const th2 = Math.asin(sinTh2);
+        const end = math(L * Math.sin(th2), -L * Math.cos(th2)); // 折射入介质2 (向下)
+        ctx.strokeStyle = '#22c55e';
+        ctx.beginPath();
+        ctx.moveTo(hit[0], hit[1]);
+        ctx.lineTo(end[0], end[1]);
+        ctx.stroke();
+        arrowHead(ctx, hit[0], hit[1], end[0], end[1], 11, '#22c55e');
+        drawHud(
+            ctx,
+            isDark,
+            [
+                { label: '入射角 θ₁', value: `${angleDeg.toFixed(0)}°` },
+                { label: '折射角 θ₂', value: `${((th2 * 180) / Math.PI).toFixed(0)}°` },
+                { label: '现象', value: '折射' }
+            ],
+            {
+                boxX: 10,
+                boxY: 42,
+                boxW: 210,
+                lineH: 16,
+                borderStroke: isDark ? 'rgba(148,163,184,0.3)' : 'rgba(100,116,139,0.25)',
+                bgAlpha: { dark: 0.78, light: 0.88 }
+            }
+        );
+        drawInfoBar(ctx, width, height, `n₁sinθ₁ = n₂sinθ₂ (斯涅尔定律)`, isDark, { height: 22, yOffset: 34 });
+    }
 }

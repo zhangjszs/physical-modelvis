@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 力学场景渲染模块 — 机械波 (选必一 第二章)
  *
  * 场景列表：
@@ -7,7 +7,16 @@
  * 设计原则：纯函数 + 屏幕坐标, 零依赖 React/Zustand/CoordinateTransformer
  */
 import type { SimulationResult } from 'physics-core';
-import { drawTitle, drawHud, drawInfoBar, drawEmptyState, drawArrow } from './renderingUtils';
+import {
+    drawTitle,
+    drawHud,
+    drawInfoBar,
+    drawEmptyState,
+    drawArrow,
+    placeholder,
+    maxOf,
+    clearScene
+} from './renderingUtils';
 
 export interface MechanicsSceneOptions {
     ctx: CanvasRenderingContext2D;
@@ -137,3 +146,157 @@ export function drawMechanicalWaveScene(opts: MechanicsSceneOptions): void {
 }
 
 // ======================= Task 6: 静态验证/示意图场景 =======================
+
+interface PendTrajPoint {
+    t: number;
+    position: { x: number };
+}
+function measurePendulumPeriod(traj: PendTrajPoint[] | undefined): number | null {
+    if (!traj || traj.length < 4) return null;
+    const crossings: number[] = [];
+    for (let i = 1; i < traj.length; i++) {
+        const a = traj[i - 1];
+        const b = traj[i];
+        if (!a || !b) continue;
+        const xa = a.position.x;
+        const xb = b.position.x;
+        if (xa * xb < 0) {
+            const f = xa / (xa - xb);
+            crossings.push(a.t + f * (b.t - a.t));
+        } else if (xa === 0) {
+            crossings.push(a.t);
+        }
+    }
+    if (crossings.length >= 2) {
+        const T = (2 * (crossings[crossings.length - 1]! - crossings[0]!)) / (crossings.length - 1);
+        return T > 0 ? T : null;
+    }
+    if (crossings.length === 1) {
+        const T = 4 * crossings[0]!;
+        return T > 0 ? T : null;
+    }
+    return null;
+}
+
+export function drawBallXTimeScene(o: MechanicsSceneOptions): void {
+    const { ctx, width, height, isDark, params, simulationResult, currentTime } = o;
+    clearScene(ctx, width, height, isDark);
+    drawTitle(ctx, '小球 x-t 图像 (简谐运动)', width, isDark, { size: 18, y: 28 });
+
+    const traj = simulationResult?.trajectories?.[0];
+    if (!traj || traj.length === 0) {
+        placeholder(ctx, width, height, isDark);
+        return;
+    }
+    const duration = params['duration'] ?? 10;
+    const L = params['length'] ?? 1.0;
+    const g = params['g'] ?? 9.8;
+    // 优先从真实轨迹过零实测周期 (大摆角下 != 小角度公式); 窗口太短回退小角度估算
+    const Tsmall = 2 * Math.PI * Math.sqrt(Math.max(1e-6, L) / Math.max(1e-6, g));
+    const Tmeasured = measurePendulumPeriod(traj);
+    const T = Tmeasured ?? Tsmall;
+    const Tlabel = Tmeasured ? `${T.toFixed(2)} s` : `${T.toFixed(2)} s (小角度估算)`;
+
+    // 图表区 (右侧 60%)
+    const gx = width * 0.4;
+    const gy = height * 0.18;
+    const gw = width * 0.55;
+    const gh = height * 0.64;
+    const xMax = maxOf(
+        traj.map(p => Math.abs(p.position.x)),
+        1e-6
+    );
+    const tMax = duration;
+
+    const px = (t: number) => gx + (t / tMax) * gw;
+    const py = (x: number) => gy + gh / 2 - (x / xMax) * (gh / 2) * 0.9;
+
+    // 坐标轴
+    ctx.strokeStyle = isDark ? '#64748b' : '#475569';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(gx, gy);
+    ctx.lineTo(gx, gy + gh);
+    ctx.lineTo(gx + gw, gy + gh);
+    ctx.stroke();
+    // 零线
+    ctx.strokeStyle = isDark ? '#475569' : '#94a3b8';
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(gx, py(0));
+    ctx.lineTo(gx + gw, py(0));
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = isDark ? '#cbd5e1' : '#334155';
+    ctx.font = '12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('t (s)', gx + gw / 2, gy + gh + 18);
+    ctx.save();
+    ctx.translate(gx - 22, gy + gh / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText('x (m)', 0, 0);
+    ctx.restore();
+
+    // x(t) 曲线
+    ctx.strokeStyle = '#f59e0b';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    traj.forEach((p, idx) => {
+        const X = px(p.t);
+        const Y = py(p.position.x);
+        if (idx === 0) ctx.moveTo(X, Y);
+        else ctx.lineTo(X, Y);
+    });
+    ctx.stroke();
+
+    // 当前时刻标记点
+    const t = Math.max(0, Math.min(duration, currentTime));
+    let cur = traj[0]!;
+    for (const p of traj) {
+        if (p.t <= t) cur = p;
+        else break;
+    }
+    const mx = px(cur.t);
+    const my = py(cur.position.x);
+    ctx.fillStyle = '#22c55e';
+    ctx.beginPath();
+    ctx.arc(mx, my, 6, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 左侧小摆示意
+    const pivotX = width * 0.18;
+    const pivotY = height * 0.22;
+    const lenPx = height * 0.4;
+    const ang = Math.asin(Math.max(-1, Math.min(1, cur.position.x / Math.max(1e-6, L))));
+    const bx = pivotX + Math.sin(ang) * lenPx;
+    const by = pivotY + Math.cos(ang) * lenPx;
+    ctx.strokeStyle = isDark ? '#94a3b8' : '#475569';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(pivotX, pivotY);
+    ctx.lineTo(bx, by);
+    ctx.stroke();
+    ctx.fillStyle = '#f59e0b';
+    ctx.beginPath();
+    ctx.arc(bx, by, 10, 0, Math.PI * 2);
+    ctx.fill();
+
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 't', value: `${t.toFixed(2)} s` },
+            { label: 'x', value: `${cur.position.x.toFixed(3)} m` },
+            { label: 'T', value: Tlabel }
+        ],
+        {
+            boxX: 10,
+            boxY: 42,
+            boxW: 210,
+            lineH: 16,
+            borderStroke: isDark ? 'rgba(148,163,184,0.3)' : 'rgba(100,116,139,0.25)',
+            bgAlpha: { dark: 0.78, light: 0.88 }
+        }
+    );
+    drawInfoBar(ctx, width, height, '摆球水平位移 x(t) 近似正弦 → 简谐运动', isDark, { height: 22, yOffset: 34 });
+}

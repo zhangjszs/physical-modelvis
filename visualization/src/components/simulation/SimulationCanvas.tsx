@@ -28,7 +28,8 @@ import {
 import {
     drawDoublePendulumSyncScene,
     drawForcedVibrationScene,
-    drawResonanceCurveScene
+    drawResonanceCurveScene,
+    drawNewtonTubeScene
 } from '../../rendering/chapter2Scenes';
 import {
     drawSoundWaveformScene,
@@ -41,7 +42,8 @@ import {
     drawInterferenceScene,
     drawDiffractionGratingScene,
     drawPolarizationMalusScene,
-    drawHologramScene
+    drawHologramScene,
+    drawTotalInternalReflectionScene
 } from '../../rendering/waveOptScenes';
 import {
     drawCurrentBalanceScene,
@@ -66,7 +68,8 @@ import {
     drawRadioactiveScene,
     drawRadiationDeflectionScene,
     drawCosmicRayScene,
-    drawNeutronDiscoveryScene
+    drawNeutronDiscoveryScene,
+    drawGeigerCounterScene
 } from '../../rendering/nuclearRadiationScenes';
 import {
     drawDiffusionScene,
@@ -124,14 +127,19 @@ import {
     drawTransmissionBeltScene
 } from '../../rendering/chapter5Scenes';
 import { drawOrbitalScene, drawCavendishScene, drawMoonEarthTestScene } from '../../rendering/chapter6Scenes';
-import { drawEnergyConservationScene, drawSimplePendulumScene } from '../../rendering/chapter7Scenes';
-import { drawMechanicalWaveScene } from '../../rendering/mechanicalWaveScenes';
+import {
+    drawEnergyConservationScene,
+    drawSimplePendulumScene,
+    drawWorkEnergyScene
+} from '../../rendering/chapter7Scenes';
+import { drawMechanicalWaveScene, drawBallXTimeScene } from '../../rendering/mechanicalWaveScenes';
 import {
     drawCoulombForceExploreScene,
     drawElectroscopeScene,
     drawElectrostaticInductionScene,
     drawElectrostaticShieldingScene,
-    drawFaradayCupScene
+    drawFaradayCupScene,
+    drawElectricFieldLinesScene
 } from '../../rendering/electrostaticFieldScenes';
 import { drawParallelPlateCapacitorScene, drawCapacitorChargeScene } from '../../rendering/electrostaticEnergyScenes';
 import {
@@ -140,9 +148,14 @@ import {
     drawLoadVoltageScene,
     drawMultimeterScene,
     drawVernierCaliperScene,
-    drawMicrometerScene
+    drawMicrometerScene,
+    drawBulbVIScene
 } from '../../rendering/electricCircuitScenes';
-import { drawMagneticForceScene, drawAmpereForceScene } from '../../rendering/magneticFieldScenes';
+import {
+    drawMagneticForceScene,
+    drawAmpereForceScene,
+    drawCurrentMagneticFieldScene
+} from '../../rendering/magneticFieldScenes';
 import { drawEmInductionScene, drawEddyCurrentScene } from '../../rendering/emInductionScenes';
 import {
     drawAcCurrentScene,
@@ -150,17 +163,6 @@ import {
     drawEmWaveCommunicationScene,
     drawEmSpectrumScene
 } from '../../rendering/emWaveScenes';
-
-import {
-    drawTotalInternalReflectionScene,
-    drawCurrentMagneticFieldScene,
-    drawElectricFieldLinesScene,
-    drawNewtonTubeScene,
-    drawBulbVIScene,
-    drawWorkEnergyScene,
-    drawBallXTimeScene,
-    drawGeigerCounterScene
-} from '../../rendering/gapScenes';
 
 const SCENES_3D = new Set(['projectile', 'uniform-accelerated', 'free-fall', 'circular-motion']);
 

@@ -10,7 +10,7 @@
  *
  * 设计原则：纯函数 + 屏幕坐标, 零依赖 React/Zustand/CoordinateTransformer
  */
-import type { SimulationResult } from 'physics-core';
+import type { SimulationResult, Vector2D } from 'physics-core';
 import {
     COLORS,
     roundRectPath,
@@ -23,7 +23,11 @@ import {
     drawInfoBar,
     drawArrow,
     drawChargeSymbol,
-    drawText
+    drawText,
+    drawFieldLine,
+    drawVectorField,
+    maxOf,
+    placeholder
 } from './renderingUtils';
 
 export interface ElectromagnetismSceneOptions {
@@ -379,4 +383,110 @@ export function drawFaradayCupScene(opts: ElectromagnetismSceneOptions): void {
         { boxW: 214 }
     );
     drawInfoBar(ctx, width, height, '静电平衡时净电荷只分布在外表面，内表面电荷为零', isDark);
+}
+
+interface FieldLine {
+    points: Vector2D[];
+    sign: 1 | -1;
+}
+interface FieldSample {
+    x: number;
+    y: number;
+    ex: number;
+    ey: number;
+    magnitude: number;
+}
+interface ElectricFieldExtra {
+    fieldLines: FieldLine[];
+    samples: FieldSample[];
+    plates?: { top: number; bottom: number; left: number; right: number };
+    plateField?: number;
+}
+export function drawElectricFieldLinesScene(o: ElectromagnetismSceneOptions): void {
+    const { ctx, width, height, isDark, params, simulationResult } = o;
+    clearScene(ctx, width, height, isDark);
+    drawTitle(ctx, '电场线分布', width, isDark, { size: 18, y: 28 });
+    if (!simulationResult || !simulationResult.extra) {
+        placeholder(ctx, width, height, isDark);
+        return;
+    }
+    const extra = simulationResult.extra as unknown as ElectricFieldExtra;
+    const cx = width / 2;
+    const cy = height / 2;
+    const scale = Math.min(width, height) * 0.4;
+    const toScreen = (x: number, y: number): [number, number] => [cx + x * scale, cy - y * scale];
+
+    const maxMag = maxOf(
+        extra.samples.map(s => s.magnitude),
+        1e-9
+    );
+    drawVectorField(ctx, extra.samples, toScreen, maxMag, isDark ? '#64748b' : '#94a3b8');
+
+    const lineColor = isDark ? '#f472b6' : '#db2777';
+    for (const line of extra.fieldLines) {
+        const pts = line.points.map(p => toScreen(p.x, p.y));
+        drawFieldLine(ctx, pts, lineColor, 8);
+    }
+
+    if (extra.plates) {
+        const [pl, pt] = toScreen(extra.plates.left, extra.plates.top);
+        const [pr, pb] = toScreen(extra.plates.right, extra.plates.bottom);
+        ctx.fillStyle = isDark ? 'rgba(251,191,36,0.10)' : 'rgba(251,191,36,0.12)';
+        ctx.fillRect(pl, pt, pr - pl, pb - pt);
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(pl, pt);
+        ctx.lineTo(pr, pt);
+        ctx.moveTo(pl, pb);
+        ctx.lineTo(pr, pb);
+        ctx.stroke();
+        ctx.fillStyle = '#f59e0b';
+        ctx.font = 'bold 14px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('+', (pl + pr) / 2, pt - 8);
+        ctx.fillText('−', (pl + pr) / 2, pb + 18);
+        if (extra.plateField !== undefined) {
+            ctx.font = '12px sans-serif';
+            ctx.fillStyle = isDark ? '#e2e8f0' : '#1e293b';
+            ctx.fillText(`板间匀强场 E≈${extra.plateField.toExponential(2)} V/m`, cx, pb + 38);
+        }
+        ctx.textAlign = 'left';
+    } else {
+        // 电荷符号来自关键帧位置
+        for (const kf of simulationResult.keyframes ?? []) {
+            const [px, py] = toScreen(kf.position.x, kf.position.y);
+            const positive = kf.label.includes('正');
+            ctx.fillStyle = positive ? '#ef4444' : '#3b82f6';
+            ctx.beginPath();
+            ctx.arc(px, py, 12, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 16px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(positive ? '+' : '−', px, py);
+            ctx.textBaseline = 'alphabetic';
+            ctx.textAlign = 'left';
+        }
+    }
+
+    const modeLabel = params['mode'] === 2 ? '平行板' : params['mode'] === 1 ? '电偶极' : '点电荷';
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: '模式', value: modeLabel },
+            { label: '电场线', value: `${extra.fieldLines.length} 条` },
+            { label: '采样点', value: `${extra.samples.length}` }
+        ],
+        {
+            boxX: 10,
+            boxY: 42,
+            boxW: 210,
+            lineH: 16,
+            borderStroke: isDark ? 'rgba(148,163,184,0.3)' : 'rgba(100,116,139,0.25)',
+            bgAlpha: { dark: 0.78, light: 0.88 }
+        }
+    );
 }

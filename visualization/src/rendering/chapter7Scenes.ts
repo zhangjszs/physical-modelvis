@@ -18,7 +18,10 @@ import {
     drawEmptyState,
     drawArrow,
     drawGround,
-    getFrame
+    getFrame,
+    interpSeries,
+    arrowHead,
+    clearScene
 } from './renderingUtils';
 
 export interface MechanicsSceneOptions {
@@ -324,4 +327,109 @@ export function drawSimplePendulumScene(opts: MechanicsSceneOptions): void {
         isDark
     );
     if (!simulationResult) drawEmptyState(ctx, width, height, isDark);
+}
+
+export function drawWorkEnergyScene(o: MechanicsSceneOptions): void {
+    const { ctx, width, height, isDark, params, simulationResult, currentTime } = o;
+    clearScene(ctx, width, height, isDark);
+    drawTitle(ctx, '动能定理 W = ΔEk', width, isDark, { size: 18, y: 28 });
+
+    const m = params['mass'] ?? 1;
+    const F = params['force'] ?? 5;
+    const v0 = params['v0'] ?? 0;
+    const duration = params['duration'] ?? 3;
+    const t = Math.max(0, Math.min(duration, currentTime));
+    const a = F / Math.max(1e-6, m);
+    const s = v0 * t + 0.5 * a * t * t; // 含初速度, 与模型 ke_t 一致
+    const W = F * s;
+
+    // 动能来自模型 charts.ke_t (合外力做功 = 动能增量)
+    const keChart = simulationResult?.charts?.ke_t;
+    const Ek = interpSeries(keChart, t);
+    const Ek0 = keChart?.points?.[0]?.y ?? 0;
+    const dEk = Ek - Ek0;
+
+    // 运动方块 (沿水平轨道按位移 s 移动)
+    const trackY = height * 0.42;
+    const startX = width * 0.12;
+    const trackLen = width * 0.55;
+    const sMax = v0 * duration + 0.5 * a * duration * duration;
+    const blockX = startX + Math.min(1, s / Math.max(1e-6, sMax)) * trackLen;
+
+    ctx.strokeStyle = isDark ? '#64748b' : '#94a3b8';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(startX, trackY + 28);
+    ctx.lineTo(startX + trackLen, trackY + 28);
+    ctx.stroke();
+
+    // 方块
+    ctx.fillStyle = '#f59e0b';
+    roundRectPath(ctx, blockX - 18, trackY - 18, 36, 36, 5);
+    ctx.fill();
+    // 力箭头
+    ctx.strokeStyle = '#ef4444';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(blockX + 18, trackY);
+    ctx.lineTo(blockX + 18 + 40, trackY);
+    ctx.stroke();
+    arrowHead(ctx, blockX + 18, trackY, blockX + 18 + 40, trackY, 9, '#ef4444');
+    ctx.fillStyle = isDark ? '#e2e8f0' : '#1e293b';
+    ctx.font = '12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('F', blockX + 18 + 20, trackY - 8);
+
+    // 位移标注
+    ctx.strokeStyle = isDark ? '#94a3b8' : '#475569';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(startX, trackY + 34);
+    ctx.lineTo(blockX, trackY + 34);
+    ctx.stroke();
+    ctx.fillStyle = isDark ? '#cbd5e1' : '#334155';
+    ctx.fillText(`s = ${s.toFixed(2)} m`, (startX + blockX) / 2, trackY + 48);
+
+    // W 与 ΔEk 柱状对比
+    const barX = width * 0.78;
+    const barBaseY = height * 0.82;
+    const barMaxH = height * 0.5;
+    const wVal = Math.max(0, W);
+    const ekVal = Math.max(0, dEk);
+    const refMax = Math.max(wVal, ekVal, 1e-6);
+    const wH = (wVal / refMax) * barMaxH;
+    const ekH = (ekVal / refMax) * barMaxH;
+
+    ctx.fillStyle = '#3b82f6';
+    ctx.fillRect(barX, barBaseY - wH, 36, wH);
+    ctx.fillStyle = '#f59e0b';
+    ctx.fillRect(barX + 52, barBaseY - ekH, 36, ekH);
+
+    ctx.fillStyle = isDark ? '#e2e8f0' : '#1e293b';
+    ctx.font = '12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('W', barX + 18, barBaseY + 16);
+    ctx.fillText('ΔEk', barX + 70, barBaseY + 16);
+    ctx.textAlign = 'left';
+
+    const equal = Math.abs(W - dEk) < Math.max(1e-6, Math.abs(W) * 0.02);
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'm', value: `${m} kg` },
+            { label: 'F', value: `${F} N` },
+            { label: 'W', value: `${W.toFixed(2)} J` },
+            { label: 'ΔEk', value: `${dEk.toFixed(2)} J` },
+            { label: 'W=ΔEk', value: equal ? '✓' : '…' }
+        ],
+        {
+            boxX: 10,
+            boxY: 42,
+            boxW: 210,
+            lineH: 16,
+            borderStroke: isDark ? 'rgba(148,163,184,0.3)' : 'rgba(100,116,139,0.25)',
+            bgAlpha: { dark: 0.78, light: 0.88 }
+        }
+    );
 }
