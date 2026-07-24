@@ -147,8 +147,18 @@ export function EquipmentStage({ rig, cameraPosition, cameraTarget, caption }: E
 
         createEnvironment(scene);
 
-        // 器材
-        const { group: equipmentGroup, handles: equipmentHandles } = rig.buildEquipment(scene, parameters);
+        // 器材 — try-catch 防御：rig.buildEquipment 抛错时用空 group 兜底，避免白屏
+        let equipmentGroup: THREE.Group;
+        let equipmentHandles: Record<string, unknown>;
+        try {
+            const built = rig.buildEquipment(scene, parameters);
+            equipmentGroup = built.group;
+            equipmentHandles = built.handles;
+        } catch (err) {
+            console.error('[EquipmentStage] buildEquipment failed:', err);
+            equipmentGroup = new THREE.Group();
+            equipmentHandles = {};
+        }
         scene.add(equipmentGroup);
 
         // 运动证据
