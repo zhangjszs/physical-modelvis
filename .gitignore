@@ -50,3 +50,4 @@ coverage/
 
 # WorkBuddy agent state (local memory/cache, must not be committed)
 .workbuddy/
+.claude/
