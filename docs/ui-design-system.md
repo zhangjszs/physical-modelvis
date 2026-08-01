@@ -2,7 +2,7 @@
 
 > 本规范在现有 `visualization/src/styles.css` 的双主题 token 基础上，**扩展一层玻璃拟态（Glassmorphism）视觉语言**，用于统一平台所有界面。目标是：美观、沉浸、且符合高中生/教师的操作习惯；同时保持 WCAG AA 无障碍与现有三栏工作台结构不变。
 >
-> 设计预览：`design-system-preview.html`（根目录，浏览器直接打开）。
+> 设计预览：`docs/design-system-preview.html`（浏览器直接打开）。
 
 ---
 
@@ -199,4 +199,4 @@
 **UI Designer**：像素君（UI Designer 专家）
 **日期**：2026-07-14
 **状态**：设计地基已就绪，待前端按 §7 对接实现
-**预览**：`design-system-preview.html`
+**预览**：`docs/design-system-preview.html`

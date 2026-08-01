@@ -8,7 +8,7 @@
 
 - **176 个实验整理**：覆盖人教版高中物理 6 册 / 27 章 / 176 个实验
 - **123 个可视化场景**：3D 实验引擎懒加载渲染，覆盖力学 / 电磁学 / 热学 / 光学 / 近代物理
-- **108 个物理模型**：自研零依赖 TypeScript 引擎，解析解为主，电磁复合场用 Boris 数值积分
+- **113 个物理模型**：自研零依赖 TypeScript 引擎，解析解为主，电磁复合场用 Boris 数值积分
 - **实时动画**：Canvas 2D 渲染，支持轨迹、向量、场线可视化
 - **参数调节**：滑块实时调节物理参数，自动重新求解
 - **曲线图**：位移-时间、速度-时间、能量-时间等 8 种图表，与动画同步
@@ -22,7 +22,7 @@
 physical_modelvis/
 ├── physics-core/          # TypeScript 物理引擎（零依赖）
 │   ├── src/
-│   │   ├── models/        # 108 个物理模型
+│   │   ├── models/        # 113 个物理模型
 │   │   ├── math/          # Vec2D 向量运算
 │   │   ├── types/         # 类型定义 (PhysicsProblem, SimulationResult)
 │   │   ├── units/         # 单位换算和物理常数
@@ -32,7 +32,7 @@ physical_modelvis/
 ├── visualization/         # React 可视化前端
 │   ├── src/
 │   │   ├── components/    # UI 组件（Canvas / 图表 / 控制面板 / OCR / 3D 实验引擎）
-│   │   ├── scenes/        # 123 个场景配置 (sceneRegistry)
+│   │   ├── scenes/        # 123 个场景配置 (scenes/scenes/ 按章节分组)
 │   │   ├── rendering/     # Canvas 渲染器
 │   │   ├── adapters/      # physics-core 适配器
 │   │   ├── store/         # Zustand 状态管理
@@ -111,7 +111,7 @@ npm run test:viz
 
 ## 物理模型
 
-physics-core 提供 108 个物理模型，全部通过 `registerModel` 自动注册到全局路由表。下表仅列举代表性模型：
+physics-core 提供 113 个物理模型，全部通过 `registerModel` 自动注册到全局路由表。下表仅列举代表性模型：
 
 | 模型 | 类型 | 求解方法 | 说明 |
 |------|------|----------|------|
@@ -274,10 +274,10 @@ cd visualization && npm run dev          # Vite dev server
 ## 测试覆盖
 
 ```
-physics-core:   843 tests passed (60 files)
-visualization:  255 tests passed (15 files)
+physics-core:   861 tests passed (62 files)
+visualization:  393 tests passed (18 files)
 ─────────────────────────────────────────────
-Total:         1098 tests passed
+Total:         1254 tests passed
 ```
 
 准确性测试矩阵（`*/tests/accuracy/`）：
