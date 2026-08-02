@@ -89,6 +89,36 @@ heat-direction / adiabatic-compression / energy-transformation / load-voltage / 
 契约测试 `visualization/tests/accuracy/single-source-contract.test.ts`(4 用例)固化:
 引擎椭圆性/周期非线性/速度非匀速的物理不变量,渲染层若回退自算公式即拦截。
 
+## 第 2 批迁移进展 (2026-08-02)
+
+力学剩余 + 波形类,契约测试 4 → 9 用例:
+
+| 场景 | 迁移方式 | 备注 |
+|------|---------|------|
+| `transmission-belt` | **不迁移 (B 类语义)** | 引擎仅输出静态关系 charts (omega_comparison/v_surfaces/r_omega_inverse/gear_ratio), 无逐时轨迹; 转轮动画属渲染层合理示意图 |
+| `projectile-collision` | 读 `diagnostics.maxValues` (OP/OM/ON/tFall/v1After/v2After/pBefore/pAfter) | 碰后速度/动量面板/HUD 不再自算解析公式; 回退保留 |
+| `inertia` | 读引擎双轨迹 `getFrame(sim, t, 0/1)` (上下物体), 像素映射 `x·scale+cx, groundY−y·scale` | 回退原 shake 自算 |
+| `sound-waveform` | 读 `charts.waveform_t` (x 轴 ms), 行波快照等效时移 `t_eng=(t−x/vPx) mod duration` 二分插值, `vPx=ω/k` | 与原 sin(kx−ωt) 恒等; 回退保留 |
+| `mechanical-wave` | 9 tracked 质点 (x=−1..3) 间线性插值驱动 60 粒子, `engineCount=trajs.length−1` 去掉末尾 snapshot | **附带修复引擎干涉公式 bug** (见下); 回退保留 |
+| `lc-oscillator` | 读 `charts.x_t/y_t/ke_t/pe_t` (μC/mA/μJ, x 轴 μs, 覆盖 2T), `interp()` 二分插值 + mod 2e6; q/i/Ee/Em 与 Q/I 曲线数组均改引擎 | 键名≠语义名 (q_t/i_t/Ee_t/Em_t), 类型强转访问; 回退保留 |
+
+### 引擎 bug 修复:mechanical-wave 干涉方向
+
+- 原公式 `sin(ωt + dir2·k·x + φ2)`, dir2=−1 时两列波**同向传播**, 不产生驻波 (旧单测是 ωt=12π 巧合假阳性)
+- 修复为 `sin(ωt − dir2·k·x + φ2)`: dir2=−1 → ωt+kx 反向传播, 形成驻波
+- 单测改为: 波节 x=(2n+1)λ/4 处振幅 < 0.02, 波腹 x=nλ/2 处振幅 > 0.15 (λ=0.4, 波节/波腹均落 tracked 质点)
+- 教训: 断言抄模型行为会被"巧合"骗过 (12π·0=0), 必须从物理先推导期望值
+
+### 契约测试新增 (4 → 9)
+
+| 场景 | 断言 |
+|------|------|
+| sound-waveform | 复合音谐波成分 (峰值间距≠T); 时域波形与行波快照等效时移一致 |
+| mechanical-wave | 9 tracked 质点轨迹; snapshot 起伏; 干涉驻波节点/波腹 (λ=0.4) |
+| lc-oscillator | q(0)=1μC, i(0)≈0, q/i 90° 相位差, 能量守恒 Ee+Em=Q₀²/2C |
+
+core 测试数 881 → 917 (机械波单测重构 + 断言补齐), viz 393 → 402。
+
 ## 迁移建议
 
 阶段 3 迁移顺序:

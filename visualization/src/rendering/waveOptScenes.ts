@@ -51,7 +51,7 @@ const PURPLE = '#a855f7';
 // ========== 1. 声波波形 ==========
 
 export function drawSoundWaveformScene(o: WaveOptSceneOptions) {
-    const { ctx, width: w, height: h, isDark, params, currentTime: t } = o;
+    const { ctx, width: w, height: h, isDark, params, currentTime: t, simulationResult } = o;
     clearScene(ctx, w, h, isDark);
     drawTitle(ctx, '声波波形', w, isDark, { size: 20, y: 32 });
 
@@ -62,6 +62,28 @@ export function drawSoundWaveformScene(o: WaveOptSceneOptions) {
     const centerY = h / 2;
     const k = (2 * Math.PI) / Math.max(lambda, 1);
     const omega = 2 * Math.PI * freq;
+
+    // 引擎波形 (时域, ms 轴): y(x) = engine_wave[(t - x/v) mod duration] — 行波快照等效时移
+    // 波形数组已含 duration 跨度, 用二分+线性插值采样
+    const enginePts = (
+        simulationResult?.charts as { waveform_t?: { points: Array<{ x: number; y: number }> } } | undefined
+    )?.waveform_t?.points;
+    const engDuration = enginePts && enginePts.length > 1 ? enginePts[enginePts.length - 1]!.x - enginePts[0]!.x : 0;
+    const sampleWave = (tEng: number): number => {
+        if (!enginePts || enginePts.length < 2) return 0;
+        const tMs = ((((tEng * 1000) % engDuration) + engDuration) % engDuration) + enginePts[0]!.x;
+        let lo = 0;
+        let hi = enginePts.length - 1;
+        while (hi - lo > 1) {
+            const mid = (lo + hi) >> 1;
+            if (enginePts[mid]!.x < tMs) lo = mid;
+            else hi = mid;
+        }
+        const p0 = enginePts[lo]!;
+        const p1 = enginePts[hi]!;
+        if (p1.x - p0.x < 1e-9) return p0.y;
+        return p0.y + ((p1.y - p0.y) * (tMs - p0.x)) / (p1.x - p0.x);
+    };
 
     // 波源 (喇叭)
     ctx.save();
@@ -79,12 +101,20 @@ export function drawSoundWaveformScene(o: WaveOptSceneOptions) {
     ctx.fillText('声源', 55, centerY - 55);
     ctx.restore();
 
-    // y-x 波形
+    // y-x 波形 (行波快照: 读引擎时域波形 + 空间相位偏移)
     ctx.strokeStyle = isDark ? '#38bdf8' : '#0284c7';
     ctx.lineWidth = 2;
     ctx.beginPath();
+    // 屏幕行波速度 (px/s): 原公式 sin(k·x - ω·t) 中 ω/k 决定快照平移速度
+    const vPx = omega / k;
     for (let x = 0; x < w; x++) {
-        const y = centerY + amp * Math.sin(k * x - omega * t);
+        let y: number;
+        if (enginePts) {
+            const tEng = t - x / vPx;
+            y = centerY + amp * sampleWave(tEng);
+        } else {
+            y = centerY + amp * Math.sin(k * x - omega * t);
+        }
         if (x === 0) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
     }

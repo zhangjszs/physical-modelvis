@@ -56,7 +56,7 @@ export class MechanicalWaveModel extends PhysicsModelBase {
         // 第二列波参数 (干涉模式)
         const A2 = wc.amplitude2 ?? A;
         const phi2 = wc.phaseDiff ?? Math.PI; // 波2 相对波1 的相位差
-        const dir2 = wc.direction2 ?? -1; // +1 = 同向传播; -1 = 反向 (对向干涉)
+        const dir2 = wc.direction2 ?? -1; // +1 = 同向 (ωt−kx); -1 = 反向 (ωt+kx, 对向干涉)
 
         // 质点平衡位置
         const dx = (xEnd - xStart) / (N - 1);
@@ -81,7 +81,7 @@ export class MechanicalWaveModel extends PhysicsModelBase {
         const mass = problem.bodies[0]?.mass.value ?? 1;
 
         // 解析解采样: 9 个 tracked 质点的振动轨迹, 每质点独立调用 sampleTrajectory
-        //   yᵢ(t) = A·sin(ωt − k·xEqᵢ)  (+ A2·sin(ωt + dir2·k·xEqᵢ + φ2) 干涉模式)
+        //   yᵢ(t) = A·sin(ωt − k·xEqᵢ)  (+ A2·sin(ωt − dir2·k·xEqᵢ + φ2) 干涉模式)
         //  (公共脚手架 sampleTrajectory — 消除原有 time×particle 双层循环)
         for (let ti = 0; ti < tracked.length; ti++) {
             const xEq = x0[tracked[ti]!]!;
@@ -91,14 +91,14 @@ export class MechanicalWaveModel extends PhysicsModelBase {
                 sampleAt: t => {
                     const phase1 = omega * t - k * xEq;
                     const y1 = A * Math.sin(phase1);
-                    const y2 = mode === 'interference' ? A2 * Math.sin(omega * t + dir2 * k * xEq + phi2) : 0;
+                    const y2 = mode === 'interference' ? A2 * Math.sin(omega * t - dir2 * k * xEq + phi2) : 0;
                     const y = y1 + y2;
 
                     const pos = mode === 'longitudinal' ? { x: xEq + y, y: 0 } : { x: xEq, y: -y }; // 屏幕 y 向下, 物理位移 y 为正则屏幕 y 减小
                     // 速度 (解析微分)
                     const vPhase1 = A * omega * Math.cos(phase1);
                     const vPhase2 =
-                        mode === 'interference' ? A2 * omega * Math.cos(omega * t + dir2 * k * xEq + phi2) : 0;
+                        mode === 'interference' ? A2 * omega * Math.cos(omega * t - dir2 * k * xEq + phi2) : 0;
                     const vTotal = vPhase1 + vPhase2;
                     const vel = mode === 'longitudinal' ? { x: vTotal, y: 0 } : { x: 0, y: -vTotal };
 
@@ -124,7 +124,7 @@ export class MechanicalWaveModel extends PhysicsModelBase {
                 const xEq = x0[i]!;
                 const phase1 = omega * t - k * xEq;
                 const y1 = A * Math.sin(phase1);
-                const y2 = mode === 'interference' ? A2 * Math.sin(omega * t + dir2 * k * xEq + phi2) : 0;
+                const y2 = mode === 'interference' ? A2 * Math.sin(omega * t - dir2 * k * xEq + phi2) : 0;
                 const y = y1 + y2;
                 waveSnapshot.push({
                     t: xEq, // 用 t 字段暂存 x 坐标 (展示时直接读取 position)

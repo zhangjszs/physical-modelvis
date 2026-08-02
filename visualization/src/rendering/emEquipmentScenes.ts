@@ -1489,11 +1489,39 @@ export function drawLCOscillatorScene(opts: EmEquipSceneOptions): void {
     const Im = Q0 * omega;
     const E_total = (Q0 * Q0) / (2 * C);
 
-    // 当前状态
-    const qNow = Q0 * Math.cos(omega * currentTime);
-    const iNow = -Q0 * omega * Math.sin(omega * currentTime);
-    const EeNow = (qNow * qNow) / (2 * C);
-    const EmNow = (L * iNow * iNow) / 2;
+    // 当前状态: 优先读引擎 charts (q_t μC / i_t mA / Ee_t, Em_t μJ), 回退自算解析公式
+    const engCharts = simulationResult?.charts as
+        | {
+              x_t?: { points: Array<{ x: number; y: number }> }; // q(t) μC
+              y_t?: { points: Array<{ x: number; y: number }> }; // i(t) mA
+              ke_t?: { points: Array<{ x: number; y: number }> }; // Ee(t) μJ
+              pe_t?: { points: Array<{ x: number; y: number }> }; // Em(t) μJ
+          }
+        | undefined;
+    const interp = (pts: Array<{ x: number; y: number }> | undefined, tUs: number): number | null => {
+        if (!pts || pts.length < 2) return null;
+        const tt = (((tUs % 2e6) + 2e6) % 2e6) + pts[0]!.x; // 引擎覆盖 2T; 取模循环
+        let lo = 0;
+        let hi = pts.length - 1;
+        while (hi - lo > 1) {
+            const mid = (lo + hi) >> 1;
+            if (pts[mid]!.x < tt) lo = mid;
+            else hi = mid;
+        }
+        const p0 = pts[lo]!;
+        const p1 = pts[hi]!;
+        if (p1.x - p0.x < 1e-9) return p0.y;
+        return p0.y + ((p1.y - p0.y) * (tt - p0.x)) / (p1.x - p0.x);
+    };
+    const curTusAll = (currentTime % (2 * T)) * 1e6;
+    const qUs = interp(engCharts?.x_t?.points, curTusAll);
+    const iMa = interp(engCharts?.y_t?.points, curTusAll);
+    const EeUj = interp(engCharts?.ke_t?.points, curTusAll);
+    const EmUj = interp(engCharts?.pe_t?.points, curTusAll);
+    const qNow = qUs !== null ? qUs * 1e-6 : Q0 * Math.cos(omega * currentTime);
+    const iNow = iMa !== null ? iMa * 1e-3 : -Q0 * omega * Math.sin(omega * currentTime);
+    const EeNow = EeUj !== null ? EeUj * 1e-6 : (qNow * qNow) / (2 * C);
+    const EmNow = EmUj !== null ? EmUj * 1e-6 : (L * iNow * iNow) / 2;
 
     // 布局
     const titleH = 28;
@@ -1683,12 +1711,19 @@ export function drawLCOscillatorScene(opts: EmEquipSceneOptions): void {
         const Q_Y: number[] = [];
         const I_X: number[] = [];
         const I_Y: number[] = [];
+        const qPts = engCharts?.x_t?.points;
+        const iPts = engCharts?.y_t?.points;
         for (let i = 0; i <= N; i++) {
             const ti = (tMax * i) / N;
-            Q_X.push(ti * 1e6);
-            Q_Y.push(Q0 * Math.cos(omega * ti) * 1e6);
-            I_X.push(ti * 1e6);
-            I_Y.push(-Q0 * omega * Math.sin(omega * ti) * 1e3);
+            const tiUs = ti * 1e6;
+            Q_X.push(tiUs);
+            Q_Y.push(qPts ? (interp(qPts, tiUs) ?? Q0 * Math.cos(omega * ti) * 1e6) : Q0 * Math.cos(omega * ti) * 1e6);
+            I_X.push(tiUs);
+            I_Y.push(
+                iPts
+                    ? (interp(iPts, tiUs) ?? -Q0 * omega * Math.sin(omega * ti) * 1e3)
+                    : -Q0 * omega * Math.sin(omega * ti) * 1e3
+            );
         }
 
         const yAll = [...Q_Y, ...I_Y];

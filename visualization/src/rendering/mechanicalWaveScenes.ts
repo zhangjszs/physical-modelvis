@@ -13,6 +13,7 @@ import {
     drawInfoBar,
     drawEmptyState,
     drawArrow,
+    getFrame,
     placeholder,
     maxOf,
     clearScene
@@ -50,53 +51,85 @@ export function drawMechanicalWaveScene(opts: MechanicsSceneOptions): void {
 
     drawTitle(ctx, `机械波: ${modeNames[waveMode]}`, width, isDark);
 
+    // 引擎轨迹: 9 个 tracked 质点 (x = -1, -0.5, ..., 3) + 1 条 waveSnapshot
+    // 像素映射: x ∈ [-1,3] → [leftX,rightX], 位移 → ampPx/amplitude 比例
+    const engineTraj = simulationResult?.trajectories;
+    const engineCount = Math.max(0, (engineTraj?.length ?? 0) - 1); // 去掉末尾 snapshot
+    const mapX = (xPhys: number): number => leftX + ((xPhys + 1) / 4) * (rightX - leftX);
+    const ampScale = engineCount > 0 ? ampPx / Math.max(0.001, amplitude) : 1;
+
+    // tracked 质点平衡位置 (与引擎 x0 采样一致): -1, -0.5, ..., 3
+    const engEqX: number[] = [];
+    for (let i = 0; i < engineCount; i++) engEqX.push(-1 + (4 / (9 - 1)) * i);
+
     // 传播方向箭头
     drawArrow(ctx, width * 0.4, cy - ampPx - 30, width * 0.6, cy - ampPx - 30, BLUE, '传播方向');
 
+    let prevPx: number | null = null;
+    let prevPy: number | null = null;
     for (let i = 0; i < particleCount; i++) {
         const x0 = leftX + i * spacing;
-        const xPhys = (i / particleCount) * (wavelength * 4);
+        // 粒子覆盖引擎 tracked 范围 [-1, 3] (与引擎 x0 采样一致), 任何 λ 下插值均有效
+        const xPhys = -1 + (4 * i) / particleCount;
+        const xEng = xPhys;
 
-        let displacement: number;
-        if (waveMode === 2) {
-            displacement = 2 * Math.sin(k * xPhys) * Math.cos(omega * currentTime);
-        } else {
-            displacement = Math.sin(omega * currentTime - k * xPhys);
-        }
+        // 引擎插值: 找相邻 tracked 质点, 线性插值位移
+        const dispEng = (xi: number, useX = false): number | null => {
+            if (engineCount < 2) return null;
+            if (xi <= engEqX[0]!)
+                return useX
+                    ? (getFrame(simulationResult, currentTime, 0)?.position.x ?? null)
+                    : (getFrame(simulationResult, currentTime, 0)?.position.y ?? null);
+            for (let k = 0; k < engineCount - 1; k++) {
+                if (xi >= engEqX[k]! && xi <= engEqX[k + 1]!) {
+                    const f0 = getFrame(simulationResult, currentTime, k);
+                    const f1 = getFrame(simulationResult, currentTime, k + 1);
+                    if (!f0 || !f1) return null;
+                    const span = engEqX[k + 1]! - engEqX[k]!;
+                    const w = span > 0 ? (xi - engEqX[k]!) / span : 0;
+                    const v0 = useX ? f0.position.x : f0.position.y;
+                    const v1 = useX ? f1.position.x : f1.position.y;
+                    return v0 + (v1 - v0) * w;
+                }
+            }
+            return useX
+                ? (getFrame(simulationResult, currentTime, engineCount - 1)?.position.x ?? null)
+                : (getFrame(simulationResult, currentTime, engineCount - 1)?.position.y ?? null);
+        };
 
         if (waveMode === 1) {
-            const dx = displacement * ampPx * 0.5;
-            const px = x0 + dx;
-            const density = 1 - displacement * 0.3;
+            // 纵波: 引擎 position.x = xEq + 位移 (粒子沿传播方向振动)
+            const engDisp = dispEng(xEng, true);
+            const px = engDisp !== null ? mapX(engDisp) : x0 + Math.sin(omega * currentTime - k * xPhys) * ampPx * 0.5;
+            const densityC = 1 - Math.abs(px - x0) * 0.006;
             ctx.fillStyle = isDark
-                ? `rgba(96,165,250,${0.5 + density * 0.3})`
-                : `rgba(59,130,246,${0.5 + density * 0.3})`;
+                ? `rgba(96,165,250,${0.5 + densityC * 0.3})`
+                : `rgba(59,130,246,${0.5 + densityC * 0.3})`;
             ctx.beginPath();
-            ctx.arc(px, cy, 4 * density + 2, 0, Math.PI * 2);
+            ctx.arc(px, cy, 4 * densityC + 2, 0, Math.PI * 2);
             ctx.fill();
         } else {
-            const dy = displacement * ampPx;
-            const py = cy - dy;
-            const grad = ctx.createRadialGradient(x0 - 1, py - 1, 1, x0, py, 5);
+            // 横波/干涉: 引擎 position.y = -y_phys (屏幕向下), 平衡位置 x 已知
+            const engY = dispEng(xEng, false);
+            const engEqXpx = mapX(xEng + 1); // 平衡位置
+            const py = engY !== null ? cy + engY * ampScale : cy - Math.sin(omega * currentTime - k * xPhys) * ampPx;
+            const grad = ctx.createRadialGradient(engEqXpx - 1, py - 1, 1, engEqXpx, py, 5);
             grad.addColorStop(0, '#93c5fd');
             grad.addColorStop(1, BLUE);
             ctx.fillStyle = grad;
             ctx.beginPath();
-            ctx.arc(x0, py, 5, 0, Math.PI * 2);
+            ctx.arc(engEqXpx, py, 5, 0, Math.PI * 2);
             ctx.fill();
-            if (i > 0) {
-                const prevDisp =
-                    waveMode === 2
-                        ? 2 * Math.sin(k * ((i - 1) / particleCount) * wavelength * 4) * Math.cos(omega * currentTime)
-                        : Math.sin(omega * currentTime - k * ((i - 1) / particleCount) * wavelength * 4);
-                const prevY = cy - prevDisp * ampPx;
+            if (prevPx !== null && prevPy !== null) {
                 ctx.strokeStyle = isDark ? 'rgba(96,165,250,0.3)' : 'rgba(59,130,246,0.25)';
                 ctx.lineWidth = 1;
                 ctx.beginPath();
-                ctx.moveTo(leftX + (i - 1) * spacing, prevY);
-                ctx.lineTo(x0, py);
+                ctx.moveTo(prevPx, prevPy);
+                ctx.lineTo(engEqXpx, py);
                 ctx.stroke();
             }
+            prevPx = engEqXpx;
+            prevPy = py;
         }
     }
 

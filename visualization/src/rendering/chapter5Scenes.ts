@@ -474,6 +474,27 @@ export function drawProjectileCollisionScene(opts: MechanicsSceneOptions): void 
     const e = params['restitution'] ?? 1;
     const g = params['gravity'] ?? 9.8;
     const tFall = Math.sqrt((2 * tableH) / g);
+    const v1After = ((m1 - e * m2) * v1) / (m1 + m2);
+    const v2After = ((1 + e) * m1 * v1) / (m1 + m2);
+    const maxVals = simulationResult?.diagnostics?.maxValues as
+        | {
+              OP?: number;
+              OM?: number;
+              ON?: number;
+              tFall?: number;
+              v1After?: number;
+              v2After?: number;
+              pBefore?: number;
+              pAfter?: number;
+          }
+        | undefined;
+    const engT = maxVals?.tFall ?? tFall;
+    const engV1After = maxVals?.v1After ?? v1After;
+    const engV2After = maxVals?.v2After ?? v2After;
+    const OP = maxVals?.OP ?? v1 * engT;
+    const OM = maxVals?.OM ?? engV1After * engT;
+    const ON = maxVals?.ON ?? engV2After * engT;
+    const fallScale = 150 / Math.max(0.01, tableH);
 
     const groundY = height - 50;
     const tableTop = groundY - tableH * 150;
@@ -505,8 +526,6 @@ export function drawProjectileCollisionScene(opts: MechanicsSceneOptions): void 
 
     const collisionX = tableRight;
     const collisionY = tableTop;
-    const v1After = ((m1 - e * m2) * v1) / (m1 + m2);
-    const v2After = ((1 + e) * m1 * v1) / (m1 + m2);
     const isPreCollision = currentTime < 0.3;
 
     if (isPreCollision) {
@@ -528,9 +547,9 @@ export function drawProjectileCollisionScene(opts: MechanicsSceneOptions): void 
     } else {
         const tAfter = currentTime - 0.3;
         const fallY = 0.5 * g * tAfter * tAfter;
-        const fallYpx = (fallY * 150) / Math.max(0.01, tableH);
+        const fallYpx = fallY * fallScale;
 
-        const ball1X = collisionX + v1After * tAfter * 40;
+        const ball1X = collisionX + engV1After * tAfter * 40;
         const ball1Y = collisionY + fallYpx;
         if (ball1Y < groundY) {
             const g1 = ctx.createRadialGradient(ball1X - 3, ball1Y - 3, 2, ball1X, ball1Y, 10);
@@ -542,7 +561,7 @@ export function drawProjectileCollisionScene(opts: MechanicsSceneOptions): void 
             ctx.fill();
         }
 
-        const ball2X = collisionX + v2After * tAfter * 40;
+        const ball2X = collisionX + engV2After * tAfter * 40;
         const ball2Y = collisionY + fallYpx;
         if (ball2Y < groundY) {
             const g2 = ctx.createRadialGradient(ball2X - 3, ball2Y - 3, 2, ball2X, ball2Y, 10);
@@ -554,9 +573,9 @@ export function drawProjectileCollisionScene(opts: MechanicsSceneOptions): void 
             ctx.fill();
         }
 
-        const opX = collisionX + v1 * tFall * 40;
-        const omX = collisionX + v1After * tFall * 40;
-        const onX = collisionX + v2After * tFall * 40;
+        const opX = collisionX + OP * 40;
+        const omX = collisionX + OM * 40;
+        const onX = collisionX + ON * 40;
 
         ctx.setLineDash([3, 3]);
         ctx.strokeStyle = isDark ? 'rgba(148,163,184,0.3)' : 'rgba(100,116,139,0.2)';
@@ -576,8 +595,8 @@ export function drawProjectileCollisionScene(opts: MechanicsSceneOptions): void 
         ctx.setLineDash([]);
     }
 
-    const pBefore = m1 * v1;
-    const pAfter = m1 * v1After + m2 * v2After;
+    const pBefore = maxVals?.pBefore ?? m1 * v1;
+    const pAfter = maxVals?.pAfter ?? m1 * engV1After + m2 * engV2After;
     ctx.fillStyle = panelFill(isDark);
     roundRectPath(ctx, width * 0.6, height * 0.2, 220, 80, 8);
     ctx.fill();
@@ -590,9 +609,9 @@ export function drawProjectileCollisionScene(opts: MechanicsSceneOptions): void 
 
     drawHud(ctx, isDark, [
         { label: 'v₁', value: `${v1} m/s` },
-        { label: "v₁'", value: `${v1After.toFixed(2)} m/s` },
-        { label: "v₂'", value: `${v2After.toFixed(2)} m/s` },
-        { label: 't_fall', value: `${tFall.toFixed(3)} s` }
+        { label: "v₁'", value: `${engV1After.toFixed(2)} m/s` },
+        { label: "v₂'", value: `${engV2After.toFixed(2)} m/s` },
+        { label: 't_fall', value: `${engT.toFixed(3)} s` }
     ]);
     drawInfoBar(ctx, width, height, `m₁=${m1}kg  m₂=${m2}kg  v₁=${v1}m/s  e=${e}  h=${tableH}m`, isDark);
     if (!simulationResult) drawEmptyState(ctx, width, height, isDark);

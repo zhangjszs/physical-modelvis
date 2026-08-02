@@ -43,12 +43,25 @@ const RED = '#ef4444';
 const PURPLE = '#a855f7';
 
 export function drawInertiaScene(opts: MechanicsSceneOptions): void {
-    const { ctx, width, height, isDark, params, currentTime } = opts;
+    const { ctx, width, height, isDark, params, simulationResult, currentTime } = opts;
     const mode = Math.round(params['mode'] ?? 0);
     const groundY = height * 0.67;
     const shake = Math.sin(currentTime * 12) * 5;
     drawTitle(ctx, '惯性实验: 物体保持原有运动状态', width, isDark);
     drawGround(ctx, groundY, width, isDark);
+
+    // 引擎轨迹 (物理米, y 向上): [上方物体, 下方物体]; 像素映射: x*scale + cx, groundY - y*scale
+    const engFrameTop = getFrame(simulationResult, currentTime, 0);
+    const engFrameBottom = getFrame(simulationResult, currentTime, 1);
+    const scale = Math.min(height * 0.22, width * 0.2);
+    const cx = width * 0.42;
+    const posTop = engFrameTop
+        ? { x: cx + engFrameTop.position.x * scale, y: groundY - engFrameTop.position.y * scale }
+        : undefined;
+    const posBottom = engFrameBottom
+        ? { x: cx + engFrameBottom.position.x * scale, y: groundY - engFrameBottom.position.y * scale }
+        : undefined;
+
     if (mode === 1) {
         drawBlock(ctx, width * 0.5 + shake, groundY - 14, 160, 14, BLUE, isDark, '纸板');
         drawEgg(ctx, width * 0.5, groundY - 58, isDark);
@@ -61,8 +74,12 @@ export function drawInertiaScene(opts: MechanicsSceneOptions): void {
         drawArrow(ctx, carX + 52, groundY - 26, carX + 120, groundY - 26, GREEN, 'v');
         drawInfoBar(ctx, width, height, '小车突然运动或停止时, 上方物块因惯性出现相对滑动', isDark);
     } else {
-        drawBlock(ctx, width * 0.5 + shake * 2, groundY - 15, 150, 18, BLUE, isDark, '硬纸片');
-        drawBlock(ctx, width * 0.5, groundY - 46, 34, 28, ORANGE, isDark, '棋子');
+        // 棋子打击: 位置读引擎轨迹 (上方棋子 x 恒定 + 自由落体, 下方摩擦减速)
+        const bottomX = posBottom ? posBottom.x : width * 0.5 + shake * 2;
+        const topX = posTop ? posTop.x : width * 0.5;
+        const topY = posTop ? posTop.y : groundY - 46;
+        drawBlock(ctx, bottomX, groundY - 15, 150, 18, BLUE, isDark, '硬纸片');
+        drawBlock(ctx, topX, topY, 34, 28, ORANGE, isDark, '棋子');
         drawBlock(ctx, width * 0.5, groundY + 12, 70, 30, PURPLE, isDark, '杯');
         drawArrow(ctx, width * 0.58, groundY - 16, width * 0.74, groundY - 16, RED, '弹开');
         drawInfoBar(ctx, width, height, '纸片被快速弹开, 棋子因惯性落入杯中', isDark);
