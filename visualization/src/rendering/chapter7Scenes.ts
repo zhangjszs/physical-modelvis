@@ -204,10 +204,29 @@ export function drawSimplePendulumScene(opts: MechanicsSceneOptions): void {
     const T = 2 * Math.PI * Math.sqrt(L / g);
     const omega0 = Math.sqrt(g / L);
 
-    // 当前摆角（简单近似：小角度简谐运动）
-    const angleRad = (angleDeg * Math.PI) / 180;
-    const decay = damping > 0 ? Math.exp(-damping * currentTime * 0.5) : 1;
-    const theta = angleRad * Math.cos(omega0 * currentTime) * decay;
+    // 当前摆角: 优先用引擎 theta_t 图表 (Velocity Verlet 非线性, 大角度精确)
+    // 引擎图表单位是度; 无引擎结果时回退小角度近似
+    const angleRad0 = (angleDeg * Math.PI) / 180;
+    const thetaFromEngine = (() => {
+        const series = simulationResult?.charts?.theta_t;
+        if (!series || !Array.isArray(series.points) || series.points.length < 2) return null;
+        const pts = series.points as Array<{ x: number; y: number }>;
+        if (currentTime <= pts[0]!.x) return (pts[0]!.y * Math.PI) / 180;
+        if (currentTime >= pts[pts.length - 1]!.x) return (pts[pts.length - 1]!.y * Math.PI) / 180;
+        let lo = 0;
+        let hi = pts.length - 1;
+        while (hi - lo > 1) {
+            const mid = (lo + hi) >> 1;
+            if (pts[mid]!.x <= currentTime) lo = mid;
+            else hi = mid;
+        }
+        const frac = (currentTime - pts[lo]!.x) / (pts[hi]!.x - pts[lo]!.x || 1);
+        const deg = pts[lo]!.y + (pts[hi]!.y - pts[lo]!.y) * frac;
+        return (deg * Math.PI) / 180;
+    })();
+    const theta =
+        thetaFromEngine ??
+        angleRad0 * Math.cos(omega0 * currentTime) * (damping > 0 ? Math.exp(-damping * currentTime * 0.5) : 1);
 
     // 布局
     const pivotX = width * 0.5;
@@ -280,12 +299,35 @@ export function drawSimplePendulumScene(opts: MechanicsSceneOptions): void {
     const tensionDir = { x: (pivotX - bobX) / ropeLen, y: (pivotY - bobY) / ropeLen };
     drawArrow(ctx, bobX, bobY, bobX + tensionDir.x * 50, bobY + tensionDir.y * 50, BLUE, 'T');
 
-    // 能量条
+    // 能量条: 优先用引擎 pe_t/ke_t 图表 (动能=½mv² 机械能守恒精确), 回退原近似
+    const energyFromEngine = (key: 'pe_t' | 'ke_t'): number | null => {
+        const series = simulationResult?.charts?.[key];
+        if (!series || !Array.isArray(series.points) || series.points.length < 2) return null;
+        const pts = series.points as Array<{ x: number; y: number }>;
+        if (currentTime <= pts[0]!.x) return pts[0]!.y;
+        if (currentTime >= pts[pts.length - 1]!.x) return pts[pts.length - 1]!.y;
+        let lo = 0;
+        let hi = pts.length - 1;
+        while (hi - lo > 1) {
+            const mid = (lo + hi) >> 1;
+            if (pts[mid]!.x <= currentTime) lo = mid;
+            else hi = mid;
+        }
+        const frac = (currentTime - pts[lo]!.x) / (pts[hi]!.x - pts[lo]!.x || 1);
+        return pts[lo]!.y + (pts[hi]!.y - pts[lo]!.y) * frac;
+    };
+    const PE_engine = energyFromEngine('pe_t');
+    const KE_engine = energyFromEngine('ke_t');
     const h = L * (1 - Math.cos(theta));
-    const v = omega0 * L * Math.abs(Math.sin(omega0 * currentTime)) * decay;
-    const KE = 0.5 * mass * v * v;
-    const PE = mass * g * h;
-    const totalE = mass * g * L * (1 - Math.cos(angleRad));
+    const v = thetaFromEngine
+        ? Math.sqrt(Math.max(0, 2 * g * h))
+        : omega0 *
+          L *
+          Math.abs(Math.sin(omega0 * currentTime)) *
+          (damping > 0 ? Math.exp(-damping * currentTime * 0.5) : 1);
+    const KE = KE_engine ?? 0.5 * mass * v * v;
+    const PE = PE_engine ?? mass * g * h;
+    const totalE = mass * g * L * (1 - Math.cos(angleRad0));
     const barX = width * 0.78;
     const barW = 28;
     const barH = height * 0.45;

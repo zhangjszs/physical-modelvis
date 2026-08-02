@@ -275,8 +275,8 @@ cd visualization && npm run dev          # Vite dev server
 
 ```
 physics-core:   917 tests passed (65 files)
-visualization:  393 tests passed (18 files)
-Total:         1310 tests passed
+visualization:  397 tests passed (19 files)
+Total:         1314 tests passed
 ```
 
 准确性测试矩阵（`*/tests/accuracy/`）：

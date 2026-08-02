@@ -76,10 +76,23 @@ radioactive / decay-statistics / alpha-scattering / fission-chain / heat-transfe
 brownian-motion / melting-curve / surface-tension / joule-electrical / liquid-mixing / perpetuum-mobile /
 heat-direction / adiabatic-compression / energy-transformation / load-voltage / resistance-law / vernier-caliper-tool / micrometer-tool
 
+## 阶段 3 迁移进展 (2026-08-02)
+
+首轮迁移 3 个力学场景,抽查量化分歧后全部改为消费引擎结果:
+
+| 场景 | 迁移前分歧 | 迁移方式 |
+|------|-----------|---------|
+| `orbital` | vFactor=1.2 时引擎椭圆率 1.57, 画面画匀速圆, 分歧 **102.6%** | 卫星位置/速度箭头读 `getFrame`, 按轨道半径比例映射到屏幕; 椭圆形状与不均匀角速度由引擎积分决定 |
+| `simple-pendulum` | θ₀=60° 引擎周期 2.150s vs 小角度近似 2.007s, 偏差 **7.1%** | 摆角读 `charts.theta_t` (度), 能量条读 `charts.pe_t/ke_t`, 线性插值; 无引擎结果时回退原公式 |
+| `vertical-circle` | 引擎最高点 v=0 (机械能守恒) 而渲染无速度概念 | 位置读 `getFrame` 轨迹角度, HUD 增加当前速度 v (引擎积分值) |
+
+契约测试 `visualization/tests/accuracy/single-source-contract.test.ts`(4 用例)固化:
+引擎椭圆性/周期非线性/速度非匀速的物理不变量,渲染层若回退自算公式即拦截。
+
 ## 迁移建议
 
 阶段 3 迁移顺序:
-1. **力学优先**(simple-pendulum / vertical-circle / orbital / transmission-belt / projectile-collision / inertia)— 轨迹明确,直接用 `getFrame(simulationResult, currentTime)`
+1. **力学优先**(simple-pendulum ✅ / vertical-circle ✅ / orbital ✅ / transmission-belt / projectile-collision / inertia)— 轨迹明确,直接用 `getFrame(simulationResult, currentTime)`
 2. **波形类**(sound-waveform / mechanical-wave / water-diffraction / lc-oscillator / em-wave-hertz)— 用引擎 waveform_t / A_f_drive 等 charts
 3. **电磁/传感**(em-induction / eddy-current / mutual-inductance / security-alarm / reed-switch)— 核对模型输出 charts 字段名后迁移
 4. **B 类仪器场景**保留自算,仅核对常量与单位一致

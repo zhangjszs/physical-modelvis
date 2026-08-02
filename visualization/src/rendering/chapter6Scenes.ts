@@ -18,7 +18,8 @@ import {
     drawHud,
     drawInfoBar,
     drawEmptyState,
-    drawArrow
+    drawArrow,
+    getFrame
 } from './renderingUtils';
 
 export interface MechanicsSceneOptions {
@@ -88,11 +89,27 @@ export function drawOrbitalScene(opts: MechanicsSceneOptions): void {
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // 卫星位置
+    // 卫星位置: 优先用引擎轨迹 (真实引力积分), 空结果时回退匀速圆
     const T = (2 * Math.PI * r) / vOrbit;
-    const angle = (currentTime / T) * Math.PI * 2;
-    const satX = cx + orbitR * Math.cos(angle);
-    const satY = cy + orbitR * Math.sin(angle);
+    const fallbackAngle = (currentTime / T) * Math.PI * 2;
+    const frame = getFrame(simulationResult, currentTime);
+    let satX: number;
+    let satY: number;
+    let vAngle: number;
+    if (frame) {
+        // 引擎轨迹以地球中心为原点 (物理米), 按轨道半径比例 + 角度映射到屏幕
+        // 椭圆/逃逸轨道的真实形状与不均匀角速度都由引擎积分决定
+        const orbitScale = Math.hypot(frame.position.x, frame.position.y) / Math.max(r, 1);
+        const angle = Math.atan2(frame.position.y, frame.position.x);
+        satX = cx + orbitR * orbitScale * Math.cos(angle);
+        satY = cy + orbitR * orbitScale * Math.sin(angle);
+        // 速度方向来自引擎 (屏幕 y 向下翻转)
+        vAngle = Math.atan2(-frame.velocity.y, frame.velocity.x);
+    } else {
+        satX = cx + orbitR * Math.cos(fallbackAngle);
+        satY = cy + orbitR * Math.sin(fallbackAngle);
+        vAngle = fallbackAngle + Math.PI / 2;
+    }
 
     // 卫星
     ctx.fillStyle = '#fbbf24';
@@ -103,8 +120,7 @@ export function drawOrbitalScene(opts: MechanicsSceneOptions): void {
     ctx.fillRect(satX - 20, satY - 3, 12, 6);
     ctx.fillRect(satX + 8, satY - 3, 12, 6);
 
-    // 速度箭头
-    const vAngle = angle + Math.PI / 2;
+    // 速度箭头 (方向来自引擎轨迹速度, 椭圆上非切线垂直)
     drawArrow(ctx, satX, satY, satX + Math.cos(vAngle) * 40, satY + Math.sin(vAngle) * 40, GREEN, 'v');
 
     // 引力箭头

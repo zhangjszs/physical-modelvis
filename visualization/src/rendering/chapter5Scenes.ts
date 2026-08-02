@@ -601,7 +601,7 @@ export function drawProjectileCollisionScene(opts: MechanicsSceneOptions): void 
 // ======================= Task 5: 波动场景 =======================
 
 export function drawVerticalCircleScene(opts: MechanicsSceneOptions): void {
-    const { ctx, width, height, isDark, params, currentTime } = opts;
+    const { ctx, width, height, isDark, params, simulationResult, currentTime } = opts;
     const length = params['length'] ?? 1;
     const mass = params['mass'] ?? 0.2;
     const v0 = params['initialSpeed'] ?? 5;
@@ -610,11 +610,25 @@ export function drawVerticalCircleScene(opts: MechanicsSceneOptions): void {
     const cx = width * 0.52;
     const cy = height * 0.5;
     const omega = v0 / Math.max(0.1, length);
-    const angle = -Math.PI / 2 + omega * currentTime;
-    const x = cx + r * Math.cos(angle);
-    const y = cy + r * Math.sin(angle);
     const critical = Math.sqrt(g * length);
     const topOk = v0 >= critical;
+
+    // 物体位置: 优先用引擎轨迹 (机械能守恒 v²=v₀²−2gr(1−cosθ), 非匀速)
+    // 引擎圆心在 (0,r), θ=0 为最低点; 映射到屏幕圆 (cx,cy)
+    const frame = getFrame(simulationResult, currentTime);
+    const angle = -Math.PI / 2 + omega * currentTime;
+    let x: number;
+    let y: number;
+    let speed = v0;
+    if (frame) {
+        const thetaEng = Math.atan2(frame.position.y - length, frame.position.x);
+        x = cx + r * Math.cos(thetaEng);
+        y = cy + r * Math.sin(thetaEng);
+        speed = Math.hypot(frame.velocity.x, frame.velocity.y);
+    } else {
+        x = cx + r * Math.cos(angle);
+        y = cy + r * Math.sin(angle);
+    }
 
     drawTitle(ctx, '竖直圆周运动: 最高点临界条件', width, isDark);
     ctx.strokeStyle = mutedColor(isDark);
@@ -641,6 +655,7 @@ export function drawVerticalCircleScene(opts: MechanicsSceneOptions): void {
     drawArrow(ctx, x, y, cx, cy, BLUE, 'Fn');
     drawArrow(ctx, x + 26, y - 10, x + 26, y + 50, RED, 'mg');
     drawHud(ctx, isDark, [
+        { label: 'v', value: `${speed.toFixed(2)} m/s` },
         { label: 'v0', value: `${v0.toFixed(2)} m/s` },
         { label: 'v_top_min', value: `${critical.toFixed(2)} m/s` },
         { label: 'L', value: `${length.toFixed(2)} m` }
