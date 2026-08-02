@@ -473,4 +473,96 @@ describe('L1-migration: 渲染单一真源契约 (orbital / pendulum / vertical-
         expect(mvM.currentField_mT).toBeGreaterThan(20);
         expect(mvM.currentField_mT).toBeLessThan(30);
     });
+
+    it('ac-current: 引擎 e(t)/u2(t) 双曲线 2 周期, 峰值 = Em 与 Em·n, 渲染瞬时值必须读引擎序列', () => {
+        const sc = scene('ac-current');
+        const params: Record<string, number> = { Em: 311, freq: 50, nRatio: 0.1 };
+        const { result, error } = runSceneSimulation(sc, params);
+        expect(error).toBeNull();
+        const charts = result!.charts as unknown as Record<string, { points: Array<{ x: number; y: number }> }>;
+        const e = charts['x_t']!.points; // ms / V
+        const u2 = charts['y_t']!.points;
+        expect(e.length).toBeGreaterThan(100);
+        expect(u2.length).toBeGreaterThan(100);
+        // x 轴 ms, 覆盖 2 周期 (50Hz → T=20ms → 40ms)
+        expect(e[e.length - 1]!.x).toBeCloseTo(40, 1);
+        // 峰值: e 振幅 = Em, u2 振幅 = Em·0.1
+        const eAmp = Math.max(...e.map(p => p.y));
+        expect(eAmp).toBeCloseTo(311, 0);
+        const u2Amp = Math.max(...u2.map(p => p.y));
+        expect(u2Amp).toBeCloseTo(31.1, 0);
+        // 同相 (理想变压器无相移): 两曲线峰值同处
+        const ePeakIdx = e.findIndex(p => p.y === Math.max(...e.map(q => q.y)));
+        const u2PeakIdx = u2.findIndex(p => p.y === Math.max(...u2.map(q => q.y)));
+        expect(Math.abs(e[ePeakIdx]!.x - u2[u2PeakIdx]!.x)).toBeLessThan(1);
+        // maxValues: 频率 50Hz, 峰值 311
+        const mv = result!.diagnostics.maxValues as Record<string, number>;
+        expect(mv.frequency).toBe(50);
+        expect(mv.peakEmf).toBeCloseTo(311, 0);
+        expect(mv.turnsRatio).toBeCloseTo(0.1, 6);
+    });
+
+    it('em-damping: 引擎 ω(t)=ω₀·e^(-t/τ) 单调衰减, 渲染衰减曲线必须消费引擎序列', () => {
+        const sc = scene('em-damping');
+        const params: Record<string, number> = {
+            magneticField: 0.3,
+            angularSpeed: 100,
+            inertia: 0.01,
+            radius: 0.1,
+            conductivity: 5.8e7,
+            duration: 5
+        };
+        const { result, error } = runSceneSimulation(sc, params);
+        expect(error).toBeNull();
+        const chart = result!.charts as unknown as Record<string, { points: Array<{ x: number; y: number }> }>;
+        const w = chart['angular_velocity_vs_time']!.points; // s / rad·s⁻¹
+        expect(w.length).toBeGreaterThan(50);
+        // 单调衰减: 初始 ω₀, 终值 < 1%
+        expect(w[0]!.y).toBeCloseTo(100, 2);
+        expect(w[w.length - 1]!.y).toBeLessThan(1);
+        const mv = result!.diagnostics.maxValues as Record<string, number>;
+        expect(mv.omega0_rad_s).toBe(100);
+        // τ_c 解析: J/(0.5·σ·R⁴·B²)
+        const tauExpected = 0.01 / (0.5 * 5.8e7 * 1e-4 * 0.09);
+        expect(mv.tauC_s).toBeCloseTo(tauExpected, 6);
+    });
+
+    it('light-control-switch: 引擎幂律 LDR + 分段 24h 曲线 (夜间 0.5lx), 渲染数值必须读引擎', () => {
+        const sc = scene('light-control-switch');
+        // 夜晚 (0.5 lx < 阈值 10) → 灯亮
+        const night = runSceneSimulation(sc, { lightIntensity: 0.5, threshold: 10, Rfix: 10000, Esupply: 12 });
+        expect(night.error).toBeNull();
+        const mvN = night.result!.diagnostics.maxValues as Record<string, number>;
+        expect(mvN.lightOnFlag).toBe(1);
+        expect(mvN.transistorOnFlag).toBe(1);
+        // 幂律模型: R = 1e6·L^(-0.7), L=0.5 → ≈1.6MΩ; V_B = 12·R/(R+10k)
+        expect(mvN.rLdr).toBeCloseTo(1e6 * Math.pow(0.5, -0.7), -3);
+        expect(mvN.vB).toBeGreaterThan(0.7); // 导通
+        // 白天 (50000 lx) → 灯灭
+        const day = runSceneSimulation(sc, { lightIntensity: 50000, threshold: 10, Rfix: 10000, Esupply: 12 });
+        expect(day.error).toBeNull();
+        const mvD = day.result!.diagnostics.maxValues as Record<string, number>;
+        expect(mvD.lightOnFlag).toBe(0);
+        // 24h 曲线: 夜间段 = 0.5, 白天峰值 ≈ 50000+100; x 轴 h
+        const chart = night.result!.charts as unknown as Record<string, { points: Array<{ x: number; y: number }> }>;
+        const light = chart['x_t']!.points;
+        expect(light[0]!.y).toBe(0.5); // t=0 (凌晨)
+        const maxL = Math.max(...light.map(p => p.y));
+        expect(maxL).toBeGreaterThan(49000); // 正午峰值
+        const stateChart = chart['y_t']!.points;
+        expect(stateChart[0]!.y).toBe(1); // 夜晚灯亮
+    });
+
+    it('moon-earth-test: 引擎 a_月 vs g(R/r)² ≈ g/3600 (误差<5%), 渲染数值必须读 maxValues', () => {
+        const sc = scene('moon-earth-test');
+        const { result, error } = runSceneSimulation(sc, { duration: 1 });
+        expect(error).toBeNull();
+        const mv = result!.diagnostics.maxValues as Record<string, number>;
+        // a_月 = 4π²r/T² ≈ 0.00272 m/s² (r=3.844e8, T=27.3d)
+        expect(mv.aMoon).toBeCloseTo(0.00272, 4);
+        expect(mv.gOver3600).toBeCloseTo(9.80665 / 3600, 6);
+        expect(mv.aFromSquareInv).toBeCloseTo(mv.gOver3600 as number, 2);
+        expect(mv.relDiff_pct).toBeLessThan(5); // 验证通过
+        expect(mv.ratioRr).toBeCloseTo(6.371e6 / 3.844e8, 6);
+    });
 });

@@ -44,13 +44,18 @@
 | sound-waveform | ✅ 已迁 | 行波快照等效时移采样 waveform_t |
 | mechanical-wave | ✅ 已迁(+引擎 bug 修复) | 9 tracked 质点插值,横/纵/驻波 |
 | lc-oscillator | ✅ 已迁 | q/i/Ee/Em 读 x_t/y_t/ke_t/pe_t(键名注意!) |
-| water-diffraction | ⏳ | 核对引擎输出(charts 键名/单位)后迁移 |
-| em-wave-hertz | ⏳ | 读 A_f_drive 等 charts |
-| sound-interference | ⏳ | 核对后迁移 |
+| water-diffraction | ✅ 已迁(+引擎 bug 修复) | HUD 读 maxValues,契约测试 6 例 |
+| em-wave-hertz | ✅ 已迁(+场景契约修复) | HUD 读 maxValues,补虚拟 antenna |
+| sound-interference | ✅ 已迁(新建渲染函数) | 原错配 drawDoubleSlitScene,操场俯视热图 |
 
-### B2. 电磁/传感类(核对模型输出 charts 字段名后迁移)
-em-induction / eddy-current / mutual-inductance / security-alarm / reed-switch
-→ 先读模型源码确认 charts 键名与单位,再按 B1 模式迁移。
+### B2. 电磁/传感类(核对模型输出 charts 字段名后迁移) — ✅ 已完成 (commit 335109d)
+| 场景 | 状态 | 说明 |
+|---|---|---|
+| mutual-inductance | ✅ 已迁 | I1/E2 曲线读引擎 charts(x 轴 s, mod T) |
+| em-induction | ✅ 已迁 | x_t 单匝 Φ mWb / y_t ε mV(ms); HUD Φ=单匝×N |
+| eddy-current | ✅ 已迁 | P/δ 读 maxValues,温升读轨迹, P∝B² |
+| security-alarm | ✅ 已迁 | 标志位读 maxValues(引擎滞回) |
+| reed-switch | ✅ 已迁 | H=K/d³ 读引擎(替代旧自算公式) |
 
 ### B3. B 类仪器场景
 保留自算(静态绘图合理),仅核对常量与单位一致(游标卡尺、多用电表等 47 个场景)。
@@ -63,12 +68,14 @@ em-induction / eddy-current / mutual-inductance / security-alarm / reed-switch
 
 ---
 
-## 阶段 C:1c 覆盖抽查收尾(A 类剩余场景量化漂移)
+## 阶段 C:1c 覆盖抽查收尾(A 类剩余场景量化漂移) — ✅ 已完成 (契约 17→21)
 
-1a 已做(36 差分测试),1b 覆盖审计已做(补 20 断言,抓出磁场 bug)。**剩余**:对未抽查的 A 类场景逐一量化渲染 vs 引擎漂移(方式:临时 probe 测试,量化后删除或转契约):
-- 已有量化记录:orbital 102.6% / simple-pendulum 7.1% / vertical-circle ∞(已迁移修复)
-- 待抽查:uniform-accelerated、projectile、double-slit、wave 类剩余、电磁传感类
-- 每抽查一个若漂移显著 → 进阶段 B 迁移队列;无引擎数据 → 标记 B 类保留
+A 类剩余 11 场景评估: 4 需迁移 (light-control-switch / moon-earth-test / ac-current / em-damping), 7 可保留 (liquid-crystal / heat-direction / joule-mechanical / hologram / capillary / bohr-orbit / perpetuum-mobile)。
+- light-control-switch: LDR 幂律 + 分段 24h 曲线迁移 (漂移最重)
+- moon-earth-test: 硬编码常量 → maxValues (最隐蔽)
+- ac-current: 双波形引擎序列 + 瞬时值插值
+- em-damping: τ_c 与衰减曲线读引擎
+- 契约测试 17 → 21, viz 410 → 414
 
 ---
 

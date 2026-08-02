@@ -510,7 +510,11 @@ export function drawEmDampingScene(opts: EmEquipSceneOptions): void {
     const sigma = params['conductivity'] ?? 5.8e7;
 
     const k = 0.5 * sigma * Math.pow(R, 4);
-    const tauC = J / (k * B * B + 1e-30);
+    // 引擎单一真源: τ_c 读 maxValues (J/(kB²)), 回退自算
+    const engMax = simulationResult?.diagnostics?.maxValues as { tauC_s?: number; omega0_rad_s?: number } | undefined;
+    const engChart = simulationResult?.charts as
+        { angular_velocity_vs_time?: { points: Array<{ x: number; y: number }> } } | undefined;
+    const tauC = engMax?.tauC_s ?? J / (k * B * B + 1e-30);
     const gamma = 1 / Math.max(tauC, 1e-30);
 
     // 布局
@@ -657,12 +661,23 @@ export function drawEmDampingScene(opts: EmEquipSceneOptions): void {
         const thetaWith: number[] = [];
         const thetaFree: number[] = [];
         const ts: number[] = [];
-        for (let i = 0; i <= sweepPts; i++) {
-            const ti = (duration * i) / sweepPts;
-            ts.push(ti);
-            const Ai = A0 * Math.exp(-gamma * ti);
+        // 有铝框: 引擎 ω(t)=ω₀·e^(-t/τ) (x=s, y=rad/s) 直接消费; 回退自算摆角衰减
+        if (engChart?.angular_velocity_vs_time) {
+            for (const p of engChart.angular_velocity_vs_time.points) {
+                ts.push(p.x);
+                thetaWith.push(p.y);
+            }
+        } else {
+            for (let i = 0; i <= sweepPts; i++) {
+                const ti = (duration * i) / sweepPts;
+                ts.push(ti);
+                const Ai = A0 * Math.exp(-gamma * ti);
+                thetaWith.push((Ai * 180) / Math.PI);
+            }
+        }
+        for (let i = 0; i < ts.length; i++) {
+            const ti = ts[i]!;
             const AiFree = A0; // 无铝框: 振幅不衰减的小阻尼自由摆动 (近似不变)
-            thetaWith.push((Ai * 180) / Math.PI);
             thetaFree.push(((AiFree * 180) / Math.PI) * Math.exp(-0.05 * ti)); // 自由极小阻尼
         }
 
@@ -682,7 +697,7 @@ export function drawEmDampingScene(opts: EmEquipSceneOptions): void {
             ys: thetaWith,
             isDark,
             lineColor: '#3b82f6',
-            label: '有铝框 (阻尼)',
+            label: '有铝框 ω(t) (rad/s)',
             dashedRefY: 0,
             refColor: isDark ? '#64748b' : '#94a3b8',
             refLabel: '平衡'
@@ -716,7 +731,7 @@ export function drawEmDampingScene(opts: EmEquipSceneOptions): void {
         ctx.fillStyle = isDark ? '#cbd5e1' : '#334155';
         ctx.font = 'bold 10px sans-serif';
         ctx.textAlign = 'left';
-        ctx.fillText('有铝框 (涡流阻尼)', chartX + 26, chartY - 18);
+        ctx.fillText('有铝框 ω(t) (引擎)', chartX + 26, chartY - 18);
     }
 
     // 衰减常数 badge

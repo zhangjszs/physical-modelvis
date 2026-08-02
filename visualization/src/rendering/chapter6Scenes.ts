@@ -282,15 +282,31 @@ export function drawCavendishScene(opts: MechanicsSceneOptions): void {
 }
 
 export function drawMoonEarthTestScene(opts: MechanicsSceneOptions): void {
-    const { ctx, width, height, isDark, currentTime } = opts;
+    const { ctx, width, height, isDark, currentTime, simulationResult } = opts;
+    // 引擎单一真源: maxValues aMoon/gOver3600/aFromSquareInv/ratioRr/relDiff_pct (G=9.80665)
+    const engMax = simulationResult?.diagnostics?.maxValues as
+        | {
+              aMoon?: number;
+              gOver3600?: number;
+              aFromSquareInv?: number;
+              ratioRr?: number;
+              relDiff_pct?: number;
+              r?: number;
+          }
+        | undefined;
     const R_earth = 6.371e6;
     const r_moon = 3.844e8;
     const T_moon = 27.3 * 86400;
     const g_surface = 9.8;
 
-    const a_moon = (4 * Math.PI * Math.PI * r_moon) / (T_moon * T_moon);
+    // 回退自算 (无引擎结果时)
+    const a_moon = engMax?.aMoon ?? (4 * Math.PI * Math.PI * r_moon) / (T_moon * T_moon);
     const ratio = (R_earth / r_moon) * (R_earth / r_moon);
-    const a_theory = g_surface * ratio;
+    const a_theory = engMax?.aFromSquareInv ?? g_surface * ratio;
+    const a_ref = engMax?.gOver3600 ?? g_surface / 3600;
+    const ratioRr = engMax?.ratioRr ?? R_earth / r_moon;
+    const rShow = engMax?.r ?? r_moon;
+    const error = engMax?.relDiff_pct ?? (Math.abs(a_moon - a_theory) / a_theory) * 100;
 
     const cx = width * 0.35;
     const cy = height * 0.45;
@@ -348,8 +364,7 @@ export function drawMoonEarthTestScene(opts: MechanicsSceneOptions): void {
     ctx.fillStyle = mutedColor(isDark);
     ctx.font = '11px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('r = 3.84×10⁸m', (cx + moonX) / 2, (cy + moonY) / 2 - 10);
-
+    ctx.fillText(`r = ${(rShow / 1e8).toFixed(2)}×10⁸m`, (cx + moonX) / 2, (cy + moonY) / 2 - 10);
     const gDir = { x: (cx - moonX) / moonOrbitR, y: (cy - moonY) / moonOrbitR };
     drawArrow(ctx, moonX, moonY, moonX + gDir.x * 40, moonY + gDir.y * 40, RED, 'F引');
 
@@ -386,7 +401,6 @@ export function drawMoonEarthTestScene(opts: MechanicsSceneOptions): void {
     ctx.fillText(`理论`, barX + barW + 20 + barW / 2, barTop + barH + 16);
     ctx.fillText(`${a_theory.toExponential(3)}`, barX + barW + 20 + barW / 2, barTop + barH - h2 - 6);
 
-    const error = (Math.abs(a_moon - a_theory) / a_theory) * 100;
     ctx.fillStyle = error < 5 ? GREEN : RED;
     ctx.font = 'bold 12px sans-serif';
     ctx.textAlign = 'center';
@@ -398,8 +412,8 @@ export function drawMoonEarthTestScene(opts: MechanicsSceneOptions): void {
 
     drawHud(ctx, isDark, [
         { label: 'a月', value: `${a_moon.toExponential(3)} m/s²` },
-        { label: 'g/3600', value: `${a_theory.toExponential(3)} m/s²` },
-        { label: 'R/r', value: `${(R_earth / r_moon).toExponential(3)}` },
+        { label: 'g/3600', value: `${a_ref.toExponential(3)} m/s²` },
+        { label: 'R/r', value: `${ratioRr.toExponential(3)}` },
         { label: 'error', value: `${error.toFixed(1)}%` }
     ]);
     drawInfoBar(

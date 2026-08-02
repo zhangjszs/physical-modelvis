@@ -167,6 +167,31 @@ core 测试数 917 → 923, viz 402 → 405。
 
 core 测试数 923, viz 405 → 410。
 
+## 第 5 批迁移进展 (2026-08-02): 1c 覆盖抽查收尾, 契约测试 17 → 21
+
+A 类剩余 11 场景逐一评估 (渲染自算 vs 引擎数据), 结论 4 需迁移 / 7 可保留:
+
+| 场景 | 迁移方式 | 备注 |
+|------|---------|------|
+| `light-control-switch` | 24h 曲线整条读 `charts.x_t` (h/lux, 夜间 0.5/白天峰值 50100 分段模型), 当前照度/时刻点插值; R_LDR/V_B 读 `maxValues.rLdr/vB` (幂律 R=1e6·L^-0.7), 状态读 `lightOnFlag/transistorOnFlag` | **漂移最重**: 原 LDR 指数模型 1e6·e^(-7L) + 整段正弦 24h 曲线均与引擎不同; HUD 标签 V_cc → V_B (引擎 LDR 在下分压拓扑) |
+| `moon-earth-test` | 柱状图/误差/HUD 全部读 `maxValues.aMoon/aFromSquareInv/gOver3600/relDiff_pct/ratioRr/r` | **最隐蔽**: 渲染完全硬编码常量 (R/r/T/g) 不读 params, 改参必漂移; 公转动画保留示意 |
+| `ac-current` | 双波形曲线读 `charts.x_t (e-t, ms/V) / y_t (u2-t)`, 当前时刻指示点 + 瞬时值插值; 峰值/频率/匝比读 maxValues | 波形原为 phase 自算正弦, 现引擎序列驱动 (2 周期); 回退 drawSineChart 保留 |
+| `em-damping` | τ_c 读 `maxValues.tauC_s`; 底部衰减曲线读 `charts.angular_velocity_vs_time` (s/rad·s⁻¹, ω=ω₀·e^(-t/τ)) | 原自算摆角衰减, 现引擎 ω(t) 直接消费; 摆角动画保留示意; 无铝框对比曲线引擎无数据, 保留自算 |
+
+7 个可保留 (动画示意/公式逐字一致): liquid-crystal / heat-direction / joule-mechanical / hologram / capillary / bohr-orbit / perpetuum-mobile。
+其中 liquid-crystal 透射率-温度曲线与 capillary 材料常量存在静态分歧 (分段线性 vs Tarasov; ρ_汞 13500 vs 13534、汞+石蜡 θ 140° vs 150°), 标记低优先级清理。
+
+### 契约测试新增 (17 → 21)
+
+| 场景 | 断言 |
+|------|------|
+| ac-current | 双曲线覆盖 2 周期 (40ms@50Hz); e 振幅=Em, u2 振幅=Em·0.1; 同相; maxValues.frequency/peakEmf/turnsRatio |
+| em-damping | ω(t) 单调衰减 100→<1 rad/s; τ_c=J/(0.5·σ·R⁴·B²) 解析值; omega0_rad_s |
+| light-control-switch | 夜晚 0.5lx: 灯亮/导通, R_LDR=1e6·0.5^-0.7, V_B>0.7V; 白天 50000lx: 灯灭; 24h 曲线夜间段 0.5、峰值>49000 |
+| moon-earth-test | a_月≈0.00272 m/s²; g/3600≈9.80665/3600; aFromSquareInv≈gOver3600; relDiff<5% |
+
+core 测试数 923, viz 410 → 414。
+
 ## 迁移建议
 
 阶段 3 迁移顺序:

@@ -14,6 +14,7 @@ import {
     COLORS,
     roundRectPath,
     clamp,
+    panelFill,
     textColor,
     mutedColor,
     clearScene,
@@ -23,7 +24,8 @@ import {
     drawSineChart,
     drawCoil,
     drawChargeSymbol,
-    drawText
+    drawText,
+    interpSeries
 } from './renderingUtils';
 
 export interface ElectromagnetismSceneOptions {
@@ -41,37 +43,122 @@ const GREEN = COLORS.GREEN;
 const ORANGE = COLORS.ORANGE;
 
 export function drawAcCurrentScene(opts: ElectromagnetismSceneOptions): void {
-    const { ctx, width, height, isDark, params, currentTime } = opts;
+    const { ctx, width, height, isDark, params, currentTime, simulationResult } = opts;
     clearScene(ctx, width, height, isDark);
     drawTitle(ctx, '交变电流与变压器', width, isDark, { size: 18, y: 28 });
     const em = params['Em'] ?? 311;
     const freq = params['freq'] ?? 50;
     const nRatio = params['nRatio'] ?? 0.1;
-    const phase = currentTime * freq * Math.PI * 2;
-    const u = em * Math.sin(phase);
-    const u2 = u * nRatio;
-    drawSineChart({
-        ctx,
-        x: width * 0.12,
-        y: height * 0.25,
-        w: width * 0.34,
-        h: height * 0.32,
-        phase,
-        color: BLUE,
-        isDark,
-        label: 'u1(t)'
-    });
-    drawSineChart({
-        ctx,
-        x: width * 0.54,
-        y: height * 0.25,
-        w: width * 0.34,
-        h: height * 0.32,
-        phase,
-        color: GREEN,
-        isDark,
-        label: 'u2(t)'
-    });
+
+    // 引擎单一真源: x_t = e(t) (ms/V, 2 周期), y_t = u2(t); maxValues 峰值/频率/匝比
+    const engCharts = simulationResult?.charts as
+        | { x_t?: { points: Array<{ x: number; y: number }> }; y_t?: { points: Array<{ x: number; y: number }> } }
+        | undefined;
+    const engMax = simulationResult?.diagnostics?.maxValues as
+        { peakEmf?: number; frequency?: number; turnsRatio?: number; secondaryPeak?: number } | undefined;
+    const fEng = engMax?.frequency ?? freq;
+    const Tms = 1000 / fEng;
+    const tMs = (((currentTime * 1000) % (2 * Tms)) + 2 * Tms) % (2 * Tms);
+    // 瞬时值 (ms 插值; 回退自算正弦)
+    const u = engCharts?.x_t ? interpSeries(engCharts.x_t, tMs) : em * Math.sin(currentTime * freq * Math.PI * 2);
+    const u2 = engCharts?.y_t ? interpSeries(engCharts.y_t, tMs) : u * nRatio;
+    const emPeak = engMax?.peakEmf ?? em;
+    const u2Peak = engMax?.secondaryPeak ?? em * nRatio;
+
+    const drawEngineWave = (
+        series: { points: Array<{ x: number; y: number }> } | undefined,
+        x: number,
+        y: number,
+        w: number,
+        h: number,
+        color: string,
+        label: string,
+        yMax: number,
+        now: number
+    ): void => {
+        ctx.fillStyle = panelFill(isDark);
+        roundRectPath(ctx, x, y, w, h, 6);
+        ctx.fill();
+        ctx.strokeStyle = isDark ? 'rgba(148,163,184,0.22)' : 'rgba(100,116,139,0.18)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x, y + h / 2);
+        ctx.lineTo(x + w, y + h / 2);
+        ctx.stroke();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        for (let i = 0; i < series!.points.length; i++) {
+            const p = series!.points[i]!;
+            const px = x + (p.x / (2 * Tms)) * w;
+            const py = y + h / 2 - (p.y / yMax) * h * 0.36;
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+        const pxn = x + (now / (2 * Tms)) * w;
+        const pyn = y + h / 2 - (interpSeries(series, now) / yMax) * h * 0.36;
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(pxn, pyn, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.fillStyle = mutedColor(isDark);
+        ctx.font = '11px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText(label, x + 8, y + 16);
+    };
+
+    if (engCharts?.x_t && engCharts.y_t) {
+        drawEngineWave(
+            engCharts.x_t,
+            width * 0.12,
+            height * 0.25,
+            width * 0.34,
+            height * 0.32,
+            BLUE,
+            'u1(t)',
+            emPeak,
+            tMs
+        );
+        drawEngineWave(
+            engCharts.y_t,
+            width * 0.54,
+            height * 0.25,
+            width * 0.34,
+            height * 0.32,
+            GREEN,
+            'u2(t)',
+            Math.max(u2Peak, 1e-9),
+            tMs
+        );
+    } else {
+        const phase = currentTime * freq * Math.PI * 2;
+        drawSineChart({
+            ctx,
+            x: width * 0.12,
+            y: height * 0.25,
+            w: width * 0.34,
+            h: height * 0.32,
+            phase,
+            color: BLUE,
+            isDark,
+            label: 'u1(t)'
+        });
+        drawSineChart({
+            ctx,
+            x: width * 0.54,
+            y: height * 0.25,
+            w: width * 0.34,
+            h: height * 0.32,
+            phase,
+            color: GREEN,
+            isDark,
+            label: 'u2(t)'
+        });
+    }
     drawCoil(ctx, width * 0.36, height * 0.68, 90, 6, BLUE);
     drawCoil(ctx, width * 0.55, height * 0.68, 70, 4, GREEN);
     ctx.strokeStyle = isDark ? '#64748b' : '#94a3b8';
@@ -84,9 +171,9 @@ export function drawAcCurrentScene(opts: ElectromagnetismSceneOptions): void {
         ctx,
         isDark,
         [
-            { label: 'U1m', value: `${em.toFixed(0)} V` },
-            { label: 'f', value: `${freq.toFixed(0)} Hz` },
-            { label: 'U2/U1', value: nRatio.toFixed(2) }
+            { label: 'U1m', value: `${emPeak.toFixed(0)} V` },
+            { label: 'f', value: `${fEng.toFixed(0)} Hz` },
+            { label: 'U2/U1', value: (engMax?.turnsRatio ?? nRatio).toFixed(2) }
         ],
         { boxW: 214 }
     );

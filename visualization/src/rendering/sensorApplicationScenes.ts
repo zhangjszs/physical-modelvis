@@ -16,7 +16,8 @@ import {
     drawInfoBar,
     drawEmptyState,
     drawArrow,
-    drawMiniChart
+    drawMiniChart,
+    interpSeries
 } from './renderingUtils';
 
 export interface SensorSceneOptions {
@@ -350,19 +351,25 @@ export function drawLightControlSwitchScene(o: SensorSceneOptions): void {
     const Rfix = params['Rfix'] ?? 10000;
     const Esupply = params['Esupply'] ?? 12;
 
-    // 夜间: LDR 阻值升高；L 为归一化照度∈[0,1]，映射到 lux 与阈值比较
-    // 简化模型: R_LDR = Rdark · exp(-k·L)，k 取较大值使亮/暗阻值明显变化
+    // 引擎单一真源: x_t = 24h 照度曲线 (h/lux), y_t = 开关状态 (h/0·1), maxValues 数值
+    const engCharts = simulationResult?.charts as
+        | { x_t?: { points: Array<{ x: number; y: number }> }; y_t?: { points: Array<{ x: number; y: number }> } }
+        | undefined;
+    const engMax = simulationResult?.diagnostics?.maxValues as
+        { rLdr?: number; vB?: number; lightOnFlag?: number; transistorOnFlag?: number } | undefined;
+    // currentTime 模拟小时 (场景 duration 单位 = h)
+    const tHours = ((currentTime % 24) + 24) % 24;
+    // 当前时刻照度 (lx): 引擎 24h 曲线插值; 回退归一化自算
+    const lightNow = engCharts?.x_t ? interpSeries(engCharts.x_t, tHours) : L * 40000;
+    // 回退自算 (无引擎结果时): 原指数近似 + 阈值判定
     const Rdark2 = 1e6;
     const k2 = 7;
-    const Rldr = Rdark2 * Math.exp(-k2 * L);
-
-    // 分压(当前拓扑: LDR 在上、Rfix 在下): 亮时 Rldr 小→Vcc 高；暗时 Rldr 大→Vcc 低
-    const Vcc = (Esupply * Rfix) / (Rldr + Rfix);
-    // 照度(lux)与阈值比较：低照度(夜)→灯亮。threshold 单位为 lx，与 24h 曲线一致
-    const currentLux = L * 40000;
-    const lampOn = currentLux < threshold;
-    // 低边 NPN + 继电器：Vcc 低(暗)→三极管截止→继电器吸合→灯亮；故三极管状态与灯相反
-    const transistorOn = !lampOn;
+    // R_LDR / V_B (引擎幂律模型 R=R_dark·(L/L_ref)^-0.7, LDR 在下分压); 回退原指数自算
+    const Rldr = engMax?.rLdr ?? Rdark2 * Math.exp(-k2 * L);
+    const V_B = engMax?.vB ?? (Esupply * Rldr) / (Rldr + Rfix);
+    // 状态: 引擎判定 (暗→V_B 高→三极管导通→继电器吸合→灯亮); 回退原阈值判定
+    const lampOn = engMax?.lightOnFlag === 1 || (engMax === undefined && lightNow < threshold);
+    const transistorOn = engMax?.transistorOnFlag === 1 || (engMax === undefined && !lampOn);
 
     drawTitle(ctx, '光控开关 (路灯自动控制)', w, isDark, { size: 18, y: 28 });
 
@@ -479,7 +486,7 @@ export function drawLightControlSwitchScene(o: SensorSceneOptions): void {
     ctx.fillStyle = '#fbbf24';
     ctx.font = 'bold 11px monospace';
     ctx.textAlign = 'left';
-    ctx.fillText(`V_cc = ${Vcc.toFixed(2)} V`, vccX + 10, vccY);
+    ctx.fillText(`V_B = ${V_B.toFixed(2)} V`, vccX + 10, vccY);
 
     // 三极管示意
     const trX = vccX + 100;
@@ -568,17 +575,21 @@ export function drawLightControlSwitchScene(o: SensorSceneOptions): void {
     const chartH2 = h * 0.42;
 
     // 用简单的 sin 仿真白天正午照度高, 夜晚低
-    // currentTime 直接模拟小时 (duration 单位 = h)
-    const tHours = ((currentTime % 24) + 24) % 24;
-
-    // 曲线
+    // 曲线 (引擎单一真源): 6~18h 半正弦峰值 50000+100 lux, 夜间 0.5 lux
     const xs3: number[] = [];
     const ys3: number[] = [];
-    for (let i = 0; i <= 48; i++) {
-        const th = (i / 48) * 24;
-        xs3.push(th);
-        const lvl = Math.max(0.5, Math.max(0, Math.sin(((th - 6) / 24) * Math.PI * 2)) * 40000);
-        ys3.push(lvl);
+    if (engCharts?.x_t) {
+        for (const p of engCharts.x_t.points) {
+            xs3.push(p.x);
+            ys3.push(p.y);
+        }
+    } else {
+        for (let i = 0; i <= 48; i++) {
+            const th = (i / 48) * 24;
+            xs3.push(th);
+            const lvl = Math.max(0.5, Math.max(0, Math.sin(((th - 6) / 24) * Math.PI * 2)) * 40000);
+            ys3.push(lvl);
+        }
     }
 
     drawMiniChart({
@@ -618,10 +629,10 @@ export function drawLightControlSwitchScene(o: SensorSceneOptions): void {
         ctx.fillText(`阈值=${threshold}lx`, chartX2 + chartW2 - 4, thrY2 - 2);
     }
 
-    // 当前时刻点
+    // 当前时刻点 (引擎 24h 曲线插值)
     if (tHours >= 0 && tHours <= 24) {
         const px3 = chartX2 + (tHours / 24) * chartW2;
-        const lvl = Math.max(0.5, Math.max(0, Math.sin(((tHours - 6) / 24) * Math.PI * 2)) * 40000);
+        const lvl = Math.max(0.5, lightNow);
         const py3 =
             chartY2 + chartH2 - ((Math.log10(lvl) - Math.log10(0.5)) / (Math.log10(40000) - Math.log10(0.5))) * chartH2;
         ctx.fillStyle = '#fff';
@@ -668,9 +679,9 @@ export function drawLightControlSwitchScene(o: SensorSceneOptions): void {
     ctx.font = '11px sans-serif';
     ctx.textAlign = 'left';
     const vRows = [
-        `E = ${L.toFixed(2)} lx`,
+        `E = ${lightNow.toFixed(2)} lx`,
         `R_LDR = ${Rldr >= 1e3 ? (Rldr / 1e3).toFixed(1) + ' kΩ' : Rldr.toFixed(0) + ' Ω'}`,
-        `V_cc = ${Vcc.toFixed(3)} V`,
+        `V_B = ${V_B.toFixed(3)} V`,
         `阈值 V_be = 0.7 V`,
         `输出 = ${lampOn ? '灯亮' : '灯灭'}`,
         `t = ${tHours.toFixed(1)} h`
@@ -710,21 +721,21 @@ export function drawLightControlSwitchScene(o: SensorSceneOptions): void {
     ctx.fillStyle = isDark ? '#cbd5e1' : '#1e293b';
     ctx.font = 'bold 12px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('V_cc = E_supp · R_fix / (R_LDR + R_fix)', w * 0.5 + 60, formY3);
+    ctx.fillText('V_B = E_supp · R_LDR / (R_LDR + R_fix)', w * 0.5 + 60, formY3);
     ctx.fillStyle = isDark ? '#94a3b8' : '#475569';
     ctx.font = '11px sans-serif';
-    ctx.fillText('LDR: 光照↑ → R↓ → V_cc↓ → 三极管截止 → 灯灭', w * 0.5 + 60, formY3 + 16);
-    ctx.fillText('LDR: 光照↓ → R↑ → V_cc↑ → 三极管导通 → 灯亮', w * 0.5 + 60, formY3 + 30);
+    ctx.fillText('LDR: 光照↑ → R↓ → V_B↓ → 三极管截止 → 灯灭', w * 0.5 + 60, formY3 + 16);
+    ctx.fillText('LDR: 光照↓ → R↑ → V_B↑ → 三极管导通 → 灯亮', w * 0.5 + 60, formY3 + 30);
 
     // HUD
     drawHud(
         ctx,
         isDark,
         [
-            { label: 'E', value: `${L.toFixed(2)} lx` },
+            { label: 'E', value: `${lightNow.toFixed(2)} lx` },
             { label: 'R_LDR', value: `${Rldr >= 1e3 ? (Rldr / 1e3).toFixed(1) + ' k' : Rldr.toFixed(0)} Ω` },
             { label: 'R_fix', value: `${(Rfix / 1e3).toFixed(0)} kΩ` },
-            { label: 'V_cc', value: `${Vcc.toFixed(3)} V` },
+            { label: 'V_B', value: `${V_B.toFixed(3)} V` },
             { label: '阈值', value: `${threshold} lx` },
             { label: 't', value: `${currentTime.toFixed(1)} s` }
         ],
@@ -735,7 +746,7 @@ export function drawLightControlSwitchScene(o: SensorSceneOptions): void {
         ctx,
         w,
         h,
-        `Vcc=E·Rfix/(Rldr+Rfix)  E=${L}lx  Rldr=${Rldr >= 1e3 ? (Rldr / 1e3).toFixed(0) + 'k' : Rldr.toFixed(0)}  Vcc=${Vcc.toFixed(3)}V  阈值=${threshold}lx`,
+        `VB=E·RLdr/(RLdr+Rfix)  E=${lightNow.toFixed(0)}lx  Rldr=${Rldr >= 1e3 ? (Rldr / 1e3).toFixed(0) + 'k' : Rldr.toFixed(0)}  VB=${V_B.toFixed(3)}V  阈值=${threshold}lx`,
         isDark,
         { height: 22, yOffset: 34 }
     );
