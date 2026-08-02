@@ -10,6 +10,9 @@
 cd physics-core && npm install && npm run build && cd ..
 cd visualization && npm install && cd ..
 
+# 一键本地全量门禁 (与 CI 等价, pre-push 钩子会强制执行)
+npm run precheck     # build:core → typecheck → lint → format:check → test → selfcheck
+
 # 运行所有测试
 npm test
 
@@ -19,15 +22,19 @@ cd physics-core && npm test
 # 运行可视化前端测试
 cd visualization && npm test
 
-# Lint
-npm run lint
-
-# Format
-npm run format
+# 运行单个测试文件 (vitest 路径过滤)
+cd physics-core && npx.cmd vitest run tests/unit/mechanical-wave.test.ts
+cd visualization && npx.cmd vitest run tests/accuracy/single-source-contract.test.ts
 
 # 启动开发服务器
 cd visualization && npm run dev
 ```
+
+### 关键陷阱 (必读)
+- **改 physics-core 源码后必须重建**:visualization 通过 `file:../physics-core` 依赖引用的是**构建产物 `dist/`**,不是源码。编辑 `physics-core/src/**` 后,运行可视化测试/typecheck 前必须先 `cd physics-core && npm run build`(或 `npm run precheck` 开头会自动 build)。否则可视化测试仍用旧 dist,引擎修复"看起来没生效"。
+- **Windows PowerShell 环境**:`npx` 需写 `npx.cmd`;`rg` 不可用(用 grep 工具);PowerShell 引号转义用反引号。
+- **husky pre-push 钩子**会运行完整 `precheck`,任何门禁失败都会阻止 push(跳过:`git push --no-verify`)。
+- **引擎 charts 键名与语义名不同**:如 lc-oscillator 返回 `x_t/y_t/ke_t/pe_t`(语义是 q_t/i_t/Ee_t/Em_t);类型定义不含这些键,访问需 `as unknown as Record<string, {points: ...}>` 强转。迁移前先读模型源码确认 charts 键名与单位。
 
 ## CI/CD
 
@@ -44,16 +51,8 @@ GitHub Actions 流水线，配置文件位于 `.github/workflows/`。
 
 ### 部署流水线 (`deploy.yml`)
 触发：CI 在 main 分支成功完成后自动触发（`workflow_run`）。
-- 构建 visualization 并部署到 GitHub Pages
-- 访问地址：`https://<user>.github.io/physical-modelvis/`（注意：仓库名为连字符 `physical-modelvis`，非下划线）
-
-### 仓库配置要求
-- Settings → Pages → Source 设为 **"GitHub Actions"**
-- 无需额外 Secrets（OCR 代理不部署，仅做 typecheck + build）
-
-### 部署状态（2026-07-07 验证）
-- CI 通过 → Deploy 自动触发 → 线上 `https://zhangjszs.github.io/physical-modelvis/` 返回 200，JS/CSS 资源 200。
-- 历史阻塞已解除：(1) Prettier `format:check` 格式门禁（7 个 M5/M6 文件）；(2) `boris-correctness.test.ts` 极端参数 `sampleCount=1e5` 在 CI 5s 超时（已降至 5000）。
+- 构建 visualization 并部署到 GitHub Pages：`https://zhangjszs.github.io/physical-modelvis/`（仓库名连字符，非下划线）
+- Settings → Pages → Source 设为 **"GitHub Actions"**；无额外 Secrets（OCR 代理不部署，仅 typecheck + build）
 
 ## 代码审查约定 (Code Review Pass)
 
@@ -91,15 +90,18 @@ physics-core/          — 零依赖 TypeScript 物理引擎
   src/types/           — 类型定义 (PhysicsProblem, SimulationResult)
   src/units/           — 单位换算和物理常数
   src/solver/          — 求解器路由 (自动注册模型)
-  tests/               — 单元测试
+  tests/unit/          — 单元测试
+  tests/accuracy/      — L1 差分测试 (differential-analytic.test.ts: 解析模型 vs 独立公式, 固定种子随机参数)
 
 visualization/         — React 可视化前端
   src/components/      — UI 组件 (Canvas, 图表, 控制面板, OCR)
-  src/scenes/          — 场景配置 + buildProblem
+  src/scenes/          — 场景配置 + buildProblem (sceneRegistry.ts)
   src/rendering/       — Canvas 渲染器
-  src/adapters/        — physics-core 适配器
+  src/adapters/        — physics-core 适配器 (runSceneSimulation)
   src/store/           — Zustand 状态管理
   server/              — OCR 后端代理 (Express + Anthropic API)
+  tests/accuracy/      — 渲染单一真源契约测试 (single-source-contract.test.ts)
+  tests/rendering/     — 渲染单元测试
 
 experiments/           — 人教版高中物理实验整理 (176 个实验, 6 册教材)
 ```
@@ -108,6 +110,12 @@ experiments/           — 人教版高中物理实验整理 (176 个实验, 6 �
 - physics-core 使用解析解 (除电磁复合场用 Boris 数值积分)
 - 物理模型继承 PhysicsModelBase，通过 registerModel 注册到全局注册表
 - PhysicsProblem 是引擎输入，SimulationResult 是引擎输出
+- **渲染单一真源约定 (阶段 3 迁移)**:有引擎数据的场景,渲染层必须消费引擎结果,不得用 `currentTime + 公式` 自算物理——否则引擎改公式时画面漂移。迁移模式:
+  - 物体位置/轨迹:`getFrame(simulationResult, currentTime, trajectoryIndex)`(renderingUtils.ts,第三参选多物体轨迹,如 inertia 双球 / mechanical-wave 9 质点)
+  - 标量随动值 (摆角/电荷/能量等):读 `simulationResult.charts` 对应序列,二分查找 + 线性插值
+  - 无引擎结果时回退原自算公式 (防御空结果)
+  - 契约由 `visualization/tests/accuracy/single-source-contract.test.ts` 固化;引擎被改错或渲染回退自算都会被拦截
+- 完整场景分类与迁移进展见 `docs/rendering-physics-audit.md`(改渲染前先读)
 - Zustand 管理前端状态，场景组件负责构建 PhysicsProblem 并调用 solveProblem
 - OCR 代理在后端调用 Anthropic API，避免前端暴露 API Key
 
@@ -116,3 +124,4 @@ experiments/           — 人教版高中物理实验整理 (176 个实验, 6 �
 - React 18 + TypeScript for visualization
 - Chinese language for UI text and documentation
 - Vitest for testing
+- README.md 顶部记录测试数 (core / viz / total),跑完测试后若数量变化需同步更新
