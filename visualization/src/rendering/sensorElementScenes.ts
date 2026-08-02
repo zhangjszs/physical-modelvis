@@ -650,11 +650,31 @@ export function drawReedSwitchScene(o: SensorSceneOptions): void {
     const Hpull = params['pullInThreshold'] ?? 50;
     const Hrel = params['releaseThreshold'] ?? 30;
 
-    // H = H₀ / (1 + (d/d₀)²), H₀=200 mT, d₀=10 mm
-    const H0 = 200;
-    const d0 = 10;
-    const H = H0 / (1 + (d / d0) * (d / d0));
-    const state = H >= Hpull ? 'close' : H <= Hrel ? 'open' : H >= (Hpull + Hrel) / 2 ? 'close' : 'open';
+    // 引擎数值: H = K_DIPOLE/d³ (偶极近似) 与渲染旧洛伦兹型公式不同 → 读 maxValues, 回退自算
+    const engMax = simulationResult?.diagnostics?.maxValues as
+        | {
+              currentField_mT?: number;
+              currentState?: number;
+              pullInThreshold_mT?: number;
+              releaseThreshold_mT?: number;
+          }
+        | undefined;
+    const H = engMax?.currentField_mT ?? 200 / (1 + (d / 10) * (d / 10));
+    const engState = engMax?.currentState;
+    const state: 'close' | 'open' =
+        engState !== undefined
+            ? engState >= 0.5
+                ? 'close'
+                : 'open'
+            : H >= Hpull
+              ? 'close'
+              : H <= Hrel
+                ? 'open'
+                : H >= (Hpull + Hrel) / 2
+                  ? 'close'
+                  : 'open';
+    const HpullShow = engMax?.pullInThreshold_mT ?? Hpull;
+    const HrelShow = engMax?.releaseThreshold_mT ?? Hrel;
 
     drawTitle(ctx, '干簧管 (磁控开关)', w, isDark, { size: 18, y: 28 });
 
@@ -839,7 +859,7 @@ export function drawReedSwitchScene(o: SensorSceneOptions): void {
     ctx.fillStyle = isDark ? '#cbd5e1' : '#334155';
     ctx.font = 'bold 12px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText(`H = ${H.toFixed(1)} mT  (吸合>${Hpull}, 释放<${Hrel})`, sliderX + sliderW / 2, sliderY + 38);
+    ctx.fillText(`H = ${H.toFixed(1)} mT  (吸合>${HpullShow}, 释放<${HrelShow})`, sliderX + sliderW / 2, sliderY + 38);
 
     // --- 磁滞回线 ---
     const hysX = w * 0.74;
@@ -900,8 +920,8 @@ export function drawReedSwitchScene(o: SensorSceneOptions): void {
         [
             { label: 'd', value: `${d.toFixed(1)} mm` },
             { label: 'H', value: `${H.toFixed(1)} mT` },
-            { label: 'H_pull', value: `${Hpull} mT` },
-            { label: 'H_rel', value: `${Hrel} mT` },
+            { label: 'H_pull', value: `${HpullShow} mT` },
+            { label: 'H_rel', value: `${HrelShow} mT` },
             { label: '状态', value: state === 'close' ? '闭合' : '断开' },
             { label: 't', value: `${currentTime.toFixed(1)} s` }
         ],

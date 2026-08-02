@@ -18,7 +18,9 @@ import {
     drawInfoBar,
     drawArrow,
     drawMeter,
-    drawText
+    drawText,
+    interpSeries,
+    getFrame
 } from './renderingUtils';
 
 export interface ElectromagnetismSceneOptions {
@@ -37,14 +39,31 @@ const ORANGE = COLORS.ORANGE;
 const RED = COLORS.RED;
 
 export function drawEmInductionScene(opts: ElectromagnetismSceneOptions): void {
-    const { ctx, width, height, isDark, params, currentTime } = opts;
+    const { ctx, width, height, isDark, params, currentTime, simulationResult } = opts;
     clearScene(ctx, width, height, isDark);
     drawTitle(ctx, '电磁感应', width, isDark, { size: 18, y: 28 });
     const b = params['Bind'] ?? 0.5;
     const area = params['A'] ?? 0.01;
     const n = params['Nturns'] ?? 100;
+    // 线圈摆角: 引擎 ω=2π·50 rad/s (20ms 周期), 画面用慢速示意摆动; HUD 数值读引擎
     const angle = ((params['angleBind'] ?? 0) * Math.PI) / 180 + Math.sin(currentTime * 2) * 0.35;
-    const flux = n * b * area * Math.cos(angle);
+    const fluxSelf = n * b * area * Math.cos(angle);
+
+    // 引擎逐时数据: x_t = Φ(t) mWb, y_t = ε(t) mV (x 轴 ms, 20ms 周期)
+    const engCharts = simulationResult?.charts as
+        | { x_t?: { points: Array<{ x: number; y: number }> }; y_t?: { points: Array<{ x: number; y: number }> } }
+        | undefined;
+    const engMax = simulationResult?.diagnostics?.maxValues as { emfPeak?: number; fluxTotal?: number } | undefined;
+    const tMs = (((currentTime % 0.02) + 0.02) % 0.02) * 1000;
+    // 引擎 x_t 为单匝磁通 B·A·cos(ωt) (mWb), HUD 显示总磁通需乘匝数 N
+    const flux = engCharts?.x_t ? (interpSeries(engCharts.x_t, tMs) / 1000) * n : fluxSelf;
+    const emfMv = engCharts?.y_t ? interpSeries(engCharts.y_t, tMs) : null;
+    const emfPeakV = engMax?.emfPeak ?? n * b * area * 2 * Math.PI * 50;
+    const meterVal =
+        emfMv !== null
+            ? clamp(Math.abs(emfMv / (emfPeakV * 1000)), 0, 1)
+            : clamp(Math.abs(Math.sin(currentTime * 2)), 0, 1);
+
     const cx = width * 0.5;
     const cy = height * 0.52;
     for (let x = width * 0.18; x < width * 0.86; x += 42) {
@@ -58,7 +77,7 @@ export function drawEmInductionScene(opts: ElectromagnetismSceneOptions): void {
     roundRectPath(ctx, -80, -48, 160, 96, 12);
     ctx.stroke();
     ctx.restore();
-    drawMeter(ctx, width * 0.77, cy, 38, clamp(Math.abs(Math.sin(currentTime * 2)), 0, 1), isDark, 'G', '感应电流');
+    drawMeter(ctx, width * 0.77, cy, 38, meterVal, isDark, 'G', '感应电流');
     drawHud(
         ctx,
         isDark,
@@ -73,7 +92,7 @@ export function drawEmInductionScene(opts: ElectromagnetismSceneOptions): void {
 }
 
 export function drawEddyCurrentScene(opts: ElectromagnetismSceneOptions): void {
-    const { ctx, width, height, isDark, params, currentTime } = opts;
+    const { ctx, width, height, isDark, params, currentTime, simulationResult } = opts;
     clearScene(ctx, width, height, isDark);
     drawTitle(ctx, '涡流现象 (阻尼摆动)', width, isDark, { size: 18, y: 28 });
     const magneticField = params['magneticField'] ?? 0.2;
@@ -81,6 +100,14 @@ export function drawEddyCurrentScene(opts: ElectromagnetismSceneOptions): void {
     const conductivity = params['conductivity'] ?? 5.8e7;
     const thickness = params['thickness'] ?? 0.001;
     const muR = params['muR'] ?? 1;
+    // 引擎数值: 涡流热功率 / 趋肤深度 / 温升 (trajectory[0]: x=t(s), y=温度°C)
+    const engMax = simulationResult?.diagnostics?.maxValues as
+        { eddyPower_W?: number; skinDepth_mm?: number } | undefined;
+    const eddyPower = engMax?.eddyPower_W;
+    const skinDepth = engMax?.skinDepth_mm;
+    const tempFrame = getFrame(simulationResult, currentTime, 0);
+    const temperature = tempFrame?.position.y;
+
     // 阻尼时间常数随 σ、B²、t² 增大而减小（定性）
     const dampingRate =
         (conductivity / 1e7) * (magneticField * magneticField) * (thickness * 1000) * (thickness * 1000) * muR;
@@ -135,9 +162,19 @@ export function drawEddyCurrentScene(opts: ElectromagnetismSceneOptions): void {
         [
             { label: 'B', value: `${magneticField.toFixed(2)} T` },
             { label: 'f', value: `${frequency.toFixed(0)} Hz` },
-            { label: 'τ', value: `${tau.toFixed(1)} s` }
+            { label: 'τ', value: `${tau.toFixed(1)} s` },
+            ...(eddyPower !== undefined ? [{ label: 'P', value: `${eddyPower.toFixed(2)} W` }] : []),
+            ...(skinDepth !== undefined ? [{ label: 'δ', value: `${skinDepth.toFixed(2)} mm` }] : [])
         ],
-        { boxW: 214 }
+        { boxW: 250 }
     );
-    drawInfoBar(ctx, width, height, '变化的磁场在导体中产生涡流，涡流阻碍相对运动（电磁阻尼）', isDark);
+    drawInfoBar(
+        ctx,
+        width,
+        height,
+        `变化的磁场在导体中产生涡流，涡流阻碍相对运动（电磁阻尼）${
+            temperature !== undefined ? ` | 温升 ${(temperature - 25).toFixed(1)}°C` : ''
+        }`,
+        isDark
+    );
 }

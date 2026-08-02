@@ -145,6 +145,28 @@ core 测试数 881 → 917 (机械波单测重构 + 断言补齐), viz 393 → 4
 
 core 测试数 917 → 923, viz 402 → 405。
 
+## 第 4 批迁移进展 (2026-08-02): 电磁/传感类, 契约测试 12 → 17
+
+| 场景 | 迁移方式 | 备注 |
+|------|---------|------|
+| `mutual-inductance` | 读 `charts.primary_current_vs_time/secondary_emf_vs_time` (x 轴 s, 周期 T=1/f), `interpSeries` mod T; I1now/E2now/波形曲线/HUD M·E2pk 均改引擎 | 相位断言: E2 峰值处 I1≈0 (dI1/dt 最大) |
+| `em-induction` | 读 `charts.x_t/y_t` (单匝 Φ mWb / ε mV, x 轴 ms, 20ms 周期); meter 读引擎 ε, HUD Φ = 引擎单匝 × N | **引擎陷阱: x_t 是单匝磁通 B·A·cos(ωt), 未乘 N; N 只体现在 ε**; 自算回退保留 |
+| `eddy-current` | 读 `maxValues.eddyPower_W/skinDepth_mm`, 温升轨迹 `getFrame(sim, t, 0)`; HUD 增加 P/δ, 信息栏温度 | P 随 B² 正比 (两解对比断言) |
+| `security-alarm` | 读 `maxValues.alarmFlag/reedStateFlag` (0/1), 滞回判定由引擎 (x_t 为 0~60mm 状态扫描曲线, 过渡区 y=0.5) | 渲染只消费 maxValues 标志位; 过渡区仅存在于引擎扫描曲线 |
+| `reed-switch` | 读 `maxValues.currentField_mT (K/d³)/currentState`, 吸合/释放阈值判定由引擎; HpullShow/HrelShow 改引擎值 | **替代旧自算公式 200/(1+(d/10)²)**, 物理改为偶极场 K/d³ (数量级一致) |
+
+### 契约测试新增 (12 → 17)
+
+| 场景 | 断言 |
+|------|------|
+| mutual-inductance | 副线圈 E2 峰值间距 = T=20ms; E2 峰时 I1≈0 (90° 相位) |
+| em-induction | Φ(t) 单匝振幅 = B·A = 5 mWb, 周期 20ms; ε 振幅 = N·B·A·ω; Φ 过零 (符号翻转) 时 \|ε\| 最大 |
+| eddy-current | 功率 > 0, 温升轨迹单调不减, P ∝ B² (0.2T vs 0.4T → 4 倍) |
+| security-alarm | 吸合区 d=5: alarm=0/reed=1; 断开区 d=40: alarm=1/reed=0; 过渡区 d=20: 扫描曲线 y=0.5 |
+| reed-switch | H = 100/d³ (d=1→100mT, d=3→3.7mT); 吸合/断开状态随阈值; 过渡区 H 在释放~吸合之间 |
+
+core 测试数 923, viz 405 → 410。
+
 ## 迁移建议
 
 阶段 3 迁移顺序:

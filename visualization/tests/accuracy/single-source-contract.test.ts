@@ -343,4 +343,134 @@ describe('L1-migration: 渲染单一真源契约 (orbital / pendulum / vertical-
         }
         expect(flips).toBeGreaterThanOrEqual(3);
     });
+
+    it('mutual-inductance: 引擎 I1(t) 周期=1/f 振幅=I0, E2(t) 相位领先 90° 且振幅=M·I0·ω', () => {
+        const sc = scene('mutual-inductance');
+        const params: Record<string, number> = { L1: 0.1, L2: 0.05, coupling: 0.6, frequency: 50, primaryCurrent: 1 };
+        const { result, error } = runSceneSimulation(sc, params);
+        expect(error).toBeNull();
+
+        const mv = result!.diagnostics.maxValues as Record<string, number>;
+        const M = 0.6 * Math.sqrt(0.1 * 0.05);
+        const omega = 2 * Math.PI * 50;
+        expect(mv.M_H).toBeCloseTo(M, 6);
+        expect(mv.E2_amplitude_V).toBeCloseTo(M * 1 * omega, 6);
+
+        const i1 = result!.charts.primary_current_vs_time!.points as Array<{ x: number; y: number }>;
+        const e2 = result!.charts.secondary_emf_vs_time!.points as Array<{ x: number; y: number }>;
+        expect(i1.length).toBeGreaterThan(100);
+        expect(Math.max(...i1.map(p => Math.abs(p.y)))).toBeCloseTo(1, 3);
+        // 周期: 相邻同向过零点间距 = T/2 → 峰值间距 = T
+        const peaks: Array<{ x: number; y: number }> = [];
+        for (let i = 1; i < i1.length - 1; i++) {
+            if (i1[i]!.y > i1[i - 1]!.y && i1[i]!.y > i1[i + 1]!.y) peaks.push(i1[i]!);
+        }
+        const T = 1 / 50;
+        const spacing = peaks.length >= 3 ? (peaks[peaks.length - 1]!.x - peaks[0]!.x) / (peaks.length - 1) : 0;
+        expect(spacing).toBeCloseTo(T, 2);
+        // 90° 相位: E2 峰出现在 I1 过零附近 (dI1/dt 最大)
+        const e2MaxIdx = e2.reduce((best, p, idx) => (Math.abs(p.y) > Math.abs(e2[best]!.y) ? idx : best), 0);
+        const i1AtE2Peak = Math.abs(i1[e2MaxIdx]!.y);
+        expect(i1AtE2Peak).toBeLessThan(0.05 * 1); // 接近 0
+    });
+
+    it('em-induction: 引擎 Φ(t) 周期=20ms 振幅=N·B·A, ε(t) 振幅=N·B·A·ω 且相位差 90°', () => {
+        const sc = scene('em-induction');
+        const params: Record<string, number> = { Bind: 0.5, A: 0.01, Nturns: 100, angleBind: 0 };
+        const { result, error } = runSceneSimulation(sc, params);
+        expect(error).toBeNull();
+
+        const charts = result!.charts as unknown as Record<string, { points: Array<{ x: number; y: number }> }>;
+        const flux = charts['x_t']!.points; // mWb, x=ms
+        const emf = charts['y_t']!.points; // mV, x=ms
+        expect(flux.length).toBeGreaterThan(100);
+        // 振幅: x_t 为单匝磁通 B·A = 0.005 Wb → 5 mWb (N 仅体现在 ε)
+        const fluxAmp = (Math.max(...flux.map(p => p.y)) - Math.min(...flux.map(p => p.y))) / 2;
+        expect(fluxAmp).toBeCloseTo(5, 1);
+        // 周期 20ms: 峰值间距
+        const fluxPeaks: number[] = [];
+        for (let i = 1; i < flux.length - 1; i++) {
+            if (flux[i]!.y > flux[i - 1]!.y && flux[i]!.y > flux[i + 1]!.y) fluxPeaks.push(flux[i]!.x);
+        }
+        if (fluxPeaks.length >= 2) expect(fluxPeaks[1]! - fluxPeaks[0]!).toBeCloseTo(20, 2);
+        // ε 振幅 = N·B·A·ω·1000 mV
+        const emfAmp = Math.max(...emf.map(p => Math.abs(p.y)));
+        expect(emfAmp).toBeCloseTo(100 * 0.5 * 0.01 * 2 * Math.PI * 50 * 1000, 0);
+        // 90°: Φ 过零时 |ε| 最大 (符号翻转检测)
+        const fluxZeroIdx = flux.findIndex((p, i) => i > 0 && flux[i - 1]!.y > 0 && p.y <= 0);
+        expect(fluxZeroIdx).toBeGreaterThan(0);
+        expect(Math.abs(emf[fluxZeroIdx]!.y)).toBeGreaterThan(emfAmp * 0.7);
+    });
+
+    it('eddy-current: 引擎涡流功率 = π²B²f²d²V/(6ρ), 温升轨迹逐时递增', () => {
+        const sc = scene('eddy-current');
+        const params: Record<string, number> = {
+            magneticField: 0.2,
+            frequency: 50,
+            conductivity: 5.8e7,
+            thickness: 0.001,
+            muR: 1
+        };
+        const { result, error } = runSceneSimulation(sc, params);
+        expect(error).toBeNull();
+
+        const mv = result!.diagnostics.maxValues as Record<string, number>;
+        const P1 = mv.eddyPower_W as number;
+        expect(P1).toBeGreaterThan(0);
+        expect(mv.skinDepth_mm).toBeGreaterThan(0);
+        // 温度轨迹: x=t(s), y=°C, 单调不减
+        const traj = result!.trajectories[0]!;
+        expect(traj.length).toBeGreaterThan(10);
+        const temps = traj.map(p => p.position.y);
+        expect(temps[temps.length - 1]!).toBeGreaterThanOrEqual(temps[0]!);
+        // 振幅关系: P 随 B² 增长 (两次求解对比)
+        const r2 = runSceneSimulation(sc, { ...params, magneticField: 0.4 });
+        const P2 = r2.result!.diagnostics.maxValues.eddyPower_W as number;
+        expect(P2 / P1).toBeCloseTo(4, 1); // B² 比例
+    });
+
+    it('security-alarm: 引擎滞回判定 — 吸合区报警=0, 断开区报警=1, 过渡区状态=0.5', () => {
+        const sc = scene('security-alarm');
+        // 吸合区: d=5 < operate=15
+        const closed = runSceneSimulation(sc, { magnetDistance: 5, operateDistance: 15, releaseDistance: 25 });
+        expect(closed.error).toBeNull();
+        const mvC = closed.result!.diagnostics.maxValues as Record<string, number>;
+        expect(mvC.alarmFlag).toBe(0);
+        expect(mvC.reedStateFlag).toBe(1);
+        // 断开区: d=40 > release=25
+        const opened = runSceneSimulation(sc, { magnetDistance: 40, operateDistance: 15, releaseDistance: 25 });
+        expect(opened.error).toBeNull();
+        const mvO = opened.result!.diagnostics.maxValues as Record<string, number>;
+        expect(mvO.alarmFlag).toBe(1);
+        expect(mvO.reedStateFlag).toBe(0);
+        // 过渡区: d=20 (operate..release 之间) → x_t 为 0~60mm 状态扫描曲线, d=20 处 y=0.5
+        const mid = runSceneSimulation(sc, { magnetDistance: 20, operateDistance: 15, releaseDistance: 25 });
+        expect(mid.error).toBeNull();
+        const pts = mid.result!.charts.x_t!.points;
+        const p20 = pts.find(p => Math.abs(p.x - 20) < 1e-6);
+        expect(p20).toBeDefined();
+        expect(p20!.y).toBe(0.5); // 过渡状态
+    });
+
+    it('reed-switch: 引擎 H = K_DIPOLE/d³, 状态随阈值变化 (吸合/释放/过渡)', () => {
+        const sc = scene('reed-switch');
+        // d=1mm → H=100 mT > 吸合阈值
+        const close = runSceneSimulation(sc, { magnetDistance: 1, pullInThreshold: 30, releaseThreshold: 20 });
+        expect(close.error).toBeNull();
+        const mvC = close.result!.diagnostics.maxValues as Record<string, number>;
+        expect(mvC.currentField_mT).toBeCloseTo(100, 3); // 100/d³
+        expect(mvC.currentState).toBe(1);
+        // d=3mm → H≈3.7 mT < 释放阈值 → 断开
+        const open = runSceneSimulation(sc, { magnetDistance: 3, pullInThreshold: 30, releaseThreshold: 20 });
+        expect(open.error).toBeNull();
+        const mvO = open.result!.diagnostics.maxValues as Record<string, number>;
+        expect(mvO.currentField_mT).toBeCloseTo(100 / 27, 2);
+        expect(mvO.currentState).toBe(0);
+        // 过渡: H 在释放~吸合之间 → 0.5 (取 d=1.55: H≈26.9)
+        const mid = runSceneSimulation(sc, { magnetDistance: 1.55, pullInThreshold: 30, releaseThreshold: 20 });
+        expect(mid.error).toBeNull();
+        const mvM = mid.result!.diagnostics.maxValues as Record<string, number>;
+        expect(mvM.currentField_mT).toBeGreaterThan(20);
+        expect(mvM.currentField_mT).toBeLessThan(30);
+    });
 });

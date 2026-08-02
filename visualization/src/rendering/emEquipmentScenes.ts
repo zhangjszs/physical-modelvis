@@ -16,7 +16,7 @@
  */
 
 import type { SimulationResult } from 'physics-core';
-import { roundRectPath, drawEmptyState, drawHud, drawInfoBar, drawArrow } from './renderingUtils';
+import { roundRectPath, drawEmptyState, drawHud, drawInfoBar, drawArrow, interpSeries } from './renderingUtils';
 
 // ========== 共享类型 ==========
 
@@ -784,6 +784,24 @@ export function drawMutualInductanceScene(opts: EmEquipSceneOptions): void {
     const omega = 2 * Math.PI * f;
     const E2pk = M * I0 * omega;
 
+    // 引擎数据: I1(t)/E2(t) 波形 (x 轴 s) + M/E2pk (maxValues); 取模到周期内插值, 回退自算
+    const engCharts = simulationResult?.charts as
+        | {
+              primary_current_vs_time?: { points: Array<{ x: number; y: number }> }; // I1(t) A
+              secondary_emf_vs_time?: { points: Array<{ x: number; y: number }> }; // E2(t) V
+          }
+        | undefined;
+    const engMax = simulationResult?.diagnostics?.maxValues as
+        { M_H?: number; E2_amplitude_V?: number; T_period_s?: number; f_Hz?: number } | undefined;
+    const engM = engMax?.M_H ?? M;
+    const engE2pk = engMax?.E2_amplitude_V ?? E2pk;
+    const engT = engMax?.T_period_s ?? 1 / f;
+    const i1Series = engCharts?.primary_current_vs_time;
+    const e2Series = engCharts?.secondary_emf_vs_time;
+    const tMod = ((currentTime % engT) + engT) % engT;
+    const I1now = i1Series ? interpSeries(i1Series, tMod) : I0 * Math.sin(omega * currentTime);
+    const E2now = e2Series ? interpSeries(e2Series, tMod) : -E2pk * Math.cos(omega * currentTime);
+
     // 当前开关状态: 在 t=0 时开关闭合 (用 currentTime 模拟)
     // 当 currentTime < 0.1 时画断开状态, 否则画闭合. (制造瞬态可视化)
     // 更自然: 始终画闭合 (稳态), 偏转大小由 sin(ωt) 驱动
@@ -819,7 +837,7 @@ export function drawMutualInductanceScene(opts: EmEquipSceneOptions): void {
     // 铁芯内磁通方向箭头 (中央)
     const fluxX = (coilLeftX + coilRightX) / 2;
     const fluxY = coreY + coreH / 2;
-    const fluxDir = Math.sin(omega * currentTime) >= 0 ? 1 : -1;
+    const fluxDir = I1now >= 0 ? 1 : -1;
     drawArrow(ctx, fluxX - 30 * fluxDir, fluxY, fluxX + 30 * fluxDir, fluxDir > 0 ? fluxY : fluxY, '#a855f7');
     ctx.fillStyle = '#a855f7';
     ctx.font = '10px sans-serif';
@@ -910,7 +928,6 @@ export function drawMutualInductanceScene(opts: EmEquipSceneOptions): void {
     ctx.lineWidth = 1.5;
     ctx.stroke();
     // 指针
-    const I1now = I0 * Math.sin(omega * currentTime);
     const needleA1 = Math.max(-0.8, Math.min(0.8, I1now / (I0 * 1.2)));
     const needle1Angle = -Math.PI / 4 + (Math.PI / 2) * needleA1;
     ctx.strokeStyle = '#ef4444';
@@ -947,8 +964,7 @@ export function drawMutualInductanceScene(opts: EmEquipSceneOptions): void {
     ctx.lineWidth = 1.5;
     ctx.stroke();
     // 副边感生电动势 E2 = -M·dI1/dt ∝ cos(ωt)
-    const E2now = -E2pk * Math.cos(omega * currentTime);
-    const needleA2 = Math.max(-0.8, Math.min(0.8, E2now / (E2pk * 1.2)));
+    const needleA2 = Math.max(-0.8, Math.min(0.8, E2now / (engE2pk * 1.2)));
     const needle2Angle = -Math.PI / 4 + (Math.PI / 2) * needleA2;
     ctx.strokeStyle = '#ef4444';
     ctx.lineWidth = 1.5;
@@ -993,9 +1009,9 @@ export function drawMutualInductanceScene(opts: EmEquipSceneOptions): void {
         for (let i = 0; i <= N; i++) {
             const ti = (dur * i) / N;
             I1_X.push(ti * 1000);
-            I1_Y.push(I0 * Math.sin(omega * ti));
+            I1_Y.push(i1Series ? interpSeries(i1Series, ti) : I0 * Math.sin(omega * ti));
             E2_X.push(ti * 1000);
-            E2_Y.push(-E2pk * Math.cos(omega * ti));
+            E2_Y.push(e2Series ? interpSeries(e2Series, ti) : -engE2pk * Math.cos(omega * ti));
         }
 
         // 找到 y 范围合并轴
@@ -1096,8 +1112,8 @@ export function drawMutualInductanceScene(opts: EmEquipSceneOptions): void {
             { label: 'L1', value: `${L1} H` },
             { label: 'L2', value: `${L2} H` },
             { label: 'k', value: `${k.toFixed(2)}` },
-            { label: 'M', value: `${M.toExponential(2)} H` },
-            { label: 'E2pk', value: `${E2pk.toFixed(3)} V` }
+            { label: 'M', value: `${engM.toExponential(2)} H` },
+            { label: 'E2pk', value: `${engE2pk.toFixed(3)} V` }
         ],
         { boxW: 210 }
     );
@@ -1106,7 +1122,7 @@ export function drawMutualInductanceScene(opts: EmEquipSceneOptions): void {
         ctx,
         width,
         height,
-        `L1=${L1}H  L2=${L2}H  k=${k}  f=${f}Hz  I0=${I0}A  M=${M.toExponential(3)}H  E2pk=${E2pk.toFixed(3)}V`,
+        `L1=${L1}H  L2=${L2}H  k=${k}  f=${f}Hz  I0=${I0}A  M=${engM.toExponential(3)}H  E2pk=${engE2pk.toFixed(3)}V`,
         isDark,
         { height: 22, yOffset: 34 }
     );

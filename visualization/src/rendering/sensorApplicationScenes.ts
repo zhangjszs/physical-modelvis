@@ -37,9 +37,12 @@ export function drawSecurityAlarmScene(o: SensorSceneOptions): void {
     const operateDist = params['operateDistance'] ?? 15;
     const releaseDist = params['releaseDistance'] ?? 25;
 
-    // 状态: 吸合 (门关), 断开 (门开/报警)
-    const doorOpen = magnetDistance > operateDist;
-    const alarm = doorOpen;
+    // 引擎判定 (含滞回逻辑): doorStateFlag / reedStateFlag / alarmFlag; 回退渲染自算 (无滞回简化)
+    const engMax = simulationResult?.diagnostics?.maxValues as
+        { doorStateFlag?: number; reedStateFlag?: number; alarmFlag?: number } | undefined;
+    const doorOpen = (engMax?.doorStateFlag ?? (magnetDistance > operateDist ? 1 : 0)) === 1;
+    const alarm = (engMax?.alarmFlag ?? (doorOpen ? 1 : 0)) === 1;
+    const reedClosed = (engMax?.reedStateFlag ?? (doorOpen ? 0 : 1)) === 1;
 
     drawTitle(ctx, '门窗防盗报警 (磁控开关)', w, isDark, { size: 18, y: 28 });
 
@@ -102,7 +105,7 @@ export function drawSecurityAlarmScene(o: SensorSceneOptions): void {
     ctx.lineWidth = 1.2;
     ctx.stroke();
     // 触点
-    const contactOpen = doorOpen;
+    const contactOpen = !reedClosed;
     const reedGap = contactOpen ? 8 : 0;
     ctx.strokeStyle = '#cbd5e1';
     ctx.lineWidth = 3;
