@@ -57,18 +57,17 @@ export class UniformMagneticModel extends PhysicsModelBase {
         const T_period = (2 * Math.PI * m) / (Math.abs(q) * Math.abs(Bz));
         const omega = v0Mag / R; // 角频率
 
-        // 圆心位置：对于 Bz>0，正电荷逆时针，负电荷顺时针
-        // 向心力方向: F = qv × B, 对于 v=(vx,vy), B=(0,0,Bz)
-        // Fx = q*vy*Bz, Fy = -q*vx*Bz
-        // 圆心在速度方向的左侧（正电荷，Bz>0）或右侧
-        const sign = q * Bz > 0 ? 1 : -1; // +1: 逆时针, -1: 顺时针
+        // 圆心位置：向心力方向即 F = qv × B 的方向
+        // F = q*(vy*Bz, -vx*Bz)，指向圆心
+        // 正电荷 Bz>0 时向 -y 侧（速度右侧）偏转，圆心在速度右侧
+        const sign = q * Bz > 0 ? 1 : -1; // 指向圆心的法向符号
         // 速度的垂直方向（指向圆心）
-        const perpX = (-sign * v0.y) / v0Mag;
-        const perpY = (sign * v0.x) / v0Mag;
+        const perpX = (sign * v0.y) / v0Mag;
+        const perpY = (-sign * v0.x) / v0Mag;
         const centerX = x0.x + R * perpX;
         const centerY = x0.y + R * perpY;
 
-        // 解析解采样: 回旋 ω=sign·ωt 绕圆心旋转 (公共脚手架 sampleTrajectory)
+        // 解析解采样: 回旋 angle=-sign·ωt 绕圆心旋转 (公共脚手架 sampleTrajectory)
         const dx0 = x0.x - centerX;
         const dy0 = x0.y - centerY;
         const accMag = (v0Mag * v0Mag) / R;
@@ -76,7 +75,7 @@ export class UniformMagneticModel extends PhysicsModelBase {
             sampleCount,
             duration,
             sampleAt: t => {
-                const angle = sign * omega * t;
+                const angle = -sign * omega * t;
                 const cosA = Math.cos(angle);
                 const sinA = Math.sin(angle);
                 const position = {
