@@ -2832,7 +2832,14 @@ export const ElectromagnetismScenes: SceneConfig[] = [
                 id: `em-wave-hertz-${Date.now()}`,
                 title: '赫兹电磁波实验',
                 model: 'em-wave-hertz' as const,
-                bodies: [],
+                bodies: [
+                    {
+                        id: 'antenna',
+                        mass: { value: 1, unit: 'kg' },
+                        position: { x: 0, y: 0 },
+                        velocity: { x: 0, y: 0 }
+                    }
+                ],
                 constraints: { hertzExperiment: { frequency, turns, sparkGap, distance } },
                 environment: {},
                 timeConfig: makeTimeSeries(duration, 100, 0.01)

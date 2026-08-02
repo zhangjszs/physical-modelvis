@@ -119,6 +119,32 @@ heat-direction / adiabatic-compression / energy-transformation / load-voltage / 
 
 core 测试数 881 → 917 (机械波单测重构 + 断言补齐), viz 393 → 402。
 
+## 第 3 批迁移进展 (2026-08-02)
+
+波形类剩余,契约测试 9 → 12 用例:
+
+| 场景 | 迁移方式 | 备注 |
+|------|---------|------|
+| `water-diffraction` | HUD 读 `maxValues.ratio/halfWidthAngle`; 波前动画保留 (引擎无逐时数据) | **附带修复引擎极小值边界误检** (见下); 新增引擎单测 6 例 |
+| `em-wave-hertz` | HUD 读 `maxValues.frequency/wavelength/currentEmf_mV`, HUD 增加 ε 项 | **修复场景定义 bug**: buildProblem `bodies: []` 违反引擎契约 (至少一个物体), 补虚拟 antenna 物体 |
+| `sound-interference` | **新建渲染函数** `drawSoundInterferenceScene` (原渲染错配: 复用了光双缝 `drawDoubleSlitScene`) | 操场俯视 2D 干涉热图 (与引擎同式采样) + 观察点数值读引擎 maxValues (λ/Δr/I_ratio) + flags 判定; 回退同式自算 |
+
+### 引擎 bug 修复:water-diffraction 极小值边界误检
+
+- 原极小值检测无边界排除, θ=±60° 扫描边界处 I=0.035<0.1·A0 且单调递减, 被误记为第一极小 (firstMinimaDeg=59.4°)
+- 修复: 仅检测 |θ| < θ_max − Δθ 内的局部极小, firstMinimaDeg 现为 ±30° (arcsin(λ/a))
+- 新增 `water-diffraction.test.ts` 6 例: 主极大/半宽/极小位置/边界排除/强弱衍射
+
+### 契约测试新增 (9 → 12)
+
+| 场景 | 断言 |
+|------|------|
+| water-diffraction | 中央主极大 = A0; 半宽 = arcsin(λ/a); I(±30°)≈0 |
+| em-wave-hertz | 波长 = c/f; 电流波形峰值间距 = T (多峰值平均) |
+| sound-interference | 观察点 I_ratio 与独立公式一致; scan_line 含加强/减弱交替 (≥3 次跳变) |
+
+core 测试数 917 → 923, viz 402 → 405。
+
 ## 迁移建议
 
 阶段 3 迁移顺序:

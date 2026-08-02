@@ -262,4 +262,85 @@ describe('L1-migration: 渲染单一真源契约 (orbital / pendulum / vertical-
             expect(Math.abs(sum - Etotal * 1e6) / (Etotal * 1e6)).toBeLessThan(1e-3);
         }
     });
+
+    it('water-diffraction: 引擎衍射曲线中央主极大 = A0, 半宽 = arcsin(λ/a), HUD 数值必须读 maxValues', () => {
+        const sc = scene('water-diffraction');
+        const params: Record<string, number> = { wavelength: 30, slitWidth: 60, screenDist: 100, waveAmp: 2 };
+        const { result, error } = runSceneSimulation(sc, params);
+        expect(error).toBeNull();
+
+        const pts = result!.charts.intensity_angle!.points as Array<{ x: number; y: number }>;
+        // 中央主极大 = A0
+        expect(Math.max(...pts.map(p => p.y))).toBeCloseTo(2, 3);
+        // 半宽 = arcsin(λ/a)
+        const halfWidth = result!.diagnostics.maxValues.halfWidthAngle as number;
+        const expected = (Math.asin(Math.min(1, 30 / 60)) * 180) / Math.PI;
+        expect(halfWidth).toBeCloseTo(expected, 4);
+        // 第一极小值位置 ≈ 半宽 (±30°)
+        const firstMin = result!.diagnostics.maxValues.firstMinimaDeg as number;
+        expect(Math.min(Math.abs(firstMin - 30), Math.abs(firstMin + 30))).toBeLessThan(1);
+        // I(θ) 曲线在 ±30° 处为极小 (≈0)
+        const idx = pts.findIndex(p => Math.abs(p.x - 30) < 0.4);
+        expect(idx).toBeGreaterThan(0);
+        expect(Math.abs(pts[idx]!.y)).toBeLessThan(0.02);
+    });
+
+    it('em-wave-hertz: 引擎波长 = c/f, 电流波形周期 = T, 渲染 HUD 必须读 maxValues', () => {
+        const sc = scene('em-wave-hertz');
+        const params: Record<string, number> = { frequency: 100, turns: 10, sparkGap: 1, distance: 5 };
+        const { result, error } = runSceneSimulation(sc, params);
+        expect(error).toBeNull();
+
+        const mv = result!.diagnostics.maxValues as Record<string, number>;
+        expect(mv.wavelength).toBeCloseTo(3e8 / 1e8, 1); // c / 100MHz = 3 m
+        // x_t: LC 振荡电流, 300 点覆盖 3T → 相邻峰值间距 = T (μs)
+        const pts = result!.charts.x_t!.points as Array<{ x: number; y: number }>;
+        const im = mv.maxCurrent as number;
+        const peaks: Array<{ x: number; y: number }> = [];
+        for (let i = 1; i < pts.length - 1; i++) {
+            if (pts[i]!.y > pts[i - 1]!.y && pts[i]!.y > pts[i + 1]!.y && pts[i]!.y > 0.5 * im) {
+                peaks.push(pts[i]!);
+            }
+        }
+        const T = 1 / 1e8; // 10 ns
+        // 离散采样下峰值位置误差可达 ±0.5 采样间隔, 用多个峰值平均间距
+        expect(peaks.length).toBeGreaterThanOrEqual(3);
+        const spacing = (peaks[2]!.x - peaks[0]!.x) / 2;
+        expect(Math.abs(spacing - T * 1e6)).toBeLessThan(0.06); // 采样间隔 0.1 μs 的容差
+    });
+
+    it('sound-interference: 引擎观察点 I_ratio 与独立公式一致, scan_line 含加强/减弱交替', () => {
+        const sc = scene('sound-interference');
+        const params: Record<string, number> = {
+            frequency: 500,
+            speakerDist: 3,
+            soundSpeed: 340,
+            obsX: 3,
+            obsY: 10,
+            amplitude: 0.5
+        };
+        const { result, error } = runSceneSimulation(sc, params);
+        expect(error).toBeNull();
+
+        const mv = result!.diagnostics.maxValues as Record<string, number>;
+        // 独立公式: I/Imax = cos²(π·Δr/λ)
+        const lambda = 340 / 500;
+        const deltaR = Math.hypot(3 - 3 / 2, 10) - Math.hypot(3 + 3 / 2, 10);
+        const expectRatio = Math.pow(Math.cos((Math.PI * deltaR) / lambda), 2);
+        expect(mv.I_ratio).toBeCloseTo(expectRatio, 4);
+        // scan_line 沿 y=10 扫描: 存在接近 1 的峰与接近 0 的谷
+        const scan = result!.charts.scan_line!.points as Array<{ x: number; y: number }>;
+        const maxI = Math.max(...scan.map(p => p.y));
+        const minI = Math.min(...scan.map(p => p.y));
+        expect(maxI).toBeGreaterThan(0.98);
+        expect(minI).toBeLessThan(0.02);
+        // 加强/减弱交替: 至少 3 次跳变
+        let flips = 0;
+        for (let i = 1; i < scan.length; i++) {
+            const strongA = scan[i - 1]!.y > 0.5;
+            const strongB = scan[i]!.y > 0.5;
+            if (strongA !== strongB) flips++;
+        }
+        expect(flips).toBeGreaterThanOrEqual(3);
+    });
 });

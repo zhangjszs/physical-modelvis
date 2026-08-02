@@ -34,8 +34,8 @@ import {
 import {
     drawSoundWaveformScene,
     drawWaterDiffractionScene,
+    drawSoundInterferenceScene,
     drawDopplerScene,
-    drawDoubleSlitScene,
     drawSingleSlitScene,
     drawThinFilmScene,
     drawRefractionScene,
@@ -1331,7 +1331,7 @@ export function SimulationCanvas() {
                     drawDopplerScene(sceneOpts);
                     break;
                 case 'sound-interference':
-                    drawDoubleSlitScene(sceneOpts);
+                    drawSoundInterferenceScene(sceneOpts);
                     break;
                 case 'single-slit':
                     drawSingleSlitScene(sceneOpts);

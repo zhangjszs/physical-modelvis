@@ -147,7 +147,7 @@ export function drawSoundWaveformScene(o: WaveOptSceneOptions) {
 // ========== 2. 水波+单缝衍射 ==========
 
 export function drawWaterDiffractionScene(o: WaveOptSceneOptions) {
-    const { ctx, width: w, height: h, isDark, params, currentTime: t } = o;
+    const { ctx, width: w, height: h, isDark, params, currentTime: t, simulationResult } = o;
     clearScene(ctx, w, h, isDark);
     drawTitle(ctx, '水波单缝衍射', w, isDark, { size: 20, y: 32 });
 
@@ -187,8 +187,9 @@ export function drawWaterDiffractionScene(o: WaveOptSceneOptions) {
     ctx.fillRect(slitX - 3, borderTop, 6, sourceY - slitWidth / 2 - borderTop);
     ctx.fillRect(slitX - 3, sourceY + slitWidth / 2, 6, borderBottom - sourceY - slitWidth / 2);
 
-    // 缝后波: 若 slit >> λ 为近似直线, 否则圆扩散
-    const ratio = slitWidth / lambda;
+    // 缝后波: 若 slit >> λ 为近似直线, 否则圆扩散 (引擎无逐时波形数据, 动画为合理示意图)
+    const engMax = simulationResult?.diagnostics?.maxValues as { ratio?: number; halfWidthAngle?: number } | undefined;
+    const ratio = engMax?.ratio ?? slitWidth / lambda;
     ctx.strokeStyle = isDark ? '#38bdf8' : '#0284c7';
     ctx.lineWidth = 2;
     const waveCount = 5;
@@ -211,11 +212,141 @@ export function drawWaterDiffractionScene(o: WaveOptSceneOptions) {
 
     // HUD
     const mode = ratio < 2 ? '明显衍射' : '近似直线传播';
+    const halfWidthDeg = engMax?.halfWidthAngle;
     drawSubtitle(
         ctx,
-        `波长 λ = ${lambda}px | 缝宽 a = ${slitWidth}px | a/λ = ${ratio.toFixed(1)} | ${mode}`,
+        `波长 λ = ${lambda}px | 缝宽 a = ${slitWidth}px | a/λ = ${ratio.toFixed(1)} | ${mode}${
+            halfWidthDeg !== undefined ? ` | 主极大半宽 ${halfWidthDeg.toFixed(1)}°` : ''
+        }`,
         20,
         h - 20,
+        isDark
+    );
+}
+
+// ========== 2.5 声波干涉 (双喇叭) ==========
+
+export function drawSoundInterferenceScene(o: WaveOptSceneOptions): void {
+    const { ctx, width: w, height: h, isDark, params, simulationResult } = o;
+    clearScene(ctx, w, h, isDark);
+    drawTitle(ctx, '声波干涉 (双喇叭)', w, isDark, { size: 20, y: 32 });
+
+    const freq = params.frequency ?? 500;
+    const d = params.speakerDist ?? 3;
+    const v = params.soundSpeed ?? 340;
+    const obsX = clamp(params.obsX ?? 3, -12, 12);
+    const obsY = clamp(params.obsY ?? 10, 0.5, 22);
+
+    // 观察点数值: 优先读引擎 maxValues (λ/Δr/I_ratio), 回退同式自算
+    const maxVals = simulationResult?.diagnostics?.maxValues as
+        { lambda?: number; deltaR?: number; I_ratio?: number; f?: number } | undefined;
+    const engFlags = simulationResult?.diagnostics?.flags as
+        { isConstructive?: boolean; isDestructive?: boolean } | undefined;
+    const lambda = maxVals?.lambda ?? v / freq;
+    const deltaR = maxVals?.deltaR ?? Math.hypot(obsX - d / 2, obsY) - Math.hypot(obsX + d / 2, obsY);
+    const phaseDiff = (2 * Math.PI * deltaR) / lambda;
+    const I_ratio = maxVals?.I_ratio ?? Math.pow(Math.cos(phaseDiff / 2), 2);
+    const isConstructive = engFlags?.isConstructive ?? Math.abs(Math.cos(phaseDiff / 2)) > 0.9;
+    const isDestructive = engFlags?.isDestructive ?? Math.abs(Math.cos(phaseDiff / 2)) < 0.1;
+    const verdict = isConstructive ? '加强 (相长)' : isDestructive ? '减弱 (相消)' : '介于两者之间';
+
+    // 操场俯视布局: 物理 x ∈ [-12, 12] (m), y ∈ [0, 22] (m) → 像素
+    const xMin = -12;
+    const xMax = 12;
+    const yMax = 22;
+    const leftX = w * 0.14;
+    const rightX = w * 0.86;
+    const topY = 64;
+    const botY = h - 64;
+    const sx = (rightX - leftX) / (xMax - xMin);
+    const sy = (botY - topY) / yMax;
+    const toX = (xp: number): number => leftX + (xp - xMin) * sx;
+    const toY = (yp: number): number => topY + yp * sy;
+
+    // 地面
+    ctx.fillStyle = isDark ? '#14532d' : '#bbf7d0';
+    ctx.fillRect(0, topY - 6, w, botY - topY + 12);
+    ctx.strokeStyle = isDark ? 'rgba(134,239,172,0.15)' : 'rgba(22,101,52,0.12)';
+    ctx.lineWidth = 1;
+    for (let gx = 0; gx <= 12; gx++) {
+        const x = toX(xMin + gx * 2);
+        ctx.beginPath();
+        ctx.moveTo(x, topY - 6);
+        ctx.lineTo(x, botY + 6);
+        ctx.stroke();
+    }
+    for (let gy = 0; gy <= 11; gy++) {
+        const y = toY(gy * 2);
+        ctx.beginPath();
+        ctx.moveTo(leftX, y);
+        ctx.lineTo(rightX, y);
+        ctx.stroke();
+    }
+
+    // 2D 干涉热图 (引擎无二维场, 用与引擎同式的 cos²(π·Δr/λ) 采样)
+    const cols = 44;
+    const rows = 20;
+    for (let i = 0; i <= cols; i++) {
+        for (let j = 0; j <= rows; j++) {
+            const xp = xMin + ((xMax - xMin) * i) / cols;
+            const yp = (yMax * j) / rows;
+            if (yp < 0.4) continue;
+            const phi = (2 * Math.PI * (Math.hypot(xp - d / 2, yp) - Math.hypot(xp + d / 2, yp))) / lambda;
+            const I = Math.pow(Math.cos(phi / 2), 2);
+            ctx.fillStyle = isDark ? `rgba(239,68,68,${0.06 + 0.38 * I})` : `rgba(185,28,28,${0.05 + 0.33 * I})`;
+            ctx.fillRect(toX(xp) - 0.5, toY(yp) - 0.5, sx * 0.6, sy * 0.6);
+        }
+    }
+
+    // 声源 S1/S2
+    for (const [sxPos, label] of [
+        [-d / 2, 'S₁'],
+        [d / 2, 'S₂']
+    ] as Array<[number, string]>) {
+        const px = toX(sxPos);
+        const py = toY(0);
+        ctx.fillStyle = isDark ? '#fbbf24' : '#d97706';
+        ctx.beginPath();
+        ctx.arc(px, py, 7, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = isDark ? '#1e293b' : '#78350f';
+        ctx.font = 'bold 12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(label, px, py + 22);
+    }
+
+    // 观察者 P
+    const px = toX(obsX);
+    const py = toY(obsY);
+    ctx.fillStyle = GREEN;
+    ctx.beginPath();
+    ctx.arc(px, py, 6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = isDark ? '#f1f5f9' : '#0f172a';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.fillStyle = isDark ? '#f1f5f9' : '#0f172a';
+    ctx.font = '12px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(`P(${obsX.toFixed(1)}, ${obsY.toFixed(1)})m`, px + 10, py - 8);
+    ctx.textAlign = 'left';
+
+    drawHud(
+        ctx,
+        isDark,
+        [
+            { label: 'λ', value: `${lambda.toFixed(3)} m` },
+            { label: 'd', value: `${d.toFixed(1)} m` },
+            { label: 'Δr', value: `${deltaR.toFixed(3)} m` },
+            { label: 'I/Imax', value: I_ratio.toFixed(3) }
+        ],
+        { boxW: 236 }
+    );
+    drawInfoBar(
+        ctx,
+        w,
+        h,
+        `f=${freq.toFixed(0)}Hz | Δr=${deltaR.toFixed(3)}m = ${(deltaR / lambda).toFixed(2)}λ | ${verdict}`,
         isDark
     );
 }

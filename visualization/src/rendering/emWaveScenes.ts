@@ -94,15 +94,20 @@ export function drawAcCurrentScene(opts: ElectromagnetismSceneOptions): void {
 }
 
 export function drawEmWaveHertzScene(opts: ElectromagnetismSceneOptions): void {
-    const { ctx, width, height, isDark, params, currentTime } = opts;
+    const { ctx, width, height, isDark, params, currentTime, simulationResult } = opts;
     clearScene(ctx, width, height, isDark);
     drawTitle(ctx, '赫兹电磁波实验 (LC 振荡 + 驻波)', width, isDark, { size: 18, y: 28 });
     const C = 2.99792458e8;
-    const frequency = (params['frequency'] ?? 100) * 1e6;
     const turns = params['turns'] ?? 10;
     const sparkGap = params['sparkGap'] ?? 1;
     const distance = params['distance'] ?? 5;
-    const lambda = C / frequency; // m
+
+    // 引擎数值: 频率/波长/接收电动势优先读 maxValues, 回退自算
+    const maxVals = simulationResult?.diagnostics?.maxValues as
+        { frequency?: number; wavelength?: number; currentEmf_mV?: number; maxCurrent?: number } | undefined;
+    const frequency = maxVals?.frequency ?? (params['frequency'] ?? 100) * 1e6;
+    const lambda = maxVals?.wavelength ?? C / frequency;
+    const emf_mV = maxVals?.currentEmf_mV;
 
     const emitX = width * 0.16;
     const recvX = width * 0.8;
@@ -153,9 +158,10 @@ export function drawEmWaveHertzScene(opts: ElectromagnetismSceneOptions): void {
         [
             { label: 'f', value: `${frequency.toExponential(2)} Hz` },
             { label: 'λ', value: `${(lambda * 100).toFixed(1)} cm` },
-            { label: 'd', value: `${distance.toFixed(1)} m` }
+            { label: 'd', value: `${distance.toFixed(1)} m` },
+            ...(emf_mV !== undefined ? [{ label: 'ε', value: `${emf_mV.toExponential(2)} mV` }] : [])
         ],
-        { boxW: 214 }
+        { boxW: 250 }
     );
     drawInfoBar(
         ctx,

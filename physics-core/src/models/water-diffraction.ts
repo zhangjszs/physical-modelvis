@@ -90,8 +90,8 @@ export class WaterDiffractionModel extends PhysicsModelBase {
                 maxI = I;
                 maxTheta = theta;
             }
-            // 检测极小值
-            if (i > 1) {
+            // 检测极小值 (排除 ±thetaMax 边界, 边界单调不构成局部极小)
+            if (i > 1 && Math.abs(theta) < thetaMax - (2 * thetaMax) / N) {
                 const prev = intensityCurve.points[i - 1]!.y;
                 const prev2 = intensityCurve.points[i - 2]!.y;
                 if (prev < prev2 && prev < I && prev < 0.1 * A0) {
