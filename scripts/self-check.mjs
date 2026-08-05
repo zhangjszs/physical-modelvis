@@ -35,7 +35,7 @@ const LAYERS = [
   { id: 'L5', name: '渲染器-场景路由', pkg: 'visualization', test: 'renderer-routing.test.ts' },
   { id: 'L6', name: '参数面板物理范围', pkg: 'visualization', test: 'parameter-ranges.test.ts' },
   { id: 'L8', name: 'Boris 数值积分正确性+收敛', pkg: 'physics-core', test: 'boris-correctness.test.ts' },
-  { id: 'L9', name: '跨场景数值鲁棒性', pkg: 'visualization', test: 'physics-correctness.test.ts' },
+  { id: 'L9', name: '跨场景数值鲁棒性', pkg: 'visualization', test: ['physics-correctness.mechanics.test.ts', 'physics-correctness.electromagnetism.test.ts', 'physics-correctness.optics.test.ts', 'physics-correctness.thermodynamics.test.ts', 'physics-correctness.modern.test.ts'] },
 ];
 
 /**
@@ -46,14 +46,14 @@ function runLayer(layer) {
   return new Promise((resolveP) => {
     const cwd = resolve(root, layer.pkg);
     const isWin = process.platform === 'win32';
-    // 使用 npm test -- <testfile>
+    // 使用 npm test -- <testfile...>; layer.test 可为单文件字符串或文件数组 (L9 按领域拆分)
     const cmd = isWin ? 'npm.cmd' : 'npm';
-    const args = ['test', '--', 'tests/accuracy/' + layer.test].filter(
-      (_, i) => !(i === 2 && layer.pkg === 'physics-core' && layer.test === 'constants.test.ts')
-    );
-    if (layer.test === 'constants.test.ts') {
-      // physics-core 的 constants.test.ts 在 tests/unit 下
-      args[2] = 'tests/unit/constants.test.ts';
+    const testFiles = Array.isArray(layer.test) ? layer.test : [layer.test];
+    const args = ['test', '--', ...testFiles.map((t) => 'tests/accuracy/' + t)];
+    if (layer.pkg === 'physics-core' && testFiles.includes('constants.test.ts')) {
+      // physics-core 的 constants.test.ts 在 tests/unit 下, 重定向路径
+      const idx = args.findIndex((a) => a.endsWith('constants.test.ts'));
+      if (idx >= 0) args[idx] = 'tests/unit/constants.test.ts';
     }
 
     const proc = spawn(cmd, args, {

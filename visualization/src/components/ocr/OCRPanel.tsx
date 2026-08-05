@@ -1,19 +1,10 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useSimulationStore } from '../../store/simulationStore';
+import { resolveScene, buildSceneParams, inferProblemTypeLabel } from './ocrUtils';
+import type { RecognizeResponse, RecognizedProblem } from '../../../server/ocr-utils';
 
 const OCR_PROXY_URL = 'http://localhost:3001';
 const STORAGE_KEY = 'physvis_viz_ocr_model';
-
-interface RecognizedProblem {
-    title?: string;
-    description?: string;
-    source?: string;
-    given?: Record<string, unknown>;
-    options?: Array<{ letter: string; text: string }>;
-    answer?: { correct?: string[]; explanation?: string };
-    sceneTemplate?: string | null;
-    formulas?: string[];
-}
 
 function loadModel(): string {
     return localStorage.getItem(STORAGE_KEY) ?? '';
@@ -32,14 +23,14 @@ async function checkBackendHealth(): Promise<boolean> {
     }
 }
 
-async function recognizeProblem(base64Image: string, model: string): Promise<RecognizedProblem> {
+async function recognizeProblem(base64Image: string, model: string): Promise<RecognizeResponse> {
     const resp = await fetch(`${OCR_PROXY_URL}/api/ocr/recognize`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ image: base64Image, model: model || undefined })
     });
 
-    const data = (await resp.json()) as { result?: RecognizedProblem; error?: string };
+    const data = (await resp.json()) as { result?: RecognizeResponse; error?: string };
     if (!resp.ok) throw new Error(data.error ?? `请求失败 (${resp.status})`);
     if (!data.result) throw new Error('后端未返回识别结果');
     return data.result;
@@ -49,7 +40,8 @@ export function OCRPanel() {
     const [isOpen, setIsOpen] = useState(false);
     const [preview, setPreview] = useState<string | null>(null);
     const [status, setStatus] = useState<{ type: 'info' | 'error' | 'success'; msg: string } | null>(null);
-    const [result, setResult] = useState<RecognizedProblem | null>(null);
+    const [problems, setProblems] = useState<RecognizedProblem[] | null>(null);
+    const [activeIndex, setActiveIndex] = useState(0);
     const [loading, setLoading] = useState(false);
     const [backendOk, setBackendOk] = useState<boolean | null>(null);
     const fileRef = useRef<HTMLInputElement>(null);
@@ -59,9 +51,13 @@ export function OCRPanel() {
 
     const { setScene, setParameter } = useSimulationStore();
 
+    // 仅在面板打开时检查后端健康, 避免页面加载时对 3001 发起请求
+    // (后端未启动时会产生浏览器网络错误噪音, 污染页面 console)
     useEffect(() => {
+        if (!isOpen) return;
+        setBackendOk(null);
         checkBackendHealth().then(setBackendOk);
-    }, []);
+    }, [isOpen]);
 
     const handleFile = useCallback((file: File) => {
         if (!file.type.startsWith('image/')) {
@@ -78,7 +74,8 @@ export function OCRPanel() {
             base64Ref.current = base64;
             setPreview(base64);
             setStatus(null);
-            setResult(null);
+            setProblems(null);
+            setActiveIndex(0);
         };
         reader.readAsDataURL(file);
     }, []);
@@ -97,11 +94,13 @@ export function OCRPanel() {
         saveModel(model);
         setLoading(true);
         setStatus({ type: 'info', msg: '正在识别...' });
-        setResult(null);
+        setProblems(null);
+        setActiveIndex(0);
         try {
             const r = await recognizeProblem(base64Ref.current, model);
-            setStatus({ type: 'success', msg: '识别完成' });
-            setResult(r);
+            if (r.problems.length === 0) throw new Error('未识别到有效题目');
+            setStatus({ type: 'success', msg: `识别完成: 共 ${r.problems.length} 题` });
+            setProblems(r.problems);
         } catch (e) {
             setStatus({ type: 'error', msg: e instanceof Error ? e.message : '识别失败' });
         } finally {
@@ -109,53 +108,20 @@ export function OCRPanel() {
         }
     }, [model]);
 
-    const loadIntoSimulation = useCallback(() => {
-        if (!result) return;
-        // 匹配场景
-        const sceneMap: Record<string, string> = {
-            projectile: 'projectile',
-            'electric-field': 'electric-field',
-            'magnetic-field': 'magnetic-field',
-            collision: 'collision',
-            spring: 'spring',
-            'inclined-plane': 'inclined-plane',
-            'em-combined': 'em-combined',
-            'uniform-accelerated': 'uniform-accelerated',
-            'free-fall': 'free-fall'
-        };
-        const sceneId = result.sceneTemplate ? (sceneMap[result.sceneTemplate] ?? 'projectile') : 'projectile';
-        setScene(sceneId);
+    const activeProblem = problems?.[activeIndex] ?? null;
 
-        // 尝试填入参数
-        const given = result.given ?? {};
-        for (const [key, val] of Object.entries(given)) {
-            if (typeof val === 'number') {
-                const keyMap: Record<string, string> = {
-                    初速度: 'v0',
-                    v0: 'v0',
-                    速度: 'v0',
-                    角度: 'angle',
-                    θ: 'angle',
-                    重力加速度: 'g',
-                    g: 'g',
-                    电场强度: 'Ey',
-                    E: 'Ey',
-                    Ey: 'Ey',
-                    磁感应强度: 'Bz',
-                    B: 'Bz',
-                    Bz: 'Bz',
-                    电荷量: 'charge',
-                    q: 'charge',
-                    质量: 'mass',
-                    m: 'mass'
-                };
-                const paramKey = keyMap[key] ?? key;
-                setParameter(paramKey, val);
-            }
+    const loadIntoSimulation = useCallback(() => {
+        const problem = problems?.[activeIndex];
+        if (!problem) return;
+        setScene(resolveScene(problem.sceneTemplate));
+
+        // 尝试填入数值型参数
+        for (const { key, value } of buildSceneParams(problem.given)) {
+            setParameter(key, value);
         }
 
         setIsOpen(false);
-    }, [result, setScene, setParameter]);
+    }, [problems, activeIndex, setScene, setParameter]);
 
     if (!isOpen) {
         return (
@@ -205,7 +171,8 @@ export function OCRPanel() {
                             onClick={() => {
                                 setPreview(null);
                                 base64Ref.current = null;
-                                setResult(null);
+                                setProblems(null);
+                                setActiveIndex(0);
                                 setStatus(null);
                             }}
                             style={{ marginTop: 8, color: '#ef4444' }}
@@ -250,27 +217,56 @@ export function OCRPanel() {
 
                 {status && <div className={`ocr-status ${status.type}`}>{status.msg}</div>}
 
-                {result && (
+                {problems && problems.length > 1 && (
+                    <div className="ocr-nav" role="tablist" aria-label="题目导航">
+                        {problems.map((_, i) => (
+                            <button
+                                key={i}
+                                role="tab"
+                                aria-selected={i === activeIndex}
+                                className={`ocr-nav-btn ${i === activeIndex ? 'active' : ''}`}
+                                onClick={() => setActiveIndex(i)}
+                            >
+                                {i + 1}
+                            </button>
+                        ))}
+                    </div>
+                )}
+
+                {activeProblem && (
                     <div className="ocr-result">
-                        <div className="ocr-result-title">{result.title ?? '未命名'}</div>
-                        <div className="ocr-result-desc">{result.description}</div>
-                        {(result.options ?? []).length > 0 && (
+                        <div className="ocr-result-head">
+                            <span className="ocr-result-type">
+                                {inferProblemTypeLabel(activeProblem.type, (activeProblem.options ?? []).length > 0)}
+                            </span>
+                            <span className="ocr-result-title">
+                                {activeProblem.index != null && problems!.length > 1
+                                    ? `第 ${activeProblem.index} 题: `
+                                    : ''}
+                                {activeProblem.title ?? '未命名'}
+                            </span>
+                        </div>
+                        <div className="ocr-result-desc">{activeProblem.description}</div>
+                        {(activeProblem.options ?? []).length > 0 && (
                             <div className="ocr-result-options">
-                                {result.options!.map(o => (
+                                {activeProblem.options!.map(o => (
                                     <div key={o.letter} className="ocr-result-opt">
                                         <strong>{o.letter}.</strong> {o.text}
                                     </div>
                                 ))}
                             </div>
                         )}
-                        {result.answer && (
+                        {activeProblem.formulas && activeProblem.formulas.length > 0 && (
+                            <div className="ocr-result-formulas">{activeProblem.formulas.join('; ')}</div>
+                        )}
+                        {activeProblem.answer && (
                             <div className="ocr-result-answer">
                                 <strong>答案：</strong>
-                                {result.answer.correct?.join('、')}
-                                {result.answer.explanation && (
+                                {activeProblem.answer.correct?.join('、')}
+                                {activeProblem.answer.explanation && (
                                     <>
                                         <br />
-                                        {result.answer.explanation}
+                                        {activeProblem.answer.explanation}
                                     </>
                                 )}
                             </div>

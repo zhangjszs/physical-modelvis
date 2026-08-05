@@ -198,10 +198,12 @@ physics-core 提供 113 个物理模型，全部通过 `registerModel` 自动注
 ## OCR 拍照解题
 
 1. 点击右上角「📷 拍照解题」
-2. 上传物理题目图片
-3. AI 自动识别题目内容
+2. 上传物理题目图片（可含多道题）
+3. AI 自动识别题目内容，支持多题分离（题号导航切换）、题型识别（单选/多选/填空/解答）、公式提取
 4. 自动匹配物理场景
-5. 点击「加载仿真」开始可视化
+5. 点击「加载仿真」开始可视化（多题场景下加载当前题）
+
+后端代理返回 `{ problems: [...] }` 结构，归一化与校验见 `server/ocr-utils.ts`（纯函数，有单元测试）。
 
 ## CI / CD
 
@@ -275,8 +277,8 @@ cd visualization && npm run dev          # Vite dev server
 
 ```
 physics-core:   923 tests passed (66 files)
-visualization:  414 tests passed (19 files)
-Total:         1337 tests passed
+visualization: 1159 tests passed (29 files)
+Total:         2082 tests passed
 ```
 
 准确性测试矩阵（`*/tests/accuracy/`）：

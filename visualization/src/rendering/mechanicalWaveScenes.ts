@@ -45,7 +45,8 @@ export function drawMechanicalWaveScene(opts: MechanicsSceneOptions): void {
     const cy = height * 0.5;
     const leftX = width * 0.08;
     const rightX = width * 0.92;
-    const particleCount = 60;
+    // 粒子数自适应: 每 ~11px 一个粒子, 保证小画布/高 DPR 下不浪费绘制调用
+    const particleCount = Math.max(24, Math.min(140, Math.round((rightX - leftX) / 11)));
     const spacing = (rightX - leftX) / particleCount;
     const ampPx = Math.min(height * 0.18, amplitude * 600);
 
@@ -65,42 +66,46 @@ export function drawMechanicalWaveScene(opts: MechanicsSceneOptions): void {
     // 传播方向箭头
     drawArrow(ctx, width * 0.4, cy - ampPx - 30, width * 0.6, cy - ampPx - 30, BLUE, '传播方向');
 
+    // 每帧仅对 tracked 质点各取一次插值帧 (O(engineCount) 次二分查找),
+    // 粒子位移在其间线性插值 —— 避免每粒子重复 getFrame 二分 + 对象分配
+    const engPos: Array<{ x: number; y: number } | null> = [];
+    if (engineCount > 0) {
+        for (let k = 0; k < engineCount; k++) {
+            const f = getFrame(simulationResult, currentTime, k);
+            engPos.push(f ? { x: f.position.x, y: f.position.y } : null);
+        }
+    }
+
     let prevPx: number | null = null;
     let prevPy: number | null = null;
+    // 游标: 粒子 xPhys 单调递增, 区间搜索摊销 O(1)
+    let kCur = 0;
     for (let i = 0; i < particleCount; i++) {
         const x0 = leftX + i * spacing;
         // 粒子覆盖引擎 tracked 范围 [-1, 3] (与引擎 x0 采样一致), 任何 λ 下插值均有效
         const xPhys = -1 + (4 * i) / particleCount;
-        const xEng = xPhys;
+        while (kCur < engPos.length - 1 && xPhys > engEqX[kCur + 1]!) kCur++;
 
-        // 引擎插值: 找相邻 tracked 质点, 线性插值位移
-        const dispEng = (xi: number, useX = false): number | null => {
-            if (engineCount < 2) return null;
-            if (xi <= engEqX[0]!)
-                return useX
-                    ? (getFrame(simulationResult, currentTime, 0)?.position.x ?? null)
-                    : (getFrame(simulationResult, currentTime, 0)?.position.y ?? null);
-            for (let k = 0; k < engineCount - 1; k++) {
-                if (xi >= engEqX[k]! && xi <= engEqX[k + 1]!) {
-                    const f0 = getFrame(simulationResult, currentTime, k);
-                    const f1 = getFrame(simulationResult, currentTime, k + 1);
-                    if (!f0 || !f1) return null;
-                    const span = engEqX[k + 1]! - engEqX[k]!;
-                    const w = span > 0 ? (xi - engEqX[k]!) / span : 0;
-                    const v0 = useX ? f0.position.x : f0.position.y;
-                    const v1 = useX ? f1.position.x : f1.position.y;
-                    return v0 + (v1 - v0) * w;
-                }
+        // 引擎位移插值: 相邻 tracked 质点线性插值, 边界 clamp
+        const engDisp = (useX: boolean): number | null => {
+            if (engPos.length === 0) return null;
+            if (engPos.length === 1) {
+                const only = engPos[0]!;
+                return useX ? only.x : only.y;
             }
-            return useX
-                ? (getFrame(simulationResult, currentTime, engineCount - 1)?.position.x ?? null)
-                : (getFrame(simulationResult, currentTime, engineCount - 1)?.position.y ?? null);
+            const k = Math.min(kCur, engPos.length - 2);
+            const a = engPos[k];
+            const b = engPos[k + 1];
+            if (!a || !b) return null;
+            const span = engEqX[k + 1]! - engEqX[k]!;
+            const w = span > 0 ? (xPhys - engEqX[k]!) / span : 0;
+            return (useX ? a.x : a.y) + ((useX ? b.x : b.y) - (useX ? a.x : a.y)) * w;
         };
 
         if (waveMode === 1) {
             // 纵波: 引擎 position.x = xEq + 位移 (粒子沿传播方向振动)
-            const engDisp = dispEng(xEng, true);
-            const px = engDisp !== null ? mapX(engDisp) : x0 + Math.sin(omega * currentTime - k * xPhys) * ampPx * 0.5;
+            const dispX = engDisp(true);
+            const px = dispX !== null ? mapX(dispX) : x0 + Math.sin(omega * currentTime - k * xPhys) * ampPx * 0.5;
             const densityC = 1 - Math.abs(px - x0) * 0.006;
             ctx.fillStyle = isDark
                 ? `rgba(96,165,250,${0.5 + densityC * 0.3})`
@@ -110,9 +115,9 @@ export function drawMechanicalWaveScene(opts: MechanicsSceneOptions): void {
             ctx.fill();
         } else {
             // 横波/干涉: 引擎 position.y = -y_phys (屏幕向下), 平衡位置 x 已知
-            const engY = dispEng(xEng, false);
-            const engEqXpx = mapX(xEng + 1); // 平衡位置
-            const py = engY !== null ? cy + engY * ampScale : cy - Math.sin(omega * currentTime - k * xPhys) * ampPx;
+            const dispY = engDisp(false);
+            const engEqXpx = mapX(xPhys + 1); // 平衡位置
+            const py = dispY !== null ? cy + dispY * ampScale : cy - Math.sin(omega * currentTime - k * xPhys) * ampPx;
             const grad = ctx.createRadialGradient(engEqXpx - 1, py - 1, 1, engEqXpx, py, 5);
             grad.addColorStop(0, '#93c5fd');
             grad.addColorStop(1, BLUE);

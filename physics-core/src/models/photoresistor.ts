@@ -119,7 +119,8 @@ export class PhotoresistorModel extends PhysicsModelBase {
             const R = R_dark_T * Math.exp(-k * E);
             logRVsE.points.push({
                 x: parseFloat(E.toFixed(3)),
-                y: parseFloat(Math.log(R).toFixed(4))
+                // R 在高灵敏度/强光下可下溢为 0, ln(0)=-Inf; 夹到最小正浮点保证有限
+                y: parseFloat(Math.log(Math.max(R, Number.MIN_VALUE)).toFixed(4))
             });
         }
 
@@ -136,7 +137,7 @@ export class PhotoresistorModel extends PhysicsModelBase {
         };
         for (let i = 0; i <= N_v; i++) {
             const v = (Vmax * i) / N_v;
-            const i_mA = (v / R0) * 1e3;
+            const i_mA = (v / Math.max(R0, Number.MIN_VALUE)) * 1e3;
             I_V_Curve.points.push({
                 x: parseFloat(v.toFixed(3)),
                 y: parseFloat(i_mA.toFixed(4))
@@ -150,7 +151,8 @@ export class PhotoresistorModel extends PhysicsModelBase {
         for (const E of sampleEs) {
             if (E > Emax) break;
             const R = R_dark_T * Math.exp(-k * E);
-            tablePoints.push({ E, R, G: 1 / R, I: V_test / R });
+            // R 下溢为 0 时 1/R=Inf; 夹到最小正浮点保证有限
+            tablePoints.push({ E, R, G: 1 / Math.max(R, Number.MIN_VALUE), I: V_test / Math.max(R, Number.MIN_VALUE) });
         }
 
         // ===== 工作点轨迹 (稳定性分析) =====

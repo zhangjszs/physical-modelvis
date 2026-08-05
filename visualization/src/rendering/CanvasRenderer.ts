@@ -595,19 +595,40 @@ export class CanvasRenderer {
         ctx.textBaseline = 'alphabetic';
     }
 
-    drawTrajectory(points: Vec2[], color: string = COLORS.trajectory) {
+    /**
+     * 绘制轨迹 (分段渐变透明度/线宽)。
+     *
+     * 大轨迹 (>60 点) 按 alpha/线宽分档批处理: 相邻同档线段合并为一条 path 一次 stroke,
+     * 将每段一次 beginPath/stroke 的 O(N) 绘制调用降为 O(分档数)。
+     * 小轨迹保持逐段绘制 (视觉精细度优先)。
+     *
+     * @param points 轨迹点 (物理坐标)
+     * @param color 轨迹颜色
+     * @param endIndex 可选截断索引 (不含); 用于只绘制 past 部分而不每帧分配子数组
+     */
+    drawTrajectory(points: Vec2[], color: string = COLORS.trajectory, endIndex?: number) {
         if (!this.layers.trajectory || points.length < 2) return;
+        const total = endIndex !== undefined ? Math.min(endIndex, points.length) : points.length;
+        if (total < 2) return;
         if (this.use3D) {
-            this.draw3DTrajectory(points, color);
+            this.draw3DTrajectory(points, color, total);
         } else {
-            this.draw2DTrajectory(points, color);
+            this.draw2DTrajectory(points, color, total);
         }
     }
 
-    private draw2DTrajectory(points: Vec2[], color: string) {
+    private draw2DTrajectory(points: Vec2[], color: string, total: number) {
         const ctx = this.ctx;
         ctx.setLineDash([]);
-        const total = points.length;
+        if (total >= 60) {
+            this.draw2DTrajectoryBatched(points, color, total);
+        } else {
+            this.draw2DTrajectorySegments(points, color, total);
+        }
+    }
+
+    private draw2DTrajectorySegments(points: Vec2[], color: string, total: number) {
+        const ctx = this.ctx;
         for (let i = 0; i < total - 1; i++) {
             const progress = i / (total - 1);
             const alpha = 0.15 + 0.55 * (1 - progress);
@@ -621,23 +642,62 @@ export class CanvasRenderer {
             ctx.lineTo(s1.x, s1.y);
             ctx.stroke();
         }
-        if (total > 10) {
-            const step = Math.max(1, Math.floor(total / 20));
-            for (let i = 0; i < total; i += step) {
+        this.draw2DTrajectoryDots(points, color, total);
+    }
+
+    /** 大轨迹: alpha/线宽分 8 档, 每档一条 path 一次 stroke */
+    private draw2DTrajectoryBatched(points: Vec2[], color: string, total: number) {
+        const ctx = this.ctx;
+        const LEVELS = 8;
+        ctx.setLineDash([]);
+        ctx.lineCap = 'round';
+        for (let level = 0; level < LEVELS; level++) {
+            const progress0 = level / LEVELS;
+            const progress1 = (level + 1) / LEVELS;
+            const midProgress = (progress0 + progress1) / 2;
+            const alpha = 0.15 + 0.55 * (1 - midProgress);
+            ctx.strokeStyle = colorWithAlpha(color, alpha);
+            ctx.lineWidth = 1.5 + 1.0 * (1 - midProgress);
+            let inPath = false;
+            for (let i = 0; i < total - 1; i++) {
                 const progress = i / (total - 1);
-                const alpha = 0.08 + 0.25 * (1 - progress);
-                const s = this.transformer.toScreen(points[i]!);
-                ctx.fillStyle = colorWithAlpha(color, alpha);
-                ctx.beginPath();
-                ctx.arc(s.x, s.y, 2.5 * (1 - progress * 0.5), 0, Math.PI * 2);
-                ctx.fill();
+                if (progress < progress0 || progress >= progress1) continue;
+                const s0 = this.transformer.toScreen(points[i]!);
+                const s1 = this.transformer.toScreen(points[i + 1]!);
+                if (Math.abs(s1.x - s0.x) > 800 || Math.abs(s1.y - s0.y) > 800) {
+                    inPath = false;
+                    continue;
+                }
+                if (!inPath) {
+                    ctx.beginPath();
+                    ctx.moveTo(s0.x, s0.y);
+                    inPath = true;
+                }
+                ctx.lineTo(s1.x, s1.y);
             }
+            if (inPath) ctx.stroke();
+        }
+        ctx.lineCap = 'butt';
+        this.draw2DTrajectoryDots(points, color, total);
+    }
+
+    private draw2DTrajectoryDots(points: Vec2[], color: string, total: number) {
+        const ctx = this.ctx;
+        if (total <= 10) return;
+        const step = Math.max(1, Math.floor(total / 20));
+        for (let i = 0; i < total; i += step) {
+            const progress = i / (total - 1);
+            const alpha = 0.08 + 0.25 * (1 - progress);
+            const s = this.transformer.toScreen(points[i]!);
+            ctx.fillStyle = colorWithAlpha(color, alpha);
+            ctx.beginPath();
+            ctx.arc(s.x, s.y, 2.5 * (1 - progress * 0.5), 0, Math.PI * 2);
+            ctx.fill();
         }
     }
 
-    private draw3DTrajectory(points: Vec2[], color: string) {
+    private draw3DTrajectory(points: Vec2[], color: string, total: number) {
         const ctx = this.ctx;
-        const total = points.length;
 
         ctx.strokeStyle = this.isDark ? 'rgba(251,191,36,0.12)' : 'rgba(217,119,6,0.08)';
         ctx.lineWidth = 2;
@@ -668,17 +728,21 @@ export class CanvasRenderer {
 
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
-        for (let i = 0; i < total - 1; i++) {
-            const progress = i / (total - 1);
-            const alpha = 0.2 + 0.7 * (1 - progress);
-            ctx.strokeStyle = colorWithAlpha(color, alpha);
-            ctx.lineWidth = 2 + 1.5 * (1 - progress);
-            const s0 = this.physToScreen(points[i]!, 0);
-            const s1 = this.physToScreen(points[i + 1]!, 0);
-            ctx.beginPath();
-            ctx.moveTo(s0.x, s0.y);
-            ctx.lineTo(s1.x, s1.y);
-            ctx.stroke();
+        if (total >= 60) {
+            this.draw3DTrajectoryBatched(points, color, total);
+        } else {
+            for (let i = 0; i < total - 1; i++) {
+                const progress = i / (total - 1);
+                const alpha = 0.2 + 0.7 * (1 - progress);
+                ctx.strokeStyle = colorWithAlpha(color, alpha);
+                ctx.lineWidth = 2 + 1.5 * (1 - progress);
+                const s0 = this.physToScreen(points[i]!, 0);
+                const s1 = this.physToScreen(points[i + 1]!, 0);
+                ctx.beginPath();
+                ctx.moveTo(s0.x, s0.y);
+                ctx.lineTo(s1.x, s1.y);
+                ctx.stroke();
+            }
         }
 
         if (total > 6) {
@@ -695,6 +759,33 @@ export class CanvasRenderer {
         }
         ctx.lineCap = 'butt';
         ctx.lineJoin = 'miter';
+    }
+
+    private draw3DTrajectoryBatched(points: Vec2[], color: string, total: number) {
+        const ctx = this.ctx;
+        const LEVELS = 8;
+        for (let level = 0; level < LEVELS; level++) {
+            const progress0 = level / LEVELS;
+            const progress1 = (level + 1) / LEVELS;
+            const midProgress = (progress0 + progress1) / 2;
+            const alpha = 0.2 + 0.7 * (1 - midProgress);
+            ctx.strokeStyle = colorWithAlpha(color, alpha);
+            ctx.lineWidth = 2 + 1.5 * (1 - midProgress);
+            let inPath = false;
+            for (let i = 0; i < total - 1; i++) {
+                const progress = i / (total - 1);
+                if (progress < progress0 || progress >= progress1) continue;
+                const s0 = this.physToScreen(points[i]!, 0);
+                const s1 = this.physToScreen(points[i + 1]!, 0);
+                if (!inPath) {
+                    ctx.beginPath();
+                    ctx.moveTo(s0.x, s0.y);
+                    inPath = true;
+                }
+                ctx.lineTo(s1.x, s1.y);
+            }
+            if (inPath) ctx.stroke();
+        }
     }
 
     drawBody(pos: Vec2, radius: number, color: string, label?: string, zHeight = 0) {

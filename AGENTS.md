@@ -4,6 +4,13 @@
 面向高中物理教学的交互式可视化仿真系统。
 双层架构：physics-core 引擎 (TypeScript, 零依赖) → React + Canvas 2D 可视化前端。
 
+**变更前先读这些文档**（避免重复踩坑）：
+- `plan.md` — 当前工作进展与后续计划（阶段 3 渲染迁移状态、待办项）
+- `docs/rendering-physics-audit.md` — 123 个场景渲染源审计表，改渲染前必读
+- `DEVELOPMENT_GUIDE.md` — 完整开发指南
+- `3D_VERIFICATION_HANDOFF.md` — 3D 实验引擎修复交接文档
+- `CLAUDE.md` 为旧文件，已废弃；请仅使用本 AGENTS.md
+
 ## Build & Test
 ```bash
 # 安装依赖
@@ -35,6 +42,8 @@ cd visualization && npm run dev
 - **Windows PowerShell 环境**:`npx` 需写 `npx.cmd`;`rg` 不可用(用 grep 工具);PowerShell 引号转义用反引号。
 - **husky pre-push 钩子**会运行完整 `precheck`,任何门禁失败都会阻止 push(跳过:`git push --no-verify`)。
 - **引擎 charts 键名与语义名不同**:如 lc-oscillator 返回 `x_t/y_t/ke_t/pe_t`(语义是 q_t/i_t/Ee_t/Em_t);类型定义不含这些键,访问需 `as unknown as Record<string, {points: ...}>` 强转。迁移前先读模型源码确认 charts 键名与单位。
+- **场景切换竞态(3D)**:3D 场景切换时需按场景缓存 rig(避免卸载/重建竞态),见 `EquipmentStage.tsx` 的 `rigReady` + `sceneRigCache` 机制。
+- **vitest 路径过滤语法**:`npx.cmd vitest run tests/unit/foo.test.ts` (单文件);多个用 `npx.cmd vitest run -t "keyword"` (按测试名筛选)。
 
 ## CI/CD
 
@@ -85,7 +94,7 @@ GitHub Actions 流水线，配置文件位于 `.github/workflows/`。
 ## Architecture
 ```
 physics-core/          — 零依赖 TypeScript 物理引擎
-  src/models/          — 物理模型 (匀速/匀变速/电场/磁场/碰撞/弹簧/斜面/电磁复合场/圆周运动/第三章力)
+  src/models/          — 物理模型 (匀速/抛物线/电场/磁场/碰撞/弹簧/斜面/电磁复合场/圆周运动/第三章力)
   src/math/            — Vec2D 向量运算
   src/types/           — 类型定义 (PhysicsProblem, SimulationResult)
   src/units/           — 单位换算和物理常数
@@ -94,16 +103,24 @@ physics-core/          — 零依赖 TypeScript 物理引擎
   tests/accuracy/      — L1 差分测试 (differential-analytic.test.ts: 解析模型 vs 独立公式, 固定种子随机参数)
 
 visualization/         — React 可视化前端
-  src/components/      — UI 组件 (Canvas, 图表, 控制面板, OCR)
-  src/scenes/          — 场景配置 + buildProblem (sceneRegistry.ts)
-  src/rendering/       — Canvas 渲染器
+  src/components/      — UI 组件
+    simulation3d/      — 3D 实验引擎 (EquipmentStage, rigs 场景组装, equipment 仪器, primitives 材质)
+    export/            — 数据导出按钮 (ExportDataButton → exportCsv)
+    guidance/          — 引导面板 (GuidancePanel)
+    ocr/               — OCR 面板与工具函数
+  src/scenes/          — 场景配置 + buildProblem (sceneRegistry.ts + guidance.ts 引导映射)
+  src/rendering/       — Canvas 2D 渲染器 (按物理领域分文件)
   src/adapters/        — physics-core 适配器 (runSceneSimulation)
   src/store/           — Zustand 状态管理
-  server/              — OCR 后端代理 (Express + Anthropic API)
+  src/utils/           — 工具函数 (exportCsv 等)
+  server/              — OCR 后端代理 (Express + Anthropic API, ocr-utils.ts)
   tests/accuracy/      — 渲染单一真源契约测试 (single-source-contract.test.ts)
-  tests/rendering/     — 渲染单元测试
+  tests/rendering/     — 渲染单元测试 (rigs-build, equipment-stage)
+  tests/guidance/      — 引导系统测试
+  tests/ocr/           — OCR 测试
 
 experiments/           — 人教版高中物理实验整理 (176 个实验, 6 册教材)
+scripts/               — 验证脚本 (self-check.mjs L0-L9 物理自检, verify-*.cjs 冒烟测试)
 ```
 
 ## Key Patterns

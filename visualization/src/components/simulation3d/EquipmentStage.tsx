@@ -11,7 +11,7 @@
  *   - getVisualPosition(pos, params) → 物理坐标 → 3D 坐标
  *   - getOrigin(params)             → 轨迹起点（发射口 / 释放点）
  */
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { useSimulationStore } from '../../store/simulationStore';
@@ -73,6 +73,23 @@ interface EquipmentStageProps {
 // 内部句柄
 // ---------------------------------------------------------------------------
 
+/** 视角预设: 默认 / 侧视 / 俯视 / 正视 */
+export type ViewPreset = 'default' | 'side' | 'top' | 'front';
+
+/** 预设视角相对"初始注视点"的相机偏移 (x, y, z) */
+const VIEW_PRESET_OFFSET: Record<Exclude<ViewPreset, 'default'>, [number, number, number]> = {
+    side: [10, 0.5, 0],
+    top: [0, 10, 0.1],
+    front: [0, 1.5, 10]
+};
+
+const VIEW_PRESET_LABEL: Record<ViewPreset, string> = {
+    default: '默认',
+    side: '侧视',
+    top: '俯视',
+    front: '正视'
+};
+
 interface StageHandles {
     scene: THREE.Scene;
     camera: THREE.PerspectiveCamera;
@@ -100,6 +117,9 @@ export function EquipmentStage({ rig, cameraPosition, cameraTarget, caption }: E
     const currentTimeRef = useRef(0);
     const parametersRef = useRef<Record<string, number>>({});
     const visibleLayersRef = useRef<{ trajectory: boolean; axes: boolean }>({ trajectory: true, axes: true });
+    const initialViewRef = useRef<{ pos: [number, number, number]; target: [number, number, number] } | null>(null);
+
+    const [viewPreset, setViewPreset] = useState<ViewPreset>('default');
 
     const { playbackSpeed, parameters, visibleLayers } = useSimulationStore();
     const simulationResult = useSimulationStore(s => s.simulationResult);
@@ -144,6 +164,7 @@ export function EquipmentStage({ rig, cameraPosition, cameraTarget, caption }: E
         controls.maxDistance = 20;
         controls.maxPolarAngle = Math.PI * 0.48;
         controls.update();
+        initialViewRef.current = { pos: defaultCamPos, target: defaultTarget };
 
         createEnvironment(scene);
 
@@ -229,6 +250,22 @@ export function EquipmentStage({ rig, cameraPosition, cameraTarget, caption }: E
             console.error('[EquipmentStage] updateEquipment failed:', err);
         }
     }, [parameters, rig]);
+
+    // —— 2.5 视角预设：切换相机位置（相对初始注视点偏移） ——
+    useEffect(() => {
+        const handles = handlesRef.current;
+        const init = initialViewRef.current;
+        if (!handles || !init) return;
+        const { camera, controls } = handles;
+        if (viewPreset === 'default') {
+            camera.position.set(...init.pos);
+            controls.target.set(...init.target);
+        } else {
+            const off = VIEW_PRESET_OFFSET[viewPreset];
+            camera.position.set(init.target[0] + off[0], init.target[1] + off[1], init.target[2] + off[2]);
+        }
+        controls.update();
+    }, [viewPreset]);
 
     // —— 3. 仿真结果变化：重建轨迹线 + 残影 ——
     useEffect(() => {
@@ -345,6 +382,18 @@ export function EquipmentStage({ rig, cameraPosition, cameraTarget, caption }: E
                     <em>拖动旋转视角，滚轮缩放，右键平移</em>
                 </div>
             )}
+            <div className="view-preset-bar" aria-label="视角预设">
+                {(Object.keys(VIEW_PRESET_LABEL) as ViewPreset[]).map(p => (
+                    <button
+                        key={p}
+                        type="button"
+                        className={`view-preset-btn${p === viewPreset ? ' active' : ''}`}
+                        onClick={() => setViewPreset(p)}
+                    >
+                        {VIEW_PRESET_LABEL[p]}
+                    </button>
+                ))}
+            </div>
         </div>
     );
 }

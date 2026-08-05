@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useSimulationStore } from '../store/simulationStore';
 import { ProjectileScene } from '../scenes/ProjectileScene';
+import { OCRPanel } from '../components/ocr/OCRPanel';
+import { GuidancePanel } from '../components/guidance/GuidancePanel';
 
 const SCENE_MAP: Record<string, () => JSX.Element> = {
     projectile: ProjectileScene,
@@ -34,6 +36,8 @@ export function App() {
                     </div>
                 </div>
                 <div className="top-bar-right">
+                    <OCRPanel />
+                    <GuidancePanel />
                     <button className="btn btn-sm" onClick={toggleTheme}>
                         {theme === 'dark' ? '☀ 浅色' : '🌙 深色'}
                     </button>

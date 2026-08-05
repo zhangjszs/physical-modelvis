@@ -203,7 +203,9 @@ export function createEnvironment(scene: THREE.Scene, bgColor = 0xf8fafc): Envir
     const key = new THREE.DirectionalLight(0xffffff, 2.8);
     key.position.set(-3, 7, 5);
     key.castShadow = true;
-    key.shadow.mapSize.set(2048, 2048);
+    // 4096 shadow map: PCFShadowMap(替代已弃用的 PCFSoftShadowMap)下提 mapSize 改善硬边锯齿,
+    // 配合 radius/bias 缓解 acne;VSMShadowMap 有 light bleeding 风险,不采用
+    key.shadow.mapSize.set(4096, 4096);
     key.shadow.radius = 3;
     key.shadow.bias = -0.0005;
     key.shadow.camera.left = -8;

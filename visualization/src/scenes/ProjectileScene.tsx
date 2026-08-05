@@ -1,4 +1,4 @@
-import { useEffect, useCallback, lazy, Suspense, useState } from 'react';
+import { useEffect, useCallback, useRef, lazy, Suspense, useState } from 'react';
 import { useSimulationStore } from '../store/simulationStore';
 import { runSceneSimulation } from '../adapters/physicsCoreAdapter';
 import { SCENES, getDefaultParams } from './sceneRegistry';
@@ -18,6 +18,7 @@ import { LayerToggle } from '../components/layout/LayerToggle';
 import { SCENE_CATEGORIES } from '../components/layout/SceneSelector';
 import { computePhotogateMeasurements } from '../utils/photogate';
 import { ErrorBoundary } from '../components/common/ErrorBoundary';
+import { ExportDataButton } from '../components/export/ExportDataButton';
 
 // 底部面板 & 诊断面板：非首屏关键，懒加载以减少主 chunk 体积
 const GraphPanel = lazy(() => import('../components/charts/GraphPanel').then(m => ({ default: m.GraphPanel })));
@@ -125,37 +126,45 @@ export function ProjectileScene() {
     }, [simulationResult, parameters, currentScene, setExperimentData]);
 
     // 异步加载当前场景的 rig（懒加载模块 chunk）
-    const [rig, setRig] = useState<SceneRig | undefined>(undefined);
+    // 按场景 ID 缓存已加载的 rig，渲染条件 = 缓存中存在当前场景的 rig。
+    // 修复：若直接用"上次场景遗留的 rig"挂载（key 变化先于 rig 更新），
+    // 会造成 buildEquipment 用旧 rig、updateEquipment 用新 rig 的错配崩溃。
+    const rigCacheRef = useRef<Record<string, SceneRig>>({});
+    const [rigReady, setRigReady] = useState(false);
     const [rigLoading, setRigLoading] = useState(false);
     const [rigError, setRigError] = useState<string | null>(null);
 
     useEffect(() => {
         let cancelled = false;
         const sceneId = currentScene;
-        const is3D = hasSceneRig(sceneId);
-        setRig(undefined);
-        setRigLoading(is3D);
         setRigError(null);
+        setRigLoading(hasSceneRig(sceneId));
 
-        if (is3D) {
-            loadSceneRig(sceneId)
-                .then(loaded => {
-                    if (!cancelled) {
-                        setRig(loaded);
-                        setRigLoading(false);
-                    }
-                })
-                .catch(err => {
-                    // chunk 加载失败（404/网络/部署路径错误）→ 回退 Canvas 并提示
-                    console.error('[EquipmentStage] rig 加载失败:', err);
-                    if (!cancelled) {
-                        setRig(undefined);
-                        setRigLoading(false);
-                        setRigError('3D 实验器材加载失败，已回退 2D 画面');
-                    }
-                });
+        if (hasSceneRig(sceneId)) {
+            if (rigCacheRef.current[sceneId]) {
+                setRigReady(true);
+            } else {
+                setRigReady(false);
+                loadSceneRig(sceneId)
+                    .then(loaded => {
+                        if (!cancelled && loaded) {
+                            rigCacheRef.current[sceneId] = loaded;
+                            setRigReady(true);
+                            setRigLoading(false);
+                        }
+                    })
+                    .catch(err => {
+                        // chunk 加载失败（404/网络/部署路径错误）→ 回退 Canvas 并提示
+                        console.error('[EquipmentStage] rig 加载失败:', err);
+                        if (!cancelled) {
+                            setRigReady(false);
+                            setRigLoading(false);
+                            setRigError('3D 实验器材加载失败，已回退 2D 画面');
+                        }
+                    });
+            }
         } else {
-            setRig(undefined);
+            setRigReady(true);
             setRigLoading(false);
         }
 
@@ -164,6 +173,7 @@ export function ProjectileScene() {
         };
     }, [currentScene]);
 
+    const rig = rigCacheRef.current[currentScene];
     const is3DScene = !!rig || rigLoading;
 
     return (
@@ -182,6 +192,7 @@ export function ProjectileScene() {
                         <button className="btn btn-secondary" onClick={() => setDataOpen(prev => !prev)}>
                             {dataOpen ? '收起数据' : '数据/图像'}
                         </button>
+                        <ExportDataButton />
                         <button className="btn btn-primary" onClick={() => setFormulaOpen(true)}>
                             公式推导
                         </button>
@@ -201,7 +212,7 @@ export function ProjectileScene() {
                         }
                     >
                         {is3DScene ? (
-                            rig ? (
+                            rigReady && rig ? (
                                 <Suspense
                                     fallback={
                                         <div className="equipment-loading">

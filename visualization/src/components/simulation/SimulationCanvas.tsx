@@ -6,6 +6,7 @@ import { setupHiDPICanvas } from '../../rendering/dpr';
 import { COLORS } from '../../utils/colorMap';
 import { findFrameIndex, interpolateFrame, getTotalDuration } from '../../utils/frameUtils';
 import type { TrajectoryPoint, SimulationResult } from 'physics-core';
+import type { Vec2 } from '../../types/visualization';
 import {
     drawAirTrack,
     drawGlider,
@@ -165,6 +166,21 @@ import {
 } from '../../rendering/emWaveScenes';
 
 const SCENES_3D = new Set(['projectile', 'uniform-accelerated', 'free-fall', 'circular-motion']);
+
+/**
+ * 二分统计轨迹中 t <= currentTime 的点数 (upper bound)。
+ * 等价于 filter(p => p.t <= t).length, 但 O(logN) 且零分配。
+ */
+function countPastPoints(points: TrajectoryPoint[], t: number): number {
+    let lo = 0;
+    let hi = points.length;
+    while (lo < hi) {
+        const mid = (lo + hi) >> 1;
+        if ((points[mid]?.t ?? Infinity) <= t) lo = mid + 1;
+        else hi = mid;
+    }
+    return lo;
+}
 
 const SCENES_2D_CUSTOM_BG = new Set([
     'electric-field',
@@ -1073,6 +1089,10 @@ export function SimulationCanvas() {
     const renderRef = useRef<() => void>(() => {});
     const isDarkRef = useRef<boolean>(true);
 
+    // 轨迹位置数组缓存: points (trajectories[0]) 是跨帧稳定引用, 仅在新仿真结果时重建,
+    // 避免每帧 map 分配新数组
+    const allPositionsCacheRef = useRef<{ points: TrajectoryPoint[]; positions: Vec2[] } | null>(null);
+
     const simulationResult = useSimulationStore(s => s.simulationResult);
     const currentScene = useSimulationStore(s => s.currentScene);
     const parameters = useSimulationStore(s => s.parameters);
@@ -1695,7 +1715,11 @@ export function SimulationCanvas() {
         const circularPivotH = is3DScene ? 1.2 : 0;
         const circularBallH = is3DScene ? 0.35 : 0;
 
-        const allPositions = points.map(p => p.position);
+        // 完整轨迹位置数组: points 引用跨帧稳定, 缓存复用避免每帧 map 分配
+        if (!allPositionsCacheRef.current || allPositionsCacheRef.current.points !== points) {
+            allPositionsCacheRef.current = { points, positions: points.map(p => p.position) };
+        }
+        const allPositions = allPositionsCacheRef.current.positions;
 
         // 完整轨迹 (当前位置之前的累积轨迹 除外) 是静态几何, 随仿真结果而定, 缓存进离屏层.
         // points (trajectories[0]) 是跨帧稳定的引用, 用作缓存身份 —— 仅在新仿真结果或视口/主题变化时重建.
@@ -1731,16 +1755,17 @@ export function SimulationCanvas() {
                     extraSig
                 );
                 // 随播放增长的轨迹是动态的, 每帧重绘 (从缓存层之上合成).
-                const pastPoints = points.filter(p => p.t <= currentTime).map(p => p.position);
-                renderer.drawTrajectory(pastPoints, COLORS.trajectory);
+                // 用二分求已播放点数量并传 endIndex, 避免每帧 filter+map 分配新数组.
+                const pastCount = countPastPoints(points, currentTime);
+                renderer.drawTrajectory(allPositions, COLORS.trajectory, pastCount);
             } else {
                 if (!skipGround) renderer.drawGround(0, cssW);
                 ctx.globalAlpha = 0.3;
                 renderer.drawTrajectory(allPositions, COLORS.trajectory);
                 ctx.globalAlpha = 1.0;
 
-                const pastPoints = points.filter(p => p.t <= currentTime).map(p => p.position);
-                renderer.drawTrajectory(pastPoints, COLORS.trajectory);
+                const pastCount = countPastPoints(points, currentTime);
+                renderer.drawTrajectory(allPositions, COLORS.trajectory, pastCount);
             }
         }
 

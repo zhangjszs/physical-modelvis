@@ -1,5 +1,6 @@
 import express, { type Request, type Response, type NextFunction } from 'express';
 import cors from 'cors';
+import { stripJsonFence, normalizeRecognizeResult } from './ocr-utils';
 
 const app = express();
 const PORT = Number(process.env.OCR_PROXY_PORT ?? 3001);
@@ -94,17 +95,23 @@ app.post('/api/ocr/recognize', async (req: Request, res: Response) => {
             },
             body: JSON.stringify({
                 model: model ?? ANTHROPIC_MODEL,
-                max_tokens: 2000,
-                system: `你是高中物理题目识别助手。识别图片中的物理题目，严格返回 JSON：
-{"title":"题目标题","description":"题目描述","source":"来源","given":{"参数":"值"},"options":[{"letter":"A","text":"选项文本"}],"answer":{"correct":["正确选项"],"explanation":"解题思路"},"sceneTemplate":"projectile|electric-field|magnetic-field|null","formulas":["公式"]}
-sceneTemplate 根据题目物理场景选择：
-- 平抛/斜抛运动 → "projectile"
-- 匀强电场中的带电粒子 → "electric-field"
-- 匀强磁场中的带电粒子 → "magnetic-field"
-- 碰撞 → "collision"
-- 弹簧振子 → "spring"
-- 斜面运动 → "inclined-plane"
-- 电磁复合场 → "em-combined"
+                max_tokens: 3000,
+                system: `你是高中物理题目识别助手。识别图片中的物理题目，图片中可能包含一道或多道题，严格返回 JSON：
+{"problems":[{"index":1,"type":"single-choice|multiple-choice|fill-blank|essay","title":"题目标题","description":"题目描述","source":"来源","given":{"参数":"值"},"options":[{"letter":"A","text":"选项文本"}],"answer":{"correct":["正确选项"],"explanation":"解题思路"},"sceneTemplate":"projectile|electric-field|magnetic-field|null","formulas":["公式"]}]}
+规则：
+- 图片中有几道题就返回几个 problems 元素，index 从 1 开始递增
+- type 取值：single-choice(单选题)/multiple-choice(多选题)/fill-blank(填空题)/essay(解答题)
+- 选择题必须填 options，answer.correct 填正确选项字母（多选题填多个）
+- sceneTemplate 根据题目物理场景选择：
+  - 平抛/斜抛运动 → "projectile"
+  - 匀强电场中的带电粒子 → "electric-field"
+  - 匀强磁场中的带电粒子 → "magnetic-field"
+  - 碰撞 → "collision"
+  - 弹簧振子 → "spring"
+  - 斜面运动 → "inclined-plane"
+  - 电磁复合场 → "em-combined"
+  - 其他 → null
+- given 只放数值型物理量，单位换算为 SI
 只返回 JSON，不要其他文字。`,
                 messages: [
                     {
@@ -143,14 +150,16 @@ sceneTemplate 根据题目物理场景选择：
             return;
         }
 
-        // Try to parse the content to validate it's valid JSON
-        let jsonStr = content.trim();
-        const match = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
-        if (match) jsonStr = match[1]!.trim();
-
+        // 剥离代码围栏并解析 JSON, 再归一化为 { problems: [...] } 多题结构
         try {
+            const jsonStr = stripJsonFence(content);
             const parsed = JSON.parse(jsonStr);
-            res.json({ result: parsed });
+            const normalized = normalizeRecognizeResult(parsed);
+            if (normalized.problems.length === 0) {
+                res.status(502).json({ error: 'AI 返回内容中未识别到有效题目' });
+                return;
+            }
+            res.json({ result: normalized });
         } catch {
             res.status(502).json({ error: 'AI 返回内容无法解析为 JSON' });
         }

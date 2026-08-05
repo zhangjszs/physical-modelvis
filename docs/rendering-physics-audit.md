@@ -216,3 +216,98 @@ core 测试数 923, viz 410 → 414。
 - 该场景 `magnetic-field` 渲染层只画 ⊗ 符号网格(无粒子/轨迹/图表),画面不受影响,但引擎轨迹与 HUD 数值此前是错的
 - 新增 20 个断言测试(`uniform-magnetic-field.test.ts` 10 个 + `uniform-circular-motion.test.ts` 10 个),core 测试数 861 → 881
 - 教训:渲染层"自算示意图"反而掩盖了引擎层错误;补测试时断言要先推导物理而非抄模型行为
+
+## 阶段 D:3D 场景切换稳定性 (2026-08-02)
+
+Playwright 实测 123 场景发现 **43 个场景**报 `updateEquipment failed: Cannot read properties of undefined`
+(此前交接文档预估"3 个 CRASH",实际范围更大)。根因不是 rig 实现 bug,而是**场景切换竞态**:
+
+- `<LazyEquipmentStage key={currentScene} rig={rig} />` 中,场景切换时 `key` 先变、`rig` state 后更新
+- 中间 commit 用**上一场景的 rig** 挂载新 key 的 EquipmentStage(buildEquipment 正确,handles 是旧场景的)
+- 随后 `setRig(新rig)` 更新,key 未变 → 组件不重挂 → updateEquipment effect 用**新 rig + 旧 handles** → 崩
+- 首次切换不崩(rig 未缓存时中间有 spinner 空窗),chunk 缓存后必现 → 表现为间歇性
+
+修复(`ProjectileScene.tsx`):
+- rig 改为**按场景 ID 缓存**(`rigCacheRef`),渲染条件加 `rigReady` 校验:挂载时 rig 必属当前场景
+- 移除"旧 rig 先挂载"的中间态,错配路径被彻底关闭
+
+回归保护:
+- `tests/rendering/rigs-build.test.ts`:124 → 126(共享 rig 交叉参数 + 空/极端参数契约)
+- `tests/rendering/equipment-stage.test.tsx`(新增 5 例):EquipmentStage 挂载/参数/场景切换行为,
+  断言 remount 后 updateEquipment 必须消费本 rig 自己的 handles(引用相等)
+- `scripts/verify-3d-smoke.cjs`(新增):14 个代表性场景 × 2 轮切换冒烟,实测通过
+
+测试数:core 923 / viz 545 / total 1468
+
+## 阶段 D 续:视觉与交互打磨 (D4, 2026-08-02)
+
+1. **视角预设按钮**(EquipmentStage 新增):默认/侧视/俯视/正视四档,右上角玻璃拟态按钮组,
+   相对初始注视点偏移切换相机(侧视 +x / 俯视 +y / 正视 +z),点"默认"恢复初始视角。
+   浏览器实测:4 档切换零 console error,active 高亮正确。
+2. **阴影调优**(primitives.ts):DirectionalLight shadow mapSize 2048 → 4096,
+   PCFShadowMap + radius=3/bias=-0.0005 缓解硬边锯齿;VSMShadowMap 有 light bleeding 风险,不采用。
+3. **视觉一致性审查结论**:48 个 rig 的 worldScale 全部统一 **0.16**(实测无例外),
+   环境(createEnvironment 地面/网格/光照)为全局共享单实现 → 视觉规范已天然统一,无需逐 rig 改造。
+
+## 阶段 E-1:渲染性能优化 (2026-08-02)
+
+1. **轨迹绘制批处理**(CanvasRenderer):`drawTrajectory` 增加可选 `endIndex`;
+   ≥60 点的大轨迹按 alpha/线宽分 **8 档**,每档一条 path 一次 stroke(原每段一次
+   beginPath/stroke,2D/3D 同构);小轨迹(<60 点)保持逐段,视觉精细度优先。
+2. **每帧零分配轨迹**(SimulationCanvas):`countPastPoints` 二分 upper_bound 求已播放点数,
+   以 `endIndex` 传给 drawTrajectory —— 消除每帧 `filter+map` 两个数组分配;
+   `allPositions` 按 points 引用缓存(仅新仿真结果时重建)。
+3. **机械波粒子自适应**(mechanicalWaveScenes):粒子数 = 画布宽/11px(24~140),小画布不再浪费
+   绘制调用;每帧仅对 9 个 tracked 质点各取一次 `getFrame`(O(9) 次二分),粒子位移用
+   单调游标在线性插值(摊销 O(1)/粒子) —— 替代原每粒子 1~2 次 getFrame 二分 + 对象分配。
+4. **扩散场景**(molecularKineticScenes):粒子数按区域面积自适应(700px²/粒子,cap 200);
+   颜色改为 16 级预生成阶梯缓存(原每帧每粒子构造 `rgb(...)` 字符串)。
+5. **布朗轨迹**(molecularKineticScenes):80 段逐段 stroke → 按 alpha/线宽分 8 档合并 stroke。
+6. 验证:viz 全量 545 通过、tsc/lint/prettier 干净;E-1 冒烟
+   (scripts/verify-e1-render-smoke.cjs:抛体/自由落体/机械波/扩散/布朗,含播放)零错误;
+   3D 冒烟(verify-3d-smoke.cjs 14 场景 × 2 轮)零错误。
+
+## 阶段 E-4:OCR 多题分离与结构化 (2026-08-02)
+
+1. **后端多题化**(server/ocr-proxy.ts):Prompt 改为返回 `{"problems":[{...}]}` 数组结构,
+   每题含 index(1 起递增)/type(single-choice|multiple-choice|fill-blank|essay)/
+   options/answer/given/formulas;max_tokens 2000 → 3000。
+2. **归一化纯函数**(server/ocr-utils.ts 新增):stripJsonFence(剥围栏)+
+   normalizeRecognizeResult(兼容 `{problems:[...]}` / 单题对象 / 数组三形态,
+   字段类型校验、非法项过滤、题号补齐);解析失败返回 502「未识别到有效题目」。
+3. **前端多题导航**(OCRPanel):题号按钮组(active 高亮)逐题切换、题型中文标签、
+   公式展示;「加载仿真」作用于当前题;场景模板映射与数值参数映射抽为
+   src/components/ocr/ocrUtils.ts 纯函数(resolveScene / buildSceneParams / inferProblemTypeLabel)。
+4. **入口修复**:OCRPanel 此前是孤儿组件(README 声称顶栏有入口但从未挂载),
+   已挂载到 App.tsx 顶栏;后端健康检查从挂载时改为面板打开时,避免页面加载噪音。
+5. **测试**:server/ocr-utils.test.ts(12 例,多题/兼容/过滤/题号)+
+   tests/ocr/ocrUtils.test.ts(10 例,场景解析/参数映射/题型标签);
+   冒烟 scripts/verify-ocr-mount.cjs(入口存在→打开→状态显示→关闭,零错误;
+   favicon 404 与 3001 未启动噪音按预期过滤)。
+6. 测试数:core 923 / viz 567 / total 1490。
+
+## 阶段 E-5:实验导学 (2026-08-02)
+
+1. **数据层**(src/scenes/guidance.ts):`SceneGuidance{sceneId, goal, steps[]}` 结构;
+   12 个核心场景(抛体/自由落体/匀变速/斜面/碰撞/弹簧/电场/磁场/复合场/单摆/机械波/扩散/光电)手写精编步骤,
+   每步含 操作/观察/paramFocus(关联参数);其余场景 `buildFallback` 按场景名与参数自动生成 4 步通用引导。
+2. **约束自检**:测试强制 paramFocus 必须存在于场景 parameters(本次修正了 electric-field 无 v0、
+   em-combined 为 Ex、mechanical-wave 为 waveMode、photoelectric 为 W0/nuMin 等参数名偏差)。
+3. **UI**(GuidancePanel.tsx):顶栏「📖 导学」入口;面板含实验目标、进度条、步骤卡(操作/观察/参数 chips)、
+   上一步/下一步/重新开始;切换场景自动回到第 1 步。
+4. **关键坑**:GuidancePanel 最初 fixed 定位在 .top-bar(带 backdrop-filter)内被当作 containing block,
+   "下一步"按钮被舞台视图按钮拦截 — 改用 `createPortal(..., document.body)` 渲染遮罩解决。
+5. **测试与冒烟**:guidance.test.ts 8 例;verify-guidance-smoke.cjs 覆盖精编推进/回退/关闭、
+   切「直流电路」回退场景(4 步 + goal 含场景名)。
+6. 测试数:core 923 / viz 575 / total 1498。
+
+## 阶段 E-6:数据导出 CSV (2026-08-02)
+
+1. **纯函数导出**(src/utils/exportCsv.ts):
+   - `trajectoriesToCsv`:多物体轨迹合并列(time + body1 x/y/vx/vy + body2 ...),行数取最长轨迹,缺帧留空;数字截断 6 位小数,非有限值转空串。
+   - `chartsToCsv`:遍历 charts,仅 ChartSeries(有 points)生成块,ForceDiagram 自动跳过;块格式 `# 键 — yLabel (yUnit)` + header + 数据行;块间空行分隔。
+   - `downloadCsv`:Blob 加 UTF-8 BOM(`\uFEFF`),Excel 直接打开不乱码。
+2. **UI**(ExportDataButton.tsx):阶段栏「导出数据」下拉菜单,三项(轨迹 CSV / 图表 CSV / 全部 CSV);无仿真结果时按钮 disabled。
+3. **挂载**:ProjectileScene stage-actions 区域。
+4. **测试**:exportCsv.test.ts 13 例覆盖格式化/转义/多物体/缺帧/图表块/ForceDiagram 跳过/下载流程。
+5. 测试数:core 923 / viz 588 / total 1511。

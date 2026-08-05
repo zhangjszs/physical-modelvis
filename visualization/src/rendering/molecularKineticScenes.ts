@@ -33,6 +33,22 @@ export interface ThermalSceneOptions {
     currentTime: number;
 }
 
+/**
+ * 扩散粒子颜色阶梯缓存 (深蓝 #3b82f6 → 浅蓝 #94a3b8, 16 级)。
+ * 避免每帧对每个粒子构造 `rgb(...)` 字符串 fillStyle。
+ */
+const DIFFUSION_COLOR_STEPS: string[] = (() => {
+    const out: string[] = [];
+    for (let i = 0; i < 16; i++) {
+        const t = i / 15;
+        const r = Math.round(59 + t * (148 - 59));
+        const g = Math.round(130 + t * (163 - 130));
+        const b = Math.round(246 + t * (184 - 246));
+        out.push(`rgb(${r},${g},${b})`);
+    }
+    return out;
+})();
+
 export function drawDiffusionScene(o: ThermalSceneOptions): void {
     const { ctx, width: w, height: h, isDark, params, simulationResult, currentTime } = o;
     clearScene(ctx, w, h, isDark);
@@ -55,8 +71,8 @@ export function drawDiffusionScene(o: ThermalSceneOptions): void {
     roundRectPath(ctx, partX0, partY0, partW, partH, 6);
     ctx.fill();
 
-    // 粒子 (随时间向右扩散)
-    const visibleN = Math.min(200, N);
+    // 粒子 (随时间向右扩散) — 数量按区域面积自适应, 每粒子约 700px², 上限 200
+    const visibleN = Math.min(200, N, Math.max(24, Math.round((partW * partH) / 700)));
     const spreadT = Math.max(0.1, currentTime);
     const spreadSigma = Math.sqrt(2 * D * spreadT) * 1e6; // μm
     const maxSpread = 4;
@@ -74,12 +90,9 @@ export function drawDiffusionScene(o: ThermalSceneOptions): void {
         const px = Math.max(partX0, Math.min(partX0 + partW, initX + drift + jitterX));
         const py = Math.max(partY0, Math.min(partY0 + partH, initY + jitterY));
 
-        // 颜色: 左侧深色, 右侧浅色
+        // 颜色: 左侧深色, 右侧浅色 (16 级阶梯缓存)
         const t = (px - partX0) / partW;
-        const r = Math.round(59 + t * (148 - 59));
-        const g = Math.round(130 + t * (163 - 130));
-        const b = Math.round(246 + t * (184 - 246));
-        ctx.fillStyle = `rgb(${r},${g},${b})`;
+        ctx.fillStyle = DIFFUSION_COLOR_STEPS[Math.min(15, Math.max(0, Math.floor(t * 16)))]!;
         ctx.beginPath();
         ctx.arc(px, py, 2.2, 0, Math.PI * 2);
         ctx.fill();
@@ -201,7 +214,7 @@ export function drawBrownianScene(o: ThermalSceneOptions): void {
     const cx = partX0 + partW / 2;
     const cy = partY0 + partH / 2;
 
-    // 大颗粒轨迹 (最近 80 个位置)
+    // 大颗粒轨迹 (最近 80 个位置) — 分档合并 stroke, 避免每段一次 beginPath/stroke
     const trailLen = 80;
     const trail: Array<{ x: number; y: number }> = [];
     for (let i = trailLen; i >= 0; i--) {
@@ -212,16 +225,28 @@ export function drawBrownianScene(o: ThermalSceneOptions): void {
         const dy = (seededRand(seed + 100) - 0.5) * partH * 0.4;
         trail.push({ x: cx + dx, y: cy + dy });
     }
-    // 轨迹线
-    for (let i = 0; i < trail.length - 1; i++) {
-        const alpha = 0.05 + 0.5 * (i / trail.length);
-        ctx.strokeStyle = `rgba(249,115,22,${alpha})`;
-        ctx.lineWidth = 1 + 1.5 * (i / trail.length);
-        ctx.beginPath();
-        ctx.moveTo(trail[i]!.x, trail[i]!.y);
-        ctx.lineTo(trail[i + 1]!.x, trail[i + 1]!.y);
-        ctx.stroke();
+    // 轨迹线: alpha/线宽分 8 档, 每档一条 path 一次 stroke
+    ctx.lineCap = 'round';
+    for (let level = 0; level < 8; level++) {
+        const from = level / 8;
+        const to = (level + 1) / 8;
+        const mid = (from + to) / 2;
+        ctx.strokeStyle = `rgba(249,115,22,${0.05 + 0.5 * mid})`;
+        ctx.lineWidth = 1 + 1.5 * mid;
+        let inPath = false;
+        for (let i = 0; i < trail.length - 1; i++) {
+            const p = i / (trail.length - 1);
+            if (p < from || p >= to) continue;
+            if (!inPath) {
+                ctx.beginPath();
+                ctx.moveTo(trail[i]!.x, trail[i]!.y);
+                inPath = true;
+            }
+            ctx.lineTo(trail[i + 1]!.x, trail[i + 1]!.y);
+        }
+        if (inPath) ctx.stroke();
     }
+    ctx.lineCap = 'butt';
 
     // 大颗粒 (布朗粒子)
     const bigR = 18;
