@@ -9,7 +9,6 @@
 - `docs/rendering-physics-audit.md` — 123 个场景渲染源审计表，改渲染前必读
 - `DEVELOPMENT_GUIDE.md` — 完整开发指南
 - `3D_VERIFICATION_HANDOFF.md` — 3D 实验引擎修复交接文档
-- `CLAUDE.md` 为旧文件，已废弃；请仅使用本 AGENTS.md
 
 ## Build & Test
 ```bash
@@ -55,7 +54,7 @@ GitHub Actions 流水线，配置文件位于 `.github/workflows/`。
 2. **ESLint 静态分析** — typescript-eslint recommended 规则集
 3. **Prettier 格式检查** — `format:check`
 4. **单元测试** — physics-core + visualization 各自 `vitest run`
-5. **9 层物理自检** — `node scripts/self-check.mjs`（L0-L6 + L8 Boris 数值积分 + L9 跨场景数值鲁棒性；L7 为 CLI 自身）
+5. **9 层物理自检** — `node scripts/self-check.mjs`（LAYERS 数组 = L0-L6 + L8 Boris 数值积分 + L9 跨场景数值鲁棒性；无 L7，CI 步骤名"7 层"是旧称）
 6. **构建** — physics-core → visualization（带 `VITE_BASE_PATH` 子路径）
 
 ### 部署流水线 (`deploy.yml`)
@@ -109,6 +108,7 @@ visualization/         — React 可视化前端
     guidance/          — 引导面板 (GuidancePanel)
     ocr/               — OCR 面板与工具函数
   src/scenes/          — 场景配置 + buildProblem (sceneRegistry.ts + guidance.ts 引导映射)
+  src/scenes/scenes/   — 场景定义按领域拆分子目录 (mechanics/electromagnetism/modern/optics/thermodynamics, index.ts 聚合) — 新增场景放到对应领域子目录, 并注册到 sceneRegistry.ts
   src/rendering/       — Canvas 2D 渲染器 (按物理领域分文件)
   src/adapters/        — physics-core 适配器 (runSceneSimulation)
   src/store/           — Zustand 状态管理
