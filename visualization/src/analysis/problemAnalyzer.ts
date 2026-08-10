@@ -1,4 +1,4 @@
-import { SCENES, getDefaultParams } from '../scenes/sceneRegistry';
+import { getSceneSync, getScenesSync, getDefaultParams, loadAllScenes } from '../scenes/sceneRegistry';
 
 export interface ExtractedQuantity {
     label: string;
@@ -249,7 +249,7 @@ function addParam(
 }
 
 function clampToScene(sceneId: string, params: Record<string, number>, warnings: string[]): Record<string, number> {
-    const scene = SCENES.find(s => s.id === sceneId);
+    const scene = getSceneSync(sceneId);
     if (!scene) return params;
 
     const clamped: Record<string, number> = {};
@@ -390,25 +390,30 @@ function inferParameters(
     return params;
 }
 
-export function analyzePhysicsProblem(rawText: string): ProblemAnalysis {
+export async function analyzePhysicsProblem(rawText: string): Promise<ProblemAnalysis> {
+    // 场景配置为懒加载(领域 chunk),分析前确保缓存就绪
+    await loadAllScenes();
     const text = normalizeText(rawText);
     const extracted: ExtractedQuantity[] = [];
     const assumptions: string[] = [];
-    const { sceneId, confidence, warnings } = classifyScene(text);
-    const scene = SCENES.find(s => s.id === sceneId) ?? SCENES[0]!;
+    const warnings: string[] = [];
+    const { sceneId, confidence } = classifyScene(text);
+    const scene = getSceneSync(sceneId) ?? getScenesSync()[0];
     const inferred = inferParameters(sceneId, text, assumptions, extracted);
     const defaults = getDefaultParams(sceneId);
     const merged = { ...defaults, ...clampToScene(sceneId, inferred, warnings) };
 
-    for (const param of scene.parameters) {
-        if (inferred[param.name] === undefined) {
-            assumptions.push(`${param.label} 未在题目中明确给出，使用默认值 ${param.default}${param.unit}。`);
+    if (scene) {
+        for (const param of scene.parameters) {
+            if (inferred[param.name] === undefined) {
+                assumptions.push(`${param.label} 未在题目中明确给出，使用默认值 ${param.default}${param.unit}。`);
+            }
         }
     }
 
     return {
         sceneId,
-        sceneName: scene.name,
+        sceneName: scene?.name ?? sceneId,
         confidence,
         parameters: merged,
         extracted,

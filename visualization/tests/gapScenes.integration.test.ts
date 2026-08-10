@@ -10,10 +10,11 @@
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- 集成测试需结构访问 physics-core 松散类型的 extra/charts 通道; tests/ 不在 CI lint 覆盖范围内 */
-import { describe, it, expect } from 'vitest';
+import { beforeAll, describe, it, expect } from 'vitest';
 import { solveProblem } from 'physics-core';
 import type { SimulationResult } from 'physics-core';
-import { SCENES, getDefaultParams } from '../src/scenes/sceneRegistry';
+import { getDefaultParams } from '../src/scenes/sceneRegistry';
+import { loadAllScenes, getSceneSync } from '../src/scenes/sceneRegistry';
 import { drawTotalInternalReflectionScene } from '../src/rendering/waveOptScenes';
 import { drawCurrentMagneticFieldScene } from '../src/rendering/magneticFieldScenes';
 import { drawElectricFieldLinesScene } from '../src/rendering/electrostaticFieldScenes';
@@ -106,7 +107,7 @@ function makeRecordingCtx(): { ctx: any; calls: Record<string, number>; texts: s
 }
 
 function solveScene(id: GapId): { result: SimulationResult; params: Record<string, number> } {
-    const scene = SCENES.find(s => s.id === id);
+    const scene = getSceneSync(id);
     if (!scene) throw new Error(`scene ${id} not found in SCENES`);
     const params = getDefaultParams(id);
     const problem = scene.buildProblem(params);
@@ -115,6 +116,10 @@ function solveScene(id: GapId): { result: SimulationResult; params: Record<strin
 }
 
 describe('缺口 8 场景 — 端到端链路 (buildProblem → solveProblem → 渲染)', () => {
+    beforeAll(async () => {
+        await loadAllScenes();
+    });
+
     for (const id of GAP_IDS) {
         it(`${id}: 求解器产出渲染器所需数据通道`, () => {
             const { result } = solveScene(id);
@@ -156,7 +161,7 @@ describe('场景行为正确性 (端到端物理自洽)', () => {
     });
 
     it('动能定理: v0=2 时仍自洽 (复测初速度修复, 否则 W≠ΔEk 会显示 …)', () => {
-        const scene = SCENES.find(s => s.id === 'work-energy')!;
+        const scene = getSceneSync('work-energy')!;
         const params: Record<string, number> = { ...getDefaultParams('work-energy'), v0: 2 };
         const result = solveProblem(scene.buildProblem(params));
         const { ctx, texts } = makeRecordingCtx();
@@ -173,7 +178,7 @@ describe('场景行为正确性 (端到端物理自洽)', () => {
     });
 
     it('牛顿管: 真实轨迹归一化 — t=0 硬币在顶(0.00 m), t=duration 到底(height m)', () => {
-        const scene = SCENES.find(s => s.id === 'newton-tube')!;
+        const scene = getSceneSync('newton-tube')!;
         const params = getDefaultParams('newton-tube');
         const height = params['height'] ?? 5;
         const duration = params['duration'] ?? 2;
@@ -221,7 +226,7 @@ describe('场景行为正确性 (端到端物理自洽)', () => {
     });
 
     it('电场线: 平行板模式 (mode=2) 渲染板间匀强场标注', () => {
-        const scene = SCENES.find(s => s.id === 'efield-lines')!;
+        const scene = getSceneSync('efield-lines')!;
         const params = { ...getDefaultParams('efield-lines'), mode: 2 };
         const result = solveProblem(scene.buildProblem(params));
         const { ctx, texts } = makeRecordingCtx();
@@ -274,7 +279,7 @@ describe('场景行为正确性 (端到端物理自洽)', () => {
     });
 
     it('小球 x-t: 大摆角(θ₀=80°)下 HUD 的 T 反映真实(非线性)周期, 而非小角度公式', () => {
-        const scene = SCENES.find(s => s.id === 'ball-xt')!;
+        const scene = getSceneSync('ball-xt')!;
         const params: Record<string, number> = { ...getDefaultParams('ball-xt'), angle: 80 };
         const result = solveProblem(scene.buildProblem(params));
         const { ctx, texts } = makeRecordingCtx();

@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useSimulationStore } from '../../store/simulationStore';
-import { SCENES } from '../../scenes/sceneRegistry';
 
 /** 场景分类 — 按 6 大教材分类 + 综合演示 */
 export const SCENE_CATEGORIES = [
@@ -162,9 +161,10 @@ export const SCENE_CATEGORIES = [
 export function SceneSelector() {
     const currentScene = useSimulationStore(s => s.currentScene);
     const setScene = useSimulationStore(s => s.setScene);
+    const scenes = useSimulationStore(s => s.scenes);
     const [openCategory, setOpenCategory] = useState<string | null>(null);
 
-    const sceneMap = new Map(SCENES.map(s => [s.id, s.name]));
+    const sceneMap = new Map(scenes.map(s => [s.id, s.name]));
 
     const activeCategory = SCENE_CATEGORIES.find(cat => cat.ids.includes(currentScene));
 

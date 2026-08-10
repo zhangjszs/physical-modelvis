@@ -9,13 +9,14 @@
  *   5. timeConfig.dt > 0
  */
 
-import { describe, it, expect } from 'vitest';
-import { SCENES } from '../../src/scenes/sceneRegistry';
+import { beforeAll, describe, it, expect } from 'vitest';
+import { getScenesSync, loadAllScenes } from '../../src/scenes/sceneRegistry';
 import { getModel, listModels } from 'physics-core';
+import type { SceneConfig } from '../../src/types/visualization';
 
 const registeredModels = new Set(listModels());
 
-function defaultParams(scene: typeof SCENES[number]): Record<string, number> {
+function defaultParams(scene: SceneConfig): Record<string, number> {
   const p: Record<string, number> = {};
   for (const param of scene.parameters) {
     p[param.name] = param.default;
@@ -25,13 +26,17 @@ function defaultParams(scene: typeof SCENES[number]): Record<string, number> {
 }
 
 describe('L2: SceneConfig ↔ 引擎契约', () => {
+  beforeAll(async () => {
+    await loadAllScenes();
+  });
+
   it('所有 scene 的 model 是已注册的 ModelType', () => {
-    const unregistered = SCENES.filter(s => !registeredModels.has(s.model)).map(s => s.id);
+    const unregistered = getScenesSync().filter(s => !registeredModels.has(s.model)).map(s => s.id);
     expect(unregistered, `未注册 model: ${JSON.stringify(unregistered)}`).toEqual([]);
   });
 
   it('所有 scene 的 buildProblem 可以成功执行 (default params)', () => {
-    for (const scene of SCENES) {
+    for (const scene of getScenesSync()) {
       const params = defaultParams(scene);
       let problem: any;
       expect(() => {
@@ -42,7 +47,7 @@ describe('L2: SceneConfig ↔ 引擎契约', () => {
   });
 
   it('所有 scene 的 buildProblem 产出符合 getModel(model).validate 要求', () => {
-    for (const scene of SCENES) {
+    for (const scene of getScenesSync()) {
       const params = defaultParams(scene);
       let problem: any;
       try {
@@ -61,7 +66,7 @@ describe('L2: SceneConfig ↔ 引擎契约', () => {
   });
 
   it('timeConfig.sampleCount ≥50 或 dt>0 (二选一)', () => {
-    for (const scene of SCENES) {
+    for (const scene of getScenesSync()) {
       const params = defaultParams(scene);
       let problem: any;
       try {
@@ -91,7 +96,7 @@ describe('L2: SceneConfig ↔ 引擎契约', () => {
     const caseSet = new Set(cases);
 
     // 每个 sceneId 至少有一个 case (可以是 default 的通配, 但我们严格检查)
-    const missing = SCENES.map(s => s.id).filter(id => caseSet.has(id));
+    const missing = getScenesSync().map(s => s.id).filter(id => caseSet.has(id));
     // 注意: 大部分基础场景 共用通用渲染路径, 仅定制场景需要 case, 因此不要求全覆盖
     expect(missing.length).toBeGreaterThan(0); // 至少有一个 case
   });

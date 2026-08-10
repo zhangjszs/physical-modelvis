@@ -14,6 +14,9 @@ export default defineConfig({
     port: 3000,
   },
   build: {
+    // 最重的 3 个 chunk (physics / charts / three) 均为懒加载, 不出现在首屏;
+    // 此阈值只过滤"懒 chunk 体积"噪音, 首屏体积由 chunks 依赖图保证
+    chunkSizeWarningLimit: 600,
     rollupOptions: {
       output: {
         manualChunks(id: string) {
@@ -31,9 +34,16 @@ export default defineConfig({
               id.includes('node_modules/victory-vendor')) {
             return 'vendor-charts';
           }
-          // physics-core 物理引擎 — 独立于 UI 更新
-          if (id.includes('physics-core') ||
-              id.includes('node_modules/zustand')) {
+          // Three.js 3D 实验引擎 — 仅被 lazy 的 EquipmentStage 引用，独立 chunk 避免拖累首屏
+          if (id.includes('node_modules/three')) {
+            return 'vendor-three';
+          }
+          // physical-modelvis 前端状态管理 — 被首屏引用, 与物理引擎解耦
+          if (id.includes('node_modules/zustand')) {
+            return 'vendor-state';
+          }
+          // physics-core 物理引擎 — 只被懒加载的场景/渲染链引用, 独立 chunk 不拖累首屏
+          if (id.includes('physics-core')) {
             return 'vendor-physics';
           }
         },

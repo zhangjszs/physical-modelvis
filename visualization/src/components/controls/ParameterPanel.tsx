@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react';
 import { useSimulationStore } from '../../store/simulationStore';
-import { SCENES } from '../../scenes/sceneRegistry';
 import type { SceneParameter } from '../../types/visualization';
 
 interface ParameterPanelProps {
@@ -12,7 +11,8 @@ export function ParameterPanel({ onRunSimulation }: ParameterPanelProps) {
     const parameters = useSimulationStore(s => s.parameters);
     const setParameter = useSimulationStore(s => s.setParameter);
     const applyPreset = useSimulationStore(s => s.applyPreset);
-    const scene = SCENES.find(s => s.id === currentScene);
+    const scenes = useSimulationStore(s => s.scenes);
+    const scene = scenes.find(s => s.id === currentScene);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {

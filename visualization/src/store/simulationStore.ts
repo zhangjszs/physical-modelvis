@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { SimulationState, VisibleLayers, GraphType } from '../types/visualization';
+import { loadAllScenes } from '../scenes/sceneRegistry';
 import { getTotalDuration, findFrameIndex } from '../utils/frameUtils';
 
 const DEFAULT_LAYERS: VisibleLayers = {
@@ -36,6 +37,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
     parameters: {},
     parametersSceneId: null,
     sceneLoadVersion: 0,
+    scenes: [],
     simulationResult: null,
     currentTime: 0,
     currentFrameIndex: 0,
@@ -77,6 +79,14 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
             experimentData: null,
             selectedGraph: getDefaultGraphForScene(sceneId)
         }));
+    },
+
+    // 预载全部场景配置(领域懒加载 chunk),幂等
+    ensureScenesLoaded: () => {
+        if (get().scenes.length > 0) return;
+        loadAllScenes().then(scenes => {
+            set({ scenes });
+        });
     },
 
     ensureSceneParameters: (sceneId, defaults) => {

@@ -1,7 +1,7 @@
 import { useEffect, useCallback, useRef, lazy, Suspense, useState } from 'react';
 import { useSimulationStore } from '../store/simulationStore';
 import { runSceneSimulation } from '../adapters/physicsCoreAdapter';
-import { SCENES, getDefaultParams } from './sceneRegistry';
+import { getDefaultParams } from './sceneRegistry';
 import { SimulationCanvas } from '../components/simulation/SimulationCanvas';
 import { loadSceneRig, hasSceneRig } from '../components/simulation3d/rigs';
 import type { SceneRig } from '../components/simulation3d/EquipmentStage';
@@ -33,7 +33,8 @@ const PhotogateTimer = lazy(() =>
 function TextbookDirectory() {
     const currentScene = useSimulationStore(s => s.currentScene);
     const setScene = useSimulationStore(s => s.setScene);
-    const sceneMap = new Map(SCENES.map(s => [s.id, s.name]));
+    const scenes = useSimulationStore(s => s.scenes);
+    const sceneMap = new Map(scenes.map(s => [s.id, s.name]));
 
     return (
         <nav className="textbook-directory" aria-label="教材实验目录">
@@ -69,6 +70,7 @@ export function ProjectileScene() {
     const parameters = useSimulationStore(s => s.parameters);
     const sceneLoadVersion = useSimulationStore(s => s.sceneLoadVersion);
     const simulationResult = useSimulationStore(s => s.simulationResult);
+    const scenes = useSimulationStore(s => s.scenes);
     // action / stable selectors 返回 stable 引用, 不会触发重渲染
     const setSimulationResult = useSimulationStore(s => s.setSimulationResult);
     const setErrorMessage = useSimulationStore(s => s.setErrorMessage);
@@ -77,7 +79,7 @@ export function ProjectileScene() {
     const [formulaOpen, setFormulaOpen] = useState(false);
     const [dataOpen, setDataOpen] = useState(false);
 
-    const scene = SCENES.find(s => s.id === currentScene);
+    const scene = scenes.find(s => s.id === currentScene);
 
     // 初始化默认参数
     useEffect(() => {

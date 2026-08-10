@@ -90,6 +90,8 @@ export interface SimulationState {
     parameters: Record<string, number>;
     parametersSceneId: string | null;
     sceneLoadVersion: number;
+    /** 已加载的场景配置(懒加载后缓存),未就绪时为空数组 */
+    scenes: SceneConfig[];
     simulationResult: SimulationResult | null;
     currentTime: number;
     currentFrameIndex: number;
@@ -106,6 +108,7 @@ export interface SimulationState {
     setScene: (sceneId: string) => void;
     setSceneWithParameters: (sceneId: string, parameters: Record<string, number>) => void;
     ensureSceneParameters: (sceneId: string, defaults: Record<string, number>) => void;
+    ensureScenesLoaded: () => void;
     setParameter: (name: string, value: number) => void;
     applyPreset: (parameters: Record<string, number>) => void;
     setSimulationResult: (result: SimulationResult) => void;

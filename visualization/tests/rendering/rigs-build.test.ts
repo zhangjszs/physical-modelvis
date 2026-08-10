@@ -6,14 +6,14 @@
  * 本测试遍历 SCENE_TO_MODULE 全部 rig, 用空参数调用 buildEquipment,
  * 任何 rig 抛错都会被拦截 (默认参数路径必须健壮)。
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import * as THREE from 'three';
 import { loadSceneRig, SCENE_TO_MODULE } from '../../src/components/simulation3d/rigs/index';
-import { SCENES } from '../../src/scenes/sceneRegistry';
+import { getSceneSync, loadAllScenes } from '../../src/scenes/sceneRegistry';
 
 /** 从 SCENES 注册表取场景默认参数 (真实运行路径), 无注册时回退空对象 */
 function defaultParams(sceneId: string): Record<string, number> {
-    const sc = SCENES.find(s => s.id === sceneId);
+    const sc = getSceneSync(sceneId);
     if (!sc || !('parameters' in sc)) return {};
     const out: Record<string, number> = {};
     for (const p of (sc as { parameters: Array<{ name: string; value: number }> }).parameters ?? []) {
@@ -23,6 +23,10 @@ function defaultParams(sceneId: string): Record<string, number> {
 }
 
 describe('3D rig 契约: buildEquipment 默认参数不抛错', () => {
+    beforeAll(async () => {
+        await loadAllScenes();
+    });
+
     const sceneIds = Object.keys(SCENE_TO_MODULE);
 
     it(`覆盖 ${sceneIds.length} 个有 rig 的场景`, () => {

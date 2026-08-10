@@ -1,4 +1,4 @@
-import { SCENES } from './sceneRegistry';
+import { getSceneSync } from './sceneRegistry';
 
 /**
  * 实验导学数据 — 为每个场景提供「实验目标 + 分步引导」。
@@ -354,7 +354,7 @@ export function getSceneGuidance(sceneId: string): SceneGuidance {
 }
 
 function buildFallback(sceneId: string): SceneGuidance {
-    const scene = SCENES.find(s => s.id === sceneId);
+    const scene = getSceneSync(sceneId);
     const name = scene?.name ?? sceneId;
     const paramLabels = (scene?.parameters ?? []).map(p => p.label);
     return {

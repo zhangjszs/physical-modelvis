@@ -1,19 +1,23 @@
-import { useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { useSimulationStore } from '../store/simulationStore';
-import { ProjectileScene } from '../scenes/ProjectileScene';
 import { OCRPanel } from '../components/ocr/OCRPanel';
 import { GuidancePanel } from '../components/guidance/GuidancePanel';
 
-const SCENE_MAP: Record<string, () => JSX.Element> = {
-    projectile: ProjectileScene,
-    'uniform-accelerated': ProjectileScene,
-    'free-fall': ProjectileScene,
-    'electric-field': ProjectileScene,
-    'magnetic-field': ProjectileScene,
-    collision: ProjectileScene,
-    spring: ProjectileScene,
-    'inclined-plane': ProjectileScene,
-    'em-combined': ProjectileScene
+// ProjectileScene 静态导入会把整条 2D 渲染链 + physics-core 求解器拖进首屏
+// (SimulationCanvas / rendering / runSceneSimulation ≈ 300+ kB),用 lazy 隔离;
+// 场景打开后才下载对应 chunk。3D 器材 rig 在其内部继续按域懒加载。
+const LazyProjectileScene = lazy(() => import('../scenes/ProjectileScene').then(m => ({ default: m.ProjectileScene })));
+
+const SCENE_MAP: Record<string, React.LazyExoticComponent<() => JSX.Element>> = {
+    projectile: LazyProjectileScene,
+    'uniform-accelerated': LazyProjectileScene,
+    'free-fall': LazyProjectileScene,
+    'electric-field': LazyProjectileScene,
+    'magnetic-field': LazyProjectileScene,
+    collision: LazyProjectileScene,
+    spring: LazyProjectileScene,
+    'inclined-plane': LazyProjectileScene,
+    'em-combined': LazyProjectileScene
 };
 
 export function App() {
@@ -23,8 +27,14 @@ export function App() {
     // action selectors 返回稳定引用, 不会触发重渲染
     const setErrorMessage = useSimulationStore(s => s.setErrorMessage);
     const toggleTheme = useSimulationStore(s => s.toggleTheme);
-    const SceneComponent = SCENE_MAP[currentScene] ?? ProjectileScene;
+    const ensureScenesLoaded = useSimulationStore(s => s.ensureScenesLoaded);
+    const SceneComponent = (SCENE_MAP[currentScene] ?? LazyProjectileScene) as React.ComponentType;
     const [sidebarOpen, setSidebarOpen] = useState(false);
+
+    // 挂载即预载全部场景配置(懒加载领域 chunk)
+    useEffect(() => {
+        ensureScenesLoaded();
+    }, [ensureScenesLoaded]);
 
     return (
         <div className={`app ${theme} ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
@@ -54,7 +64,20 @@ export function App() {
             )}
 
             <main className="main-content">
-                <SceneComponent />
+                <Suspense
+                    fallback={
+                        <div className="classroom-scene">
+                            <div className="panel-section">
+                                <div className="panel-title">加载实验场景…</div>
+                                <div style={{ padding: 12, color: '#94a3b8', fontSize: 12 }}>
+                                    首次打开需加载场景与渲染模块
+                                </div>
+                            </div>
+                        </div>
+                    }
+                >
+                    <SceneComponent />
+                </Suspense>
             </main>
 
             <button

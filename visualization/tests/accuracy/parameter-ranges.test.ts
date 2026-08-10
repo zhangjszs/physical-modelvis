@@ -11,8 +11,8 @@
  *      - duration / timeSpan: min > 0
  */
 
-import { describe, it, expect } from 'vitest';
-import { SCENES } from '../../src/scenes/sceneRegistry';
+import { describe, it, expect, beforeAll } from 'vitest';
+import { loadAllScenes, getScenesSync } from '../../src/scenes/sceneRegistry';
 
 interface ParamLike {
   name: string;
@@ -66,14 +66,18 @@ function checkPhysicsRange(p: ParamLike): string | null {
 }
 
 describe('L6: 参数面板物理有效范围', () => {
+  beforeAll(async () => {
+    await loadAllScenes();
+  });
+
   it('所有 scene 的 parameters 数组非空', () => {
-    for (const scene of SCENES) {
+    for (const scene of getScenesSync()) {
       expect(scene.parameters.length, `scene '${scene.id}' 无参数`).toBeGreaterThan(0);
     }
   });
 
   it('每个参数: min ≤ default ≤ max', () => {
-    for (const scene of SCENES) {
+    for (const scene of getScenesSync()) {
       for (const p of scene.parameters) {
         expect(p.min, `scene '${scene.id}' param '${p.name}' min ≤ default`).toBeLessThanOrEqual(p.default);
         expect(p.default, `scene '${scene.id}' param '${p.name}' default ≤ max`).toBeLessThanOrEqual(p.max);
@@ -82,7 +86,7 @@ describe('L6: 参数面板物理有效范围', () => {
   });
 
   it('每个参数: step ≥ 0', () => {
-    for (const scene of SCENES) {
+    for (const scene of getScenesSync()) {
       for (const p of scene.parameters) {
         expect(p.step, `scene '${scene.id}' param '${p.name}' step ≥ 0`).toBeGreaterThanOrEqual(0);
       }
@@ -90,7 +94,7 @@ describe('L6: 参数面板物理有效范围', () => {
   });
 
   it('每个参数: description 非空', () => {
-    for (const scene of SCENES) {
+    for (const scene of getScenesSync()) {
       for (const p of scene.parameters) {
         expect(p.description.length, `scene '${scene.id}' param '${p.name}' description 非空`).toBeGreaterThan(0);
       }
@@ -99,7 +103,7 @@ describe('L6: 参数面板物理有效范围', () => {
 
   it('物理范围白名单 (g/T0/duration)', () => {
     const violations: string[] = [];
-    for (const scene of SCENES) {
+    for (const scene of getScenesSync()) {
       for (const p of scene.parameters) {
         const v = checkPhysicsRange(p);
         if (v) violations.push(`[${scene.id}/${p.name}] ${v}`);
@@ -109,7 +113,7 @@ describe('L6: 参数面板物理有效范围', () => {
   });
 
   it('所有参数 name 在同一 scene 内唯一', () => {
-    for (const scene of SCENES) {
+    for (const scene of getScenesSync()) {
       const names = scene.parameters.map(p => p.name);
       const dup = names.filter((n, i) => names.indexOf(n) !== i);
       expect(dup, `scene '${scene.id}' 有重复参数名: ${JSON.stringify(dup)}`).toEqual([]);
@@ -117,7 +121,7 @@ describe('L6: 参数面板物理有效范围', () => {
   });
 
   it('所有参数 label 在同一 scene 内唯一', () => {
-    for (const scene of SCENES) {
+    for (const scene of getScenesSync()) {
       const labels = scene.parameters.map(p => p.label);
       const dup = labels.filter((n, i) => labels.indexOf(n) !== i);
       expect(dup, `scene '${scene.id}' 有重复标签: ${JSON.stringify(dup)}`).toEqual([]);

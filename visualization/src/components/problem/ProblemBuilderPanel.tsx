@@ -101,12 +101,13 @@ export function ProblemBuilderPanel() {
 
     const canAnalyze = useMemo(() => text.trim().length >= 4, [text]);
 
-    const analyze = () => {
+    const analyze = async () => {
         if (!canAnalyze) {
             setStatus('请输入完整题目。');
             return;
         }
-        const next = analyzePhysicsProblem(text);
+        setStatus('分析中…');
+        const next = await analyzePhysicsProblem(text);
         setAnalysis(next);
         setStatus(null);
     };

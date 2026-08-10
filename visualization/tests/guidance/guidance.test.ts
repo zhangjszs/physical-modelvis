@@ -1,10 +1,14 @@
-import { describe, expect, it } from 'vitest';
-import { SCENES } from '../../src/scenes/sceneRegistry';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { getSceneSync, loadAllScenes, getScenesSync } from '../../src/scenes/sceneRegistry';
 import { CURATED_SCENE_IDS, getSceneGuidance, isCurated } from '../../src/scenes/guidance';
 
-const allSceneIds = new Set(SCENES.map(s => s.id));
-
 describe('getSceneGuidance', () => {
+    let allSceneIds: Set<string>;
+
+    beforeAll(async () => {
+        await loadAllScenes();
+        allSceneIds = new Set(getScenesSync().map(s => s.id));
+    });
     it('精编场景返回手写步骤，字段非空', () => {
         for (const id of CURATED_SCENE_IDS) {
             const g = getSceneGuidance(id);
@@ -29,7 +33,7 @@ describe('getSceneGuidance', () => {
 
     it('所有精编 paramFocus 必须存在于对应场景的 parameters 中', () => {
         for (const id of CURATED_SCENE_IDS) {
-            const scene = SCENES.find(s => s.id === id);
+            const scene = getSceneSync(id);
             expect(scene, `精编场景 ${id} 必须存在于 SCENES`).toBeDefined();
             const paramNames = new Set(scene!.parameters.map(p => p.name));
             const g = getSceneGuidance(id);
@@ -68,7 +72,7 @@ describe('getSceneGuidance', () => {
     });
 
     it('未精编但存在的场景回退时使用真实场景名', () => {
-        const uncurated = SCENES.find(s => !CURATED_SCENE_IDS.includes(s.id));
+        const uncurated = getScenesSync().find(s => !CURATED_SCENE_IDS.includes(s.id));
         expect(uncurated).toBeDefined();
         const g = getSceneGuidance(uncurated!.id);
         expect(g.goal).toContain(uncurated!.name);

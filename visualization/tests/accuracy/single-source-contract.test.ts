@@ -14,14 +14,18 @@
  * 若未来渲染层回退到自算公式 (或引擎被改错), 本测试直接拦截。
  */
 
-import { describe, it, expect } from 'vitest';
-import { SCENES } from '../../src/scenes/sceneRegistry';
+import { describe, it, expect, beforeAll } from 'vitest';
+import { getSceneSync, loadAllScenes } from '../../src/scenes/sceneRegistry';
 import { runSceneSimulation } from '../../src/adapters/physicsCoreAdapter';
 import { getFrame } from '../../src/rendering/renderingUtils';
 
 describe('L1-migration: 渲染单一真源契约 (orbital / pendulum / vertical-circle)', () => {
+    beforeAll(async () => {
+        await loadAllScenes();
+    });
+
     function scene(id: string) {
-        const s = SCENES.find(x => x.id === id);
+        const s = getSceneSync(id);
         expect(s, `场景 ${id} 已注册`).toBeDefined();
         return s!;
     }

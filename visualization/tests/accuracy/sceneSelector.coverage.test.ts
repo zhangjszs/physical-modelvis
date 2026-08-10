@@ -10,17 +10,24 @@
  * 本测试把该不变量固化进 CI, 任何拼写错位或遗漏接线都会让 CI 失败。
  */
 
-import { describe, it, expect } from 'vitest';
+import { beforeAll, describe, it, expect } from 'vitest';
 import { SCENE_CATEGORIES } from '../../src/components/layout/SceneSelector';
-import { SCENES } from '../../src/scenes/sceneRegistry';
-
-const registeredIds = new Set(SCENES.map(s => s.id));
-const categoryIds = SCENE_CATEGORIES.flatMap(cat => cat.ids);
-const reachableIds = new Set(categoryIds);
+import { getScenesSync, loadAllScenes } from '../../src/scenes/sceneRegistry';
 
 describe('场景选择器覆盖完整性', () => {
+    let registeredIds: Set<string>;
+    let categoryIds: string[];
+    let reachableIds: Set<string>;
+
+    beforeAll(async () => {
+        await loadAllScenes();
+        registeredIds = new Set(getScenesSync().map(s => s.id));
+        categoryIds = SCENE_CATEGORIES.flatMap(cat => cat.ids);
+        reachableIds = new Set(categoryIds);
+    });
+
     it('sceneRegistry 非空', () => {
-        expect(SCENES.length, 'sceneRegistry 不应为空').toBeGreaterThan(0);
+        expect(getScenesSync().length, 'sceneRegistry 不应为空').toBeGreaterThan(0);
     });
 
     it('SCENE_CATEGORIES 中每个 id 都能解析到真实场景 (无死链)', () => {
@@ -32,7 +39,7 @@ describe('场景选择器覆盖完整性', () => {
     });
 
     it('sceneRegistry 中每个已注册场景都可达 (无隐藏场景)', () => {
-        const hidden = SCENES.map(s => s.id).filter(id => !reachableIds.has(id));
+        const hidden = getScenesSync().map(s => s.id).filter(id => !reachableIds.has(id));
         expect(
             hidden,
             `存在已注册但选择器不可达的场景: ${JSON.stringify(hidden)}`,
