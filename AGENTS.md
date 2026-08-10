@@ -8,7 +8,7 @@
 - `plan.md` — 当前工作进展与后续计划（阶段 3 渲染迁移状态、待办项）
 - `docs/rendering-physics-audit.md` — 123 个场景渲染源审计表，改渲染前必读
 - `DEVELOPMENT_GUIDE.md` — 完整开发指南
-- `3D_VERIFICATION_HANDOFF.md` — 3D 实验引擎修复交接文档
+- `3D_VERIFICATION_HANDOFF.md` — 3D 实验引擎修复交接文档(已归档到 `docs/archive/`)
 
 ## Build & Test
 ```bash

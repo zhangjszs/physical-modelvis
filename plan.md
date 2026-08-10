@@ -1,7 +1,7 @@
 # PhysVis 后续工作计划 (plan.md)
 
 > 汇总当前进行中的工作、阶段 3 渲染迁移、3D 修复交接、以及全部长期优化项的推进计划。
-> 关联文档:`docs/rendering-physics-audit.md`(渲染迁移审计)、`3D_VERIFICATION_HANDOFF.md`(3D 修复交接)、`docs/archive/3D_RENDERING_FIXES_SUMMARY.md`(3D 前序修复)。
+> 关联文档:`docs/rendering-physics-audit.md`(渲染迁移审计)、`docs/archive/3D_VERIFICATION_HANDOFF.md`(3D 修复交接)、`docs/archive/3D_RENDERING_FIXES_SUMMARY.md`(3D 前序修复)。
 
 ---
 
