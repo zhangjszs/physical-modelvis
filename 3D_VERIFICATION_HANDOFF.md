@@ -1,6 +1,6 @@
 # 3D 渲染修复 — 后续任务交接文档
 
-> **接手者请先读本文件，再读 [3D_RENDERING_FIXES_SUMMARY.md](./3D_RENDERING_FIXES_SUMMARY.md) 了解前序修复全貌。**
+> **接手者请先读本文件，再读 [3D_RENDERING_FIXES_SUMMARY.md](./docs/archive/3D_RENDERING_FIXES_SUMMARY.md) 了解前序修复全貌。**
 
 ## 一、背景
 
@@ -165,7 +165,7 @@ scene.add(equipmentGroup);
 | [visualization/src/components/common/ErrorBoundary.tsx](./visualization/src/components/common/ErrorBoundary.tsx) | 错误边界，崩溃时降级显示 |
 | [visualization/src/scenes/ProjectileScene.tsx](./visualization/src/scenes/ProjectileScene.tsx) | 场景切换入口（已修 `setRig(undefined)` 时序问题） |
 | [scripts/verify-3d-scene-switching.js](./scripts/verify-3d-scene-switching.js) | **实测脚本（任务 1 验收手段）** |
-| [3D_RENDERING_FIXES_SUMMARY.md](./3D_RENDERING_FIXES_SUMMARY.md) | 前序修复总结文档 |
+| [3D_RENDERING_FIXES_SUMMARY.md](./docs/archive/3D_RENDERING_FIXES_SUMMARY.md) | 前序修复总结文档 |
 
 ---
 
@@ -250,7 +250,7 @@ refactor: 将 gapScenes 的 8 个场景按章节合并到对应渲染文件
 2. **rig 文件数量大**：68 个 rig，定位 bug 时建议先看 Console 的完整堆栈（搜 `[ErrorBoundary`），直接定位到出错的 rig 文件和行号，不要逐个翻。
 3. **React StrictMode 双挂载**：开发环境下组件会双挂载，可能导致 useEffect 执行两次。这是正常的，不是 bug，但调试时要注意 effect 的 cleanup 必须正确。
 4. **WebGL 在 headless 浏览器可能不可用**：如果要用 Playwright 做 E2E，需要 `--use-gl=swiftshader` 等参数启用软件渲染。
-5. **前序文档**：[3D_RENDERING_FIXES_SUMMARY.md](./3D_RENDERING_FIXES_SUMMARY.md) 记录了上一轮的所有改动，包含"未采用的建议及原因"，避免重复讨论已否决的方案。
+5. **前序文档**：[3D_RENDERING_FIXES_SUMMARY.md](./docs/archive/3D_RENDERING_FIXES_SUMMARY.md) 记录了上一轮的所有改动，包含"未采用的建议及原因"，避免重复讨论已否决的方案。
 
 ---
 
