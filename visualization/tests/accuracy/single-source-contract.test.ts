@@ -593,13 +593,13 @@ describe('L1-migration: 渲染单一真源契约 (liquid-crystal / capillary 常
         });
         expect(error).toBeNull();
 
-        // 独立复算: Tarasov Δn/Δn0=(1−T/Tc)^0.22, V=3>Vth=2 → 取向比 1−(2/3)², Δn=0.2·ratio, T=sin²(π·Δn·0.25)
+        // 独立复算: Tarasov Δn/Δn0=(1−T/Tc)^0.22, V=3>Vth=2 → 取向比 1−(2/3)², Δn=0.2·ratio, T=sin²(π·Δn·2.5)
         const tc = 35;
         const vth = 2;
         const voltRatio = 1 - (vth / 3) * (vth / 3);
         const exp = (t: number) => {
             const tempRatio = t >= tc ? 0 : Math.pow(1 - t / tc, 0.22);
-            return Math.sin(Math.PI * 0.2 * tempRatio * voltRatio * 0.25) ** 2;
+            return Math.sin(Math.PI * 0.2 * tempRatio * voltRatio * 2.5) ** 2;
         };
         const chart = result!.charts as unknown as Record<string, { points: Array<{ x: number; y: number }> }>;
         const xT = chart['x_t']!.points;

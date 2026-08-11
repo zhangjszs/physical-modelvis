@@ -211,7 +211,7 @@ audit 第 5 批标记的 2 个"可保留但存在静态分歧"场景完成对齐
 
 | 场景 | 迁移方式 | 备注 |
 |------|---------|------|
-| `liquid-crystal` | 透射率-温度曲线改读引擎 `charts.x_t` (Tarasov Δn(T)/Δn(0)=(1−T/Tc)^0.22, 过滤到扫描区间); Tc/Vth 读 `maxValues.clearingPointDegC/thresholdVoltageV`; HUD 增 T% (maxValues.transmittancePct) | 原渲染分段线性 (±3°C 台阶 0.85→0.15) 与引擎 Tarasov 曲线分歧; 回退保留原分段线性 |
+| `liquid-crystal` | 透射率-温度曲线改读引擎 `charts.x_t` (Tarasov Δn(T)/Δn(0)=(1−T/Tc)^0.22, 取扫描区间点并外扩一点; 窄区间单点不退化); Tc/Vth 读 `maxValues.clearingPointDegC/thresholdVoltageV`; HUD 增 T% (maxValues.transmittancePct) | 原渲染分段线性 (±3°C 台阶 0.85→0.15) 与引擎 Tarasov 曲线分歧; 回退保留原分段线性。**附带引擎校准**: transmittance 系数 0.25 → 2.5 (Δn∈[0,0.2] → 相位 [0,π/2], 峰值 100%), 原系数下透射率峰值仅 2.45% 全程贴地, 教学不可见 |
 | `capillary` | 常量对齐引擎: ρ_汞 13500 → 13534 kg/m³; 汞+石蜡 θ 140° → 150° (补 isMercury+isParaffin 分支, 原仅水+石蜡有 105° 分支) | 引擎 `capillary.ts:57-65` 为 13534 / (玻璃 140°, 石蜡 150°); Jurin 公式不变 |
 
 ### 契约测试新增 (21 → 23)

@@ -40,9 +40,10 @@ function voltageBirefringence(v: number, vth: number): number {
     return 1 - x * x;
 }
 
-/* 透射率简化: T = T0 * sin²(πΔn*d/λ) — 只取前半部分为近似 */
+/* 透射率简化: T = T0 * sin²(π·Δn·d/λ) — 系数 2.5 将 Δn∈[0,0.2] 映射到相位 [0,π/2]
+ * (半波片工作点 Δn·d/λ=0.5), 使 Δn=0.2 时透射率 100% 且全程单调 */
 function transmittance(deltaN: number): number {
-    return Math.sin(Math.PI * deltaN * 0.25) ** 2;
+    return Math.sin(Math.PI * deltaN * 2.5) ** 2;
 }
 
 /* 颜色偏移 (波长单位 nm), Δn 增加等效于红移 */

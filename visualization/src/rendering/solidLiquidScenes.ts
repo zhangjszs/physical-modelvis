@@ -905,11 +905,19 @@ export function drawLiquidCrystalScene(o: ThermalSceneOptions): void {
                 Record<string, { points: Array<{ x: number; y: number }> }> | undefined
         )?.['x_t'];
         const enginePoints = xChart?.points;
-        if (enginePoints && enginePoints.length >= 2) {
-            // 引擎曲线覆盖 -10~90℃, 过滤到当前扫描区间
-            const filtered = enginePoints.filter(p => p.x >= startTemp && p.x <= endTemp);
-            if (filtered.length >= 2) {
-                for (const p of filtered) {
+        if (enginePoints && enginePoints.length >= 1) {
+            // 引擎曲线覆盖 -10~90℃ (1.667℃ 网格), 取扫描区间内的点并各向外扩一点
+            // (窄区间单点不退化, 端点不截断), 区间内无点时回退
+            const idxs: number[] = [];
+            for (let i = 0; i < enginePoints.length; i++) {
+                const x = enginePoints[i]!.x;
+                if (x >= startTemp && x <= endTemp) idxs.push(i);
+            }
+            if (idxs.length >= 1) {
+                const lo = Math.max(0, idxs[0]! - 1);
+                const hi = Math.min(enginePoints.length - 1, idxs[idxs.length - 1]! + 1);
+                for (let i = lo; i <= hi; i++) {
+                    const p = enginePoints[i]!;
                     xs.push(p.x);
                     ys.push(p.y);
                 }
@@ -953,7 +961,7 @@ export function drawLiquidCrystalScene(o: ThermalSceneOptions): void {
             const midT = (startTemp + endTemp) / 2;
             const tempRatio = midT >= Tc ? 0 : Math.pow(1 - midT / Tc, 0.22);
             const voltRatio = voltage <= Vth ? 1 : 1 - (Vth / voltage) * (Vth / voltage);
-            return Math.sin(Math.PI * 0.2 * tempRatio * voltRatio * 0.25) ** 2 * 100;
+            return Math.sin(Math.PI * 0.2 * tempRatio * voltRatio * 2.5) ** 2 * 100;
         })();
     drawHud(
         ctx,
