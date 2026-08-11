@@ -2,6 +2,11 @@
 
 > 面向高中物理教学的交互式可视化仿真系统，基于自研物理引擎 + React + Canvas 2D 渲染
 
+## 测试状态
+
+- **测试数**:core 923 / viz 1161 / 总计 2084(全部通过)
+- 质量门禁:`npm run precheck`(build:core → typecheck → lint → format:check → test → selfcheck)
+
 ## 项目简介
 
 本项目为高中物理教学提供一个可视化仿真平台，支持：

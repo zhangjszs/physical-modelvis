@@ -515,10 +515,10 @@ export function drawCapillaryScene(o: ThermalSceneOptions): void {
     const isMercury = (params['medium'] ?? 0) === 1;
     const isParaffin = (params['material'] ?? 0) === 1;
 
-    // 物理参数 (Jurin 公式)
+    // 物理参数 (Jurin 公式, 常量与引擎 capillary.ts 同源)
     const sigma = isMercury ? 0.487 : 0.072;
-    const rho = isMercury ? 13500 : 1000;
-    const thetaDeg = isMercury ? 140 : isParaffin ? 105 : 0;
+    const rho = isMercury ? 13534 : 1000;
+    const thetaDeg = isMercury ? (isParaffin ? 150 : 140) : isParaffin ? 105 : 0;
     const thetaRad = (thetaDeg * Math.PI) / 180;
     const g = 9.8;
     const r = rMm * 1e-3;
@@ -771,8 +771,10 @@ export function drawLiquidCrystalScene(o: ThermalSceneOptions): void {
     const startTemp = params['startTemp'] ?? 20;
     const endTemp = params['endTemp'] ?? 40;
     const voltage = params['voltage'] ?? 3;
-    const Tc = 35; // 清亮点
-    const Vth = 2; // 阈值电压
+    // 单一真源: 清亮点/阈值电压读引擎 maxValues, 回退默认常量
+    const maxLc = (simulationResult?.diagnostics?.maxValues ?? {}) as Record<string, number>;
+    const Tc = maxLc.clearingPointDegC ?? 35; // 清亮点
+    const Vth = maxLc.thresholdVoltageV ?? 2; // 阈值电压
 
     drawTitle(ctx, `液晶 (${isCholesteric ? '胆甾型' : '向列型'}) — 光学各向异性`, w, isDark, { size: 18, y: 28 });
 
@@ -892,21 +894,38 @@ export function drawLiquidCrystalScene(o: ThermalSceneOptions): void {
     });
     ctx.textAlign = 'left';
 
-    // 底部: 透射率-温度曲线 (解析)
+    // 底部: 透射率-温度曲线 (单一真源: 引擎 x_t Tarasov 曲线, 回退分段线性)
     const chartY = Math.max(leftY + leftH, rightY + rightH) + 20;
     const chartH = h - chartY - 50;
     if (chartH > 60) {
         const xs: number[] = [];
         const ys: number[] = [];
-        for (let i = 0; i <= 40; i++) {
-            const Ti = startTemp + (i / 40) * (endTemp - startTemp);
-            // 透射率: 低于 Tc 时高, 高于 Tc 时低 (各向同性)
-            let tr: number;
-            if (Ti < Tc - 3) tr = 0.85;
-            else if (Ti > Tc + 3) tr = 0.15;
-            else tr = 0.85 - ((Ti - (Tc - 3)) / 6) * 0.7;
-            xs.push(parseFloat(Ti.toFixed(1)));
-            ys.push(parseFloat(tr.toFixed(2)));
+        const xChart = (
+            simulationResult?.charts as unknown as
+                Record<string, { points: Array<{ x: number; y: number }> }> | undefined
+        )?.['x_t'];
+        const enginePoints = xChart?.points;
+        if (enginePoints && enginePoints.length >= 2) {
+            // 引擎曲线覆盖 -10~90℃, 过滤到当前扫描区间
+            const filtered = enginePoints.filter(p => p.x >= startTemp && p.x <= endTemp);
+            if (filtered.length >= 2) {
+                for (const p of filtered) {
+                    xs.push(p.x);
+                    ys.push(p.y);
+                }
+            }
+        }
+        if (xs.length === 0) {
+            // 回退: 低于 Tc 时高, 高于 Tc 时低 (各向同性)
+            for (let i = 0; i <= 40; i++) {
+                const Ti = startTemp + (i / 40) * (endTemp - startTemp);
+                let tr: number;
+                if (Ti < Tc - 3) tr = 0.85;
+                else if (Ti > Tc + 3) tr = 0.15;
+                else tr = 0.85 - ((Ti - (Tc - 3)) / 6) * 0.7;
+                xs.push(parseFloat(Ti.toFixed(1)));
+                ys.push(parseFloat(tr.toFixed(2)));
+            }
         }
         drawMiniChart({
             ctx,
@@ -927,6 +946,15 @@ export function drawLiquidCrystalScene(o: ThermalSceneOptions): void {
     }
 
     // HUD
+    const transmittancePct =
+        maxLc.transmittancePct ??
+        (() => {
+            // 回退: 与引擎同式 Tarasov + Freedericksz (防御空结果)
+            const midT = (startTemp + endTemp) / 2;
+            const tempRatio = midT >= Tc ? 0 : Math.pow(1 - midT / Tc, 0.22);
+            const voltRatio = voltage <= Vth ? 1 : 1 - (Vth / voltage) * (Vth / voltage);
+            return Math.sin(Math.PI * 0.2 * tempRatio * voltRatio * 0.25) ** 2 * 100;
+        })();
     drawHud(
         ctx,
         isDark,
@@ -934,7 +962,8 @@ export function drawLiquidCrystalScene(o: ThermalSceneOptions): void {
             { label: 't', value: `${currentTime.toFixed(2)} s` },
             { label: 'V', value: `${voltage} V` },
             { label: 'Vth', value: `${Vth} V` },
-            { label: 'Tc', value: `${Tc} °C` }
+            { label: 'Tc', value: `${Tc} °C` },
+            { label: 'T%', value: `${transmittancePct.toFixed(1)}%` }
         ],
         { boxW: 200, lineH: 16 }
     );

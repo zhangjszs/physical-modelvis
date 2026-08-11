@@ -5,20 +5,21 @@
 
 ---
 
-## 0. 当前状态快照 (2026-08-02 更新)
+## 0. 当前状态快照 (2026-08-11 更新)
 
-- 分支 `fix/remove-claude-dir`,本地领先 main 若干提交(均未 push)
-- **阶段 A/B/C 全部完成并已提交**:B2(commit 335109d)、阶段 C(commit f699d5f)、验证脚本(44345b2)、防御层(a2689ce)
-- **阶段 D 完成,工作树未提交**:
-  - `visualization/src/scenes/ProjectileScene.tsx` — 场景切换竞态修复(rig 按场景缓存 + rigReady)
-  - `visualization/tests/rendering/rigs-build.test.ts`(新增,126 契约测试)
-  - `visualization/tests/rendering/equipment-stage.test.tsx`(新增,5 行为测试)
-  - `visualization/src/components/simulation3d/EquipmentStage.tsx` — 视角预设按钮
-  - `visualization/src/components/simulation3d/primitives.ts` — shadow mapSize 4096
-  - `scripts/verify-3d-smoke.cjs`(新增,14 场景冒烟)
-  - `README.md`、`docs/rendering-physics-audit.md`、`plan.md`
-- 测试数:core 923 (66 files) + viz 1159 (29 files) = 2082
-- **待用户全量验证**(precheck + 浏览器 123 场景实测)后走代码审查 + 提交
+- 分支 main,工作树干净,全部已 push
+- 阶段 A-D、E-1/4/5/6 全部完成并已提交(详见下方各阶段 ✅)
+- **8-02 之后的新增工作**:
+  - `2586909` 场景配置机械化拆分 — SCENES 单文件 → `scenes/scenes/<领域>/` 子目录,registry 改异步 `loadAllScenes`(删除同步 SCENES 导出)
+  - `ceb70db` 构建体积优化 — 首屏 gzip 352→57 kB (-84%)
+  - `b52dcce`/`4a35ace`/`955307c` 过时文档归档到 `docs/archive/`(TASKS/M7-spec/3D 交接等)
+  - `7ab9064` 删除过时启动脚本(setup.bat/sh/start.bat,physim 目录已改 physics-core,vite 替代 http-server)
+  - `b0bd171` 清理失效/一次性脚本(verify-3d-coverage.mjs 因 SCENES 重构失效、fix-scene-names/split-scenes/rewrite-time-series 等迁移工具、.scratch 草稿)
+  - README 补测试数行(core 923 / viz 1159 / 2082)
+  - **audit 遗留低优先级清理完成**(liquid-crystal 透射率曲线迁引擎 x_t Tarasov + capillary 常量 ρ_汞 13534/θ 汞+石蜡 150° 对齐引擎,契约测试 21→23)
+- 测试数:core 923 (66 files) + viz 1161 (29 files) = 2084(2026-08-11 实测)
+- **缺口场景已全部补建**:DEVELOPMENT_GUIDE 列出的 8 个可视化缺口(total-internal-reflection / current-magnetic / efield-lines / newton-tube / bulb-vi / work-energy / ball-xt / geiger-counter)均已存在
+- 无剩余低优先级清理项(audit 第 5 批标记的 liquid-crystal / capillary 分歧已收尾)
 
 ---
 

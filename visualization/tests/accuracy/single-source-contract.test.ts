@@ -570,3 +570,67 @@ describe('L1-migration: 渲染单一真源契约 (orbital / pendulum / vertical-
         expect(mv.ratioRr).toBeCloseTo(6.371e6 / 3.844e8, 6);
     });
 });
+
+describe('L1-migration: 渲染单一真源契约 (liquid-crystal / capillary 常量收尾)', () => {
+    beforeAll(async () => {
+        await loadAllScenes();
+    });
+
+    function scene(id: string) {
+        const s = getSceneSync(id);
+        expect(s, `场景 ${id} 已注册`).toBeDefined();
+        return s!;
+    }
+
+    it('liquid-crystal: 引擎 x_t 透射率曲线与 Tarasov 公式独立复算一致 (渲染不得回退分段线性)', () => {
+        const sc = scene('liquid-crystal');
+        const { result, error } = runSceneSimulation(sc, {
+            medium: 0,
+            startTemp: 20,
+            endTemp: 40,
+            voltage: 3,
+            duration: 3
+        });
+        expect(error).toBeNull();
+
+        // 独立复算: Tarasov Δn/Δn0=(1−T/Tc)^0.22, V=3>Vth=2 → 取向比 1−(2/3)², Δn=0.2·ratio, T=sin²(π·Δn·0.25)
+        const tc = 35;
+        const vth = 2;
+        const voltRatio = 1 - (vth / 3) * (vth / 3);
+        const exp = (t: number) => {
+            const tempRatio = t >= tc ? 0 : Math.pow(1 - t / tc, 0.22);
+            return Math.sin(Math.PI * 0.2 * tempRatio * voltRatio * 0.25) ** 2;
+        };
+        const chart = result!.charts as unknown as Record<string, { points: Array<{ x: number; y: number }> }>;
+        const xT = chart['x_t']!.points;
+        expect(xT.length).toBeGreaterThan(20);
+        for (const t of [0, 15, 30, 35, 40, 50, 90]) {
+            const p = xT.find(pt => Math.abs(pt.x - t) < 0.1);
+            expect(p, `曲线点 T=${t}℃ 存在`).toBeDefined();
+            expect(p!.y, `T=${t}℃ 透射率与 Tarasov 一致`).toBeCloseTo(exp(t), 3);
+        }
+        // T > Tc 时各向同性, 透射率 ≈ 0 (旧分段线性回退在此处是 0.15, 会被拦截)
+        expect(exp(40)).toBeLessThan(0.001);
+        // maxValues 与独立复算一致
+        const mv = result!.diagnostics.maxValues as Record<string, number>;
+        expect(mv.clearingPointDegC).toBe(35);
+        expect(mv.thresholdVoltageV).toBe(2);
+        expect(mv.transmittancePct).toBeCloseTo(exp(30) * 100, 1); // midTemp=30
+    });
+
+    it('capillary: 引擎常量 (ρ_汞=13534, 汞+石蜡 θ=150°) 与 Jurin 独立复算一致 (渲染已同步)', () => {
+        const sc = scene('capillary');
+        const { result, error } = runSceneSimulation(sc, { medium: 1, material: 1, tubeRadius: 0.5, duration: 3 });
+        expect(error).toBeNull();
+        const mv = result!.diagnostics.maxValues as Record<string, number>;
+        // 常量: ρ=13534 kg/m³ (非 13500), 汞+石蜡 θ=150° (非 140°)
+        expect(mv.density).toBe(13534);
+        expect(mv.thetaDeg).toBe(150);
+        // Jurin 复算: h = 2·σ·cosθ/(ρ·g·r), r=0.5mm
+        const h = (2 * 0.487 * Math.cos((150 * Math.PI) / 180)) / (13534 * 9.8 * 0.5e-3);
+        expect(mv.hMm).toBeCloseTo(h * 1000, 6);
+        // 渲染层若用旧常量 (13500/140°) 会产生可检测偏差
+        const hWrong = (2 * 0.487 * Math.cos((140 * Math.PI) / 180)) / (13500 * 9.8 * 0.5e-3);
+        expect(Math.abs(h - hWrong)).toBeGreaterThan(1e-4);
+    });
+});
