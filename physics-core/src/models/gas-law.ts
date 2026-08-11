@@ -10,8 +10,8 @@ import { PhysicsModelBase } from './base.js';
  *
  * 三种等值过程：
  *   等温 (T 恒定):  pV = const            → p-V 图: 等轴双曲线
- *   等压 (p 恒定):  V/T = const (查理定律)
- *   等容 (V 恒定):  p/T = const (盖-吕萨克定律)
+ *   等压 (p 恒定):  V/T = const (盖-吕萨克定律)
+ *   等容 (V 恒定):  p/T = const (查理定律)
  *
  * 本模型为静态分析解：给定 n, 过程模式, 初始状态, 计算过程曲线和终态
  */
@@ -158,8 +158,8 @@ export class GasLawModel extends PhysicsModelBase {
                     mode === 'isothermal'
                         ? '玻意耳定律: pV=const (等温)'
                         : mode === 'isobaric'
-                          ? '查理定律: V/T=const (等压)'
-                          : '盖-吕萨克定律: p/T=const (等容)',
+                          ? '盖-吕萨克定律: V/T=const (等压)'
+                          : '查理定律: p/T=const (等容)',
                 formula:
                     mode === 'isothermal' ? 'p₁V₁ = p₂V₂' : mode === 'isobaric' ? 'V₁/T₁ = V₂/T₂' : 'p₁/T₁ = p₂/T₂',
                 calculation:

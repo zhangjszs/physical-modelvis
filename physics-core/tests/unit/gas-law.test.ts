@@ -111,4 +111,18 @@ describe('GasLawModel', () => {
       expect(Math.abs(firstP - lastP)).toBeLessThan(0.01); // 等压
     }
   });
+
+  it('等压过程 (V/T=const) 应命名为盖-吕萨克定律', () => {
+    const r = model.solve(makeProblem({ moles: 1, mode: 'isobaric', initialPressure: 100e3, initialTemperature: 300 }));
+    const step2 = r.explanation.steps[1]!;
+    expect(step2.description).toContain('盖-吕萨克');
+    expect(step2.description).not.toContain('查理');
+  });
+
+  it('等容过程 (p/T=const) 应命名为查理定律', () => {
+    const r = model.solve(makeProblem({ moles: 1, mode: 'isochoric', initialPressure: 100e3, initialTemperature: 300 }));
+    const step2 = r.explanation.steps[1]!;
+    expect(step2.description).toContain('查理');
+    expect(step2.description).not.toContain('盖-吕萨克');
+  });
 });

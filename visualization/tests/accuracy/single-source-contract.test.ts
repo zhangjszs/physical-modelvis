@@ -633,4 +633,36 @@ describe('L1-migration: 渲染单一真源契约 (liquid-crystal / capillary 常
         const hWrong = (2 * 0.487 * Math.cos((140 * Math.PI) / 180)) / (13500 * 9.8 * 0.5e-3);
         expect(Math.abs(h - hWrong)).toBeGreaterThan(1e-4);
     });
+
+    it('newton-second-law: 引擎摩擦 F=μmg (μ 无量纲), 渲染 HUD/位置必须读引擎而非把 μ 当力', () => {
+        const sc = scene('newton-second-law');
+        // μ=0.2, m=2kg → fK=3.92N; F=10N → 合力 6.08N → a=3.04 m/s²
+        const params: Record<string, number> = { force: 10, mass: 2, v0: 0, includeFriction: 1, friction: 0.2, duration: 5 };
+        const { result, error } = runSceneSimulation(sc, params);
+        expect(error).toBeNull();
+        // 引擎 a_t 为常量 3.04 (非渲染层旧错误 4.9)
+        const a_t = result!.charts.a_t!.points;
+        expect(a_t[0]!.y).toBeCloseTo(3.04, 5);
+        expect(a_t[a_t.length - 1]!.y).toBeCloseTo(3.04, 5);
+        // F_t 合力 = 6.08 (非施加力 10)
+        const F_t = result!.charts.F_t!.points;
+        expect(F_t[0]!.y).toBeCloseTo(6.08, 5);
+        // 位移 = ½at² = 0.5·3.04·25 = 38m, 渲染位置必须跟随引擎轨迹
+        const last = result!.trajectories[0]!.at(-1)!;
+        expect(last.position.x).toBeCloseTo(38, 1);
+        const mid = getFrame(result, 2.5);
+        expect(mid!.position.x).toBeCloseTo(0.5 * 3.04 * 2.5 * 2.5, 2);
+    });
+
+    it('newton-second-law: 引擎静摩擦 F<μmg 时物体静止不动 (渲染不得反向运动)', () => {
+        const sc = scene('newton-second-law');
+        // F=1N < fK=3.92N → 静止, a=0, 位移=0
+        const params: Record<string, number> = { force: 1, mass: 2, v0: 0, includeFriction: 1, friction: 0.2, duration: 5 };
+        const { result, error } = runSceneSimulation(sc, params);
+        expect(error).toBeNull();
+        expect(result!.diagnostics.maxValues.acceleration).toBeCloseTo(0, 10);
+        const last = result!.trajectories[0]!.at(-1)!;
+        expect(last.position.x).toBeCloseTo(0, 10);
+        expect(last.velocity.x).toBeCloseTo(0, 10);
+    });
 });

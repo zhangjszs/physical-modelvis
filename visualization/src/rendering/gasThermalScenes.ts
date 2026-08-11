@@ -263,7 +263,7 @@ export function drawGasLawScene(o: ThermalSceneOptions): void {
         mode === 'isothermal'
             ? '等温: pV = 常数, 体积增大则压强减小'
             : mode === 'isobaric'
-              ? '等压: V/T = 常数, 温度升高则体积膨胀 (查理定律)'
-              : '等容: p/T = 常数, 温度升高则压强增大 (盖-吕萨克定律)';
+              ? '等压: V/T = 常数, 温度升高则体积膨胀 (盖-吕萨克定律)'
+              : '等容: p/T = 常数, 温度升高则压强增大 (查理定律)';
     drawInfoBar(ctx, w, h, info, isDark, { height: 22, yOffset: 34 });
 }

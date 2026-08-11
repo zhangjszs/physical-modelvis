@@ -2344,8 +2344,8 @@ const FORMULA_MAP: Record<string, FormulaDef> = {
         title: '气体实验定律',
         formulas: [
             { name: '玻意耳定律', formula: 'pV = C', variables: '温度不变时压强与体积成反比' },
-            { name: '查理定律', formula: 'V/T = C', variables: '压强不变时体积与热力学温度成正比' },
-            { name: '盖吕萨克定律', formula: 'p/T = C', variables: '体积不变时压强与热力学温度成正比' },
+            { name: '查理定律', formula: 'p/T = C', variables: '体积不变时压强与热力学温度成正比' },
+            { name: '盖吕萨克定律', formula: 'V/T = C', variables: '压强不变时体积与热力学温度成正比' },
             { name: '理想气体方程', formula: 'pV = nRT', variables: 'n: 物质的量, R: 气体常量' }
         ],
         tips: [

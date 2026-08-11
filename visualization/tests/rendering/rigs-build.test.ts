@@ -111,4 +111,16 @@ describe('3D rig 契约: buildEquipment 默认参数不抛错', () => {
             }
         }
     }, 60000);
+
+    it('orbital: 引擎米级轨道坐标归一化到相机可见范围 (far=100, |x| < 10)', async () => {
+        const rig = await loadSceneRig('orbital');
+        // 引擎轨迹 r ≈ 6.4e6 m; 归一化后应落在 rig 椭圆线同一尺度 (GEO 轨道 = 2.0 world)
+        for (const altitude of [400, 2000, 36000]) {
+            const params = { altitude };
+            const p = rig!.getVisualPosition({ x: (6371 + altitude) * 1000, y: 0 }, params);
+            expect(Number.isFinite(p.x) && Number.isFinite(p.y), `altitude=${altitude}`).toBe(true);
+            expect(Math.abs(p.x), `altitude=${altitude} 在可见范围`).toBeLessThan(10);
+            expect(Math.abs(p.y)).toBeLessThan(10);
+        }
+    });
 });

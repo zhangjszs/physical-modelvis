@@ -122,4 +122,37 @@ describe('NewtonSecondLawModel', () => {
     expect(r.explanation.summary).toContain('F=');
     expect(r.explanation.steps.length).toBeGreaterThanOrEqual(3);
   });
+
+  it('有摩擦 F<μmg 且 v₀=0 → 静止不动 (a=0)', () => {
+    // μ=0.2, m=2kg → fK=μmg=3.92N > F=1N → 静摩擦平衡, 物体不动
+    const r = model.solve(makeProblem({ force: 1, mass: 2, includeFriction: true, friction: 0.2, duration: 3 }));
+    const traj = r.trajectories[0];
+    expect(r.diagnostics.maxValues.acceleration).toBeCloseTo(0, 10);
+    expect(traj.at(-1)!.velocity.x).toBeCloseTo(0, 10);
+    expect(traj.at(-1)!.position.x).toBeCloseTo(0, 10);
+  });
+
+  it('有摩擦 F>μmg 且 v₀=0 → a=(F-μmg)/m', () => {
+    // μ=0.2, m=2kg → fK=3.92N, F=10N → a=(10-3.92)/2=3.04
+    const r = model.solve(makeProblem({ force: 10, mass: 2, includeFriction: true, friction: 0.2, duration: 3 }));
+    const a = r.diagnostics.maxValues.acceleration;
+    expect(a).toBeCloseTo(3.04, 5);
+  });
+
+  it('有摩擦 v₀>0 减速到零后反向 → 摩擦方向翻转', () => {
+    // v₀=5, F=-10, m=2, μ=0.2 → fK=3.92
+    // phase1: a1=(-10-3.92)/2=-6.96, tTurn=5/6.96≈0.7184s
+    // phase2: a2=(-10+3.92)/2=-3.04
+    const r = model.solve(makeProblem({ force: -10, mass: 2, v0x: 5, includeFriction: true, friction: 0.2, duration: 5 }));
+    const traj = r.trajectories[0];
+    const a1 = (-10 - 3.92) / 2;
+    const tTurn = 5 / -a1;
+    const turnKf = r.keyframes.find(kf => kf.label === '速度反向点');
+    expect(turnKf).toBeDefined();
+    expect(turnKf!.t).toBeCloseTo(tTurn, 2);
+    const vTurn = 0;
+    const a2 = (-10 + 3.92) / 2;
+    const vEnd = vTurn + a2 * (5 - tTurn);
+    expect(traj.at(-1)!.velocity.x).toBeCloseTo(vEnd, 2);
+  });
 });

@@ -63,34 +63,83 @@ export class NewtonSecondLawModel extends PhysicsModelBase {
             F = { x: 0, y: 0 };
         }
 
-        // 可选考虑摩擦力
+        // 可选考虑地面滑动摩擦 (一维水平面, 仅影响 x 方向)
+        // 运动按速度反向点分段, 摩擦方向随运动方向翻转:
+        //   phase 1: 沿初速度方向运动 (若 v₀=0 且 |F|≤μmg, 静摩擦平衡, 静止不动)
+        //   phase 2: 速度减到零后, |F|>μmg 则反向加速 (摩擦翻转), 否则停在原地
         const mu = problem.environment?.ground?.friction ?? 0;
         const g = problem.environment?.gravity?.value ?? 9.8;
-        if (mu > 0 && (constraint?.includeFriction ?? false)) {
-            const N = m * g;
-            const fK = mu * N; // 滑动摩擦力大小
-            // 摩擦力方向与运动方向相反
-            const vDir = v0.x !== 0 ? Math.sign(v0.x) : Math.sign(F.x);
-            F = { x: F.x - vDir * fK, y: F.y };
+        const includeFriction = constraint?.includeFriction ?? false;
+        const fK = mu > 0 ? mu * m * g : 0; // 滑动摩擦力大小
+        const applyFriction = mu > 0 && includeFriction && fK > 0;
+
+        interface MotionPhase {
+            t0: number;
+            t1: number;
+            a: number;
+            x0: number;
+            v0: number;
+        }
+        const phases: MotionPhase[] = [];
+        const v0x = v0.x;
+
+        if (!applyFriction || Math.abs(v0x) < 1e-12) {
+            if (applyFriction && Math.abs(F.x) <= fK) {
+                // 静摩擦足够大: 物体保持静止
+                phases.push({ t0: 0, t1: duration, a: 0, x0: x0.x, v0: 0 });
+            } else {
+                // 无摩擦, 或 v₀=0 且推力超过最大静摩擦 → 沿 F 方向加速
+                const dir = Math.sign(F.x) || 1;
+                const a0 = applyFriction ? (F.x - dir * fK) / m : F.x / m;
+                phases.push({ t0: 0, t1: duration, a: a0, x0: x0.x, v0: v0x });
+            }
+        } else {
+            // v₀≠0: 初始摩擦与速度反向
+            const dir = Math.sign(v0x);
+            const a1 = (F.x - dir * fK) / m;
+            const tTurn = -v0x / a1;
+            if (!isFinite(tTurn) || tTurn <= 0 || tTurn >= duration) {
+                // 速度不会在模拟区间内减到零
+                phases.push({ t0: 0, t1: duration, a: a1, x0: x0.x, v0: v0x });
+            } else {
+                // 速度在 tTurn 处减到零
+                phases.push({ t0: 0, t1: tTurn, a: a1, x0: x0.x, v0: v0x });
+                const xTurn = x0.x + v0x * tTurn + 0.5 * a1 * tTurn * tTurn;
+                if (Math.abs(F.x) <= fK) {
+                    // 反向推不动: 停在原地
+                    phases.push({ t0: tTurn, t1: duration, a: 0, x0: xTurn, v0: 0 });
+                } else {
+                    // 反向加速, 摩擦方向翻转
+                    const a2 = (F.x + dir * fK) / m;
+                    phases.push({ t0: tTurn, t1: duration, a: a2, x0: xTurn, v0: 0 });
+                }
+            }
         }
 
-        // 加速度 a = F/m
-        const a = Vec2.scale(F, 1 / m);
+        /** 按分段求 t 时刻的位置/速度/加速度 */
+        const phaseAt = (t: number): MotionPhase => {
+            const last = phases[phases.length - 1]!;
+            return phases.find(ph => t >= ph.t0 && t <= ph.t1) ?? last;
+        };
 
         // 生成轨迹
         const trajectory: TrajectoryPoint[] = [];
         let maxSpeed = 0;
         for (let i = 0; i <= sampleCount; i++) {
             const t = i * dt;
-            const position = Vec2.add(x0, Vec2.add(Vec2.scale(v0, t), Vec2.scale(a, 0.5 * t * t)));
-            const velocity = Vec2.add(v0, Vec2.scale(a, t));
-            const speed = Vec2.magnitude(velocity);
+            const ph = phaseAt(t);
+            const dtp = t - ph.t0;
+            const positionX = ph.x0 + ph.v0 * dtp + 0.5 * ph.a * dtp * dtp;
+            const velocityX = ph.v0 + ph.a * dtp;
+            const position = Vec2.add(x0, { x: positionX - x0.x, y: 0 });
+            const velocity = Vec2.add(v0, { x: velocityX - v0.x, y: 0 });
+            const speed = Math.abs(velocityX);
             maxSpeed = Math.max(maxSpeed, speed);
             trajectory.push({
                 t,
                 position,
                 velocity,
-                acceleration: { ...a },
+                acceleration: { x: ph.a, y: F.y / m },
                 kineticEnergy: kineticEnergy(m, speed),
                 potentialEnergy: 0
             });
@@ -98,25 +147,29 @@ export class NewtonSecondLawModel extends PhysicsModelBase {
 
         // 关键帧
         const keyframes: Keyframe[] = [];
+        const a1 = phases[0]!.a; // 初始分段加速度 (含摩擦修正)
+        const netF1 = a1 * m; // 初始分段合外力 (x 方向)
         keyframes.push({
             label: '起始点',
             t: 0,
             position: { ...x0 },
             velocity: { ...v0 },
-            description: `物体 m=${m}kg 从 (${x0.x}, ${x0.y})m 以 v=(${v0.x}, ${v0.y})m/s 开始，受合力 F=(${F.x.toFixed(2)}, ${F.y.toFixed(2)})N`
+            description: `物体 m=${m}kg 从 (${x0.x}, ${x0.y})m 以 v=(${v0.x}, ${v0.y})m/s 开始，受合力 F=(${netF1.toFixed(2)}, ${F.y.toFixed(2)})N`
         });
 
-        // 速度方向反转点 (仅当 F.x 与 v0.x 反向时)
-        if (a.x !== 0 && v0.x !== 0 && Math.sign(a.x) !== Math.sign(v0.x)) {
-            const tTurn = -v0.x / a.x;
+        // 速度方向反转点 (第一分段减速到零时)
+        const ph1 = phases[0]!;
+        if (ph1.a !== 0 && v0x !== 0 && Math.sign(ph1.a) !== Math.sign(v0x)) {
+            const tTurn = -v0x / ph1.a;
             if (tTurn > 0 && tTurn <= duration) {
-                const posTurn = Vec2.add(x0, Vec2.add(Vec2.scale(v0, tTurn), Vec2.scale(a, 0.5 * tTurn * tTurn)));
+                const posTurn = Vec2.add(x0, { x: ph1.x0 + ph1.v0 * tTurn + 0.5 * ph1.a * tTurn * tTurn - x0.x, y: 0 });
+                const stopFriction = phases.length > 1 && Math.abs(F.x) <= fK;
                 keyframes.push({
                     label: '速度反向点',
                     t: tTurn,
                     position: posTurn,
-                    velocity: { ...Vec2.add(v0, Vec2.scale(a, tTurn)) },
-                    description: `t=${tTurn.toFixed(3)}s 时速度为零，即将反向加速`
+                    velocity: { x: 0, y: 0 },
+                    description: `t=${tTurn.toFixed(3)}s 时速度为零，${stopFriction ? '此后静止 (静摩擦平衡)' : '即将反向加速'}`
                 });
             }
         }
@@ -150,14 +203,14 @@ export class NewtonSecondLawModel extends PhysicsModelBase {
             xUnit: 's',
             yLabel: '加速度',
             yUnit: 'm/s²',
-            points: trajectory.map(p => ({ x: p.t, y: a.x }))
+            points: trajectory.map(p => ({ x: p.t, y: p.acceleration!.x }))
         };
         const F_t: ChartSeries = {
             xLabel: '时间',
             xUnit: 's',
             yLabel: '合力',
             yUnit: 'N',
-            points: trajectory.map(p => ({ x: p.t, y: F.x }))
+            points: trajectory.map(p => ({ x: p.t, y: p.acceleration!.x * m }))
         };
         const ke_t: ChartSeries = {
             xLabel: '时间',
@@ -168,10 +221,11 @@ export class NewtonSecondLawModel extends PhysicsModelBase {
         };
 
         // 受力分析图
+        const netFVec: Vector2D = { x: netF1, y: F.y };
         const forceDiagram: ForceDiagram = {
             bodyId: body.id,
-            forces: [{ name: '合外力 F', vector: F, magnitude: Vec2.magnitude(F), unit: 'N' }],
-            netForce: F
+            forces: [{ name: '合外力 F', vector: netFVec, magnitude: Vec2.magnitude(netFVec), unit: 'N' }],
+            netForce: netFVec
         };
 
         // 步骤说明
@@ -180,22 +234,22 @@ export class NewtonSecondLawModel extends PhysicsModelBase {
                 order: 1,
                 description: '由牛顿第二定律求加速度',
                 formula: 'a = F / m',
-                calculation: `a = ${F.x.toFixed(2)}N / ${m}kg = ${a.x.toFixed(3)} m/s²`,
-                result: `a = (${a.x.toFixed(3)}, ${a.y.toFixed(3)}) m/s²`
+                calculation: `a = ${netF1.toFixed(2)}N / ${m}kg = ${a1.toFixed(3)} m/s²`,
+                result: `a = (${a1.toFixed(3)}, ${(F.y / m).toFixed(3)}) m/s²`
             },
             {
                 order: 2,
                 description: '速度变化规律',
                 formula: 'v = v₀ + at',
-                calculation: `v = ${v0.x} + ${a.x.toFixed(3)} × ${duration}`,
-                result: `v = ${(v0.x + a.x * duration).toFixed(3)} m/s`
+                calculation: `v = ${v0.x} + ${a1.toFixed(3)} × ${duration}`,
+                result: `v = ${(v0.x + a1 * duration).toFixed(3)} m/s`
             },
             {
                 order: 3,
                 description: '位移变化规律',
                 formula: 'x = x₀ + v₀t + ½at²',
-                calculation: `Δx = ${v0.x} × ${duration} + ½ × ${a.x.toFixed(3)} × ${duration}²`,
-                result: `Δx = ${(v0.x * duration + 0.5 * a.x * duration * duration).toFixed(3)} m`
+                calculation: `Δx = ${v0.x} × ${duration} + ½ × ${a1.toFixed(3)} × ${duration}²`,
+                result: `Δx = ${(v0.x * duration + 0.5 * a1 * duration * duration).toFixed(3)} m`
             }
         ];
 
@@ -207,7 +261,7 @@ export class NewtonSecondLawModel extends PhysicsModelBase {
             diagnostics: {
                 conservedQuantities: [],
                 maxValues: {
-                    acceleration: Vec2.magnitude(a),
+                    acceleration: Math.max(...phases.map(ph => Vec2.magnitude({ x: ph.a, y: F.y / m }))),
                     maxSpeed,
                     finalKineticEnergy: finalFrame.kineticEnergy!,
                     displacement: Vec2.magnitude(Vec2.sub(finalFrame.position, x0))
@@ -215,16 +269,16 @@ export class NewtonSecondLawModel extends PhysicsModelBase {
                 rangeCheck: { withinRange: true, warnings: [] }
             },
             explanation: {
-                summary: `物体 m=${m}kg 受合力 F=(${F.x.toFixed(2)}, ${F.y.toFixed(2)})N 作用，产生加速度 a=(${a.x.toFixed(3)}, ${a.y.toFixed(3)})m/s²`,
+                summary: `物体 m=${m}kg 受合力 F=(${netF1.toFixed(2)}, ${F.y.toFixed(2)})N 作用，产生加速度 a=(${a1.toFixed(3)}, ${(F.y / m).toFixed(3)})m/s²`,
                 steps,
                 formulas: [
                     {
                         name: '牛顿第二定律',
                         formula: 'a = F/m',
                         variables: {
-                            F: { value: Vec2.magnitude(F), unit: 'N' },
+                            F: { value: Vec2.magnitude(netFVec), unit: 'N' },
                             m: { value: m, unit: 'kg' },
-                            a: { value: Vec2.magnitude(a), unit: 'm/s²' }
+                            a: { value: Math.abs(a1), unit: 'm/s²' }
                         }
                     },
                     {
@@ -232,7 +286,7 @@ export class NewtonSecondLawModel extends PhysicsModelBase {
                         formula: 'v = v₀ + at',
                         variables: {
                             'v₀': { value: Vec2.magnitude(v0), unit: 'm/s' },
-                            a: { value: Vec2.magnitude(a), unit: 'm/s²' },
+                            a: { value: Math.abs(a1), unit: 'm/s²' },
                             t: { value: duration, unit: 's' }
                         }
                     },
@@ -241,7 +295,7 @@ export class NewtonSecondLawModel extends PhysicsModelBase {
                         formula: 'x = x₀ + v₀t + ½at²',
                         variables: {
                             'v₀': { value: Vec2.magnitude(v0), unit: 'm/s' },
-                            a: { value: Vec2.magnitude(a), unit: 'm/s²' },
+                            a: { value: Math.abs(a1), unit: 'm/s²' },
                             t: { value: duration, unit: 's' }
                         }
                     }

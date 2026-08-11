@@ -96,13 +96,20 @@ interface StageHandles {
     renderer: THREE.WebGLRenderer;
     controls: OrbitControls;
     ball: THREE.Mesh;
+    /** 多体运动球 (balls[0] === ball), 数量随引擎轨迹数同步 */
+    balls: THREE.Mesh[];
     trajectory: THREE.Line;
+    /** 多体轨迹线 (trajectories[0] === trajectory), 数量随引擎轨迹数同步 */
+    trajectories: THREE.Line[];
     ghostBalls: THREE.Mesh[];
     shadowPlate: THREE.Mesh;
     projectionLine: THREE.Line;
     equipmentGroup: THREE.Group;
     equipmentHandles: Record<string, unknown>;
 }
+
+/** 多体球/轨迹线配色 (引擎 trajectories[0] 主球保持原蓝色) */
+const BALL_COLORS = [0x2563eb, 0xdc2626, 0x16a34a] as const;
 
 // ---------------------------------------------------------------------------
 // 组件
@@ -208,7 +215,9 @@ export function EquipmentStage({ rig, cameraPosition, cameraTarget, caption }: E
             renderer,
             controls,
             ball,
+            balls: [ball],
             trajectory,
+            trajectories: [trajectory],
             ghostBalls,
             shadowPlate,
             projectionLine,
@@ -267,36 +276,75 @@ export function EquipmentStage({ rig, cameraPosition, cameraTarget, caption }: E
         controls.update();
     }, [viewPreset]);
 
-    // —— 3. 仿真结果变化：重建轨迹线 + 残影 ——
+    // —— 3. 仿真结果变化：同步多体球/轨迹线数量 + 重建轨迹线 + 残影 ——
     useEffect(() => {
         const handles = handlesRef.current;
         if (!handles || !simulationResult) return;
-        const points = simulationResult.trajectories[0] ?? [];
+        const trajCount = simulationResult.trajectories.length;
 
-        let visualPoints: THREE.Vector3[];
-        try {
-            visualPoints = points.map(p => rig.getVisualPosition(p.position, parameters));
-        } catch (err) {
-            console.error('[EquipmentStage] getVisualPosition failed:', err);
-            return;
+        // 运动球数量与引擎轨迹数同步 (collision/inertia/newton-third-law 等双体场景)
+        while (handles.balls.length < trajCount) {
+            const i = handles.balls.length;
+            const color = BALL_COLORS[i % BALL_COLORS.length]!;
+            const ball = makeSphere(ballRadius, color, { emissive: color, emissiveIntensity: 0.1 });
+            ball.castShadow = true;
+            handles.scene.add(ball);
+            handles.balls.push(ball);
         }
-        handles.trajectory.geometry.dispose();
-        handles.trajectory.geometry = new THREE.BufferGeometry().setFromPoints(visualPoints);
-        handles.trajectory.visible = visibleLayers.trajectory;
+        while (handles.balls.length > trajCount) {
+            const extra = handles.balls.pop()!;
+            handles.scene.remove(extra);
+            disposeObject(extra);
+        }
 
+        // 轨迹线数量同步
+        while (handles.trajectories.length < trajCount) {
+            const i = handles.trajectories.length;
+            const line = makeTrajectoryLine(BALL_COLORS[i % BALL_COLORS.length]!, 0.82);
+            handles.scene.add(line);
+            handles.trajectories.push(line);
+        }
+        while (handles.trajectories.length > trajCount) {
+            const extra = handles.trajectories.pop()!;
+            handles.scene.remove(extra);
+            disposeObject(extra);
+        }
+
+        // 逐轨迹重建线段
+        const visualPointsList: THREE.Vector3[][] = [];
+        for (let i = 0; i < trajCount; i++) {
+            const points = simulationResult.trajectories[i] ?? [];
+            let visualPoints: THREE.Vector3[];
+            try {
+                visualPoints = points.map(p => rig.getVisualPosition(p.position, parameters));
+            } catch (err) {
+                console.error('[EquipmentStage] getVisualPosition failed:', err);
+                return;
+            }
+            const line = handles.trajectories[i];
+            if (line) {
+                line.geometry.dispose();
+                line.geometry = new THREE.BufferGeometry().setFromPoints(visualPoints);
+                line.visible = visibleLayers.trajectory;
+            }
+            visualPointsList.push(visualPoints);
+        }
+
+        // 残影覆盖主轨迹
+        const mainVisual = visualPointsList[0] ?? [];
         handles.ghostBalls.forEach((ghost, i) => {
-            if (visualPoints.length === 0) {
+            if (mainVisual.length === 0) {
                 ghost.visible = false;
                 return;
             }
             const idx = Math.min(
-                visualPoints.length - 1,
-                Math.round((i / Math.max(1, handles.ghostBalls.length - 1)) * (visualPoints.length - 1))
+                mainVisual.length - 1,
+                Math.round((i / Math.max(1, handles.ghostBalls.length - 1)) * (mainVisual.length - 1))
             );
-            ghost.position.copy(visualPoints[idx]!);
+            ghost.position.copy(mainVisual[idx]!);
             ghost.visible = visibleLayers.trajectory;
         });
-    }, [simulationResult, parameters, visibleLayers.trajectory, rig]);
+    }, [simulationResult, parameters, visibleLayers.trajectory, rig, ballRadius]);
 
     // —— 4. 动画循环：时间推进 + 球体位置 + 渲染 ——
     // 依赖保持稳定：只在这几个真正会“换场景/换仿真”时重建循环；
@@ -327,11 +375,14 @@ export function EquipmentStage({ rig, cameraPosition, cameraTarget, caption }: E
             }
 
             if (handles && simulationResult) {
-                const points = simulationResult.trajectories[0] ?? [];
-                if (points.length > 0) {
-                    const idx = findFrameIndex(simulationResult.trajectories, now);
-                    const p0 = points[idx]!;
-                    const p1 = points[Math.min(idx + 1, points.length - 1)]!;
+                const idx = findFrameIndex(simulationResult.trajectories, now);
+                // 逐物体更新球位置 (多体场景: 每轨迹一个球)
+                for (let i = 0; i < handles.balls.length; i++) {
+                    const points = simulationResult.trajectories[i] ?? [];
+                    if (points.length === 0) continue;
+                    const p0 = points[idx];
+                    const p1 = points[Math.min(idx + 1, points.length - 1)];
+                    if (!p0 || !p1) continue;
                     const frame = interpolateFrame(p0, p1, now);
                     let ballPos: THREE.Vector3;
                     try {
@@ -343,19 +394,25 @@ export function EquipmentStage({ rig, cameraPosition, cameraTarget, caption }: E
                     if (rig.clampToGround) {
                         ballPos.y = Math.max(ballRadius, ballPos.y);
                     }
-                    handles.ball.position.copy(ballPos);
-                    handles.ball.rotation.y += delta * 2.4;
-                    handles.shadowPlate.position.set(ballPos.x, 0.028, ballPos.z);
-
-                    // 投影线
-                    handles.projectionLine.geometry.dispose();
-                    handles.projectionLine.geometry = new THREE.BufferGeometry().setFromPoints([
-                        new THREE.Vector3(ballPos.x, 0.035, ballPos.z),
-                        new THREE.Vector3(ballPos.x, ballPos.y, ballPos.z)
-                    ]);
+                    const ball = handles.balls[i];
+                    if (!ball) continue;
+                    ball.position.copy(ballPos);
+                    ball.rotation.y += delta * 2.4;
+                    if (i === 0) {
+                        // 投影线/阴影跟随主球
+                        handles.shadowPlate.position.set(ballPos.x, 0.028, ballPos.z);
+                        handles.projectionLine.geometry.dispose();
+                        handles.projectionLine.geometry = new THREE.BufferGeometry().setFromPoints([
+                            new THREE.Vector3(ballPos.x, 0.035, ballPos.z),
+                            new THREE.Vector3(ballPos.x, ballPos.y, ballPos.z)
+                        ]);
+                    }
                 }
                 // 图层可见性
                 handles.trajectory.visible = layers.trajectory;
+                handles.trajectories.forEach((t, i) => {
+                    t.visible = layers.trajectory && i < simulationResult.trajectories.length;
+                });
                 handles.ghostBalls.forEach(g => {
                     g.visible = layers.trajectory;
                 });

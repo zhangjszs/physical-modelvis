@@ -55,8 +55,13 @@ export const orbitalRig: SceneRig = {
         orbit.geometry.setFromPoints(pts);
     },
 
-    getVisualPosition(pos, _params) {
-        return new THREE.Vector3(pos.x * WORLD_SCALE, CENTER_Y + pos.y * WORLD_SCALE, 0);
+    getVisualPosition(pos, params) {
+        // 引擎轨迹坐标为米 (r ≈ 6.4e6), 直接 ×worldScale 会得到 ~1e6 世界单位, 超出相机 far=100 不可见。
+        // 归一化到与 updateEquipment 椭圆线同一尺度: GEO 轨道半径 = 2.0 world。
+        const hKm = num(params.altitude, 400);
+        const rOrbitM = (R_EARTH + hKm) * 1000; // 米
+        const scale = 2.0 / rOrbitM;
+        return new THREE.Vector3(pos.x * scale, CENTER_Y + pos.y * scale, 0);
     },
 
     getOrigin(_params) {

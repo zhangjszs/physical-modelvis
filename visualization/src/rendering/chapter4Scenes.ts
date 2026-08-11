@@ -23,7 +23,8 @@ import {
     drawArrow,
     drawBlock,
     drawGround,
-    getFrame
+    getFrame,
+    interpSeries
 } from './renderingUtils';
 
 export interface MechanicsSceneOptions {
@@ -128,26 +129,41 @@ export function drawNewtonFirstLawScene(opts: MechanicsSceneOptions): void {
 }
 
 export function drawNewtonSecondLawScene(opts: MechanicsSceneOptions): void {
-    const { ctx, width, height, isDark, params, currentTime } = opts;
+    const { ctx, width, height, isDark, params, simulationResult, currentTime } = opts;
     const force = params['force'] ?? 10;
     const mass = params['mass'] ?? 2;
     const v0 = params['v0'] ?? 0;
     const includeFriction = (params['includeFriction'] ?? 0) === 1;
-    const friction = includeFriction ? (params['friction'] ?? 1) : 0;
-    const netF = Math.max(0, force - friction);
-    const a = netF / Math.max(0.001, mass);
+    const mu = includeFriction ? (params['friction'] ?? 0.2) : 0; // 无量纲动摩擦因数
+    const g = 9.8;
     const groundY = height * 0.66;
-    const x = clamp(width * 0.18 + (v0 * currentTime + 0.5 * a * currentTime * currentTime) * 28, 80, width - 100);
+    const fK = mu * mass * g; // 滑动摩擦力 (N)
+
+    // 单一真源: 位置/合力/加速度全部读引擎; 无引擎结果时回退自算 (μ 无量纲, fK=μmg)
+    const frame = getFrame(simulationResult, currentTime, 0);
+    let x: number;
+    let aVal: number;
+    let fNet: number;
+    if (frame) {
+        x = clamp(width * 0.18 + frame.position.x * 28, 80, width - 100);
+        aVal = interpSeries(simulationResult?.charts.a_t, currentTime);
+        fNet = interpSeries(simulationResult?.charts.F_t, currentTime);
+    } else {
+        const netF = mu > 0 && Math.abs(force) <= fK ? 0 : force - Math.sign(force || 1) * fK;
+        aVal = netF / Math.max(0.001, mass);
+        fNet = netF;
+        x = clamp(width * 0.18 + (v0 * currentTime + 0.5 * aVal * currentTime * currentTime) * 28, 80, width - 100);
+    }
 
     drawTitle(ctx, '牛顿第二定律: F = ma', width, isDark);
     drawGround(ctx, groundY, width, isDark);
     drawBlock(ctx, x, groundY - 30, 78, 44, BLUE, isDark, `${mass}kg`);
     // 力/摩擦/加速度箭头端点钳制在画布内，大数值不再越出左右界
     drawArrow(ctx, x + 44, groundY - 34, Math.min(width - 10, x + 44 + force * 7), groundY - 34, ORANGE, 'F');
-    if (friction > 0) {
-        drawArrow(ctx, x - 44, groundY - 21, Math.max(10, x - 44 - friction * 10), groundY - 21, RED, 'f');
+    if (fK > 0) {
+        drawArrow(ctx, x - 44, groundY - 21, Math.max(10, x - 44 - fK * 10), groundY - 21, RED, 'f');
     }
-    drawArrow(ctx, x + 44, groundY - 56, Math.min(width - 10, x + 44 + a * 34), groundY - 56, GREEN, 'a');
+    drawArrow(ctx, x + 44, groundY - 56, Math.min(width - 10, x + 44 + aVal * 34), groundY - 56, GREEN, 'a');
     ctx.fillStyle = panelFill(isDark);
     roundRectPath(ctx, width * 0.58, height * 0.26, 235, 86, 8);
     ctx.fill();
@@ -157,16 +173,22 @@ export function drawNewtonSecondLawScene(opts: MechanicsSceneOptions): void {
     ctx.fillText('a = F合 / m', width * 0.58 + 118, height * 0.26 + 32);
     ctx.font = '13px monospace';
     ctx.fillText(
-        `= ${netF.toFixed(2)} / ${mass.toFixed(2)} = ${a.toFixed(2)} m/s²`,
+        `= ${fNet.toFixed(2)} / ${mass.toFixed(2)} = ${aVal.toFixed(2)} m/s²`,
         width * 0.58 + 118,
         height * 0.26 + 58
     );
     drawHud(ctx, isDark, [
         { label: 'F', value: `${force.toFixed(2)} N` },
-        { label: 'f', value: `${friction.toFixed(2)} N` },
-        { label: 'a', value: `${a.toFixed(2)} m/s²` }
+        { label: 'f', value: `${fK.toFixed(2)} N` },
+        { label: 'a', value: `${aVal.toFixed(2)} m/s²` }
     ]);
-    drawInfoBar(ctx, width, height, `F合=${netF.toFixed(2)}N  m=${mass.toFixed(2)}kg  a=${a.toFixed(2)}m/s^2`, isDark);
+    drawInfoBar(
+        ctx,
+        width,
+        height,
+        `F合=${fNet.toFixed(2)}N  m=${mass.toFixed(2)}kg  a=${aVal.toFixed(2)}m/s^2`,
+        isDark
+    );
 }
 
 export function drawOverweightScene(opts: MechanicsSceneOptions): void {

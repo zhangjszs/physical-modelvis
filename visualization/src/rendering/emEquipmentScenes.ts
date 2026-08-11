@@ -535,11 +535,15 @@ export function drawEmDampingScene(opts: EmEquipSceneOptions): void {
     const pivotY = topY + 16; // 悬挂点 = 天花板底边，与摆线起点/铝框绘制点一致
     const rodLen = Math.min(topH * 0.38, 110);
 
-    // 当前摆角: θ = θ₀·exp(-γt)·cos(ω't), 近似 ω' ≈ omega0 / 100
-    const omegaD = omega0 / 80;
-    const A0 = 0.35; // rad 初始振幅
-    const A_t = A0 * Math.exp(-gamma * currentTime);
-    const phi = A_t * Math.cos(omegaD * currentTime);
+    // 顶部: 铝框摆动示意 — 振幅包络读引擎 ω 序列 (ω/ω₀ 归一化), 振荡频率为演示常量
+    // 引擎语义: 导体盘角速度 ω(t)=ω₀·e^(-t/τ) 单调衰减 (非振荡), 包络必须来自引擎
+    const omegaNow = engChart?.angular_velocity_vs_time
+        ? interpSeries(engChart.angular_velocity_vs_time, currentTime)
+        : omega0 * Math.exp(-gamma * currentTime); // 回退: 与引擎公式同源
+    const A0 = 0.35; // rad 初始振幅 (演示)
+    const A_t = omega0 > 0 ? (A0 * Math.max(0, omegaNow)) / omega0 : 0; // 包络 ∝ 引擎 ω
+    const omegaPend = Math.sqrt(9.8 / 0.5); // 演示摆频率 (悬挂示意, 与引擎无关)
+    const phi = A_t * Math.cos(omegaPend * currentTime);
 
     // 天花板
     ctx.fillStyle = isDark ? '#475569' : '#94a3b8';
@@ -658,27 +662,26 @@ export function drawEmDampingScene(opts: EmEquipSceneOptions): void {
         const chartH = bottomH - 30;
         const duration = params['duration'] ?? 5;
         const sweepPts = 120;
-        const thetaWith: number[] = [];
-        const thetaFree: number[] = [];
+        const omegaWith: number[] = [];
+        const omegaFree: number[] = [];
         const ts: number[] = [];
-        // 有铝框: 引擎 ω(t)=ω₀·e^(-t/τ) (x=s, y=rad/s) 直接消费; 回退自算摆角衰减
+        // 有铝框: 引擎 ω(t)=ω₀·e^(-t/τ) (x=s, y=rad/s) 直接消费; 回退自算 (单位 rad/s, 与引擎一致)
         if (engChart?.angular_velocity_vs_time) {
             for (const p of engChart.angular_velocity_vs_time.points) {
                 ts.push(p.x);
-                thetaWith.push(p.y);
+                omegaWith.push(p.y);
             }
         } else {
             for (let i = 0; i <= sweepPts; i++) {
                 const ti = (duration * i) / sweepPts;
                 ts.push(ti);
-                const Ai = A0 * Math.exp(-gamma * ti);
-                thetaWith.push((Ai * 180) / Math.PI);
+                omegaWith.push(omega0 * Math.exp(-gamma * ti));
             }
         }
+        // 无铝框: 角速度近乎不衰减 (极小阻尼), 与有铝框同单位 rad/s 对比
         for (let i = 0; i < ts.length; i++) {
             const ti = ts[i]!;
-            const AiFree = A0; // 无铝框: 振幅不衰减的小阻尼自由摆动 (近似不变)
-            thetaFree.push(((AiFree * 180) / Math.PI) * Math.exp(-0.05 * ti)); // 自由极小阻尼
+            omegaFree.push(omega0 * Math.exp(-0.02 * gamma * ti));
         }
 
         // 背景
@@ -694,7 +697,7 @@ export function drawEmDampingScene(opts: EmEquipSceneOptions): void {
             w: chartW,
             h: chartH,
             xs: ts,
-            ys: thetaWith,
+            ys: omegaWith,
             isDark,
             lineColor: '#3b82f6',
             label: '有铝框 ω(t) (rad/s)',
@@ -710,7 +713,7 @@ export function drawEmDampingScene(opts: EmEquipSceneOptions): void {
             ctx.fillStyle = isDark ? '#94a3b8' : '#64748b';
             ctx.font = '10px sans-serif';
             ctx.textAlign = 'left';
-            ctx.fillText('对比: 无铝框 (自由摆动, 振幅不变)', chartX, chartY2 - 4);
+            ctx.fillText('对比: 无铝框 (角速度近乎不衰减)', chartX, chartY2 - 4);
             drawMiniChart({
                 ctx,
                 x: chartX,
@@ -718,10 +721,10 @@ export function drawEmDampingScene(opts: EmEquipSceneOptions): void {
                 w: chartW,
                 h: chartH2,
                 xs: ts,
-                ys: thetaFree,
+                ys: omegaFree,
                 isDark,
                 lineColor: '#a855f7',
-                label: '无铝框'
+                label: '无铝框 ω(t) (rad/s)'
             });
         }
 
