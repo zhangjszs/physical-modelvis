@@ -9,7 +9,6 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "verify:3d": "node scripts/verify-3d-coverage.mjs",
     "server:dev": "tsx server/ocr-proxy.ts",
     "lint": "eslint src/**/*.{ts,tsx} server/**/*.ts"
   },
