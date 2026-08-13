@@ -1,7 +1,7 @@
 # 🧭 后续开发提示（NEXT STEPS）
 
 > 本文件是给下一位开发者 / AI Agent 的**接力提示**，说明当前进度、可选方向与动手切入点。
-> 项目全景请配合根目录 [`DEVELOPMENT_GUIDE.md`](DEVELOPMENT_GUIDE.md)（当前 v1.9）阅读。
+> 项目全景请配合 [`docs/DEVELOPMENT_GUIDE.md`](../DEVELOPMENT_GUIDE.md)（当前 v1.9）阅读。
 
 ---
 
@@ -64,4 +64,4 @@ npm run build             # G6 生产构建
 ---
 
 **维护者**: PhysVis Development Team ·
-**创建**: 2026-07-13 · 配合 `DEVELOPMENT_GUIDE.md` v1.9 使用
+**创建**: 2026-07-13 · 配合 `docs/DEVELOPMENT_GUIDE.md` v1.9 使用

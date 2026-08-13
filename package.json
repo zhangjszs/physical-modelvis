@@ -1,8 +1,16 @@
 {
   "name": "physical_modelvis",
   "version": "1.0.0",
-  "description": "",
+  "description": "高中物理教学可视化仿真平台 — 自研零依赖 TypeScript 物理引擎 + React/Canvas 2D 前端，覆盖 176 个实验 / 123 个场景 / 113 个物理模型",
   "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zhangjszs/physical-modelvis.git"
+  },
+  "homepage": "https://zhangjszs.github.io/physical-modelvis/",
+  "bugs": {
+    "url": "https://github.com/zhangjszs/physical-modelvis/issues"
+  },
   "scripts": {
     "prepare": "husky",
     "test": "cd physics-core && npm test && cd ../visualization && npm test",
@@ -19,9 +27,22 @@
     "selfcheck": "node scripts/self-check.mjs",
     "precheck": "npm run build:core && npm run typecheck && npm run lint && npm run format:check && npm test && npm run selfcheck"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "physics",
+    "simulation",
+    "education",
+    "high-school",
+    "physics-engine",
+    "typescript",
+    "react",
+    "canvas",
+    "visualization",
+    "computational-physics",
+    "chinese-education",
+    "gaozhong-wuli"
+  ],
+  "author": "zhangjszs",
+  "license": "MIT",
   "type": "commonjs",
   "devDependencies": {
     "@eslint/js": "^9.18.0",

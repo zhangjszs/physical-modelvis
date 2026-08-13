@@ -6,13 +6,14 @@ node_modules/
 dist/
 **/dist/
 
-# IDE
+# IDE / Editor
 .vscode/
 .idea/
 *.swp
 *.swo
+*.sublime-*
 
-# OS
+# OS junk
 .DS_Store
 Thumbs.db
 desktop.ini
@@ -20,22 +21,26 @@ desktop.ini
 # Logs
 *.log
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
-# Environment
+# Environment & secrets
 .env
 .env.local
+.env.*.local
 .env.*
 
-# OMC state
-.omc/
-**/.omc/
+# Temporary files
+tmp/
+*.tmp
+*.temp
+*.cache
+.cache/
+*.tgz
 
-# Tool/IDE local folders
-.omo/
-.trae/
-
-# Windows reserved
-nul
+# Turborepo / task runners
+.turbo/
 
 # Test coverage
 coverage/
@@ -45,13 +50,19 @@ coverage/
 
 # TypeScript
 *.tsbuildinfo
-# Self-check run reports
+
+# Self-check run reports (regenerated on each precheck)
 .scratch/
 
-# WorkBuddy agent state (local memory/cache, must not be committed)
+# Agent tool local state (must never be committed)
+.omc/
+**/.omc/
+.omo/
+.trae/
 .workbuddy/
 .claude/
-
-# Agent tool local state
 .mimocode/
 .agents/
+
+# Windows reserved name
+nul
