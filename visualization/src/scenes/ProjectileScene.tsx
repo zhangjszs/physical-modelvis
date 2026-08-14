@@ -1,8 +1,7 @@
-import { useEffect, useCallback, useRef, lazy, Suspense, useState } from 'react';
+import { useEffect, useRef, lazy, Suspense, useState } from 'react';
 import { useSimulationStore } from '../store/simulationStore';
-import { runSceneSimulation } from '../adapters/physicsCoreAdapter';
-import { getDefaultParams } from './sceneRegistry';
 import { useCompareSimulations } from '../components/workbench/useCompareSimulations';
+import { useSceneSimulation } from '../components/workbench/useSceneSimulation';
 import { SimulationCanvas } from '../components/simulation/SimulationCanvas';
 import { loadSceneRig, hasSceneRig } from '../components/simulation3d/rigs';
 import type { SceneRig } from '../components/simulation3d/EquipmentStage';
@@ -18,7 +17,6 @@ import { PlaybackControls } from '../components/controls/PlaybackControls';
 import { StateInspector } from '../components/simulation/StateInspector';
 import { LayerToggle } from '../components/layout/LayerToggle';
 import { SCENE_CATEGORIES } from '../components/layout/SceneSelector';
-import { computePhotogateMeasurements } from '../utils/photogate';
 import { ErrorBoundary } from '../components/common/ErrorBoundary';
 import { ExportDataButton } from '../components/export/ExportDataButton';
 
@@ -69,65 +67,14 @@ function TextbookDirectory() {
 
 export function ProjectileScene() {
     const currentScene = useSimulationStore(s => s.currentScene);
-    const parameters = useSimulationStore(s => s.parameters);
-    const sceneLoadVersion = useSimulationStore(s => s.sceneLoadVersion);
-    const simulationResult = useSimulationStore(s => s.simulationResult);
     const scenes = useSimulationStore(s => s.scenes);
-    // action / stable selectors 返回 stable 引用, 不会触发重渲染
-    const setSimulationResult = useSimulationStore(s => s.setSimulationResult);
-    const setErrorMessage = useSimulationStore(s => s.setErrorMessage);
-    const ensureSceneParameters = useSimulationStore(s => s.ensureSceneParameters);
-    const setExperimentData = useSimulationStore(s => s.setExperimentData);
     const [formulaOpen, setFormulaOpen] = useState(false);
     const [dataOpen, setDataOpen] = useState(false);
 
     const scene = scenes.find(s => s.id === currentScene);
 
-    // 初始化默认参数
-    useEffect(() => {
-        if (!scene) return;
-        const defaults = getDefaultParams(currentScene);
-        ensureSceneParameters(currentScene, defaults);
-    }, [currentScene, ensureSceneParameters, scene]);
-
-    // 运行仿真
-    const runSimulation = useCallback(() => {
-        if (!scene) return;
-        const { result, error } = runSceneSimulation(scene, parameters);
-        if (error) {
-            setErrorMessage(error);
-            return;
-        }
-        if (result) {
-            setSimulationResult(result);
-        }
-    }, [scene, parameters, setSimulationResult, setErrorMessage]);
-
-    // 首次加载自动运行
-    useEffect(() => {
-        runSimulation();
-    }, [currentScene, sceneLoadVersion]);
-
-    // 计算气垫导轨实验的光电门测量数据
-    useEffect(() => {
-        if (currentScene !== 'air-track' || !simulationResult) {
-            setExperimentData(null);
-            return;
-        }
-        const trajectory = simulationResult.trajectories[0];
-        if (!trajectory || trajectory.length === 0) {
-            setExperimentData(null);
-            return;
-        }
-        const x1 = parameters['x1'] ?? 0.3;
-        const x2 = parameters['x2'] ?? 0.8;
-        const flagWidth = parameters['flagWidth'] ?? 0.02;
-        const measurements = computePhotogateMeasurements(trajectory, {
-            gatePositions: [x1, x2],
-            flagWidth
-        });
-        setExperimentData(measurements);
-    }, [simulationResult, parameters, currentScene, setExperimentData]);
+    // 仿真运行副作用（初始化默认参数 / 自动运行 / air-track 光电门数据）
+    const { runSimulation } = useSceneSimulation();
 
     // ========== 参数对比实验 ==========
     useCompareSimulations();
