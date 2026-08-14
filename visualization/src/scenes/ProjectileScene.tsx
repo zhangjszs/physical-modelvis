@@ -2,8 +2,7 @@ import { useEffect, useCallback, useRef, lazy, Suspense, useState } from 'react'
 import { useSimulationStore } from '../store/simulationStore';
 import { runSceneSimulation } from '../adapters/physicsCoreAdapter';
 import { getDefaultParams } from './sceneRegistry';
-import { GRAPH_COLORS } from '../utils/colorMap';
-import type { CompareEntry } from '../types/visualization';
+import { useCompareSimulations } from '../components/workbench/useCompareSimulations';
 import { SimulationCanvas } from '../components/simulation/SimulationCanvas';
 import { loadSceneRig, hasSceneRig } from '../components/simulation3d/rigs';
 import type { SceneRig } from '../components/simulation3d/EquipmentStage';
@@ -131,63 +130,7 @@ export function ProjectileScene() {
     }, [simulationResult, parameters, currentScene, setExperimentData]);
 
     // ========== 参数对比实验 ==========
-    const compareMode = useSimulationStore(s => s.compareMode);
-    const compareConfig = useSimulationStore(s => s.compareConfig);
-    const setCompareResults = useSimulationStore(s => s.setCompareResults);
-
-    useEffect(() => {
-        if (!compareMode || !compareConfig || !scene) {
-            // 未开启对比模式 → 清空结果，恢复单仿真渲染
-            if (useSimulationStore.getState().compareResults.length > 0) {
-                setCompareResults([]);
-            }
-            return;
-        }
-
-        const { paramName, count, min, max } = compareConfig;
-        const clampedCount = Math.max(2, Math.min(8, count));
-
-        // 生成 count 组均匀分布的参数值
-        const variantValues: number[] = [];
-        if (clampedCount === 1) {
-            variantValues.push(min);
-        } else {
-            for (let i = 0; i < clampedCount; i++) {
-                const value = clampedCount === 1 ? min : min + ((max - min) * i) / (clampedCount - 1);
-                variantValues.push(value);
-            }
-        }
-
-        // 并发求解各组参数
-        let cancelled = false;
-        async function runComparisons() {
-            const entries: CompareEntry[] = [];
-            for (let i = 0; i < variantValues.length; i++) {
-                const pv = variantValues[i] as number;
-                const variantParams = { ...parameters, [paramName]: pv } as Record<string, number>;
-                const { result, error } = runSceneSimulation(scene!, variantParams);
-                if (error) {
-                    // 参数越界或求解失败，跳过该变体
-                    continue;
-                }
-                entries.push({
-                    paramValue: pv,
-                    result: result!,
-                    color: GRAPH_COLORS[i % GRAPH_COLORS.length]!
-                } satisfies CompareEntry);
-            }
-            if (!cancelled && entries.length > 0) {
-                setCompareResults(entries);
-            } else if (!cancelled) {
-                setCompareResults([]);
-            }
-        }
-
-        runComparisons();
-        return () => {
-            cancelled = true;
-        };
-    }, [compareMode, compareConfig, currentScene, scene, parameters, setCompareResults]);
+    useCompareSimulations();
 
     // 异步加载当前场景的 rig（懒加载模块 chunk）
     // 按场景 ID 缓存已加载的 rig，渲染条件 = 缓存中存在当前场景的 rig。
