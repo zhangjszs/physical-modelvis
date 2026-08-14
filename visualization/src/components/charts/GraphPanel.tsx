@@ -67,6 +67,7 @@ export function GraphPanel() {
         if (!compareMode || compareResults.length === 0) return [];
         return compareResults
             .map(entry => {
+                if (!entry.result) return null; // 失败变体无图表数据
                 const series = extractGraphSeries(entry.result, selectedGraph);
                 const s = series[0];
                 if (!s) return null;

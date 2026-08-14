@@ -151,11 +151,20 @@ export function ComparePanel() {
                             <div className="compare-legend-title">图例</div>
                             {compareResults.map((entry, i) => (
                                 <div key={i} className="compare-legend-item">
-                                    <span className="compare-legend-color" style={{ backgroundColor: entry.color }} />
+                                    <span
+                                        className="compare-legend-color"
+                                        style={{ backgroundColor: entry.error ? '#94a3b8' : entry.color }}
+                                    />
                                     <span className="compare-legend-label">
                                         {activeParam?.label ?? activeParam?.name} = {entry.paramValue}{' '}
                                         {activeParam?.unit ?? ''}
+                                        {entry.error && <span className="compare-legend-error"> ✗ 求解失败</span>}
                                     </span>
+                                    {entry.error && (
+                                        <span className="compare-legend-error" title={entry.error}>
+                                            ({entry.error})
+                                        </span>
+                                    )}
                                 </div>
                             ))}
                         </div>

@@ -94,8 +94,11 @@ export interface CompareConfig {
 
 export interface CompareEntry {
     paramValue: number;
-    result: SimulationResult;
+    /** 求解失败时为 null（参数越界/引擎错误），error 携带原因 */
+    result: SimulationResult | null;
     color: string;
+    /** 失败原因（如参数越界），成功变体无此字段 */
+    error?: string;
 }
 
 // ========== 状态 ==========

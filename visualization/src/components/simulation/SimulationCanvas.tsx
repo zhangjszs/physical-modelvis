@@ -1205,7 +1205,11 @@ export function SimulationCanvas() {
         const allPoints: Array<{ x: number; y: number }> = [];
         // 参数对比模式：坐标拟合需要覆盖所有对比组的轨迹
         const resultsToFit =
-            compareMode && compareResults.length > 0 ? compareResults.map(e => e.result) : [simulationResult];
+            compareMode && compareResults.length > 0
+                ? compareResults
+                      .filter((e): e is typeof e & { result: SimulationResult } => e.result !== null)
+                      .map(e => e.result)
+                : [simulationResult];
         for (const result of resultsToFit) {
             for (const traj of result.trajectories) {
                 for (const p of traj) {
@@ -1789,6 +1793,7 @@ export function SimulationCanvas() {
 
             for (let ci = 0; ci < compareResults.length; ci++) {
                 const entry = compareResults[ci]!;
+                if (!entry.result) continue; // 失败变体不绘制轨迹
                 const entryTraj = entry.result.trajectories[0] ?? [];
                 if (entryTraj.length === 0) continue;
 
