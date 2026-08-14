@@ -107,6 +107,7 @@ visualization/         — React 可视化前端
     export/            — 数据导出按钮 (ExportDataButton → exportCsv)
     guidance/          — 引导面板 (GuidancePanel)
     ocr/               — OCR 面板与工具函数
+    workbench/         — 课堂工作台 (WorkbenchScene 壳 + SceneStage 舞台 + InspectorPanel 检查器 + DataDrawer 抽屉 + TextbookDirectory 目录 + useSceneRig/useCompareSimulations/useSceneSimulation hooks)
   src/scenes/          — 场景配置 + buildProblem (sceneRegistry.ts + guidance.ts 引导映射)
   src/scenes/scenes/   — 场景定义按领域拆分子目录 (mechanics/electromagnetism/modern/optics/thermodynamics, index.ts 聚合) — 新增场景放到对应领域子目录, 并注册到 sceneRegistry.ts
   src/rendering/       — Canvas 2D 渲染器 (按物理领域分文件)
