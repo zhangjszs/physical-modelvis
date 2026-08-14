@@ -3,21 +3,23 @@ import { useSimulationStore } from '../store/simulationStore';
 import { OCRPanel } from '../components/ocr/OCRPanel';
 import { GuidancePanel } from '../components/guidance/GuidancePanel';
 
-// ProjectileScene 静态导入会把整条 2D 渲染链 + physics-core 求解器拖进首屏
+// WorkbenchScene 静态导入会把整条 2D 渲染链 + physics-core 求解器拖进首屏
 // (SimulationCanvas / rendering / runSceneSimulation ≈ 300+ kB),用 lazy 隔离;
 // 场景打开后才下载对应 chunk。3D 器材 rig 在其内部继续按域懒加载。
-const LazyProjectileScene = lazy(() => import('../scenes/ProjectileScene').then(m => ({ default: m.ProjectileScene })));
+const LazyWorkbenchScene = lazy(() =>
+    import('../components/workbench/WorkbenchScene').then(m => ({ default: m.WorkbenchScene }))
+);
 
 const SCENE_MAP: Record<string, React.LazyExoticComponent<() => JSX.Element>> = {
-    projectile: LazyProjectileScene,
-    'uniform-accelerated': LazyProjectileScene,
-    'free-fall': LazyProjectileScene,
-    'electric-field': LazyProjectileScene,
-    'magnetic-field': LazyProjectileScene,
-    collision: LazyProjectileScene,
-    spring: LazyProjectileScene,
-    'inclined-plane': LazyProjectileScene,
-    'em-combined': LazyProjectileScene
+    projectile: LazyWorkbenchScene,
+    'uniform-accelerated': LazyWorkbenchScene,
+    'free-fall': LazyWorkbenchScene,
+    'electric-field': LazyWorkbenchScene,
+    'magnetic-field': LazyWorkbenchScene,
+    collision: LazyWorkbenchScene,
+    spring: LazyWorkbenchScene,
+    'inclined-plane': LazyWorkbenchScene,
+    'em-combined': LazyWorkbenchScene
 };
 
 export function App() {
@@ -28,7 +30,7 @@ export function App() {
     const setErrorMessage = useSimulationStore(s => s.setErrorMessage);
     const toggleTheme = useSimulationStore(s => s.toggleTheme);
     const ensureScenesLoaded = useSimulationStore(s => s.ensureScenesLoaded);
-    const SceneComponent = (SCENE_MAP[currentScene] ?? LazyProjectileScene) as React.ComponentType;
+    const SceneComponent = (SCENE_MAP[currentScene] ?? LazyWorkbenchScene) as React.ComponentType;
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
     // 挂载即预载全部场景配置(懒加载领域 chunk)
