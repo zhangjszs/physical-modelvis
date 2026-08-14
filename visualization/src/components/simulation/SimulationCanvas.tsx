@@ -1103,6 +1103,9 @@ export function SimulationCanvas() {
     const playbackSpeed = useSimulationStore(s => s.playbackSpeed);
     const visibleLayers = useSimulationStore(s => s.visibleLayers);
     const theme = useSimulationStore(s => s.theme);
+    // 参数对比实验
+    const compareMode = useSimulationStore(s => s.compareMode);
+    const compareResults = useSimulationStore(s => s.compareResults);
     // action / stable selectors 返回稳定引用, 不会额外触发重渲染
     const setCurrentTime = useSimulationStore(s => s.setCurrentTime);
     const pause = useSimulationStore(s => s.pause);
@@ -1200,9 +1203,14 @@ export function SimulationCanvas() {
         const canvas = canvasRef.current;
         if (!canvas) return;
         const allPoints: Array<{ x: number; y: number }> = [];
-        for (const traj of simulationResult.trajectories) {
-            for (const p of traj) {
-                allPoints.push(p.position);
+        // 参数对比模式：坐标拟合需要覆盖所有对比组的轨迹
+        const resultsToFit =
+            compareMode && compareResults.length > 0 ? compareResults.map(e => e.result) : [simulationResult];
+        for (const result of resultsToFit) {
+            for (const traj of result.trajectories) {
+                for (const p of traj) {
+                    allPoints.push(p.position);
+                }
             }
         }
         if (is3DScene) {
@@ -1215,6 +1223,8 @@ export function SimulationCanvas() {
         }
     }, [
         simulationResult,
+        compareMode,
+        compareResults,
         currentScene,
         is3DScene,
         isAirTrack,
@@ -1769,72 +1779,88 @@ export function SimulationCanvas() {
             }
         }
 
-        const idx = findFrameIndex(trajectories, currentTime);
-        const p0 = points[idx]!;
-        const p1 = points[Math.min(idx + 1, points.length - 1)]!;
-        const frame = interpolateFrame(p0, p1, currentTime);
+        // ========== 参数对比模式: 多轨迹叠加 ==========
+        const inCompareMode = compareMode && compareResults.length > 0;
 
-        if (isCircular) {
-            renderer.drawCircularMotionSetup(
-                circularCenter,
-                frame.position,
-                circularRadius,
-                circularOmega,
-                circularPivotH,
-                circularBallH
-            );
-        }
+        if (inCompareMode) {
+            // 对比模式: 遍历所有 compareResults, 每组用各自颜色绘制轨迹 + 物体
+            renderer.setCircularCoordMode(false);
+            if (!skipGround) renderer.drawGround(0, cssW);
 
-        const emScenes = ['electric-field', 'magnetic-field', 'em-combined'];
-        const isEM = emScenes.includes(currentScene);
-        const isCollision = currentScene === 'collision';
-        const collisionColors = ['#3b82f6', '#ef4444', '#22c55e', '#f59e0b'];
+            for (let ci = 0; ci < compareResults.length; ci++) {
+                const entry = compareResults[ci]!;
+                const entryTraj = entry.result.trajectories[0] ?? [];
+                if (entryTraj.length === 0) continue;
 
-        if (isCollision && trajectories.length > 1) {
-            for (let bi = 0; bi < trajectories.length; bi++) {
-                const traj = trajectories[bi] ?? [];
-                if (traj.length === 0) continue;
-                const biIdx = findFrameIndex([traj], currentTime);
-                const bp0 = traj[biIdx]!;
-                const bp1 = traj[Math.min(biIdx + 1, traj.length - 1)]!;
-                const bFrame = interpolateFrame(bp0, bp1, currentTime);
-                const bColor = collisionColors[bi % collisionColors.length] ?? COLORS.body;
-                renderer.drawBody(bFrame.position, 0.15, bColor, `物体${bi + 1}`);
-                if (visibleLayers.velocityVector) {
-                    renderer.drawVector(bFrame.position, bFrame.velocity, bColor, `v${bi + 1}`, 0.15);
+                const entryPositions = entryTraj.map(p => p.position);
+                const pastCount = countPastPoints(entryTraj, currentTime);
+
+                // 完整轨迹 (半透明)
+                ctx.globalAlpha = 0.3;
+                renderer.drawTrajectory(entryPositions, entry.color);
+                ctx.globalAlpha = 1.0;
+                // 随播放增长的轨迹
+                renderer.drawTrajectory(entryPositions, entry.color, pastCount);
+
+                // 当前帧物体
+                const cIdx = findFrameIndex([entryTraj], currentTime);
+                const cp0 = entryTraj[cIdx]!;
+                const cp1 = entryTraj[Math.min(cIdx + 1, entryTraj.length - 1)]!;
+                const cFrame = interpolateFrame(cp0, cp1, currentTime);
+                renderer.drawBody(cFrame.position, 0.12, entry.color, `${entry.paramValue}`);
+                if (visibleLayers.velocityVector && cFrame.velocity) {
+                    renderer.drawVector(cFrame.position, cFrame.velocity, entry.color, '', 0.12);
                 }
             }
-        } else if (isCircular && is3DScene) {
-            const bodyColor = '#f97316';
-            const label = '小球';
-            renderer.drawCircularBody3D(
-                frame.position,
-                0.12,
-                bodyColor,
-                visibleLayers.bodyLabels ? label : undefined,
-                circularBallH
-            );
-            const mass = parameters['mass'] ?? 0.2;
-            const centripetalForce = mass * circularOmega * circularOmega * circularRadius;
-            const centripetalAcc = circularOmega * circularOmega * circularRadius;
-            renderer.drawCircularForceVectors(
-                circularCenter,
-                frame.position,
-                frame.velocity,
-                centripetalForce,
-                centripetalAcc,
-                visibleLayers.velocityVector,
-                visibleLayers.accelerationVector,
-                visibleLayers.forceVector,
-                circularBallH
-            );
-        } else {
-            const charge = parameters['charge'] ?? 1.6;
-            const bodyColor = isEM ? (charge >= 0 ? '#ef4444' : '#3b82f6') : isCircular ? '#f97316' : COLORS.body;
-            const label = isEM ? (charge >= 0 ? '正电荷' : '负电荷') : isCircular ? '小球' : is3DScene ? '' : '物体';
-            renderer.drawBody(frame.position, isCircular ? 0.12 : 0.15, bodyColor, label);
+        }
+
+        // ========== 单仿真模式 (原有逻辑) ==========
+        if (!inCompareMode) {
+            const idx = findFrameIndex(trajectories, currentTime);
+            const p0 = points[idx]!;
+            const p1 = points[Math.min(idx + 1, points.length - 1)]!;
+            const frame = interpolateFrame(p0, p1, currentTime);
 
             if (isCircular) {
+                renderer.drawCircularMotionSetup(
+                    circularCenter,
+                    frame.position,
+                    circularRadius,
+                    circularOmega,
+                    circularPivotH,
+                    circularBallH
+                );
+            }
+
+            const emScenes = ['electric-field', 'magnetic-field', 'em-combined'];
+            const isEM = emScenes.includes(currentScene);
+            const isCollision = currentScene === 'collision';
+            const collisionColors = ['#3b82f6', '#ef4444', '#22c55e', '#f59e0b'];
+
+            if (isCollision && trajectories.length > 1) {
+                for (let bi = 0; bi < trajectories.length; bi++) {
+                    const traj = trajectories[bi] ?? [];
+                    if (traj.length === 0) continue;
+                    const biIdx = findFrameIndex([traj], currentTime);
+                    const bp0 = traj[biIdx]!;
+                    const bp1 = traj[Math.min(biIdx + 1, traj.length - 1)]!;
+                    const bFrame = interpolateFrame(bp0, bp1, currentTime);
+                    const bColor = collisionColors[bi % collisionColors.length] ?? COLORS.body;
+                    renderer.drawBody(bFrame.position, 0.15, bColor, `物体${bi + 1}`);
+                    if (visibleLayers.velocityVector) {
+                        renderer.drawVector(bFrame.position, bFrame.velocity, bColor, `v${bi + 1}`, 0.15);
+                    }
+                }
+            } else if (isCircular && is3DScene) {
+                const bodyColor = '#f97316';
+                const label = '小球';
+                renderer.drawCircularBody3D(
+                    frame.position,
+                    0.12,
+                    bodyColor,
+                    visibleLayers.bodyLabels ? label : undefined,
+                    circularBallH
+                );
                 const mass = parameters['mass'] ?? 0.2;
                 const centripetalForce = mass * circularOmega * circularOmega * circularRadius;
                 const centripetalAcc = circularOmega * circularOmega * circularRadius;
@@ -1847,64 +1873,97 @@ export function SimulationCanvas() {
                     visibleLayers.velocityVector,
                     visibleLayers.accelerationVector,
                     visibleLayers.forceVector,
-                    0
+                    circularBallH
                 );
             } else {
-                if (visibleLayers.velocityVector) {
-                    renderer.drawVector(frame.position, frame.velocity, COLORS.velocity, 'v', 0.15);
-                }
+                const charge = parameters['charge'] ?? 1.6;
+                const bodyColor = isEM ? (charge >= 0 ? '#ef4444' : '#3b82f6') : isCircular ? '#f97316' : COLORS.body;
+                const label = isEM
+                    ? charge >= 0
+                        ? '正电荷'
+                        : '负电荷'
+                    : isCircular
+                      ? '小球'
+                      : is3DScene
+                        ? ''
+                        : '物体';
+                renderer.drawBody(frame.position, isCircular ? 0.12 : 0.15, bodyColor, label);
 
-                if (visibleLayers.accelerationVector && frame.acceleration) {
-                    renderer.drawVector(frame.position, frame.acceleration, COLORS.acceleration, 'a', 0.3);
-                }
-
-                if (visibleLayers.forceVector && frame.acceleration) {
-                    const mass = isEM ? (parameters['mass'] ?? 1.67) * 1e-27 : (parameters['m'] ?? 1);
-                    const forceX = frame.acceleration.x * mass;
-                    const forceY = frame.acceleration.y * mass;
-                    renderer.drawVector(frame.position, { x: forceX, y: forceY }, COLORS.force, 'F', isEM ? 1e20 : 0.3);
+                if (isCircular) {
+                    const mass = parameters['mass'] ?? 0.2;
+                    const centripetalForce = mass * circularOmega * circularOmega * circularRadius;
+                    const centripetalAcc = circularOmega * circularOmega * circularRadius;
+                    renderer.drawCircularForceVectors(
+                        circularCenter,
+                        frame.position,
+                        frame.velocity,
+                        centripetalForce,
+                        centripetalAcc,
+                        visibleLayers.velocityVector,
+                        visibleLayers.accelerationVector,
+                        visibleLayers.forceVector,
+                        0
+                    );
+                } else {
+                    if (visibleLayers.velocityVector) {
+                        renderer.drawVector(frame.position, frame.velocity, COLORS.velocity, 'v', 0.15);
+                    }
+                    if (visibleLayers.accelerationVector && frame.acceleration) {
+                        renderer.drawVector(frame.position, frame.acceleration, COLORS.acceleration, 'a', 0.3);
+                    }
+                    if (visibleLayers.forceVector && frame.acceleration) {
+                        const mass = isEM ? (parameters['mass'] ?? 1.67) * 1e-27 : (parameters['m'] ?? 1);
+                        const forceX = frame.acceleration.x * mass;
+                        const forceY = frame.acceleration.y * mass;
+                        renderer.drawVector(
+                            frame.position,
+                            { x: forceX, y: forceY },
+                            COLORS.force,
+                            'F',
+                            isEM ? 1e20 : 0.3
+                        );
+                    }
                 }
             }
-        }
 
-        const probe = probeRef.current;
-        if (probe && !isAirTrack) {
-            renderer.drawCrosshair(probe.position, isDark);
-            renderer.drawProbePoint(
-                probe.position,
-                {
-                    t: probe.t,
-                    vx: probe.velocity.x,
-                    vy: probe.velocity.y
-                },
-                isDark
-            );
-        }
+            // probe 绘制 + HUD 面板 (单仿真模式)
+            const probe = probeRef.current;
+            if (probe && !isAirTrack) {
+                renderer.drawCrosshair(probe.position, isDark);
+                renderer.drawProbePoint(
+                    probe.position,
+                    { t: probe.t, vx: probe.velocity.x, vy: probe.velocity.y },
+                    isDark
+                );
+            }
 
-        const timeText = `t = ${currentTime.toFixed(3)} s`;
-        const xText = `x = ${frame.position.x.toFixed(2)} m`;
-        const yText = `y = ${frame.position.y.toFixed(2)} m`;
-        const hasLabels = visibleLayers.bodyLabels;
-        const panelH = hasLabels ? 64 : 28;
-        ctx.fillStyle = isDark ? 'rgba(15,23,42,0.75)' : 'rgba(255,255,255,0.85)';
-        roundRectPath(ctx, 8, 10, 200, panelH, 6);
-        ctx.fill();
-        ctx.strokeStyle = is3DScene ? (isDark ? 'rgba(56,189,248,0.3)' : 'rgba(59,130,246,0.2)') : 'transparent';
-        ctx.lineWidth = 1;
-        roundRectPath(ctx, 8, 10, 200, panelH, 6);
-        ctx.stroke();
-        ctx.fillStyle = isDark ? '#e2e8f0' : '#1e293b';
-        ctx.font = 'bold 14px monospace';
-        ctx.textAlign = 'left';
-        ctx.fillText(timeText, 16, 30);
-        if (hasLabels) {
-            ctx.font = '12px monospace';
-            ctx.fillStyle = isDark ? '#94a3b8' : '#64748b';
-            ctx.fillText(xText, 16, 50);
-            ctx.fillText(yText, 16, 68);
+            const timeText = `t = ${currentTime.toFixed(3)} s`;
+            const xText = `x = ${frame.position.x.toFixed(2)} m`;
+            const yText = `y = ${frame.position.y.toFixed(2)} m`;
+            const hasLabels = visibleLayers.bodyLabels;
+            const panelH = hasLabels ? 64 : 28;
+            ctx.fillStyle = isDark ? 'rgba(15,23,42,0.75)' : 'rgba(255,255,255,0.85)';
+            roundRectPath(ctx, 8, 10, 200, panelH, 6);
+            ctx.fill();
+            ctx.strokeStyle = is3DScene ? (isDark ? 'rgba(56,189,248,0.3)' : 'rgba(59,130,246,0.2)') : 'transparent';
+            ctx.lineWidth = 1;
+            roundRectPath(ctx, 8, 10, 200, panelH, 6);
+            ctx.stroke();
+            ctx.fillStyle = isDark ? '#e2e8f0' : '#1e293b';
+            ctx.font = 'bold 14px monospace';
+            ctx.textAlign = 'left';
+            ctx.fillText(timeText, 16, 30);
+            if (hasLabels) {
+                ctx.font = '12px monospace';
+                ctx.fillStyle = isDark ? '#94a3b8' : '#64748b';
+                ctx.fillText(xText, 16, 50);
+                ctx.fillText(yText, 16, 68);
+            }
         }
     }, [
         simulationResult,
+        compareMode,
+        compareResults,
         visibleLayers,
         isDark,
         currentScene,

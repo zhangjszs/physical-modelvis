@@ -91,49 +91,67 @@ function firstMatch(
     return null;
 }
 
-function lengthValue(text: string, labels: string[]): ParsedValue | null {
-    const label = labels.join('|');
-    return firstMatch(
-        text,
-        [
+/** 单位提取配置：定义一种物理量的 SI 单位、正则模式、换算函数 */
+interface UnitSpec {
+    siUnit: string;
+    buildPatterns: (label: string) => RegExp[];
+    toSI: (n: number, raw: string) => number;
+}
+
+/** 同构提取的单位定义表（length/velocity/mass 共享同一套 4 模式模板） */
+const UNITS: Record<string, UnitSpec> = {
+    length: {
+        siUnit: 'm',
+        buildPatterns: label => [
             new RegExp(`(?:${label})\\s*[=为是约]?\\s*(-?\\d+(?:\\.\\d+)?)\\s*(cm|厘米)`, 'i'),
             new RegExp(`(?:${label})\\s*[=为是约]?\\s*(-?\\d+(?:\\.\\d+)?)\\s*(m|米)`, 'i'),
             new RegExp(`(-?\\d+(?:\\.\\d+)?)\\s*(cm|厘米)\\s*(?:的)?(?:${label})`, 'i'),
             new RegExp(`(-?\\d+(?:\\.\\d+)?)\\s*(m|米)\\s*(?:的)?(?:${label})`, 'i')
         ],
-        'm',
-        (n, raw) => (/cm|厘米/i.test(raw) ? n / 100 : n)
-    );
-}
-
-function velocityValue(text: string, labels: string[]): ParsedValue | null {
-    const label = labels.join('|');
-    return firstMatch(
-        text,
-        [
+        toSI: (n, raw) => (/cm|厘米/i.test(raw) ? n / 100 : n)
+    },
+    velocity: {
+        siUnit: 'm/s',
+        buildPatterns: label => [
             new RegExp(`(?:${label})\\s*[=为是约]?\\s*(-?\\d+(?:\\.\\d+)?)\\s*(km/h|千米每小时)`, 'i'),
             new RegExp(`(?:${label})\\s*[=为是约]?\\s*(-?\\d+(?:\\.\\d+)?)\\s*(m/s|米每秒)`, 'i'),
             new RegExp(`(-?\\d+(?:\\.\\d+)?)\\s*(km/h|千米每小时)\\s*(?:的)?(?:${label})`, 'i'),
             new RegExp(`(-?\\d+(?:\\.\\d+)?)\\s*(m/s|米每秒)\\s*(?:的)?(?:${label})`, 'i')
         ],
-        'm/s',
-        (n, raw) => (/km\/h|千米每小时/i.test(raw) ? n / 3.6 : n)
-    );
-}
-
-function massValue(text: string, labels: string[]): ParsedValue | null {
-    const label = labels.join('|');
-    return firstMatch(
-        text,
-        [
+        toSI: (n, raw) => (/km\/h|千米每小时/i.test(raw) ? n / 3.6 : n)
+    },
+    mass: {
+        siUnit: 'kg',
+        buildPatterns: label => [
             new RegExp(`(?:${label})\\s*[=为是约]?\\s*(-?\\d+(?:\\.\\d+)?)\\s*(g|克)`, 'i'),
             new RegExp(`(?:${label})\\s*[=为是约]?\\s*(-?\\d+(?:\\.\\d+)?)\\s*(kg|千克)`, 'i'),
             new RegExp(`(-?\\d+(?:\\.\\d+)?)\\s*(g|克)\\s*(?:的)?(?:${label})`, 'i'),
             new RegExp(`(-?\\d+(?:\\.\\d+)?)\\s*(kg|千克)\\s*(?:的)?(?:${label})`, 'i')
         ],
-        'kg',
-        (n, raw) => (/kg|千克/i.test(raw) ? n : n / 1000)
-    );
+        toSI: (n, raw) => (/kg|千克/i.test(raw) ? n : n / 1000)
+    }
+};
+
+/** 通用物理量提取：根据单位配置从文本中匹配并换算到 SI */
+function extractValue(text: string, labels: string[], unit: keyof typeof UNITS): ParsedValue | null {
+    const spec = UNITS[unit];
+    if (!spec) return null;
+    return firstMatch(text, spec.buildPatterns(labels.join('|')), spec.siUnit, spec.toSI);
+}
+
+/** 提取长度量 (cm/m → m) */
+function lengthValue(text: string, labels: string[]): ParsedValue | null {
+    return extractValue(text, labels, 'length');
+}
+
+/** 提取速度量 (km/h, m/s → m/s) */
+function velocityValue(text: string, labels: string[]): ParsedValue | null {
+    return extractValue(text, labels, 'velocity');
+}
+
+/** 提取质量量 (g/kg → kg) */
+function massValue(text: string, labels: string[]): ParsedValue | null {
+    return extractValue(text, labels, 'mass');
 }
 
 function unitlessValue(text: string, labels: string[], unit = ''): ParsedValue | null {
@@ -193,6 +211,7 @@ function chargeValue(text: string): ParsedValue | null {
     return elementary;
 }
 
+/** 场景分类：根据关键词匹配打分，返回最佳场景与置信度 */
 function classifyScene(text: string): { sceneId: string; confidence: number; warnings: string[] } {
     const scores = new Map<string, number>();
     for (const item of SCENE_KEYWORDS) {
@@ -232,12 +251,13 @@ function classifyScene(text: string): { sceneId: string; confidence: number; war
     return { sceneId, confidence, warnings };
 }
 
+/** 添加提取到的参数（成功提取时写入 params 并记录到 extracted） */
 function addParam(
     params: Record<string, number>,
     extracted: ExtractedQuantity[],
     name: string,
     parsed: ParsedValue | null
-) {
+): void {
     if (!parsed) return;
     params[name] = parsed.value;
     extracted.push({
@@ -248,6 +268,7 @@ function addParam(
     });
 }
 
+/** 将提取到的参数限制在场景参数的可视化范围内 */
 function clampToScene(sceneId: string, params: Record<string, number>, warnings: string[]): Record<string, number> {
     const scene = getSceneSync(sceneId);
     if (!scene) return params;
@@ -290,6 +311,7 @@ function sceneFormulas(sceneId: string): string[] {
     }
 }
 
+/** 根据场景参数生成物理诊断建议（如飞行时间、加速度等） */
 function sceneChecks(sceneId: string, params: Record<string, number>): string[] {
     const checks: string[] = [];
     const g = params.g ?? 9.8;
@@ -330,6 +352,7 @@ function sceneChecks(sceneId: string, params: Record<string, number>): string[] 
     return checks;
 }
 
+/** 按场景推断物理参数：从文本中提取各场景所需的物理量 */
 function inferParameters(
     sceneId: string,
     text: string,

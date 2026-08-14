@@ -49,6 +49,11 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
     theme: 'light',
     experimentData: null,
 
+    // 参数对比实验
+    compareMode: false,
+    compareConfig: null,
+    compareResults: [],
+
     setScene: sceneId => {
         set(s => ({
             currentScene: sceneId,
@@ -173,5 +178,21 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
 
     setErrorMessage: msg => set({ errorMessage: msg }),
 
-    toggleTheme: () => set(s => ({ theme: s.theme === 'dark' ? 'light' : 'dark' }))
+    toggleTheme: () => set(s => ({ theme: s.theme === 'dark' ? 'light' : 'dark' })),
+
+    // 参数对比实验
+    toggleCompareMode: () => {
+        set(s => {
+            const next = !s.compareMode;
+            // 关闭对比模式时清空结果
+            return {
+                compareMode: next,
+                compareResults: next ? s.compareResults : []
+            };
+        });
+    },
+
+    setCompareConfig: config => set({ compareConfig: config }),
+
+    setCompareResults: entries => set({ compareResults: entries })
 }));

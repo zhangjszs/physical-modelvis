@@ -83,6 +83,21 @@ export interface GraphSeries {
 
 export type Theme = 'light' | 'dark';
 
+// ========== 参数对比实验 ==========
+
+export interface CompareConfig {
+    paramName: string;
+    count: number;
+    min: number;
+    max: number;
+}
+
+export interface CompareEntry {
+    paramValue: number;
+    result: SimulationResult;
+    color: string;
+}
+
 // ========== 状态 ==========
 
 export interface SimulationState {
@@ -104,6 +119,11 @@ export interface SimulationState {
     /** 实验特化数据（气垫导轨场景为光电门测量结果） */
     experimentData: PhotogateMeasurement[] | null;
 
+    // 参数对比实验
+    compareMode: boolean;
+    compareConfig: CompareConfig | null;
+    compareResults: CompareEntry[];
+
     // Actions
     setScene: (sceneId: string) => void;
     setSceneWithParameters: (sceneId: string, parameters: Record<string, number>) => void;
@@ -124,4 +144,9 @@ export interface SimulationState {
     setSelectedGraph: (graph: GraphType) => void;
     setErrorMessage: (msg: string | null) => void;
     toggleTheme: () => void;
+
+    // 参数对比实验 actions
+    toggleCompareMode: () => void;
+    setCompareConfig: (config: CompareConfig | null) => void;
+    setCompareResults: (entries: CompareEntry[]) => void;
 }
