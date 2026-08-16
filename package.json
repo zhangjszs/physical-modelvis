@@ -25,6 +25,7 @@
     "format": "prettier --write \"physics-core/src/**/*.ts\" \"visualization/src/**/*.{ts,tsx}\" \"visualization/server/**/*.ts\"",
     "format:check": "prettier --check \"physics-core/src/**/*.ts\" \"visualization/src/**/*.{ts,tsx}\" \"visualization/server/**/*.ts\"",
     "selfcheck": "node scripts/self-check.mjs",
+    "verify:3d": "cd visualization && npx vitest run tests/rendering/equipment-stage.test.tsx tests/rendering/rigs-build.test.ts",
     "precheck": "npm run build:core && npm run typecheck && npm run lint && npm run format:check && npm test && npm run selfcheck"
   },
   "keywords": [

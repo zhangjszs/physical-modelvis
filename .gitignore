@@ -59,6 +59,7 @@ coverage/
 **/.omc/
 .omo/
 .trae/
+.zcode/
 .workbuddy/
 .claude/
 .mimocode/
