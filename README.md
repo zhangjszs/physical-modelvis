@@ -4,7 +4,7 @@
 
 ## 测试状态
 
-- **测试数**:core 928 / viz 1180 / 总计 2108(全部通过)
+- **测试数**: core 928 / viz 1187 / 总计 2115 (全部通过)
 - 质量门禁:`npm run precheck`(build:core → typecheck → lint → format:check → test → selfcheck)
 
 ## 项目简介

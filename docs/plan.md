@@ -17,10 +17,11 @@
   - `b0bd171` 清理失效/一次性脚本(verify-3d-coverage.mjs 因 SCENES 重构失效、fix-scene-names/split-scenes/rewrite-time-series 等迁移工具、.scratch 草稿)
   - README 补测试数行(core 923 / viz 1159 / 2082)
   - **audit 遗留低优先级清理完成**(liquid-crystal 透射率曲线迁引擎 x_t Tarasov + capillary 常量 ρ_汞 13534/θ 汞+石蜡 150° 对齐引擎,契约测试 21→23)
-- 测试数:core 923 (66 files) + viz 1161 (29 files) = 2084(2026-08-11 实测)
-- `WorkbenchScene 拆分` — ProjectileScene(430 行) 拆为 components/workbench/ 组件族 (WorkbenchScene/SceneStage/InspectorPanel/DataDrawer/TextbookDirectory + useSceneRig/useCompareSimulations/useSceneSimulation)；CompareEntry 支持失败变体显式报错 (result 可空 + error)；tests/workbench/ 新增 16 例 (2026-08-15 实测 viz 1180 (32 files) + core 928 = 2108)
-- **缺口场景已全部补建**:`docs/DEVELOPMENT_GUIDE.md` 列出的 8 个可视化缺口(total-internal-reflection / current-magnetic / efield-lines / newton-tube / bulb-vi / work-energy / ball-xt / geiger-counter)均已存在
-- 无剩余低优先级清理项(audit 第 5 批标记的 liquid-crystal / capillary 分歧已收尾)
+- 测试数: core 928 (66 files) + viz 1187 (33 files) = 2115 (2026-08-15 实测)
+- `WorkbenchScene 拆分` — ProjectileScene(430 行) 拆为 components/workbench/ 组件族 (WorkbenchScene/SceneStage/InspectorPanel/DataDrawer/TextbookDirectory + useSceneRig/useCompareSimulations/useSceneSimulation)；CompareEntry 支持失败变体显式报错 (result 可空 + error)；tests/workbench/ 新增 16 例
+- `课堂教学脚本系统 (Classroom Scripts)` — 扩充至 **24 个高中高频核心实验** 的 5 阶段结构化教学全流程（目标 → 启发演示 → 变量对比 → 预测提问与错因剖析 → 结论与公式）+ `ClassroomScriptPanel` 组件 + 7 例契约测试全绿通过
+- `教材目录精讲高亮与置顶` — 在 `TextbookDirectory` 中加入 **“🌟 高中核心精讲 (24 节)”** 置顶推荐组与 `[精讲]` 勋章 Badge，极大提升老师备课选课效率
+- `质量门禁与脚本补齐` — 根目录 `package.json` 补齐 `verify:3d` 脚本，全量 `npm run precheck` 与 9 层物理自检全部通过
 
 ---
 
