@@ -137,6 +137,20 @@ scripts/               — 验证脚本 (self-check.mjs L0-L9 物理自检, veri
 - Zustand 管理前端状态，场景组件负责构建 PhysicsProblem 并调用 solveProblem
 - OCR 代理在后端调用 Anthropic API，避免前端暴露 API Key
 
+## Agent skills
+
+### Issue tracker
+
+Issues tracked in GitHub Issues (zhangjszs/physical-modelvis via gh CLI). See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Five canonical labels (needs-triage, needs-info, ready-for-agent, ready-for-human, wontfix). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one CONTEXT.md + docs/adr/ at repo root. See `docs/agents/domain.md`.
+
 ## Conventions
 - TypeScript strict mode
 - React 18 + TypeScript for visualization
