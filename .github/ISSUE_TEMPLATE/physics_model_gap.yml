@@ -1,0 +1,39 @@
+name: 📐 物理模型或公式校验 (Physics Model Gap)
+description: 反馈物理模型计算偏差、守恒律误差、边界条件异常或教材实验缺失
+title: "[Physics Gap]: "
+labels: ["needs-triage", "physics-model"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        本模板用于反馈物理引擎 (`physics-core`) 的计算准确性、公式实现或人教版教材实验模型的补全需求。
+  - type: input
+    id: textbook-ref
+    attributes:
+      label: 对应人教版教材与章节
+      description: 例如：必修一 第3章「相互作用——力」、选必二 第2章「电磁感应」
+      placeholder: "例如: 选必一 第1章 动量守恒定律"
+    validations:
+      required: true
+  - type: input
+    id: model-name
+    attributes:
+      label: 物理模型 / 场景名称
+      description: 引擎中的 Model ID 或文件名（如 `momentum`, `collision`, `em-induction`）
+    validations:
+      required: true
+  - type: textarea
+    id: issue-type
+    attributes:
+      label: 偏差描述与公式对比
+      description: |
+        请明确说明：
+        1. 现状：当前引擎或渲染的表现（如 NaN、能量不守恒、图表单位错误）
+        2. 正确公式：标准解析解或物理守恒定律方程
+    validations:
+      required: true
+  - type: textarea
+    id: references
+    attributes:
+      label: 教材依据与参考资料
+      description: 课本页码、教学参考书、论文或高考典型例题出处

@@ -25,31 +25,28 @@
 
 ```
 physical_modelvis/
-├── physics-core/          # TypeScript 物理引擎（零依赖）
-│   ├── src/
-│   │   ├── models/        # 113 个物理模型
-│   │   ├── math/          # Vec2D 向量运算
-│   │   ├── types/         # 类型定义 (PhysicsProblem, SimulationResult)
-│   │   ├── units/         # 单位换算和物理常数
-│   │   └── solver/        # 求解器路由（自动注册模型）
-│   └── tests/             # 单元测试
+├── physics-core/          # TypeScript 物理引擎（零依赖，113 个物理模型）
+│   ├── src/               # 核心源码 (models / math / solver / types / units)
+│   └── tests/             # 单元测试与解析解差分精度测试
 │
-├── visualization/         # React 可视化前端
-│   ├── src/
-│   │   ├── components/    # UI 组件（Canvas / 图表 / 控制面板 / OCR / 3D 实验引擎）
-│   │   ├── scenes/        # 123 个场景配置 (scenes/scenes/ 按章节分组)
-│   │   ├── rendering/     # Canvas 渲染器
-│   │   ├── adapters/      # physics-core 适配器
-│   │   ├── store/         # Zustand 状态管理
-│   │   └── utils/         # 工具函数
+├── visualization/         # React 可视化前端（123 个教学场景）
+│   ├── src/               # UI 组件、渲染层、Zustand 状态与场景定义
 │   ├── server/            # OCR 后端代理 (Express + Anthropic API)
-│   └── tests/            # 单元测试 + 准确性测试
+│   └── tests/             # 准确性测试、单一真源契约测试与组件测试
 │
 ├── experiments/           # 人教版高中物理实验整理（176 个实验 / 6 册教材）
-├── scripts/              # 自检脚本 (self-check.mjs) 等工具
-├── .github/workflows/    # CI / CD 流水线
-└── .husky/               # Git pre-push 钩件
+├── docs/                  # 项目文档中心（详见 docs/README.md）
+│   ├── adr/               # 架构决策记录 (ADR)
+│   ├── agents/            # AI 协作与工作流规范
+│   └── archive/           # 历史交付与复盘归档
+├── scripts/               # 9 层物理自检与 Playwright 端到端冒烟测试（详见 scripts/README.md）
+├── .github/               # GitHub Actions CI/CD 流水线与 Issue/PR 协作模板
+└── .husky/                # Git pre-push 质量门禁钩子
 ```
+
+> 📖 **文档中心**：完整技术文档、架构设计与 123 场景审计表请查阅 [docs/README.md](file:///home/kerwin/coding/physical_modelvis/docs/README.md)。  
+> 📋 **版本记录**：历史里程碑与版本演进请查阅 [CHANGELOG.md](file:///home/kerwin/coding/physical_modelvis/CHANGELOG.md)。
+
 
 ## 快速开始
 

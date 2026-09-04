@@ -1,0 +1,60 @@
+name: 🐛 Bug 报告 (Bug Report)
+description: 提交可视化仿真、UI 界面或物理计算中的问题
+title: "[Bug]: "
+labels: ["needs-triage", "bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢提交 Bug 反馈！提交前请确认您已拉取最新代码并在本地测试。
+  - type: input
+    id: scene
+    attributes:
+      label: 涉及场景 / 实验
+      description: 发生问题的场景 ID、名称或实验编号（例如 `projectile`, `lc-oscillator`, `E-1`）
+      placeholder: "例如: projectile (平抛运动)"
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 复现步骤
+      description: 详细描述如何复现此问题
+      placeholder: |
+        1. 打开场景 '...'
+        2. 调节参数 '...' 至 '...'
+        3. 点击播放仿真
+        4. 观察到 '...'
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 预期物理行为
+      description: 根据教科书或物理公式，预期的运动轨迹、曲线或数值应该是怎样的？
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际行为
+      description: 实际看到的现象（若有控制台报错、NaN、图表异常请贴出）
+    validations:
+      required: true
+  - type: dropdown
+    id: environment
+    attributes:
+      label: 运行环境
+      options:
+        - Chrome / Chromium
+        - Firefox
+        - Safari
+        - Edge
+        - 其它
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: 附加信息
+      description: 截图、报错日志或其它有助于定位的信息

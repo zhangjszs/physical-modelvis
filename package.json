@@ -2,7 +2,7 @@
   "name": "physical_modelvis",
   "version": "1.0.0",
   "description": "高中物理教学可视化仿真平台 — 自研零依赖 TypeScript 物理引擎 + React/Canvas 2D 前端，覆盖 176 个实验 / 123 个场景 / 113 个物理模型",
-  "main": "index.js",
+  "private": true,
   "repository": {
     "type": "git",
     "url": "https://github.com/zhangjszs/physical-modelvis.git"
@@ -16,6 +16,10 @@
     "test": "cd physics-core && npm test && cd ../visualization && npm test",
     "test:core": "cd physics-core && npm test",
     "test:viz": "cd visualization && npm test",
+    "test:smoke:3d": "node scripts/verify-3d-smoke.cjs",
+    "test:smoke:render": "node scripts/verify-e1-render-smoke.cjs",
+    "test:smoke:guidance": "node scripts/verify-guidance-smoke.cjs",
+    "test:smoke:ocr": "node scripts/verify-ocr-mount.cjs",
     "build": "cd physics-core && npm run build && cd ../visualization && npm run build",
     "build:core": "cd physics-core && npm run build",
     "build:viz": "cd visualization && npm run build",
@@ -50,10 +54,8 @@
     "eslint": "^9.18.0",
     "eslint-plugin-unused-imports": "^4.4.1",
     "husky": "^9.1.7",
+    "playwright": "^1.61.1",
     "prettier": "^3.8.3",
     "typescript-eslint": "^8.20.0"
-  },
-  "dependencies": {
-    "playwright": "^1.61.1"
   }
 }

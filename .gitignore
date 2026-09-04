@@ -30,6 +30,9 @@ pnpm-debug.log*
 .env.local
 .env.*.local
 .env.*
+!.env.example
+!**/.env.example
+
 
 # Temporary files
 tmp/
@@ -42,8 +45,10 @@ tmp/
 # Turborepo / task runners
 .turbo/
 
-# Test coverage
+# Test coverage & e2e outputs
 coverage/
+playwright-report/
+test-results/
 
 # Vite
 .vite/
@@ -64,6 +69,9 @@ coverage/
 .claude/
 .mimocode/
 .agents/
+.superpowers/
+**/.superpowers/
 
 # Windows reserved name
 nul
+

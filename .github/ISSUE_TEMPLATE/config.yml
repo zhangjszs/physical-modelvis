@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 📖 项目文档中心 (Documentation)
+    url: https://github.com/zhangjszs/physical-modelvis/tree/main/docs
+    about: 查阅架构设计、渲染审计表与开发指南
+  - name: 🔬 在线体验平台 (Live Demo)
+    url: https://zhangjszs.github.io/physical-modelvis/
+    about: 在浏览器中直接体验 123 个高中物理教学仿真场景

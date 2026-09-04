@@ -49,14 +49,24 @@ npm run precheck
 - **Test Coverage** — 每个 exported 函数至少 1 positive + 1 edge-case 测试
 - **Rendering Contract** — scene `parameters[].name` 与 `buildProblem` 配套
 
-## 测试
+## 参与贡献流程
+
+1. **查阅文档**：在开始前，请先通读 [docs/README.md](file:///home/kerwin/coding/physical_modelvis/docs/README.md) 和 [docs/DEVELOPMENT_GUIDE.md](file:///home/kerwin/coding/physical_modelvis/docs/DEVELOPMENT_GUIDE.md)。
+2. **提出 Issue**：发现 Bug 或有新功能提议，请使用 [.github/ISSUE_TEMPLATE/](file:///home/kerwin/coding/physical_modelvis/.github/ISSUE_TEMPLATE/) 对应的规范模板提交。
+3. **拉取分支**：基于 `main` 分支创建特性分支（`feat/...` 或 `fix/...`）。
+4. **提交 PR**：完成开发并通过本地门禁后发起 Pull Request，填写 [.github/PULL_REQUEST_TEMPLATE.md](file:///home/kerwin/coding/physical_modelvis/.github/PULL_REQUEST_TEMPLATE.md) 检查清单。
+
+## 测试与验证
 
 ```bash
-npm test             # physics-core + visualization 全部
-npm run test:core    # 仅 physics-core
-npm run test:viz     # 仅 visualization
+npm test                 # physics-core + visualization 全部测试 (2115+ 用例)
+npm run test:core        # 仅 physics-core 单元测试
+npm run test:viz         # 仅 visualization 测试
+npm run selfcheck        # 运行 9 层物理引擎自检 (L0-L9)
+npm run test:smoke:3d    # 3D 实验仪器冒烟测试 (需 Dev Server 启动)
 ```
 
 ## License
 
 贡献即表示你同意你的贡献将以 MIT License 发布。
+
