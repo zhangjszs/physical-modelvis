@@ -1,8 +1,13 @@
-import { useState } from 'react';
-import { useSimulationStore } from '../../store/simulationStore';
+/**
+ * 教材实验分类标准定义（人教版高中物理 6 册）
+ */
 
-/** 场景分类 — 按 6 大教材分类 + 综合演示 */
-export const SCENE_CATEGORIES = [
+export interface SceneCategory {
+    label: string;
+    ids: string[];
+}
+
+export const SCENE_CATEGORIES: SceneCategory[] = [
     {
         label: '必修一 (力学基础)',
         ids: [
@@ -157,57 +162,3 @@ export const SCENE_CATEGORIES = [
         ]
     }
 ];
-
-export function SceneSelector() {
-    const currentScene = useSimulationStore(s => s.currentScene);
-    const setScene = useSimulationStore(s => s.setScene);
-    const scenes = useSimulationStore(s => s.scenes);
-    const [openCategory, setOpenCategory] = useState<string | null>(null);
-
-    const sceneMap = new Map(scenes.map(s => [s.id, s.name]));
-
-    const activeCategory = SCENE_CATEGORIES.find(cat => cat.ids.includes(currentScene));
-
-    return (
-        <div className="scene-selector">
-            {SCENE_CATEGORIES.map(cat => {
-                const isActive = activeCategory?.label === cat.label;
-                const isOpen = openCategory === cat.label;
-
-                return (
-                    <div key={cat.label} className="scene-category">
-                        <button
-                            className={`scene-cat-btn ${isActive ? 'active' : ''}`}
-                            onClick={() => setOpenCategory(isOpen ? null : cat.label)}
-                            aria-haspopup="true"
-                            aria-expanded={isOpen}
-                            aria-label={cat.label}
-                        >
-                            {cat.label}
-                            <span className="scene-cat-arrow" aria-hidden="true">
-                                {isOpen ? '▴' : '▾'}
-                            </span>
-                        </button>
-                        {isOpen && (
-                            <div className="scene-dropdown">
-                                <div className="scene-dropdown-label">{cat.label}</div>
-                                {cat.ids.map(id => (
-                                    <button
-                                        key={id}
-                                        className={`scene-dropdown-item ${currentScene === id ? 'active' : ''}`}
-                                        onClick={() => {
-                                            setScene(id);
-                                            setOpenCategory(null);
-                                        }}
-                                    >
-                                        {sceneMap.get(id) ?? id}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                );
-            })}
-        </div>
-    );
-}

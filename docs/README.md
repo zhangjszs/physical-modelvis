@@ -37,6 +37,7 @@ docs/
 | 文档 | 说明 | 核心内容 |
 | :--- | :--- | :--- |
 | [rendering-physics-audit.md](file:///home/kerwin/coding/physical_modelvis/docs/rendering-physics-audit.md) | **渲染单一真源审计表**：全库 123 个场景的渲染数据来源审计与迁移状态。改渲染前必读！ | 单一真源规范、防漂移契约 |
+| [3D_CORE_STANDARDIZATION_SUMMARY.md](file:///home/kerwin/coding/physical_modelvis/docs/3D_CORE_STANDARDIZATION_SUMMARY.md) | **高中核心精讲 (24 节) 3D 实验标准化总结**：24 节核心实验 3D 物理器材建模、柔和光影与随动机制。 | 3D 真实实验器材升级 |
 | [experiment-design-spec.md](file:///home/kerwin/coding/physical_modelvis/docs/experiment-design-spec.md) | **实验设计规范**：人教版 176 个实验的模型抽象、交互面板设计与图表规范。 | 物理模型开发 |
 | [self-check-loop.md](file:///home/kerwin/coding/physical_modelvis/docs/self-check-loop.md) | **9 层物理自检闭环**：L0-L9 守恒律、数值鲁棒性与解析解差分验证体系详解。 | 质量工程 / 引擎维护 |
 

@@ -123,4 +123,79 @@ describe('3D rig 契约: buildEquipment 默认参数不抛错', () => {
             expect(Math.abs(p.y)).toBeLessThan(10);
         }
     });
+
+    describe('第一批 8 个重构 3D 实验标准化验收', () => {
+        const batch1Scenes = [
+            'newton-tube',
+            'motion-composition',
+            'transmission-belt',
+            'vertical-circle',
+            'centrifugal',
+            'curve-condition',
+            'curve-velocity-direction',
+            'cavendish'
+        ] as const;
+
+        for (const sceneId of batch1Scenes) {
+            it(`batch1 场景 ${sceneId}: buildEquipment / updateEquipment / onAnimate 完整生命周期测试`, async () => {
+                const rig = await loadSceneRig(sceneId);
+                expect(rig, `${sceneId} rig 已加载`).toBeDefined();
+                const scene = new THREE.Scene();
+                const params = defaultParams(sceneId);
+                const built = rig!.buildEquipment(scene, params);
+                expect(built.group).toBeInstanceOf(THREE.Group);
+                expect(built.handles).toBeDefined();
+
+                // updateEquipment 验证
+                rig!.updateEquipment(built.handles, params);
+
+                // getOrigin 与 getVisualPosition 初始点一致性验证
+                const origin = rig!.getOrigin(params);
+                const vp0 = rig!.getVisualPosition({ x: 0, y: 0 }, params);
+                expect(Number.isFinite(origin.x) && Number.isFinite(origin.y) && Number.isFinite(origin.z)).toBe(true);
+                expect(Number.isFinite(vp0.x) && Number.isFinite(vp0.y) && Number.isFinite(vp0.z)).toBe(true);
+
+                // 特殊场景起点吻合断言
+                if (sceneId === 'newton-tube' || sceneId === 'motion-composition') {
+                    expect(Math.abs(origin.y - vp0.y)).toBeLessThan(1e-3);
+                }
+
+                // onAnimate 多帧随动执行验证 (t = 0, 0.5, 1.0)
+                if (rig!.onAnimate) {
+                    for (const t of [0, 0.5, 1.0]) {
+                        const vp = rig!.getVisualPosition({ x: t, y: -t }, params);
+                        expect(() => {
+                            rig!.onAnimate!(built.handles, { time: t, ballPos: vp, params });
+                        }).not.toThrow();
+                    }
+                }
+            });
+        }
+
+        it('transmission-belt: 四种传动模式 (皮带/齿轮/摩擦轮/同轴) update & animate 均正常', async () => {
+            const rig = await loadSceneRig('transmission-belt');
+            const scene = new THREE.Scene();
+            const built = rig!.buildEquipment(scene, { mode: 0, r1: 0.1, r2: 0.2, omega1: 10 });
+            for (const mode of [0, 1, 2, 3]) {
+                const params = { mode, r1: 0.1, r2: 0.2, omega1: 10 };
+                rig!.updateEquipment(built.handles, params);
+                expect(() => {
+                    rig!.onAnimate!(built.handles, { time: 0.5, ballPos: new THREE.Vector3(0, 0, 0), params });
+                }).not.toThrow();
+            }
+        });
+
+        it('vertical-circle: 三种约束模式 (绳/杆/圆环) update & animate 均正常', async () => {
+            const rig = await loadSceneRig('vertical-circle');
+            const scene = new THREE.Scene();
+            const built = rig!.buildEquipment(scene, { modelType: 0, length: 1, initialSpeed: 7.5 });
+            for (const modelType of [0, 1, 2]) {
+                const params = { modelType, length: 1, initialSpeed: 7.5 };
+                rig!.updateEquipment(built.handles, params);
+                expect(() => {
+                    rig!.onAnimate!(built.handles, { time: 0.5, ballPos: new THREE.Vector3(0, 1.4, 0), params });
+                }).not.toThrow();
+            }
+        });
+    });
 });

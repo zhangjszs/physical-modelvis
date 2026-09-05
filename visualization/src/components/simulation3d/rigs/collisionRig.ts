@@ -1,39 +1,72 @@
 /**
- * 碰撞 rig — 台面 + 运动双球
+ * 碰撞与动量守恒 rig — 精密低摩擦碰撞导轨 + 双光电门测速 + 动量守恒标牌
  * 用于 collision、momentum、projectile-collision
- * 双球由 Stage 按引擎两条轨迹渲染 (碰撞/动量/平抛碰撞均为双体输出),
- * 此处不再放静态装饰球 — 静态球与运动轨迹不在同一世界尺度, 会误导画面。
  */
 import * as THREE from 'three';
 import { SceneRig } from '../EquipmentStage';
-import { makeBox, makeTextSprite } from '../primitives';
+import { createLinearTrack, LinearTrackHandles } from '../equipment/linearTrack';
+import { makeTextSprite } from '../primitives';
+import { num, setLabel } from './params';
 
 const WORLD_SCALE = 0.16;
+const BALL_RADIUS = 0.18;
+const TRACK_Y = 0.17;
+
+interface CollisionHandles {
+    trackHandles: LinearTrackHandles;
+    infoLabel: THREE.Sprite;
+}
 
 export const collisionRig: SceneRig = {
     worldScale: WORLD_SCALE,
+    ballRadius: BALL_RADIUS,
+    clampToGround: true,
 
-    buildEquipment(scene, _params) {
-        // 碰撞台面
-        const table = makeBox(4.0, 0.04, 1.0, 0xe2e8f0, 0.8, 0);
-        table.position.set(0, 0.02, 0);
-        scene.add(table);
+    buildEquipment(scene, params) {
+        // 1. 碰撞实验精密导轨 (带两端防撞与标尺)
+        const { group, handles: trackHandles } = createLinearTrack(5.6, 0.32, 0.14, [1.6, 4.0]);
+        group.position.set(0, 0, 0);
+        scene.add(group);
 
-        // 标签
-        const label = makeTextSprite('光滑水平面', '#94a3b8', 22, { x: 0.8, y: 0.2 });
-        label.position.set(0, 0.2, 0);
-        scene.add(label);
+        // 2. 动量守恒标牌
+        const m1 = num(params['m1'], 1);
+        const m2 = num(params['m2'], 1);
+        const v1 = num(params['v1'], 2);
+        const v2 = num(params['v2'], 0);
+        const pTotal = m1 * v1 + m2 * v2;
 
-        return { group: new THREE.Group(), handles: { table } };
+        const infoLabel = makeTextSprite(
+            `总动量 P = m₁v₁ + m₂v₂ = ${pTotal.toFixed(2)} kg·m/s | 碰撞动量守恒`,
+            '#059669',
+            24,
+            { x: 1.5, y: 0.22 }
+        );
+        infoLabel.position.set(0, 0.65, 0.35);
+        scene.add(infoLabel);
+
+        return {
+            group,
+            handles: { trackHandles, infoLabel }
+        };
     },
 
-    updateEquipment(_handles, _params) {},
+    updateEquipment(handles, params) {
+        const h = handles as unknown as CollisionHandles;
+        const m1 = num(params['m1'], 1);
+        const m2 = num(params['m2'], 1);
+        const v1 = num(params['v1'], 2);
+        const v2 = num(params['v2'], 0);
+        const pTotal = m1 * v1 + m2 * v2;
+
+        setLabel(h.infoLabel, `总动量 P = m₁v₁ + m₂v₂ = ${pTotal.toFixed(2)} kg·m/s | 碰撞动量守恒`, '#059669');
+    },
 
     getVisualPosition(pos, _params) {
-        return new THREE.Vector3(pos.x * WORLD_SCALE, 0.2, pos.y * WORLD_SCALE * 0.5);
+        // 双球严格沿导轨中心线对心正碰
+        return new THREE.Vector3(pos.x * WORLD_SCALE, TRACK_Y + BALL_RADIUS, 0);
     },
 
     getOrigin(_params) {
-        return new THREE.Vector3(0, 0.2, 0);
+        return new THREE.Vector3(0, TRACK_Y + BALL_RADIUS, 0);
     }
 };

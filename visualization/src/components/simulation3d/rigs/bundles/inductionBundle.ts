@@ -5,6 +5,7 @@
 import type { SceneRig } from '../../EquipmentStage';
 import { ampereForceRig } from '../ampereForceRig';
 import { circuitRig } from '../circuitRig';
+import { lcOscillatorRig } from '../lcOscillatorRig';
 import { emWaveRig } from '../emWaveRig';
 import { fieldRig } from '../fieldRig';
 import { thermistorRig } from '../thermistorRig';
@@ -15,7 +16,7 @@ import { strainGaugeRig } from '../strainGaugeRig';
 export default {
     'magnetic-force': ampereForceRig,
     'ac-current': circuitRig,
-    'lc-oscillator': circuitRig,
+    'lc-oscillator': lcOscillatorRig,
     'current-balance': ampereForceRig,
     'eddy-current': ampereForceRig,
     'em-damping': ampereForceRig,

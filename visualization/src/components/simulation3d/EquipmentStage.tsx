@@ -57,6 +57,11 @@ export interface SceneRig {
     getVisualPosition(pos: { x: number; y: number }, params: Record<string, number>): THREE.Vector3;
     /** 轨迹起点在 3D 空间的位置（发射口 / 释放点） */
     getOrigin(params: Record<string, number>): THREE.Vector3;
+    /** 动画每帧回调 (用于悬绳、弹簧等器材部件实时连接到小球当前位置) */
+    onAnimate?(
+        handles: Record<string, unknown>,
+        ctx: { time: number; ballPos: THREE.Vector3; params: Record<string, number> }
+    ): void;
 }
 
 interface EquipmentStageProps {
@@ -73,21 +78,14 @@ interface EquipmentStageProps {
 // 内部句柄
 // ---------------------------------------------------------------------------
 
-/** 视角预设: 默认 / 侧视 / 俯视 / 正视 */
+/** 视角预设: 3D透视 / 立面正视(X-Y) / 垂直俯视 / 纵深视角 */
 export type ViewPreset = 'default' | 'side' | 'top' | 'front';
 
-/** 预设视角相对"初始注视点"的相机偏移 (x, y, z) */
-const VIEW_PRESET_OFFSET: Record<Exclude<ViewPreset, 'default'>, [number, number, number]> = {
-    side: [10, 0.5, 0],
-    top: [0, 10, 0.1],
-    front: [0, 1.5, 10]
-};
-
 const VIEW_PRESET_LABEL: Record<ViewPreset, string> = {
-    default: '默认',
-    side: '侧视',
+    default: '3D透视',
+    side: '立面(X-Y)',
     top: '俯视',
-    front: '正视'
+    front: '纵深'
 };
 
 interface StageHandles {
@@ -124,20 +122,43 @@ export function EquipmentStage({ rig, cameraPosition, cameraTarget, caption }: E
     const currentTimeRef = useRef(0);
     const parametersRef = useRef<Record<string, number>>({});
     const visibleLayersRef = useRef<{ trajectory: boolean; axes: boolean }>({ trajectory: true, axes: true });
-    const initialViewRef = useRef<{ pos: [number, number, number]; target: [number, number, number] } | null>(null);
+    const initialViewRef = useRef<{
+        pos: [number, number, number];
+        target: [number, number, number];
+        dist: number;
+    } | null>(null);
 
     const [viewPreset, setViewPreset] = useState<ViewPreset>('default');
 
-    const { playbackSpeed, parameters, visibleLayers } = useSimulationStore();
+    const playbackSpeed = useSimulationStore(s => s.playbackSpeed);
+    const parameters = useSimulationStore(s => s.parameters);
+    const visibleLayers = useSimulationStore(s => s.visibleLayers);
     const simulationResult = useSimulationStore(s => s.simulationResult);
-    const currentTime = useSimulationStore(s => s.currentTime);
     const isPlaying = useSimulationStore(s => s.isPlaying);
+    const theme = useSimulationStore(s => s.theme);
     // action / stable selectors 返回稳定引用, 不会触发重渲染
     const setCurrentTime = useSimulationStore(s => s.setCurrentTime);
     const pause = useSimulationStore(s => s.pause);
 
+    // 监听 currentTime 变动，仅写入 ref，不触发 React 重渲染，彻底解耦 60fps 动画与 React 调度
+    useEffect(() => {
+        currentTimeRef.current = useSimulationStore.getState().currentTime;
+        return useSimulationStore.subscribe(state => {
+            currentTimeRef.current = state.currentTime;
+        });
+    }, []);
+
+    // 动态主题联动：背景色与雾效跟随深/浅色切换
+    useEffect(() => {
+        const handles = handlesRef.current;
+        if (!handles) return;
+        const isDark = theme === 'dark';
+        const bgColor = isDark ? 0x0b1020 : 0xf8fafc;
+        handles.scene.background = new THREE.Color(bgColor);
+        handles.scene.fog = new THREE.Fog(bgColor, 24, 72);
+    }, [theme]);
+
     // 每次 render 把最新值写进 ref，rAF 循环只读 ref
-    currentTimeRef.current = currentTime;
     parametersRef.current = parameters;
     visibleLayersRef.current = visibleLayers;
 
@@ -148,11 +169,13 @@ export function EquipmentStage({ rig, cameraPosition, cameraTarget, caption }: E
         const host = hostRef.current;
         if (!host) return;
 
+        const isDark = theme === 'dark';
+        const bgColor = isDark ? 0x0b1020 : 0xf8fafc;
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0xf8fafc);
-        scene.fog = new THREE.Fog(0xf8fafc, 18, 36);
+        scene.background = new THREE.Color(bgColor);
+        scene.fog = new THREE.Fog(bgColor, 24, 72);
 
-        const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+        const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 150);
         const defaultCamPos = cameraPosition ?? [6.5, 4.5, 8.0];
         camera.position.set(...defaultCamPos);
 
@@ -167,11 +190,13 @@ export function EquipmentStage({ rig, cameraPosition, cameraTarget, caption }: E
         controls.target.set(...defaultTarget);
         controls.enableDamping = true;
         controls.dampingFactor = 0.08;
-        controls.minDistance = 4;
-        controls.maxDistance = 20;
-        controls.maxPolarAngle = Math.PI * 0.48;
+        controls.minDistance = 0.5;
+        controls.maxDistance = 80;
+        controls.zoomSpeed = 1.2;
+        controls.panSpeed = 1.0;
+        controls.maxPolarAngle = Math.PI * 0.49;
         controls.update();
-        initialViewRef.current = { pos: defaultCamPos, target: defaultTarget };
+        initialViewRef.current = { pos: defaultCamPos, target: defaultTarget, dist: 9.0 };
 
         createEnvironment(scene);
 
@@ -241,7 +266,12 @@ export function EquipmentStage({ rig, cameraPosition, cameraTarget, caption }: E
             ro.disconnect();
             controls.dispose();
             disposeObject(scene);
-            renderer.dispose();
+            try {
+                renderer.dispose();
+                renderer.forceContextLoss();
+            } catch {
+                // 防御异常
+            }
             if (renderer.domElement.parentElement === host) {
                 host.removeChild(renderer.domElement);
             }
@@ -260,18 +290,30 @@ export function EquipmentStage({ rig, cameraPosition, cameraTarget, caption }: E
         }
     }, [parameters, rig]);
 
-    // —— 2.5 视角预设：切换相机位置（相对初始注视点偏移） ——
+    // —— 2.5 视角预设：切换相机位置 ——
     useEffect(() => {
         const handles = handlesRef.current;
         const init = initialViewRef.current;
         if (!handles || !init) return;
         const { camera, controls } = handles;
+        const target = init.target;
+        const dist = init.dist;
+
         if (viewPreset === 'default') {
             camera.position.set(...init.pos);
             controls.target.set(...init.target);
-        } else {
-            const off = VIEW_PRESET_OFFSET[viewPreset];
-            camera.position.set(init.target[0] + off[0], init.target[1] + off[1], init.target[2] + off[2]);
+        } else if (viewPreset === 'side') {
+            // 立面正视 (X-Y 平面): 从 +Z 看向 -Z，左为发射点，右为落地垫
+            camera.position.set(target[0], target[1], dist * 1.15);
+            controls.target.set(...target);
+        } else if (viewPreset === 'top') {
+            // 垂直俯视: 从上方直视跑道
+            camera.position.set(target[0], target[1] + dist * 1.25, 0.001);
+            controls.target.set(...target);
+        } else if (viewPreset === 'front') {
+            // 纵深视角: 沿 +X 轴看向发射口
+            camera.position.set(target[0] + dist * 1.1, target[1] + 0.4, 0);
+            controls.target.set(...target);
         }
         controls.update();
     }, [viewPreset]);
@@ -330,8 +372,29 @@ export function EquipmentStage({ rig, cameraPosition, cameraTarget, caption }: E
             visualPointsList.push(visualPoints);
         }
 
-        // 残影覆盖主轨迹
+        // 残影覆盖主轨迹 & 动态全景居中
         const mainVisual = visualPointsList[0] ?? [];
+        if (mainVisual.length > 0) {
+            let minX = Infinity;
+            let maxX = -Infinity;
+            let minY = Infinity;
+            let maxY = -Infinity;
+            for (const pt of mainVisual) {
+                if (pt.x < minX) minX = pt.x;
+                if (pt.x > maxX) maxX = pt.x;
+                if (pt.y < minY) minY = pt.y;
+                if (pt.y > maxY) maxY = pt.y;
+            }
+            const xMid = (minX + maxX) / 2;
+            const yMid = Math.max(0.6, (minY + maxY) / 2);
+            const spanX = Math.max(4, maxX - minX);
+            const spanY = Math.max(2, maxY - minY);
+            const dist = Math.max(5.5, spanX * 0.9, spanY * 1.8);
+            const newTarget: [number, number, number] = [xMid, yMid, 0];
+            const newCamPos: [number, number, number] = [xMid + dist * 0.45, yMid + dist * 0.35, dist * 0.85];
+            initialViewRef.current = { pos: newCamPos, target: newTarget, dist };
+        }
+
         handles.ghostBalls.forEach((ghost, i) => {
             if (mainVisual.length === 0) {
                 ghost.visible = false;
@@ -401,11 +464,25 @@ export function EquipmentStage({ rig, cameraPosition, cameraTarget, caption }: E
                     if (i === 0) {
                         // 投影线/阴影跟随主球
                         handles.shadowPlate.position.set(ballPos.x, 0.028, ballPos.z);
-                        handles.projectionLine.geometry.dispose();
-                        handles.projectionLine.geometry = new THREE.BufferGeometry().setFromPoints([
-                            new THREE.Vector3(ballPos.x, 0.035, ballPos.z),
-                            new THREE.Vector3(ballPos.x, ballPos.y, ballPos.z)
-                        ]);
+                        const projPos = handles.projectionLine.geometry.attributes['position'] as
+                            THREE.BufferAttribute | undefined;
+                        if (projPos && projPos.array) {
+                            const arr = projPos.array as Float32Array;
+                            arr[0] = ballPos.x;
+                            arr[1] = 0.035;
+                            arr[2] = ballPos.z;
+                            arr[3] = ballPos.x;
+                            arr[4] = ballPos.y;
+                            arr[5] = ballPos.z;
+                            projPos.needsUpdate = true;
+                        }
+                        if (rig.onAnimate) {
+                            try {
+                                rig.onAnimate(handles.equipmentHandles, { time: now, ballPos, params });
+                            } catch {
+                                // 防御异常不中断循环
+                            }
+                        }
                     }
                 }
                 // 图层可见性
@@ -421,15 +498,42 @@ export function EquipmentStage({ rig, cameraPosition, cameraTarget, caption }: E
                 handles.controls.update();
                 handles.renderer.render(handles.scene, handles.camera);
             }
-            requestAnimationFrame(tick);
+            if (running) {
+                animId = requestAnimationFrame(tick);
+            }
         };
-        requestAnimationFrame(tick);
+        let animId = requestAnimationFrame(tick);
         return () => {
             running = false;
+            cancelAnimationFrame(animId);
         };
     }, [simulationResult, isPlaying, playbackSpeed, setCurrentTime, pause, rig, ballRadius]);
 
     const captionText = caption?.(parameters) ?? '';
+
+    const handleZoomIn = () => {
+        const handles = handlesRef.current;
+        if (!handles) return;
+        handles.controls.dollyIn(1.25);
+        handles.controls.update();
+    };
+
+    const handleZoomOut = () => {
+        const handles = handlesRef.current;
+        if (!handles) return;
+        handles.controls.dollyOut(1.25);
+        handles.controls.update();
+    };
+
+    const handleFitAll = () => {
+        const handles = handlesRef.current;
+        const init = initialViewRef.current;
+        if (!handles || !init) return;
+        handles.controls.target.set(...init.target);
+        handles.camera.position.set(...init.pos);
+        handles.controls.update();
+        setViewPreset('default');
+    };
 
     return (
         <div className="projectile-3d-stage" ref={hostRef}>
@@ -439,7 +543,7 @@ export function EquipmentStage({ rig, cameraPosition, cameraTarget, caption }: E
                     <em>拖动旋转视角，滚轮缩放，右键平移</em>
                 </div>
             )}
-            <div className="view-preset-bar" aria-label="视角预设">
+            <div className="view-preset-bar" aria-label="视角预设与缩放控制">
                 {(Object.keys(VIEW_PRESET_LABEL) as ViewPreset[]).map(p => (
                     <button
                         key={p}
@@ -450,6 +554,34 @@ export function EquipmentStage({ rig, cameraPosition, cameraTarget, caption }: E
                         {VIEW_PRESET_LABEL[p]}
                     </button>
                 ))}
+                <div className="view-preset-divider" />
+                <button
+                    type="button"
+                    className="view-hud-btn"
+                    title="放大视角"
+                    onClick={handleZoomIn}
+                    aria-label="放大"
+                >
+                    ➕
+                </button>
+                <button
+                    type="button"
+                    className="view-hud-btn"
+                    title="缩小视角"
+                    onClick={handleZoomOut}
+                    aria-label="缩小"
+                >
+                    ➖
+                </button>
+                <button
+                    type="button"
+                    className="view-hud-btn"
+                    title="全景自适应居中"
+                    onClick={handleFitAll}
+                    aria-label="全景居中"
+                >
+                    🎯
+                </button>
             </div>
         </div>
     );

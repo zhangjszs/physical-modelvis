@@ -21,7 +21,8 @@
 - `WorkbenchScene 拆分` — ProjectileScene(430 行) 拆为 components/workbench/ 组件族 (WorkbenchScene/SceneStage/InspectorPanel/DataDrawer/TextbookDirectory + useSceneRig/useCompareSimulations/useSceneSimulation)；CompareEntry 支持失败变体显式报错 (result 可空 + error)；tests/workbench/ 新增 16 例
 - `课堂教学脚本系统 (Classroom Scripts)` — 扩充至 **24 个高中高频核心实验** 的 5 阶段结构化教学全流程（目标 → 启发演示 → 变量对比 → 预测提问与错因剖析 → 结论与公式）+ `ClassroomScriptPanel` 组件 + 7 例契约测试全绿通过
 - `教材目录精讲高亮与置顶` — 在 `TextbookDirectory` 中加入 **“🌟 高中核心精讲 (24 节)”** 置顶推荐组与 `[精讲]` 勋章 Badge，极大提升老师备课选课效率
-- `质量门禁与脚本补齐` — 根目录 `package.json` 补齐 `verify:3d` 脚本，全量 `npm run precheck` 与 9 层物理自检全部通过
+- `高中核心精讲 (24 节) 3D 实验模块标准化升级` — 24 节核心实验 3D 真实器材建模与柔和光影、clampToGround 真实停靠、onAnimate 动态每帧物理随动；新增交互测量工具箱 `MeasurementToolbox`（悬浮标尺 + 虚拟光电门）；视角预设拓展缩放/全景居中 HUD；详见 [`docs/3D_CORE_STANDARDIZATION_SUMMARY.md`](file:///home/kerwin/coding/physical_modelvis/docs/3D_CORE_STANDARDIZATION_SUMMARY.md)
+- `质量门禁与脚本补齐` — 根目录 `package.json` 补齐 `verify:3d` 脚本，全量 `npm run precheck` 与 9 层物理自检全部通过 (694/694 checks passed)
 
 ---
 

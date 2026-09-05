@@ -159,7 +159,10 @@ export function makeShadowPlate(radius: number): THREE.Mesh {
 }
 
 export function makeProjectionLine(color = 0x0f766e, opacity = 0.56): THREE.Line {
-    return makeLine([], color, opacity);
+    const geometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(6);
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    return new THREE.Line(geometry, new THREE.LineBasicMaterial({ color, transparent: true, opacity }));
 }
 
 // ---------------------------------------------------------------------------
@@ -203,10 +206,9 @@ export function createEnvironment(scene: THREE.Scene, bgColor = 0xf8fafc): Envir
     const key = new THREE.DirectionalLight(0xffffff, 2.8);
     key.position.set(-3, 7, 5);
     key.castShadow = true;
-    // 4096 shadow map: PCFShadowMap(替代已弃用的 PCFSoftShadowMap)下提 mapSize 改善硬边锯齿,
-    // 配合 radius/bias 缓解 acne;VSMShadowMap 有 light bleeding 风险,不采用
-    key.shadow.mapSize.set(4096, 4096);
-    key.shadow.radius = 3;
+    // 1024x1024 shadow map: PCFShadowMap 配合 radius=2 既能保证阴影柔和无明显硬锯齿, 又极大降低显存分配开销 (从 64MB 降到 4MB), 避免快速切换多场景时 GPU 上下文卡死
+    key.shadow.mapSize.set(1024, 1024);
+    key.shadow.radius = 2;
     key.shadow.bias = -0.0005;
     key.shadow.camera.left = -8;
     key.shadow.camera.right = 8;

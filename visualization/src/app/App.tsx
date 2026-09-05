@@ -4,33 +4,19 @@ import { OCRPanel } from '../components/ocr/OCRPanel';
 import { GuidancePanel } from '../components/guidance/GuidancePanel';
 
 // WorkbenchScene 静态导入会把整条 2D 渲染链 + physics-core 求解器拖进首屏
-// (SimulationCanvas / rendering / runSceneSimulation ≈ 300+ kB),用 lazy 隔离;
+// (SimulationCanvas / rendering / runSceneSimulation ≈ 300+ kB), 用 lazy 隔离;
 // 场景打开后才下载对应 chunk。3D 器材 rig 在其内部继续按域懒加载。
 const LazyWorkbenchScene = lazy(() =>
     import('../components/workbench/WorkbenchScene').then(m => ({ default: m.WorkbenchScene }))
 );
 
-const SCENE_MAP: Record<string, React.LazyExoticComponent<() => JSX.Element>> = {
-    projectile: LazyWorkbenchScene,
-    'uniform-accelerated': LazyWorkbenchScene,
-    'free-fall': LazyWorkbenchScene,
-    'electric-field': LazyWorkbenchScene,
-    'magnetic-field': LazyWorkbenchScene,
-    collision: LazyWorkbenchScene,
-    spring: LazyWorkbenchScene,
-    'inclined-plane': LazyWorkbenchScene,
-    'em-combined': LazyWorkbenchScene
-};
-
 export function App() {
-    const currentScene = useSimulationStore(s => s.currentScene);
     const errorMessage = useSimulationStore(s => s.errorMessage);
     const theme = useSimulationStore(s => s.theme);
     // action selectors 返回稳定引用, 不会触发重渲染
     const setErrorMessage = useSimulationStore(s => s.setErrorMessage);
     const toggleTheme = useSimulationStore(s => s.toggleTheme);
     const ensureScenesLoaded = useSimulationStore(s => s.ensureScenesLoaded);
-    const SceneComponent = (SCENE_MAP[currentScene] ?? LazyWorkbenchScene) as React.ComponentType;
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
     // 挂载即预载全部场景配置(懒加载领域 chunk)
@@ -78,7 +64,7 @@ export function App() {
                         </div>
                     }
                 >
-                    <SceneComponent />
+                    <LazyWorkbenchScene />
                 </Suspense>
             </main>
 

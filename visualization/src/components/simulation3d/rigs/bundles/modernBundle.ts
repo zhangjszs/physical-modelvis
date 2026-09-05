@@ -29,10 +29,11 @@ import { heatTransferRig } from '../heatTransferRig';
 import { energyTransformationRig } from '../energyTransformationRig';
 import { perpetuumMobileRig } from '../perpetuumMobileRig';
 import { heatDirectionRig } from '../heatDirectionRig';
+import { photoelectricRig } from '../photoelectricRig';
 
 export default {
     'gas-law': gasLawRig,
-    photoelectric: quantumRig,
+    photoelectric: photoelectricRig,
     bohr: quantumRig,
     'bohr-orbit': quantumRig,
     radioactive: nuclearRig,

@@ -29,9 +29,9 @@ export const COLORS = {
     error: '#ef4444',
 
     // 背景
-    bgDark: '#0f172a',
-    bgLight: '#ffffff',
-    panelDark: '#1e293b',
+    bgDark: '#0b1020',
+    bgLight: '#eef2fb',
+    panelDark: '#111a30',
     panelLight: '#f8fafc',
     textDark: '#e2e8f0',
     textLight: '#1e293b'

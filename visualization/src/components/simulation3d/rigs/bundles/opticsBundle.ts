@@ -8,10 +8,12 @@ import { opticsRig } from '../opticsRig';
 import { waveOpticsRig } from '../waveOpticsRig';
 import { vibrationRig } from '../vibrationRig';
 import { collisionRig } from '../collisionRig';
+import { soundWaveformRig } from '../soundWaveformRig';
+import { doublePendulumRig } from '../doublePendulumRig';
 
 export default {
     'mechanical-wave': waveRig,
-    'sound-waveform': waveRig,
+    'sound-waveform': soundWaveformRig,
     'doppler-effect': waveRig,
     refraction: opticsRig,
     'total-internal-reflection': opticsRig,
@@ -25,6 +27,6 @@ export default {
     'thin-film': waveOpticsRig,
     'forced-vibration-freq': vibrationRig,
     'resonance-curve': vibrationRig,
-    'double-pendulum-sync': vibrationRig,
+    'double-pendulum-sync': doublePendulumRig,
     'projectile-collision': collisionRig
 } as Record<string, SceneRig>;

@@ -23,7 +23,7 @@ export function ParameterPanel({ onRunSimulation }: ParameterPanelProps) {
 
     if (!scene) return null;
 
-    const liveUpdate = scene.liveUpdate ?? false;
+    const liveUpdate = scene.liveUpdate ?? true;
 
     const handleChange = (param: SceneParameter, value: number) => {
         const clamped = Math.max(param.min, Math.min(param.max, value));

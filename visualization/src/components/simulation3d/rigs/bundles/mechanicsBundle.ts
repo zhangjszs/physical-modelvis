@@ -24,17 +24,21 @@ import { newtonFirstLawRig } from '../newtonFirstLawRig';
 import { microDeformationRig } from '../microDeformationRig';
 import { vernierCaliperRig, micrometerRig, multimeterRig } from '../measurementToolRig';
 import { verticalMotionRig } from '../verticalMotionRig';
+import { galileoInclineRig } from '../galileoInclineRig';
+import { fallingEnergyRig } from '../fallingEnergyRig';
+import { workEnergyRig } from '../workEnergyRig';
+import { ballXtRig } from '../ballXtRig';
 
 export default {
     projectile: projectileRig,
     'free-fall': freeFallRig,
     'uniform-accelerated': verticalMotionRig,
-    'energy-conservation': verticalMotionRig,
-    'work-energy': verticalMotionRig,
-    'ball-xt': pendulumRig,
+    'energy-conservation': fallingEnergyRig,
+    'work-energy': workEnergyRig,
+    'ball-xt': ballXtRig,
     'newton-tube': newtonTubeRig,
     'inclined-plane': inclineRig,
-    'galileo-incline': inclineRig,
+    'galileo-incline': galileoInclineRig,
     'ticker-timer': tickerTimerRig,
     'hooke-law': hookeLawRig,
     'air-track': airTrackRig,

@@ -65,12 +65,20 @@ export const projectileScene: SceneConfig = {
     buildProblem: params => {
         const v0 = params['v0'] ?? 20;
         const angleDeg = params['angle'] ?? 45;
-        const h0 = params['h0'] ?? 0;
+        const h0 = params['h0'] ?? 2;
         const g = params['g'] ?? PHYSICS_CONSTANTS.g.value;
-        const duration = params['duration'] ?? 5;
         const angleRad = (angleDeg * Math.PI) / 180;
         const v0x = v0 * Math.cos(angleRad);
         const v0y = v0 * Math.sin(angleRad);
+        const disc = v0y * v0y + 2 * g * h0;
+        const tLand = g > 0 ? (v0y + Math.sqrt(Math.max(0, disc))) / g : 5;
+        const tRoll = Math.min(2.5, v0x / (0.22 * g));
+        const totalMotionTime = tLand + tRoll;
+        const customDuration = params['duration'];
+        const duration =
+            customDuration && customDuration !== 5
+                ? customDuration
+                : Math.max(1.0, Math.ceil(totalMotionTime * 20) / 20);
         return {
             id: `projectile-${Date.now()}`,
             title: '抛体运动',

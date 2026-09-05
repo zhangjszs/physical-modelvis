@@ -32,7 +32,8 @@ export function useSceneSimulation(): { runSimulation: () => void } {
     // 运行仿真
     const runSimulation = useCallback(() => {
         if (!scene) return;
-        const { result, error } = runSceneSimulation(scene, parameters);
+        const currentParams = Object.keys(parameters).length > 0 ? parameters : getDefaultParams(currentScene);
+        const { result, error } = runSceneSimulation(scene, currentParams);
         if (error) {
             setErrorMessage(error);
             return;
@@ -40,7 +41,7 @@ export function useSceneSimulation(): { runSimulation: () => void } {
         if (result) {
             setSimulationResult(result);
         }
-    }, [scene, parameters, setSimulationResult, setErrorMessage]);
+    }, [scene, parameters, currentScene, setSimulationResult, setErrorMessage]);
 
     // 首次加载自动运行
     useEffect(() => {

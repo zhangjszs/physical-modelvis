@@ -11,7 +11,7 @@
  */
 
 import { beforeAll, describe, it, expect } from 'vitest';
-import { SCENE_CATEGORIES } from '../../src/components/layout/SceneSelector';
+import { SCENE_CATEGORIES } from '../../src/scenes/categories';
 import { getScenesSync, loadAllScenes } from '../../src/scenes/sceneRegistry';
 
 describe('场景选择器覆盖完整性', () => {

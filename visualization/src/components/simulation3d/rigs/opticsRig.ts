@@ -1,48 +1,71 @@
 /**
- * 光学 rig — 折射/全反射/偏振/全息
- * 用于 refraction、total-internal-reflection、polarization-malus、hologram
+ * 光学折射定律 rig — 360°光学分度盘 + 半圆形高透玻璃砖 + 激光入射与折射光束
+ * 验证斯涅尔折射定律 n₁·sinθ₁ = n₂·sinθ₂
  */
 import * as THREE from 'three';
 import { SceneRig } from '../EquipmentStage';
-import { makeLine, makeTextSprite } from '../primitives';
+import { createOpticalDisk, updateOpticalDisk, OpticalDiskHandles } from '../equipment/opticalDisk';
+import { setLabel, num } from './params';
 
 const WORLD_SCALE = 0.16;
+const CENTER_Y = 1.4;
+
+interface OpticsHandles {
+    diskHandles: OpticalDiskHandles;
+}
 
 export const opticsRig: SceneRig = {
     worldScale: WORLD_SCALE,
+    clampToGround: false,
 
-    buildEquipment(scene, _params) {
-        // 介质分界面
-        const interfaceLine = makeLine([new THREE.Vector3(-2, 1.0, 0), new THREE.Vector3(2, 1.0, 0)], 0x94a3b8, 0.5);
-        scene.add(interfaceLine);
+    buildEquipment(scene, params) {
+        const { group, handles: diskHandles } = createOpticalDisk(1.6, CENTER_Y);
+        scene.add(group);
 
-        // 法线
-        const normal = makeLine([new THREE.Vector3(0, 0.3, 0), new THREE.Vector3(0, 1.7, 0)], 0xcbd5e1, 0.3);
-        scene.add(normal);
+        const theta1 = num(params['angle'] ?? params['theta1'], 30);
+        const n1 = num(params['n1'], 1.0);
+        const n2 = num(params['n2'], 1.5);
+        const relN = n1 > 0 ? n2 / n1 : 1.5;
 
-        // 入射光线
-        const incidentRay = makeLine([new THREE.Vector3(-1.5, 1.6, 0), new THREE.Vector3(0, 1.0, 0)], 0xef4444, 0.7);
-        scene.add(incidentRay);
+        updateOpticalDisk(diskHandles, theta1, relN, CENTER_Y, 1.6);
 
-        // 折射光线
-        const refractedRay = makeLine([new THREE.Vector3(0, 1.0, 0), new THREE.Vector3(1.2, 0.5, 0)], 0x3b82f6, 0.7);
-        scene.add(refractedRay);
+        const sinTheta2 = Math.sin((theta1 * Math.PI) / 180) / relN;
+        const theta2Deg = sinTheta2 <= 1 ? (Math.asin(sinTheta2) * 180) / Math.PI : 90;
+        setLabel(
+            diskHandles.angleLabel,
+            `θ₁ = ${theta1.toFixed(1)}° → θ₂ = ${theta2Deg.toFixed(1)}° (n₁=${n1.toFixed(2)}, n₂=${n2.toFixed(2)})`,
+            '#0f172a'
+        );
 
-        // 角度标注
-        const label = makeTextSprite('入射角 θ₁ → 折射角 θ₂', '#475569', 22, { x: 1.2, y: 0.18 });
-        label.position.set(0, 2.0, 0);
-        scene.add(label);
-
-        return { group: new THREE.Group(), handles: {} };
+        return {
+            group,
+            handles: { diskHandles }
+        };
     },
 
-    updateEquipment(_handles, _params) {},
+    updateEquipment(handles, params) {
+        const h = handles as unknown as OpticsHandles;
+        const theta1 = num(params['angle'] ?? params['theta1'], 30);
+        const n1 = num(params['n1'], 1.0);
+        const n2 = num(params['n2'], 1.5);
+        const relN = n1 > 0 ? n2 / n1 : 1.5;
+
+        updateOpticalDisk(h.diskHandles, theta1, relN, CENTER_Y, 1.6);
+
+        const sinTheta2 = Math.sin((theta1 * Math.PI) / 180) / relN;
+        const theta2Deg = sinTheta2 <= 1 ? (Math.asin(sinTheta2) * 180) / Math.PI : 90;
+        setLabel(
+            h.diskHandles.angleLabel,
+            `θ₁ = ${theta1.toFixed(1)}° → θ₂ = ${theta2Deg.toFixed(1)}° (n₁=${n1.toFixed(2)}, n₂=${n2.toFixed(2)})`,
+            '#0f172a'
+        );
+    },
 
     getVisualPosition(pos, _params) {
-        return new THREE.Vector3(pos.x * WORLD_SCALE, 1.0 + pos.y * WORLD_SCALE, 0);
+        return new THREE.Vector3(pos.x * WORLD_SCALE, CENTER_Y + pos.y * WORLD_SCALE, 0.05);
     },
 
     getOrigin(_params) {
-        return new THREE.Vector3(0, 1.0, 0);
+        return new THREE.Vector3(0, CENTER_Y, 0.05);
     }
 };

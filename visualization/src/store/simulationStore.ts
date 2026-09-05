@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { SimulationState, VisibleLayers, GraphType } from '../types/visualization';
-import { loadAllScenes } from '../scenes/sceneRegistry';
+import { loadAllScenes, getDefaultParams } from '../scenes/sceneRegistry';
 import { getTotalDuration, findFrameIndex } from '../utils/frameUtils';
 
 const DEFAULT_LAYERS: VisibleLayers = {
@@ -46,7 +46,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
     visibleLayers: { ...DEFAULT_LAYERS },
     selectedGraph: 'y_t',
     errorMessage: null,
-    theme: 'light',
+    theme: 'dark',
     experimentData: null,
 
     // 参数对比实验
@@ -55,10 +55,11 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
     compareResults: [],
 
     setScene: sceneId => {
+        const defaults = getDefaultParams(sceneId);
         set(s => ({
             currentScene: sceneId,
-            parameters: {},
-            parametersSceneId: null,
+            parameters: defaults,
+            parametersSceneId: sceneId,
             sceneLoadVersion: s.sceneLoadVersion + 1,
             isPlaying: false,
             currentTime: 0,

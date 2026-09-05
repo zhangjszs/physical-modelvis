@@ -12,55 +12,65 @@ export interface SceneRigState {
 
 /**
  * 3D 实验器材 (rig) 加载状态机。
- * 按场景 ID 缓存已加载 rig；渲染条件 = 缓存中存在当前场景 rig。
- * 从 ProjectileScene 拆出，竞态保护 (cancelled) 与场景缓存逻辑原样迁移。
+ * 按场景 ID 缓存已加载 rig；同步识别是否 3D 场景，杜绝切换时的 2D Canvas 瞬间闪烁。
  */
 export function useSceneRig(sceneId: string): SceneRigState {
     const rigCacheRef = useRef<Record<string, SceneRig>>({});
-    const [rigReady, setRigReady] = useState(false);
-    const [rigLoading, setRigLoading] = useState(false);
+    const is3DScene = hasSceneRig(sceneId);
+    const cachedRig = rigCacheRef.current[sceneId] ?? null;
+
+    const [rigReady, setRigReady] = useState(Boolean(cachedRig) || !is3DScene);
+    const [rigLoading, setRigLoading] = useState(is3DScene && !cachedRig);
     const [rigError, setRigError] = useState<string | null>(null);
 
     useEffect(() => {
         let cancelled = false;
         setRigError(null);
-        setRigLoading(hasSceneRig(sceneId));
 
-        if (hasSceneRig(sceneId)) {
-            if (rigCacheRef.current[sceneId]) {
-                setRigReady(true);
-            } else {
-                setRigReady(false);
-                loadSceneRig(sceneId)
-                    .then(loaded => {
-                        if (!cancelled && loaded) {
-                            rigCacheRef.current[sceneId] = loaded;
-                            setRigReady(true);
-                            setRigLoading(false);
-                        }
-                    })
-                    .catch(err => {
-                        // chunk 加载失败（404/网络/部署路径错误）→ 回退 Canvas 并提示
-                        console.error('[useSceneRig] rig 加载失败:', err);
-                        if (!cancelled) {
-                            setRigReady(false);
-                            setRigLoading(false);
-                            setRigError('3D 实验器材加载失败，已回退 2D 画面');
-                        }
-                    });
-            }
-        } else {
+        if (!is3DScene) {
             setRigReady(true);
             setRigLoading(false);
+            return;
         }
+
+        if (rigCacheRef.current[sceneId]) {
+            setRigReady(true);
+            setRigLoading(false);
+            return;
+        }
+
+        setRigReady(false);
+        setRigLoading(true);
+
+        loadSceneRig(sceneId)
+            .then(loaded => {
+                if (!cancelled && loaded) {
+                    rigCacheRef.current[sceneId] = loaded;
+                    setRigReady(true);
+                    setRigLoading(false);
+                }
+            })
+            .catch(err => {
+                console.error('[useSceneRig] rig 加载失败:', err);
+                if (!cancelled) {
+                    setRigReady(false);
+                    setRigLoading(false);
+                    setRigError('3D 实验器材加载失败，已回退 2D 画面');
+                }
+            });
 
         return () => {
             cancelled = true;
         };
-    }, [sceneId]);
+    }, [sceneId, is3DScene]);
 
     const rig = rigCacheRef.current[sceneId] ?? null;
-    const is3DScene = !!rig || rigLoading;
 
-    return { rig, rigReady, rigLoading, rigError, is3DScene };
+    return {
+        rig,
+        rigReady: is3DScene ? (rig ? rigReady : false) : true,
+        rigLoading: is3DScene && !rig && rigLoading,
+        rigError,
+        is3DScene
+    };
 }

@@ -10,6 +10,7 @@ import { InspectorPanel } from './InspectorPanel';
 import { DataDrawer } from './DataDrawer';
 import { useSceneSimulation } from './useSceneSimulation';
 import { useCompareSimulations } from './useCompareSimulations';
+import { hasSceneRig } from '../simulation3d/rigs';
 
 const FormulaPanel = lazy(() => import('../formula/FormulaPanel').then(m => ({ default: m.FormulaPanel })));
 
@@ -22,6 +23,9 @@ export function WorkbenchScene() {
     const scenes = useSimulationStore(s => s.scenes);
     const [formulaOpen, setFormulaOpen] = useState(false);
     const [dataOpen, setDataOpen] = useState(false);
+
+    const [renderMode, setRenderMode] = useState<'3d' | '2d'>('3d');
+    const is3DScene = hasSceneRig(currentScene);
 
     const scene = scenes.find(s => s.id === currentScene);
     const { runSimulation } = useSceneSimulation();
@@ -40,6 +44,26 @@ export function WorkbenchScene() {
                         <h2>{scene?.name ?? '物理实验'}</h2>
                     </div>
                     <div className="stage-actions">
+                        {is3DScene && (
+                            <div className="segmented-switch" aria-label="演示维度切换">
+                                <button
+                                    type="button"
+                                    className={`btn btn-sm ${renderMode === '3d' ? 'btn-primary' : 'btn-secondary'}`}
+                                    onClick={() => setRenderMode('3d')}
+                                    title="切换到 3D 实验器材仿真模式"
+                                >
+                                    🧊 3D 器材
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`btn btn-sm ${renderMode === '2d' ? 'btn-primary' : 'btn-secondary'}`}
+                                    onClick={() => setRenderMode('2d')}
+                                    title="切换到 2D 板书示意模式"
+                                >
+                                    📐 2D 板书
+                                </button>
+                            </div>
+                        )}
                         <button className="btn btn-secondary" onClick={() => setDataOpen(prev => !prev)}>
                             {dataOpen ? '收起数据' : '数据/图像'}
                         </button>
@@ -50,10 +74,10 @@ export function WorkbenchScene() {
                     </div>
                 </div>
 
-                <SceneStage />
+                <SceneStage renderMode={renderMode} />
                 <PlaybackControls />
 
-                {dataOpen && <DataDrawer />}
+                {dataOpen && <DataDrawer onClose={() => setDataOpen(false)} />}
             </main>
 
             <InspectorPanel onRunSimulation={runSimulation} />
