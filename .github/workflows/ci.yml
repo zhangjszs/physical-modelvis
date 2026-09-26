@@ -57,7 +57,7 @@ jobs:
         run: npm test
         working-directory: visualization
 
-      - name: 7 层物理自检
+      - name: 9 层物理自检
         run: node scripts/self-check.mjs
 
       - name: 构建 visualization
