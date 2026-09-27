@@ -6,6 +6,7 @@
 
 - **测试数**: core 928 / viz 1197 / 总计 2125 (全部通过)
 - 质量门禁:`npm run precheck`(build:core → typecheck → lint → format:check → test → selfcheck)
+- CI 自检：9 层物理自检（L0-L6 + L8 Boris + L9 鲁棒性）
 
 ## 项目简介
 
