@@ -41,12 +41,19 @@ const SCENES = [
     await page.goto('http://localhost:3000/', { waitUntil: 'domcontentloaded', timeout: 60000 });
     await page.waitForSelector('.directory-scene', { timeout: 30000 });
 
-    const click = async (name) => {
-        const ok = await page.$$eval('.directory-scene', (els, t) => {
-            const el = els.find(e => e.textContent.trim() === t);
-            if (el) { el.click(); return true; }
-            return false;
-        }, name);
+    const click = async name => {
+        const ok = await page.$$eval(
+            '.directory-scene',
+            (els, t) => {
+                const el = els.find(e => e.textContent.trim() === t);
+                if (el) {
+                    el.click();
+                    return true;
+                }
+                return false;
+            },
+            name
+        );
         return ok;
     };
 

@@ -7,7 +7,7 @@ import {
     escapeCsvField,
     formatCell,
     trajectoriesToCsv
-} from '@/utils/exportCsv';
+} from '../src/utils/exportCsv';
 import type { SimulationResult, TrajectoryPoint } from 'physics-core';
 
 function traj(points: Array<{ t: number; x: number; y: number; vx: number; vy: number }>): TrajectoryPoint[] {

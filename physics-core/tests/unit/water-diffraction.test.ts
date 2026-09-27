@@ -4,12 +4,14 @@ import type { PhysicsProblem } from '../../src/types/problem.js';
 
 const model = new WaterDiffractionModel();
 
-function makeProblem(overrides: {
-    wavelength?: number;
-    slitWidth?: number;
-    screenDist?: number;
-    waveAmplitude?: number;
-} = {}): PhysicsProblem {
+function makeProblem(
+    overrides: {
+        wavelength?: number;
+        slitWidth?: number;
+        screenDist?: number;
+        waveAmplitude?: number;
+    } = {}
+): PhysicsProblem {
     const { wavelength = 4, slitWidth = 5, screenDist = 50, waveAmplitude = 1 } = overrides;
     return {
         id: 'water-diff-test',

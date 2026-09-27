@@ -32,7 +32,7 @@ function makeProblem(opts: {
         E = { x: 0, y: 0 },
         Bz = 0,
         duration = 1,
-        sampleCount = 1000,
+        sampleCount = 1000
     } = opts;
     return {
         id: 'em',
@@ -43,18 +43,20 @@ function makeProblem(opts: {
                 mass: { value: m, unit: 'kg' },
                 charge: { value: q, unit: 'C' },
                 position: x0,
-                velocity: v0,
-            },
+                velocity: v0
+            }
         ],
         environment: {
             electricField: { enabled: true, fieldVector: E },
-            magneticField: { enabled: true, fieldStrength: Bz },
+            magneticField: { enabled: true, fieldStrength: Bz }
         },
-        timeConfig: { duration, sampleCount },
+        timeConfig: { duration, sampleCount }
     };
 }
 
-function allFinite(result: { trajectories: Array<Array<{ t: number; position: { x: number; y: number }; velocity: { x: number; y: number } }>> }): boolean {
+function allFinite(result: {
+    trajectories: Array<Array<{ t: number; position: { x: number; y: number }; velocity: { x: number; y: number } }>>;
+}): boolean {
     for (const traj of result.trajectories) {
         for (const p of traj) {
             if (![p.t, p.position.x, p.position.y, p.velocity.x, p.velocity.y].every(Number.isFinite)) {
@@ -69,7 +71,9 @@ const model = new EMCombinedFieldModel();
 
 describe('L8: 纯电场 (B=0) — Boris 精确退化为解析解', () => {
     it('y 位移 = v0y·t + ½·(qEy/m)·t² (解析解, 高精度)', () => {
-        const q = 1, m = 1, Ey = 5;
+        const q = 1,
+            m = 1,
+            Ey = 5;
         const v0 = { x: 3, y: 2 };
         const duration = 0.5;
         const r = model.solve(makeProblem({ q, m, v0, E: { x: 0, y: Ey }, Bz: 0, duration, sampleCount: 2000 }));
@@ -85,7 +89,9 @@ describe('L8: 纯电场 (B=0) — Boris 精确退化为解析解', () => {
     });
 
     it('负电荷 + 反向电场 → 加速度反向, 解析一致', () => {
-        const q = -1, m = 2, Ey = 10;
+        const q = -1,
+            m = 2,
+            Ey = 10;
         const v0 = { x: 0, y: 4 };
         const duration = 0.25;
         const r = model.solve(makeProblem({ q, m, v0, E: { x: 0, y: Ey }, Bz: 0, duration, sampleCount: 2000 }));
@@ -98,7 +104,9 @@ describe('L8: 纯电场 (B=0) — Boris 精确退化为解析解', () => {
 
 describe('L8: 纯磁场 (E=0) — 速率守恒 + 能量守恒', () => {
     it('Boris 旋转精保持速率: |v(t)| 全程恒定 (<1e-9)', () => {
-        const q = 1, m = 1, Bz = 1; // ω = qB/m = 1 rad/s
+        const q = 1,
+            m = 1,
+            Bz = 1; // ω = qB/m = 1 rad/s
         const v0 = { x: 8, y: 6 }; // |v0| = 10
         const r = model.solve(makeProblem({ q, m, v0, E: { x: 0, y: 0 }, Bz, duration: 1.5, sampleCount: 3000 }));
         const speeds = r.trajectories[0]!.map(p => Math.hypot(p.velocity.x, p.velocity.y));
@@ -109,7 +117,9 @@ describe('L8: 纯磁场 (E=0) — 速率守恒 + 能量守恒', () => {
     });
 
     it('磁场力不做功 → 总能量守恒标志为 true', () => {
-        const q = 1, m = 1, Bz = 1;
+        const q = 1,
+            m = 1,
+            Bz = 1;
         const v0 = { x: 8, y: 6 };
         const r = model.solve(makeProblem({ q, m, v0, E: { x: 0, y: 0 }, Bz, duration: 1.5, sampleCount: 3000 }));
         const cq = r.diagnostics.conservedQuantities[0]!;
@@ -121,7 +131,9 @@ describe('L8: 纯磁场 (E=0) — 速率守恒 + 能量守恒', () => {
 
 describe('L8: 纯磁场圆周几何 — 半径/周期', () => {
     it('轨迹为圆: 到回旋中心距离恒等于 R = m|v|/(|q||B|)', () => {
-        const q = 1, m = 1, Bz = 1; // ω = 1, R = |v0|/|ω| = 10
+        const q = 1,
+            m = 1,
+            Bz = 1; // ω = 1, R = |v0|/|ω| = 10
         const v0 = { x: 8, y: 6 };
         const omega = (q * Bz) / m;
         const R = Math.hypot(v0.x, v0.y) / Math.abs(omega); // 10
@@ -141,7 +153,9 @@ describe('L8: 纯磁场圆周几何 — 半径/周期', () => {
     });
 
     it('角速度 = qB/m: 终态速度方向旋转 -ω·t (v×B 约定 → +Bz 顺时针)', () => {
-        const q = 1, m = 1, Bz = 1;
+        const q = 1,
+            m = 1,
+            Bz = 1;
         const v0 = { x: 8, y: 6 };
         const omega = (q * Bz) / m;
         const duration = 1.5;
@@ -149,7 +163,8 @@ describe('L8: 纯磁场圆周几何 — 半径/周期', () => {
         const vf = r.trajectories[0]!.at(-1)!.velocity;
         // 解析旋转: v(t) = R(-ωt)·v0  (Lorentz v×B, +Bz 顺时针)
         const ang = -omega * duration;
-        const c = Math.cos(ang), s = Math.sin(ang);
+        const c = Math.cos(ang),
+            s = Math.sin(ang);
         const vxAna = v0.x * c - v0.y * s;
         const vyAna = v0.x * s + v0.y * c;
         expect(vf.x).toBeCloseTo(vxAna, 3);
@@ -159,7 +174,9 @@ describe('L8: 纯磁场圆周几何 — 半径/周期', () => {
 
 describe('L8: Boris 收敛阶 — O(dt²)', () => {
     it('sampleCount 翻倍 → 终点误差缩 ~4 倍 (二阶法)', () => {
-        const q = 1, m = 1, Bz = 1;
+        const q = 1,
+            m = 1,
+            Bz = 1;
         const E = { x: 0, y: 2 }; // 电场 + 磁场, 一般 Boris 路径
         const v0 = { x: 8, y: 6 };
         const duration = 1.0;
@@ -184,7 +201,15 @@ describe('L8: Boris 收敛阶 — O(dt²)', () => {
 describe('L8: 极端参数 — 不产生 NaN/Inf, 不抛异常', () => {
     it('极小 dt + 强场 → 全部有限', () => {
         const r = model.solve(
-            makeProblem({ q: 1, m: 1, v0: { x: 1e3, y: 1e3 }, E: { x: 1e4, y: -1e4 }, Bz: 1e3, duration: 0.01, sampleCount: 5000 }),
+            makeProblem({
+                q: 1,
+                m: 1,
+                v0: { x: 1e3, y: 1e3 },
+                E: { x: 1e4, y: -1e4 },
+                Bz: 1e3,
+                duration: 0.01,
+                sampleCount: 5000
+            })
         );
         expect(allFinite(r)).toBe(true);
         for (const series of Object.values(r.charts)) {
@@ -196,7 +221,9 @@ describe('L8: 极端参数 — 不产生 NaN/Inf, 不抛异常', () => {
     });
 
     it('零电场零磁场 (退化直匀运动) → 有限且速度恒定', () => {
-        const r = model.solve(makeProblem({ q: 1, m: 1, v0: { x: 5, y: -3 }, E: { x: 0, y: 0 }, Bz: 0, duration: 2, sampleCount: 500 }));
+        const r = model.solve(
+            makeProblem({ q: 1, m: 1, v0: { x: 5, y: -3 }, E: { x: 0, y: 0 }, Bz: 0, duration: 2, sampleCount: 500 })
+        );
         expect(allFinite(r)).toBe(true);
         const last = r.trajectories[0]!.at(-1)!;
         expect(last.velocity.x).toBeCloseTo(5, 6);

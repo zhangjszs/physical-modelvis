@@ -12,7 +12,13 @@
  */
 const { chromium } = require('playwright');
 
-const SCENES = ['抛体运动 (平抛+斜抛)', '自由落体', '机械波 (横波/纵波/干涉)', '扩散现象 (浓度梯度)', '布朗运动 (微粒抖动)'];
+const SCENES = [
+    '抛体运动 (平抛+斜抛)',
+    '自由落体',
+    '机械波 (横波/纵波/干涉)',
+    '扩散现象 (浓度梯度)',
+    '布朗运动 (微粒抖动)'
+];
 
 (async () => {
     const browser = await chromium.launch({ headless: true, channel: 'msedge' });
@@ -27,11 +33,18 @@ const SCENES = ['抛体运动 (平抛+斜抛)', '自由落体', '机械波 (横�
     await page.waitForSelector('.directory-scene', { timeout: 30000 });
 
     const click = async name => {
-        return page.$$eval('.directory-scene', (els, t) => {
-            const el = els.find(e => e.textContent.trim() === t);
-            if (el) { el.click(); return true; }
-            return false;
-        }, name);
+        return page.$$eval(
+            '.directory-scene',
+            (els, t) => {
+                const el = els.find(e => e.textContent.trim() === t);
+                if (el) {
+                    el.click();
+                    return true;
+                }
+                return false;
+            },
+            name
+        );
     };
 
     const failures = [];
@@ -40,11 +53,16 @@ const SCENES = ['抛体运动 (平抛+斜抛)', '自由落体', '机械波 (横�
         const ok = await click(name);
         await page.waitForTimeout(1200);
         // 尝试播放 2 秒 (点击播放按钮, 若无则跳过)
-        const playClicked = await page.$$eval('button', els => {
-            const b = els.find(e => /播放|▶|开始/.test(e.textContent || '') && e.offsetParent !== null);
-            if (b) { b.click(); return true; }
-            return false;
-        }).catch(() => false);
+        const playClicked = await page
+            .$$eval('button', els => {
+                const b = els.find(e => /播放|▶|开始/.test(e.textContent || '') && e.offsetParent !== null);
+                if (b) {
+                    b.click();
+                    return true;
+                }
+                return false;
+            })
+            .catch(() => false);
         await page.waitForTimeout(2000);
         const errs = pageErrors.filter(e => !/favicon/i.test(e));
         if (!ok) {

@@ -37,8 +37,20 @@ function makeFakeCtx(): CanvasRenderingContext2D {
 const rich = {
     extra: {
         fieldLines: [
-            { points: [{ x: 0, y: 0 }, { x: 0.5, y: 0.5 }, { x: 1, y: 0 }] },
-            { points: [{ x: -1, y: 0 }, { x: 0, y: 1 }, { x: 1, y: 0 }] }
+            {
+                points: [
+                    { x: 0, y: 0 },
+                    { x: 0.5, y: 0.5 },
+                    { x: 1, y: 0 }
+                ]
+            },
+            {
+                points: [
+                    { x: -1, y: 0 },
+                    { x: 0, y: 1 },
+                    { x: 1, y: 0 }
+                ]
+            }
         ],
         samples: [
             { x: 0, y: 0, bx: 0, by: 1, magnitude: 1 },
@@ -58,10 +70,49 @@ const rich = {
         ]
     ],
     charts: {
-        vx_t: { xLabel: 'U', yLabel: 'I', xUnit: 'V', yUnit: 'A', points: [{ x: 0, y: 0 }, { x: 6, y: 0.5 }, { x: 12, y: 0.8 }] },
-        ke_t: { xLabel: 't', yLabel: 'Ek', xUnit: 's', yUnit: 'J', points: [{ x: 0, y: 0 }, { x: 3, y: 20 }] },
-        x_t: { xLabel: 't', yLabel: 'N', xUnit: 's', yUnit: '个', points: [{ x: 0, y: 1000 }, { x: 25, y: 700 }, { x: 50, y: 500 }] },
-        y_t: { xLabel: 't', yLabel: 'A', xUnit: 's', yUnit: 'Bq', points: [{ x: 0, y: 70 }, { x: 25, y: 49 }, { x: 50, y: 35 }] }
+        vx_t: {
+            xLabel: 'U',
+            yLabel: 'I',
+            xUnit: 'V',
+            yUnit: 'A',
+            points: [
+                { x: 0, y: 0 },
+                { x: 6, y: 0.5 },
+                { x: 12, y: 0.8 }
+            ]
+        },
+        ke_t: {
+            xLabel: 't',
+            yLabel: 'Ek',
+            xUnit: 's',
+            yUnit: 'J',
+            points: [
+                { x: 0, y: 0 },
+                { x: 3, y: 20 }
+            ]
+        },
+        x_t: {
+            xLabel: 't',
+            yLabel: 'N',
+            xUnit: 's',
+            yUnit: '个',
+            points: [
+                { x: 0, y: 1000 },
+                { x: 25, y: 700 },
+                { x: 50, y: 500 }
+            ]
+        },
+        y_t: {
+            xLabel: 't',
+            yLabel: 'A',
+            xUnit: 's',
+            yUnit: 'Bq',
+            points: [
+                { x: 0, y: 70 },
+                { x: 25, y: 49 },
+                { x: 50, y: 35 }
+            ]
+        }
     },
     keyframes: [{ label: '正电荷 1', t: 0, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 }, description: '' }]
 } as unknown as SimulationResult;
@@ -69,7 +120,14 @@ const rich = {
 // 无极板的电场结果 (触发电荷符号绘制分支)
 const electricNoPlates = {
     extra: {
-        fieldLines: [{ points: [{ x: 0, y: 0 }, { x: 0.5, y: 0.5 }] }],
+        fieldLines: [
+            {
+                points: [
+                    { x: 0, y: 0 },
+                    { x: 0.5, y: 0.5 }
+                ]
+            }
+        ],
         samples: [{ x: 0, y: 0, ex: 1, ey: 0, magnitude: 1 }]
     },
     keyframes: [
@@ -83,7 +141,36 @@ const baseOpts = (result: SimulationResult | null) => ({
     width: 900,
     height: 600,
     isDark: false,
-    params: { n1: 1.5, n2: 1.0, angle: 50, mode: 1, current: 5, turns: 10, radius: 0.6, q: 5, dipoleCharge: 5, dipoleSeparation: 1, plateVoltage: 12, plateGap: 1.2, withAir: 1, height: 5, g: 9.8, emf: 12, r: 1, R_bulb: 10, mass: 1, force: 5, v0: 0, length: 1, damping: 0, N0: 1000, halfLife: 10, tEnd: 50, rayType: 0, duration: 3 } as Record<string, number>,
+    params: {
+        n1: 1.5,
+        n2: 1.0,
+        angle: 50,
+        mode: 1,
+        current: 5,
+        turns: 10,
+        radius: 0.6,
+        q: 5,
+        dipoleCharge: 5,
+        dipoleSeparation: 1,
+        plateVoltage: 12,
+        plateGap: 1.2,
+        withAir: 1,
+        height: 5,
+        g: 9.8,
+        emf: 12,
+        r: 1,
+        R_bulb: 10,
+        mass: 1,
+        force: 5,
+        v0: 0,
+        length: 1,
+        damping: 0,
+        N0: 1000,
+        halfLife: 10,
+        tEnd: 50,
+        rayType: 0,
+        duration: 3
+    } as Record<string, number>,
     simulationResult: result,
     currentTime: 1
 });

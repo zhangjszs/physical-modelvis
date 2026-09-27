@@ -53,7 +53,7 @@ const CHANNEL_CHECKS: Partial<Record<GapId, (r: SimulationResult) => boolean>> =
     'current-magnetic': r => {
         const ex = r.extra as any;
         // straight-wire 模式发 wire, coil/solenoid 模式发 poles — 二者互斥, 至少有其一
-        const hasWireOrPoles = !!(ex?.wire) || !!(ex?.poles);
+        const hasWireOrPoles = !!ex?.wire || !!ex?.poles;
         return (
             !!ex &&
             Array.isArray(ex.fieldLines) &&
@@ -69,7 +69,8 @@ const CHANNEL_CHECKS: Partial<Record<GapId, (r: SimulationResult) => boolean>> =
         (r.extra as any).fieldLines.length > 0 &&
         Array.isArray((r.extra as any).samples) &&
         (r.extra as any).samples.length > 0,
-    'newton-tube': r => Array.isArray(r.trajectories) && r.trajectories.length > 0 && (r.trajectories[0]?.length ?? 0) > 0,
+    'newton-tube': r =>
+        Array.isArray(r.trajectories) && r.trajectories.length > 0 && (r.trajectories[0]?.length ?? 0) > 0,
     'bulb-vi': r => !!(r.charts as any)?.vx_t?.points?.length,
     'work-energy': r => !!(r.charts as any)?.ke_t?.points?.length,
     'ball-xt': r => Array.isArray(r.trajectories) && r.trajectories.length > 0 && (r.trajectories[0]?.length ?? 0) > 0,
@@ -134,7 +135,15 @@ describe('缺口 8 场景 — 端到端链路 (buildProblem → solveProblem →
             const { ctx, calls, texts } = makeRecordingCtx();
             const fn = RENDERERS[id];
             expect(() =>
-                fn({ ctx, width: 900, height: 600, isDark: false, params, simulationResult: result, currentTime: dur * 0.5 })
+                fn({
+                    ctx,
+                    width: 900,
+                    height: 600,
+                    isDark: false,
+                    params,
+                    simulationResult: result,
+                    currentTime: dur * 0.5
+                })
             ).not.toThrow();
             expect(texts, `${id} 不应落占位符`).not.toContain('点击「运行仿真」开始');
             expect(calls.fillText, `${id} 应绘制 ≥3 处文字`).toBeGreaterThanOrEqual(3);

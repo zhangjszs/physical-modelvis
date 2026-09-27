@@ -26,9 +26,7 @@ describe('CurrentMagneticFieldModel', () => {
     });
 
     it('通电直导线: 磁场线为以导线为中心的同心圆 (半径近似恒定)', () => {
-        const r = model.solve(
-            makeProblem({ currentMagneticField: { mode: 'straight-wire', current: 1.0 } })
-        );
+        const r = model.solve(makeProblem({ currentMagneticField: { mode: 'straight-wire', current: 1.0 } }));
         const extra = readExtra(r);
         expect(extra.wire).toBeDefined();
         expect(extra.fieldLines.length).toBeGreaterThan(0);
@@ -42,9 +40,7 @@ describe('CurrentMagneticFieldModel', () => {
     });
 
     it('通电直导线: 磁感应强度随距离反比衰减 (B(1/3) / B(2/3) ≈ 2)', () => {
-        const r = model.solve(
-            makeProblem({ currentMagneticField: { mode: 'straight-wire', current: 1.0 } })
-        );
+        const r = model.solve(makeProblem({ currentMagneticField: { mode: 'straight-wire', current: 1.0 } }));
         const extra = readExtra(r);
         // 采样网格为 n=7: 坐标取 -1 + 2i/6, 即 ±1/3、±2/3 等
         const b033 = extra.samples.find(s => Math.abs(s.y) < 1e-6 && Math.abs(Math.abs(s.x) - 1 / 3) < 1e-3);

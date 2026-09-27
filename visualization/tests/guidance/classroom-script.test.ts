@@ -46,7 +46,10 @@ describe('课堂教学脚本契约与单元测试 (Classroom Scripts)', () => {
         for (const script of Object.values(CLASSROOM_SCRIPTS)) {
             const scene = getSceneSync(script.sceneId)!;
             const def = scene.parameters.find(p => p.name === script.compareFocus.paramName);
-            expect(def, `场景 ${script.sceneId} 的 compareFocus 参数 ${script.compareFocus.paramName} 不存在`).toBeDefined();
+            expect(
+                def,
+                `场景 ${script.sceneId} 的 compareFocus 参数 ${script.compareFocus.paramName} 不存在`
+            ).toBeDefined();
 
             if (def) {
                 const [min, max] = script.compareFocus.range;
@@ -69,14 +72,19 @@ describe('课堂教学脚本契约与单元测试 (Classroom Scripts)', () => {
                 expect(q.options.length, `场景 ${script.sceneId} Q${i + 1} 选项少于 2 个`).toBeGreaterThanOrEqual(2);
                 expect(q.answer, `场景 ${script.sceneId} Q${i + 1} 正确答案索引越界`).toBeGreaterThanOrEqual(0);
                 expect(q.answer, `场景 ${script.sceneId} Q${i + 1} 正确答案索引越界`).toBeLessThan(q.options.length);
-                expect(q.misconception.trim().length, `场景 ${script.sceneId} Q${i + 1} 错因解析为空`).toBeGreaterThan(0);
+                expect(q.misconception.trim().length, `场景 ${script.sceneId} Q${i + 1} 错因解析为空`).toBeGreaterThan(
+                    0
+                );
             }
         }
     });
 
     it('所有脚本必须具备结论总结与公式提取', () => {
         for (const script of Object.values(CLASSROOM_SCRIPTS)) {
-            expect(script.conclusion.takeaways.length, `场景 ${script.sceneId} 缺少 takeaways 总结`).toBeGreaterThanOrEqual(2);
+            expect(
+                script.conclusion.takeaways.length,
+                `场景 ${script.sceneId} 缺少 takeaways 总结`
+            ).toBeGreaterThanOrEqual(2);
             expect(script.conclusion.formulas.length, `场景 ${script.sceneId} 缺少核心公式`).toBeGreaterThanOrEqual(1);
         }
     });

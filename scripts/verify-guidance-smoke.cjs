@@ -61,11 +61,17 @@ async function main() {
     await page.getByRole('button', { name: '关闭导学' }).click();
     log('再次打开/关闭 OK');
 
-    await page.$eval('.directory-scene', (el, text) => {
-        const target = Array.from(document.querySelectorAll('.directory-scene')).find(b => b.textContent.includes(text));
-        if (!target) throw new Error('未找到场景按钮: ' + text);
-        target.click();
-    }, '直流电路');
+    await page.$eval(
+        '.directory-scene',
+        (el, text) => {
+            const target = Array.from(document.querySelectorAll('.directory-scene')).find(b =>
+                b.textContent.includes(text)
+            );
+            if (!target) throw new Error('未找到场景按钮: ' + text);
+            target.click();
+        },
+        '直流电路'
+    );
     await page.waitForTimeout(300);
     await page.locator('.top-bar-right button', { hasText: '导学' }).first().click();
     await page.getByRole('dialog', { name: '实验导学' }).waitFor({ state: 'visible' });

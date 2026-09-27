@@ -72,7 +72,9 @@ describe('UniformCircularMotionModel: 圆周运动基本量', () => {
     });
 
     it('向心力 F = mω²r', () => {
-        const m = 3, omega = 2, R = 1.5;
+        const m = 3,
+            omega = 2,
+            R = 1.5;
         const r = model.solve(makeProblem(cmConstraint({ radius: R, angularVelocity: omega }), m));
         const F = r.diagnostics.maxValues.centripetalForce as number;
         expect(F).toBeCloseTo(m * omega * omega * R, 5);
@@ -87,9 +89,7 @@ describe('UniformCircularMotionModel: 圆周运动基本量', () => {
 
     it('初相位:初始角 90° 时起点在 (0, R)', () => {
         const R = 2;
-        const r = model.solve(
-            makeProblem(cmConstraint({ radius: R, angularVelocity: 1, initialAngle: Math.PI / 2 }))
-        );
+        const r = model.solve(makeProblem(cmConstraint({ radius: R, angularVelocity: 1, initialAngle: Math.PI / 2 })));
         const p0 = r.trajectories[0]![0]!;
         expect(p0.position.x).toBeCloseTo(0, 6);
         expect(p0.position.y).toBeCloseTo(R, 6);

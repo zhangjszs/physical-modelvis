@@ -24,7 +24,17 @@ function okScene() {
         name: '抛体运动',
         model: 'projectile',
         parameters: [
-            { name: 'angle', label: '发射角', unit: '°', value: 45, min: 0, max: 90, step: 1, default: 45, description: '' }
+            {
+                name: 'angle',
+                label: '发射角',
+                unit: '°',
+                value: 45,
+                min: 0,
+                max: 90,
+                step: 1,
+                default: 45,
+                description: ''
+            }
         ],
         buildProblem: (p: Record<string, number>) => ({ model: 'projectile', parameters: p })
     } as unknown as Parameters<typeof runSceneSimulation>[0];
@@ -45,9 +55,16 @@ describe('useCompareSimulations', () => {
     });
 
     it('对比模式关闭 → 清空 compareResults', () => {
-        useSimulationStore.setState({ compareMode: false, compareResults: [{
-            paramValue: 30, result: okResult, color: '#000'
-        }] });
+        useSimulationStore.setState({
+            compareMode: false,
+            compareResults: [
+                {
+                    paramValue: 30,
+                    result: okResult,
+                    color: '#000'
+                }
+            ]
+        });
         renderHook(() => useCompareSimulations());
         expect(useSimulationStore.getState().compareResults).toEqual([]);
     });
@@ -67,7 +84,9 @@ describe('useCompareSimulations', () => {
 
     it('部分变体越界 → 失败变体 result=null + error 非空, 成功变体不受影响', () => {
         mockRun.mockImplementation((_scene, params) =>
-            params['angle'] === 60 ? { result: null, error: '参数错误: angle 超出范围' } : { result: okResult, error: null }
+            params['angle'] === 60
+                ? { result: null, error: '参数错误: angle 超出范围' }
+                : { result: okResult, error: null }
         );
         renderHook(() => useCompareSimulations());
         const entries = useSimulationStore.getState().compareResults;
