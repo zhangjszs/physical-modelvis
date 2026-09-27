@@ -59,7 +59,7 @@ npm run precheck
 ## 测试与验证
 
 ```bash
-npm test                 # physics-core + visualization 全部测试 (2125 用例)
+npm test                 # physics-core + visualization 全部测试 (数字见 README 顶部测试数行)
 npm run test:core        # 仅 physics-core 单元测试
 npm run test:viz         # 仅 visualization 测试
 npm run selfcheck        # 运行 9 层物理引擎自检 (L0-L9)

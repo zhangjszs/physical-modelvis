@@ -329,3 +329,22 @@ Playwright 实测 123 场景发现 **43 个场景**报 `updateEquipment failed: 
 3. **挂载**:ProjectileScene stage-actions 区域。
 4. **测试**:exportCsv.test.ts 13 例覆盖格式化/转义/多物体/缺帧/图表块/ForceDiagram 跳过/下载流程。
 5. 测试数:core 923 / viz 588 / total 1511。
+
+## 已迁场景 → 契约覆盖对照 (2026-09-28 核定)
+
+覆盖清单**以 `visualization/tests/accuracy/single-source-contract.test.ts` 各 it 首段的 sceneId 为准**(每条用例自述场景, 注释不复制清单以免二次过时)。本节只登记两侧的**例外与复核方法**:
+
+- **豁免 (既定不需契约)**:`transmission-belt` — 引擎仅输出静态关系 charts、无逐时轨迹, 转轮动画属渲染层合理示意图(见第 2 批迁移表"不迁移 (B 类语义)")。
+- **误入项**:`uniform-magnetic-field` 见于"审计副产物: 模型层方向 bug 修复"表, 不属迁移进展表, 不计入对照。
+- **契约侧多出项**:`newton-second-law` 有契约用例但不在迁移进展表(补迁场景, 以用例为准)。
+
+复核方法(两集合差集应**恰为本节登记的 3 项例外**, 多出任何一项即为覆盖缺口):
+
+```bash
+# 迁移进展表中的场景
+grep -oE '^\| `[a-z0-9-]+`' docs/rendering-physics-audit.md | grep -oE '`[a-z0-9-]+`' | tr -d '`' | sort -u
+# 契约已覆盖的场景
+grep -oE "scene\('[a-z0-9-]+'\)" visualization/tests/accuracy/single-source-contract.test.ts | grep -oE "'[a-z0-9-]+'" | tr -d "'" | sort -u
+```
+
+**新增迁移场景时, 同步在契约文件补 ≥1 用例**(引擎端独立公式复算 + 渲染消费端源码契约), 否则回退自算无人拦截。

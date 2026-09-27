@@ -1,23 +1,35 @@
 /**
- * L1-migration: 渲染单一真源契约 — 迁移后的场景, 渲染层必须消费引擎结果
+ * 渲染单一真源契约 — 迁移后的场景, 渲染层必须消费引擎结果
  *
- * 背景: 阶段 3 首轮迁移 (orbital / simple-pendulum / vertical-circle)。
- * 此前这些场景渲染层用 `currentTime + 公式` 自算, 与引擎结果漂移
- * (orbital 椭圆率 1.57 时画面仍画匀速圆, 分歧 102.6%)。
+ * 背景: 阶段 3 起, 渲染层从 `currentTime + 公式` 自算迁移到读引擎
+ * (orbital 椭圆率 1.57 时画面仍画匀速圆, 分歧曾达 102.6%)。
  *
- * 本测试固化的契约:
- *   1. orbital: 引擎轨迹 maxR/minR 呈现真实椭圆/圆 → 渲染层不得再用匀速圆
- *   2. simple-pendulum: 大角度 θ₀=60° 引擎周期 T 显著偏离小角度近似
- *      (非线性不可忽略) → 渲染层读 theta_t 而非 cos 近似
- *   3. vertical-circle: 引擎速度最高点 < 最低点 (机械能守恒) → HUD 展示当前速度
+ * 每个场景锁两端:
+ *   - 引擎端: 用与渲染无关的独立公式复算 charts / maxValues / 轨迹,
+ *     引擎公式被改错即红;
+ *   - 渲染消费端: 源码解析断言 (it 名含"源码契约"), 渲染退回自算即红。
  *
- * 若未来渲染层回退到自算公式 (或引擎被改错), 本测试直接拦截。
+ * 被锁定的场景清单以本文件各 it 首段的 sceneId 为准, 此处不再列举,
+ * 避免注释与用例脱节; 各 describe 的分批标题是历史批次快照, 不代表覆盖范围。
+ * 场景 ↔ 契约对照与豁免项见
+ * `docs/rendering-physics-audit.md` 的"已迁场景 → 契约覆盖"一节。
  */
 
 import { describe, it, expect, beforeAll } from 'vitest';
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
 import { getSceneSync, loadAllScenes } from '../../src/scenes/sceneRegistry';
 import { runSceneSimulation } from '../../src/adapters/physicsCoreAdapter';
 import { getFrame } from '../../src/rendering/renderingUtils';
+
+/** 取渲染源码中某导出函数的完整函数体 (到下一个 export function 为止) — 源码契约断言用 */
+function renderFn(file: string, fnName: string): string {
+    const src = readFileSync(resolve(__dirname, `../../src/rendering/${file}`), 'utf-8');
+    const start = src.indexOf(`export function ${fnName}`);
+    if (start < 0) throw new Error(`${fnName} 应存在于 src/rendering/${file}`);
+    const next = src.indexOf('\nexport function ', start + 1);
+    return src.slice(start, next === -1 ? undefined : next);
+}
 
 describe('L1-migration: 渲染单一真源契约 (orbital / pendulum / vertical-circle)', () => {
     beforeAll(async () => {
@@ -571,7 +583,7 @@ describe('L1-migration: 渲染单一真源契约 (orbital / pendulum / vertical-
     });
 });
 
-describe('L1-migration: 渲染单一真源契约 (liquid-crystal / capillary 常量收尾)', () => {
+describe('L1-migration: 渲染单一真源契约 (后续迁移场景)', () => {
     beforeAll(async () => {
         await loadAllScenes();
     });
@@ -664,5 +676,101 @@ describe('L1-migration: 渲染单一真源契约 (liquid-crystal / capillary 常
         const last = result!.trajectories[0]!.at(-1)!;
         expect(last.position.x).toBeCloseTo(0, 10);
         expect(last.velocity.x).toBeCloseTo(0, 10);
+    });
+
+    it('inertia: 引擎双轨迹 — 上棋子 x 恒定自由落体, 下棋子摩擦减速到静止', () => {
+        const sc = scene('inertia');
+        // stroke 棋子打击; 下方停止距离与曲线复算共用这组基准量
+        const G = 9.8;
+        const MU = 0.3;
+        const V0 = 2;
+        const params: Record<string, number> = {
+            mode: 0,
+            massRatio: 0.1,
+            initialSpeed: V0,
+            frictionCoeff: MU,
+            duration: 3
+        };
+        const { result, error } = runSceneSimulation(sc, params);
+        expect(error).toBeNull();
+
+        // 双轨迹: [上方棋子, 下方棋子] — 渲染分别用 getFrame(..., 0/1)
+        expect(result!.trajectories.length).toBe(2);
+        const top = result!.trajectories[0]!;
+        const bottom = result!.trajectories[1]!;
+
+        // 上方棋子因惯性保持原位: x 全程恒定
+        const xs = top.map(p => p.position.x);
+        expect(Math.max(...xs) - Math.min(...xs)).toBeLessThan(1e-9);
+        // 自由落体曲线独立复算: 落体期内逐点 y = 1 − ½gt², vy = −gt (锁 g 与曲线形状, 非仅端点)
+        const fallT = Math.sqrt(2 / G);
+        const falling = top.filter(p => p.t > 0 && p.t < fallT);
+        expect(falling.length).toBeGreaterThan(10);
+        for (const p of falling) {
+            expect(p.position.y).toBeCloseTo(1 - 0.5 * G * p.t * p.t, 6);
+            expect(p.velocity.y).toBeCloseTo(-G * p.t, 6);
+        }
+        expect(top.at(-1)!.position.y).toBeCloseTo(0, 10); // duration=3s 已落地
+
+        // 下方棋子: 匀减速 v = v0 − μg·t, 停止距离 = v0²/(2μg)
+        const tStop = V0 / (MU * G);
+        const moving = bottom.filter(p => p.t < tStop);
+        expect(moving.length).toBeGreaterThan(10);
+        for (const p of moving) {
+            expect(p.velocity.x).toBeCloseTo(V0 - MU * G * p.t, 6);
+        }
+        expect(bottom.at(-1)!.velocity.x).toBeCloseTo(0, 10);
+        expect(bottom.at(-1)!.position.x).toBeCloseTo((V0 * V0) / (2 * MU * G), 6);
+        expect(bottom.at(-1)!.position.x).toBeGreaterThan(bottom[0]!.position.x);
+    });
+
+    it('inertia: 渲染层仍读引擎双轨迹帧 (源码契约)', () => {
+        const fn = renderFn('chapter4Scenes.ts', 'drawInertiaScene');
+        expect(fn, '上方物体读引擎帧 0').toContain('getFrame(simulationResult, currentTime, 0)');
+        expect(fn, '下方物体读引擎帧 1').toContain('getFrame(simulationResult, currentTime, 1)');
+    });
+
+    it('projectile-collision: maxValues 与平抛/碰后速度解析式一致, 且 m1·OP = m1·OM + m2·ON', () => {
+        const sc = scene('projectile-collision');
+        const G = 9.8;
+        /** 用一组参数求解并与独立解析式逐量对照 */
+        const verify = (p: { m1: number; m2: number; v1: number; h: number; e: number }) => {
+            const { result, error } = runSceneSimulation(sc, {
+                m1: p.m1,
+                m2: p.m2,
+                v1Initial: p.v1,
+                tableHeight: p.h,
+                restitution: p.e,
+                gravity: G,
+                duration: 5
+            });
+            expect(error).toBeNull();
+            const mv = result!.diagnostics.maxValues as Record<string, number>;
+            // 与渲染层无关的独立解析式
+            const tFall = Math.sqrt((2 * p.h) / G);
+            const v1After = ((p.m1 - p.e * p.m2) / (p.m1 + p.m2)) * p.v1;
+            const v2After = (((1 + p.e) * p.m1) / (p.m1 + p.m2)) * p.v1;
+            expect(mv.tFall).toBeCloseTo(tFall, 10);
+            expect(mv.OP).toBeCloseTo(p.v1 * tFall, 10);
+            expect(mv.v1After).toBeCloseTo(v1After, 10);
+            expect(mv.v2After).toBeCloseTo(v2After, 10);
+            expect(mv.OM).toBeCloseTo(Math.abs(v1After) * tFall, 10);
+            expect(mv.ON).toBeCloseTo(Math.abs(v2After) * tFall, 10);
+            // 动量守恒: 速度式与射程式同源 (m1>m2 → v1After>0, 不反弹, 射程等式成立)
+            expect(mv.pBefore).toBeCloseTo(mv.pAfter!, 10);
+            expect(p.m1 * mv.OP!).toBeCloseTo(p.m1 * mv.OM! + p.m2 * mv.ON!, 10);
+        };
+        // 参数化两组: 全弹性 + 半弹性, 覆盖 e / m / v / h 依赖
+        verify({ m1: 0.2, m2: 0.1, v1: 2, h: 0.8, e: 1 });
+        verify({ m1: 0.3, m2: 0.1, v1: 3, h: 1.25, e: 0.5 });
+    });
+
+    it('projectile-collision: 渲染层仍读 diagnostics.maxValues 且保留回退 (源码契约)', () => {
+        const fn = renderFn('chapter5Scenes.ts', 'drawProjectileCollisionScene');
+        expect(fn, '读引擎 maxValues').toContain('simulationResult?.diagnostics?.maxValues');
+        for (const key of ['tFall', 'v1After', 'v2After', 'OP', 'OM', 'ON']) {
+            // `?? ` 一并锁定: 读引擎 + 保留回退, 缺任一侧即红
+            expect(fn, `渲染需消费 maxValues.${key} 并保留回退`).toContain(`maxVals?.${key} ??`);
+        }
     });
 });
