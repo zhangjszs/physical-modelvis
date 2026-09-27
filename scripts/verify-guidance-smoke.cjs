@@ -64,6 +64,8 @@ async function main() {
     await page.$eval(
         '.directory-scene',
         (el, text) => {
+            // 该回调由 Playwright 序列化后在浏览器页面上下文中执行, 故此处 document 存在
+            // eslint-disable-next-line no-undef
             const target = Array.from(document.querySelectorAll('.directory-scene')).find(b =>
                 b.textContent.includes(text)
             );

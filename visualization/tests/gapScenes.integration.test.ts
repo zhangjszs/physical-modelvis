@@ -9,7 +9,7 @@
  *   3. 关键物理量端到端自洽 (W=ΔEk、牛顿管归一化、盖革 N(0)=N0、平行板标注…)。
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any -- 集成测试需结构访问 physics-core 松散类型的 extra/charts 通道; tests/ 不在 CI lint 覆盖范围内 */
+/* eslint-disable @typescript-eslint/no-explicit-any -- 本集成测试需结构化访问 physics-core 的松散通道 (SimulationResult.extra / charts, 其键名不在类型定义中), 无法用具体类型表达 */
 import { beforeAll, describe, it, expect } from 'vitest';
 import { solveProblem } from 'physics-core';
 import type { SimulationResult } from 'physics-core';
