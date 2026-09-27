@@ -2,7 +2,7 @@
 # pre-push: 与 CI 等价的本地检查门禁
 # 任意步骤失败即阻止 push，避免远端 CI 红灯
 # (跳过: git push --no-verify)
-echo "pre-push: 运行与 CI 等价的本地检查 (build/typecheck/lint/format/test/selfcheck)" >&2
+echo "pre-push: 运行与 CI 等价的本地检查 (build/typecheck/lint/format/test/count/selfcheck)" >&2
 echo "" >&2
 
 npm run precheck || {

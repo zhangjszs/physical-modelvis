@@ -17,7 +17,7 @@
   - `b0bd171` 清理失效/一次性脚本(verify-3d-coverage.mjs 因 SCENES 重构失效、fix-scene-names/split-scenes/rewrite-time-series 等迁移工具、.scratch 草稿)
   - README 补测试数行(core 923 / viz 1159 / 2082)
   - **audit 遗留低优先级清理完成**(liquid-crystal 透射率曲线迁引擎 x_t Tarasov + capillary 常量 ρ_汞 13534/θ 汞+石蜡 150° 对齐引擎,契约测试 21→23)
-- 测试数: core 928 (66 files) + viz 1187 (33 files) = 2115 (2026-08-15 实测)
+- 测试数: core 928 (66 files) + viz 1197 (33 files) = 2125 (2026-09-28 实测) <!-- test-count -->
 - `WorkbenchScene 拆分` — ProjectileScene(430 行) 拆为 components/workbench/ 组件族 (WorkbenchScene/SceneStage/InspectorPanel/DataDrawer/TextbookDirectory + useSceneRig/useCompareSimulations/useSceneSimulation)；CompareEntry 支持失败变体显式报错 (result 可空 + error)；tests/workbench/ 新增 16 例
 - `课堂教学脚本系统 (Classroom Scripts)` — 扩充至 **24 个高中高频核心实验** 的 5 阶段结构化教学全流程（目标 → 启发演示 → 变量对比 → 预测提问与错因剖析 → 结论与公式）+ `ClassroomScriptPanel` 组件 + 7 例契约测试全绿通过
 - `教材目录精讲高亮与置顶` — 在 `TextbookDirectory` 中加入 **“🌟 高中核心精讲 (24 节)”** 置顶推荐组与 `[精讲]` 勋章 Badge，极大提升老师备课选课效率
@@ -128,7 +128,7 @@ A 类剩余 11 场景评估: 4 需迁移 (light-control-switch / moon-earth-test
    - mechanicalWaveScenes:粒子数按画布宽度自适应(每 11px 一个),每帧仅对 tracked 质点各取一次帧 + 游标线性插值(替代每粒子多次二分 getFrame)
    - molecularKineticScenes:扩散粒子数按区域面积自适应 + 16 级颜色阶梯缓存(消除每帧 200 次字符串 fillStyle);布朗 trail 分 8 档合并 stroke
    - 验证:viz 545 全绿,typecheck/lint/prettier 通过,E-1 冒烟(scripts/verify-e1-render-smoke.cjs 5 场景含播放)+ 3D 冒烟 14 场景 × 2 轮零错误
-2. **测试数同步**:README 顶部 core/viz/total 每次变更后更新
+2. **测试数同步**:README 顶部 core/viz/total 每次变更后更新 — 跑 `npm run count:sync` 实跑并回写三处标记行(各统计行末尾的 test-count 注释标记),`count:check` 已入 precheck/CI 自动拦截漂移
 3. **文档维护**:`docs/rendering-physics-audit.md` 迁移进展表随迁移同步更新
 4. **OCR**:支持图片多题分离、识别结果结构化 — ✅ (见 E-4)
    - 后端:Prompt 改为返回 `{ problems: [...] }` 多题结构,每题含 index/type(单选/多选/填空/解答)/options/answer/given/formulas;`server/ocr-utils.ts` 纯函数归一化(兼容旧单题对象与数组形态,非法项过滤,题号补齐);解析失败 502
@@ -154,7 +154,7 @@ A 类剩余 11 场景评估: 4 需迁移 (light-control-switch / moon-earth-test
 
 ## 验证与提交约定(每项任务通用)
 
-- 门禁:`npm run precheck`(build:core → typecheck → lint → format:check → test → selfcheck);pre-push 钩子强制,不要 `--no-verify`
+- 门禁:`npm run precheck`(build:core → typecheck → lint → format:check → test → count:check → selfcheck);pre-push 钩子强制,不要 `--no-verify`
 - PowerShell:`npx.cmd`;改 physics-core 后先 `cd physics-core && npm run build` 再跑可视化测试
 - 提交格式:`<type>(<scope>): <概述>` + 详细要点;type 常用 fix/feat/refactor/test/docs/chore
 - 代码审查:按 AGENTS.md 7 维度清单,commit 前必做

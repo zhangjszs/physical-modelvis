@@ -4,8 +4,8 @@
 
 ## 测试状态
 
-- **测试数**: core 928 / viz 1197 / 总计 2125 (全部通过)
-- 质量门禁:`npm run precheck`(build:core → typecheck → lint → format:check → test → selfcheck)
+- **测试数**: core 928 / viz 1197 / 总计 2125 (全部通过) <!-- test-count -->
+- 质量门禁:`npm run precheck`(build:core → typecheck → lint → format:check → test → count:check → selfcheck)
 
 ## 项目简介
 
@@ -236,7 +236,7 @@ physics-core 提供 113 个物理模型，全部通过 `registerModel` 自动注
 项目通过 [husky](https://typicode.github.io/husky/) 在 `git push` 前自动执行与 CI 等价的本地检查（`npm run precheck`），任一步骤失败即阻止 push：
 
 ```
-build:core → typecheck → lint → format:check → test → selfcheck
+build:core → typecheck → lint → format:check → test → count:check → selfcheck
 ```
 
 - 安装依赖时自动激活（`npm ci` 触发 `prepare` 脚本）
@@ -277,10 +277,12 @@ cd visualization && npm run dev          # Vite dev server
 
 ## 测试覆盖
 
+<!-- test-count -->
+
 ```
 physics-core:   928 tests passed (66 files)
-visualization: 1180 tests passed (32 files)
-Total:         2108 tests passed
+visualization:  1197 tests passed (33 files)
+Total:          2125 tests passed
 ```
 
 准确性测试矩阵（`*/tests/accuracy/`）：

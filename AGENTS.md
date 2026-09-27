@@ -17,7 +17,7 @@ cd physics-core && npm install && npm run build && cd ..
 cd visualization && npm install && cd ..
 
 # 一键本地全量门禁 (与 CI 等价, pre-push 钩子会强制执行)
-npm run precheck     # build:core → typecheck → lint → format:check → test → selfcheck
+npm run precheck     # build:core → typecheck → lint → format:check → test → count:check → selfcheck
 
 # 运行所有测试
 npm test
@@ -156,4 +156,4 @@ Single-context: one CONTEXT.md + docs/adr/ at repo root. See `docs/agents/domain
 - React 18 + TypeScript for visualization
 - Chinese language for UI text and documentation
 - Vitest for testing
-- README.md 顶部记录测试数 (core / viz / total),跑完测试后若数量变化需同步更新
+- README.md 顶部记录测试数 (core / viz / total),跑完测试后若数量变化需同步更新:`npm run count:sync` 实跑并回写三处标记行;`npm run count:check` 校验(precheck/CI 已内置,数字漂移即失败)

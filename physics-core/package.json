@@ -13,7 +13,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "test": "vitest run",
+    "test": "vitest run --reporter=default --reporter=json --outputFile.json=../.scratch/core-tests.json",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src/**/*.ts"

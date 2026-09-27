@@ -29,8 +29,11 @@
     "format": "prettier --write \"physics-core/src/**/*.ts\" \"visualization/src/**/*.{ts,tsx}\" \"visualization/server/**/*.ts\"",
     "format:check": "prettier --check \"physics-core/src/**/*.ts\" \"visualization/src/**/*.{ts,tsx}\" \"visualization/server/**/*.ts\"",
     "selfcheck": "node scripts/self-check.mjs",
+    "count": "node scripts/count-tests.mjs",
+    "count:check": "node scripts/count-tests.mjs --check --from-report",
+    "count:sync": "node scripts/count-tests.mjs --write",
     "verify:3d": "cd visualization && npx vitest run tests/rendering/equipment-stage.test.tsx tests/rendering/rigs-build.test.ts",
-    "precheck": "npm run build:core && npm run typecheck && npm run lint && npm run format:check && npm test && npm run selfcheck"
+    "precheck": "npm run build:core && npm run typecheck && npm run lint && npm run format:check && npm test && npm run count:check && npm run selfcheck"
   },
   "keywords": [
     "physics",

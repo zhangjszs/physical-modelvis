@@ -57,6 +57,9 @@ jobs:
         run: npm test
         working-directory: visualization
 
+      - name: 测试数与文档一致性校验
+        run: node scripts/count-tests.mjs --check --from-report
+
       - name: 9 层物理自检
         run: node scripts/self-check.mjs
 

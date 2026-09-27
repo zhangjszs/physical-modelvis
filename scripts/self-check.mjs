@@ -39,17 +39,19 @@ const LAYERS = [
 ];
 
 /**
- * 在指定目录运行 npm test -- <testfile>, 返回 { code, passed }
- * 用 shell:true 在 Windows 保证 npm 找到正确 cmd 文件
+ * 在指定目录直接运行 `vitest run <testfile>`, 返回 { code, passed }
+ * (不走各包的 `npm test` 脚本, 避免其 JSON reporter 覆盖 .scratch/ 全量测试报告)
+ * 用 shell:true 在 Windows 保证 npx 找到正确 cmd 文件
  */
 function runLayer(layer) {
   return new Promise((resolveP) => {
     const cwd = resolve(root, layer.pkg);
     const isWin = process.platform === 'win32';
-    // 使用 npm test -- <testfile...>; layer.test 可为单文件字符串或文件数组 (L9 按领域拆分)
-    const cmd = isWin ? 'npm.cmd' : 'npm';
+    // 直接调 vitest 而非 `npm test`: 各包 test 脚本带 JSON reporter, 分层运行会把
+    // .scratch/ 下的全量测试报告覆盖成单层结果, 破坏 count:check --from-report。
+    const cmd = isWin ? 'npx.cmd' : 'npx';
     const testFiles = Array.isArray(layer.test) ? layer.test : [layer.test];
-    const args = ['test', '--', ...testFiles.map((t) => 'tests/accuracy/' + t)];
+    const args = ['vitest', 'run', ...testFiles.map((t) => 'tests/accuracy/' + t)];
     if (layer.pkg === 'physics-core' && testFiles.includes('constants.test.ts')) {
       // physics-core 的 constants.test.ts 在 tests/unit 下, 重定向路径
       const idx = args.findIndex((a) => a.endsWith('constants.test.ts'));
