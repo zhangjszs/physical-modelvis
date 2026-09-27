@@ -1,6 +1,6 @@
 import type { PhysicsProblem } from '../types/problem.js';
 import type { SimulationResult, Keyframe, ChartSeries } from '../types/result.js';
-import type { ParameterSpec } from '../types/common.js';
+import type { ParameterSpec, ValidationResult } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
 import { PhysicsError } from '../errors/index.js';
 import type { ElectricFieldLinesConstraint, FieldCharge } from '../types/problem.js';
@@ -61,10 +61,13 @@ export class ElectricFieldLinesModel extends PhysicsModelBase {
     readonly errorSources = ['平行板边缘效应未精确建模', '二维截面忽略三维结构'];
     readonly requiredParameters: ParameterSpec[] = [];
 
-    /** 场分布模型无运动物体, 放宽基类校验 (不要求 bodies) */
-    validate(problem: PhysicsProblem) {
+    /**
+     * 场分布模型无运动物体, 放宽基类 bodies 校验.
+     * 保留 model / duration / sampleCount / 声明参数 min-max 校验, 不静默丢失基类检查.
+     */
+    validate(problem: PhysicsProblem): ValidationResult {
         const errors: Array<{ code: string; message: string; param?: string }> = [];
-        const warnings: Array<{ code: string; message: string }> = [];
+
         if (problem.model !== this.modelType) {
             errors.push({
                 code: 'MODEL_MISMATCH',
@@ -79,7 +82,20 @@ export class ElectricFieldLinesModel extends PhysicsModelBase {
                 param: 'timeConfig.duration'
             });
         }
-        return { valid: errors.length === 0, errors, warnings };
+        if (
+            this.enforcesParameterRanges() &&
+            problem.timeConfig.sampleCount !== undefined &&
+            problem.timeConfig.sampleCount <= 0
+        ) {
+            errors.push({
+                code: 'INVALID_SAMPLE_COUNT',
+                message: `采样点数必须为正整数，当前值: ${problem.timeConfig.sampleCount}`,
+                param: 'timeConfig.sampleCount'
+            });
+        }
+        errors.push(...this.validateParameterRanges(problem));
+
+        return { valid: errors.length === 0, errors, warnings: [] };
     }
 
     solve(problem: PhysicsProblem): SimulationResult {

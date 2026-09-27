@@ -39,6 +39,11 @@ export class MultimeterModel extends PhysicsModelBase {
         { name: 'testValue', description: '被测量值', unit: '', required: true, min: 0, max: 1e6 }
     ];
 
+    /** 软限程: Rx→∞ (远超 1e6 量程) 时 solve() 产出近零偏转, 而非抛错 */
+    protected enforcesParameterRanges(): boolean {
+        return false;
+    }
+
     solve(problem: PhysicsProblem): SimulationResult {
         this.throwIfInvalid(problem);
 

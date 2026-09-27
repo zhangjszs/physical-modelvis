@@ -33,8 +33,9 @@ export class SimplePendulumModel extends PhysicsModelBase {
     readonly applicableRange = '小角度 (<15°) 近似简谐；任意角度用数值解';
     readonly errorSources = ['大角度时实际周期 T = 2π√(L/g)·[1 + (1/16)θ₀² + ...]', '摆线质量、空气阻力', '悬点摩擦'];
     readonly requiredParameters: ParameterSpec[] = [
-        { name: 'length', description: '摆长 L (m)', unit: 'm', required: true, min: 0 },
-        { name: 'g', description: '重力加速度 (m/s²)', unit: 'm/s²', required: true, min: 0 },
+        // length / g 均作除数 (√(L/g), −g/L), 取 0 会产出 NaN/Inf → 下界开区间
+        { name: 'length', description: '摆长 L (m)', unit: 'm', required: true, min: 0, exclusiveMin: true },
+        { name: 'g', description: '重力加速度 (m/s²)', unit: 'm/s²', required: true, min: 0, exclusiveMin: true },
         { name: 'initialAngle', description: '初始摆角 (度)', unit: '°', required: true },
         { name: 'duration', description: '模拟时长 (s)', unit: 's', required: true, min: 0 }
     ];

@@ -39,7 +39,7 @@ export class OrbitalModel extends PhysicsModelBase {
     ];
     readonly requiredParameters: ParameterSpec[] = [
         { name: 'GM', description: '中心天体引力参数 (m³/s²)', unit: 'm³/s²', required: true },
-        { name: 'radius', description: '初始距离 (m)', unit: 'm', required: true, min: 0 },
+        { name: 'radius', description: '初始距离 (m)', unit: 'm', required: true, min: 0, exclusiveMin: true },
         { name: 'v0', description: '初始切向速度 (m/s)', unit: 'm/s', required: true },
         { name: 'duration', description: '模拟时长 (s)', unit: 's', required: true, min: 0 }
     ];

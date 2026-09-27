@@ -34,6 +34,11 @@ export class SoundWaveformModel extends PhysicsModelBase {
         { name: 'duration', description: '模拟时长 (s)', unit: 's', required: true, min: 0.001, max: 0.5 }
     ];
 
+    /** 软限程: 频率超出 [20, 20000] 人耳听阈时 solve() 产出告警, 而非抛错 */
+    protected enforcesParameterRanges(): boolean {
+        return false;
+    }
+
     solve(problem: PhysicsProblem): SimulationResult {
         this.throwIfInvalid(problem);
 

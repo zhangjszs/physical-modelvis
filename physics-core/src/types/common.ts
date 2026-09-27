@@ -19,6 +19,16 @@ export interface ParameterSpec {
     readonly required: boolean;
     readonly min?: number;
     readonly max?: number;
+    /**
+     * 下界是否**开区间** (取值必须严格大于 min).
+     *
+     * 用于"物理上不可为 0、但 0 是自然直觉下界"的参数:
+     *   摆长 L (`min: 0` 但 L=0 → √(L/g)=NaN)、重力 g (g=0 → 周期发散)、
+     *   轨道半径 r (`min: 0` 但 r=0 → √(GM/r)=Inf)、库仑/洛伦兹分母等。
+     *
+     * 不设该标志时 min 为闭区间 (含端点)。
+     */
+    readonly exclusiveMin?: boolean;
     readonly defaultValue?: number;
 }
 
@@ -33,6 +43,12 @@ export interface ValidationError {
     readonly code: string;
     readonly message: string;
     readonly param?: string;
+    /** 越界参数的实际取值 (PARAMETER_OUT_OF_RANGE / NON_FINITE_PARAMETER 时提供) */
+    readonly value?: number;
+    /** 越界参数声明的取值下界 (PARAMETER_OUT_OF_RANGE 时提供) */
+    readonly min?: number;
+    /** 越界参数声明的取值上界 (PARAMETER_OUT_OF_RANGE 时提供) */
+    readonly max?: number;
 }
 
 export interface ValidationWarning {

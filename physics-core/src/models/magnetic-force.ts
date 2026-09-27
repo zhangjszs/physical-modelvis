@@ -26,7 +26,8 @@ export class MagneticForceModel extends PhysicsModelBase {
     readonly requiredParameters: ParameterSpec[] = [
         { name: 'magneticField', description: '磁感应强度 B (T)', unit: 'T', required: true, min: 0.001, max: 10 },
         { name: 'current', description: '电流 I (A)', unit: 'A', required: false, min: 0, max: 100 },
-        { name: 'charge', description: '电荷 q (C)', unit: 'C', required: false, max: 1 }
+        // charge 作分母 (r = mv/|q|B, T = 2πm/|q|B) → 取 0 产出 Inf, 下界开区间
+        { name: 'charge', description: '电荷 q (C)', unit: 'C', required: false, min: 0, exclusiveMin: true, max: 1 }
     ];
     readonly errorSources = ['实际磁场边缘不均匀', '高速时需考虑质量增加 (相对论)'];
 

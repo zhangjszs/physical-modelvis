@@ -38,6 +38,11 @@ export class MicrometerModel extends PhysicsModelBase {
         { name: 'thickness', description: '被测物体厚度 (mm)', unit: 'mm', required: true, min: 0.01, max: 25 }
     ];
 
+    /** 软限程: 厚度超出 25mm 量程时 solve() 产出"量程"告警, 而非抛错 */
+    protected enforcesParameterRanges(): boolean {
+        return false;
+    }
+
     solve(problem: PhysicsProblem): SimulationResult {
         this.throwIfInvalid(problem);
 

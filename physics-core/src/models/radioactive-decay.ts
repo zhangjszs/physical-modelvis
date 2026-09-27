@@ -36,6 +36,11 @@ export class RadioactiveDecayModel extends PhysicsModelBase {
         { name: 'halfLife', description: '半衰期 T₁/₂ (s)', unit: 's', required: true, min: 0.001, max: 1e20 }
     ];
 
+    /** 软限程: 初始原子数取至 1e8 量级 (差分测试按此取样), N₀ 无需硬上限 */
+    protected enforcesParameterRanges(): boolean {
+        return false;
+    }
+
     solve(problem: PhysicsProblem): SimulationResult {
         this.throwIfInvalid(problem);
 

@@ -52,6 +52,11 @@ export class ReactionTimeModel extends PhysicsModelBase {
         { name: 'sampleCount', description: '轨迹采样点数', unit: '', required: false, defaultValue: 100 }
     ];
 
+    /** 软限程: h 趋 0 需产出 t→0 的极限行为, sampleCount 亦为模型自有参数, 均不硬拦截 */
+    protected enforcesParameterRanges(): boolean {
+        return false;
+    }
+
     solve(problem: PhysicsProblem): SimulationResult {
         this.throwIfInvalid(problem);
 

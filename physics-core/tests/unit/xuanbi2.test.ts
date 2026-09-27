@@ -112,7 +112,8 @@ describe('F10: PhotoresistorModel', () => {
   const model = new PhotoresistorModel();
   it('metadata ok', () => { expect(model.modelType).toBe('photoresistor'); });
   it('chart ok', () => {
-    const r = model.solve(makeProblem('photoresistor', { photoresistor: { lightIntensity: 10, darkResistance: 10000, sensitivity: 0.5 } }));
+    // sensitivity 单位为 1/lx (10⁻³ 量级) — 与 requiredParameters 声明一致
+    const r = model.solve(makeProblem('photoresistor', { photoresistor: { lightIntensity: 10, darkResistance: 10000, sensitivity: 0.002 } }));
     expect(r.charts.x_t).toBeDefined();
   });
 });

@@ -61,6 +61,11 @@ export class MoonEarthTestModel extends PhysicsModelBase {
         }
     ];
 
+    /** 软限程: 异常 R / T 需产出 rangeCheck.withinRange=false, 而非抛错 */
+    protected enforcesParameterRanges(): boolean {
+        return false;
+    }
+
     solve(problem: PhysicsProblem): SimulationResult {
         this.throwIfInvalid(problem);
 

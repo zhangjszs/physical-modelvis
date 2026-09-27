@@ -46,7 +46,8 @@ describe('G2: Brownian', () => {
 describe('G3: MolecularForce', () => {
   const m = new MolecularForceModel();
   it('meta', () => { expect(m.modelType).toBe('molecular-force'); });
-  it('chart', () => { expect(m.solve(makeProblem('molecular-force', { molecularForce: { epsilon: 0.01, sigma: 0.3 } })).charts.x_t).toBeDefined(); });
+  // epsilon 单位为 J (10⁻²¹ 量级), sigma 单位为 m (10⁻¹⁰ 量级) — 与 requiredParameters 声明一致
+  it('chart', () => { expect(m.solve(makeProblem('molecular-force', { molecularForce: { epsilon: 1e-21, sigma: 3.4e-10 } })).charts.x_t).toBeDefined(); });
 });
 describe('G4: LiquidMixing', () => {
   const m = new LiquidMixingModel();
@@ -56,7 +57,8 @@ describe('G4: LiquidMixing', () => {
 describe('G5: OilFilm', () => {
   const m = new OilFilmModel();
   it('meta', () => { expect(m.modelType).toBe('oil-film'); });
-  it('chart', () => { expect(m.solve(makeProblem('oil-film', { oilFilm: { oilConcentration: 0.01, dropsPerMl: 100, filmArea: 0.1 } })).explanation.summary).toBeTruthy(); });
+  // oilConcentration 为 1:x 稀释比 (x ∈ [100, 10000]), 与 requiredParameters 声明一致
+  it('chart', () => { expect(m.solve(makeProblem('oil-film', { oilFilm: { oilConcentration: 500, dropsPerMl: 100, filmArea: 100 } })).explanation.summary).toBeTruthy(); });
 });
 describe('G6: MeltingCurve', () => {
   const m = new MeltingCurveModel();
@@ -66,7 +68,8 @@ describe('G6: MeltingCurve', () => {
 describe('G7: SurfaceTension', () => {
   const m = new SurfaceTensionModel();
   it('meta', () => { expect(m.modelType).toBe('surface-tension'); });
-  it('chart', () => { expect(m.solve(makeProblem('surface-tension', { surfaceTension: { liquidMode: 'water', sliderLength: 0.05, temperature: 293 } })).charts.x_t).toBeDefined(); });
+  // temperature 单位为 °C (非 K) — 与 requiredParameters 声明一致
+  it('chart', () => { expect(m.solve(makeProblem('surface-tension', { surfaceTension: { liquidMode: 'water', sliderLength: 0.05, temperature: 20 } })).charts.x_t).toBeDefined(); });
 });
 describe('G8: Capillary', () => {
   const m = new CapillaryModel();
@@ -81,7 +84,8 @@ describe('G9: Wetting', () => {
 describe('G10: LiquidCrystal', () => {
   const m = new LiquidCrystalModel();
   it('meta', () => { expect(m.modelType).toBe('liquid-crystal'); });
-  it('chart', () => { expect(m.solve(makeProblem('liquid-crystal', { liquidCrystal: { temperature: 300, voltage: 5, mode: 'nematic' } })).charts.x_t).toBeDefined(); });
+  // temperature 单位为 ℃ (非 K) — 与 requiredParameters 声明一致
+  it('chart', () => { expect(m.solve(makeProblem('liquid-crystal', { liquidCrystal: { temperature: 30, voltage: 5, mode: 'nematic' } })).charts.x_t).toBeDefined(); });
 });
 describe('G11: JouleMech', () => {
   const m = new JouleMechanicalModel();
