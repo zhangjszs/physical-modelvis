@@ -270,6 +270,12 @@ export abstract class PhysicsModelBase {
         const result = this.validate(problem);
         if (!result.valid) {
             const first = result.errors[0];
+            // validate() 约定 valid=false 时 errors 必非空; 此处兜底防御不可信的 override
+            if (!first) {
+                throw new PhysicsError('VALIDATION_FAILED', '参数校验失败, 但未给出具体错误信息', {
+                    model: this.modelType
+                });
+            }
             switch (first.code) {
                 case 'MODEL_MISMATCH':
                     throw new UnsupportedModelError(problem.model, first.message);

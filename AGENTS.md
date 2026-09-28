@@ -38,6 +38,7 @@ cd visualization && npm run dev
 
 ### 关键陷阱 (必读)
 - **改 physics-core 源码后必须重建**:visualization 通过 `file:../physics-core` 依赖引用的是**构建产物 `dist/`**,不是源码。编辑 `physics-core/src/**` 后,运行可视化测试/typecheck 前必须先 `cd physics-core && npm run build`(或 `npm run precheck` 开头会自动 build)。否则可视化测试仍用旧 dist,引擎修复"看起来没生效"。
+  - **已工程化兜底(#15)**:`scripts/guard-dist-freshness.mjs` 比较 `src` 与 `dist` 的 mtime,陈旧即拦截。已接入 `visualization` 的 `pretest` 与根 `typecheck`,无需再靠记忆。
 - **Windows PowerShell 环境**:`npx` 需写 `npx.cmd`;`rg` 不可用(用 grep 工具);PowerShell 引号转义用反引号。
 - **husky pre-push 钩子**会运行完整 `precheck`,任何门禁失败都会阻止 push(跳过:`git push --no-verify`)。
 - **引擎 charts 键名与语义名不同**:如 lc-oscillator 返回 `x_t/y_t/ke_t/pe_t`(语义是 q_t/i_t/Ee_t/Em_t);类型定义不含这些键,访问需 `as unknown as Record<string, {points: ...}>` 强转。迁移前先读模型源码确认 charts 键名与单位。
@@ -153,6 +154,15 @@ Single-context: one CONTEXT.md + docs/adr/ at repo root. See `docs/agents/domain
 
 ## Conventions
 - TypeScript strict mode
+- **physics-core 未开启 `noUnusedLocals` / `noUnusedParameters` / `noUncheckedIndexedAccess`(#10 决定:有意不对齐)**
+  实测对齐后会新增 **150 个错误**,分布高度集中于两类**可证明安全**的访问:
+  `problem.bodies[0]`(`validate()` 已保证非空)与 `trajectory[len-1]`(构造函数已保证 ≥1 点),
+  以及 `ValidationResult.errors[0]`(由 `valid` 标志保证非空)。
+  在物理引擎里给这 150 处逐个加显式守卫, 会引入约 150 行防御代码却不提升正确性 ——
+  真正需要守卫的场景已由 #8 的 `base.validate()` 与 #27 的 `constraint-guard` 在**参数层**拦截。
+  何时重启:若后续把索引访问改为真正的动态下标(如按用户输入的级次/序号取值),
+  应先开 `noUncheckedIndexedAccess` 并一次性修完,避免长期双标准。
+  提交本决定时的实测数据见 issue #10 评论。
 - React 18 + TypeScript for visualization
 - Chinese language for UI text and documentation
 - Vitest for testing
