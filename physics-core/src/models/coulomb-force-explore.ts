@@ -1,6 +1,6 @@
 import type { PhysicsProblem } from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
-import type { ParameterSpec } from '../types/common.js';
+import type { ParameterSpec, ValidationResult } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
 import { PHYSICS_CONSTANTS } from '../units/constants.js';
 
@@ -27,6 +27,59 @@ export class CoulombForceExploreModel extends PhysicsModelBase {
         { name: 'distance', description: '间距 (cm)', unit: 'cm', required: true, min: 0.1, max: 200 },
         { name: 'mode', description: 'varyQ / varyR', unit: '', required: true }
     ];
+
+    /**
+     * 跨参数约束: sampleCount 与扫描区间必须有效。
+     *
+     * - sampleCount=0 → dt = duration/0 = Inf, 整条轨迹 NaN
+     * - rRange/qRange 退化 (lo ≥ hi) 或 lo ≤ 0 → 扫描区间为空或含 r=0,
+     *   库仑力 k/r² 除零, 幂律拟合出现 0/0
+     *
+     * 这些字段是 coulombForce 约束里的**可选**参数, 不在 requiredParameters 中,
+     * 故基类 min/max 拦截不到。
+     */
+    validate(problem: PhysicsProblem): ValidationResult {
+        const base = super.validate(problem);
+        if (!base.valid) return base;
+
+        const c = problem.constraints?.coulombForce;
+        if (!c) return base;
+
+        const errors: Array<{ code: string; message: string; param?: string; value?: number }> = [];
+        if (c.sampleCount !== undefined && c.sampleCount <= 0) {
+            errors.push({
+                code: 'NON_POSITIVE_PARAMETER',
+                message: `扫描采样点数必须为正整数，当前值: ${c.sampleCount}`,
+                param: 'sampleCount',
+                value: c.sampleCount
+            });
+        }
+        const checkRange = (name: string, range: [number, number] | undefined, unit: string) => {
+            if (!range) return;
+            const [lo, hi] = range;
+            if (!(lo > 0)) {
+                errors.push({
+                    code: 'NON_POSITIVE_PARAMETER',
+                    message: `${name} 下限必须为正数（库仑力 k/r² 在 r=0 处发散），当前值: ${lo} ${unit}`,
+                    param: name,
+                    value: lo
+                });
+            }
+            if (hi <= lo) {
+                errors.push({
+                    code: 'DEGENERATE_RANGE',
+                    message: `${name} 区间退化，需满足 上限 > 下限，当前值: [${lo}, ${hi}] ${unit}`,
+                    param: name,
+                    value: hi
+                });
+            }
+        };
+        checkRange('qRange', c.qRange, 'μC');
+        checkRange('rRange', c.rRange, 'cm');
+
+        if (errors.length > 0) return { valid: false, errors, warnings: [] };
+        return base;
+    }
 
     solve(problem: PhysicsProblem): SimulationResult {
         this.throwIfInvalid(problem);

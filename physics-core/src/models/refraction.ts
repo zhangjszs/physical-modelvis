@@ -43,12 +43,19 @@ export class RefractionModel extends PhysicsModelBase {
         const sinTheta2 = (n1 / n2) * sinTheta1;
 
         // 全反射判断 (n₁ > n₂ 且 sinθ₂ ≥ 1)
+        // 全反射时不存在折射光线, θ₂ 无定义 → 内部用 NaN, 对外经下面两个哨兵值上报:
+        //   refractionAngleDeg = -1  → "无折射角 (全反射)"
+        //   criticalAngleDeg   = -1  → "该组合无临界角 (n₁ ≤ n₂, 不发生全反射)"
+        // 真实状态由 totalInternalReflection (0/1) 给出, 消费方应据此判断而非直接用哨兵值。
         const totalInternalReflection = sinTheta2 >= 1;
         const theta2Rad = totalInternalReflection ? NaN : Math.asin(Math.min(1, sinTheta2));
         const theta2Deg = totalInternalReflection ? NaN : (theta2Rad * 180) / Math.PI;
 
         // 临界角 (仅 n₁ > n₂ 时有意义)
         const criticalAngleDeg = n1 > n2 ? (Math.asin(n2 / n1) * 180) / Math.PI : NaN;
+
+        /** 角度类诊断值的哨兵: -1 表示"该量在此配置下无定义", 非真实角度 */
+        const UNDEFINED_ANGLE_SENTINEL = -1;
 
         // 反射定律：反射角恒等于入射角
         const reflectThetaRad = theta1Rad;
@@ -193,11 +200,13 @@ export class RefractionModel extends PhysicsModelBase {
             diagnostics: {
                 conservedQuantities: [],
                 maxValues: {
-                    criticalAngleDeg: isNaN(criticalAngleDeg) ? -1 : criticalAngleDeg,
+                    // 哨兵约定: 角度类字段为 -1 表示"无定义" (全反射 / n₁≤n₂ 无临界角),
+                    // 须配合 totalInternalReflection 判断, 不可当作真实角度使用
+                    criticalAngleDeg: Number.isNaN(criticalAngleDeg) ? UNDEFINED_ANGLE_SENTINEL : criticalAngleDeg,
                     totalInternalReflection: totalInternalReflection ? 1 : 0,
                     sinTheta1: sinTheta1,
                     sinTheta2: isNaN(sinTheta2) ? 1 : sinTheta2,
-                    refractionAngleDeg: isNaN(theta2Deg) ? -1 : theta2Deg,
+                    refractionAngleDeg: Number.isNaN(theta2Deg) ? UNDEFINED_ANGLE_SENTINEL : theta2Deg,
                     n1,
                     n2
                 },

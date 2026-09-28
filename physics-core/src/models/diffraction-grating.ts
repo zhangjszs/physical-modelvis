@@ -161,6 +161,14 @@ export class DiffractionGratingModel extends PhysicsModelBase {
             }
         ];
 
+        // 角色散 D = dθ/dλ = k/(d·cosθ); λ ≥ d 时 cosθ→0 发散, 无有限值。
+        // 显式判空, 避免 sqrt(负数)→NaN 被 toFixed 包成字符串 "NaN" 显示给用户
+        // (NaN 在字符串内, 有限性检查无法拦截)。
+        const dispersionCos = Math.sqrt(Math.max(0, 1 - (lambda / d) ** 2));
+        const dispersionRadPerNm = dispersionCos > 0 ? (1 / (d * dispersionCos)) * 1e-6 : null;
+        // 缝宽大于光栅常数属非物理组合 (相邻狭缝重叠), 需显式告警
+        const slitWidthOverGrating = a > d;
+
         const steps: ExplanationStep[] = [
             {
                 order: 1,
@@ -187,7 +195,13 @@ export class DiffractionGratingModel extends PhysicsModelBase {
                 order: 4,
                 description: '角色散',
                 formula: 'D = dtheta/dlambda = k/(d*cos(theta))',
-                calculation: `D(k=1) ~ ${((1 / (d * Math.sqrt(1 - (lambda / d) ** 2))) * 1e-6).toFixed(3)} rad/nm`
+                calculation:
+                    dispersionRadPerNm === null
+                        ? // λ ≥ d 时 cos(θ₁) → 0, 角色散发散, 不存在有限的 D 值。
+                          // 此前直接算 sqrt(负数) 得到 NaN, 再 toFixed 成字符串 "NaN" 显示给用户
+                          // —— 由于 NaN 被包进字符串, 有限性检查无法拦截。
+                          `D(k=1): λ=${(lambda * 1e9).toFixed(0)}nm ≥ d=${(d * 1e9).toFixed(0)}nm, 一级谱线不满足 d·sinθ=λ, 角色散发散 (无有限值)`
+                        : `D(k=1) ~ ${dispersionRadPerNm.toFixed(3)} rad/nm`
             }
         ];
 
@@ -195,6 +209,17 @@ export class DiffractionGratingModel extends PhysicsModelBase {
         if (numVisibleOrders <= 1) warnings.push('仅可见中央主极大, 高级次全缺');
         if (d / a > 5) warnings.push('d/a 比值过大, 大部分级次缺级');
         if (N < 100) warnings.push('缝数较少, 谱线不够锐利');
+        if (slitWidthOverGrating) {
+            warnings.push(
+                `缝宽 a=${(a * 1e6).toFixed(2)}µm 大于光栅常数 d=${(d * 1e6).toFixed(2)}µm, 属非物理组合 ` +
+                    '(相邻狭缝不可能重叠), 请把缝宽调至小于光栅常数'
+            );
+        }
+        if (dispersionRadPerNm === null) {
+            warnings.push(
+                `波长 λ=${(lambda * 1e9).toFixed(0)}nm ≥ 光栅常数 d=${(d * 1e9).toFixed(0)}nm, 一级主极大不存在 (sinθ=λ/d>1), 角色散发散`
+            );
+        }
 
         return {
             meta: this.makeMeta('analytical'),

@@ -1,8 +1,16 @@
 import type { PhysicsProblem } from '../types/problem.js';
 import type { SimulationResult, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
-import type { ParameterSpec } from '../types/common.js';
+import type { ParameterSpec, ValidationResult } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
 import { sampleTrajectory } from '../physics/kinematics.js';
+
+/**
+ * 多普勒公式分母 v − v_s·cosθ 的下界 (m/s)
+ *
+ * 分母趋近 0 时 f' 趋近无穷 (经典公式失效); 分母非正时进入超声速激波区。
+ * 跨参数约束在 validate() 中拦截, 此处仅作数值下限与除零兜底。
+ */
+const DENOM_EPS = 1e-6;
 
 /**
  * 多普勒效应模型 — 选必一 第三章 (多普勒效应)
@@ -46,6 +54,44 @@ export class DopplerModel extends PhysicsModelBase {
         }
     ];
 
+    /**
+     * 跨参数约束: 经典多普勒公式要求 |v − v_s·cosθ| > 0。
+     *
+     * 这不是单参数 min/max 能表达的约束 (v_s 与 v 各自都在声明范围内,
+     * 但 v_s·cosθ ≥ v 时分母非正, f' 变负 → log2(负数)=NaN)。
+     * 物理上此时是**超声速激波(马赫锥)**, 经典公式不适用, 故在参数层拒绝,
+     * 给出可定位的中文提示而不是让 NaN 流进图表与诊断。
+     */
+    validate(problem: PhysicsProblem): ValidationResult {
+        const base = super.validate(problem);
+        if (!base.valid) return base;
+
+        const c = problem.constraints?.doppler;
+        if (!c) return base;
+
+        const denom = c.soundSpeed - c.sourceSpeed * Math.cos((c.directionAngle * Math.PI) / 180);
+        if (denom <= 0) {
+            return {
+                valid: false,
+                errors: [
+                    {
+                        code: 'SUPERSONIC_SOURCE',
+                        message:
+                            `声源有效速度 v_s·cos(θ) = ${(c.sourceSpeed * Math.cos((c.directionAngle * Math.PI) / 180)).toFixed(2)} m/s ` +
+                            `不小于声速 ${c.soundSpeed} m/s, 属超声速激波 (马赫锥) 区, 经典多普勒公式 f'=f·v/(v−v_s·cosθ) 不适用 ` +
+                            `(分母 ${denom.toFixed(2)} ≤ 0)。请减小声源速度或增大声速。`,
+                        param: 'sourceSpeed',
+                        value: c.sourceSpeed,
+                        min: 0,
+                        max: c.soundSpeed
+                    }
+                ],
+                warnings: []
+            };
+        }
+        return base;
+    }
+
     solve(problem: PhysicsProblem): SimulationResult {
         this.throwIfInvalid(problem);
 
@@ -81,8 +127,12 @@ export class DopplerModel extends PhysicsModelBase {
         for (let i = 0; i <= N; i++) {
             const vi = (vMax * i) / N;
             const di = v - vi * cosTheta;
-            const fi = Math.abs(di) > 1e-6 ? (f0 * v) / di : f0;
-            vScan.points.push({ x: parseFloat(vi.toFixed(3)), y: parseFloat(fi.toFixed(3)) });
+            // 同 thetaScan: 分母非正处用 {NaN, NaN} 断开标记, 不静默填 f0
+            if (di <= DENOM_EPS) {
+                vScan.points.push({ x: Number.NaN, y: Number.NaN });
+                continue;
+            }
+            vScan.points.push({ x: parseFloat(vi.toFixed(3)), y: parseFloat(((f0 * v) / di).toFixed(3)) });
         }
 
         // 扫描: f' 随方向角 theta 变化 (固定 v_s)
@@ -97,10 +147,17 @@ export class DopplerModel extends PhysicsModelBase {
             const ti = (2 * Math.PI * i) / N;
             const ci = Math.cos(ti);
             const di = v - vs * ci;
-            const fi = Math.abs(di) > 1e-6 ? (f0 * v) / di : f0;
+            // 分母非正 = 该方向进入超声速激波区, 经典公式无解。
+            // 此前静默填 f0 会把"公式失效"伪装成"频率不变"。现按仓库 charts 约定
+            // 用 {NaN, NaN} 折线断开标记 (x/y 同时为 NaN, 见 physics-correctness.shared.ts
+            // 的 L9 有限性检查: 两者皆 NaN 才视为合法断点)。
+            if (di <= DENOM_EPS) {
+                thetaScan.points.push({ x: Number.NaN, y: Number.NaN });
+                continue;
+            }
             thetaScan.points.push({
                 x: parseFloat(((ti * 180) / Math.PI).toFixed(2)),
-                y: parseFloat(fi.toFixed(3))
+                y: parseFloat(((f0 * v) / di).toFixed(3))
             });
         }
 
@@ -122,7 +179,7 @@ export class DopplerModel extends PhysicsModelBase {
                 t: 0,
                 position: { x: -10, y: 0 },
                 velocity: { x: vs, y: 0 },
-                description: `cos(theta)=1: f' = f*v/(v-v_s) = ${((f0 * v) / Math.max(1e-6, v - vs)).toFixed(2)} Hz (频率升高)`
+                description: `cos(theta)=1: f' = f*v/(v-v_s) = ${((f0 * v) / Math.max(DENOM_EPS, v - vs)).toFixed(2)} Hz (频率升高)`
             },
             {
                 label: '垂直运动 (掠过时)',

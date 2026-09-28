@@ -1,6 +1,6 @@
 import type { PhysicsProblem } from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
-import type { ParameterSpec } from '../types/common.js';
+import type { ParameterSpec, ValidationResult } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
 
 /**
@@ -35,6 +35,38 @@ export class DiffusionModel extends PhysicsModelBase {
         { name: 'mode', description: '扩散介质 (gas/liquid)', unit: '', required: true },
         { name: 'particleCount', description: '粒子数 N', unit: '', required: true, min: 10, max: 10000 }
     ];
+
+    /**
+     * 跨参数约束: gridSize / diffusionCoeff / temperature 必须为正有限数。
+     *
+     * 这三个字段是 diffusion 约束里的**可选**参数, 不在 requiredParameters 中,
+     * 故基类 min/max 拦截不到。零值会让 tSample = gridSize²/(6D) 退化为 0,
+     * 进而使浓度分布 N/√(4πDt) 除零 → 整列 NaN。
+     */
+    validate(problem: PhysicsProblem): ValidationResult {
+        const base = super.validate(problem);
+        if (!base.valid) return base;
+
+        const dc = problem.constraints?.diffusion;
+        if (!dc) return base;
+
+        const errors: Array<{ code: string; message: string; param?: string; value?: number }> = [];
+        const check = (name: string, value: number | undefined, label: string) => {
+            if (value !== undefined && !(value > 0)) {
+                errors.push({
+                    code: 'NON_POSITIVE_PARAMETER',
+                    message: `${label} 必须为正数（作分母使用），当前值: ${value}`,
+                    param: name,
+                    value
+                });
+            }
+        };
+        check('gridSize', dc.gridSize, '扩散区域尺度 gridSize');
+        check('diffusionCoeff', dc.diffusionCoeff, '扩散系数 D');
+
+        if (errors.length > 0) return { valid: false, errors, warnings: [] };
+        return base;
+    }
 
     solve(problem: PhysicsProblem): SimulationResult {
         this.throwIfInvalid(problem);
