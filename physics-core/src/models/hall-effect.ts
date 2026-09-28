@@ -2,6 +2,7 @@ import type { PhysicsProblem } from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
+import { requireConstraintNumber } from './constraint-guard.js';
 
 /**
  * 霍尔元件约束 — 选必二 第一章 (霍尔效应)
@@ -70,10 +71,11 @@ export class HallEffectModel extends PhysicsModelBase {
         const c = problem.constraints?.hallEffect;
         if (!c) throw new Error('hall-effect 模型需要 hallEffect 约束配置');
 
-        const I = c.current; // A
-        const B = c.magneticField; // T
-        const n = c.chargeDensity; // m^-3
-        const t = c.thickness; // m
+        // 经守卫读取: 字段缺失时给出可定位错误, 而非深层 TypeError (#27)
+        const I = requireConstraintNumber(c as unknown as Record<string, unknown>, 'current', 'hall-effect'); // A
+        const B = requireConstraintNumber(c as unknown as Record<string, unknown>, 'magneticField', 'hall-effect'); // T
+        const n = requireConstraintNumber(c as unknown as Record<string, unknown>, 'chargeDensity', 'hall-effect'); // m^-3
+        const t = requireConstraintNumber(c as unknown as Record<string, unknown>, 'thickness', 'hall-effect'); // m
         const carrier = c.carrierType ?? 'electron';
 
         // 元电荷

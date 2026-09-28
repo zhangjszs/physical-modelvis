@@ -22,6 +22,9 @@ import { PhysicsModelBase } from './base.js';
  *   水+石蜡: theta ≈ 105°, cos(theta) ≈ -0.26
  *   水银+玻璃: theta ≈ 140°, cos(theta) ≈ -0.77
  */
+/** 接触角余弦视为零的阈值 (cos90° = 0, 此处留浮点余量) */
+const COS_ZERO_EPS = 1e-12;
+
 export class CapillaryModel extends PhysicsModelBase {
     readonly name = '毛细现象';
     readonly version = '1.0.0';
@@ -99,19 +102,40 @@ export class CapillaryModel extends PhysicsModelBase {
             points: []
         };
         const nMeniscus = 50;
-        const R = r / Math.abs(cosTheta); // 弯月面曲率半径
+        const warnings: string[] = [];
+        /**
+         * 弯月面曲率半径 R = r/|cosθ|。
+         *
+         * θ=90° 时 cosθ=0 → R=∞, 弯月面退化为平面(无曲率), 除零会得到 Infinity。
+         * 当前查表(0/105/140/150°)恰好避开该值, 属**定时炸弹** —— 未来新增
+         * "中性浸润"液体或开放自定义 θ 时即会触发。故显式前瞻守卫。
+         */
+        const degenerateMeniscus = Math.abs(cosTheta) < COS_ZERO_EPS;
+        const R = degenerateMeniscus ? Number.POSITIVE_INFINITY : r / Math.abs(cosTheta);
+        if (degenerateMeniscus) {
+            warnings.push(
+                `接触角 θ=${thetaDeg}° 使 cosθ→0, 弯月面退化为平面 (曲率半径 R→∞); ` +
+                    `毛细高度 h=2σcosθ/(ρgr)→0, 无升降现象`
+            );
+        }
         for (let i = 0; i <= nMeniscus; i++) {
             const x = -r + (2 * r * i) / nMeniscus;
-            // 球形弯月面: y = h - (R - sqrt(R² - x²)) (上升) 或 y = -(R - sqrt(R² - x²)) (下降)
-            const insideRoot = R * R - x * x;
-            const y =
-                insideRoot > 0
-                    ? cosTheta > 0
-                        ? h - (R - Math.sqrt(insideRoot))
-                        : -(R - Math.sqrt(insideRoot))
-                    : cosTheta > 0
-                      ? h
-                      : 0;
+            let y: number;
+            if (degenerateMeniscus) {
+                // R=∞ 时球面公式退化为常数液面, 不能代入 Infinity (会得 NaN)
+                y = 0;
+            } else {
+                // 球形弯月面: y = h - (R - sqrt(R² - x²)) (上升) 或 y = -(R - sqrt(R² - x²)) (下降)
+                const insideRoot = R * R - x * x;
+                y =
+                    insideRoot > 0
+                        ? cosTheta > 0
+                            ? h - (R - Math.sqrt(insideRoot))
+                            : -(R - Math.sqrt(insideRoot))
+                        : cosTheta > 0
+                          ? h
+                          : 0;
+            }
             meniscusCurve.points.push({
                 x: parseFloat((x * 1000).toFixed(4)),
                 y: parseFloat((y * 1000).toFixed(4))
@@ -147,7 +171,6 @@ export class CapillaryModel extends PhysicsModelBase {
             }
         ];
 
-        const warnings: string[] = [];
         if (r > 5e-3) warnings.push('管径较大, 毛细效应不明显');
         if (r < 5e-5) warnings.push('管径过小, 可能堵塞');
 
