@@ -37,7 +37,12 @@ export const Vec2 = {
         return Math.sqrt(v.x * v.x + v.y * v.y);
     },
 
-    /** 单位向量 (零向量返回零向量) */
+    /**
+     * 单位向量 (零向量无单位方向, 抛错)
+     *
+     * 零向量的方向是未定义的 —— 静默返回零向量会把"退化几何"(如粒子恰在磁场中心)
+     * 伪装成"指向某处", 污染下游洛伦兹力方向。故显式抛错, 由调用方决定降级策略。
+     */
     normalize(v: Vector2D): Vector2D {
         const mag = Vec2.magnitude(v);
         if (mag === 0) throw new Error('Cannot normalize a zero vector');

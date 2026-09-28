@@ -16,6 +16,15 @@ import { PhysicsModelBase } from './base.js';
  *   qvB = mv²/r  → r = mv/(qB)    T = 2πm/(qB)
  */
 
+/**
+ * "垂直入射"判定容差 (度)
+ *
+ * 洛伦兹力 F = qvB·sinφ 在 φ=90° 时取极大, 粒子做匀速圆周运动。
+ * 该判定用容差而非 `phiDeg === 90` 精确比较 —— 89.999° 在物理上同样是垂直入射,
+ * 精确浮点比较会静默丢失圆周分支, 使 radius/period 恒为 0。
+ */
+const PHI_TOLERANCE_DEG = 0.5;
+
 export class MagneticForceModel extends PhysicsModelBase {
     readonly name = '安培力与洛伦兹力';
     readonly version = '1.0.0';
@@ -64,7 +73,10 @@ export class MagneticForceModel extends PhysicsModelBase {
             lorentzForce = Math.abs(q) * v * B * Math.sin(phiRad);
             lorentzAngle = phiDeg;
             // 圆周运动 (φ = 90° 时粒子做匀速圆周)
-            if (phiDeg === 90 && (mc.particleMass ?? 0) > 0) {
+            // 用容差而非精确比较: 89.999° 同样是"垂直入射"的物理情形,
+            // 精确浮点比较会静默丢失圆周分支, 导致 radius/period 恒为 0。
+            const isPerpendicular = Math.abs(phiDeg - 90) < PHI_TOLERANCE_DEG;
+            if (isPerpendicular && (mc.particleMass ?? 0) > 0) {
                 radius = (mc.particleMass! * v) / (Math.abs(q) * B);
                 period = (2 * Math.PI * mc.particleMass!) / (Math.abs(q) * B);
             }
@@ -94,16 +106,19 @@ export class MagneticForceModel extends PhysicsModelBase {
         const circularPath: TrajectoryPoint[] = [];
         if (radius > 0 && period > 0) {
             const steps = 200;
+            // 走完一整圈: 弧度角 0→2π 对应时间 0→period (秒)
+            const dt = period / steps;
+            const omega = (2 * Math.PI) / period; // 角速度 rad/s
             for (let i = 0; i <= steps; i++) {
-                const omega_t = (2 * Math.PI * i) / steps;
-                const x = radius * Math.cos(omega_t);
-                const y = radius * Math.sin(omega_t);
+                const angle = (2 * Math.PI * i) / steps;
+                const x = radius * Math.cos(angle);
+                const y = radius * Math.sin(angle);
                 circularPath.push({
-                    t: i / steps,
+                    t: i * dt,
                     position: { x: parseFloat(x.toFixed(5)), y: parseFloat(y.toFixed(5)) },
                     velocity: {
-                        x: parseFloat((((-radius * Math.sin(omega_t)) / period) * 2 * Math.PI).toFixed(5)),
-                        y: parseFloat((((radius * Math.cos(omega_t)) / period) * 2 * Math.PI).toFixed(5))
+                        x: parseFloat((-radius * omega * Math.sin(angle)).toFixed(5)),
+                        y: parseFloat((radius * omega * Math.cos(angle)).toFixed(5))
                     },
                     kineticEnergy: 0,
                     potentialEnergy: 0

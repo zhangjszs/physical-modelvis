@@ -7,7 +7,14 @@ import type { ElectricFieldLinesConstraint, FieldCharge } from '../types/problem
 
 /** 库仑常量 (N·m²/C²) */
 const K = 8.9875517923e9;
-/** 场景单位 → 米 的映射比例 (仅用于物理量级估算, 渲染用归一化坐标) */
+/**
+ * 场景单位 → 米 的映射比例 (渲染用归一化坐标, 仅在换算物理量时折算为 SI)
+ *
+ * 全仓统一约定 (与 current-magnetic-field 一致): 场景参数以"归一化场景单位"给出,
+ * 引擎内部一律先乘 SCENE_TO_M 折算为米再做物理计算, 保证 E/F/B 的量纲正确。
+ * 例如 plateGap=1.2 场景单位 → d=0.12 m, E = U/d = 12/0.12 = 100 V/m。
+ * 场景参数 label 已标注"(场景)"以示区分 (见 scenes/electromagnetism/efield-lines.ts)。
+ */
 const SCENE_TO_M = 0.1;
 
 /** 单条电场线 (归一化场景坐标折线) */
@@ -262,22 +269,33 @@ export class ElectricFieldLinesModel extends PhysicsModelBase {
         return lines;
     }
 
-    /** 平行板匀强场的电场线: 板间等距竖直直线 + 端部轻微外凸 */
+    /**
+     * 平行板匀强场的电场线: 板间等距竖直直线 + 端部轻微外凸
+     *
+     * 纵坐标必须落在 [plates.bottom, plates.top] (实际极板位置) 而非固定的 ±1 ——
+     * 否则改变板间距 (plateGap) 时, 电场线与极板错位, 画面上"板间无场 / 板外有场"。
+     */
     private parallelPlateLines(
         plates: { top: number; bottom: number; left: number; right: number },
         lineCount: number
     ): FieldLine[] {
         const lines: FieldLine[] = [];
         const n = lineCount;
+        const gap = plates.top - plates.bottom;
+        // 边缘外凸幅度随板间距缩放, 保证不同 gap 下观感一致
+        const fringeAmp = 0.12 * gap;
         for (let i = 0; i < n; i++) {
             const t = n === 1 ? 0.5 : i / (n - 1);
             const x = plates.left + t * (plates.right - plates.left);
             const points: Array<{ x: number; y: number }> = [];
             const segs = 40;
             for (let s = 0; s <= segs; s++) {
-                const fy = 1 - (2 * s) / segs; // 从上板到下板 (电场线自上而下, 由 + 板指向 − 板)
-                const fringe = 0.12 * Math.sin(((1 - fy) / 2) * Math.PI) * (x < 0 ? -1 : 1);
-                points.push({ x: x + fringe, y: fy });
+                // f 从 +1 (上板) 递减到 -1 (下板), 归一化到 [0,1] 后映射到实际极板区间
+                const f = 1 - (2 * s) / segs;
+                const u = (f + 1) / 2;
+                const y = plates.bottom + u * gap;
+                const fringe = fringeAmp * Math.sin((1 - u) * Math.PI) * (x < 0 ? -1 : 1);
+                points.push({ x: x + fringe, y });
             }
             lines.push({ points, sign: 1 });
         }
