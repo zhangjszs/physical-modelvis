@@ -76,9 +76,21 @@ export class ProjectileModel extends PhysicsModelBase {
         const apexHeight = h0 + (v0y * v0y) / (2 * g);
 
         // 飞行时间 (落地解方程 h₀ + v₀y·t − ½gt² = 0)
+        // 判别式 disc = v₀y² + 2gh₀: < 0 表示轨迹始终在地面之上、模拟期内不落地。
+        // 此时若静默回退 tLand = duration, 算出的"射程"是伪值(会被当作测量结果),
+        // 故显式标记为未落地并给出告警。
         const disc = v0y * v0y + 2 * g * h0;
-        const tLand = disc > 0 ? (v0y + Math.sqrt(disc)) / g : duration;
-        const range = v0x * tLand;
+        const neverLands = disc <= 0;
+        const tLand = neverLands ? duration : (v0y + Math.sqrt(disc)) / g;
+        const range = neverLands ? 0 : v0x * tLand;
+
+        const landWarnings: string[] = [];
+        if (neverLands) {
+            landWarnings.push(
+                `发射点高度 h₀=${h0.toFixed(2)}m 低于使抛物线与地面相交所需的临界高度, ` +
+                    `模拟时长 ${duration}s 内物体不落地 (判别式 v₀y²+2gh₀=${disc.toFixed(3)} ≤ 0), 射程不可定义, 记为 0`
+            );
+        }
 
         // 关键帧
         const keyframes: Keyframe[] = [
@@ -100,20 +112,23 @@ export class ProjectileModel extends PhysicsModelBase {
             });
         }
         {
-            const tEnd = Math.min(tLand, duration);
+            const tEnd = neverLands ? duration : Math.min(tLand, duration);
             const landX = x0.x + v0x * tEnd;
-            const landY = Math.max(groundY, h0 + v0y * tEnd - 0.5 * g * tEnd * tEnd);
+            const landY = neverLands
+                ? h0 + v0y * tEnd - 0.5 * g * tEnd * tEnd
+                : Math.max(groundY, h0 + v0y * tEnd - 0.5 * g * tEnd * tEnd);
             const vyEnd = v0y - g * tEnd;
             const vEnd = Math.sqrt(v0x * v0x + vyEnd * vyEnd);
             keyframes.push({
-                label: tLand <= duration ? '落地点' : '模拟终点',
+                label: neverLands ? '未落地(模拟终点)' : tLand <= duration ? '落地点' : '模拟终点',
                 t: tEnd,
                 position: { x: landX, y: landY },
                 velocity: { x: v0x, y: vEnd > 0 ? vyEnd : 0 },
-                description:
-                    tLand <= duration
-                        ? `物体落回地面，射程 R=${range.toFixed(2)}m，末速度 v=${vEnd.toFixed(2)}m/s`
-                        : `模拟结束，尚未落地`
+                description: neverLands
+                    ? `抛物线与地面无交点, 模拟结束时尚未落地 (高度 ${landY.toFixed(2)}m), 射程不可定义`
+                    : tLand <= duration
+                      ? `物体落回地面，射程 R=${range.toFixed(2)}m，末速度 v=${vEnd.toFixed(2)}m/s`
+                      : `模拟结束，尚未落地`
             });
         }
 
@@ -192,14 +207,14 @@ export class ProjectileModel extends PhysicsModelBase {
                 description: '飞行时间',
                 formula: 't = (v₀y + √(v₀y² + 2gh₀)) / g',
                 calculation: `t = (${v0y.toFixed(2)} + √${disc.toFixed(2)}) / ${g}`,
-                result: `t = ${tLand.toFixed(3)} s`
+                result: neverLands ? '判别式 ≤ 0：抛物线与地面无交点，模拟期内不落地' : `t = ${tLand.toFixed(3)} s`
             },
             {
                 order: 4,
                 description: '射程',
                 formula: 'R = v₀x · t',
                 calculation: `R = ${v0x.toFixed(2)} × ${tLand.toFixed(3)}`,
-                result: `R = ${range.toFixed(3)} m`
+                result: neverLands ? '未落地，射程不可定义' : `R = ${range.toFixed(3)} m`
             }
         ];
         const formulas: FormulaUsage[] = [
@@ -225,15 +240,17 @@ export class ProjectileModel extends PhysicsModelBase {
             diagnostics: {
                 conservedQuantities: [],
                 maxValues: { range, apexHeight, flightTime: tLand, thetaDeg: angDeg },
-                rangeCheck: { withinRange: true, warnings: [] }
+                rangeCheck: { withinRange: !neverLands, warnings: landWarnings }
             },
             explanation: {
-                summary: `抛体运动 (v₀=${Vec2.magnitude(v0).toFixed(1)}m/s, θ=${angDeg.toFixed(1)}°): 最高点 H=${apexHeight.toFixed(2)}m, 射程 R=${range.toFixed(2)}m, 飞行时间 t=${tLand.toFixed(2)}s`,
+                summary: neverLands
+                    ? `抛体运动 (v₀=${Vec2.magnitude(v0).toFixed(1)}m/s, θ=${angDeg.toFixed(1)}°): 最高点 H=${apexHeight.toFixed(2)}m, 模拟期内未落地 (判别式 ≤ 0), 射程不可定义`
+                    : `抛体运动 (v₀=${Vec2.magnitude(v0).toFixed(1)}m/s, θ=${angDeg.toFixed(1)}°): 最高点 H=${apexHeight.toFixed(2)}m, 射程 R=${range.toFixed(2)}m, 飞行时间 t=${tLand.toFixed(2)}s`,
                 steps,
                 formulas
             },
             errors: [],
-            warnings: []
+            warnings: landWarnings
         };
     }
 }

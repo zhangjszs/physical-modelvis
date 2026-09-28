@@ -40,6 +40,14 @@ import { Vec2 } from '../math/vector2d.js';
 /** 防止 t_end 在 θ→0 时除零的极小值 (sinθ 阈值) */
 const MIN_SIN_THETA = 1e-6;
 
+/**
+ * 滑到底端时间的"发散"阈值 (s)
+ *
+ * t = √(2L/a) = √(2L/(g·sinθ)) 在 θ→0 时趋于无穷。超过此阈值说明参数已进入
+ * 数值外推区(物理上"平面需无穷长时间"), 报告的有限值不具测量意义, 须显式告警。
+ */
+const DIVERGENT_TIME_THRESHOLD_S = 60;
+
 /** 每段轨迹采样数 */
 const SAMPLES_PER_PHASE = 256;
 
@@ -230,6 +238,13 @@ export class GalileoInclineModel extends PhysicsModelBase {
 
         if (Math.abs(sinTheta) <= 2 * MIN_SIN_THETA) {
             warnings.push('θ ≈ 0°, 沿斜面分力趋近于零, 外推"无法计时", 所以伽利略选用较大倾角外推');
+        } else if (tEnd > DIVERGENT_TIME_THRESHOLD_S) {
+            // tEnd = √(2L/a) 随 sinθ→0 发散: 物理上"平面需无穷长时间才能滑到底"。
+            // 钳位得到的有限值是数值假象, 必须显式说明, 否则读者会把 483s 当作测量结果。
+            warnings.push(
+                `θ = ${angleDeg.toFixed(4)}° 极小, 沿斜面加速度 a = g·sinθ = ${a.toExponential(2)} m/s² 趋近于 0; ` +
+                    `滑到底端的真实时间 t = √(2L/a) 趋于无穷 (当前参数下外推为 ${tEnd.toFixed(1)} s), 该有限值是数值外推结果而非可测量值`
+            );
         }
 
         // ====== 图表 ======

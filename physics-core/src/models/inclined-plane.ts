@@ -5,6 +5,9 @@ import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
 import { Vec2 } from '../math/vector2d.js';
 
+/** 判定"有下滑初速"的速度阈值 (m/s) —— 低于此视为静止释放 */
+const VELOCITY_EPS = 1e-9;
+
 /** 斜面运动模型 */
 export class InclinedPlaneModel extends PhysicsModelBase {
     readonly name = '斜面运动';
@@ -50,24 +53,59 @@ export class InclinedPlaneModel extends PhysicsModelBase {
 
         // 加速度: a = g(sinθ - μcosθ) 沿斜面方向
         const a = g * (sinTheta - mu * cosTheta);
-        const isStationary = sinTheta <= mu * cosTheta + 1e-10;
 
         // 沿斜面方向的单位向量 (向下为正)
         const inclineDir = { x: cosTheta, y: -sinTheta };
         // 垂直斜面方向 (指向斜面上方)
         const normalDir = { x: sinTheta, y: cosTheta };
 
+        // 初始沿斜面向下的速度分量 (m/s)
+        const v0Along = Vec2.dot(v0, inclineDir);
+
+        /**
+         * 静摩擦判据。
+         *
+         * 静摩擦 (tanθ ≤ μ) 只能"保持"静止, 不能"刹停"一个已经在运动的物体 ——
+         * 摩擦力不会在零时刻把动量清零。故:
+         *   - tanθ > μ        : 重力分力胜出, 一定下滑
+         *   - tanθ ≤ μ 且 v∥=0 : 静摩擦保持静止
+         *   - tanθ ≤ μ 且 v∥>0 : 动摩擦使其减速 (a<0), 停下后保持静止
+         *
+         * 此前一律按 tanθ ≤ μ 判为静止, 使"无摩擦平面 (μ=0, θ=0) + 初速"的
+         * 匀速滑行被误判为静止 —— 教学上直接讲错。
+         */
+        const staticCanHold = sinTheta <= mu * cosTheta + 1e-10;
+        const isMoving = !staticCanHold || v0Along > VELOCITY_EPS;
+        // 减速情形: 动摩擦使物体停下, 停下后速度截断为 0 (不倒退上滑)
+        const decelerating = staticCanHold && isMoving && a < 0;
+        const stopTime = decelerating && a < 0 ? v0Along / -a : Number.POSITIVE_INFINITY;
+
+        /** 时刻 t 的沿斜面速度 (减速停下后恒为 0) */
+        const velocityAt = (t: number): number => {
+            if (!isMoving) return 0;
+            const v = v0Along + a * t;
+            return decelerating && t > stopTime ? 0 : v;
+        };
+        /** 时刻 t 的沿斜面位移 (减速停下后不再变化) */
+        const displacementAt = (t: number): number => {
+            if (!isMoving) return 0;
+            if (!decelerating) return v0Along * t + 0.5 * a * t * t;
+            if (t <= stopTime) return v0Along * t + 0.5 * a * t * t;
+            // 停下后位移冻结在停止点
+            return v0Along * stopTime + 0.5 * a * stopTime * stopTime;
+        };
+
         const duration = problem.timeConfig.duration;
         const sampleCount = problem.timeConfig.sampleCount ?? 1000;
         // 解析解采样: 斜面运动 (公共脚手架 sampleTrajectory)
-        const effectiveAccel = isStationary ? 0 : a;
+        const effectiveAccel = isMoving ? a : 0;
         const trajectory = sampleTrajectory({
             sampleCount,
             duration,
             sampleAt: t => {
                 // 沿斜面的位移和速度
-                const s = isStationary ? 0 : Vec2.dot(v0, inclineDir) * t + 0.5 * effectiveAccel * t * t;
-                const vAlongIncline = isStationary ? 0 : Vec2.dot(v0, inclineDir) + effectiveAccel * t;
+                const s = displacementAt(t);
+                const vAlongIncline = velocityAt(t);
 
                 // 位置 = 初始位置 + 沿斜面位移
                 const position = Vec2.add(x0, Vec2.scale(inclineDir, s));
@@ -75,8 +113,9 @@ export class InclinedPlaneModel extends PhysicsModelBase {
                 const velocity = Vec2.scale(inclineDir, vAlongIncline);
                 const speed = Math.abs(vAlongIncline);
 
-                // 加速度向量
-                const accelVec = isStationary ? Vec2.zero() : Vec2.scale(inclineDir, effectiveAccel);
+                // 加速度向量 (停下后加速度归零)
+                const atRest = isMoving && decelerating && t > stopTime;
+                const accelVec = !isMoving || atRest ? Vec2.zero() : Vec2.scale(inclineDir, effectiveAccel);
 
                 return {
                     position,
@@ -101,36 +140,58 @@ export class InclinedPlaneModel extends PhysicsModelBase {
             description: `物体在斜面顶端，倾角 ${angleDeg}°，摩擦系数 μ=${mu}`
         });
 
-        if (isStationary) {
+        if (!isMoving) {
             keyframes.push({
                 label: '物体静止',
                 t: duration,
                 position: { ...x0 },
                 velocity: Vec2.zero(),
-                description: `tanθ = ${sinTheta.toFixed(4)} < μ = ${mu}，物体保持静止`
+                description: `tanθ = ${(sinTheta / Math.max(cosTheta, 1e-12)).toFixed(4)} ≤ μ = ${mu}，且初速度为 0，静摩擦保持静止`
+            });
+        } else if (decelerating) {
+            // 动摩擦减速至静止 (摩擦不使物体倒退)
+            const sStop = v0Along * stopTime + 0.5 * a * stopTime * stopTime;
+            const posStop = Vec2.add(x0, Vec2.scale(inclineDir, sStop));
+            keyframes.push({
+                label: '停下',
+                t: stopTime,
+                position: posStop,
+                velocity: Vec2.zero(),
+                description: `初速 ${v0Along.toFixed(2)} m/s, 动摩擦 a=${a.toFixed(2)} m/s² (上滑), t=${stopTime.toFixed(3)}s 停下后保持静止`
             });
         } else {
-            // 检查物体是否到达斜面底端
-            const totalInclineLength = h / sinTheta;
-            const sAtEnd = Vec2.dot(v0, inclineDir);
-            // 用运动学公式求到达底端的时间: s = v0*t + 0.5*a*t²
-            if (effectiveAccel > 0) {
-                const aHalf = 0.5 * effectiveAccel;
-                const discriminant = sAtEnd * sAtEnd + 4 * aHalf * totalInclineLength;
-                if (discriminant >= 0) {
-                    const tEnd = (-sAtEnd + Math.sqrt(discriminant)) / (2 * aHalf);
-                    if (tEnd > 0 && tEnd <= duration) {
-                        const posAtEnd = Vec2.add(x0, Vec2.scale(inclineDir, totalInclineLength));
-                        const vAtEnd = Math.sqrt(sAtEnd * sAtEnd + 2 * effectiveAccel * totalInclineLength);
-                        keyframes.push({
-                            label: '到达底端',
-                            t: tEnd,
-                            position: posAtEnd,
-                            velocity: Vec2.scale(inclineDir, vAtEnd),
-                            description: `物体在 t=${tEnd.toFixed(3)}s 到达斜面底端，速度 ${vAtEnd.toFixed(2)} m/s`
-                        });
+            // 检查物体是否到达斜面底端 (θ=0 的水平面无"底端"概念, 跳过)
+            if (sinTheta > 0) {
+                const totalInclineLength = h / sinTheta;
+                const sAtEnd = v0Along;
+                // 用运动学公式求到达底端的时间: s = v0*t + 0.5*a*t²
+                if (effectiveAccel > 0) {
+                    const aHalf = 0.5 * effectiveAccel;
+                    const discriminant = sAtEnd * sAtEnd + 4 * aHalf * totalInclineLength;
+                    if (discriminant >= 0) {
+                        const tEnd = (-sAtEnd + Math.sqrt(discriminant)) / (2 * aHalf);
+                        if (tEnd > 0 && tEnd <= duration) {
+                            const posAtEnd = Vec2.add(x0, Vec2.scale(inclineDir, totalInclineLength));
+                            const vAtEnd = Math.sqrt(sAtEnd * sAtEnd + 2 * effectiveAccel * totalInclineLength);
+                            keyframes.push({
+                                label: '到达底端',
+                                t: tEnd,
+                                position: posAtEnd,
+                                velocity: Vec2.scale(inclineDir, vAtEnd),
+                                description: `物体在 t=${tEnd.toFixed(3)}s 到达斜面底端，速度 ${vAtEnd.toFixed(2)} m/s`
+                            });
+                        }
                     }
                 }
+            } else if (Math.abs(v0Along) > VELOCITY_EPS) {
+                // 水平面 (θ=0) 且 μ=0 → 无摩擦, 匀速直线运动
+                keyframes.push({
+                    label: '匀速滑行',
+                    t: duration,
+                    position: trajectory[trajectory.length - 1].position,
+                    velocity: Vec2.scale(inclineDir, v0Along),
+                    description: `θ=0 且 μ=0：水平面无摩擦也无重力分量，保持 ${Math.abs(v0Along).toFixed(2)} m/s 匀速直线运动`
+                });
             }
         }
 
@@ -186,7 +247,7 @@ export class InclinedPlaneModel extends PhysicsModelBase {
             { name: '支持力(N)', vector: Vec2.scale(normalDir, normalForce), magnitude: normalForce, unit: 'N' },
             { name: '摩擦力(f)', vector: Vec2.scale(inclineDir, -frictionForce), magnitude: frictionForce, unit: 'N' }
         ];
-        const netForceMag = isStationary ? 0 : gravityParallel - frictionForce;
+        const netForceMag = isMoving ? gravityParallel - frictionForce : 0;
         const forceDiagram: ForceDiagram = {
             bodyId: body.id,
             forces,
@@ -212,13 +273,19 @@ export class InclinedPlaneModel extends PhysicsModelBase {
                 },
                 rangeCheck: {
                     withinRange: true,
-                    warnings: isStationary ? [`tanθ = ${sinTheta.toFixed(4)} ≤ μ = ${mu}，物体可能不会下滑`] : []
+                    warnings: !isMoving
+                        ? [
+                              `tanθ = ${(sinTheta / Math.max(cosTheta, 1e-12)).toFixed(4)} ≤ μ = ${mu} 且初速度为 0，静摩擦保持静止`
+                          ]
+                        : []
                 }
             },
             explanation: {
-                summary: isStationary
-                    ? `倾角 ${angleDeg}° ≤ 临界角 ${criticalAngle.toFixed(1)}° (tanθ = ${sinTheta.toFixed(4)} ≤ μ = ${mu})，物体静止`
-                    : `物体沿 ${angleDeg}° 斜面下滑，加速度 a = g(sinθ - μcosθ) = ${effectiveAccel.toFixed(2)} m/s²`,
+                summary: !isMoving
+                    ? `倾角 ${angleDeg}° ≤ 临界角 ${criticalAngle.toFixed(1)}° (tanθ = ${(sinTheta / Math.max(cosTheta, 1e-12)).toFixed(4)} ≤ μ = ${mu}) 且初速度为 0，物体静止`
+                    : isMoving && sinTheta <= 1e-12 && mu === 0
+                      ? `水平面 (θ=0) 无摩擦，物体以 ${Math.abs(v0Along).toFixed(2)} m/s 匀速直线滑行 (a=0)`
+                      : `物体沿 ${angleDeg}° 斜面运动，加速度 a = g(sinθ - μcosθ) = ${effectiveAccel.toFixed(2)} m/s²`,
                 steps: [
                     {
                         order: 1,
@@ -286,7 +353,13 @@ export class InclinedPlaneModel extends PhysicsModelBase {
                 ]
             },
             errors: [],
-            warnings: isStationary ? [`物体在 ${angleDeg}° 斜面上因摩擦力大于重力分量而保持静止`] : []
+            warnings: !isMoving
+                ? [`物体在 ${angleDeg}° 斜面上因摩擦力大于重力分量而保持静止`]
+                : decelerating
+                  ? [
+                        `tanθ = ${(sinTheta / Math.max(cosTheta, 1e-12)).toFixed(4)} ≤ μ = ${mu}，但物体已有下滑初速 ${v0Along.toFixed(2)} m/s，动摩擦使其减速并在 t=${stopTime.toFixed(3)}s 停下`
+                    ]
+                  : []
         };
     }
 }
