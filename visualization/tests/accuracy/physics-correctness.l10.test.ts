@@ -28,7 +28,11 @@ function scanResult(result: unknown, sceneId: string, paramDesc: string): void {
     expect(breakProblems, `${sceneId} ${paramDesc}: charts 非断点 NaN: ${breakProblems.join(', ')}`).toEqual([]);
 
     // 2. 其余字段 (含 explanation/diagnostics/maxValues 等字符串) 不得含 NaN/Infinity
-    const problems = findNonFinite({ ...(result as Record<string, unknown>), charts: undefined, trajectories: undefined });
+    const problems = findNonFinite({
+        ...(result as Record<string, unknown>),
+        charts: undefined,
+        trajectories: undefined
+    });
     expect(problems, `${sceneId} ${paramDesc}: 字符串级 NaN 泄漏: ${problems.join(', ')}`).toEqual([]);
 }
 

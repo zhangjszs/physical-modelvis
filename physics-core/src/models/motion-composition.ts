@@ -232,9 +232,9 @@ export class MotionCompositionModel extends PhysicsModelBase {
             },
             explanation: {
                 summary:
-                vxConst !== 0
-                    ? `运动合成分解 (蜡块实验): vx=${vxConst}m/s, a_y=${ay}m/s², 轨迹 y=${aOverVxsq.toFixed(4)}·x², 水平射程=${totalX.toFixed(2)}m, 竖直射程=${totalY.toFixed(2)}m, 末合速度 v=${finalV.toFixed(2)}m/s`
-                    : `运动合成分解 (蜡块实验): vx=0m/s, a_y=${ay}m/s², 轨迹为直线 (x=0), 竖直射程=${totalY.toFixed(2)}m, 末合速度 v=${finalV.toFixed(2)}m/s`,
+                    vxConst !== 0
+                        ? `运动合成分解 (蜡块实验): vx=${vxConst}m/s, a_y=${ay}m/s², 轨迹 y=${aOverVxsq.toFixed(4)}·x², 水平射程=${totalX.toFixed(2)}m, 竖直射程=${totalY.toFixed(2)}m, 末合速度 v=${finalV.toFixed(2)}m/s`
+                        : `运动合成分解 (蜡块实验): vx=0m/s, a_y=${ay}m/s², 轨迹为直线 (x=0), 竖直射程=${totalY.toFixed(2)}m, 末合速度 v=${finalV.toFixed(2)}m/s`,
                 steps,
                 formulas
             },

@@ -58,7 +58,16 @@ describe('findNonFinite', () => {
 
 describe('findNonBreakMarkerNaNs', () => {
     it('positive: {NaN, NaN} 断点合法 → 返回空', () => {
-        const result = { charts: { x_t: { points: [{ x: 1, y: 2 }, { x: NaN, y: NaN }] } } };
+        const result = {
+            charts: {
+                x_t: {
+                    points: [
+                        { x: 1, y: 2 },
+                        { x: NaN, y: NaN }
+                    ]
+                }
+            }
+        };
         expect(findNonBreakMarkerNaNs(result)).toEqual([]);
     });
 
