@@ -4,18 +4,21 @@
 
 ## 架构
 
-自检循环分 7 层 (L0-L6), 顺序执行, 每层依赖前一层通过:
+自检循环分 9 层 (L0-L6 + L8 + L9; 无 L7), 顺序执行, 每层依赖前一层通过:
 
 ```
-L0 物理常数 → L1 模型验证 → L2 SceneConfig 契约 → L3 渲染器公式 → L4 FormulaPanel 漂移 → L5 路由完整性 → L6 参数范围
+L0 物理常数 → L1 模型验证 → L2 SceneConfig 契约 → L3 渲染器公式 → L4 FormulaPanel 漂移 → L5 路由完整性 → L6 参数范围 → L8 Boris 数值积分 → L9 跨场景数值鲁棒性
 ```
 
 每层一个独立 commit, 独立运行, 独立门禁。
 
+> 层数以 `scripts/self-check.mjs` 的 `LAYERS` 数组为单一真源(当前 9 层)。
+> L7 编号为 CLI 自身的历史遗留, 已跳过。
+
 ## 运行
 
 ```bash
-# 顺序运行全部 7 层
+# 顺序运行全部 9 层
 npm run self-check
 
 # 可视化输出 (默认表格)

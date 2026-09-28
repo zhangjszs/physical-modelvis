@@ -8,7 +8,6 @@ const model = new MoonEarthTestModel();
 const R_EARTH = 6.371e6;
 const R_MOON = 3.844e8;
 const T_MOON = 27.3 * 86400;
-const G_STD = 9.80665;
 
 function makeProblem(
     overrides: {

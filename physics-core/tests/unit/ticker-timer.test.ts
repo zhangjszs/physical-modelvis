@@ -84,7 +84,6 @@ describe('TickerTimerModel', () => {
         const a = 3;
         const v0 = 1;
         const r = model.solve(makeProblem({ frequency: f, acceleration: a, initialVelocity: v0 }));
-        const T_val = r.diagnostics.maxValues.tickInterval_s as number;
         const totalTime = r.diagnostics.maxValues.totalTime as number;
         const finalV = r.diagnostics.maxValues.finalVelocity as number;
         // totalTime = (N - 1) / f

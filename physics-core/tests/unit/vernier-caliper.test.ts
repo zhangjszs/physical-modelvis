@@ -70,7 +70,6 @@ describe('VernierCaliperModel', () => {
     });
 
     it('随机偏移影响 K 值', () => {
-        const r1 = model.solve(makeProblem({ objectSize: 10.0, nType: 10, randomOffset: 0 }));
         const r2 = model.solve(makeProblem({ objectSize: 10.0, nType: 10, randomOffset: 0.05 }));
         // 偏移 0.05mm 可能改变 K 值 (取决于四舍五入)
         expect(r2.diagnostics.maxValues.randomOffset).toBeCloseTo(0.05, 5);

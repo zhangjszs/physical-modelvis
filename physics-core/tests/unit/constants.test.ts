@@ -62,8 +62,6 @@ describe('L0: 物理常数完整性', () => {
             if (exact) {
                 expect(c.value, `${key} 精确值`).toBe(value);
             } else {
-                const digits = 14;
-                const tolerance = Math.max(Math.abs(value) * 10 ** -digits, Number.EPSILON * 100);
                 expect(c.value, `${key} 匹配 CODATA`).toBeCloseTo(value, 10);
             }
         }

@@ -55,7 +55,6 @@ describe('LoadVoltageModel', () => {
         // U-I 直线为 U = E − r·I (截距=E, 斜率=-r)
         // 由于采样从 Rmin 到 Rmax, I 从 E/(Rmax+r) 到 E/(Rmin+r)
         // 检验第一个点 I→小, 此时 U→E
-        const first = chart.points[0]!;
         // 实际上最后一个点 I 最小 (R 最大), U 最大 (接近 E)
         const last = chart.points[chart.points.length - 1]!;
         expect(last.y).toBeCloseTo(6, 0); // R→∞ 时 U→E

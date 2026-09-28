@@ -32,18 +32,14 @@ describe('场景选择器覆盖完整性', () => {
 
     it('SCENE_CATEGORIES 中每个 id 都能解析到真实场景 (无死链)', () => {
         const deadLinks = categoryIds.filter(id => !registeredIds.has(id));
-        expect(
-            deadLinks,
-            `选择器存在死链 (无对应注册场景): ${JSON.stringify(deadLinks)}`,
-        ).toEqual([]);
+        expect(deadLinks, `选择器存在死链 (无对应注册场景): ${JSON.stringify(deadLinks)}`).toEqual([]);
     });
 
     it('sceneRegistry 中每个已注册场景都可达 (无隐藏场景)', () => {
-        const hidden = getScenesSync().map(s => s.id).filter(id => !reachableIds.has(id));
-        expect(
-            hidden,
-            `存在已注册但选择器不可达的场景: ${JSON.stringify(hidden)}`,
-        ).toEqual([]);
+        const hidden = getScenesSync()
+            .map(s => s.id)
+            .filter(id => !reachableIds.has(id));
+        expect(hidden, `存在已注册但选择器不可达的场景: ${JSON.stringify(hidden)}`).toEqual([]);
     });
 
     it('SCENE_CATEGORIES 内无重复 id', () => {
@@ -60,7 +56,7 @@ describe('场景选择器覆盖完整性', () => {
         expect(new Set(categoryIds).size, '分类 id 不应有重复').toBe(categoryIds.length);
         expect(
             new Set(categoryIds).size,
-            `分类 id 数 (${categoryIds.length}) 应与注册场景数 (${registeredIds.size}) 一致`,
+            `分类 id 数 (${categoryIds.length}) 应与注册场景数 (${registeredIds.size}) 一致`
         ).toBe(registeredIds.size);
     });
 });

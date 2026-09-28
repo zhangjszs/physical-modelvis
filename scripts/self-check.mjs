@@ -1,9 +1,12 @@
 #!/usr/bin/env node
 /**
- * PhysVis L0-L6 物理自检循环 — 整合 CLI
+ * PhysVis 物理自检循环 — 整合 CLI
  *
- * 顺序运行 7 层自检, 生成报告到 stdout + .scratch/selfcheck-run-<ISO>.jsonl
+ * 顺序运行 9 层自检 (L0-L6 + L8 + L9; 无 L7, L7 编号为 CLI 自身的历史遗留),
+ * 生成报告到 stdout + .scratch/selfcheck-run-<ISO>.jsonl
  * exit-code: 0 = 全部通过; 1 = 存在失败
+ *
+ * 层数以下方 LAYERS 数组为单一真源, 文档与 CI 步骤名应与之一致。
  *
  * 用法:
  *   node scripts/self-check.mjs           表格输出

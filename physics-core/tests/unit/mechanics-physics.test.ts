@@ -16,7 +16,6 @@ import { describe, it, expect } from 'vitest';
 import { InclinedPlaneModel } from '../../src/models/inclined-plane.js';
 import { ProjectileModel } from '../../src/models/projectile.js';
 import { GalileoInclineModel } from '../../src/models/galileo-incline.js';
-import { Vec2 } from '../../src/math/vector2d.js';
 import type { PhysicsProblem } from '../../src/types/problem.js';
 
 function makeProblem(

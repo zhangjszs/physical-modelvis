@@ -28,7 +28,7 @@
 
 ## 阶段 A:第 2 批迁移收尾 — 验证 + 提交(立即)
 
-1. 重跑 physics-core 全量测试(`cd physics-core && npx.cmd vitest run`)确认 917
+1. 重跑 physics-core 全量测试(`cd physics-core && npx.cmd vitest run`), 确认与 README 顶部测试数行一致(数字以 `npm run count` 实跑为准)
 2. 重新 build core(`cd physics-core && npm run build`),再跑 visualization 全量测试
 3. `npx.cmd prettier --write` + `npx.cmd eslint` 检查所有改动文件
 4. 更新 README 测试数 + `docs/rendering-physics-audit.md` 迁移进展表

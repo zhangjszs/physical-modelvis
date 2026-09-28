@@ -85,7 +85,6 @@ describe('CentrifugalModel', () => {
     });
 
     it('omega_critical_curve: ω_crit = √(μ·g/r)', () => {
-        const r = makeProblem_omegaChart();
         // 实际上直接查看图表点
         const model = new CentrifugalModel();
         const res = model.solve(makeProblem({ angularSpeed: 1, frictionCoeff: 0.3, radius: 0.5 }));
@@ -195,21 +194,3 @@ describe('CentrifugalModel', () => {
         expect(() => model.solve(makeProblem({ angularSpeed: -1 }))).toThrow();
     });
 });
-
-/**辅助函数: 构造一个固定用于 omega_critical_curve 校验的问题 */
-function makeProblem_omegaChart(): PhysicsProblem {
-    return {
-        id: 'centrifugal-test-chart',
-        model: 'centrifugal',
-        bodies: [
-            {
-                id: 'block',
-                mass: { value: 1, unit: 'kg' },
-                position: { x: 0.5, y: 0 },
-                velocity: { x: 0, y: 0 }
-            }
-        ],
-        constraints: { centrifugal: { mass: 1, radius: 0.5, angularSpeed: 1, frictionCoeff: 0.3, gravity: 9.8 } },
-        timeConfig: { duration: 2, sampleCount: 200 }
-    };
-}

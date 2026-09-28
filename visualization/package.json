@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "pretest": "node ../scripts/guard-dist-freshness.mjs --quiet",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "test": "vitest run --reporter=default --reporter=json --outputFile.json=../.scratch/viz-tests.json",
