@@ -3,6 +3,7 @@ import { kineticEnergy, sampleTrajectory } from '../physics/kinematics.js';
 import type { SimulationResult, Keyframe, ChartSeries, ForceDiagram } from '../types/result.js';
 import type { ParameterSpec, Vector2D } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
+import { PHYSICS_CONSTANTS } from '../units/constants.js';
 
 /**
  * 竖直圆周运动模型 — 必修二 §2 (绳/杆/圆环)
@@ -47,7 +48,14 @@ export class VerticalCircleModel extends PhysicsModelBase {
         { name: 'mass', description: '物体质量 m (kg)', unit: 'kg', required: true, min: 0 },
         { name: 'modelType', description: '绳 rope | 杆 rod | 圆环 ring', unit: '', required: true },
         { name: 'initialSpeed', description: '最低点初速度 v₀ (m/s)', unit: 'm/s', required: true, min: 0 },
-        { name: 'gravity', description: '重力加速度 (m/s²)', unit: 'm/s²', required: false, defaultValue: 9.8, min: 0 }
+        {
+            name: 'gravity',
+            description: '重力加速度 (m/s²)',
+            unit: 'm/s²',
+            required: false,
+            defaultValue: PHYSICS_CONSTANTS.g.value,
+            min: 0
+        }
     ];
 
     static vMin(ropeType: VerticalCircleType, r: number, g: number): number {
@@ -80,7 +88,7 @@ export class VerticalCircleModel extends PhysicsModelBase {
         const r = c.length;
         const m = c.mass;
         const v0 = c.initialSpeed;
-        const g = c.gravity ?? 9.8;
+        const g = c.gravity ?? PHYSICS_CONSTANTS.g.value;
         const modelType = c.modelType;
         const center: Vector2D = c.center ?? { x: 0, y: r }; // 圆心 (悬挂点)
 

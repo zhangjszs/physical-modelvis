@@ -3,6 +3,7 @@ import { kineticEnergy, sampleTrajectory } from '../physics/kinematics.js';
 import type { SimulationResult, Keyframe, ChartSeries, ForceDiagram } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
+import { PHYSICS_CONSTANTS } from '../units/constants.js';
 import { Vec2 } from '../math/vector2d.js';
 
 export class UniformCircularMotionModel extends PhysicsModelBase {
@@ -52,7 +53,7 @@ export class UniformCircularMotionModel extends PhysicsModelBase {
         let radius = cm.radius;
         if (conicalMode) {
             conicalAngleRad = (cm.conicalAngleDeg! * Math.PI) / 180;
-            const g = problem.environment?.gravity?.value ?? 9.8;
+            const g = problem.environment?.gravity?.value ?? PHYSICS_CONSTANTS.g.value;
             omega = Math.sqrt(g / (cm.ropeLength! * Math.cos(conicalAngleRad)));
             ropeLength = cm.ropeLength!;
             radius = ropeLength * Math.sin(conicalAngleRad);

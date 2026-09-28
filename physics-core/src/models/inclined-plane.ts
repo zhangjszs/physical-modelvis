@@ -3,6 +3,7 @@ import { kineticEnergy, sampleTrajectory } from '../physics/kinematics.js';
 import type { SimulationResult, Keyframe, ChartSeries, ForceDiagram } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
+import { PHYSICS_CONSTANTS } from '../units/constants.js';
 import { Vec2 } from '../math/vector2d.js';
 
 /** 判定"有下滑初速"的速度阈值 (m/s) —— 低于此视为静止释放 */
@@ -27,7 +28,13 @@ export class InclinedPlaneModel extends PhysicsModelBase {
             min: 0,
             defaultValue: 0
         },
-        { name: 'gravity', description: '重力加速度', unit: 'm/s²', required: false, defaultValue: 9.8 }
+        {
+            name: 'gravity',
+            description: '重力加速度',
+            unit: 'm/s²',
+            required: false,
+            defaultValue: PHYSICS_CONSTANTS.g.value
+        }
     ];
 
     solve(problem: PhysicsProblem): SimulationResult {
@@ -41,7 +48,7 @@ export class InclinedPlaneModel extends PhysicsModelBase {
         const angleDeg = problem.constraints?.inclinedPlane?.angle ?? 30;
         const angleRad = (angleDeg * Math.PI) / 180;
         const mu = problem.constraints?.inclinedPlane?.frictionCoefficient ?? 0;
-        const g = problem.environment?.gravity?.value ?? 9.8;
+        const g = problem.environment?.gravity?.value ?? PHYSICS_CONSTANTS.g.value;
 
         const sinTheta = Math.sin(angleRad);
         const cosTheta = Math.cos(angleRad);

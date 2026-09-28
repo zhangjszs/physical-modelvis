@@ -2,11 +2,12 @@ import type { PhysicsProblem } from '../types/problem.js';
 import type { SimulationResult, Keyframe, ChartSeries } from '../types/result.js';
 import type { ParameterSpec, ValidationResult } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
+import { PHYSICS_CONSTANTS } from '../units/constants.js';
 import { PhysicsError } from '../errors/index.js';
 import type { CurrentMagneticFieldConstraint } from '../types/problem.js';
 
 /** 真空磁导率 (N/A²) */
-const MU0 = 4 * Math.PI * 1e-7;
+const MU0 = PHYSICS_CONSTANTS.mu0.value;
 /** 场景单位 → 米 的映射比例 */
 const SCENE_TO_M = 0.1;
 

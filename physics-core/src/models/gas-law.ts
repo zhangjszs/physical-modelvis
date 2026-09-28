@@ -2,6 +2,7 @@ import type { PhysicsProblem } from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
+import { PHYSICS_CONSTANTS } from '../units/constants.js';
 
 /**
  * 理想气体状态方程模型 — 气体实验定律 (选必三 第二章)
@@ -16,7 +17,7 @@ import { PhysicsModelBase } from './base.js';
  * 本模型为静态分析解：给定 n, 过程模式, 初始状态, 计算过程曲线和终态
  */
 
-const R = 8.314; // J/(mol·K)
+const R = PHYSICS_CONSTANTS.R.value; // J/(mol·K)
 
 export class GasLawModel extends PhysicsModelBase {
     readonly name = '理想气体状态方程';

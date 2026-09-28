@@ -3,6 +3,7 @@ import { kineticEnergy, sampleTrajectory } from '../physics/kinematics.js';
 import type { SimulationResult, Keyframe, ChartSeries, ExplanationStep, FormulaUsage } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
+import { PHYSICS_CONSTANTS } from '../units/constants.js';
 
 /**
  * 运动合成分解模型 — 必修二 §1 (蜡块实验)
@@ -64,7 +65,7 @@ export class MotionCompositionModel extends PhysicsModelBase {
                     velocity: { x: vxConst, y: ay * t },
                     acceleration: { x: 0, y: ay },
                     kineticEnergy: kineticEnergy(m, Math.hypot(vxConst, ay * t)),
-                    potentialEnergy: m * Math.max(0, 9.8 * y)
+                    potentialEnergy: m * Math.max(0, PHYSICS_CONSTANTS.g.value * y)
                 };
             }
         });

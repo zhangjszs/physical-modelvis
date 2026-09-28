@@ -9,6 +9,23 @@
 > 由 `npm run count` 实跑、`npm run count:check` 在 precheck/CI 中拦截漂移。
 > 本文的**迁移进展表**随渲染改动同步更新;计数快照保持历史原样,以免篡改里程碑记录。
 
+## 物理常量口径
+
+引擎计算一律引用 `physics-core/src/units/constants.ts` 的 `PHYSICS_CONSTANTS`,
+**不在模型内联字面量**。约定如下：
+
+- **重力加速度**取 `PHYSICS_CONSTANTS.g.value = 9.8`（教材口径），
+  `g_precise = 9.80665` 供高精度场合显式选用；`applicableRange`/讲解文案中的
+  "g=9.8" 属展示文本，可直接书写。
+- **库仑常数 k / 真空磁导率 μ₀ / 摩尔气体常量 R / 基本电荷 e / 光速 c**
+  同理走 constants；`R` 已在 #13 中补入常量表。
+- `ParameterSpec.defaultValue` 虽是 UI 元数据，但同样收敛到 constants
+  （`defaultValue: PHYSICS_CONSTANTS.g.value`），使口径**无例外**，不必记忆特例。
+- 该约定由 `physics-core/tests/unit/constants-single-source.test.ts` 固化：
+  剥离注释与字符串后扫描 `src/models/*.ts`，出现物理常量字面量即失败。
+
+---
+
 ## 审计方法
 
 1. 从 `SimulationCanvas.tsx` 提取 113 个 `sceneId -> drawFn` 路由

@@ -3,6 +3,7 @@ import { kineticEnergy, sampleTrajectory } from '../physics/kinematics.js';
 import type { SimulationResult, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
+import { PHYSICS_CONSTANTS } from '../units/constants.js';
 
 /**
  * 测反应时间模型 — 自由落体法 (互动实验)
@@ -66,7 +67,7 @@ export class ReactionTimeModel extends PhysicsModelBase {
         }
 
         const h = c.distance;
-        const g = c.gravity ?? 9.8;
+        const g = c.gravity ?? PHYSICS_CONSTANTS.g.value;
 
         if (h <= 0) {
             throw new Error('下落距离 h 必须为正数');

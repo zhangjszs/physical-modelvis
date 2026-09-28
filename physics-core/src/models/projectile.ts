@@ -3,6 +3,7 @@ import { kineticEnergy, sampleTrajectory } from '../physics/kinematics.js';
 import type { SimulationResult, Keyframe, ChartSeries, ExplanationStep, FormulaUsage } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
+import { PHYSICS_CONSTANTS } from '../units/constants.js';
 import { Vec2 } from '../math/vector2d.js';
 
 /**
@@ -43,7 +44,7 @@ export class ProjectileModel extends PhysicsModelBase {
         const v0 = body.velocity;
         const m = body.mass.value;
         const x0 = body.position;
-        const g = problem.environment?.gravity?.value ?? 9.8;
+        const g = problem.environment?.gravity?.value ?? PHYSICS_CONSTANTS.g.value;
         const groundY = problem.environment?.ground?.y ?? 0;
         const a = { x: 0, y: -g };
         const duration = problem.timeConfig.duration;

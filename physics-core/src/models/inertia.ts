@@ -10,6 +10,7 @@ import type {
 } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
+import { PHYSICS_CONSTANTS } from '../units/constants.js';
 
 /**
  * 惯性实验组合模型 — 牛顿第一定律 (必修一 第四章)
@@ -69,7 +70,7 @@ export class InertiaModel extends PhysicsModelBase {
 
         const mBottom = 1; // 下方物体质量基准 1 kg
         const mTop = mBottom * massRatio; // 上方物体质量
-        const g = problem.environment?.gravity?.value ?? 9.8;
+        const g = problem.environment?.gravity?.value ?? PHYSICS_CONSTANTS.g.value;
         const mu = frictionCoeff;
 
         const duration = problem.timeConfig.duration;

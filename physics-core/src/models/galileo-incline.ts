@@ -35,6 +35,7 @@ import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries } from '.
 import type { ParameterSpec, Vector2D } from '../types/common.js';
 import type { GalileoInclineMode } from '../types/problem.js';
 import { PhysicsModelBase } from './base.js';
+import { PHYSICS_CONSTANTS } from '../units/constants.js';
 import { Vec2 } from '../math/vector2d.js';
 
 /** 防止 t_end 在 θ→0 时除零的极小值 (sinθ 阈值) */
@@ -72,7 +73,13 @@ export class GalileoInclineModel extends PhysicsModelBase {
     ];
     readonly requiredParameters: ParameterSpec[] = [
         { name: 'angleDeg', description: '斜面倾角 θ', unit: '°', required: true, min: 0, max: 90 },
-        { name: 'gravity', description: '重力加速度', unit: 'm/s²', required: false, defaultValue: 9.8 },
+        {
+            name: 'gravity',
+            description: '重力加速度',
+            unit: 'm/s²',
+            required: false,
+            defaultValue: PHYSICS_CONSTANTS.g.value
+        },
         {
             name: 'inclineLength',
             description: '斜面长度',
@@ -91,7 +98,7 @@ export class GalileoInclineModel extends PhysicsModelBase {
         const m = body.mass.value;
         const c = problem.constraints?.galileoIncline;
         const angleDeg = c?.angleDeg ?? 30;
-        const g = c?.gravity ?? problem.environment?.gravity?.value ?? 9.8;
+        const g = c?.gravity ?? problem.environment?.gravity?.value ?? PHYSICS_CONSTANTS.g.value;
         const L = c?.inclineLength ?? 2;
         const mode: GalileoInclineMode = c?.mode ?? 'single';
 

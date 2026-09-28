@@ -58,5 +58,13 @@ export const PHYSICS_CONSTANTS = {
     Na: q(6.02214076e23, 'mol⁻¹', 'N_A'),
 
     /** 中子质量 (中子发现实验) */
-    neutronMass: q(1.67492749804e-27, 'kg', 'n')
+    neutronMass: q(1.67492749804e-27, 'kg', 'n'),
+
+    /**
+     * 摩尔气体常量 R (J/(mol·K))
+     *
+     * CODATA 2018 推荐值。此前 gas-law / adiabatic-compression 各自内联 8.314,
+     * 属双源; 统一到此处。理论值 8.314462618…, 教材取 8.314。
+     */
+    R: q(8.314, 'J/(mol·K)', 'R')
 } as const;

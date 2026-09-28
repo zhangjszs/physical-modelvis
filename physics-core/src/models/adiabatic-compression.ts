@@ -2,6 +2,7 @@ import type { PhysicsProblem } from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
+import { PHYSICS_CONSTANTS } from '../units/constants.js';
 
 /**
  * 绝热压缩点火模型 — 汽油机压缩冲程 (活塞式点火演示)
@@ -19,7 +20,7 @@ import { PhysicsModelBase } from './base.js';
  */
 
 const GAMMA_AIR = 1.4; // 双原子空气
-const R_GAS = 8.314; // J/(mol·K)
+const R_GAS = PHYSICS_CONSTANTS.R.value; // J/(mol·K)
 const P1_STD = 1.013e5; // Pa (大气压)
 
 export class AdiabaticCompressionModel extends PhysicsModelBase {

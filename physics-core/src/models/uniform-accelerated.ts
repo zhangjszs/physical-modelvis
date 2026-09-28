@@ -3,6 +3,7 @@ import { kineticEnergy, sampleTrajectory } from '../physics/kinematics.js';
 import type { SimulationResult, Keyframe, ChartSeries } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
+import { PHYSICS_CONSTANTS } from '../units/constants.js';
 import { Vec2 } from '../math/vector2d.js';
 
 /** 匀变速直线运动模型 */
@@ -201,13 +202,13 @@ export class UniformAcceleratedModel extends PhysicsModelBase {
         if (problem.constraints?.inclinedPlane) {
             const angle = (problem.constraints.inclinedPlane.angle * Math.PI) / 180;
             const mu = problem.constraints.inclinedPlane.frictionCoefficient ?? 0;
-            const g = problem.environment?.gravity?.value ?? 9.8;
+            const g = problem.environment?.gravity?.value ?? PHYSICS_CONSTANTS.g.value;
             const a = g * (Math.sin(angle) - mu * Math.cos(angle));
             return { x: a * Math.cos(angle), y: -a * Math.sin(angle) };
         }
 
         if (problem.environment?.gravity?.enabled !== false) {
-            const g = problem.environment?.gravity?.value ?? 9.8;
+            const g = problem.environment?.gravity?.value ?? PHYSICS_CONSTANTS.g.value;
             return { x: 0, y: -g };
         }
 

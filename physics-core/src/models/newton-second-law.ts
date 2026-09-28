@@ -10,6 +10,7 @@ import type {
 } from '../types/result.js';
 import type { ParameterSpec, Vector2D } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
+import { PHYSICS_CONSTANTS } from '../units/constants.js';
 import { Vec2 } from '../math/vector2d.js';
 
 /**
@@ -68,7 +69,7 @@ export class NewtonSecondLawModel extends PhysicsModelBase {
         //   phase 1: 沿初速度方向运动 (若 v₀=0 且 |F|≤μmg, 静摩擦平衡, 静止不动)
         //   phase 2: 速度减到零后, |F|>μmg 则反向加速 (摩擦翻转), 否则停在原地
         const mu = problem.environment?.ground?.friction ?? 0;
-        const g = problem.environment?.gravity?.value ?? 9.8;
+        const g = problem.environment?.gravity?.value ?? PHYSICS_CONSTANTS.g.value;
         const includeFriction = constraint?.includeFriction ?? false;
         const fK = mu > 0 ? mu * m * g : 0; // 滑动摩擦力大小
         const applyFriction = mu > 0 && includeFriction && fK > 0;

@@ -11,6 +11,7 @@ import type {
 import type { ParameterSpec, Vector2D } from '../types/common.js';
 import type { OverweightMode } from '../types/problem.js';
 import { PhysicsModelBase } from './base.js';
+import { PHYSICS_CONSTANTS } from '../units/constants.js';
 
 /**
  * 超重与失重模型 — 必修一 第四章 运动和力的关系
@@ -54,7 +55,7 @@ export class OverweightModel extends PhysicsModelBase {
             description: '重力加速度 g (m/s²)',
             unit: 'm/s²',
             required: false,
-            defaultValue: 9.8,
+            defaultValue: PHYSICS_CONSTANTS.g.value,
             min: 0
         }
     ];
@@ -111,7 +112,7 @@ export class OverweightModel extends PhysicsModelBase {
 
         const m = c.mass ?? 1;
         const aMag = c.accMagnitude ?? 2;
-        const g = c.gravity ?? 9.8;
+        const g = c.gravity ?? PHYSICS_CONSTANTS.g.value;
         const mode = c.mode;
         const duration = problem.timeConfig.duration;
         const sampleCount = problem.timeConfig.sampleCount ?? 500;

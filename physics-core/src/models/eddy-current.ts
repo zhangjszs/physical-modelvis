@@ -3,6 +3,7 @@ import { sampleTrajectory } from '../physics/kinematics.js';
 import type { SimulationResult, Keyframe, ChartSeries, ConservedQuantity, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
+import { PHYSICS_CONSTANTS } from '../units/constants.js';
 
 /**
  * 涡流现象模型 — 涡流热效应与趋肤效应 (选必二第三章)
@@ -73,7 +74,7 @@ export class EddyCurrentModel extends PhysicsModelBase {
         // 电阻率 ρ = 1/σ
         const rho = 1 / sigma; // Ω·m
         // 磁导率 μ = μ₀·μᵣ
-        const mu0 = 4 * Math.PI * 1e-7; // H/m
+        const mu0 = PHYSICS_CONSTANTS.mu0.value;
         const mu = mu0 * muR; // H/m
 
         // 体积 V = d·A

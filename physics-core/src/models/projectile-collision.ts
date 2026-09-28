@@ -3,6 +3,7 @@ import { kineticEnergy, sampleTrajectory } from '../physics/kinematics.js';
 import type { SimulationResult, Keyframe, ChartSeries, ConservedQuantity, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
+import { PHYSICS_CONSTANTS } from '../units/constants.js';
 
 /**
  * 平抛验证动量守恒模型 — 选必一 第一章 实验
@@ -69,7 +70,7 @@ export class ProjectileCollisionModel extends PhysicsModelBase {
         const v1 = c.v1Initial;
         const h = c.tableHeight;
         const e = c.restitution ?? 1;
-        const g = c.gravity ?? 9.8;
+        const g = c.gravity ?? PHYSICS_CONSTANTS.g.value;
 
         // 平抛下落时间
         const tFall = Math.sqrt((2 * h) / g);

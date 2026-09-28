@@ -2,6 +2,7 @@ import type { PhysicsProblem } from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
+import { PHYSICS_CONSTANTS } from '../units/constants.js';
 
 /**
  * 毛细现象约束 — 选必三 液体表面性质
@@ -54,7 +55,7 @@ export class CapillaryModel extends PhysicsModelBase {
         const liquidMode = cc.liquidMode;
         const materialMode = cc.materialMode;
 
-        const g = 9.8;
+        const g = PHYSICS_CONSTANTS.g.value;
 
         // 液体参数
         const rho = liquidMode === 'water' ? 1000 : 13534; // kg/m³

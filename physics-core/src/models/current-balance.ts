@@ -3,6 +3,7 @@ import { sampleTrajectory } from '../physics/kinematics.js';
 import type { SimulationResult, Keyframe, ChartSeries, ConservedQuantity, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
+import { PHYSICS_CONSTANTS } from '../units/constants.js';
 
 /**
  * 电流天平模型 — 安培力平衡实验 (选必二第一章)
@@ -70,7 +71,7 @@ export class CurrentBalanceModel extends PhysicsModelBase {
         const B = cb.magneticField; // T (必填字段, 类型化直接访问)
         if (B <= 0) throw new Error('磁感应强度 B 必须为正');
 
-        const g = cb.gravity ?? 9.8; // m/s²
+        const g = cb.gravity ?? PHYSICS_CONSTANTS.g.value; // m/s²
 
         // 安培力 (n匝导线)
         const F_ampere = n * B * I * l; // N

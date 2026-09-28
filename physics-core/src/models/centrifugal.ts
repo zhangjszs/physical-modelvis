@@ -3,6 +3,7 @@ import { kineticEnergy } from '../physics/kinematics.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ForceDiagram } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
+import { PHYSICS_CONSTANTS } from '../units/constants.js';
 
 /**
  * 离心现象模型 — 必修二 §2
@@ -39,7 +40,14 @@ export class CentrifugalModel extends PhysicsModelBase {
         { name: 'radius', description: '物块所在旋转半径 r (m)', unit: 'm', required: true, min: 0 },
         { name: 'angularSpeed', description: '转盘角速度 ω (rad/s)', unit: 'rad/s', required: true, min: 0 },
         { name: 'frictionCoeff', description: '物块与转盘静摩擦系数 μ', unit: '', required: true, min: 0 },
-        { name: 'gravity', description: '重力加速度 (m/s²)', unit: 'm/s²', required: false, defaultValue: 9.8, min: 0 }
+        {
+            name: 'gravity',
+            description: '重力加速度 (m/s²)',
+            unit: 'm/s²',
+            required: false,
+            defaultValue: PHYSICS_CONSTANTS.g.value,
+            min: 0
+        }
     ];
 
     solve(problem: PhysicsProblem): SimulationResult {
@@ -52,7 +60,7 @@ export class CentrifugalModel extends PhysicsModelBase {
         const r0 = c.radius;
         const omega = c.angularSpeed;
         const mu = c.frictionCoeff;
-        const g = c.gravity ?? 9.8;
+        const g = c.gravity ?? PHYSICS_CONSTANTS.g.value;
 
         if (m <= 0) throw new Error('离心模型: 质量 mass 必须为正');
         if (r0 <= 0) throw new Error('离心模型: 半径 radius 必须为正');

@@ -2,6 +2,7 @@ import type { PhysicsProblem } from '../types/problem.js';
 import type { SimulationResult, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
+import { PHYSICS_CONSTANTS } from '../units/constants.js';
 import { sampleTrajectory } from '../physics/kinematics.js';
 
 /**
@@ -75,7 +76,7 @@ export class EMWaveCommunicationModel extends PhysicsModelBase {
         const isFM = c.modulationType === 'FM';
 
         // 光速
-        const SPEED_OF_LIGHT = 299792458; // m/s
+        const SPEED_OF_LIGHT = PHYSICS_CONSTANTS.c.value; // m/s
         const travelTime = dist / SPEED_OF_LIGHT; // s
 
         // ===== 载波波形 (显示 fcCyclesShown 个周期) =====

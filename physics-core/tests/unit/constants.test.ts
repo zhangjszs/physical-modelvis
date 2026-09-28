@@ -2,7 +2,7 @@
  * L0: 物理常数完整性自检
  *
  * - 所有 CODATA 2018 基本常数必须存在且有正确值 (14 位有效数字)
- * - 新增的 5 个常数 (h, kB, sigmaSB, Na, neutronMass) 必须存在
+ * - 新增的常数 (h, kB, sigmaSB, Na, neutronMass, R) 必须存在
  * - 每个常量必须包含 value / unit / symbol 三字段
  */
 
@@ -35,7 +35,8 @@ const CODATA: Array<{
     { key: 'kB', value: 1.380649e-23, unit: 'J/K', symbol: 'k_B', exact: true },
     { key: 'sigmaSB', value: 5.670374419e-8, unit: 'W/(m²·K⁴)', symbol: 'σ', exact: true },
     { key: 'Na', value: 6.02214076e23, unit: 'mol⁻¹', symbol: 'N_A', exact: true },
-    { key: 'neutronMass', value: 1.67492749804e-27, unit: 'kg', symbol: 'n' }
+    { key: 'neutronMass', value: 1.67492749804e-27, unit: 'kg', symbol: 'n' },
+    { key: 'R', value: 8.314, unit: 'J/(mol·K)', symbol: 'R' }
 ];
 
 describe('L0: 物理常数完整性', () => {
@@ -68,7 +69,7 @@ describe('L0: 物理常数完整性', () => {
     });
 
     it('新增常数 h, kB 等已存在', () => {
-        for (const key of ['h', 'kB', 'sigmaSB', 'Na', 'neutronMass'] as const) {
+        for (const key of ['h', 'kB', 'sigmaSB', 'Na', 'neutronMass', 'R'] as const) {
             expect(PHYSICS_CONSTANTS[key], `${key} 已注册`).toBeDefined();
         }
     });

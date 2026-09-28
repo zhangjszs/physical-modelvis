@@ -2,9 +2,10 @@ import type { PhysicsProblem } from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
+import { PHYSICS_CONSTANTS } from '../units/constants.js';
 
 /** 验电器箔片比例常数: 对应 k_e·ve/(m·g) 的归一化比例 */
-const K_FOIL = 8.9875517923e9; // 直接使用库仑常数
+const K_FOIL = PHYSICS_CONSTANTS.k.value;
 const DEG_PER_RAD = 180 / Math.PI;
 
 /**
@@ -59,7 +60,7 @@ export class ElectroscopeModel extends PhysicsModelBase {
         const L_m = foilLength_cm / 100; // m
         const m_kg = foilMass_g / 1000; // kg
         const q_C = chargeMuC * 1e-6; // C
-        const g = 9.8;
+        const g = PHYSICS_CONSTANTS.g.value;
 
         // 箔片简化平衡方程:
         // F_k = k * (q/2)² / L² = k·q²/(4L²)  (斥力: 两箔片各带 q/2, 相距 ~ L)

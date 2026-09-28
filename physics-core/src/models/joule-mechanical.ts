@@ -2,6 +2,7 @@ import type { PhysicsProblem } from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
+import { PHYSICS_CONSTANTS } from '../units/constants.js';
 
 /**
  * 焦耳热功当量 (机械) 模型 — 热学实验 (测定热功当量 J)
@@ -17,7 +18,7 @@ import { PhysicsModelBase } from './base.js';
  *   - v_t = J 的估计值收敛过程
  */
 
-const G_DEFAULT = 9.8;
+const G_DEFAULT = PHYSICS_CONSTANTS.g.value;
 const C_WATER = 4184; // J/(kg·K)
 
 /* 预期吸热与损耗系数 (高中实验直接假设 Q=W, 计入 '损耗系数' 可模拟真实数据) */

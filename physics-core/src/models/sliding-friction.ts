@@ -3,6 +3,7 @@ import { kineticEnergy, sampleTrajectory } from '../physics/kinematics.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ForceDiagram } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
+import { PHYSICS_CONSTANTS } from '../units/constants.js';
 
 /**
  * 滑动摩擦力模型 — f = μN (必修一 第三章 §3)
@@ -33,7 +34,13 @@ export class SlidingFrictionModel extends PhysicsModelBase {
     readonly requiredParameters: ParameterSpec[] = [
         { name: 'frictionCoefficient', description: '动摩擦因数 μ', unit: '', required: true, min: 0 },
         { name: 'mass', description: '物体质量 m (kg)', unit: 'kg', required: true, min: 0 },
-        { name: 'gravity', description: '重力加速度 g (m/s²)', unit: 'm/s²', required: false, defaultValue: 9.8 }
+        {
+            name: 'gravity',
+            description: '重力加速度 g (m/s²)',
+            unit: 'm/s²',
+            required: false,
+            defaultValue: PHYSICS_CONSTANTS.g.value
+        }
     ];
 
     solve(problem: PhysicsProblem): SimulationResult {
@@ -49,7 +56,7 @@ export class SlidingFrictionModel extends PhysicsModelBase {
 
         const body = problem.bodies[0]!;
         const m = body.mass.value;
-        const g = problem.environment?.gravity?.value ?? 9.8;
+        const g = problem.environment?.gravity?.value ?? PHYSICS_CONSTANTS.g.value;
         const x0 = body.position.x;
         const v0 = body.velocity.x;
 

@@ -2,6 +2,7 @@ import type { PhysicsProblem } from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
+import { PHYSICS_CONSTANTS } from '../units/constants.js';
 
 /**
  * 电磁波谱约束 — 选必二 第五章 (电磁振荡与电磁波)
@@ -80,7 +81,7 @@ export class EMSpectrumModel extends PhysicsModelBase {
         }
 
         // 物理常数
-        const SPEED_OF_LIGHT = 299792458; // m/s
+        const SPEED_OF_LIGHT = PHYSICS_CONSTANTS.c.value; // m/s
         const PLANCK_H = 6.62607015e-34; // J*s
 
         // ===== 标准波段表 =====
@@ -210,7 +211,7 @@ export class EMSpectrumModel extends PhysicsModelBase {
             const centerFreq = Math.sqrt(b.freqLo * b.freqHi); // 几何平均
             const centerWave = SPEED_OF_LIGHT / centerFreq;
             const photonEnergy = PLANCK_H * centerFreq; // J
-            const photonEnergyEv = photonEnergy / 1.602176634e-19;
+            const photonEnergyEv = photonEnergy / PHYSICS_CONSTANTS.e.value;
             return {
                 t: idx,
                 position: { x: b.freqLo, y: centerFreq },
@@ -225,7 +226,7 @@ export class EMSpectrumModel extends PhysicsModelBase {
         const highlightInfo = bands.find(b => b.name === highlightBand) ?? visibleBand;
         const centerFreqHL = Math.sqrt(highlightInfo.freqLo * highlightInfo.freqHi);
         const centerWaveHL = SPEED_OF_LIGHT / centerFreqHL;
-        const photonEvHL = (PLANCK_H * centerFreqHL) / 1.602176634e-19;
+        const photonEvHL = (PLANCK_H * centerFreqHL) / PHYSICS_CONSTANTS.e.value;
 
         const keyframes: Keyframe[] = [
             {

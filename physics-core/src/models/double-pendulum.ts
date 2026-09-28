@@ -2,6 +2,7 @@ import type { PhysicsProblem } from '../types/problem.js';
 import type { SimulationResult, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
+import { PHYSICS_CONSTANTS } from '../units/constants.js';
 import { sampleTrajectory } from '../physics/kinematics.js';
 
 /**
@@ -62,7 +63,7 @@ export class DoublePendulumSyncModel extends PhysicsModelBase {
         const th1Amp = (c.initialAngle1 * Math.PI) / 180;
         const th2Amp = (c.initialAngle2 * Math.PI) / 180;
         const phaseDiffRad = (c.phaseDiff * Math.PI) / 180;
-        const g = c.gravity ?? 9.8;
+        const g = c.gravity ?? PHYSICS_CONSTANTS.g.value;
 
         const omega1 = Math.sqrt(g / L1);
         const omega2 = Math.sqrt(g / L2);

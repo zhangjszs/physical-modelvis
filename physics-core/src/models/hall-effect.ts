@@ -2,6 +2,7 @@ import type { PhysicsProblem } from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
+import { PHYSICS_CONSTANTS } from '../units/constants.js';
 import { requireConstraintNumber } from './constraint-guard.js';
 
 /**
@@ -79,7 +80,7 @@ export class HallEffectModel extends PhysicsModelBase {
         const carrier = c.carrierType ?? 'electron';
 
         // 元电荷
-        const Q_E = 1.602176634e-19; // C
+        const Q_E = PHYSICS_CONSTANTS.e.value; // C
         // 霍尔极性: 电子为负, 空穴为正
         const polaritySign = carrier === 'hole' ? 1 : -1;
         // 霍尔系数 RH = polaritySign / (n * q) — 符号反映载流子类型

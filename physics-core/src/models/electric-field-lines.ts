@@ -2,11 +2,12 @@ import type { PhysicsProblem } from '../types/problem.js';
 import type { SimulationResult, Keyframe, ChartSeries } from '../types/result.js';
 import type { ParameterSpec, ValidationResult } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
+import { PHYSICS_CONSTANTS } from '../units/constants.js';
 import { PhysicsError } from '../errors/index.js';
 import type { ElectricFieldLinesConstraint, FieldCharge } from '../types/problem.js';
 
 /** 库仑常量 (N·m²/C²) */
-const K = 8.9875517923e9;
+const K = PHYSICS_CONSTANTS.k.value;
 /**
  * 场景单位 → 米 的映射比例 (渲染用归一化坐标, 仅在换算物理量时折算为 SI)
  *

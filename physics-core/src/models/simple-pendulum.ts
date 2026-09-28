@@ -10,6 +10,7 @@ import type {
 } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
+import { PHYSICS_CONSTANTS } from '../units/constants.js';
 
 /**
  * Velocity Verlet 子步进时每个子步允许的最大相位推进 ω·dt_sub。
@@ -58,7 +59,7 @@ export class SimplePendulumModel extends PhysicsModelBase {
         if (!pc) throw new Error('单摆模型需要 simplePendulum 约束配置');
 
         const L = pc.length;
-        const g = pc.g ?? 9.8;
+        const g = pc.g ?? PHYSICS_CONSTANTS.g.value;
         const mass = body.mass.value;
         const theta0Rad = (pc.initialAngleDeg * Math.PI) / 180;
         const damping = pc.damping ?? 0;
