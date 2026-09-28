@@ -12,6 +12,16 @@ import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
 
 /**
+ * Velocity Verlet 子步进时每个子步允许的最大相位推进 ω·dt_sub。
+ *
+ * Verlet 稳定区间约 ω·dt < 2; 取 0.2 留足裕度, 使能量漂移在教学时长内可忽略。
+ */
+const MAX_PHASE_ADVANCE = 0.2;
+
+/** 单个输出采样区间内允许的最大子步数 (兜底, 防止极端参数下计算量失控) */
+const MAX_SUB_STEPS = 500;
+
+/**
  * 单摆模型 — 简谐运动 (选必一 第二章)
  *
  * 运动方程 (极坐标)：θ̈ = −(g/L)·sinθ
@@ -83,6 +93,24 @@ export class SimplePendulumModel extends PhysicsModelBase {
         const Tsmall = 2 * Math.PI * Math.sqrt(L / g);
         const omegaSmall = Math.sqrt(g / L);
 
+        /**
+         * Verlet 稳定性守卫: ω·dt 必须远小于 2。
+         *
+         * 小 L / 大 g 配大 duration、小 sampleCount 时 ω·dt 可轻易突破稳定界,
+         * 轨迹指数发散 (实测 L=0.01m、g=9.8 时 ω=31 rad/s)。故用**子步进**
+         * 保证稳定 (输出点数不变, 积分精度提升), 优于"只告警"或"直接拒绝"。
+         */
+        const phaseAdvance = omegaSmall * dt;
+        const subSteps = Math.min(MAX_SUB_STEPS, Math.max(1, Math.ceil(phaseAdvance / MAX_PHASE_ADVANCE)));
+        const dtSub = dt / subSteps;
+        const stabilityWarnings: string[] = [];
+        if (subSteps > 1) {
+            stabilityWarnings.push(
+                `采样步长与固有角频率不匹配 (ω·dt = ${phaseAdvance.toFixed(2)} > ${MAX_PHASE_ADVANCE}), ` +
+                    `已自动细分为 ${subSteps} 个子步以保证积分稳定; 如需提高时间分辨率请增加采样点数`
+            );
+        }
+
         // Velocity Verlet (角形式)
         const alpha = (th: number, om: number): number => {
             const dampingTerm = -damping * om;
@@ -126,11 +154,13 @@ export class SimplePendulumModel extends PhysicsModelBase {
             maxOmega = Math.max(maxOmega, Math.abs(omega));
 
             if (i < sampleCount) {
-                // Velocity Verlet
-                theta += omega * dt + 0.5 * a * dt * dt;
-                const aNew = alpha(theta, omega);
-                omega += 0.5 * (a + aNew) * dt;
-                a = aNew;
+                // Velocity Verlet (按需子步进, 保证 ω·dt_sub 落在稳定区间)
+                for (let sIdx = 0; sIdx < subSteps; sIdx++) {
+                    theta += omega * dtSub + 0.5 * a * dtSub * dtSub;
+                    const aNew = alpha(theta, omega);
+                    omega += 0.5 * (a + aNew) * dtSub;
+                    a = aNew;
+                }
             }
         }
 
@@ -240,6 +270,10 @@ export class SimplePendulumModel extends PhysicsModelBase {
                   ]
                 : [];
 
+        // 汇总告警: 数值稳定性子步提示 + 场景一致性提示
+        const allWarnings: string[] = [...stabilityWarnings];
+        if (pivotWarning) allWarnings.push(pivotWarning);
+
         const deg0 = (theta0Rad * 180) / Math.PI;
         const steps: ExplanationStep[] = [
             {
@@ -281,7 +315,7 @@ export class SimplePendulumModel extends PhysicsModelBase {
                     maxThetaDeg: (maxTheta * 180) / Math.PI,
                     maxOmega
                 },
-                rangeCheck: { withinRange: true, warnings: pivotWarning ? [pivotWarning] : [] }
+                rangeCheck: { withinRange: allWarnings.length === 0, warnings: allWarnings }
             },
             explanation: {
                 summary: `单摆: L=${L}m, g=${g}m/s², θ₀=${deg0.toFixed(1)}°, T(小角度)=${Tsmall.toFixed(2)}s, f=${(1 / Tsmall).toFixed(3)}Hz`,
@@ -305,7 +339,7 @@ export class SimplePendulumModel extends PhysicsModelBase {
                 ]
             },
             errors: [],
-            warnings: pivotWarning ? [pivotWarning] : []
+            warnings: allWarnings
         };
     }
 

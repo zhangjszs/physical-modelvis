@@ -15,13 +15,15 @@ function vec(x: number, y: number): Vector2D {
     return { x, y };
 }
 
-function makeBody(opts: {
-    id?: string;
-    mass?: number;
-    charge?: number;
-    position?: Vector2D;
-    velocity?: Vector2D;
-} = {}): PhysicalBody {
+function makeBody(
+    opts: {
+        id?: string;
+        mass?: number;
+        charge?: number;
+        position?: Vector2D;
+        velocity?: Vector2D;
+    } = {}
+): PhysicalBody {
     const { id = 'b1', mass = 1, charge, position = vec(0, 0), velocity = vec(0, 0) } = opts;
     return {
         id,
@@ -70,7 +72,7 @@ describe('UniformElectricModel — 匀强电场中的带电粒子', () => {
         const traj = res.trajectories[0]!;
         const E0 = mechanicalEnergy(traj[0]!);
         // 能量尺度取 (|KE| + |U|) 的最大值，使容差随问题规模自适应
-        const scale = Math.max(...traj.map((p) => Math.abs(p.kineticEnergy ?? 0) + Math.abs(p.potentialEnergy ?? 0)));
+        const scale = Math.max(...traj.map(p => Math.abs(p.kineticEnergy ?? 0) + Math.abs(p.potentialEnergy ?? 0)));
         const tol = 1e-6 * scale + 1e-12;
 
         const finalE = mechanicalEnergy(traj[traj.length - 1]!);
@@ -92,7 +94,7 @@ describe('UniformElectricModel — 匀强电场中的带电粒子', () => {
 
         const traj = res.trajectories[0]!;
         const E0 = mechanicalEnergy(traj[0]!);
-        const scale = Math.max(...traj.map((p) => Math.abs(p.kineticEnergy ?? 0) + Math.abs(p.potentialEnergy ?? 0)));
+        const scale = Math.max(...traj.map(p => Math.abs(p.kineticEnergy ?? 0) + Math.abs(p.potentialEnergy ?? 0)));
         const tol = 1e-6 * scale + 1e-12;
 
         const mid = traj[Math.floor(traj.length / 2)]!;
@@ -111,7 +113,7 @@ describe('UniformElectricModel — 匀强电场中的带电粒子', () => {
         const body = makeBody({ mass: m, charge: q, position: vec(0, 0), velocity: vec(2, 10) });
         const res = model.solve(makeProblem(fieldEnv(vec(0, -50)), [body], { duration: 1, sampleCount: 1000 }));
 
-        const kf = res.keyframes.find((k) => k.label === '最高点');
+        const kf = res.keyframes.find(k => k.label === '最高点');
         expect(kf).toBeDefined();
         // ay = q·Ey/m = -50 → tTurn = -v0y/ay = -10/(-50) = 0.2
         expect(kf!.t).toBeCloseTo(0.2, 5);

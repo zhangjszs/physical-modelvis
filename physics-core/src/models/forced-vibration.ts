@@ -5,6 +5,25 @@ import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
 
 /**
+ * Velocity Verlet 子步进时每个子步允许的最大相位推进 ω₀·dt_sub。
+ *
+ * Verlet 的稳定区间约 ω₀·dt < 2; 取 0.2 留足裕度, 使能量漂移在教学时长内可忽略。
+ */
+const MAX_PHASE_ADVANCE = 0.2;
+
+/** 单个输出采样区间内允许的最大子步数 (兜底, 防止极端参数下计算量失控) */
+const MAX_SUB_STEPS = 500;
+
+/**
+ * 振幅展示格式化 —— 无阻尼共振时 A = Infinity, 直接 toFixed 会得到字符串
+ * "Infinity" 显示给用户 (与 #11 的 NaN→字符串 同一类泄漏), 故显式转可读文案。
+ */
+function formatAmplitude(a: number): string {
+    if (!Number.isFinite(a)) return '∞ (发散)';
+    return `${a.toFixed(4)}m`;
+}
+
+/**
  * 受迫振动模型 — 选必一 第二章 (受迫振动的振动频率)
  *
  * 弹簧振子在周期驱动力作用下达到稳态:
@@ -75,6 +94,25 @@ export class ForcedVibrationModel extends PhysicsModelBase {
         const sampleCount = problem.timeConfig.sampleCount ?? 2000;
         const dt = duration / sampleCount;
 
+        /**
+         * Velocity Verlet 的稳定性判据: ω₀·dt 必须远小于 2, 否则能量守恒被破坏、
+         * 轨迹指数发散 (实测 ω₀=316 rad/s、dt=0.05 时 x 达 6×10¹⁷⁷ 甚至 NaN)。
+         *
+         * 此处用**子步进**保证稳定: 把每个输出采样区间按 ω₀·dt_sub ≤ MAX_PHASE_ADVANCE
+         * 细分为 subSteps 段, 输出点数不变而积分精度提升。相比"只告警不管"更正确,
+         * 相比"直接拒绝"不牺牲可用参数范围。
+         */
+        const phaseAdvance = omega0 * dt;
+        const subSteps = Math.min(MAX_SUB_STEPS, Math.max(1, Math.ceil(phaseAdvance / MAX_PHASE_ADVANCE)));
+        const dtSub = dt / subSteps;
+        const stabilityWarnings: string[] = [];
+        if (subSteps > 1) {
+            stabilityWarnings.push(
+                `采样步长与固有频率不匹配 (ω₀·dt = ${phaseAdvance.toFixed(2)} > ${MAX_PHASE_ADVANCE}), ` +
+                    `已自动细分为 ${subSteps} 个子步以保证积分稳定; 如需提高时间分辨率请增加采样点数`
+            );
+        }
+
         // 数值积分 (velocity Verlet)
         let x = problem.bodies[0]?.position?.x ?? 0;
         let v = problem.bodies[0]?.velocity?.x ?? 0;
@@ -103,16 +141,23 @@ export class ForcedVibrationModel extends PhysicsModelBase {
             maxAbsX = Math.max(maxAbsX, Math.abs(x));
 
             if (i < sampleCount) {
-                x += v * dt + 0.5 * a * dt * dt;
-                const aNew = alpha(x, v, t + dt);
-                v += 0.5 * (a + aNew) * dt;
-                a = aNew;
+                for (let s = 0; s < subSteps; s++) {
+                    const tSub = t + s * dtSub;
+                    x += v * dtSub + 0.5 * a * dtSub * dtSub;
+                    const aNew = alpha(x, v, tSub + dtSub);
+                    v += 0.5 * (a + aNew) * dtSub;
+                    a = aNew;
+                }
             }
         }
 
         // 理论稳态振幅
+        // 分母 denom = √((ω₀²−ω_d²)² + (2βω_d)²)。当 β=0 且 ω_d=ω₀ 时 denom=0,
+        // 无阻尼共振的稳态振幅**趋于无穷** (振幅随时间线性增长, 不存在稳态)。
+        // 此前返回 A=0, 与物理恰好相反且极具误导性 —— 现显式标注发散。
         const denom = Math.sqrt((omega0 * omega0 - omegaD * omegaD) ** 2 + (2 * beta * omegaD) ** 2);
-        const A_theoretical = denom > 1e-12 ? F0 / m / denom : 0;
+        const undampedResonance = denom <= 1e-12;
+        const A_theoretical = undampedResonance ? Number.POSITIVE_INFINITY : F0 / m / denom;
 
         // 共振曲线 (A vs f_drive, 当前阻尼)
         const resonanceCurve: ChartSeries = {
@@ -129,8 +174,19 @@ export class ForcedVibrationModel extends PhysicsModelBase {
             const fi = fMin + ((fMax - fMin) * i) / N;
             const omegaI = 2 * Math.PI * fi;
             const denI = Math.sqrt((omega0 * omega0 - omegaI * omegaI) ** 2 + (2 * beta * omegaI) ** 2);
-            const Ai = denI > 1e-12 ? F0 / m / denI : 0;
+            if (denI <= 1e-12) {
+                // 无阻尼共振点: 振幅发散, 用 {NaN, NaN} 折线断开标记 (仓库 charts 约定)
+                resonanceCurve.points.push({ x: Number.NaN, y: Number.NaN });
+                continue;
+            }
+            const Ai = F0 / m / denI;
             resonanceCurve.points.push({ x: parseFloat(fi.toFixed(3)), y: parseFloat(Ai.toFixed(6)) });
+        }
+        if (undampedResonance) {
+            stabilityWarnings.push(
+                `无阻尼共振 (β=${beta} 且驱动频率 f_drive=${fDrive}Hz 等于固有频率 f₀=${f0.toFixed(3)}Hz): ` +
+                    `稳态振幅发散 (A → ∞, 振幅随时间线性增长, 不存在稳态), 共振曲线在该点断开`
+            );
         }
 
         // 位移-时间图 (稳态阶段最后 2 个驱动周期)
@@ -159,14 +215,14 @@ export class ForcedVibrationModel extends PhysicsModelBase {
                 t: steadyStart,
                 position: { x: steadyPoints[0]?.position.x ?? 0, y: 0 },
                 velocity: { x: steadyPoints[0]?.velocity.x ?? 0, y: 0 },
-                description: `趋于稳态, 振幅 -> ${A_theoretical.toFixed(4)}m, 频率 = 驱动频率=${fDrive}Hz`
+                description: `趋于稳态, 振幅 -> ${formatAmplitude(A_theoretical)}, 频率 = 驱动频率=${fDrive}Hz`
             },
             {
                 label: '模拟终点',
                 t: duration,
                 position: { x: trajectory[trajectory.length - 1]!.position.x, y: 0 },
                 velocity: { x: 0, y: 0 },
-                description: `实测最大振幅~${maxAbsX.toFixed(4)}m, 理论稳态振幅=${A_theoretical.toFixed(4)}m`
+                description: `实测最大振幅~${maxAbsX.toFixed(4)}m, 理论稳态振幅=${formatAmplitude(A_theoretical)}`
             }
         ];
 
@@ -187,7 +243,7 @@ export class ForcedVibrationModel extends PhysicsModelBase {
                 order: 3,
                 description: '稳态振幅公式',
                 formula: 'A = (F0/m) / sqrt((omega_0^2 - omega_d^2)^2 + (2*beta*omega_d)^2)',
-                calculation: `A = ${A_theoretical.toFixed(4)}m`
+                calculation: `A = ${formatAmplitude(A_theoretical)}`
             },
             {
                 order: 4,
@@ -197,8 +253,8 @@ export class ForcedVibrationModel extends PhysicsModelBase {
             }
         ];
 
-        const warnings: string[] = [];
-        if (A_theoretical > 1) warnings.push('振幅过大, 可能超出胡克定律范围');
+        const warnings: string[] = [...stabilityWarnings];
+        if (Number.isFinite(A_theoretical) && A_theoretical > 1) warnings.push('振幅过大, 可能超出胡克定律范围');
         if (Math.abs(fDrive - f0) / f0 < 0.05) warnings.push('驱动频率接近固有频率, 发生共振');
 
         return {
@@ -226,7 +282,7 @@ export class ForcedVibrationModel extends PhysicsModelBase {
                 rangeCheck: { withinRange: warnings.length === 0, warnings }
             },
             explanation: {
-                summary: `受迫振动: f_0=${f0.toFixed(3)}Hz, f_d=${fDrive}Hz, beta=${beta}/s; 稳态振幅理论=${A_theoretical.toFixed(4)}m, 实测~${maxAbsX.toFixed(4)}m; 稳态频率 = 驱动频率`,
+                summary: `受迫振动: f_0=${f0.toFixed(3)}Hz, f_d=${fDrive}Hz, beta=${beta}/s; 稳态振幅理论=${formatAmplitude(A_theoretical)}, 实测~${maxAbsX.toFixed(4)}m; 稳态频率 = 驱动频率`,
                 steps,
                 formulas: [
                     {

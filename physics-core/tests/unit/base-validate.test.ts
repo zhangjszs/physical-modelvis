@@ -106,13 +106,19 @@ describe('base.validate(): 声明式 min/max 拦截 (#8)', () => {
         it('B=0 → valid:false 且 code 指向 magneticField', () => {
             const v = model.validate(base(0, 1.6e-19));
             expect(v.valid).toBe(false);
-            expect(v.errors.find(e => e.param === 'magneticField'), JSON.stringify(v.errors)).toBeDefined();
+            expect(
+                v.errors.find(e => e.param === 'magneticField'),
+                JSON.stringify(v.errors)
+            ).toBeDefined();
         });
 
         it('charge=0 → valid:false (除数零)', () => {
             const v = model.validate(base(0.5, 0));
             expect(v.valid).toBe(false);
-            expect(v.errors.find(e => e.param === 'charge'), JSON.stringify(v.errors)).toBeDefined();
+            expect(
+                v.errors.find(e => e.param === 'charge'),
+                JSON.stringify(v.errors)
+            ).toBeDefined();
         });
     });
 
@@ -124,7 +130,10 @@ describe('base.validate(): 声明式 min/max 拦截 (#8)', () => {
             problem.bodies = [makeBody({ vx: 7000 })]; // position = (0,0) → radius = 0
             const v = model.validate(problem);
             expect(v.valid).toBe(false);
-            expect(v.errors.find(e => e.param === 'radius'), JSON.stringify(v.errors)).toBeDefined();
+            expect(
+                v.errors.find(e => e.param === 'radius'),
+                JSON.stringify(v.errors)
+            ).toBeDefined();
         });
 
         it('radius 来自非零 body.position → 校验通过', () => {
@@ -143,7 +152,10 @@ describe('base.validate(): 声明式 min/max 拦截 (#8)', () => {
                 makeProblem('simple-pendulum', { simplePendulum: { length: Number.NaN, g: 9.8, initialAngleDeg: 5 } })
             );
             expect(v.valid).toBe(false);
-            expect(v.errors.find(e => e.code === 'NON_FINITE_PARAMETER'), JSON.stringify(v.errors)).toBeDefined();
+            expect(
+                v.errors.find(e => e.code === 'NON_FINITE_PARAMETER'),
+                JSON.stringify(v.errors)
+            ).toBeDefined();
         });
 
         it('length=Infinity → NON_FINITE_PARAMETER', () => {
@@ -151,7 +163,10 @@ describe('base.validate(): 声明式 min/max 拦截 (#8)', () => {
                 makeProblem('simple-pendulum', { simplePendulum: { length: Infinity, g: 9.8, initialAngleDeg: 5 } })
             );
             expect(v.valid).toBe(false);
-            expect(v.errors.find(e => e.code === 'NON_FINITE_PARAMETER'), JSON.stringify(v.errors)).toBeDefined();
+            expect(
+                v.errors.find(e => e.code === 'NON_FINITE_PARAMETER'),
+                JSON.stringify(v.errors)
+            ).toBeDefined();
         });
     });
 
@@ -167,7 +182,10 @@ describe('base.validate(): 声明式 min/max 拦截 (#8)', () => {
         it('sampleCount=0 → INVALID_SAMPLE_COUNT (dt=Inf 会污染整条轨迹)', () => {
             const v = model.validate(problem(0));
             expect(v.valid).toBe(false);
-            expect(v.errors.find(e => e.code === 'INVALID_SAMPLE_COUNT'), JSON.stringify(v.errors)).toBeDefined();
+            expect(
+                v.errors.find(e => e.code === 'INVALID_SAMPLE_COUNT'),
+                JSON.stringify(v.errors)
+            ).toBeDefined();
         });
 
         it('sampleCount 省略 (undefined) → 合法 (各模型自行 ?? 默认值)', () => {
@@ -186,7 +204,13 @@ describe('base.validate(): 声明式 min/max 拦截 (#8)', () => {
         it('正例: d=2um, λ=500nm 校验通过', () => {
             const v = model.validate(
                 makeProblem('diffraction-grating', {
-                    diffractionGrating: { gratingConstant: 2, slitWidth: 1, wavelength: 500, orderMax: 3, slitCount: 100 }
+                    diffractionGrating: {
+                        gratingConstant: 2,
+                        slitWidth: 1,
+                        wavelength: 500,
+                        orderMax: 3,
+                        slitCount: 100
+                    }
                 })
             );
             expect(v.valid, JSON.stringify(v.errors)).toBe(true);
@@ -195,18 +219,26 @@ describe('base.validate(): 声明式 min/max 拦截 (#8)', () => {
         it('wavelength=100nm 低于声明 min=380 → valid:false', () => {
             const v = model.validate(
                 makeProblem('diffraction-grating', {
-                    diffractionGrating: { gratingConstant: 2, slitWidth: 1, wavelength: 100, orderMax: 3, slitCount: 100 }
+                    diffractionGrating: {
+                        gratingConstant: 2,
+                        slitWidth: 1,
+                        wavelength: 100,
+                        orderMax: 3,
+                        slitCount: 100
+                    }
                 })
             );
             expect(v.valid).toBe(false);
-            expect(v.errors.find(e => e.param === 'wavelength'), JSON.stringify(v.errors)).toBeDefined();
+            expect(
+                v.errors.find(e => e.param === 'wavelength'),
+                JSON.stringify(v.errors)
+            ).toBeDefined();
         });
     });
 
     describe('软限程模型: 不拦截范围但仍拒绝非有限值', () => {
         const model = new MicrometerModel();
-        const problem = (thickness: number): PhysicsProblem =>
-            makeProblem('micrometer', { micrometer: { thickness } });
+        const problem = (thickness: number): PhysicsProblem => makeProblem('micrometer', { micrometer: { thickness } });
 
         it('thickness=26mm 超出声明 max=25 → 仍可求解 (产出量程告警)', () => {
             const v = model.validate(problem(26));
@@ -218,7 +250,10 @@ describe('base.validate(): 声明式 min/max 拦截 (#8)', () => {
         it('thickness=NaN → 仍被 NON_FINITE_PARAMETER 拒绝', () => {
             const v = model.validate(problem(Number.NaN));
             expect(v.valid).toBe(false);
-            expect(v.errors.find(e => e.code === 'NON_FINITE_PARAMETER'), JSON.stringify(v.errors)).toBeDefined();
+            expect(
+                v.errors.find(e => e.code === 'NON_FINITE_PARAMETER'),
+                JSON.stringify(v.errors)
+            ).toBeDefined();
         });
     });
 
@@ -244,7 +279,11 @@ describe('base.validate(): 声明式 min/max 拦截 (#8)', () => {
                     trajectories: [[point]],
                     keyframes: [],
                     charts: {},
-                    diagnostics: { conservedQuantities: [], maxValues: {}, rangeCheck: { withinRange: true, warnings: [] } },
+                    diagnostics: {
+                        conservedQuantities: [],
+                        maxValues: {},
+                        rangeCheck: { withinRange: true, warnings: [] }
+                    },
                     explanation: { summary: 'probe', steps: [], formulas: [] },
                     errors: [],
                     warnings: []
@@ -253,9 +292,9 @@ describe('base.validate(): 声明式 min/max 拦截 (#8)', () => {
         }
 
         it('默认 enforcesParameterRanges() === true', () => {
-            expect((new ProbeModel() as unknown as { enforcesParameterRanges(): boolean }).enforcesParameterRanges()).toBe(
-                true
-            );
+            expect(
+                (new ProbeModel() as unknown as { enforcesParameterRanges(): boolean }).enforcesParameterRanges()
+            ).toBe(true);
         });
 
         it('软限程 override 为 false 时越界不报错', () => {

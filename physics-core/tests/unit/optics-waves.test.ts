@@ -42,7 +42,7 @@ function makeProblem(model: PhysicsProblem['model'], constraints: Record<string,
  */
 function findNonFinite(value: unknown, path = ''): string[] {
     if (typeof value === 'number') return Number.isFinite(value) ? [] : [`${path}=${value}`];
-    if (typeof value === 'string') return /\bNaN\b|\bInfinity\b/.test(value) ? [`${path}="${value}"`]: [];
+    if (typeof value === 'string') return /\bNaN\b|\bInfinity\b/.test(value) ? [`${path}="${value}"`] : [];
     if (Array.isArray(value)) return value.flatMap((v, i) => findNonFinite(v, `${path}[${i}]`));
     if (value && typeof value === 'object') {
         return Object.entries(value).flatMap(([k, v]) => findNonFinite(v, path ? `${path}.${k}` : k));
@@ -75,7 +75,9 @@ describe('#11 多普勒: 超声速区跨参数拦截', () => {
 
     it('正例: v_s=330 < v=340 → 正常求解且全部有限', () => {
         const r = model.solve(
-            makeProblem('doppler', { doppler: { sourceFreq: 1000, soundSpeed: 340, sourceSpeed: 330, observerSpeed: 0, directionAngle: 0 } })
+            makeProblem('doppler', {
+                doppler: { sourceFreq: 1000, soundSpeed: 340, sourceSpeed: 330, observerSpeed: 0, directionAngle: 0 }
+            })
         );
         expect(findNonFinite(r)).toEqual([]);
         expect(Number.isFinite(r.diagnostics.maxValues.semitoneRatio)).toBe(true);
@@ -96,7 +98,9 @@ describe('#11 多普勒: 超声速区跨参数拦截', () => {
     it('大 directionAngle (远离) 时即使 v_s 较大也合法', () => {
         // θ=180° → cosθ=-1 → 分母 = v + v_s > 0, 总是合法
         const r = model.solve(
-            makeProblem('doppler', { doppler: { sourceFreq: 1000, soundSpeed: 300, sourceSpeed: 330, observerSpeed: 0, directionAngle: 180 } })
+            makeProblem('doppler', {
+                doppler: { sourceFreq: 1000, soundSpeed: 300, sourceSpeed: 330, observerSpeed: 0, directionAngle: 180 }
+            })
         );
         expect(findNonFiniteOutsideCharts(r as unknown as Record<string, unknown>)).toEqual([]);
         assertChartsOnlyBreakMarkers(r as unknown as Record<string, unknown>);
@@ -106,7 +110,9 @@ describe('#11 多普勒: 超声速区跨参数拦截', () => {
     it('θ 扫描在分母非正处用 {NaN,NaN} 断点标记, 不静默填 f0', () => {
         // v_s=290 < v=300, 但扫描会经过 cosθ=+1 方向 → 分母非正, 必须断线而非填 f0
         const r = model.solve(
-            makeProblem('doppler', { doppler: { sourceFreq: 1000, soundSpeed: 300, sourceSpeed: 290, observerSpeed: 0, directionAngle: 120 } })
+            makeProblem('doppler', {
+                doppler: { sourceFreq: 1000, soundSpeed: 300, sourceSpeed: 290, observerSpeed: 0, directionAngle: 120 }
+            })
         );
         assertChartsOnlyBreakMarkers(r as unknown as Record<string, unknown>);
         expect(findNonFiniteOutsideCharts(r as unknown as Record<string, unknown>)).toEqual([]);
@@ -213,7 +219,7 @@ describe('#11 折射: 哨兵值约定文档化', () => {
     it('全反射 → refractionAngleDeg = -1 且 totalInternalReflection = 1', () => {
         const r = model.solve(
             makeProblem('refraction', {
-                refraction: { n1: 1.5, n2: 1.0, incidentAngleDeg: 70 },
+                refraction: { n1: 1.5, n2: 1.0, incidentAngleDeg: 70 }
             })
         );
         const mv = r.diagnostics.maxValues as Record<string, number>;
@@ -225,18 +231,14 @@ describe('#11 折射: 哨兵值约定文档化', () => {
     });
 
     it('n₁ ≤ n₂ → criticalAngleDeg = -1 (无临界角, 哨兵非真实角度)', () => {
-        const r = model.solve(
-            makeProblem('refraction', { refraction: { n1: 1.0, n2: 1.5, incidentAngleDeg: 30 } })
-        );
+        const r = model.solve(makeProblem('refraction', { refraction: { n1: 1.0, n2: 1.5, incidentAngleDeg: 30 } }));
         const mv = r.diagnostics.maxValues as Record<string, number>;
         expect(mv.criticalAngleDeg).toBe(-1);
         expect(mv.totalInternalReflection).toBe(0);
     });
 
     it('正常折射 → 角度为真实值 (非哨兵)', () => {
-        const r = model.solve(
-            makeProblem('refraction', { refraction: { n1: 1.0, n2: 1.5, incidentAngleDeg: 30 } })
-        );
+        const r = model.solve(makeProblem('refraction', { refraction: { n1: 1.0, n2: 1.5, incidentAngleDeg: 30 } }));
         const mv = r.diagnostics.maxValues as Record<string, number>;
         expect(mv.refractionAngleDeg).toBeGreaterThan(0);
     });

@@ -39,7 +39,12 @@ describe('#12 斜面: 静摩擦只能保持静止, 不能刹停运动物体', ()
     const model = new InclinedPlaneModel();
     const build = (angle: number, mu: number, vx: number) =>
         model.solve(
-            makeProblem('inclined-plane', { inclinedPlane: { angle, frictionCoefficient: mu } }, { x: 0, y: 5 }, { x: vx, y: 0 })
+            makeProblem(
+                'inclined-plane',
+                { inclinedPlane: { angle, frictionCoefficient: mu } },
+                { x: 0, y: 5 },
+                { x: vx, y: 0 }
+            )
         );
 
     it('正例: θ=0、μ=0、v∥=0 → 静止 (无重力分量, 无摩擦)', () => {
@@ -90,10 +95,8 @@ describe('#12 抛体: 判别式 ≤ 0 时不得伪造射程', () => {
     const model = new ProjectileModel();
 
     it('正例: h₀=0、v₀y>0 → 正常落地并给出射程', () => {
-        const r = model.solve(
-            makeProblem('projectile', {}, { x: 0, y: 0 }, { x: 10, y: 20 })
-        );
-        const t = 2 * 20 / 9.8;
+        const r = model.solve(makeProblem('projectile', {}, { x: 0, y: 0 }, { x: 10, y: 20 }));
+        const t = (2 * 20) / 9.8;
         expect(r.diagnostics.maxValues.flightTime).toBeCloseTo(t, 6);
         expect(r.diagnostics.rangeCheck.withinRange).toBe(true);
         expect(r.warnings).toHaveLength(0);
@@ -166,7 +169,12 @@ describe('#12 轨迹不产生 NaN/Inf (常规参数)', () => {
             [30, 0.2, 0]
         ] as const) {
             const r = incline.solve(
-                makeProblem('inclined-plane', { inclinedPlane: { angle, frictionCoefficient: mu } }, { x: 0, y: 5 }, { x: vx, y: 0 })
+                makeProblem(
+                    'inclined-plane',
+                    { inclinedPlane: { angle, frictionCoefficient: mu } },
+                    { x: 0, y: 5 },
+                    { x: vx, y: 0 }
+                )
             );
             for (const p of r.trajectories[0]!) {
                 expect(Number.isFinite(p.position.x) && Number.isFinite(p.position.y)).toBe(true);

@@ -4,6 +4,14 @@ import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries } from '.
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
 import { Vec2 } from '../math/vector2d.js';
+import { PHYSICS_CONSTANTS } from '../units/constants.js';
+
+/**
+ * Boris 单步允许的最大回旋角 |q|B·dt/(2m) (rad)
+ *
+ * 取 π/4 ≈ 0.785: 单步转角过大时 sz = 2tz/(1+tz²) → 0, 回旋被数值抹平。
+ */
+const BORIS_MAX_TZ = Math.PI / 4;
 
 /** 电磁复合场中的带电粒子运动模型 (Lorentz force: F = qE + qv x B) */
 export class EMCombinedFieldModel extends PhysicsModelBase {
@@ -47,14 +55,34 @@ export class EMCombinedFieldModel extends PhysicsModelBase {
         const isPureMagnetic = Math.abs(E.x) < 1e-12 && Math.abs(E.y) < 1e-12;
         const isVelocitySelector = !isPureElectric && !isPureMagnetic && Math.abs(E.x) < 1e-12 && Math.abs(Bz) > 1e-12;
 
-        // Velocity selector: v = E/B -> straight line when v perp B and E perp v
-        if (isVelocitySelector) {
-            return this.solveVelocitySelector(problem, q, m, x0, v0, E, Bz, duration, sampleCount, dt);
-        }
+        // 每次求解重置数值告警缓冲 (子求解器通过它回传告警)
+        this.borisWarnings = [];
 
-        // General case: Boris algorithm numerical integration
-        return this.solveBoris(problem, q, m, x0, v0, E, Bz, duration, sampleCount, dt);
+        // Velocity selector: v = E/B -> straight line when v perp B and E perp v
+        const result = isVelocitySelector
+            ? this.solveVelocitySelector(problem, q, m, x0, v0, E, Bz, duration, sampleCount, dt)
+            : this.solveBoris(problem, q, m, x0, v0, E, Bz, duration, sampleCount, dt);
+
+        // 把数值告警并入结果 (子求解器在各自对象上构造, 此处统一回填)
+        const merged = [...this.borisWarnings];
+        return {
+            ...result,
+            diagnostics: {
+                ...result.diagnostics,
+                rangeCheck: { withinRange: merged.length === 0, warnings: merged }
+            },
+            warnings: [...result.warnings, ...merged]
+        };
     }
+
+    /**
+     * 本次 solve() 调用期间由子求解器累积的数值告警。
+     *
+     * 三个子路径 (velocity-selector / Boris / 通用) 各自构造并返回独立的
+     * SimulationResult, 无法直接共享局部数组; 故用实例缓冲在 solve() 入口重置、
+     * 出口统一回填。注意: 模型实例为单例, 该字段仅在同步 solve() 调用期间有意义。
+     */
+    private borisWarnings: string[] = [];
 
     /** Velocity selector: E perp B, particle with v = E/B goes straight */
     private solveVelocitySelector(
@@ -70,6 +98,15 @@ export class EMCombinedFieldModel extends PhysicsModelBase {
         dt: number
     ): SimulationResult {
         const vSelector = Math.abs(E.y / Bz);
+
+        // 速度选择器 v = E/B 可能超过光速, 违反相对论。此时经典牛顿力学 + Boris
+        // 仍然能算出一个"轨迹", 但该结果没有物理意义, 必须显式告警而非静默输出。
+        if (vSelector > PHYSICS_CONSTANTS.c.value) {
+            this.borisWarnings.push(
+                `速度选择器速度 v = E/B = ${vSelector.toExponential(3)} m/s 超过光速 c = ${PHYSICS_CONSTANTS.c.value} m/s, ` +
+                    `违反相对论; 该参数组合下经典电磁学结果不具物理意义`
+            );
+        }
 
         // Check if initial velocity matches selector speed
         const vxMatch = Math.abs(v0.x - vSelector) < vSelector * 0.01 || Math.abs(v0.x + vSelector) < vSelector * 0.01;
@@ -154,6 +191,21 @@ export class EMCombinedFieldModel extends PhysicsModelBase {
         const tz = qm * Bz * halfDt;
         const sz = (2 * tz) / (1 + tz * tz);
 
+        /**
+         * 回旋分辨率检查: |tz| = |q|·B·dt/(2m) 是每步的转角 (rad)。
+         *
+         * 电子 q/m ≈ 1.76e11 C/kg, 常规 dt=1e-9 s、B=1T 即 |tz| ≈ 88 rad,
+         * 远超单步可分辨范围 → 旋转被完全抹平 (sz→0), 轨迹退化为直线而**不报错**。
+         * 物理上无问题, 但数值结果不可信, 故显式告警。
+         */
+        if (Math.abs(tz) > BORIS_MAX_TZ) {
+            this.borisWarnings.push(
+                `Boris 回旋分辨率不足: 每步转角 |q|B·dt/(2m) = ${Math.abs(tz).toFixed(2)} rad > ${BORIS_MAX_TZ.toFixed(2)} rad, ` +
+                    `单个时间步内转过过多角度, 回旋轨迹在数值上不可分辨 (将退化为直线)。` +
+                    `请减小时间步长 dt 或减小磁感应强度 B。`
+            );
+        }
+
         let px = x0.x;
         let py = x0.y;
         let vx = v0.x;
@@ -210,15 +262,19 @@ export class EMCombinedFieldModel extends PhysicsModelBase {
         ];
 
         // Detect turning points if there is a y-electric field component
+        // 转折公式 tTurn = −v_y/(q·E_y/m) 只在 **B=0 (纯电场)** 时成立。
+        // B≠0 时磁场同时改变速度方向, 该公式忽略洛伦兹力分量, 标出的时刻并不准确。
         if (Math.abs(qm * E.y) > 1e-10) {
             const tTurn = -v0.y / (qm * E.y);
             if (tTurn > 0 && tTurn <= duration) {
+                const approxNote =
+                    Math.abs(Bz) > 1e-12 ? ' (近似: 该式忽略磁场对速度方向的改变, 仅在 B→0 时严格成立)' : '';
                 keyframes.push({
-                    label: 'y 方向转折点',
+                    label: Math.abs(Bz) > 1e-12 ? 'y 方向转折点(近似)' : 'y 方向转折点',
                     t: tTurn,
                     position: x0,
                     velocity: { x: v0.x, y: 0 },
-                    description: `t≈${tTurn.toFixed(4)}s 时竖直速度分量趋近零`
+                    description: `t≈${tTurn.toFixed(4)}s 时竖直速度分量趋近零${approxNote}`
                 });
             }
         }
