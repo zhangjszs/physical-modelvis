@@ -12,6 +12,7 @@ import type { ParameterSpec, Vector2D } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
 import { PHYSICS_CONSTANTS } from '../units/constants.js';
 import { Vec2 } from '../math/vector2d.js';
+import { maxOf } from '../math/reduce.js';
 
 /**
  * 牛顿第二定律模型 — F = ma (必修一 第四章 §2)
@@ -262,7 +263,7 @@ export class NewtonSecondLawModel extends PhysicsModelBase {
             diagnostics: {
                 conservedQuantities: [],
                 maxValues: {
-                    acceleration: Math.max(...phases.map(ph => Vec2.magnitude({ x: ph.a, y: F.y / m }))),
+                    acceleration: maxOf(phases.map(ph => Vec2.magnitude({ x: ph.a, y: F.y / m }))),
                     maxSpeed,
                     finalKineticEnergy: finalFrame.kineticEnergy!,
                     displacement: Vec2.magnitude(Vec2.sub(finalFrame.position, x0))

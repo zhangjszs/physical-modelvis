@@ -5,6 +5,7 @@ import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
 import { PHYSICS_CONSTANTS } from '../units/constants.js';
 import { Vec2 } from '../math/vector2d.js';
+import { maxOf } from '../math/reduce.js';
 
 /** 匀变速直线运动模型 */
 export class UniformAcceleratedModel extends PhysicsModelBase {
@@ -148,7 +149,7 @@ export class UniformAcceleratedModel extends PhysicsModelBase {
             diagnostics: {
                 conservedQuantities: [], // 匀变速运动不守恒
                 maxValues: {
-                    maxSpeed: Math.max(...trajectory.map(p => Vec2.magnitude(p.velocity))),
+                    maxSpeed: maxOf(trajectory.map(p => Vec2.magnitude(p.velocity))),
                     maxDistance: Vec2.magnitude(Vec2.sub(finalPos, x0))
                 },
                 rangeCheck: { withinRange: true, warnings: [] }

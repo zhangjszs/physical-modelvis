@@ -4,6 +4,7 @@ import type { SimulationResult, Keyframe, ChartSeries } from '../types/result.js
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
 import { Vec2 } from '../math/vector2d.js';
+import { maxOf } from '../math/reduce.js';
 
 /** 匀强电场中的带电粒子运动模型 */
 export class UniformElectricModel extends PhysicsModelBase {
@@ -147,7 +148,7 @@ export class UniformElectricModel extends PhysicsModelBase {
                     }
                 ],
                 maxValues: {
-                    maxSpeed: Math.max(...trajectory.map(p => Vec2.magnitude(p.velocity))),
+                    maxSpeed: maxOf(trajectory.map(p => Vec2.magnitude(p.velocity))),
                     maxDistance: Vec2.magnitude(Vec2.sub(finalPos, x0))
                 },
                 rangeCheck: { withinRange: true, warnings: [] }

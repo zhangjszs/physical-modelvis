@@ -4,6 +4,7 @@ import type { SimulationResult, Keyframe, ChartSeries, ForceDiagram } from '../t
 import type { ParameterSpec, Vector2D } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
 import { PHYSICS_CONSTANTS } from '../units/constants.js';
+import { maxOf } from '../math/reduce.js';
 
 /**
  * 竖直圆周运动模型 — 必修二 §2 (绳/杆/圆环)
@@ -323,7 +324,7 @@ export class VerticalCircleModel extends PhysicsModelBase {
         // 机械能守恒校验
         const energies = trajectory.map(p => (p.kineticEnergy ?? 0) + (p.potentialEnergy ?? 0));
         const E0 = energies[0] ?? 0;
-        const maxDev = energies.length > 0 ? Math.max(...energies.map(e => Math.abs(e - E0))) : 0;
+        const maxDev = energies.length > 0 ? maxOf(energies.map(e => Math.abs(e - E0))) : 0;
 
         // 最高点参数
         const vTopActual = Math.sqrt(Math.max(0, vTopSq));

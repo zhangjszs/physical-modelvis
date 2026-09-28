@@ -2,6 +2,7 @@ import { PhysicsModelBase } from './base.js';
 import type { PhysicsProblem } from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, ChartSeries } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
+import { maxOf } from '../math/reduce.js';
 
 /**
  * 衰变统计规律模型 — 选必三 第五章 (泊松→高斯, σ≈√N̄)
@@ -48,7 +49,7 @@ export class DecayStatisticsModel extends PhysicsModelBase {
 
         const counts: number[] = [];
         for (let i = 0; i < N; i++) counts.push(poisson(lambda));
-        const maxCount = Math.max(...counts, Math.ceil(lambda * 2));
+        const maxCount = maxOf([...counts, Math.ceil(lambda * 2)]);
         const histogram: number[] = Array.from({ length: maxCount + 1 }, () => 0);
         counts.forEach(n => {
             if (n <= maxCount) histogram[n]++;
@@ -83,7 +84,7 @@ export class DecayStatisticsModel extends PhysicsModelBase {
             charts: { x_t, y_t },
             diagnostics: {
                 conservedQuantities: [],
-                maxValues: { lambda, sigma, maxBin: Math.max(...histogram) },
+                maxValues: { lambda, sigma, maxBin: maxOf(histogram) },
                 rangeCheck: { withinRange: true, warnings: [] }
             },
             explanation: {

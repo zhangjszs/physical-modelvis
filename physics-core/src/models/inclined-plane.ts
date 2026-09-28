@@ -5,6 +5,7 @@ import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
 import { PHYSICS_CONSTANTS } from '../units/constants.js';
 import { Vec2 } from '../math/vector2d.js';
+import { maxOf } from '../math/reduce.js';
 
 /** 判定"有下滑初速"的速度阈值 (m/s) —— 低于此视为静止释放 */
 const VELOCITY_EPS = 1e-9;
@@ -272,7 +273,7 @@ export class InclinedPlaneModel extends PhysicsModelBase {
             diagnostics: {
                 conservedQuantities: [],
                 maxValues: {
-                    maxSpeed: Math.max(...trajectory.map(p => Vec2.magnitude(p.velocity))),
+                    maxSpeed: maxOf(trajectory.map(p => Vec2.magnitude(p.velocity))),
                     maxAcceleration: effectiveAccel,
                     normalForce,
                     frictionForce,

@@ -4,6 +4,7 @@ import type { SimulationResult, Keyframe, ChartSeries, ConservedQuantity } from 
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
 import { Vec2 } from '../math/vector2d.js';
+import { maxOf } from '../math/reduce.js';
 
 export class SpringOscillatorModel extends PhysicsModelBase {
     readonly name = '弹簧振子';
@@ -193,7 +194,7 @@ export class SpringOscillatorModel extends PhysicsModelBase {
         if (beta === 0) {
             const energies = trajectory.map(p => (p.kineticEnergy ?? 0) + (p.potentialEnergy ?? 0));
             const E0 = energies[0];
-            const maxDev = Math.max(...energies.map(e => Math.abs(e - E0)));
+            const maxDev = maxOf(energies.map(e => Math.abs(e - E0)));
             conservedQuantities.push({
                 name: '机械能',
                 law: '机械能守恒 (无阻尼)',

@@ -12,6 +12,7 @@ import type { ParameterSpec, Vector2D } from '../types/common.js';
 import type { OverweightMode } from '../types/problem.js';
 import { PhysicsModelBase } from './base.js';
 import { PHYSICS_CONSTANTS } from '../units/constants.js';
+import { maxOf, minOf } from '../math/reduce.js';
 
 /**
  * 超重与失重模型 — 必修一 第四章 运动和力的关系
@@ -352,8 +353,8 @@ export class OverweightModel extends PhysicsModelBase {
                     normalForce: N,
                     weight: m * g,
                     accY: aY,
-                    velocityYMax: Math.max(...trajectory.map(p => p.velocity.y)),
-                    velocityYMin: Math.min(...trajectory.map(p => p.velocity.y)),
+                    velocityYMax: maxOf(trajectory.map(p => p.velocity.y)),
+                    velocityYMin: minOf(trajectory.map(p => p.velocity.y)),
                     heightMax: maxY,
                     heightMin: minY,
                     overweightRatio: N / (m * g)

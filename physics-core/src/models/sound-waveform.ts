@@ -2,6 +2,7 @@ import type { PhysicsProblem } from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
+import { maxOf } from '../math/reduce.js';
 
 /**
  * 声音波形模型 — 选必一 第三章 (声波显示)
@@ -188,7 +189,7 @@ export class SoundWaveformModel extends PhysicsModelBase {
                     frequency: f,
                     periodMs: T_ms,
                     amplitude: A,
-                    maxDisp: Math.max(...waveform.points.map(p => Math.abs(p.y))),
+                    maxDisp: maxOf(waveform.points.map(p => Math.abs(p.y))),
                     harmonicCount: harmonics.length
                 },
                 rangeCheck: { withinRange: warnings.length === 0, warnings }

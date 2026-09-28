@@ -2,6 +2,7 @@ import type { PhysicsProblem } from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
+import { maxOf, minOf } from '../math/reduce.js';
 
 /**
  * 偏振光模型 — 选必一 第四章 (光的偏振)
@@ -204,8 +205,8 @@ export class PolarizationModel extends PhysicsModelBase {
                     Ifinal,
                     transmission,
                     nPolarizers: n,
-                    maxIntensity: Math.max(...intensities, I0),
-                    minIntensity: Math.min(...intensities, I0)
+                    maxIntensity: maxOf([...intensities, I0]),
+                    minIntensity: minOf([...intensities, I0])
                 },
                 flags: {
                     isExtinct: transmission < 0.01,

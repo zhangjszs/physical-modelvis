@@ -5,6 +5,7 @@ import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
 import { Vec2 } from '../math/vector2d.js';
 import { PHYSICS_CONSTANTS } from '../units/constants.js';
+import { maxOf } from '../math/reduce.js';
 
 /**
  * Boris 单步允许的最大回旋角 |q|B·dt/(2m) (rad)
@@ -365,7 +366,7 @@ export class EMCombinedFieldModel extends PhysicsModelBase {
                     }
                 ],
                 maxValues: {
-                    maxSpeed: Math.max(...trajectory.map(p => Vec2.magnitude(p.velocity))),
+                    maxSpeed: maxOf(trajectory.map(p => Vec2.magnitude(p.velocity))),
                     maxDistance: Vec2.magnitude(Vec2.sub(finalPos, x0)),
                     ...(vSelector > 0 ? { velocitySelectorSpeed: vSelector } : {})
                 },

@@ -10,6 +10,7 @@ import type {
 } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
+import { maxOf } from '../math/reduce.js';
 
 /** 一维碰撞模型 (弹性 / 非弹性) */
 export class CollisionModel extends PhysicsModelBase {
@@ -248,8 +249,8 @@ export class CollisionModel extends PhysicsModelBase {
             diagnostics: {
                 conservedQuantities,
                 maxValues: {
-                    maxSpeed1: Math.max(...traj1.map(p => Math.abs(p.velocity.x))),
-                    maxSpeed2: Math.max(...traj2.map(p => Math.abs(p.velocity.x))),
+                    maxSpeed1: maxOf(traj1.map(p => Math.abs(p.velocity.x))),
+                    maxSpeed2: maxOf(traj2.map(p => Math.abs(p.velocity.x))),
                     collisionTime: collisionOccurs ? collisionTime : -1
                 },
                 rangeCheck: { withinRange: true, warnings: [] }
