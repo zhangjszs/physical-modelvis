@@ -2,7 +2,7 @@
 /**
  * PhysVis 物理自检循环 — 整合 CLI
  *
- * 顺序运行 9 层自检 (L0-L6 + L8 + L9; 无 L7, L7 编号为 CLI 自身的历史遗留),
+ * 顺序运行 10 层自检 (L0-L6 + L8-L10; 无 L7, L7 编号为 CLI 自身的历史遗留),
  * 生成报告到 stdout + .scratch/selfcheck-run-<ISO>.jsonl
  * exit-code: 0 = 全部通过; 1 = 存在失败
  *
@@ -39,6 +39,7 @@ const LAYERS = [
   { id: 'L6', name: '参数面板物理范围', pkg: 'visualization', test: 'parameter-ranges.test.ts' },
   { id: 'L8', name: 'Boris 数值积分正确性+收敛', pkg: 'physics-core', test: 'boris-correctness.test.ts' },
   { id: 'L9', name: '跨场景数值鲁棒性', pkg: 'visualization', test: ['physics-correctness.mechanics.test.ts', 'physics-correctness.electromagnetism.test.ts', 'physics-correctness.optics.test.ts', 'physics-correctness.thermodynamics.test.ts', 'physics-correctness.modern.test.ts'] },
+  { id: 'L10', name: '人类可读输出 NaN 扫描', pkg: 'visualization', test: 'physics-correctness.l10.test.ts' },
 ];
 
 /**

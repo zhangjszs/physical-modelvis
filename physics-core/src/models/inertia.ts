@@ -100,7 +100,8 @@ export class InertiaModel extends PhysicsModelBase {
             // 下方棋子: 受摩擦力 μmg 减速, 最终停止
 
             const a_friction = -mu * g; // 摩擦力提供的减速度 (下方棋子)
-            const tStop = -initialSpeed / a_friction; // 下方棋子停止时刻
+            // mu=0 时无摩擦, 下方棋子永不停止 → tStop=duration (避免 Infinity 泄漏到 maxValues)
+            const tStop = a_friction < 0 ? -initialSpeed / a_friction : duration;
             const tFall = Math.sqrt((2 * 1) / g); // 上方棋子从 y=1 自由落体到 y=0 的时间 ≈ 0.45 s
 
             const startTop = { x: 0, y: 1 };
@@ -169,7 +170,10 @@ export class InertiaModel extends PhysicsModelBase {
                     t: duration,
                     position: { x: trajBottom[trajBottom.length - 1].position.x, y: 0 },
                     velocity: { x: 0, y: 0 },
-                    description: `下方棋子因摩擦停止于 ${trajBottom[trajBottom.length - 1].position.x.toFixed(3)} m`
+                    description:
+                        a_friction < 0
+                            ? `下方棋子因摩擦停止于 ${trajBottom[trajBottom.length - 1].position.x.toFixed(3)} m`
+                            : `下方棋子无摩擦, 保持匀速运动到 ${trajBottom[trajBottom.length - 1].position.x.toFixed(3)} m`
                 }
             ];
 

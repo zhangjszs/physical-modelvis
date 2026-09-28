@@ -367,7 +367,7 @@ export class VerticalCircleModel extends PhysicsModelBase {
                     m,
                     g,
                     omega0: v0 / r,
-                    period: (2 * Math.PI * r) / v0,
+                    period: v0 > 0 ? (2 * Math.PI * r) / v0 : 0, // v0=0 时物体不运动, 周期无意义 → 0
                     maxTension: tension_angle.points.reduce((m, p) => Math.max(m, p.y), 0)
                 },
                 flags: {

@@ -22,6 +22,8 @@ import { CoulombForceExploreModel } from '../../src/models/coulomb-force-explore
 import { RefractionModel } from '../../src/models/refraction.js';
 import { PhysicsError } from '../../src/errors/index.js';
 import type { PhysicsProblem } from '../../src/types/problem.js';
+// 共享工具 (#28): 递归扫描非有限数值与字符串级 NaN/Infinity
+import { findNonFinite, findNonBreakMarkerNaNs } from '../../../scripts/lib/find-non-finite.mjs';
 
 function makeProblem(model: PhysicsProblem['model'], constraints: Record<string, unknown>): PhysicsProblem {
     return {
@@ -34,22 +36,6 @@ function makeProblem(model: PhysicsProblem['model'], constraints: Record<string,
     };
 }
 
-/**
- * 递归查找结果中所有非有限数值的路径 (含被包进字符串的 "NaN")
- *
- * 折线断开标记 {NaN, NaN} (x/y 同时为 NaN) 是仓库 charts 约定下的合法断点,
- * 见 visualization/tests/accuracy/physics-correctness.shared.ts 的 L9 有限性检查。
- */
-function findNonFinite(value: unknown, path = ''): string[] {
-    if (typeof value === 'number') return Number.isFinite(value) ? [] : [`${path}=${value}`];
-    if (typeof value === 'string') return /\bNaN\b|\bInfinity\b/.test(value) ? [`${path}="${value}"`] : [];
-    if (Array.isArray(value)) return value.flatMap((v, i) => findNonFinite(v, `${path}[${i}]`));
-    if (value && typeof value === 'object') {
-        return Object.entries(value).flatMap(([k, v]) => findNonFinite(v, path ? `${path}.${k}` : k));
-    }
-    return [];
-}
-
 /** 只检查非 charts 字段 (charts 允许 {NaN,NaN} 断点) */
 function findNonFiniteOutsideCharts(result: Record<string, unknown>): string[] {
     return findNonFinite({ ...result, charts: undefined, trajectories: undefined });
@@ -57,17 +43,8 @@ function findNonFiniteOutsideCharts(result: Record<string, unknown>): string[] {
 
 /** 校验 charts 中的 NaN 均为合法 {NaN,NaN} 断点 */
 function assertChartsOnlyBreakMarkers(result: Record<string, unknown>): void {
-    const charts = (result.charts ?? {}) as Record<string, { points?: Array<{ x: number; y: number }> }>;
-    for (const [key, series] of Object.entries(charts)) {
-        for (const [i, p] of (series.points ?? []).entries()) {
-            if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) {
-                expect(
-                    Number.isNaN(p.x) && Number.isNaN(p.y),
-                    `chart ${key}[${i}] 出现非 {NaN,NaN} 断点: x=${p.x}, y=${p.y}`
-                ).toBe(true);
-            }
-        }
-    }
+    const problems = findNonBreakMarkerNaNs(result);
+    expect(problems, `charts 出现非 {NaN,NaN} 断点: ${problems.join(', ')}`).toEqual([]);
 }
 
 describe('#11 多普勒: 超声速区跨参数拦截', () => {

@@ -157,7 +157,8 @@ export class MotionCompositionModel extends PhysicsModelBase {
         };
 
         // 理论量
-        const aOverVxsq = ay / (2 * vxConst * vxConst); // 抛物线系数 y = aOverVxsq · x²
+        // vxConst=0 时轨迹为直线 (x=0), 抛物线系数无意义 → 0 (避免 Infinity 泄漏到 maxValues)
+        const aOverVxsq = vxConst !== 0 ? ay / (2 * vxConst * vxConst) : 0;
         const totalX = vxConst * duration;
         const totalY = 0.5 * ay * duration * duration;
         const finalVy = ay * duration;
@@ -178,9 +179,9 @@ export class MotionCompositionModel extends PhysicsModelBase {
             },
             {
                 order: 3,
-                description: '合运动轨迹 (抛物线)',
-                formula: 'y = (a_y / (2·vx²))·x²',
-                calculation: `y = ${aOverVxsq.toFixed(4)}·x²`
+                description: vxConst !== 0 ? '合运动轨迹 (抛物线)' : '合运动轨迹 (直线)',
+                formula: vxConst !== 0 ? 'y = (a_y / (2·vx²))·x²' : 'x = 0 (水平速度为零)',
+                calculation: vxConst !== 0 ? `y = ${aOverVxsq.toFixed(4)}·x²` : '轨迹为 y 轴上的直线运动'
             },
             {
                 order: 4,
@@ -230,7 +231,10 @@ export class MotionCompositionModel extends PhysicsModelBase {
                 rangeCheck: { withinRange: true, warnings: [] }
             },
             explanation: {
-                summary: `运动合成分解 (蜡块实验): vx=${vxConst}m/s, a_y=${ay}m/s², 轨迹 y=${aOverVxsq.toFixed(4)}·x², 水平射程=${totalX.toFixed(2)}m, 竖直射程=${totalY.toFixed(2)}m, 末合速度 v=${finalV.toFixed(2)}m/s`,
+                summary:
+                vxConst !== 0
+                    ? `运动合成分解 (蜡块实验): vx=${vxConst}m/s, a_y=${ay}m/s², 轨迹 y=${aOverVxsq.toFixed(4)}·x², 水平射程=${totalX.toFixed(2)}m, 竖直射程=${totalY.toFixed(2)}m, 末合速度 v=${finalV.toFixed(2)}m/s`
+                    : `运动合成分解 (蜡块实验): vx=0m/s, a_y=${ay}m/s², 轨迹为直线 (x=0), 竖直射程=${totalY.toFixed(2)}m, 末合速度 v=${finalV.toFixed(2)}m/s`,
                 steps,
                 formulas
             },
