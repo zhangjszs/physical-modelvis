@@ -11,7 +11,6 @@ export default tseslint.config(
             '**/coverage/**',
             '.scratch/**',
             '**/*.config.*',
-            'scripts/**',
         ],
     },
     js.configs.recommended,
@@ -45,6 +44,60 @@ export default tseslint.config(
         files: ['**/tests/**/*.{ts,tsx}'],
         rules: {
             '@typescript-eslint/no-explicit-any': 'warn',
+        },
+    },
+    {
+        // scripts 目录的 .mjs 是 Node.js ESM 脚本, 启用 Node 全局变量
+        files: ['scripts/**/*.mjs'],
+        languageOptions: {
+            ecmaVersion: 2022,
+            sourceType: 'module',
+            globals: {
+                process: 'readonly',
+                console: 'readonly',
+                URL: 'readonly',
+                AbortSignal: 'readonly',
+                setTimeout: 'readonly',
+                setInterval: 'readonly',
+                clearTimeout: 'readonly',
+                clearInterval: 'readonly',
+            },
+        },
+    },
+    {
+        // scripts 目录的 .cjs 是 Node.js CommonJS 脚本, 启用 require/process
+        files: ['scripts/**/*.cjs'],
+        languageOptions: {
+            ecmaVersion: 2022,
+            sourceType: 'commonjs',
+            globals: {
+                process: 'readonly',
+                console: 'readonly',
+                require: 'readonly',
+                module: 'readonly',
+                exports: 'readonly',
+                __dirname: 'readonly',
+                __filename: 'readonly',
+                document: 'readonly',
+            },
+        },
+        rules: {
+            '@typescript-eslint/no-require-imports': 'off',
+        },
+    },
+    {
+        // verify-3d-scene-switching.js 是浏览器控制台注入脚本, 启用 browser 环境
+        files: ['scripts/verify-3d-scene-switching.js'],
+        languageOptions: {
+            ecmaVersion: 2022,
+            sourceType: 'script',
+            globals: {
+                window: 'readonly',
+                document: 'readonly',
+                console: 'readonly',
+                setTimeout: 'readonly',
+                clearTimeout: 'readonly',
+            },
         },
     },
 );

@@ -64,7 +64,9 @@ if (distTime === 0) {
 
 if (srcTime > distTime) {
     const lagSec = ((srcTime - distTime) / 1000).toFixed(1);
-    fail(`dist 比 src 旧 ${lagSec}s (src 最新 ${new Date(srcTime).toISOString()}, dist 最新 ${new Date(distTime).toISOString()})`);
+    fail(
+        `dist 比 src 旧 ${lagSec}s (src 最新 ${new Date(srcTime).toISOString()}, dist 最新 ${new Date(distTime).toISOString()})`
+    );
 }
 
 if (!quiet) {

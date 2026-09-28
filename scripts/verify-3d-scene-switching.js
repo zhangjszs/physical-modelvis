@@ -48,7 +48,7 @@
         settleDelay3D: 3000, // 3D 场景 rig 加载 + 首帧动画等待
         canvasPollTimeout: 5000, // canvas 出现最大等待
         canvasPollInterval: 200,
-        errorKeyMaxLen: 220, // 错误摘要截断长度
+        errorKeyMaxLen: 220 // 错误摘要截断长度
     };
 
     const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -67,7 +67,9 @@
         buffer.push({ kind: 'warn', msg: a.map(x => (x instanceof Error ? x.message : String(x))).join(' ') });
         _warn(...a);
     };
-    window.addEventListener('error', e => buffer.push({ kind: 'pageerror', msg: e.message + (e.error ? '\n' + e.error.stack : '') }));
+    window.addEventListener('error', e =>
+        buffer.push({ kind: 'pageerror', msg: e.message + (e.error ? '\n' + e.error.stack : '') })
+    );
     window.addEventListener('unhandledrejection', e =>
         buffer.push({ kind: 'promise', msg: 'UnhandledRejection: ' + (e.reason?.message ?? String(e.reason)) })
     );
@@ -95,8 +97,8 @@
 
     // —— 切换到指定场景 ——
     async function switchTo(category, name) {
-        const catBtn = [...document.querySelectorAll('.scene-cat-btn')].find(b =>
-            b.textContent.replace(/[▴▾]/g, '').trim() === category
+        const catBtn = [...document.querySelectorAll('.scene-cat-btn')].find(
+            b => b.textContent.replace(/[▴▾]/g, '').trim() === category
         );
         if (!catBtn) throw new Error('分类按钮未找到: ' + category);
         catBtn.click();
@@ -197,7 +199,17 @@
             log(`${tag} ✗ ${name} 脚本异常: ${e.message}`);
         }
 
-        results.push({ category, name, type: is3D ? '3D' : '2D', canvasOk, status, crashCount, deprecCount, otherErrCount, sample });
+        results.push({
+            category,
+            name,
+            type: is3D ? '3D' : '2D',
+            canvasOk,
+            status,
+            crashCount,
+            deprecCount,
+            otherErrCount,
+            sample
+        });
         prevWas3D = is3D;
     }
 
@@ -230,7 +242,7 @@
                 崩溃: r.crashCount,
                 弃用: r.deprecCount,
                 错误: r.otherErrCount,
-                摘要: r.sample,
+                摘要: r.sample
             }))
         );
     } else {
@@ -238,7 +250,10 @@
     }
 
     // 全量结果挂到全局，便于事后排查
-    window.__3D_VERIFY_RESULT = { summary: { total, ok, crashed: crashed.length, deprecated: deprecated.length, errored: errored.length, n3D }, results };
+    window.__3D_VERIFY_RESULT = {
+        summary: { total, ok, crashed: crashed.length, deprecated: deprecated.length, errored: errored.length, n3D },
+        results
+    };
     log('完整结果已挂载到 window.__3D_VERIFY_RESULT');
 
     // 恢复 console 原行为
