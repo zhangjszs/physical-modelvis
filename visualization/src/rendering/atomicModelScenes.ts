@@ -32,6 +32,53 @@ const COL = {
     gray: '#94a3b8'
 };
 
+/**
+ * 玻尔半径 a₀ (nm)
+ *
+ * 独立物理常数(H⁻ 基态轨道半径), 无法由能级数据 Eₙ=E₁/n² 反推 —— 需额外给出 E₁。
+ * 像素半径的**动画驱动量**已改读引擎能级(见 readEngineOrbitRadii);
+ * 此常量仅用于 HUD 的**展示文本**(a₀ / r₁ / r_max 的 nm 数值)。
+ */
+const BOHR_RADIUS_NM = 0.0529;
+
+/**
+ * 从引擎能级数据推出各量子数 n 的轨道半径 (像素)。
+ *
+ * 玻尔模型: Eₙ = E₁/n² (引擎 charts.x_t 给出 (n, E) 点), 而 rₙ = a₀·n²,
+ * 故 r ∝ 1/|Eₙ|。取基准半径 baseR 对应最内层, 按 1/|E| 之比缩放。
+ *
+ * @returns (n) => 像素半径; 无引擎数据或数据不可用时返回 null, 由调用方回退
+ *
+ * 单一真源契约 (#30) 由 single-source-contract.test.ts 的 bohr-orbit 用例锁定。
+ */
+export function readEngineOrbitRadii(result: SimulationResult | null): ((n: number) => number) | null {
+    // 引擎键名 x_t 对应语义"能级图" (n, E) —— 见 bohr.ts 的 charts: { x_t: energyDiagram }
+    const series = (result?.charts as Record<string, { points?: Array<{ x: number; y: number }> }> | undefined)?.[
+        'x_t'
+    ];
+    const points = series?.points;
+    if (!points || points.length === 0) return null;
+
+    // n → |E| (eV); 引擎返回的是带符号能量, 取绝对值
+    const absE = new Map<number, number>();
+    for (const p of points) {
+        const n = Math.round(p.x);
+        if (!Number.isFinite(p.y) || p.y === 0) continue;
+        absE.set(n, Math.abs(p.y));
+    }
+    const inner = absE.get(1);
+    if (inner === undefined || !(inner > 0)) return null;
+
+    // 基准: 最内层 n=1 半径 14 px (沿用既有视觉比例)
+    const BASE_R = 14;
+    return (n: number): number => {
+        const e = absE.get(n);
+        if (e === undefined) return BASE_R;
+        // r ∝ 1/|E|
+        return BASE_R * (inner / e);
+    };
+}
+
 function drawGlowCircle(
     ctx: CanvasRenderingContext2D,
     cx: number,
@@ -158,18 +205,26 @@ export function drawBohrScene(o: ModernSceneOptions): void {
 }
 
 export function drawBohrOrbitScene(o: ModernSceneOptions): void {
-    const { ctx, width: w, height: h, isDark, params, currentTime } = o;
+    const { ctx, width: w, height: h, isDark, params, currentTime, simulationResult } = o;
     clearScene(ctx, w, h, isDark);
     drawTitle(ctx, '玻尔氢原子模型 — 轨道能级 (rₙ ∝ n²)', w, isDark, { size: 18, y: 28 });
 
     const seriesNum = params['seriesB'] ?? 1;
     const maxN = Math.max(3, Math.round(params['maxN'] ?? 6));
     const n1 = seriesNum === 0 ? 1 : seriesNum === 2 ? 3 : 2;
-    const a0 = 0.0529; // nm
     const cx = w * 0.42,
         cy = h * 0.5;
     const baseR = 14;
-    const rN = (n: number) => baseR + n * n * 4;
+
+    /**
+     * 轨道半径: rₙ = a₀·n² (玻尔模型)。
+     *
+     * 单一真源: 半径由**引擎**的能级数据 Eₙ = E₁/n² 推出 r ∝ 1/|Eₙ| ∝ n²,
+     * 渲染层不再自行硬编码比例系数 —— 引擎改玻尔公式时画面自动跟随。
+     * 无引擎结果时回退到等价的 n² 布局(见下), 保证场景仍可渲染。
+     */
+    const engineRadii = readEngineOrbitRadii(simulationResult);
+    const rN = engineRadii ?? ((n: number) => baseR + n * n * 4);
 
     for (let n = 1; n <= maxN; n++) {
         const r = rN(n);
@@ -183,6 +238,14 @@ export function drawBohrOrbitScene(o: ModernSceneOptions): void {
         ctx.font = '9px monospace';
         ctx.textAlign = 'left';
         ctx.fillText(`n=${n}`, cx + r + 3, cy - 2);
+        /**
+         * 电子角位置: 纯装饰动画, 豁免单一真源 (见 #20/#30)。
+         *
+         * 引擎 bohr 模型输出仅为能级 (charts.x_t) + 谱线 (charts.y_t),
+         * trajectories 为单点占位, 无电子位置数据 —— 量子模型本就没有
+         * 经典轨道相位可言。角速度 1.2/n 仅为视觉示意 (内层快/外层慢),
+         * 与引擎公式无耦合, 故保留 currentTime 自算, 不迁引擎。
+         */
         const ang = currentTime * (1.2 / n) + n;
         const ex = cx + r * Math.cos(ang);
         const ey = cy + r * Math.sin(ang);
@@ -217,10 +280,10 @@ export function drawBohrOrbitScene(o: ModernSceneOptions): void {
         ctx,
         isDark,
         [
-            { label: 'a₀', value: `${a0} nm` },
+            { label: 'a₀', value: `${BOHR_RADIUS_NM} nm` },
             { label: 'n_max', value: `${maxN}` },
-            { label: 'r₁', value: `${a0.toFixed(3)} nm` },
-            { label: 'r_max', value: `${(a0 * maxN * maxN).toFixed(1)} nm` }
+            { label: 'r₁', value: `${BOHR_RADIUS_NM.toFixed(3)} nm` },
+            { label: 'r_max', value: `${(BOHR_RADIUS_NM * maxN * maxN).toFixed(1)} nm` }
         ],
         { boxW: 230, lineH: 16 }
     );

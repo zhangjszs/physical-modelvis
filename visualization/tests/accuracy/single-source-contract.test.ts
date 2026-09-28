@@ -21,6 +21,7 @@ import { resolve } from 'path';
 import { getSceneSync, loadAllScenes } from '../../src/scenes/sceneRegistry';
 import { runSceneSimulation } from '../../src/adapters/physicsCoreAdapter';
 import { getFrame } from '../../src/rendering/renderingUtils';
+import { readEngineOrbitRadii } from '../../src/rendering/atomicModelScenes';
 
 /** 取渲染源码中某导出函数的完整函数体 (到下一个 export function 为止) — 源码契约断言用 */
 function renderFn(file: string, fnName: string): string {
@@ -786,5 +787,44 @@ describe('L1-migration: 渲染单一真源契约 (后续迁移场景)', () => {
             // `?? ` 一并锁定: 读引擎 + 保留回退, 缺任一侧即红
             expect(fn, `渲染需消费 maxValues.${key} 并保留回退`).toContain(`maxVals?.${key} ??`);
         }
+    });
+
+    it('bohr-orbit: 引擎能级 E_n=-13.6/n² 与独立复算一致 (半径推导的数据基础)', () => {
+        const sc = scene('bohr-orbit');
+        const { result, error } = runSceneSimulation(sc, { seriesB: 1, maxN: 6, duration: 2 });
+        expect(error).toBeNull();
+        const chart = result!.charts as unknown as Record<string, { points: Array<{ x: number; y: number }> }>;
+        const xT = chart['x_t']!.points;
+        // 引擎键名 x_t 对应语义"能级图" (n, E) —— 见 physics-core/src/models/bohr.ts
+        expect(xT.length).toBeGreaterThanOrEqual(6);
+        for (let n = 1; n <= 6; n++) {
+            const p = xT.find(pt => Math.round(pt.x) === n);
+            expect(p, `能级点 n=${n} 存在`).toBeDefined();
+            // 独立复算: E_n = E₁/n², E₁ = -13.6 eV (引擎改公式即红)
+            expect(p!.y, `n=${n} 能级与玻尔公式一致`).toBeCloseTo(-13.6 / (n * n), 2);
+        }
+    });
+
+    it('bohr-orbit: 轨道半径由引擎能级推出 r ∝ n², 空结果回退不崩 (渲染消费端)', () => {
+        const sc = scene('bohr-orbit');
+        const { result, error } = runSceneSimulation(sc, { seriesB: 1, maxN: 6, duration: 2 });
+        expect(error).toBeNull();
+        const rN = readEngineOrbitRadii(result);
+        expect(rN, '有引擎数据时应给出半径函数').not.toBeNull();
+        // r ∝ 1/|E| ∝ n²: r₄/r₁ ≈ 16, r₂/r₁ ≈ 4 (引擎改 E₁ 即跟随, 比例不变)
+        expect(rN!(4) / rN!(1)).toBeCloseTo(16, 6);
+        expect(rN!(2) / rN!(1)).toBeCloseTo(4, 6);
+        // 非法输入一律回退 null, 由调用方走 n² 布局, 不得抛异常
+        expect(readEngineOrbitRadii(null)).toBeNull();
+        expect(readEngineOrbitRadii({ charts: {} } as never)).toBeNull();
+        expect(readEngineOrbitRadii({ charts: { x_t: { points: [] } } } as never)).toBeNull();
+        expect(readEngineOrbitRadii({ charts: { x_t: { points: [{ x: 1, y: NaN }] } } } as never)).toBeNull();
+    });
+
+    it('bohr-orbit: 渲染层读引擎半径且保留回退, 电子角为装饰动画豁免 (源码契约)', () => {
+        const fn = renderFn('atomicModelScenes.ts', 'drawBohrOrbitScene');
+        expect(fn, '半径读引擎').toContain('readEngineOrbitRadii(simulationResult)');
+        expect(fn, '无引擎结果保留 n² 回退').toContain('engineRadii ??');
+        expect(fn, '电子角豁免需有注释记录').toContain('豁免');
     });
 });
