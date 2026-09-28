@@ -79,6 +79,32 @@ export function readEngineOrbitRadii(result: SimulationResult | null): ((n: numb
     };
 }
 
+/**
+ * 从引擎能级数据读各主量子数 n 的能量 E (eV, 带符号)。
+ *
+ * 供 drawBohrScene 能级标注 / 跃迁 ΔE 与 drawBohrOrbitScene 右侧跃迁说明消费;
+ * 无引擎数据或数据不可用时返回 null, 由调用方回退玻尔公式。
+ *
+ * 单一真源契约 (#31) 由 single-source-contract.test.ts 的 bohr 用例锁定。
+ */
+export function readEngineBohrLevels(result: SimulationResult | null): Map<number, number> | null {
+    // 引擎键名 x_t 对应语义"能级图" (n, E) —— 见 bohr.ts 的 charts: { x_t: energyDiagram }
+    const series = (result?.charts as Record<string, { points?: Array<{ x: number; y: number }> }> | undefined)?.[
+        'x_t'
+    ];
+    const points = series?.points;
+    if (!points || points.length === 0) return null;
+
+    const levels = new Map<number, number>();
+    for (const p of points) {
+        const n = Math.round(p.x);
+        if (!Number.isFinite(p.y)) continue;
+        levels.set(n, p.y);
+    }
+    if (!levels.has(1) || levels.size === 0) return null;
+    return levels;
+}
+
 function drawGlowCircle(
     ctx: CanvasRenderingContext2D,
     cx: number,
@@ -111,7 +137,7 @@ function wavelengthToColor(nm: number): string {
 }
 
 export function drawBohrScene(o: ModernSceneOptions): void {
-    const { ctx, width: w, height: h, isDark, params } = o;
+    const { ctx, width: w, height: h, isDark, params, simulationResult } = o;
     clearScene(ctx, w, h, isDark);
     drawTitle(ctx, '玻尔氢原子模型 — 能级与发射光谱', w, isDark, { size: 18, y: 28 });
 
@@ -120,8 +146,26 @@ export function drawBohrScene(o: ModernSceneOptions): void {
     const n1 = seriesNum === 0 ? 1 : seriesNum === 2 ? 3 : 2;
     const seriesName = seriesNum === 0 ? '赖曼系(紫外)' : seriesNum === 2 ? '帕邢系(红外)' : '巴尔末系(可见)';
     const seriesColor = seriesNum === 0 ? COL.purple : seriesNum === 2 ? COL.orange : COL.green;
-    const E = (n: number) => -13.6 / (n * n); // eV
-    const Rydberg = 1.097e7; // m⁻¹
+    /**
+     * 能级 E(n): 优先读引擎能级表 (Eₙ=E₁/n², 见 readEngineBohrLevels),
+     * 引擎改公式时标注自动跟随; 无引擎结果回退玻尔公式。
+     */
+    const engineLevels = readEngineBohrLevels(simulationResult);
+    const E = (n: number) => engineLevels?.get(n) ?? -13.6 / (n * n); // eV
+    /**
+     * 本线系谱线波长 (nm): 引擎 charts.y_t 按 n₂ 升序排列,
+     * 元素 i 对应 n₂=n₁+1+i (引擎 seriesLines 嵌套循环同序, 见 bohr.ts);
+     * 无引擎结果回退里德伯公式。
+     */
+    const engineSpectrum = (
+        simulationResult?.charts as Record<string, { points?: Array<{ x: number; y: number }> }> | undefined
+    )?.['y_t']?.points;
+    const Rydberg = 1.097e7; // m⁻¹ (回退公式用; 引擎真源为 maxValues.R_inf)
+    const lambdaNmFor = (n2: number): number => {
+        const y = engineSpectrum?.[n2 - n1 - 1]?.y;
+        if (typeof y === 'number' && Number.isFinite(y)) return y;
+        return (1 / (Rydberg * (1 / (n1 * n1) - 1 / (n2 * n2)))) * 1e9;
+    };
 
     // 左半: 能级图 (能量轴水平, 越负越靠左)
     const leftX = 60,
@@ -171,9 +215,8 @@ export function drawBohrScene(o: ModernSceneOptions): void {
     ctx.fillStyle = isDark ? '#0b1220' : '#0f172a';
     ctx.fillRect(specX, specY, specW, specH);
     for (let n2 = n1 + 1; n2 <= maxN; n2++) {
-        const invLam = Rydberg * (1 / (n1 * n1) - 1 / (n2 * n2));
-        const lam = 1 / invLam; // m
-        const color = wavelengthToColor(lam * 1e9);
+        const lamNm = lambdaNmFor(n2);
+        const color = wavelengthToColor(lamNm);
         const xPos = specX + ((n2 - n1 - 1) / Math.max(1, maxN - n1)) * specW;
         ctx.strokeStyle = color;
         ctx.lineWidth = 2;
@@ -184,7 +227,7 @@ export function drawBohrScene(o: ModernSceneOptions): void {
         ctx.fillStyle = isDark ? '#cbd5e1' : '#475569';
         ctx.font = '9px monospace';
         ctx.textAlign = 'center';
-        ctx.fillText(`${(lam * 1e9).toFixed(0)}nm`, xPos, specY + specH + 24);
+        ctx.fillText(`${lamNm.toFixed(0)}nm`, xPos, specY + specH + 24);
     }
     ctx.textAlign = 'left';
     ctx.fillStyle = isDark ? '#cbd5e1' : '#475569';
@@ -271,8 +314,14 @@ export function drawBohrOrbitScene(o: ModernSceneOptions): void {
     ctx.textAlign = 'left';
     ctx.fillText(`线系: ${seriesNum === 0 ? '赖曼' : seriesNum === 2 ? '帕邢' : '巴尔末'} (n₁=${n1})`, rx, ry);
     ctx.fillText('跃迁 n → n₁ 能量:', rx, ry + 22);
+    /**
+     * 跃迁能量 ΔE: 优先取引擎能级差 |E(n₂)−E(n₁)|, 无引擎结果回退玻尔公式。
+     */
+    const orbitLevels = readEngineBohrLevels(simulationResult);
     for (let n2 = n1 + 1; n2 <= Math.min(maxN, n1 + 5); n2++) {
-        const dE = 13.6 * (1 / (n1 * n1) - 1 / (n2 * n2));
+        const e1 = orbitLevels?.get(n1);
+        const e2 = orbitLevels?.get(n2);
+        const dE = e1 !== undefined && e2 !== undefined ? Math.abs(e2 - e1) : 13.6 * (1 / (n1 * n1) - 1 / (n2 * n2));
         ctx.fillText(`  n=${n2} → ${n1}: ΔE=${dE.toFixed(2)} eV`, rx, ry + 22 + (n2 - n1) * 16);
     }
 

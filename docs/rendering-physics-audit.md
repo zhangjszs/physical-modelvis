@@ -262,7 +262,19 @@ viz 测试数 1159 → 1161。
 |------|------|
 | bohr-orbit | x_t (n, E) 与 E_n=-13.6/n² 独立复算一致 (n=1..6); r₄/r₁≈16、r₂/r₁≈4; null/空 charts/NaN 点一律回退 null; 源码含 `readEngineOrbitRadii(simulationResult)` + `engineRadii ??` 回退 + 豁免注释 |
 
-`drawBohrScene` (能级/里德伯硬编码) 未动, 见 #31。
+`drawBohrScene` (能级/里德伯硬编码) 见 #31 (同批收尾):
+
+| 场景部位 | 处置 | 备注 |
+|------|------|------|
+| 能级标注 E(n) | 已迁: 读引擎 `charts.x_t` (n→E 映射, `readEngineBohrLevels`), 无结果回退 −13.6/n² | 左侧能级图数值 |
+| 谱线波长 | 已迁: 读引擎 `charts.y_t` (按 n₂ 升序, 元素 i ↔ n₂=n₁+1+i), 无结果回退里德伯公式 | 右侧光谱条带; 回退常量 R∞=1.097e7 (引擎真源 `maxValues.R_inf`) |
+| 跃迁 ΔE (bohr-orbit 右侧) | 已迁: 取引擎能级差 \|E(n₂)−E(n₁)\|, 无结果回退 13.6·(1/n₁²−1/n₂²) | 与 drawBohrScene 共用 `readEngineBohrLevels` |
+
+### 契约测试新增 (bohr × 3)
+
+| 场景 | 断言 |
+|------|------|
+| bohr | `maxValues.R_inf`=1.097e7 / `E1_eV`=−13.6 / `baseN`=2; y_t 巴尔末 4 条谱线与里德伯公式一致 (Hα∈(650,660)nm); ΔE(3→2)≈1.89eV; 缺 n=1 时回退 null; 源码含 `readEngineBohrLevels` + `['y_t']` + `Rydberg` 回退 |
 
 ## 审计副产物:模型层方向 bug 修复 (2026-08-02)
 

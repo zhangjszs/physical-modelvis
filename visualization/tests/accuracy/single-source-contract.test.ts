@@ -21,7 +21,7 @@ import { resolve } from 'path';
 import { getSceneSync, loadAllScenes } from '../../src/scenes/sceneRegistry';
 import { runSceneSimulation } from '../../src/adapters/physicsCoreAdapter';
 import { getFrame } from '../../src/rendering/renderingUtils';
-import { readEngineOrbitRadii } from '../../src/rendering/atomicModelScenes';
+import { readEngineOrbitRadii, readEngineBohrLevels } from '../../src/rendering/atomicModelScenes';
 
 /** 取渲染源码中某导出函数的完整函数体 (到下一个 export function 为止) — 源码契约断言用 */
 function renderFn(file: string, fnName: string): string {
@@ -826,5 +826,51 @@ describe('L1-migration: 渲染单一真源契约 (后续迁移场景)', () => {
         expect(fn, '半径读引擎').toContain('readEngineOrbitRadii(simulationResult)');
         expect(fn, '无引擎结果保留 n² 回退').toContain('engineRadii ??');
         expect(fn, '电子角豁免需有注释记录').toContain('豁免');
+    });
+
+    it('bohr: 引擎能级/谱线/常量与独立复算一致 (能级标注与波长的数据基础)', () => {
+        const sc = scene('bohr');
+        const { result, error } = runSceneSimulation(sc, { seriesB: 1, maxN: 6, duration: 1 });
+        expect(error).toBeNull();
+        const mv = result!.diagnostics.maxValues as Record<string, number>;
+        // 常量真源: R∞ / E₁ (渲染回退公式与此同值, 引擎改常量即红)
+        expect(mv.R_inf).toBe(1.097e7);
+        expect(mv.E1_eV).toBe(-13.6);
+        expect(mv.baseN).toBe(2);
+        const chart = result!.charts as unknown as Record<string, { points: Array<{ x: number; y: number }> }>;
+        // 巴尔末系谱线: n=2→3..6, 波长 1/λ=R(1/4−1/n₂²), 与 Hα≈656nm 对照
+        const yT = chart['y_t']!.points;
+        expect(yT.length).toBe(4);
+        const R = 1.097e7;
+        [3, 4, 5, 6].forEach((n2, i) => {
+            const lamNm = (1 / (R * (1 / 4 - 1 / (n2 * n2)))) * 1e9;
+            expect(yT[i]!.y, `n=${n2}→2 波长与里德伯公式一致`).toBeCloseTo(lamNm, 1);
+        });
+        expect(yT[0]!.y, 'Hα 在 656nm 附近').toBeGreaterThan(650);
+        expect(yT[0]!.y, 'Hα 在 656nm 附近').toBeLessThan(660);
+    });
+
+    it('bohr: 能级/ΔE 读取消耗引擎表, 空结果回退不崩 (渲染消费端)', () => {
+        const sc = scene('bohr');
+        const { result, error } = runSceneSimulation(sc, { seriesB: 1, maxN: 6, duration: 1 });
+        expect(error).toBeNull();
+        const levels = readEngineBohrLevels(result);
+        expect(levels, '有引擎数据时应给出能级表').not.toBeNull();
+        // ΔE(3→2) = |E₃−E₂| ≈ 1.89 eV (引擎改 E₁ 即跟随)
+        expect(Math.abs(levels!.get(3)! - levels!.get(2)!)).toBeCloseTo(13.6 * (1 / 4 - 1 / 9), 2);
+        expect(levels!.get(1)).toBeCloseTo(-13.6, 2);
+        // 非法输入一律回退 null
+        expect(readEngineBohrLevels(null)).toBeNull();
+        expect(readEngineBohrLevels({ charts: {} } as never)).toBeNull();
+        expect(readEngineBohrLevels({ charts: { x_t: { points: [{ x: 2, y: -3.4 }] } } } as never)).toBeNull();
+    });
+
+    it('bohr: 渲染层能级/波长/ΔE 读引擎且保留回退 (源码契约)', () => {
+        const sceneFn = renderFn('atomicModelScenes.ts', 'drawBohrScene');
+        expect(sceneFn, '能级标注读引擎').toContain('readEngineBohrLevels(simulationResult)');
+        expect(sceneFn, '谱线波长读引擎 y_t').toContain("['y_t']");
+        expect(sceneFn, '无引擎结果回退里德伯公式').toContain('Rydberg');
+        const orbitFn = renderFn('atomicModelScenes.ts', 'drawBohrOrbitScene');
+        expect(orbitFn, '跃迁 ΔE 取引擎能级差').toContain('readEngineBohrLevels(simulationResult)');
     });
 });
