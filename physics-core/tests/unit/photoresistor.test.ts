@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { PhysicsProblem } from '../../src/types/problem.js';
-import { HallEffectModel } from '../../src/models/hall-effect.js';
+import { PhotoresistorModel } from '../../src/models/photoresistor.js';
 
 function makeBody(id = 'b1', mass = 1) {
     return { id, mass: { value: mass, unit: 'kg' as const }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } };
@@ -20,18 +20,18 @@ function makeProblem(
     };
 }
 
-describe('F8: HallEffectModel', () => {
-    const model = new HallEffectModel();
+describe('F10: PhotoresistorModel', () => {
+    const model = new PhotoresistorModel();
     it('metadata ok', () => {
-        expect(model.modelType).toBe('hall-effect');
+        expect(model.modelType).toBe('photoresistor');
     });
     it('chart ok', () => {
+        // sensitivity 单位为 1/lx (10⁻³ 量级) — 与 requiredParameters 声明一致
         const r = model.solve(
-            makeProblem('hall-effect', {
-                hallEffect: { current: 0.1, magneticField: 0.5, chargeDensity: 1e22, thickness: 1e-3 }
+            makeProblem('photoresistor', {
+                photoresistor: { lightIntensity: 10, darkResistance: 10000, sensitivity: 0.002 }
             })
         );
         expect(r.charts.x_t).toBeDefined();
-        expect(r.charts.y_t).toBeDefined();
     });
 });

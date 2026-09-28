@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { PhysicsProblem } from '../../src/types/problem.js';
-import { HallEffectModel } from '../../src/models/hall-effect.js';
+import { SurfaceTensionModel } from '../../src/models/surface-tension.js';
 
 function makeBody(id = 'b1', mass = 1) {
     return { id, mass: { value: mass, unit: 'kg' as const }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } };
@@ -20,18 +20,19 @@ function makeProblem(
     };
 }
 
-describe('F8: HallEffectModel', () => {
-    const model = new HallEffectModel();
-    it('metadata ok', () => {
-        expect(model.modelType).toBe('hall-effect');
+describe('G7: SurfaceTension', () => {
+    const m = new SurfaceTensionModel();
+    it('meta', () => {
+        expect(m.modelType).toBe('surface-tension');
     });
-    it('chart ok', () => {
-        const r = model.solve(
-            makeProblem('hall-effect', {
-                hallEffect: { current: 0.1, magneticField: 0.5, chargeDensity: 1e22, thickness: 1e-3 }
-            })
-        );
-        expect(r.charts.x_t).toBeDefined();
-        expect(r.charts.y_t).toBeDefined();
+    // temperature 单位为 °C (非 K) — 与 requiredParameters 声明一致
+    it('chart', () => {
+        expect(
+            m.solve(
+                makeProblem('surface-tension', {
+                    surfaceTension: { liquidMode: 'water', sliderLength: 0.05, temperature: 20 }
+                })
+            ).charts.x_t
+        ).toBeDefined();
     });
 });

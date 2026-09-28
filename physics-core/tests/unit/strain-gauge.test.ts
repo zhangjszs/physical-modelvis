@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { PhysicsProblem } from '../../src/types/problem.js';
-import { HallEffectModel } from '../../src/models/hall-effect.js';
+import { StrainGaugeModel } from '../../src/models/strain-gauge.js';
 
 function makeBody(id = 'b1', mass = 1) {
     return { id, mass: { value: mass, unit: 'kg' as const }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } };
@@ -20,18 +20,15 @@ function makeProblem(
     };
 }
 
-describe('F8: HallEffectModel', () => {
-    const model = new HallEffectModel();
+describe('F12: StrainGaugeModel', () => {
+    const model = new StrainGaugeModel();
     it('metadata ok', () => {
-        expect(model.modelType).toBe('hall-effect');
+        expect(model.modelType).toBe('strain-gauge');
     });
-    it('chart ok', () => {
+    it('result ok', () => {
         const r = model.solve(
-            makeProblem('hall-effect', {
-                hallEffect: { current: 0.1, magneticField: 0.5, chargeDensity: 1e22, thickness: 1e-3 }
-            })
+            makeProblem('strain-gauge', { strainGauge: { strain: 100e-6, gaugeFactor: 2, bridgeVoltage: 5 } })
         );
-        expect(r.charts.x_t).toBeDefined();
-        expect(r.charts.y_t).toBeDefined();
+        expect(r.explanation.summary).toBeTruthy();
     });
 });

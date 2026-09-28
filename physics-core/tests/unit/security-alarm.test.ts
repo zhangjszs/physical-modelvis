@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { PhysicsProblem } from '../../src/types/problem.js';
-import { HallEffectModel } from '../../src/models/hall-effect.js';
+import { SecurityAlarmModel } from '../../src/models/security-alarm.js';
 
 function makeBody(id = 'b1', mass = 1) {
     return { id, mass: { value: mass, unit: 'kg' as const }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } };
@@ -20,18 +20,15 @@ function makeProblem(
     };
 }
 
-describe('F8: HallEffectModel', () => {
-    const model = new HallEffectModel();
+describe('F13: SecurityAlarmModel', () => {
+    const model = new SecurityAlarmModel();
     it('metadata ok', () => {
-        expect(model.modelType).toBe('hall-effect');
+        expect(model.modelType).toBe('security-alarm');
     });
-    it('chart ok', () => {
+    it('result ok', () => {
         const r = model.solve(
-            makeProblem('hall-effect', {
-                hallEffect: { current: 0.1, magneticField: 0.5, chargeDensity: 1e22, thickness: 1e-3 }
-            })
+            makeProblem('security-alarm', { securityAlarm: { doorState: 'open', magnetDistance: 50 } })
         );
-        expect(r.charts.x_t).toBeDefined();
-        expect(r.charts.y_t).toBeDefined();
+        expect(r.explanation.summary).toBeTruthy();
     });
 });

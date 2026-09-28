@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { PhysicsProblem } from '../../src/types/problem.js';
-import { HallEffectModel } from '../../src/models/hall-effect.js';
+import { SelfInductanceModel } from '../../src/models/self-inductance.js';
 
 function makeBody(id = 'b1', mass = 1) {
     return { id, mass: { value: mass, unit: 'kg' as const }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } };
@@ -20,18 +20,18 @@ function makeProblem(
     };
 }
 
-describe('F8: HallEffectModel', () => {
-    const model = new HallEffectModel();
+describe('F5: SelfInductanceModel', () => {
+    const model = new SelfInductanceModel();
     it('metadata ok', () => {
-        expect(model.modelType).toBe('hall-effect');
+        expect(model.modelType).toBe('self-inductance');
     });
     it('chart ok', () => {
         const r = model.solve(
-            makeProblem('hall-effect', {
-                hallEffect: { current: 0.1, magneticField: 0.5, chargeDensity: 1e22, thickness: 1e-3 }
+            makeProblem('self-inductance', {
+                selfInductance: { inductance: 0.1, resistance: 10, emf: 12, mode: 'turnOn' }
             })
         );
-        expect(r.charts.x_t).toBeDefined();
-        expect(r.charts.y_t).toBeDefined();
+        expect(r.charts.current_vs_time).toBeDefined();
+        expect(r.charts.voltage_vs_time).toBeDefined();
     });
 });

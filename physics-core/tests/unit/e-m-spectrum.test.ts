@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { PhysicsProblem } from '../../src/types/problem.js';
-import { HallEffectModel } from '../../src/models/hall-effect.js';
+import { EMSpectrumModel } from '../../src/models/em-spectrum.js';
 
 function makeBody(id = 'b1', mass = 1) {
     return { id, mass: { value: mass, unit: 'kg' as const }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } };
@@ -20,18 +20,13 @@ function makeProblem(
     };
 }
 
-describe('F8: HallEffectModel', () => {
-    const model = new HallEffectModel();
+describe('F7: EMSpectrumModel', () => {
+    const model = new EMSpectrumModel();
     it('metadata ok', () => {
-        expect(model.modelType).toBe('hall-effect');
+        expect(model.modelType).toBe('em-spectrum');
     });
-    it('chart ok', () => {
-        const r = model.solve(
-            makeProblem('hall-effect', {
-                hallEffect: { current: 0.1, magneticField: 0.5, chargeDensity: 1e22, thickness: 1e-3 }
-            })
-        );
-        expect(r.charts.x_t).toBeDefined();
-        expect(r.charts.y_t).toBeDefined();
+    it('spectrum chart', () => {
+        const r = model.solve(makeProblem('em-spectrum', { emSpectrum: { freqMin: 1, freqMax: 1e20 } }));
+        expect(r.charts.spectrum_curve).toBeDefined();
     });
 });

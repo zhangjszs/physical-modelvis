@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { PhysicsProblem } from '../../src/types/problem.js';
-import { HallEffectModel } from '../../src/models/hall-effect.js';
+import { EddyCurrentModel } from '../../src/models/eddy-current.js';
 
 function makeBody(id = 'b1', mass = 1) {
     return { id, mass: { value: mass, unit: 'kg' as const }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } };
@@ -20,18 +20,17 @@ function makeProblem(
     };
 }
 
-describe('F8: HallEffectModel', () => {
-    const model = new HallEffectModel();
+describe('F2: EddyCurrentModel', () => {
+    const model = new EddyCurrentModel();
     it('metadata ok', () => {
-        expect(model.modelType).toBe('hall-effect');
+        expect(model.modelType).toBe('eddy-current');
     });
-    it('chart ok', () => {
+    it('generate result', () => {
         const r = model.solve(
-            makeProblem('hall-effect', {
-                hallEffect: { current: 0.1, magneticField: 0.5, chargeDensity: 1e22, thickness: 1e-3 }
+            makeProblem('eddy-current', {
+                eddyCurrent: { magneticField: 1.0, frequency: 50, conductivity: 1e6, thickness: 0.001 }
             })
         );
-        expect(r.charts.x_t).toBeDefined();
-        expect(r.charts.y_t).toBeDefined();
+        expect(r.meta.model).toBe('eddy-current');
     });
 });

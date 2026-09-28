@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { PhysicsProblem } from '../../src/types/problem.js';
-import { HallEffectModel } from '../../src/models/hall-effect.js';
+import { CurrentBalanceModel } from '../../src/models/current-balance.js';
 
 function makeBody(id = 'b1', mass = 1) {
     return { id, mass: { value: mass, unit: 'kg' as const }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } };
@@ -20,18 +20,26 @@ function makeProblem(
     };
 }
 
-describe('F8: HallEffectModel', () => {
-    const model = new HallEffectModel();
+describe('F1: CurrentBalanceModel', () => {
+    const model = new CurrentBalanceModel();
     it('metadata ok', () => {
-        expect(model.modelType).toBe('hall-effect');
+        expect(model.modelType).toBe('current-balance');
     });
-    it('chart ok', () => {
+    it('equilibrium chart', () => {
         const r = model.solve(
-            makeProblem('hall-effect', {
-                hallEffect: { current: 0.1, magneticField: 0.5, chargeDensity: 1e22, thickness: 1e-3 }
+            makeProblem('current-balance', {
+                currentBalance: {
+                    wireLen: 0.05,
+                    turns: 100,
+                    mass: 0.01,
+                    current: 1,
+                    magneticField: 0.2,
+                    armLen: 0.1,
+                    gravity: 9.8
+                }
             })
         );
-        expect(r.charts.x_t).toBeDefined();
-        expect(r.charts.y_t).toBeDefined();
+        expect(r.charts.tilt_angle_vs_current).toBeDefined();
+        expect(r.charts.mg_vs_t).toBeDefined();
     });
 });
