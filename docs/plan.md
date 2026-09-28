@@ -86,7 +86,7 @@ A 类剩余 11 场景评估: 4 需迁移 (light-control-switch / moon-earth-test
 ## 阶段 D:3D 相关工作(按 3D_VERIFICATION_HANDOFF.md,接手者先读该文档) — ✅ 全部完成 (2026-08-02)
 
 ### D1. 前置:提交验证脚本 — ✅ (commit 44345b2)
-- `scripts/verify-3d-scene-switching.js` 已入库
+- `scripts/verify-3d-smoke.cjs` 已入库 (14 场景 × 2 轮切换冒烟, 替代早期单切脚本)
 
 ### D2. 任务 1:修复 CRASH 场景 ⭐ — ✅
 - **实测范围扩大**:Playwright 全量 123 场景发现 **43 个 ERROR**(非交接文档预估的 3 个 CRASH),

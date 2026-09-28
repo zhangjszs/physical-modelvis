@@ -4,21 +4,21 @@
 
 ## 架构
 
-自检循环分 9 层 (L0-L6 + L8 + L9; 无 L7), 顺序执行, 每层依赖前一层通过:
+自检循环分 10 层 (L0-L6 + L8-L10; 无 L7), 顺序执行, 每层依赖前一层通过:
 
 ```
-L0 物理常数 → L1 模型验证 → L2 SceneConfig 契约 → L3 渲染器公式 → L4 FormulaPanel 漂移 → L5 路由完整性 → L6 参数范围 → L8 Boris 数值积分 → L9 跨场景数值鲁棒性
+L0 物理常数 → L1 模型验证 → L2 SceneConfig 契约 → L3 渲染器公式 → L4 FormulaPanel 漂移 → L5 路由完整性 → L6 参数范围 → L8 Boris 数值积分 → L9 跨场景数值鲁棒性 → L10 人类可读输出 NaN 扫描
 ```
 
 每层一个独立 commit, 独立运行, 独立门禁。
 
-> 层数以 `scripts/self-check.mjs` 的 `LAYERS` 数组为单一真源(当前 9 层)。
+> 层数以 `scripts/self-check.mjs` 的 `LAYERS` 数组为单一真源(当前 10 层)。
 > L7 编号为 CLI 自身的历史遗留, 已跳过。
 
 ## 运行
 
 ```bash
-# 顺序运行全部 9 层
+# 顺序运行全部 10 层
 npm run self-check
 
 # 可视化输出 (默认表格)
@@ -95,6 +95,24 @@ cd visualization && npm test -- tests/accuracy/renderers.test.ts
 - `step ≥ 0`
 - `description.length > 0`
 - 物理量白名单: `g ∈ (0, 100)`, `T0/K ≥ 0`, `duration ≥ 0`
+
+### L8 Boris 数值积分 — `physics-core/tests/accuracy/boris-correctness.test.ts`
+
+电磁复合场 Boris 积分器正确性 + 收敛性验证。
+
+### L9 跨场景数值鲁棒性 — `visualization/tests/accuracy/physics-correctness.<domain>.test.ts`
+
+遍历全部场景 (默认参数 + 滑块 min/max), 断言:
+- `solveProblem` 无 error (或模型拒绝极端输入)
+- 轨迹每点 t/position/velocity 全部有限
+- charts 每个点 x/y 有限 (折线断开标记 `{NaN, NaN}` 允许)
+
+### L10 人类可读输出 NaN 扫描 — `visualization/tests/accuracy/physics-correctness.l10.test.ts`
+
+遍历全部场景 (默认参数 + 滑块 min/max), 用 `findNonFinite` 递归扫描:
+- number NaN/Infinity → 记录路径
+- 字符串级 `NaN`/`Infinity` (被 `toFixed()`/模板字符串包成文本) → 记录路径
+- charts 中的 `{NaN, NaN}` 折线断开标记 → 豁免 (doppler 超声速激波区合法产生)
 
 ## 报告
 

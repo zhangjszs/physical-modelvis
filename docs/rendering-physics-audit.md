@@ -355,7 +355,7 @@ Playwright 实测 123 场景发现 **43 个场景**报 `updateEquipment failed: 
    tests/ocr/ocrUtils.test.ts(10 例,场景解析/参数映射/题型标签);
    冒烟 scripts/verify-ocr-mount.cjs(入口存在→打开→状态显示→关闭,零错误;
    favicon 404 与 3001 未启动噪音按预期过滤)。
-6. 测试数:core 923 / viz 567 / total 1490。
+6. 测试数:core 1039 / viz 1207 / total 2246 (2026-09-28 实测, 以 README 顶部 `<!-- test-count -->` 标记为单一真源)。
 
 ## 阶段 E-5:实验导学 (2026-08-02)
 
