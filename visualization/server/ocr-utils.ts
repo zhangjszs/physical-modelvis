@@ -5,6 +5,7 @@
  *   1. stripJsonFence: 剥离 AI 输出常见的 ```json ... ``` 围栏
  *   2. normalizeRecognizeResult: 将 AI 返回的 JSON 归一化为统一的
  *      { problems: RecognizedProblem[] } 结构 (支持多题 / 单题对象 / 数组三种形态)
+ *   3. resolveModel: 模型标识白名单判定 (出站请求侧约束)
  */
 export type OcrProblemType = 'single-choice' | 'multiple-choice' | 'fill-blank' | 'essay';
 
@@ -99,4 +100,20 @@ export function normalizeRecognizeResult(parsed: unknown): RecognizeResponse {
         .map((p, i) => ({ ...p, index: i + 1 }));
 
     return { problems };
+}
+
+/**
+ * 模型标识白名单判定 — 出站请求侧约束 (#26)
+ *
+ * 调用方传入的 model 只有在白名单内才透传上游, 否则回落到服务端默认模型。
+ * 防止前端任意指定模型标识 (成本/口径不可控)。
+ *
+ * @param requested  调用方请求的模型标识 (undefined/空串 = 未指定)
+ * @param allowList  服务端配置的允许列表
+ * @param fallback   回落用的默认模型
+ * @returns 实际应使用的模型标识
+ */
+export function resolveModel(requested: string | undefined, allowList: string[], fallback: string): string {
+    if (requested && allowList.includes(requested)) return requested;
+    return fallback;
 }

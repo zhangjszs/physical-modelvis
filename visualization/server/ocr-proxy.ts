@@ -1,6 +1,6 @@
 import express, { type Request, type Response, type NextFunction } from 'express';
 import cors from 'cors';
-import { stripJsonFence, normalizeRecognizeResult } from './ocr-utils';
+import { stripJsonFence, normalizeRecognizeResult, resolveModel } from './ocr-utils';
 
 const app = express();
 const PORT = Number(process.env.OCR_PROXY_PORT ?? 3001);
@@ -10,6 +10,17 @@ const ANTHROPIC_BASE_URL = process.env.ANTHROPIC_BASE_URL ?? 'https://api.anthro
 const ANTHROPIC_AUTH_TOKEN = process.env.ANTHROPIC_AUTH_TOKEN ?? process.env.ANTHROPIC_API_KEY;
 const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-6';
 
+// 上游请求超时 (ms) — 防止慢请求挂起 Express handler (#26)
+const OCR_PROXY_TIMEOUT_MS = Number(process.env.OCR_PROXY_TIMEOUT_MS ?? 60000);
+
+// 模型白名单: 仅允许列表内的模型标识透传上游 (#26)
+// 默认仅 ANTHROPIC_MODEL 本身; 可用逗号分隔配置多个
+const OCR_PROXY_ALLOWED_MODELS = (process.env.OCR_PROXY_ALLOWED_MODELS ?? '')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+const ALLOWED_MODELS = OCR_PROXY_ALLOWED_MODELS.length > 0 ? OCR_PROXY_ALLOWED_MODELS : [ANTHROPIC_MODEL];
+
 if (!ANTHROPIC_AUTH_TOKEN) {
     console.error('错误: 未设置 ANTHROPIC_AUTH_TOKEN 或 ANTHROPIC_API_KEY 环境变量');
     process.exit(1);
@@ -17,6 +28,8 @@ if (!ANTHROPIC_AUTH_TOKEN) {
 
 console.log(`使用 API: ${ANTHROPIC_BASE_URL}`);
 console.log(`使用模型: ${ANTHROPIC_MODEL}`);
+console.log(`模型白名单: ${ALLOWED_MODELS.join(', ')}`);
+console.log(`上游超时: ${OCR_PROXY_TIMEOUT_MS}ms`);
 
 // --- Rate limiting (in-memory, 10 req/min per IP) ---
 const hits = new Map<string, number[]>();
@@ -85,6 +98,7 @@ app.post('/api/ocr/recognize', async (req: Request, res: Response) => {
         // Anthropic Messages API 格式
         const base64Data = image.replace(/^data:image\/\w+;base64,/, '');
         const mediaType = image.match(/data:(image\/\w+);/)?.[1] ?? 'image/png';
+        const resolvedModel = resolveModel(model, ALLOWED_MODELS, ANTHROPIC_MODEL);
 
         const upstream = await fetch(`${ANTHROPIC_BASE_URL}/v1/messages`, {
             method: 'POST',
@@ -93,8 +107,9 @@ app.post('/api/ocr/recognize', async (req: Request, res: Response) => {
                 'x-api-key': ANTHROPIC_AUTH_TOKEN!,
                 'anthropic-version': '2023-06-01'
             },
+            signal: AbortSignal.timeout(OCR_PROXY_TIMEOUT_MS),
             body: JSON.stringify({
-                model: model ?? ANTHROPIC_MODEL,
+                model: resolvedModel,
                 max_tokens: 3000,
                 system: `你是高中物理题目识别助手。识别图片中的物理题目，图片中可能包含一道或多道题，严格返回 JSON：
 {"problems":[{"index":1,"type":"single-choice|multiple-choice|fill-blank|essay","title":"题目标题","description":"题目描述","source":"来源","given":{"参数":"值"},"options":[{"letter":"A","text":"选项文本"}],"answer":{"correct":["正确选项"],"explanation":"解题思路"},"sceneTemplate":"projectile|electric-field|magnetic-field|null","formulas":["公式"]}]}
@@ -164,6 +179,11 @@ app.post('/api/ocr/recognize', async (req: Request, res: Response) => {
             res.status(502).json({ error: 'AI 返回内容无法解析为 JSON' });
         }
     } catch (err) {
+        // 超时/网络错误 → 504 (区别于上游 API 错误的 502) (#26)
+        if (err instanceof Error && err.name === 'TimeoutError') {
+            res.status(504).json({ error: '上游 API 请求超时，请稍后重试' });
+            return;
+        }
         console.error('OCR 代理错误:', err);
         res.status(500).json({ error: '服务器内部错误' });
     }
