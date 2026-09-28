@@ -4,7 +4,7 @@
  * 覆盖: number NaN / 字符串 "NaN" / {NaN,NaN} 断点豁免 / 深层嵌套路径 / 正常结构返回空
  */
 import { describe, it, expect } from 'vitest';
-import { findNonFinite, findNonBreakMarkerNaNs } from '../../../scripts/lib/find-non-finite.mjs';
+import { findNonFinite, findNonBreakMarkerNaNs } from '../../../scripts/lib/find-non-finite';
 
 describe('findNonFinite', () => {
     it('positive: 正常结构返回空数组', () => {

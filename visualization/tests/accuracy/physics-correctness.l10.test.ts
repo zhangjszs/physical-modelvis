@@ -11,7 +11,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { getScenesSync, loadAllScenes } from '../../src/scenes/sceneRegistry';
 import { runSceneSimulation } from '../../src/adapters/physicsCoreAdapter';
 import type { SceneConfig, SceneParameter } from '../../src/types/visualization';
-import { findNonFinite, findNonBreakMarkerNaNs } from '../../../scripts/lib/find-non-finite.mjs';
+import { findNonFinite, findNonBreakMarkerNaNs } from '../../../scripts/lib/find-non-finite';
 
 function defaultParams(scene: SceneConfig): Record<string, number> {
     const p: Record<string, number> = {};

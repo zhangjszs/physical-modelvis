@@ -13,6 +13,9 @@ import { num } from './params';
 const WORLD_SCALE = 0.16;
 const BALL_RADIUS = 0.22;
 
+// 模块级 scratch vector，避免每帧分配新对象 (#16)
+const _scratchVec3 = new THREE.Vector3();
+
 interface ProjectileHandles {
     launcher: ReturnType<typeof createLauncher>['handles'];
     rangeTape: THREE.Group;
@@ -128,7 +131,7 @@ export const projectileRig: SceneRig = {
             visualY = BALL_RADIUS;
         }
 
-        return new THREE.Vector3(visualX, visualY, 0);
+        return _scratchVec3.set(visualX, visualY, 0);
     },
 
     getOrigin(params) {

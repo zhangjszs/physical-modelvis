@@ -23,7 +23,7 @@ import { RefractionModel } from '../../src/models/refraction.js';
 import { PhysicsError } from '../../src/errors/index.js';
 import type { PhysicsProblem } from '../../src/types/problem.js';
 // 共享工具 (#28): 递归扫描非有限数值与字符串级 NaN/Infinity
-import { findNonFinite, findNonBreakMarkerNaNs } from '../../../scripts/lib/find-non-finite.mjs';
+import { findNonFinite, findNonBreakMarkerNaNs } from '../../../scripts/lib/find-non-finite';
 
 function makeProblem(model: PhysicsProblem['model'], constraints: Record<string, unknown>): PhysicsProblem {
     return {

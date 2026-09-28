@@ -2020,18 +2020,21 @@ export function SimulationCanvas() {
 
             renderRef.current();
             // FPS 叠层（右上角，逻辑像素坐标，叠加在已按 dpr 缩放的 ctx 上）
-            const fpsCanvas = canvasRef.current;
-            if (fpsCanvas) {
-                const fctx = fpsCanvas.getContext('2d');
-                if (fctx) {
-                    const { w } = logicalSizeRef.current;
-                    fctx.save();
-                    fctx.font = '11px monospace';
-                    fctx.textAlign = 'right';
-                    fctx.textBaseline = 'top';
-                    fctx.fillStyle = isDarkRef.current ? 'rgba(148,163,184,0.85)' : 'rgba(71,85,105,0.85)';
-                    fctx.fillText(`${Math.round(fpsRef.current)} FPS`, w - 10, 8);
-                    fctx.restore();
+            // 仅 dev 模式绘制，生产环境跳过逐帧文本绘制 (#16)
+            if (import.meta.env.DEV) {
+                const fpsCanvas = canvasRef.current;
+                if (fpsCanvas) {
+                    const fctx = fpsCanvas.getContext('2d');
+                    if (fctx) {
+                        const { w } = logicalSizeRef.current;
+                        fctx.save();
+                        fctx.font = '11px monospace';
+                        fctx.textAlign = 'right';
+                        fctx.textBaseline = 'top';
+                        fctx.fillStyle = isDarkRef.current ? 'rgba(148,163,184,0.85)' : 'rgba(71,85,105,0.85)';
+                        fctx.fillText(`${Math.round(fpsRef.current)} FPS`, w - 10, 8);
+                        fctx.restore();
+                    }
                 }
             }
             animFrameRef.current = requestAnimationFrame(loop);

@@ -1,6 +1,5 @@
 import { lazy, Suspense } from 'react';
 import { ErrorBoundary } from '../common/ErrorBoundary';
-import { SimulationCanvas } from '../simulation/SimulationCanvas';
 import { useSceneRig } from './useSceneRig';
 import { useSimulationStore } from '../../store/simulationStore';
 import { MeasurementToolbox } from '../tools/MeasurementToolbox';
@@ -8,6 +7,11 @@ import { MeasurementToolbox } from '../tools/MeasurementToolbox';
 // EquipmentStage 自带完整的 Three.js (≈450 kB gzip)，用 lazy 隔离出首屏 bundle
 const LazyEquipmentStage = lazy(() =>
     import('../simulation3d/EquipmentStage').then(m => ({ default: m.EquipmentStage }))
+);
+
+// SimulationCanvas 2D 渲染链同样 lazy，与 3D 路径对称 (#16)
+const LazySimulationCanvas = lazy(() =>
+    import('../simulation/SimulationCanvas').then(m => ({ default: m.SimulationCanvas }))
 );
 
 interface SceneStageProps {
@@ -26,12 +30,19 @@ export function SceneStage({ renderMode = '3d' }: SceneStageProps) {
                 <ErrorBoundary
                     label="3D 实验舞台"
                     fallback={
-                        <>
-                            <SimulationCanvas />
+                        <Suspense
+                            fallback={
+                                <div className="equipment-loading">
+                                    <div className="loading-spinner" />
+                                    <span>加载 2D 仿真画面…</span>
+                                </div>
+                            }
+                        >
+                            <LazySimulationCanvas />
                             <div className="equipment-error" role="alert">
                                 ⚠ 该实验 3D 渲染出错，已回退到 2D 画面
                             </div>
-                        </>
+                        </Suspense>
                     }
                 >
                     {show3D ? (
@@ -53,7 +64,16 @@ export function SceneStage({ renderMode = '3d' }: SceneStageProps) {
                             </div>
                         )
                     ) : (
-                        <SimulationCanvas />
+                        <Suspense
+                            fallback={
+                                <div className="equipment-loading">
+                                    <div className="loading-spinner" />
+                                    <span>加载 2D 仿真画面…</span>
+                                </div>
+                            }
+                        >
+                            <LazySimulationCanvas />
+                        </Suspense>
                     )}
                 </ErrorBoundary>
 
