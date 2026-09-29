@@ -6,7 +6,34 @@ import type { ParameterSpec } from '../types/common.js';
 /**
  * α 粒子散射模型 — 选必三 第五章 (卢瑟福散射)
  * b = (q1*q2)/(4*pi*eps0*m*v^2) * cot(theta/2)
+ *
+ * 瞄准距离 b 采样使用确定性伪随机 (种子由输入参数导出):
+ * 同输入必同输出, 保证 Vitest 可重现与教学演示一致性 (#36)。
+ * 全仓曾唯一使用 Math.random 的模型, 现已收敛到确定性随机源。
  */
+
+/** FNV-1a 字符串哈希 → uint32 种子 */
+function hashSeed(...nums: number[]): number {
+    const s = nums.join('|');
+    let h = 2166136261 >>> 0;
+    for (let i = 0; i < s.length; i++) {
+        h ^= s.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+    }
+    return h >>> 0;
+}
+
+/** mulberry32 确定性伪随机, 输出 [0, 1) 均匀分布 */
+function mulberry32(seed: number): () => number {
+    let a = seed >>> 0;
+    return () => {
+        a |= 0;
+        a = (a + 0x6d2b79f5) | 0;
+        let t = Math.imul(a ^ (a >>> 15), 1 | a);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+}
 export class AlphaScatteringModel extends PhysicsModelBase {
     readonly name = 'α 粒子散射';
     readonly version = '1.0.0';
@@ -30,6 +57,8 @@ export class AlphaScatteringModel extends PhysicsModelBase {
         const k = (2 * Z * eSq) / (E_MeV * 5.0); // 碰撞参数常数 (fm)
         const n = c.nParticles ?? 100;
         const bMax = c.impactParamMax ?? 50;
+        // 确定性采样: 同 (E, Z, n, bMax) 必同序列 (#36)
+        const rand = mulberry32(hashSeed(E_MeV, Z, n, bMax));
 
         const thetaDist: ChartSeries = {
             xLabel: '散射角 (度)',
@@ -43,7 +72,7 @@ export class AlphaScatteringModel extends PhysicsModelBase {
         const trajectories: TrajectoryPoint[][] = [];
 
         for (let i = 0; i < n; i++) {
-            const b = Math.random() * bMax;
+            const b = rand() * bMax;
             const theta = 2 * Math.atan2(k, b + 1e-6);
             const thetaDeg = (theta * 180) / Math.PI;
             const bin = Math.min(17, Math.floor(thetaDeg / 10));
