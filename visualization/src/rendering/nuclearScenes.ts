@@ -35,6 +35,20 @@ export interface NuclearSceneOptions {
 // ========== 共享工具函数 (基础绘制已迁移至 renderingUtils) ==========
 
 /**
+ * 从引擎读 α 散射碰撞参数 k (fm)。
+ *
+ * 引擎 alpha-scattering 模型 maxValues.k 为真源 (k=2·Z·e²/(E·5.0));
+ * 无引擎结果或数值非法时返回 null, 由调用方回退本地公式。
+ *
+ * 单一真源契约 (#20) 由 single-source-contract.test.ts 锁定。
+ */
+export function readEngineAlphaK(result: SimulationResult | null): number | null {
+    const v = (result?.diagnostics?.maxValues as { k?: number } | undefined)?.k;
+    if (typeof v === 'number' && Number.isFinite(v) && v > 0) return v;
+    return null;
+}
+
+/**
  * 渲染脉冲/闪烁发光圆, 用于标注激活的核/裂变的 U-235 / 放射线. alpha 在 [0, 1].
  */
 function drawGlowCircle(
@@ -102,7 +116,11 @@ export function drawAlphaScatteringScene(o: NuclearSceneOptions): void {
     const E_MeV = params['alphaEnergy'] ?? 5;
     const Z = params['targetZ'] ?? 79;
     const eSq = 1.44; // MeV·fm
-    const kCoeff = (2 * Z * eSq) / (E_MeV * 5.0); // fm
+    /**
+     * 碰撞参数 k: 优先读引擎 maxValues.k, 无引擎结果回退本地公式
+     * (与引擎同式 k=2·Z·e²/(E·5.0), 见 alpha-scattering.ts)。
+     */
+    const kCoeff = readEngineAlphaK(simulationResult) ?? (2 * Z * eSq) / (E_MeV * 5.0); // fm
 
     // 靶核位置 (画面中央偏左 0.45 处)
     const nucleusX = w * 0.45;
@@ -115,6 +133,14 @@ export function drawAlphaScatteringScene(o: NuclearSceneOptions): void {
     const trackColors = ['#4ade80', '#60a5fa', '#a78bfa', '#fb923c', '#f472b6'];
 
     // --- 脉冲靶核发光 ---
+    /**
+     * 靶核脉冲/α 入射进度/大角度闪烁: 纯装饰动画, 豁免单一真源 (见 #20)。
+     *
+     * 引擎 alpha-scattering 输出为散射角直方图 (charts.x_t) + 5 条示例轨迹,
+     * 无"当前入射 α 粒子随时间位置"输出; pulse/alphaProgress/blink 仅为
+     * 靶核存在感与入射示意的视觉脉冲, 与引擎公式无耦合。
+     * 定量部分 (右下角计数器/散射角 θ=2·arctan(k/b)) 中 k 已读引擎。
+     */
     const pulse = 0.7 + 0.3 * Math.sin(currentTime * 2.2);
     drawGlowCircle(ctx, nucleusX, nucleusY, nucleusR, '#ef4444', pulse);
 
@@ -463,6 +489,10 @@ export function drawDecayStatisticsScene(o: NuclearSceneOptions): void {
     ctx.textAlign = 'left';
 
     // --- 底部: 计数动画---
+    /**
+     * 采样进度条/闪烁点: 纯装饰动画, 豁免单一真源 (见 #20)。
+     * 直方图与高斯拟合已读引擎 charts.x_t/y_t; 进度仅为蒙特卡洛采样示意。
+     */
     const animY = chartY + chartH + chartPad + 20;
     const animH = h - animY - 40;
     if (animH > 30) {
@@ -634,6 +664,13 @@ export function drawFissionChainScene(o: NuclearSceneOptions): void {
     }
 
     // 绘制第 0 代 U235
+    /**
+     * 裂变树激活相位/发光脉冲: 纯装饰动画, 豁免单一真源 (见 #20)。
+     *
+     * 引擎 fission-chain 输出每代中子数 (charts.x_t) + 累计裂变 (charts.y_t),
+     * 无逐节点屏幕坐标输出; activationPhase 仅为级联点亮的视觉时序,
+     * 每代中子数 N_g 已读引擎 (neuPerGen), 无结果回退 k^g。
+     */
     const activationPhase = (currentTime * 0.6) % (genMax + 2);
     drawU235(firstUX, firstUY, activationPhase < 1);
 

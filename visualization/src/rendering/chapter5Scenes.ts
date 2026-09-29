@@ -635,6 +635,11 @@ export function drawVerticalCircleScene(opts: MechanicsSceneOptions): void {
     // 物体位置: 优先用引擎轨迹 (机械能守恒 v²=v₀²−2gr(1−cosθ), 非匀速)
     // 引擎圆心在 (0,r), θ=0 为最低点; 映射到屏幕圆 (cx,cy)
     const frame = getFrame(simulationResult, currentTime);
+    /**
+     * 回退角 angle=ω·t (匀速) 仅在无引擎结果时使用, 豁免单一真源 (见 #20)。
+     * 有引擎时位置/速度均取 frame (非匀速, 能量守恒); 回退为教学占位,
+     * 与引擎变速轨迹不等价已有 HUD 速度 (frame.velocity) 作区分。
+     */
     const angle = -Math.PI / 2 + omega * currentTime;
     let x: number;
     let y: number;

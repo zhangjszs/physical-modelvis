@@ -22,6 +22,8 @@ import { getSceneSync, loadAllScenes } from '../../src/scenes/sceneRegistry';
 import { runSceneSimulation } from '../../src/adapters/physicsCoreAdapter';
 import { getFrame } from '../../src/rendering/renderingUtils';
 import { readEngineOrbitRadii, readEngineBohrLevels } from '../../src/rendering/atomicModelScenes';
+import { readEngineDiffusionCoeff, readEngineBrownianCoeff } from '../../src/rendering/molecularKineticScenes';
+import { readEngineAlphaK } from '../../src/rendering/nuclearScenes';
 
 /** 取渲染源码中某导出函数的完整函数体 (到下一个 export function 为止) — 源码契约断言用 */
 function renderFn(file: string, fnName: string): string {
@@ -872,5 +874,135 @@ describe('L1-migration: 渲染单一真源契约 (后续迁移场景)', () => {
         expect(sceneFn, '无引擎结果回退里德伯公式').toContain('Rydberg');
         const orbitFn = renderFn('atomicModelScenes.ts', 'drawBohrOrbitScene');
         expect(orbitFn, '跃迁 ΔE 取引擎能级差').toContain('readEngineBohrLevels(simulationResult)');
+    });
+});
+
+describe('L1-migration: 渲染单一真源契约 (#20 收尾: 核/热/竖直圆/EM)', () => {
+    beforeAll(async () => {
+        await loadAllScenes();
+    });
+
+    function scene(id: string) {
+        const s = getSceneSync(id);
+        expect(s, `场景 ${id} 已注册`).toBeDefined();
+        return s!;
+    }
+
+    it('diffusion: 引擎 D=1e-5·(T/300)^1.5 与独立复算一致 (渲染 D 数值的数据基础)', () => {
+        const sc = scene('diffusion');
+        const { result, error } = runSceneSimulation(sc, {
+            temperature: 300,
+            medium: 0,
+            particleCount: 500,
+            duration: 3
+        });
+        expect(error).toBeNull();
+        const mv = result!.diagnostics.maxValues as Record<string, number>;
+        // 独立复算: 气体 D₀=1e-5, T=300 → D=1e-5
+        expect(mv.diffusionCoeff).toBeCloseTo(1e-5, 12);
+        // T=600 → D=1e-5·2^1.5
+        const hot = runSceneSimulation(sc, { temperature: 600, medium: 0, particleCount: 500, duration: 3 });
+        expect(hot.error).toBeNull();
+        const mvHot = hot.result!.diagnostics.maxValues as Record<string, number>;
+        expect(mvHot.diffusionCoeff).toBeCloseTo(1e-5 * Math.pow(2, 1.5), 10);
+    });
+
+    it('diffusion: D 读取消耗引擎表, 空结果回退不崩 (渲染消费端)', () => {
+        const sc = scene('diffusion');
+        const { result } = runSceneSimulation(sc, {
+            temperature: 300,
+            medium: 0,
+            particleCount: 500,
+            duration: 3
+        });
+        expect(readEngineDiffusionCoeff(result)).toBeCloseTo(1e-5, 12);
+        expect(readEngineDiffusionCoeff(null)).toBeNull();
+        expect(readEngineDiffusionCoeff({ charts: {} } as never)).toBeNull();
+        expect(readEngineDiffusionCoeff({ diagnostics: { maxValues: { diffusionCoeff: NaN } } } as never)).toBeNull();
+        expect(readEngineDiffusionCoeff({ diagnostics: { maxValues: { diffusionCoeff: 0 } } } as never)).toBeNull();
+    });
+
+    it('diffusion: 渲染层 D 读引擎且保留回退, 粒子位置为装饰动画豁免 (源码契约)', () => {
+        const fn = renderFn('molecularKineticScenes.ts', 'drawDiffusionScene');
+        expect(fn, 'D 读引擎').toContain('readEngineDiffusionCoeff(simulationResult)');
+        expect(fn, '无引擎结果保留回退').toContain('fallbackD');
+        expect(fn, '粒子豁免需有注释记录').toContain('豁免');
+    });
+
+    it('brownian-motion: 引擎 D=kT/(6πηr) 与独立复算一致 (渲染 D 数值的数据基础)', () => {
+        const sc = scene('brownian-motion');
+        const { result, error } = runSceneSimulation(sc, {
+            particleRadius: 1.0,
+            liquidTemp: 300,
+            fluidViscosity: 1.0,
+            nParticles: 10,
+            duration: 5
+        });
+        expect(error).toBeNull();
+        const mv = result!.diagnostics.maxValues as Record<string, number>;
+        // 独立复算: buildProblem 已换算 r=1e-6m, η=1e-3Pa·s; 引擎 kB=1.381e-23
+        const expected = (1.381e-23 * 300) / (6 * Math.PI * 1e-3 * 1e-6);
+        expect(mv.diffusionCoeff).toBeCloseTo(expected, 16);
+    });
+
+    it('brownian-motion: D 读取消耗引擎表, 空结果回退不崩 (渲染消费端)', () => {
+        const sc = scene('brownian-motion');
+        const { result } = runSceneSimulation(sc, {
+            particleRadius: 1.0,
+            liquidTemp: 300,
+            fluidViscosity: 1.0,
+            nParticles: 10,
+            duration: 5
+        });
+        expect(readEngineBrownianCoeff(result)).not.toBeNull();
+        expect(readEngineBrownianCoeff(null)).toBeNull();
+        expect(readEngineBrownianCoeff({ charts: {} } as never)).toBeNull();
+        expect(readEngineBrownianCoeff({ diagnostics: { maxValues: { diffusionCoeff: NaN } } } as never)).toBeNull();
+    });
+
+    it('brownian-motion: 渲染层 D 读引擎且保留回退, 轨迹为装饰动画豁免 (源码契约)', () => {
+        const fn = renderFn('molecularKineticScenes.ts', 'drawBrownianScene');
+        expect(fn, 'D 读引擎').toContain('readEngineBrownianCoeff(simulationResult)');
+        expect(fn, '无引擎结果保留回退').toContain('fallbackDb');
+        expect(fn, '轨迹豁免需有注释记录').toContain('豁免');
+    });
+
+    it('alpha-scattering: 引擎 k=2·Z·e²/(E·5) 与独立复算一致 (渲染散射角的数据基础)', () => {
+        const sc = scene('alpha-scattering');
+        const { result, error } = runSceneSimulation(sc, { alphaEnergy: 5, targetZ: 79, duration: 5 });
+        expect(error).toBeNull();
+        const mv = result!.diagnostics.maxValues as Record<string, number>;
+        // 独立复算: e²=1.44MeV·fm, k=2·79·1.44/(5·5)=9.1008fm
+        expect(mv.k).toBeCloseTo((2 * 79 * 1.44) / (5 * 5), 6);
+    });
+
+    it('alpha-scattering: k 读取消耗引擎表, 空结果回退不崩 (渲染消费端)', () => {
+        const sc = scene('alpha-scattering');
+        const { result } = runSceneSimulation(sc, { alphaEnergy: 5, targetZ: 79, duration: 5 });
+        expect(readEngineAlphaK(result)).toBeCloseTo((2 * 79 * 1.44) / (5 * 5), 6);
+        expect(readEngineAlphaK(null)).toBeNull();
+        expect(readEngineAlphaK({ charts: {} } as never)).toBeNull();
+        expect(readEngineAlphaK({ diagnostics: { maxValues: { k: NaN } } } as never)).toBeNull();
+    });
+
+    it('alpha-scattering: 渲染层 k 读引擎且保留回退, 脉冲/进度为装饰动画豁免 (源码契约)', () => {
+        const fn = renderFn('nuclearScenes.ts', 'drawAlphaScatteringScene');
+        expect(fn, 'k 读引擎').toContain('readEngineAlphaK(simulationResult)');
+        expect(fn, '脉冲豁免需有注释记录').toContain('豁免');
+    });
+
+    it('vertical-circle: 回退角仅无引擎时使用, 有引擎取帧 (源码契约)', () => {
+        const fn = renderFn('chapter5Scenes.ts', 'drawVerticalCircleScene');
+        expect(fn, '有引擎取帧').toContain('getFrame(simulationResult, currentTime)');
+        expect(fn, '回退豁免需有注释记录').toContain('豁免');
+    });
+
+    it('em-wave-hertz/communication: 波纹与 AM 示意为装饰动画豁免, 交变电流回退保留 (源码契约)', () => {
+        const hertzFn = renderFn('emWaveScenes.ts', 'drawEmWaveHertzScene');
+        expect(hertzFn, '波纹豁免需有注释记录').toContain('豁免');
+        const commFn = renderFn('emWaveScenes.ts', 'drawEmWaveCommunicationScene');
+        expect(commFn, 'AM 示意豁免需有注释记录').toContain('豁免');
+        const acFn = renderFn('emWaveScenes.ts', 'drawAcCurrentScene');
+        expect(acFn, '交变电流读引擎').toContain('engCharts?.x_t');
     });
 });

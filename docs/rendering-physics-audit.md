@@ -276,6 +276,36 @@ viz 测试数 1159 → 1161。
 |------|------|
 | bohr | `maxValues.R_inf`=1.097e7 / `E1_eV`=−13.6 / `baseN`=2; y_t 巴尔末 4 条谱线与里德伯公式一致 (Hα∈(650,660)nm); ΔE(3→2)≈1.89eV; 缺 n=1 时回退 null; 源码含 `readEngineBohrLevels` + `['y_t']` + `Rydberg` 回退 |
 
+## 第 8 批迁移进展 (2026-09-29): #20 剩余范围收尾 — 逐量决策
+
+#20 剩余的 4 组自算点逐一复核 (渲染源码 + 引擎输出对照), 结论 3 处数值已迁引擎 / 其余装饰动画逐行豁免。
+本批之后 #20 验收项"audit 每行有明确处置"闭环: 下表每行 = 已迁 / 豁免+理由, 无"笼统保留", 无待迁项。
+
+| #20 定位 | 场景部位 | 处置 | 备注 |
+|------|------|------|------|
+| `nuclearScenes.ts:118` 脉冲靶核发光 | 靶核 pulse | 豁免 (装饰动画): 引擎无"靶核发光强度"输出 (charts 为散射角直方图 + 示例轨迹); pulse 仅为存在感示意 | 注释记于 `drawAlphaScatteringScene` 脉冲处 |
+| `nuclearScenes.ts:136` α 入射进度 | 入射 α 位置 | 豁免 (装饰动画): 引擎无"当前入射粒子随时间位置"输出; progress 仅为入射示意 | 同上注释; 计数器已读引擎 `charts.x_t`, k 已迁引擎 (见下) |
+| `nuclearScenes.ts:210,222` 大角度闪烁 | 闪烁标注 | 豁免 (装饰动画): 与 pulse 同理, 闪烁频率无物理含义 | 同上注释覆盖 |
+| `alpha-scattering` k 系数 | 碰撞参数 k | 已迁: 读引擎 `maxValues.k`, 无结果回退 `2·Z·e²/(E·5.0)` | 实现 `readEngineAlphaK` (`nuclearScenes.ts`); 散射角公式不变 |
+| `decay-statistics` 底部进度 | 采样进度条/闪烁点 | 豁免 (装饰动画): 直方图 + 高斯拟合已读引擎 `charts.x_t/y_t`; 进度仅为蒙特卡洛采样示意 | 注释记于 `drawDecayStatisticsScene` 底部 |
+| `fission-chain` 激活相位/脉冲 | 级联点亮时序 | 豁免 (装饰动画): 引擎输出每代中子数 + 累计裂变, 无逐节点屏幕坐标; activationPhase 仅为点亮时序 | 注释记于 `drawFissionChainScene`; 每代 N_g 已读引擎, 无结果回退 k^g |
+| `molecularKineticScenes.ts:76` 扩散粒子 | D 系数 | 已迁: 读引擎 `maxValues.diffusionCoeff`, 无结果回退 `D₀·(T/300)^1.5` | 实现 `readEngineDiffusionCoeff`; 粒子 drift/jitter 豁免 (见下) |
+| `molecularKineticScenes.ts:76` 扩散粒子位置 | drift/jitter | 豁免 (装饰动画): 引擎 trajectories 为单点占位, 无逐粒子位置; 粒子仅为浓度梯度示意, 速率由引擎 D 驱动 | 注释记于 `drawDiffusionScene` 粒子处; 浓度曲线已读引擎 `charts.x_t` |
+| `molecularKineticScenes.ts:280` 布朗粒子/轨迹 | D 系数 | 已迁: 读引擎 `maxValues.diffusionCoeff` (Stokes-Einstein), 无结果回退本地公式 | 实现 `readEngineBrownianCoeff`; 轨迹示意豁免 (见下) |
+| `molecularKineticScenes.ts:280` 布朗轨迹位置 | 轨迹/小分子抖动 | 豁免 (装饰动画): 引擎 μm/s 量级随机游走经示意放大后展示 (seededRand), 非轨迹映射; 定量 x(t) 已读引擎 `charts.x_t` | 注释记于 `drawBrownianScene` 轨迹处 |
+| `chapter5Scenes.ts:638` 竖直圆回退角 | `omega*currentTime` | 已迁 (早先批次) + 回退豁免: 有引擎时位置/速度取 `getFrame` (非匀速); `angle` 仅无引擎回退 (匀速占位) | 注释记于 `drawVerticalCircleScene`; HUD 速度取 frame.velocity |
+| `emWaveScenes.ts:63,138` 交变电流回退 | 自算正弦/drawSineChart | 回退保留 (防御空结果): 有引擎时 u/u2/峰值/频率/匝比读引擎 charts/maxValues | 注释记于 `drawAcCurrentScene` 瞬时值处 |
+| `emWaveScenes` 赫兹行进波纹 | 6 波纹相位 | 豁免 (装饰动画): 引擎驻波为 t=0 包络快照, 无逐时行进波; 波纹仅为传播方向示意, f/λ/ε 已读引擎 | 注释记于 `drawEmWaveHertzScene` 波纹处 |
+| `emWaveScenes` AM 三段图 | 载波/音频/已调波 | 豁免 (装饰动画): 引擎真实高频 (MHz) 无法逐像素展示, 此处 22/2 压缩周期为原理示意 | 注释记于 `drawEmWaveCommunicationScene` |
+
+### 契约测试新增 (#20 × 6)
+
+| 场景 | 断言 |
+|------|------|
+| diffusion | D 与 `1e-5·(T/300)^1.5` 独立复算一致; `readEngineDiffusionCoeff` 非法输入回退 null; 源码含 `readEngineDiffusionCoeff(simulationResult)` + 豁免注释 |
+| brownian-motion | D 与 Stokes-Einstein 独立复算一致; 非法输入回退 null; 源码含 `readEngineBrownianCoeff(simulationResult)` + 豁免注释 |
+| alpha-scattering | k 与 `2·Z·e²/(E·5.0)` 独立复算一致; 非法输入回退 null; 源码含 `readEngineAlphaK(simulationResult)` + 豁免注释 |
+
 ## 审计副产物:模型层方向 bug 修复 (2026-08-02)
 
 覆盖审计(1c)为最后 2 个零覆盖模型补测试时,新测试抓出 1 个**真实物理 bug**:

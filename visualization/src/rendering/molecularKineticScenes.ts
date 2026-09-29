@@ -49,6 +49,35 @@ const DIFFUSION_COLOR_STEPS: string[] = (() => {
     return out;
 })();
 
+/**
+ * 从引擎读扩散系数 D (m²/s)。
+ *
+ * 引擎 diffusion 模型 maxValues.diffusionCoeff 为真源
+ * (D₀·(T/T₀)^1.5, 气体 1e-5 / 液体 1e-9 基准);
+ * 无引擎结果或数值非法时返回 null, 由调用方回退本地公式。
+ *
+ * 单一真源契约 (#20) 由 single-source-contract.test.ts 锁定。
+ */
+export function readEngineDiffusionCoeff(result: SimulationResult | null): number | null {
+    const v = (result?.diagnostics?.maxValues as { diffusionCoeff?: number } | undefined)?.diffusionCoeff;
+    if (typeof v === 'number' && Number.isFinite(v) && v > 0) return v;
+    return null;
+}
+
+/**
+ * 从引擎读布朗扩散系数 D (m²/s, Stokes-Einstein)。
+ *
+ * 引擎 brownian-motion 模型 maxValues.diffusionCoeff 为真源;
+ * 无引擎结果或数值非法时返回 null, 由调用方回退本地公式。
+ *
+ * 单一真源契约 (#20) 由 single-source-contract.test.ts 锁定。
+ */
+export function readEngineBrownianCoeff(result: SimulationResult | null): number | null {
+    const v = (result?.diagnostics?.maxValues as { diffusionCoeff?: number } | undefined)?.diffusionCoeff;
+    if (typeof v === 'number' && Number.isFinite(v) && v > 0) return v;
+    return null;
+}
+
 export function drawDiffusionScene(o: ThermalSceneOptions): void {
     const { ctx, width: w, height: h, isDark, params, simulationResult, currentTime } = o;
     clearScene(ctx, w, h, isDark);
@@ -56,7 +85,12 @@ export function drawDiffusionScene(o: ThermalSceneOptions): void {
     const T = params['temperature'] ?? 300;
     const isLiquid = (params['medium'] ?? 0) === 1;
     const N = params['particleCount'] ?? 500;
-    const D = isLiquid ? 1e-9 * Math.pow(T / 300, 1.5) : 1e-5 * Math.pow(T / 300, 1.5);
+    /**
+     * 扩散系数 D: 优先读引擎 maxValues.diffusionCoeff,
+     * 无引擎结果回退本地公式 (与引擎同式 D₀·(T/300)^1.5)。
+     */
+    const fallbackD = isLiquid ? 1e-9 * Math.pow(T / 300, 1.5) : 1e-5 * Math.pow(T / 300, 1.5);
+    const D = readEngineDiffusionCoeff(simulationResult) ?? fallbackD;
 
     drawTitle(ctx, '扩散现象 (浓度梯度)', w, isDark, { size: 18, y: 28 });
 
@@ -72,6 +106,13 @@ export function drawDiffusionScene(o: ThermalSceneOptions): void {
     ctx.fill();
 
     // 粒子 (随时间向右扩散) — 数量按区域面积自适应, 每粒子约 700px², 上限 200
+    /**
+     * 粒子位置: 纯装饰示意动画, 豁免单一真源 (见 #20)。
+     *
+     * 引擎 diffusion 模型 trajectories 为单点占位, 无逐粒子位置输出
+     * (浓度分布 charts.x_t 为高斯 C(x), MSD 曲线 charts.y_t);
+     * 粒子 drift/jitter 仅为浓度梯度的视觉示意, 扩散速率由上方引擎 D 驱动。
+     */
     const visibleN = Math.min(200, N, Math.max(24, Math.round((partW * partH) / 700)));
     const spreadT = Math.max(0.1, currentTime);
     const spreadSigma = Math.sqrt(2 * D * spreadT) * 1e6; // μm
@@ -195,8 +236,13 @@ export function drawBrownianScene(o: ThermalSceneOptions): void {
     const T = params['liquidTemp'] ?? 300;
     const eta = params['fluidViscosity'] ?? 1.0;
     const nParts = params['nParticles'] ?? 10;
-    const kB = 1.38e-23;
-    const D = (kB * T) / (6 * Math.PI * eta * 1e-3 * rUm * 1e-6);
+    const kB = 1.381e-23; // 与引擎 brownian-motion.ts 同值 (Stokes-Einstein), 回退公式零漂移
+    /**
+     * 扩散系数 D: 优先读引擎 maxValues.diffusionCoeff (Stokes-Einstein),
+     * 无引擎结果回退本地公式 (kB·T/(6πηr), η/r 单位换算与 buildProblem 一致)。
+     */
+    const fallbackDb = (kB * T) / (6 * Math.PI * eta * 1e-3 * rUm * 1e-6);
+    const D = readEngineBrownianCoeff(simulationResult) ?? fallbackDb;
 
     drawTitle(ctx, '布朗运动 (微粒抖动)', w, isDark, { size: 18, y: 28 });
 
@@ -215,6 +261,15 @@ export function drawBrownianScene(o: ThermalSceneOptions): void {
     const cy = partY0 + partH / 2;
 
     // 大颗粒轨迹 (最近 80 个位置) — 分档合并 stroke, 避免每段一次 beginPath/stroke
+    /**
+     * 布朗轨迹/小分子位置: 纯装饰示意动画, 豁免单一真源 (见 #20)。
+     *
+     * 引擎 brownian-motion 虽有逐粒子 trajectories + x(t) charts,
+     * 但其随机游走尺度为 μm 量级、时长为秒级物理过程,
+     * 画布粒子为教学可见性做了位置/速率的示意放大
+     * (seededRand 伪随机抖动, 非引擎轨迹映射);
+     * 定量曲线 (底部 x(t)) 已读引擎 charts.x_t, D 数值已读引擎。
+     */
     const trailLen = 80;
     const trail: Array<{ x: number; y: number }> = [];
     for (let i = trailLen; i >= 0; i--) {

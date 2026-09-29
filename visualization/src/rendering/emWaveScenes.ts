@@ -60,6 +60,10 @@ export function drawAcCurrentScene(opts: ElectromagnetismSceneOptions): void {
     const Tms = 1000 / fEng;
     const tMs = (((currentTime * 1000) % (2 * Tms)) + 2 * Tms) % (2 * Tms);
     // 瞬时值 (ms 插值; 回退自算正弦)
+    /**
+     * 回退自算正弦仅在无引擎结果时使用 (防御空结果, 见单一真源约定);
+     * 有引擎时 u/u2/峰值/频率/匝比均读引擎 charts/maxValues。
+     */
     const u = engCharts?.x_t ? interpSeries(engCharts.x_t, tMs) : em * Math.sin(currentTime * freq * Math.PI * 2);
     const u2 = engCharts?.y_t ? interpSeries(engCharts.y_t, tMs) : u * nRatio;
     const emPeak = engMax?.peakEmf ?? em;
@@ -217,6 +221,14 @@ export function drawEmWaveHertzScene(opts: ElectromagnetismSceneOptions): void {
     ctx.stroke();
     drawText(ctx, `N=${turns}`, recvX - 14, midY + 44, isDark, 12, mutedColor(isDark));
     // 传播的正弦电磁波（行进波）
+    /**
+     * 行进波纹: 纯装饰示意动画, 豁免单一真源 (见 #20)。
+     *
+     * 引擎 em-wave-hertz 输出 LC 电流波形 (x_t) + ε-d 曲线 (y_t) +
+     * 驻波包络 (vx_t/ke_t, t=0 快照), 无逐时行进波输出;
+     * 此处 6 个波纹 + currentTime 相位仅为传播方向示意,
+     * 频率/波长/ε 数值已读引擎 maxValues。
+     */
     ctx.strokeStyle = ORANGE;
     ctx.lineWidth = 2.5;
     ctx.beginPath();
@@ -261,6 +273,14 @@ export function drawEmWaveHertzScene(opts: ElectromagnetismSceneOptions): void {
 
 export function drawEmWaveCommunicationScene(opts: ElectromagnetismSceneOptions): void {
     const { ctx, width, height, isDark, params, currentTime } = opts;
+    /**
+     * AM 示意三段图: 纯装饰示意, 豁免单一真源 (见 #20)。
+     *
+     * 引擎 em-wave-communication 输出载波/已调/解调/瞬时频率四组 charts
+     * (真实 fc/fm 高频, 如 MHz 载波无法逐像素展示);
+     * 此处 22/2 压缩周期 + currentTime 相位仅为调制原理示意
+     * (包络即音频), 定量波形以引擎 charts 为准 (导出/后续迁移消费)。
+     */
     clearScene(ctx, width, height, isDark);
     drawTitle(ctx, '电磁波发射接收 (AM 调幅)', width, isDark, { size: 18, y: 28 });
     const carrierFreq = params['carrierFreq'] ?? 1;
