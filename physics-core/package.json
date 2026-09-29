@@ -19,7 +19,7 @@
     "lint": "eslint src/**/*.ts"
   },
   "devDependencies": {
-    "typescript": "^5.4.0",
+    "typescript": "^7.0.0",
     "vitest": "^5.0.0"
   }
 }
