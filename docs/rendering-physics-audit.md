@@ -289,10 +289,8 @@ viz 测试数 1159 → 1161。
 | `alpha-scattering` k 系数 | 碰撞参数 k | 已迁: 读引擎 `maxValues.k`, 无结果回退 `2·Z·e²/(E·5.0)` | 实现 `readEngineAlphaK` (`nuclearScenes.ts`); 散射角公式不变 |
 | `decay-statistics` 底部进度 | 采样进度条/闪烁点 | 豁免 (装饰动画): 直方图 + 高斯拟合已读引擎 `charts.x_t/y_t`; 进度仅为蒙特卡洛采样示意 | 注释记于 `drawDecayStatisticsScene` 底部 |
 | `fission-chain` 激活相位/脉冲 | 级联点亮时序 | 豁免 (装饰动画): 引擎输出每代中子数 + 累计裂变, 无逐节点屏幕坐标; activationPhase 仅为点亮时序 | 注释记于 `drawFissionChainScene`; 每代 N_g 已读引擎, 无结果回退 k^g |
-| `molecularKineticScenes.ts:76` 扩散粒子 | D 系数 | 已迁: 读引擎 `maxValues.diffusionCoeff`, 无结果回退 `D₀·(T/300)^1.5` | 实现 `readEngineDiffusionCoeff`; 粒子 drift/jitter 豁免 (见下) |
-| `molecularKineticScenes.ts:76` 扩散粒子位置 | drift/jitter | 豁免 (装饰动画): 引擎 trajectories 为单点占位, 无逐粒子位置; 粒子仅为浓度梯度示意, 速率由引擎 D 驱动 | 注释记于 `drawDiffusionScene` 粒子处; 浓度曲线已读引擎 `charts.x_t` |
-| `molecularKineticScenes.ts:280` 布朗粒子/轨迹 | D 系数 | 已迁: 读引擎 `maxValues.diffusionCoeff` (Stokes-Einstein), 无结果回退本地公式 | 实现 `readEngineBrownianCoeff`; 轨迹示意豁免 (见下) |
-| `molecularKineticScenes.ts:280` 布朗轨迹位置 | 轨迹/小分子抖动 | 豁免 (装饰动画): 引擎 μm/s 量级随机游走经示意放大后展示 (seededRand), 非轨迹映射; 定量 x(t) 已读引擎 `charts.x_t` | 注释记于 `drawBrownianScene` 轨迹处 |
+| `diffusion` | D 系数已迁 + 粒子位置豁免 | D 读引擎 `maxValues.diffusionCoeff`, 无结果回退 `D₀·(T/300)^1.5`; 粒子 drift/jitter 为装饰动画豁免 (引擎 trajectories 单点占位, 浓度曲线已读引擎 `charts.x_t`) | 实现 `readEngineDiffusionCoeff` (`molecularKineticScenes.ts:76`); 注释记于粒子处 |
+| `brownian-motion` | D 系数已迁 + 轨迹位置豁免 | D 读引擎 `maxValues.diffusionCoeff` (Stokes-Einstein), 无结果回退本地公式; 轨迹/小分子抖动为装饰动画豁免 (μm 量级经示意放大, 定量 x(t) 已读引擎 `charts.x_t`) | 实现 `readEngineBrownianCoeff` (`molecularKineticScenes.ts:280`); 注释记于轨迹处 |
 | `chapter5Scenes.ts:638` 竖直圆回退角 | `omega*currentTime` | 已迁 (早先批次) + 回退豁免: 有引擎时位置/速度取 `getFrame` (非匀速); `angle` 仅无引擎回退 (匀速占位) | 注释记于 `drawVerticalCircleScene`; HUD 速度取 frame.velocity |
 | `emWaveScenes.ts:63,138` 交变电流回退 | 自算正弦/drawSineChart | 回退保留 (防御空结果): 有引擎时 u/u2/峰值/频率/匝比读引擎 charts/maxValues | 注释记于 `drawAcCurrentScene` 瞬时值处 |
 | `emWaveScenes` 赫兹行进波纹 | 6 波纹相位 | 豁免 (装饰动画): 引擎驻波为 t=0 包络快照, 无逐时行进波; 波纹仅为传播方向示意, f/λ/ε 已读引擎 | 注释记于 `drawEmWaveHertzScene` 波纹处 |
@@ -430,15 +428,16 @@ Playwright 实测 123 场景发现 **43 个场景**报 `updateEquipment failed: 
 4. **测试**:exportCsv.test.ts 13 例覆盖格式化/转义/多物体/缺帧/图表块/ForceDiagram 跳过/下载流程。
 5. 测试数:core 923 / viz 588 / total 1511。
 
-## 已迁场景 → 契约覆盖对照 (2026-09-28 核定)
+## 已迁场景 → 契约覆盖对照 (2026-09-28 核定, 2026-09-29 #35 增补至 7 项例外)
 
 覆盖清单**以 `visualization/tests/accuracy/single-source-contract.test.ts` 各 it 首段的 sceneId 为准**(每条用例自述场景, 注释不复制清单以免二次过时)。本节只登记两侧的**例外与复核方法**:
 
 - **豁免 (既定不需契约)**:`transmission-belt` — 引擎仅输出静态关系 charts、无逐时轨迹, 转轮动画属渲染层合理示意图(见第 2 批迁移表"不迁移 (B 类语义)")。
+- **豁免 (装饰动画, 无数值迁移)**:`decay-statistics`、`fission-chain` — 第 8 批逐量决策为纯装饰豁免 (采样进度条/级联点亮时序), 定量部分 (直方图/高斯拟合、每代中子数) 早先批次已读引擎, 本批无新增引擎消费故不补契约。
 - **误入项**:`uniform-magnetic-field` 见于"审计副产物: 模型层方向 bug 修复"表, 不属迁移进展表, 不计入对照。
-- **契约侧多出项**:`newton-second-law`、`bohr-orbit` 有契约用例但不在迁移进展表(补迁/部分迁移场景, 以用例为准)。
+- **契约侧多出项**:`newton-second-law`、`bohr-orbit`、`bohr` 有契约用例但不在迁移进展表(补迁/部分迁移场景, 以用例为准; `bohr` 系 #31 加用例时漏登记, #35 补上)。
 
-复核方法(两集合差集应**恰为本节登记的 4 项例外**, 多出任何一项即为覆盖缺口):
+复核方法(两集合差集应**恰为本节登记的 7 项例外**, 多出任何一项即为覆盖缺口):
 
 ```bash
 # 迁移进展表中的场景
