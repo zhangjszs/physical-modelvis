@@ -46,6 +46,29 @@ const ORANGE = '#f59e0b';
 const RED = '#ef4444';
 const PURPLE = '#a855f7';
 
+/**
+ * 从引擎读竖直圆临界值与通过性判定。
+ *
+ * 引擎 vertical-circle 模型按约束类型区分临界值
+ * (rope/ring: vMin=√(g·r), rod: vMin=0), 输出
+ * `maxValues.vMin` 与 `flags.passesTop` 为真源;
+ * 无引擎结果或数值非法时对应项返回 null, 由调用方回退模型相关的本地公式。
+ *
+ * 单一真源契约 (#34) 由 single-source-contract.test.ts 锁定。
+ */
+export function readEngineVerticalCircle(result: SimulationResult | null): {
+    vMin: number | null;
+    passesTop: boolean | null;
+} {
+    const maxValues = result?.diagnostics?.maxValues as Record<string, number> | undefined;
+    const flags = result?.diagnostics?.flags as Record<string, boolean> | undefined;
+    const vMinRaw = maxValues?.['vMin'];
+    const vMin = typeof vMinRaw === 'number' && Number.isFinite(vMinRaw) && vMinRaw >= 0 ? vMinRaw : null;
+    const passesRaw = flags?.['passesTop'];
+    const passesTop = typeof passesRaw === 'boolean' ? passesRaw : null;
+    return { vMin, passesTop };
+}
+
 export function drawCurveConditionScene(opts: MechanicsSceneOptions): void {
     const { ctx, width, height, isDark, params, simulationResult, currentTime } = opts;
     const forceAngle = params['forceAngle'] ?? 45;
@@ -629,8 +652,16 @@ export function drawVerticalCircleScene(opts: MechanicsSceneOptions): void {
     const cx = width * 0.52;
     const cy = height * 0.5;
     const omega = v0 / Math.max(0.1, length);
-    const critical = Math.sqrt(g * length);
-    const topOk = v0 >= critical;
+    /**
+     * 临界值与通过性: 优先读引擎 (maxValues.vMin / flags.passesTop),
+     * 无引擎结果回退模型相关的本地公式 (杆恒通过, 绳/环为 √(g·L))。
+     * 回退 g=9.8 与引擎默认值一致 (场景无 gravity 参数, 见 #34)。
+     */
+    const modelTypeIdx = Math.round(params['modelType'] ?? 0);
+    const isRod = modelTypeIdx === 1;
+    const engineVC = readEngineVerticalCircle(simulationResult);
+    const critical = engineVC.vMin ?? (isRod ? 0 : Math.sqrt(g * length));
+    const topOk = engineVC.passesTop ?? v0 >= critical;
 
     // 物体位置: 优先用引擎轨迹 (机械能守恒 v²=v₀²−2gr(1−cosθ), 非匀速)
     // 引擎圆心在 (0,r), θ=0 为最低点; 映射到屏幕圆 (cx,cy)

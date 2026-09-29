@@ -24,6 +24,7 @@ import { getFrame } from '../../src/rendering/renderingUtils';
 import { readEngineOrbitRadii, readEngineBohrLevels } from '../../src/rendering/atomicModelScenes';
 import { readEngineDiffusionCoeff, readEngineBrownianCoeff } from '../../src/rendering/molecularKineticScenes';
 import { readEngineAlphaK } from '../../src/rendering/nuclearScenes';
+import { readEngineVerticalCircle } from '../../src/rendering/chapter5Scenes';
 
 /** 取渲染源码中某导出函数的完整函数体 (到下一个 export function 为止) — 源码契约断言用 */
 function renderFn(file: string, fnName: string): string {
@@ -1004,5 +1005,57 @@ describe('L1-migration: 渲染单一真源契约 (#20 收尾: 核/热/竖直圆/
         expect(commFn, 'AM 示意豁免需有注释记录').toContain('豁免');
         const acFn = renderFn('emWaveScenes.ts', 'drawAcCurrentScene');
         expect(acFn, '交变电流读引擎').toContain('engCharts?.x_t');
+    });
+});
+
+describe('L1-migration: 渲染单一真源契约 (#34: 竖直圆临界值模型相关)', () => {
+    beforeAll(async () => {
+        await loadAllScenes();
+    });
+
+    function scene(id: string) {
+        const s = getSceneSync(id);
+        expect(s, `场景 ${id} 已注册`).toBeDefined();
+        return s!;
+    }
+
+    it('vertical-circle: 杆模型临界为 0 且恒通过, 绳模型为 √(g·L) (引擎端独立复算)', () => {
+        const sc = scene('vertical-circle');
+        // 杆 + 低速: vMin=0, passesTop=true
+        const rod = runSceneSimulation(sc, { modelType: 1, length: 1, mass: 1, initialSpeed: 1, duration: 5 });
+        expect(rod.error).toBeNull();
+        const mvRod = rod.result!.diagnostics.maxValues as Record<string, number>;
+        expect(mvRod.vMin).toBe(0);
+        const flagsRod = rod.result!.diagnostics.flags as Record<string, boolean>;
+        expect(flagsRod.passesTop).toBe(true);
+        // 绳 + 同参数: vMin=√(9.8·1)≈3.13, passesTop=false
+        const rope = runSceneSimulation(sc, { modelType: 0, length: 1, mass: 1, initialSpeed: 1, duration: 5 });
+        expect(rope.error).toBeNull();
+        const mvRope = rope.result!.diagnostics.maxValues as Record<string, number>;
+        expect(mvRope.vMin).toBeCloseTo(Math.sqrt(9.8 * 1), 6);
+        const flagsRope = rope.result!.diagnostics.flags as Record<string, boolean>;
+        expect(flagsRope.passesTop).toBe(false);
+    });
+
+    it('vertical-circle: 临界/通过性读取消耗引擎表, 空结果回退不崩 (渲染消费端)', () => {
+        const sc = scene('vertical-circle');
+        const { result } = runSceneSimulation(sc, { modelType: 1, length: 1, mass: 1, initialSpeed: 1, duration: 5 });
+        expect(readEngineVerticalCircle(result)).toEqual({ vMin: 0, passesTop: true });
+        expect(readEngineVerticalCircle(null)).toEqual({ vMin: null, passesTop: null });
+        expect(readEngineVerticalCircle({ charts: {} } as never)).toEqual({ vMin: null, passesTop: null });
+        expect(readEngineVerticalCircle({ diagnostics: { maxValues: { vMin: NaN }, flags: {} } } as never)).toEqual({
+            vMin: null,
+            passesTop: null
+        });
+        expect(
+            readEngineVerticalCircle({ diagnostics: { maxValues: { vMin: -1 }, flags: { passesTop: true } } } as never)
+        ).toEqual({ vMin: null, passesTop: true });
+    });
+
+    it('vertical-circle: 渲染层临界读引擎且回退区分杆/绳 (源码契约)', () => {
+        const fn = renderFn('chapter5Scenes.ts', 'drawVerticalCircleScene');
+        expect(fn, '临界读引擎').toContain('readEngineVerticalCircle(simulationResult)');
+        expect(fn, '通过性消费 flags.passesTop').toContain('passesTop');
+        expect(fn, '回退区分杆模型').toContain('isRod');
     });
 });

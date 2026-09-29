@@ -298,13 +298,30 @@ viz 测试数 1159 → 1161。
 | `emWaveScenes` 赫兹行进波纹 | 6 波纹相位 | 豁免 (装饰动画): 引擎驻波为 t=0 包络快照, 无逐时行进波; 波纹仅为传播方向示意, f/λ/ε 已读引擎 | 注释记于 `drawEmWaveHertzScene` 波纹处 |
 | `emWaveScenes` AM 三段图 | 载波/音频/已调波 | 豁免 (装饰动画): 引擎真实高频 (MHz) 无法逐像素展示, 此处 22/2 压缩周期为原理示意 | 注释记于 `drawEmWaveCommunicationScene` |
 
-### 契约测试新增 (#20 × 6)
+### 契约测试新增 (#20 × 11)
 
 | 场景 | 断言 |
 |------|------|
 | diffusion | D 与 `1e-5·(T/300)^1.5` 独立复算一致; `readEngineDiffusionCoeff` 非法输入回退 null; 源码含 `readEngineDiffusionCoeff(simulationResult)` + 豁免注释 |
 | brownian-motion | D 与 Stokes-Einstein 独立复算一致; 非法输入回退 null; 源码含 `readEngineBrownianCoeff(simulationResult)` + 豁免注释 |
 | alpha-scattering | k 与 `2·Z·e²/(E·5.0)` 独立复算一致; 非法输入回退 null; 源码含 `readEngineAlphaK(simulationResult)` + 豁免注释 |
+
+## 第 9 批迁移进展 (2026-09-29): vertical-circle 临界徽标模型相关 (#34)
+
+`drawVerticalCircleScene` 的最高点通过性徽标曾硬编码绳模型公式
+(`critical=√(g·L)`, 不分 modelType) —— 杆模型低速下与引擎
+(`vMin=0`、`flags.passesTop=true`) 结论相反 (红色"最高点速度不足"误报)。
+
+| 场景部位 | 处置 | 备注 |
+|------|------|------|
+| 临界值 v_top_min | 已迁: 读引擎 `maxValues.vMin`, 无结果回退模型相关公式 (杆→0, 绳/环→√(g·L)) | 实现 `readEngineVerticalCircle` (`chapter5Scenes.ts`); 回退 g=9.8 与引擎默认值一致 (场景无 gravity 参数) |
+| 通过性徽标/文案 | 已迁: 读引擎 `flags.passesTop`, 无结果回退 `v0>=critical` | 杆低速 (v0=1, L=1) 现显示通过, 与引擎一致; 绳/环行为不变; HUD `v_top_min` 同源 |
+
+### 契约测试新增 (#34 × 3)
+
+| 场景 | 断言 |
+|------|------|
+| vertical-circle | 杆 v0=1/L=1: `vMin`=0 且 `passesTop`=true; 绳同参数: `vMin`≈√9.8 且 `passesTop`=false; helper 非法输入回退; 源码含 `readEngineVerticalCircle(simulationResult)` + `passesTop` + `isRod` 回退 |
 
 ## 审计副产物:模型层方向 bug 修复 (2026-08-02)
 
