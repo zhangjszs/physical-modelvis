@@ -8,7 +8,7 @@
  * 设计原则：纯函数 + 屏幕坐标, 零依赖 React/Zustand/CoordinateTransformer
  */
 import type { SimulationResult } from 'physics-core';
-import { clamp, clearScene, drawTitle, drawHud } from './renderingUtils';
+import { clamp, clearScene, drawTitle, drawHud, drawGlowCircle } from './renderingUtils';
 
 export interface ModernSceneOptions {
     ctx: CanvasRenderingContext2D;
@@ -105,29 +105,6 @@ export function readEngineBohrLevels(result: SimulationResult | null): Map<numbe
     return levels;
 }
 
-function drawGlowCircle(
-    ctx: CanvasRenderingContext2D,
-    cx: number,
-    cy: number,
-    r: number,
-    color: string,
-    alpha: number
-): void {
-    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 2.2);
-    grad.addColorStop(0, color);
-    grad.addColorStop(0.4, color + '88');
-    grad.addColorStop(1, color + '00');
-    ctx.globalAlpha = alpha;
-    ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.arc(cx, cy, r * 2.2, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.fill();
-}
 function wavelengthToColor(nm: number): string {
     if (nm < 380) return '#7c3aed';
     if (nm > 750) return '#7f1d1d';

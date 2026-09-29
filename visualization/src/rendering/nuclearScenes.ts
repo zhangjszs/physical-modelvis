@@ -18,7 +18,7 @@
  */
 
 import type { SimulationResult } from 'physics-core';
-import { roundRectPath, clearScene, drawTitle, drawHud, drawArrow } from './renderingUtils';
+import { roundRectPath, clearScene, drawTitle, drawHud, drawArrow, drawGlowCircle } from './renderingUtils';
 
 // ========== 共享类型 ==========
 
@@ -46,33 +46,6 @@ export function readEngineAlphaK(result: SimulationResult | null): number | null
     const v = (result?.diagnostics?.maxValues as { k?: number } | undefined)?.k;
     if (typeof v === 'number' && Number.isFinite(v) && v > 0) return v;
     return null;
-}
-
-/**
- * 渲染脉冲/闪烁发光圆, 用于标注激活的核/裂变的 U-235 / 放射线. alpha 在 [0, 1].
- */
-function drawGlowCircle(
-    ctx: CanvasRenderingContext2D,
-    cx: number,
-    cy: number,
-    r: number,
-    color: string,
-    alpha: number
-): void {
-    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 2.2);
-    grad.addColorStop(0, color);
-    grad.addColorStop(0.4, color + '88');
-    grad.addColorStop(1, color + '00');
-    ctx.globalAlpha = alpha;
-    ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.arc(cx, cy, r * 2.2, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.fill();
 }
 
 /**

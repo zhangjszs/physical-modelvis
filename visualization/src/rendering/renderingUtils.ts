@@ -404,6 +404,36 @@ export function drawGround(ctx: CanvasRenderingContext2D, y: number, w: number, 
     }
 }
 
+/**
+ * 发光圆 (径向渐变光晕 + 实心圆), 用于标注激活的核/发光粒子/靶核等. alpha 在 [0, 1].
+ *
+ * 由 nuclearScenes / atomicModelScenes 的同名私有实现收敛而来 (#37),
+ * 两处函数体逐字节一致, 收敛后画面逐像素不变。
+ */
+export function drawGlowCircle(
+    ctx: CanvasRenderingContext2D,
+    cx: number,
+    cy: number,
+    r: number,
+    color: string,
+    alpha: number
+): void {
+    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 2.2);
+    grad.addColorStop(0, color);
+    grad.addColorStop(0.4, color + '88');
+    grad.addColorStop(1, color + '00');
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r * 2.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fill();
+}
+
 // ============================================================
 // Group 5: 取帧辅助
 // ============================================================
