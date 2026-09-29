@@ -69,6 +69,9 @@ jobs:
         env:
           VITE_BASE_PATH: /${{ github.event.repository.name }}/
 
+      - name: 首屏包体积门禁 (≤70kB gzip)
+        run: node scripts/check-bundle-size.mjs
+
       - name: 上传构建产物
         uses: actions/upload-artifact@v7
         with:

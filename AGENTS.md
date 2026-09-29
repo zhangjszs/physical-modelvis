@@ -17,7 +17,7 @@ cd physics-core && npm install && npm run build && cd ..
 cd visualization && npm install && cd ..
 
 # 一键本地全量门禁 (与 CI 等价, pre-push 钩子会强制执行)
-npm run precheck     # build:core → typecheck → lint → format:check → test → count:check → selfcheck
+npm run precheck     # build:core → typecheck → lint → format:check → test → count:check → build:viz → check:bundle → selfcheck
 
 # 运行所有测试
 npm test
@@ -50,13 +50,14 @@ cd visualization && npm run dev
 GitHub Actions 流水线，配置文件位于 `.github/workflows/`。
 
 ### CI 流水线 (`ci.yml`)
-触发：push 到 main、PR 到 main。顺序执行 6 道质量门禁：
+触发：push 到 main、PR 到 main。顺序执行 7 道质量门禁：
 1. **TypeScript 类型检查** — `tsc --noEmit`（physics-core + visualization，含 OCR server）
 2. **ESLint 静态分析** — typescript-eslint recommended 规则集
 3. **Prettier 格式检查** — `format:check`
 4. **单元测试** — physics-core + visualization 各自 `vitest run`
 5. **9 层物理自检** — `node scripts/self-check.mjs`（LAYERS 数组 = L0-L6 + L8 Boris 数值积分 + L9 跨场景数值鲁棒性；无 L7）
 6. **构建** — physics-core → visualization（带 `VITE_BASE_PATH` 子路径）
+7. **首屏包体积门禁** — `node scripts/check-bundle-size.mjs`（入口 chunks gzip ≤70kB，现状约 63kB）
 
 ### 部署流水线 (`deploy.yml`)
 触发：CI 在 main 分支成功完成后自动触发（`workflow_run`）。
