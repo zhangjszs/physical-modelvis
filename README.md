@@ -44,8 +44,8 @@ physical_modelvis/
 └── .husky/                # Git pre-push 质量门禁钩子
 ```
 
-> 📖 **文档中心**：完整技术文档、架构设计与 123 场景审计表请查阅 [docs/README.md](file:///home/kerwin/coding/physical_modelvis/docs/README.md)。  
-> 📋 **版本记录**：历史里程碑与版本演进请查阅 [CHANGELOG.md](file:///home/kerwin/coding/physical_modelvis/CHANGELOG.md)。
+> 📖 **文档中心**：完整技术文档、架构设计与 123 场景审计表请查阅 [docs/README.md](./docs/README.md)。  
+> 📋 **版本记录**：历史里程碑与版本演进请查阅 [CHANGELOG.md](./CHANGELOG.md)。
 
 
 ## 快速开始

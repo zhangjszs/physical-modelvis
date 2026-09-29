@@ -51,10 +51,10 @@ npm run precheck
 
 ## 参与贡献流程
 
-1. **查阅文档**：在开始前，请先通读 [docs/README.md](file:///home/kerwin/coding/physical_modelvis/docs/README.md) 和 [docs/DEVELOPMENT_GUIDE.md](file:///home/kerwin/coding/physical_modelvis/docs/DEVELOPMENT_GUIDE.md)。
-2. **提出 Issue**：发现 Bug 或有新功能提议，请使用 [.github/ISSUE_TEMPLATE/](file:///home/kerwin/coding/physical_modelvis/.github/ISSUE_TEMPLATE/) 对应的规范模板提交。
+1. **查阅文档**：在开始前，请先通读 [docs/README.md](./docs/README.md) 和 [docs/DEVELOPMENT_GUIDE.md](./docs/DEVELOPMENT_GUIDE.md)。
+2. **提出 Issue**：发现 Bug 或有新功能提议，请使用 [.github/ISSUE_TEMPLATE/](./.github/ISSUE_TEMPLATE/) 对应的规范模板提交。
 3. **拉取分支**：基于 `main` 分支创建特性分支（`feat/...` 或 `fix/...`）。
-4. **提交 PR**：完成开发并通过本地门禁后发起 Pull Request，填写 [.github/PULL_REQUEST_TEMPLATE.md](file:///home/kerwin/coding/physical_modelvis/.github/PULL_REQUEST_TEMPLATE.md) 检查清单。
+4. **提交 PR**：完成开发并通过本地门禁后发起 Pull Request，填写 [.github/PULL_REQUEST_TEMPLATE.md](./.github/PULL_REQUEST_TEMPLATE.md) 检查清单。
 
 ## 测试与验证
 
