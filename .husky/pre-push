@@ -5,6 +5,17 @@
 echo "pre-push: 运行与 CI 等价的本地检查 (build/typecheck/lint/format/test/count/selfcheck)" >&2
 echo "" >&2
 
+# mise 用户兜底: 非交互 shell 的 PATH 常无 shims, 裸调 npm 会 "not found" 误拦截推送 (#39)
+if ! command -v npm >/dev/null 2>&1; then
+    for _shim in "$HOME/.local/share/mise/shims" "$HOME/.mise/shims"; do
+        if [ -x "$_shim/npm" ]; then
+            PATH="$_shim:$PATH"
+            break
+        fi
+    done
+    unset _shim
+fi
+
 npm run precheck || {
   echo "" >&2
   echo "pre-push 检查失败，已阻止本次 push" >&2
