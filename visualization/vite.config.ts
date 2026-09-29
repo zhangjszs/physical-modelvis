@@ -26,14 +26,9 @@ export default defineConfig({
               id.includes('node_modules/scheduler')) {
             return 'vendor-react';
           }
-          // Recharts + d3 依赖 — 图表库体积最大，独立 chunk
-          if (id.includes('node_modules/recharts') ||
-              id.includes('node_modules/d3-') ||
-              id.includes('node_modules/.pnpm/d3-') ||
-              id.includes('node_modules/internmap') ||
-              id.includes('node_modules/victory-vendor')) {
-            return 'vendor-charts';
-          }
+          // 图表生态走默认分包: Rolldown (vite 8) 下宽 bucket 会把整块 recharts
+          // 拖进首屏 (159.5kB), 而默认分包下首屏无图表代码 (62.3kB);
+          // recharts 现归入其唯一消费者 GraphPanel 懒 chunk, three/physics 保持独立 (见 #44)
           // Three.js 3D 实验引擎 — 仅被 lazy 的 EquipmentStage 引用，独立 chunk 避免拖累首屏
           if (id.includes('node_modules/three')) {
             return 'vendor-three';
