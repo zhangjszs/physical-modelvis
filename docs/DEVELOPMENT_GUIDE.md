@@ -359,7 +359,7 @@ cd visualization && npm run dev
 ### CI/CD
 
 - GitHub Actions 配置文件位于 `.github/workflows/`
-- CI 流水线：push/PR 到 main 触发，6 道质量门禁
+- CI 流水线：push/PR 到 main 触发，7 道质量门禁（与 AGENTS.md「CI 流水线」小节一致）
 - 部署流水线：CI 成功后自动部署到 GitHub Pages
 
 ---
@@ -369,7 +369,7 @@ cd visualization && npm run dev
 ### 每批次任务验收要求
 
 1. **TypeScript 编译通过** — `npx tsc --noEmit` 0 错误
-2. **全部测试通过** — 255 个测试全绿
+2. **全部测试通过** — 运行 `npm test`；测试数以 README 顶部 `test-count` 标记行为准
 3. **视觉自查** — 逐个场景运行查看效果
 4. **代码审查** — 对照 Review Checklist
 
