@@ -91,9 +91,17 @@ Boris 3D 推进 / 3D 场），与本仓库现有 backlog 无关，也与 M1 无�
 **当前状态：`tsc` 报 3 个错**（`fields3d.ts:149-151` 对 `readonly x/y/z` 赋值，TS2540），
 `npm run precheck` 因此红。规划者**未修改、未暂存、未 stash** 这些文件。
 
-**若接手时看到这批文件仍在**：那是别人（或人工）的工作，按 AGENTS.md「不覆盖他人改动」
-处理。若确认已无人接手，再按 issue 流程接手（建议先建 issue 记录 3D 物理扩展方向，
-并注意它与 #53「自检 10 → 11 层」可能相关 —— 3D 场可能需要新的自检层）。
+**2026-10-01 00:32 复看**：并发会话仍在推进 —— `tsc --noEmit` 已无报错，
+`index.ts` 已加 barrel 导出，`boris3d.test.ts` 已新增，
+`vector3d.test.ts` + `fields3d.test.ts` 共 23 例通过。**该会话是活的，不要打断。**
+
+**已建 [#56](https://github.com/zhangjszs/physical-modelvis/issues/56)**（P2）记录
+该方向的收口需求（依据 D4）：`TrajectoryPoint3D` 接口归属、3D 自检接入、
+2D/3D 路径边界文档化。**#56 范围不含重新实现这三层。**
+
+若接手时这批文件仍在工作区未提交：按 AGENTS.md「不覆盖他人改动」处理。
+若已合入 main：#56 可执行。**若发现文件不在 main 上，请在 #56 留言停止，
+不要自行实现** —— 会与原作者冲突。
 
 ### 环境备注
 - 测试可跑，precheck 全绿。执行者改 `physics-core/src/**` 后
