@@ -211,7 +211,7 @@ physics-core 提供 113 个物理模型，全部通过 `registerModel` 自动注
 
 ### CI 流水线（`.github/workflows/ci.yml`）
 
-触发：push 到 main、PR 到 main。顺序执行 6 道质量门禁：
+触发：push 到 main、PR 到 main。顺序执行 7 道质量门禁：
 
 1. **TypeScript 类型检查** — `tsc --noEmit`（physics-core + visualization，含 OCR server）
 2. **ESLint 静态分析** — typescript-eslint recommended 规则集
