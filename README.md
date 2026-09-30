@@ -39,7 +39,7 @@ physical_modelvis/
 │   ├── adr/               # 架构决策记录 (ADR)
 │   ├── agents/            # AI 协作与工作流规范
 │   └── archive/           # 历史交付与复盘归档
-├── scripts/               # 9 层物理自检与 Playwright 端到端冒烟测试（详见 scripts/README.md）
+├── scripts/               # 10 层物理自检与 Playwright 端到端冒烟测试（详见 scripts/README.md）
 ├── .github/               # GitHub Actions CI/CD 流水线与 Issue/PR 协作模板
 └── .husky/                # Git pre-push 质量门禁钩子
 ```
@@ -217,7 +217,7 @@ physics-core 提供 113 个物理模型，全部通过 `registerModel` 自动注
 2. **ESLint 静态分析** — typescript-eslint recommended 规则集
 3. **Prettier 格式检查** — `format:check`
 4. **单元测试** — physics-core + visualization 各自 `vitest run`
-5. **9 层物理自检** — `node scripts/self-check.mjs`（L0-L6 + L8 Boris 数值积分 + L9 跨场景数值鲁棒性；L7 为 CLI 自身）
+5. **10 层物理自检** — `node scripts/self-check.mjs`（L0-L6 + L8 Boris 数值积分 + L9 跨场景数值鲁棒性 + L10 输出 NaN 扫描；L7 为 CLI 自身）
 6. **构建** — physics-core → visualization（带 `VITE_BASE_PATH` 子路径）
 
 ### 部署流水线（`.github/workflows/deploy.yml`）
@@ -252,7 +252,7 @@ npm run precheck
 # TypeScript 类型检查（physics-core + visualization）
 npm run typecheck
 
-# 9 层物理自检
+# 10 层物理自检
 npm run selfcheck
 
 # Lint（含自动修复）

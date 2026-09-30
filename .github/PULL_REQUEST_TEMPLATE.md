@@ -26,7 +26,7 @@ Closes #
   - [ ] `lint` (ESLint 静态分析通过)
   - [ ] `format:check` (Prettier 格式检查通过)
   - [ ] `test` (全量单元测试与准确性测试通过)
-  - [ ] `selfcheck` (9 层物理自检 L0-L9 全部 PASS)
+  - [ ] `selfcheck` (10 层物理自检 L0-L6 + L8-L10 全部 PASS)
 - [ ] **渲染单一真源契约**：涉及渲染修改时，已确保消费 `simulationResult`，无公式脱靶漂移
 - [ ] **测试覆盖**：新增或修改的核心函数具备正向与边界测试用例
 - [ ] **无调试残留**：无未使用的 import、未清理的 `console.log` 或临时注释放行

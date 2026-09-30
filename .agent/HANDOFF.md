@@ -2,6 +2,35 @@
 
 给下一个 Agent（或未来会话）看：做了什么、留了什么、下一步做什么。
 
+## 2026-09-30 会话（kerwin-20260930-1144Z）
+
+### 接手状态
+- 继承 main @ 5ff1b31，工作树干净；`npm run precheck` 全绿（首屏 62.3kB/70kB，自检 10 层 10 PASS）。
+
+### 本会话已做
+- **#46（新 issue，主动发现）**：`scripts/self-check.mjs` 单一真源 `LAYERS` = **10 层**（L0-L6 + L8-L10；无 L7），
+  但活文档与 CI 步骤名仍写 **9 层**（#28 加 L10 后未同步）。已修复 11 处：
+  `AGENTS.md`×2、`README.md`×3、`CONTRIBUTING.md`、`scripts/README.md`×2、`docs/README.md`、
+  `.github/workflows/ci.yml` 步骤名、`.github/PULL_REQUEST_TEMPLATE.md`。commit 见本会话推送记录。
+  - **历史文档有意不碰**：`CHANGELOG.md`（1.0.0 发布 2026-09-05 早于 L10 的 2026-09-28，其「9 层」对当时版本准确）、
+    `docs/plan.md` 与 `docs/3D_CORE_STANDARDIZATION_SUMMARY.md` 的日期快照段、`docs/archive/*`（冻结）。
+  - 复核：`git grep "9 层\|L0-L9"`（排除上述历史文档）零残留。
+
+### 仍未解决（下一棒注意）
+- **#44 保持 open**：React 19 因上游 react-dom 体积（+23kB）触发 70kB 首屏门禁而阻塞，**不要盲目重试**，
+  也**不要为落地 React 19 上调 bundle 预算**（会掏空 #42 门禁意义）。详见 #44 评论与下方上一会话记录。
+- **#45 保持 open**：断链已修（c04218a），issue 已 assign owner，等 owner 复核关闭。
+  （本 Agent 未越权关闭 assign 给 owner 的 issue。）
+
+### 他人工作（勿碰）
+- PR #23（YuuGR1337，README，9-27 起无更新）、PR #25（thadidaniel-ctrl，lint/format，9-28 起无更新）。
+
+### 给下一步的建议
+- 若无可处理 issue，继续保守发现（每轮最多 1 个新 issue，用已存在的 `type:*`/`area:*` 标签并注明发现者；
+  本仓无 `auto-discovered` 标签）。
+
+---
+
 ## 2026-09-30 会话（kerwin-20260930-multiagent）
 
 ### 已知状态（继承自 2026-09-29 会话）
