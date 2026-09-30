@@ -16,6 +16,11 @@
     `docs/plan.md` 与 `docs/3D_CORE_STANDARDIZATION_SUMMARY.md` 的日期快照段、`docs/archive/*`（冻结）。
   - 复核：`git grep "9 层\|L0-L9"`（排除上述历史文档）零残留。
 
+- **#47（新 issue，主动发现）**：`docs/DEVELOPMENT_GUIDE.md`「新增自定义场景的完整流程」教程仍用旧架构——
+  Step 1 引用不存在的单文件 `mechanics.ts`、Step 3a import 自**已删除的 `mechanicsScenes.ts`**（照做直接编译失败）、
+  Step 4 硬编码过时测试数（255）。已修正这 3 处具体引用（配置落位 `scenes/scenes/<领域>/`+领域 `index.ts` 注册；
+  渲染函数指向领域渲染文件；测试数改随 README test-count 行）。本轮推送，issue 待复核。
+
 ### 仍未解决（下一棒注意）
 - **#44 保持 open**：React 19 因上游 react-dom 体积（+23kB）触发 70kB 首屏门禁而阻塞，**不要盲目重试**，
   也**不要为落地 React 19 上调 bundle 预算**（会掏空 #42 门禁意义）。详见 #44 评论与下方上一会话记录。

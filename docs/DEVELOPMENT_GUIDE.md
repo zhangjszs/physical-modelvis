@@ -86,7 +86,7 @@ SCENES_MECHANICS = new Set(['free-fall', 'galileo-incline', ...]);  // 基础力
 
 #### Step 1: 定义 SceneConfig
 
-在对应模块文件中创建场景配置（例如 `mechanics.ts`）：
+在对应领域子目录中创建场景配置文件（如 `src/scenes/scenes/mechanics/my-new-scene.ts`），并在该领域的 `index.ts` 聚合数组中注册（如 `mechanics/index.ts` 的 `MechanicsScenes`，原单文件 `mechanics.ts` 已拆分）：
 
 ```typescript
 {
@@ -191,8 +191,10 @@ export function drawMyNewSceneScene(opts: MechanicsSceneOptions): void {
 import {
     // ... existing imports ...
     drawMyNewSceneScene  // 新增
-} from '../../rendering/mechanicsScenes';
+} from '../../rendering/chapter5Scenes';
 ```
+
+> 渲染函数放入**对应领域的渲染文件**（`src/rendering/` 下的 `chapter*Scenes.ts` / `<领域>Scenes.ts`）；原 `mechanicsScenes.ts` 已按领域拆分删除，沿用旧路径会编译失败。
 
 **3b. 添加到 SCENES_MECHANICS 集合**:
 
@@ -221,7 +223,7 @@ npm test
 
 确保：
 - TypeScript 编译 0 错误
-- 全部测试通过（目前 255 个）
+- 全部测试通过（运行 `npm test`；测试数以 README 顶部 `test-count` 标记行为准）
 
 #### Step 5: 启动开发服务器查看效果
 
