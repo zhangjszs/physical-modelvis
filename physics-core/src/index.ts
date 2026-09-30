@@ -129,6 +129,12 @@ export type {
 } from './physics/boris3d.js';
 export { borisTrajectory3D } from './physics/boris3d.js';
 
+// === 3D 组合实验层 (拖拽实验台: 描述 → 校验 → 求解 / 场线) ===
+export type { CompositionParticle, CompositionExperiment, CompositionSimResult } from './physics/composition.js';
+export { validateComposition, compositionFieldAt, simulateComposition } from './physics/composition.js';
+export type { FieldLineOptions } from './physics/fieldlines.js';
+export { traceFieldLine } from './physics/fieldlines.js';
+
 // === 模型导出 ===
 export { PhysicsModelBase, registerModel, getModel, listModels } from './models/base.js';
 // 全部具体模型类由 models/index.ts 聚合 barrel 统一 re-export（单一维护源）
