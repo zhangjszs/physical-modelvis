@@ -21,6 +21,9 @@
   Step 4 硬编码过时测试数（255）。已修正这 3 处具体引用（配置落位 `scenes/scenes/<领域>/`+领域 `index.ts` 注册；
   渲染函数指向领域渲染文件；测试数改随 README test-count 行）。本轮推送，issue 待复核。
 
+- **#48（新 issue，主动发现）**：`sceneRegistry.ts:6` 与 `scenes/scenes/index.ts:5` 注释写「118 个场景定义」，
+  实况 123（44+39+8+18+14，契约测试 rig-contract 亦断言 123）。已改为 123。本轮推送，issue 待复核。
+
 ### 仍未解决（下一棒注意）
 - **#44 保持 open**：React 19 因上游 react-dom 体积（+23kB）触发 70kB 首屏门禁而阻塞，**不要盲目重试**，
   也**不要为落地 React 19 上调 bundle 预算**（会掏空 #42 门禁意义）。详见 #44 评论与下方上一会话记录。

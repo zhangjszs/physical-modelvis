@@ -5,7 +5,7 @@
 
 - agent-id: `kerwin-20260930-1144Z`
 - 会话开始: 2026-09-30T11:44:00Z
-- 当前认领: #47（DEVELOPMENT_GUIDE 新增场景教程引用已删 mechanicsScenes.ts）
+- 当前认领: #48（源码注释场景数 118 过时，实况 123）
 - 工作模式说明: 本仓规范（AGENTS.md + husky pre-push 全量门禁）即直接推 main；
   用户协作指令允许“仓库规范明确允许时遵循项目规范”，故小改动沿用 direct-push。
   PR #23/#25 为他人工作，不碰；#44 React 19 阻塞不重试（见 HANDOFF）。
@@ -20,7 +20,8 @@
 
 - 基线核对：`npm run precheck` 全绿（首屏 62.3kB/70kB，自检 10 层 10 PASS），工作树干净。
 - #46（自检层数 9→10 文档对齐）：主动发现、修复、推送并关闭（e91b900）。
-- #47（DEVELOPMENT_GUIDE 新增场景教程旧引用）：主动发现、修复（见 HANDOFF）。
+- #47（DEVELOPMENT_GUIDE 新增场景教程旧引用）：主动发现、修复、推送并关闭（66c02ad）。
+- #48（注释场景数 118→123）：主动发现、修复（见 HANDOFF）。
 
 ## 上一会话（kerwin-20260930-multiagent）
 

@@ -3,7 +3,7 @@ import type { SceneConfig } from '../types/visualization';
 /**
  * 场景配置注册表 — 首屏体积优化版。
  *
- * 118 个场景定义按领域拆为 5 个动态 import chunk(mechanics / electromagnetism /
+ * 123 个场景定义按领域拆为 5 个动态 import chunk(mechanics / electromagnetism /
  * optics / thermodynamics / modern),首屏不再打包全部场景文件。
  * 消费模式:
  *   - React 组件:读 store.scenes(state, 由 App 挂载时 ensureScenesLoaded 预载)

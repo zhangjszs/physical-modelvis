@@ -2,7 +2,7 @@ import type { SceneConfig } from '../../types/visualization';
 
 /**
  * 全部物理场景配置 — 按章节分组、按领域动态 import。
- * 5 个领域包各成一个懒加载 chunk,首屏不再打包 118 个场景定义。
+ * 5 个领域包各成一个懒加载 chunk,首屏不再打包 123 个场景定义。
  * 导出顺序=教学章节顺序,场景内顺序保留原 sceneRegistry.ts 注册顺序。
  */
 export async function getAllScenes(): Promise<SceneConfig[]> {
