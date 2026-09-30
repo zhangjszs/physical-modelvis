@@ -23,6 +23,12 @@
 - PR #25（thadidaniel-ctrl，改 eslint.config.mjs/package.json/大量测试文件，9-28 起无更新；
   可能与本地 vitest5/TS7 升级冲突，合并是 owner 的事）。
 
+### 本会话已做（Round 4）
+- #45（DEVELOPMENT_GUIDE 5 处断链 + mechanicsScenes 已删）：已修复（c04218a），
+  issue 保持 open 等复核。注意 commit 用 `docs:` 前缀以避免 GitHub 自动关闭 issue。
+- 空轮：Round 2（TODO/ absoluto 链接/Math.random 都干净）、Round 3（console/包体积门禁复查通过）。
+  连续空轮计数：0（#45 已产出）。
+
 ### 给下一步的建议
 - #44 保持 open（React 19 阻塞项）；若上游 react-dom 体积显著下降再重估。
 - 主动发现请走保守原则，每轮最多 1 个新 issue，带 `auto-discovered` 标签。
