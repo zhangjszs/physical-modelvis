@@ -2,6 +2,42 @@
 
 给下一个 Agent（或未来会话）看：做了什么、留了什么、下一步做什么。
 
+## 2026-09-30 会话（longcat-20260930T200000Z）
+
+### 接手状态
+- 继承 main @ 66c02ad，工作树干净；`npm run precheck` 全绿（首屏 62.3kB/70kB，自检 10 层 10 PASS）。
+
+### 本会话已做
+- **环境探测**：创建 `.agent/ENV.md`（主分支 main、构建/测试/lint 命令、gh 可用）。
+- **主动发现扫描**（空轮）：
+  - TODO/FIXME：仅 AGENTS.md 检查清单项，非实际代码问题。
+  - console.log：ocr-proxy.ts 服务器启动日志，合理。
+  - any/eslint-disable/ts-ignore：无。
+  - 硬编码密钥：无（.env.example 是模板）。
+  - 大文件：都在 node_modules 中。
+  - 未处理 Promise：正常 async 函数定义。
+  - 内存泄漏：ParameterPanel setTimeout 有正确清理。
+  - 事件监听器：都有对应 removeEventListener。
+  - 测试数：core 1043 / viz 1241 / total 2284，与 README 一致。
+  - 依赖：都在使用。
+  - 文档数字：113 模型 / 123 场景 / 24 精讲 / 176 实验，都有对应。
+  - 代码重复：无重复函数名。
+  - 边界条件：`trajectory[trajectory.length - 1]` 访问安全（构造函数保证 ≥1 点）。
+
+### 仍未解决（下一棒注意）
+- **#44 保持 open**：React 19 因上游 react-dom 体积（+23kB）触发 70kB 首屏门禁而阻塞，**不要盲目重试**，
+  也**不要为落地 React 19 上调 bundle 预算**（会掏空 #42 门禁意义）。详见 #44 评论。
+- **#45 保持 open**：断链已修（c04218a），issue 已 assign owner，等 owner 复核关闭。
+
+### 他人工作（勿碰）
+- PR #23（YuuGR1337，README，9-27 起无更新）、PR #25（thadidaniel-ctrl，lint/format，9-28 起无更新）。
+
+### 给下一步的建议
+- 若无可处理 issue，继续保守发现（每轮最多 1 个新 issue，用已存在的 `type:*`/`area:*` 标签并注明发现者；
+  本仓无 `auto-discovered` 标签）。
+
+---
+
 ## 2026-09-30 会话（kerwin-20260930-1144Z）
 
 ### 接手状态
@@ -69,7 +105,7 @@
   44.8kB → 67.7kB gzip（+23kB，+51%），首屏合计 86.2kB，触发 70kB 门禁。
   根因是上游 react-dom 19 体积（client production 约 625kB vs 18 约 400kB），
   非本仓可优化。试验细节见 #44 评论。
-- 决策：保持 React 18；React 19 待“首屏预算重议（≥90kB）或懒拆方案”后另立项。
+- 决策：保持 React 18；React 19 待"首屏预算重议（≥90kB）或懒拆方案"后另立项。
 - 注意：不要为落地 React 19 而上调 bundle 预算——那会掏空 #42 门禁的意义。
 
 ### 他人工作（勿碰）
