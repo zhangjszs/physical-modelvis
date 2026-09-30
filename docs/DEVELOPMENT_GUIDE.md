@@ -59,7 +59,7 @@ interface SceneConfig {
 
 ### 渲染路径分支
 
-[`SimulationCanvas.tsx`](visualization/src/components/simulation/SimulationCanvas.tsx) 中通过 Set 集合判断渲染路径：
+[`SimulationCanvas.tsx`](../visualization/src/components/simulation/SimulationCanvas.tsx) 中通过 Set 集合判断渲染路径：
 
 ```typescript
 SCENES_3D = new Set(['projectile', 'uniform-accelerated', 'free-fall', 'circular-motion']);
@@ -126,7 +126,7 @@ SCENES_MECHANICS = new Set(['free-fall', 'galileo-incline', ...]);  // 基础力
 
 在对应的 rendering 文件中添加 `draw<SceneName>Scene()` 函数：
 
-**文件位置**: [`visualization/src/rendering/mechanicsScenes.ts`](visualization/src/rendering/mechanicsScenes.ts)
+**文件位置**: [`src/rendering/` 按领域分文件（如 `chapter5Scenes.ts`)](../visualization/src/rendering/)（原 `mechanicsScenes.ts` 已拆分，新增场景放到对应领域子文件，见 AGENTS.md 架构说明）
 
 **函数签名**:
 
@@ -183,7 +183,7 @@ export function drawMyNewSceneScene(opts: MechanicsSceneOptions): void {
 
 #### Step 3: 注册场景
 
-**文件位置**: [`visualization/src/components/simulation/SimulationCanvas.tsx`](visualization/src/components/simulation/SimulationCanvas.tsx)
+**文件位置**: [`visualization/src/components/simulation/SimulationCanvas.tsx`](../visualization/src/components/simulation/SimulationCanvas.tsx)
 
 **3a. 添加 import**:
 
@@ -424,7 +424,7 @@ npx tsc --noEmit 2>&1 | Select-Object -First 20
 | 文件 | 职责 |
 |------|------|
 | `visualization/src/components/simulation/SimulationCanvas.tsx` | 渲染主循环 + 场景路由 |
-| `visualization/src/rendering/mechanicsScenes.ts` | 力学场景自定义渲染函数 |
+| `visualization/src/rendering/mechanicsScenes.ts`（已按领域拆分为 `chapter*Scenes.ts` 等，见 `src/rendering/`） | 力学场景自定义渲染函数 |
 | `visualization/src/scenes/scenes/mechanics.ts` | 力学场景配置 + buildProblem |
 | `visualization/src/store/simulationStore.ts` | Zustand 全局状态管理 |
 | `visualization/src/rendering/CanvasRenderer.ts` | 底层绘图类（标准轨迹管线） |
@@ -742,8 +742,8 @@ const length = params['length'] ?? 1.0;  // 如果未传入则用 1.0
 ## 📞 联系方式
 
 如有问题，请检查：
-1. 本项目 [AGENTS.md](AGENTS.md) — AI Agent 行为规范
-2. 本项目 [WORKFLOW.md](docs/WORKFLOW.md) — 开发工作流文档
+1. 本项目 [AGENTS.md](../AGENTS.md) — AI Agent 行为规范
+2. 本项目 [WORKFLOW.md](WORKFLOW.md) — 开发工作流文档
 3. 测试覆盖率报告 — `npm test -- --coverage`
 
 ---

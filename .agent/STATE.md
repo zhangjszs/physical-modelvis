@@ -18,4 +18,4 @@
 
 ## 已完成（本会话）
 
-- （待填写）
+- #45（DEVELOPMENT_GUIDE 断链）：已修复并推送，issue 保持 open 等 owner 复核关闭。
