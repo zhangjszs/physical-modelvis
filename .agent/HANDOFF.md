@@ -31,4 +31,12 @@
 
 ### 给下一步的建议
 - #44 保持 open（React 19 阻塞项）；若上游 react-dom 体积显著下降再重估。
-- 主动发现请走保守原则，每轮最多 1 个新 issue，带 `auto-discovered` 标签。
+- 主动发现请走保守原则，每轮最多 1 个新 issue（注：本仓无 `auto-discovered` 标签，用现有 `type:*` 标签即可）。
+
+### 本会话收尾（Round 5–9，连续空轮 ×5 后停止）
+- Round 5：大文件/包体积扫描干净。Round 6：脚本引用全有主。
+  Round 7：tsconfig 无 baseUrl 残留。Round 8：仅剩大版本落差（#44 已跟踪）。
+  Round 9：CI 与 precheck 门禁一致（含新增的 bundle 检查）。
+- 推送：7f4ff29（.agent 初始化）/ c04218a（#45）/ 5ff1b31（HANDOFF 中期更新）。
+- 停止时状态：main 与 origin/main 同步，工作树干净；
+  open issue 只剩 #44（React 19 阻塞）与 #45（待 owner 复核关闭）。
