@@ -4,6 +4,13 @@ export interface Vector2D {
     readonly y: number;
 }
 
+/** 三维向量 — 纯数据，不可变 (3D 场源放置 / 空间轨迹用) */
+export interface Vector3D {
+    readonly x: number;
+    readonly y: number;
+    readonly z: number;
+}
+
 /** 带单位的物理量 */
 export interface Quantity<U extends string = string> {
     readonly value: number;

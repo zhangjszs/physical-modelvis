@@ -1,7 +1,15 @@
 // physics-core: 面向高中物理教学的二维物理模拟引擎
 
 // === 类型导出 ===
-export type { Vector2D, Quantity, ParameterSpec, ValidationResult, PhysicalBody, RenderHint } from './types/common.js';
+export type {
+    Vector2D,
+    Vector3D,
+    Quantity,
+    ParameterSpec,
+    ValidationResult,
+    PhysicalBody,
+    RenderHint
+} from './types/common.js';
 export type {
     PhysicsProblem,
     ModelType,
@@ -98,8 +106,28 @@ export {
 
 // === 基础设施导出 ===
 export { Vec2 } from './math/vector2d.js';
+export { Vec3 } from './math/vector3d.js';
 // QuantityFactory/convert/quantity 无外部消费者 (仅测试使用), 不再通过 barrel 公开
 export { PHYSICS_CONSTANTS } from './units/constants.js';
+
+// === 3D 场源与数值积分 (拖拽组合实验的地基) ===
+export type { ElectricFieldSource, MagneticFieldSource, FieldSource } from './physics/fields3d.js';
+export {
+    pointChargeElectricField,
+    chargedPlateElectricField,
+    straightWireMagneticField,
+    circularCoilMagneticField,
+    totalElectricField,
+    totalMagneticField
+} from './physics/fields3d.js';
+export type {
+    FieldAtPoint,
+    FieldEvaluator,
+    TrajectoryPoint3D,
+    BorisTrajectory3DOptions,
+    BorisTrajectory3DResult
+} from './physics/boris3d.js';
+export { borisTrajectory3D } from './physics/boris3d.js';
 
 // === 模型导出 ===
 export { PhysicsModelBase, registerModel, getModel, listModels } from './models/base.js';
