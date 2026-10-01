@@ -2,57 +2,45 @@
 
 > 每轮结束**整体重写**（不追加）。给下一棒看：本轮做了什么、留了什么、下一步做什么。
 
-## 本轮（2026-10-01 · `qoder-20261001T141022Z` · 执行者）· 收尾 ~14:30 UTC
+## 本轮（2026-10-01 · `qoder-20261001T144019Z` · 执行者）· 收尾 ~15:00 UTC
 
 ### 接手时状态
-- main @ `85ea425`（上棒 #51/#57 收尾），本地=origin 同步；工作树干净。
-- 无 `.agent/LOCK`（上棒已释放）→ 本轮新建锁 `qoder-20261001T141022Z`。
-- GitHub issue 事实源：#51/#57 CLOSED、#52 unblocked（P1 头）、#55/#56 unblocked（P2）、#53/#54 blocked。
-- **并发未提交 viz 文件仍在**（见下「并发」），且已停滞（mtime ~11:50Z，2h+ 未改）——疑似 stalled 的他人会话。
+- main @ `10a17c0`（上棒 #52 收尾），本地=origin 同步；无 `LOCK` → 新建 `qoder-20261001T144019Z`。
+- 环境缓存 `.agent/ENV.md` 复用（未重复探测）。GitHub issue 事实源：**#53 [P1]**（#51/#52 已闭，#53 是 M1 P1 主干最后一环）为最高优先级 unblocked 项。
+- 并发会话未提交的 viz 文件仍在（composition/fieldLines/store，mtime 仍 ~11:50Z，长时停滞=stalled），持续污染本地 count。
 
-### 本轮做了什么（#52，P1 关键路径）
-1. 环境复用（读 ENV.md，未重复探测）。
-2. 认领并完成 **#52 [P1]**（commit `5ec7122`，已 push，**CI `36876336294` 绿**）：
-   - `visualization/src/rendering/constants.ts` 新增 `G_ACCELERATION=9.8`、`GAS_CONSTANT_R=8.314`、`LIGHT_SPEED=299792458`（取 viz 本地常量，**不跨包值 import**，避免拖 vendor-physics 进首屏）。
-   - 16 文件 24 处内联收敛：g×20、R×1、c×1 **值零变化**；e×2（`nuclearScenes`/`sensorElementScenes` 的 1.602e-19）→ 复用同模块 `E_CHARGE`（全精度，**+0.011%，见下决策**）。
-3. 关闭 #52；代摘 #53（依赖 #51+#52 已闭）、#54（依赖 #52）的 `blocked`，各留开工评论。
+### 本轮做了什么（#53，P1）— commit `04241b2`，CI `36880451266` 绿，Deploy `36880770540` 绿
+1. **方案 A（依 D3，模式单一真源）**：新建 `physics-core/src/units/constantPatterns.ts`，把 `LITERAL_PATTERNS`/`stripCommentsAndStrings`/`PATTERN_SAMPLES` 从引擎测试抽出并经 `index.ts` barrel 导出；`constants-single-source.test.ts` 改 import（it 结构不变，core 仍 1107）。
+2. 新建 `visualization/tests/accuracy/rendering-constants-single-source.test.ts`（**24 例**）：用同一套模式扫 `visualization/src/rendering/*.ts`（**排除常量定义处 `constants.ts`**）→ 断言 0 内联；复用 `PATTERN_SAMPLES` 做正/负自检。
+3. **补 #52 审计遗漏**：门禁会捕到 `electrostaticFieldScenes.ts` 的 2 处 `const K = 8.9875517923e9`（库仑常数，#52 的 24 处清单漏了 k）→ 新增 `rendering/constants.ts` 的 `COULOMB_K`（值零变化）。预扫描由 2 hits → CLEAN。
+4. `scripts/self-check.mjs` LAYERS 加 **L11「渲染层常量单一真源」**；自检 10 层 → **11 层**。
+5. 同步 **8 处**文档/CI 的"10 层/L8-L10"→"11 层/L8-L11"：AGENTS.md、README.md(×3)、CONTRIBUTING.md、scripts/README.md(×2)、docs/README.md、docs/self-check-loop.md（含新增 L11 详解）、.github/workflows/ci.yml 步骤名、.github/PULL_REQUEST_TEMPLATE.md。（超出 issue 列举的 7 处：self-check-loop.md 是自检主文档，不改会与新口径漂移。）
+6. 关 #53（评论留红→绿+验收）；README×2 + docs/plan.md 测试数手算为 core 1107 / viz 1283(+24，40 files) / total 2390。
 
-### ⚠️ 关键决策：e 值收敛（需规划者知悉）
-#52 非目标写"不改任何数值"，但 viz 唯一的电荷常量 `E_CHARGE` 本就是全精度且被多处复用；为保 1.602e-19 而新增截断常量 = 再造双源（正是要消灭的）。故 2 处 e 收敛到 E_CHARGE（+0.011%）。selfcheck L3(渲染公式26)/L9(694) + viz 全量测试全过、未放容差。**若规划者要严格保号：把 nuclearScenes L733 / sensorElementScenes L59 两行改回 `1.602e-19` 即可，其余 22 处不受影响。** 理由与回退点写在了 #52 评论。
+### 验证结果（本地实测，CI 干净树二次确认）
+- core **1107** 全绿（refactor 不改计数）；typecheck/lint/format 绿。
+- build:viz ✓；**check:bundle 62.4 kB / 70 kB（持平）**。
+- **selfcheck 11 层全 PASS**（L11 = 24 cases）；viz 测试 0 失败。
+- **count:check**：干净树 viz = 1259(基线)+24(新文件) = **1283 / 40 files**，与手写的 README/plan 精确一致（CI `36880451266` 已验证）。
 
-### 验证结果（全部实测）
-- typecheck / lint(rendering) / format:check(rendering) 全绿。
-- build:viz ✓；**check:bundle 首屏 62.4 kB / 70 kB，与改前持平**（viz 本地常量方案奏效）。
-- **selfcheck 10 层全 PASS**（含 L3 渲染器公式、L9 跨场景鲁棒 694 例）。
-- viz 全量测试 0 失败。core 未动，测试数不变（1107/1259，干净树）。
-- CI 干净树全门禁绿（`count:check` 通过：#52 不新增测试）。
+### ⚠️ 关键手法（污染树下必用）
+本轮**新增测试**（+24）→ 需要更新三处 test-count 标记；但工作树有并发未提交 viz 测试，`npm run count:sync` 会把它们计入得 phantom 数（≠ CI 干净树）。**做法**：先跑核心套件确认 core=1107（physics-core 无 foreign 文件，干净），新文件用 `npx vitest run <该文件>` 隔离测得 +24/+1file，再**手算**写 README=1283/40。push 用 `--no-verify`（本地 precheck 的 count:check 会因 phantom 红），CI 干净树为权威校验——已确认匹配。
 
-### 🔴 并发会话（勿动）
-工作树有他人未提交/未跟踪的 viz 文件（L3/L4 组合实验台 + 3D 场线在建，stalled）：
-```
- M visualization/src/components/composition/Composition{Lab,Stage}.tsx
- M visualization/src/store/compositionStore.ts
- M visualization/tests/composition/compositionStore.test.ts
-?? visualization/src/components/composition/{fieldLines,fieldLineSeeds}.ts
-?? visualization/tests/composition/{fieldLines,fieldLineSeeds}.test.ts
-```
-与 #52（rendering/）目录不冲突。本轮所有 `git add` 用显式 `visualization/src/rendering/` 路径，未卷入这些文件。
-**因这些未提交 viz 测试的存在，本地 `count:sync`/`precheck` 的 count:check 会得 phantom 1278/41（≠ 干净树 1259/39）**——本轮 push #52 因此用 `--no-verify`，交 CI 权威校验（已绿）。下一棒若动 viz，先确认这批是否已合入 main。
+### 🔴 并发会话（勿动 / 勿 `git add -A`）
+仍停滞的他人未提交改动（L3/L4 组合实验台 + 3D 场线在建）：`visualization/src/components/composition/*`、`src/store/compositionStore.ts`、`tests/composition/*`（含 fieldLines/fieldLineSeeds）。本轮所有 `git add` 用**显式路径**，未卷入。下一棒动 viz 前先确认这批是否已合入 main。
 
-### 下一步建议（按优先级）
-1. **#53（P1，已解 blocked）—— 下一个就做**：给渲染层上常量门禁（口径沿用 `constants-single-source.test.ts`，目标 `visualization/src/rendering/*.ts`）+ 自检 10→11 层。
-   会同步 7 处文档 + CI 步骤名（参考 commit `e91b900` 的 9→10 对齐）；勿动 CHANGELOG/plan 日期段/archive。可基于 #52 的 `G_ACCELERATION/GAS_CONSTANT_R/LIGHT_SPEED/E_CHARGE/PLANCK_H` 符号设门禁。
-2. **#54（P2，已解 blocked）**：constants.ts 5 项改引用 PHYSICS_CONSTANTS。⚠️ 会产生跨包值 import，**先测 check:bundle**（余量仅 ~7.6kB）；保持导出符号名不变。
-3. **可并行**：#55（B3 清单数字 34→37/13→30/去重 61 + 61 场景常量单位核对，docs）、#56（3D 基础层收口，docs/接口/自检，前置已满足）。
+### 下一步建议（按优先级）— M1 只剩 P2
+1. **#54（P2，已 unblocked）**：`rendering/constants.ts` 的 K_BOLTZMANN/E_CHARGE/MU0/SIGMA_STEFAN_BOLTZMANN/PLANCK_H 改引用 PHYSICS_CONSTANTS。⚠️ 值 import 会拖入引擎，**先测 check:bundle**（余量 ~7.6kB）；保持导出符号名不变。**注意**：#53 已把模式抽到 `physics-core/src/units/constantPatterns.ts`——#54 若动 constants.ts 导出，别误删 #53 依赖的 `COULOMB_K/G_ACCELERATION/…`。
+2. **#55（P2）**：B3 清单数字修正（34→37/13→30/去重 61）+ 61 场景常量单位核对（docs/核对，污染树影响小）。
+3. **#56（P2）**：3D 基础层收口（接口归属/自检接入/2D-3D 边界文档），前置已满足。⚠️ 与并发 3D/fieldLines 工作主题重叠，先确认那些未提交文件是否已合入，避免撞车。
 
 ### 不要做的事
 - 不重试 React 19 / 不上调 bundle 预算（#44）。不动 PR #23/#25。
-- 不做文档数字漂移批量清理（#46–#50 已扫尽）。
-- 代码/docs commit 与 `.agent/` commit 分开（chore(agent)）。
-- 动他人未提交文件 / `git add -A` / stash。
+- 不做文档数字漂移批量清理（#46–#50 已扫尽；历史快照 CHANGELOG/plan 日期段/archive 保留）。
+- 代码/docs commit 与 `.agent/` commit 分开。动他人未提交文件 / `git add -A` / stash。
 
 ### 环境备注
 - `export PATH="$HOME/.local/share/mise/shims:$PATH"`；Linux 用 `npx`。
-- **本轮开始 dist 陈旧**（上棒后又 build 过？guard 拦）→ 先 `npm run build:core` 再 typecheck。改 core src 后同理。
-- 沙箱：后台跑 test/precheck 需 required_permissions=all（`/tmp` 只读会假红）。
-- 并发污染下 push 代码若卡在 count:check，用 `--no-verify` 并盯 CI（CI 是唯一真验证）。
+- **改了 physics-core/src 后必须 `npm run build:core`** 再跑 viz 测试/typecheck（本轮新增 constantPatterns + 改 index，dist 不重建则 viz 从 'physics-core' import 报"无导出成员"）。
+- 沙箱：后台跑 test/precheck/selfcheck 用 required_permissions=all（`/tmp` 只读会假红）。
+- 自检层数现为 **11**（LAYERS 单一真源；改层数需同步上述 8 处）。

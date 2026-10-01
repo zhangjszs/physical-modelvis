@@ -16,7 +16,7 @@
 - **格式**：`npm run format:check`（写入：`npm run format`）
 - **一键全量门禁（CI 等价）**：`npm run precheck`
   = build:core → typecheck → lint → format:check → test → count:check → build:viz → check:bundle → selfcheck
-- **物理自检**：`npm run selfcheck`（scripts/self-check.mjs，L0–L6 + L8–L10，共 10 层，无 L7）
+- **物理自检**：`npm run selfcheck`（scripts/self-check.mjs，L0–L6 + L8–L11，共 11 层，无 L7）
 - **首屏体积门禁**：`npm run check:bundle`（入口 chunks gzip ≤70kB）
 - **测试数单一真源**：`npm run count:sync` 实跑并回写三处 `<!-- test-count -->` 标记
   （README 顶部行 + README 测试覆盖块 + docs/plan.md）；`npm run count:check` 校验漂移
