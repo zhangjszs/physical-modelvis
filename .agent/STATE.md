@@ -2,10 +2,10 @@
 
 > 可机器解析的事实账本：活跃任务 / 已完成 / 阻塞。接力通过 git 历史 + GitHub issue + 本目录（ENV/STATE/HANDOFF）三重载体。
 
-- 当前 agent-id: `qoder-20261001T152658Z`（**执行者**）
-- 会话开始: 2026-10-01T15:26:58Z (UTC)
-- 本轮代码 commit: `2a0e312`（docs #55 步骤1）· CI `36885105814` 绿
-- 脉络：规划者 `claude-opus-5-…` 建 M1；执行棒 T114739Z(#51/#57/恢复 .agent) → T141022Z(#52) → T144019Z(#53) → 本棒 T152658Z(#55 步骤1)。
+- 当前 agent-id: `qoder-20261001T155922Z`（**执行者**）
+- 会话开始: 2026-10-01T15:59:22Z (UTC)
+- 本轮代码 commit: `3ea8ced`（refactor #54）· CI `36889246684` 绿 · Deploy `3ea8ced` 绿
+- 脉络：规划者 `claude-opus-5-…` 建 M1；执行棒 T114739Z(#51/#57/.agent) → T141022Z(#52) → T144019Z(#53) → T152658Z(#55步骤1) → 本棒 T155922Z(#54)。**M1 代码主干 #51/#52/#53/#54 已全部 CLOSED。**
 
 ## 接力载体
 - `.agent/` 随仓库提交（根 .gitignore 放行 `.agent/`；`.agent/.gitignore` 仅排 `LOCK`）。ENV.md 已更新自检为 **11 层**。人工可编辑 ENV.md 覆盖。
@@ -13,15 +13,17 @@
 ## 文件锁
 | 文件/目录 | 持有者 | 任务 | 时间 |
 |---|---|---|---|
-| `.agent/LOCK`（不提交，收尾删除） | qoder-20261001T152658Z | #55步骤1 | 2026-10-01T15:26:58Z |
+| `.agent/LOCK`（不提交，收尾删除） | qoder-20261001T155922Z | #54 | 2026-10-01T15:59:22Z |
 
 ## 当前活跃
-**#55 [P2] B 类清单数字修正 + 61 场景常量/单位核对** — **步骤1 完成（数字修正），步骤2 待做 → 保持 OPEN**
-- 步骤1（commit `2a0e312`，docs）：audit 文档 B-静态 34→37 / B-数值 13→30 / B 类合计 47→61（脚本实测 37+30−6=61）；6 跨列场景点名；`double-slit(sound-interference)` 拆回 double-slit（sound-interference 已迁）；plan.md B3 47→61。CI 绿。
-- **步骤2 未做**：对 61 个 B 类 sceneId 逐个核对常量/单位是否与引擎一致（方法见 #55 评论）。工作量大（planner 估 1+ 轮），留下一轮分批。发现不一致→另立 issue，不在 #55 内改数值。
+**本轮无活跃未完成任务**（#54 已 CLOSED）。**M1 常量单一真源全链路代码主干完成**：引擎#51 + 渲染#52/#53 + 跨包#54。
 
-### 上轮已做（#53，CLOSED）
-渲染层常量门禁（constantPatterns 共享 + L11 自检层，10→11）+ 补 #52 漏的 k×2 — commit `04241b2`，CI `36880451266`/Deploy `36880770540` 绿。
+**下一棒可做的 P2（均 unblocked）：**
+- **#55 步骤2**（#55 仍 OPEN）：61 个 B 类 sceneId 逐条常量/单位核对（planner 估 1+ 轮）；发现不一致→另立 issue，不在 #55 内改数值。方法见 #55 评论。
+- **#56**（M1.5）：3D 基础层收口（接口归属/自检接入/2D-3D 边界）。⚠️ 与并发 3D/fieldLines 在建工作主题重叠，先确认那些未提交文件是否已合入。
+
+### 本轮已做（#54，CLOSED）
+跨包双源消除 — rendering/constants.ts 5 项（K_BOLTZMANN/E_CHARGE/MU0/SIGMA_STEFAN_BOLTZMANN/PLANCK_H）→ PHYSICS_CONSTANTS.kB/e/mu0/sigmaSB/h（零数值变化）。**实测值 import 不把 vendor-physics 拖入首屏**（check:bundle 62.4kB 持平）→ 3ea8ced，CI 36889246684 绿。
 
 ## M1 依赖链（现状）— **P1 主干 #51/#52/#53 全部 CLOSED**
 | # | 主题 | 优先级 | blocked | 说明 |
@@ -29,12 +31,13 @@
 | #51 | 引擎门禁堵漏（电荷常量） | P1 | 否 | CLOSED |
 | #52 | 渲染层 24 处内联收敛 | P1 | 否 | CLOSED |
 | #53 | 渲染层常量门禁 + 自检 11 层 | P1 | 否 | **本轮 CLOSED** |
-| #54 | 跨包双源消除（constants.ts 5 项引用 PHYSICS_CONSTANTS） | P2 | 否 | 已解 blocked（上棒）；⚠️ 值 import 首屏风险，先测 bundle；保持符号名 |
+| #54 | 跨包双源消除（constants.ts 5 项引用 PHYSICS_CONSTANTS） | P2 | 否 | **本轮 CLOSED**（3ea8ced；bundle 实测未破 70kB）|
 | #55 | B3 清单数字修正 + 61 场景常量单位核对 | P2 | 否 | **步骤1 完成**（数字）；步骤2（61 场景核对）待做，保持 OPEN |
 | #56 | 3D 物理基础层收口（接口归属/自检接入/2D-3D 边界） | P2 | 否 | 未开始；前置已满足 |
 | #57 | Deploy 修复 | P1 | — | CLOSED |
 
 ## 已完成（最近，≤20 条）
+- **#54** 跨包双源消除：rendering/constants.ts 5 项→PHYSICS_CONSTANTS（零值变化；bundle 62.4kB 持平）— 3ea8ced，**M1 代码主干完成**
 - **#55步骤1** B 类清单数字修正 34/13/47→37/30/61（脚本实测）+ double-slit 别名拆分 + plan.md B3 — 2a0e312（#55 仍 OPEN，步骤2 待做）
 - **#53** 渲染层常量门禁（constantPatterns 共享 + L11 自检层 + 24 例测试 + 8 处文档 10→11 + 补 #52 漏的 k×2）— 04241b2，CLOSED
 - **#52** 渲染层 24 处内联 g/R/e/c 收敛到 rendering/constants.ts — 5ec7122，CLOSED
