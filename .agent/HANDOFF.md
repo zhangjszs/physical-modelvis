@@ -2,44 +2,42 @@
 
 > 每轮结束**整体重写**（不追加）。给下一棒看：本轮做了什么、留了什么、下一步做什么。
 
-## 本轮（2026-10-01 · `qoder-20261001T155922Z` · 执行者）· 收尾 ~16:10 UTC
+## 本轮（2026-10-01 · `qoder-20261001T161520Z` · 执行者）· 收尾 ~16:30 UTC
 
 ### 接手时状态
-- main @ `f87720a`（上棒 #55步骤1），本地=origin；无 `LOCK` → 新建 `qoder-20261001T155922Z`。
-- issue：M1 P1 主干 #51/#52/#53 已 CLOSED；剩 P2：#54（跨包双源）/#55（步骤2 待做）/#56。
-- **并发会话未提交 viz 文件（composition/fieldLines/store）自 11:51Z 起停滞 ~4h** → 判定为 stalled 会话，仍在污染本地 count。
+- main @ `f2c629b`（上棒 #54 收尾），本地=origin；无 `LOCK` → 新建 `qoder-20261001T161520Z`。
+- issue：M1 代码主干 #51/#52/#53/#54 全 CLOSED；剩 P2：#55（步骤2 待做）、#56（M1.5）、#44。
+- 并发会话未提交 viz 文件（composition/fieldLines/store）**仍停在 mtime ~11:51Z（stalled ~4.5h）**，持续污染本地 count。
 
-### 本轮做了什么（#54，P2 — M1 收口）— commit `3ea8ced`，**CI `36889246684` 绿 · Deploy `3ea8ced` 绿**
-- `visualization/src/rendering/constants.ts` 5 个跨包重叠常量 `K_BOLTZMANN/E_CHARGE/MU0/SIGMA_STEFAN_BOLTZMANN/PLANCK_H` → 引用 `PHYSICS_CONSTANTS.kB/e/mu0/sigmaSB/h.value`。**取值逐项与改前严格相等 → 零数值变化**。文件头陈旧注释（"引擎不含 k_B/h/σ_SB"）一并更正。
-- **#54 选它而非 #55步骤2/#56 的理由**：#54 完成 M1 核心使命（跨包单一真源），且**不改测试数**（污染对它无影响）；其唯一顾虑是值 import 拖入 vendor-physics 破 70kB —— 该风险**可本地量测**（bundle≠count），实测证明不发生。#56 与并发 3D 工作重叠，#55步骤2 是 61 场景低产出长 grind，故先做 #54。
+### 本轮做了什么（#56，P2 — M1.5 收口）— commit `2e9ccf1`，**CI `36891721823` 绿 · Deploy `36892028568` 绿**
+1. **接口归属（方案 A）**：`physics-core/src/physics/boris3d.ts` 里 `TrajectoryPoint3D` 的"待归并 SimulationResult"占位注释 → 明确决策：3D 轨迹是**独立于 SimulationResult 的通道，不并入**。理由：`SimulationResult.TrajectoryPoint`(Vector2D) 是 123 场景/`getFrame`/`single-source-contract.test.ts` 的支点，扩成 2D/3D 联合属破坏性变更。
+2. **3D 自检接入（仍 11 层，刻意不 +1）**：`scripts/self-check.mjs` 把 3D 测试并入既有层 —— L8 加 `tests/unit/boris3d.test.ts`（9→18 例）、L1 加 `tests/unit/fields3d.test.ts`（16→30 例）。层数不变 → **无 8 处文档/CI 层数同步**（避开 #53 式 churn）。
+3. **顺带修真 bug**：`runLayer` 此前对所有 test 项一律前缀 `tests/accuracy/`，而 3D 测试在 `tests/unit/` → 直接写文件名会被 vitest 静默跳过（首次接入时 L1/L8 计数没变即暴露）。改为"含 '/' 则按原样解析路径"，向后兼容。
+4. **2D/3D 边界文档**：AGENTS.md「Key Patterns」新增条目（纯 2D 匀强场用 `em-combined-field` 解析；3D/非匀强/组合场用 `boris3d`+`fields3d`，独立通道）。
 
-### ⚠️ 关键实测（issue 的 bundle 顾虑）
-值 import 从 `'physics-core'` barrel 引 PHYSICS_CONSTANTS **不会**把引擎拖入首屏：
-- `build:viz` + `node scripts/check-bundle-size.mjs` → 入口合计 **62.4 kB / 70 kB，与改前持平**。
-- 原理：`rendering/constants.ts` 在**懒加载 renderer chunk**（非 index 入口）；`units/constants.js` 是无副作用叶子模块、可 tree-shake，只 constants 值进该 chunk。
-- 故 #54 用直接值 import（运行时单一真源）成立，无需 type-only/构建期镜像降级。
+### 选 #56 而非 #55步骤2 的理由
+#56 是有实质工程价值的收口（接口决策/自检/边界），且**不新增 vitest 用例**（core 仍 1107）→ 污染树无影响、count 不动；只碰 physics-core + scripts + 文档，**不碰并发会话占用的 visualization 文件**。#55 步骤2 是 61 场景长 grind。
 
 ### 验证（全绿）
-- selfcheck **11 层全 PASS**（L0 物理常数 / L3 渲染器公式 / L11 渲染层常量门禁 —— 值未变）。
-- viz 测试 0 失败；typecheck / lint / format 绿。不改测试数（README 仍 core 1107 / viz 1283 / total 2390）。
-- push 用 `--no-verify`（污染树本地 count:check 不可信），CI 干净树已验证 count:check 通过（#54 不加测试）。
+- typecheck / lint / format 绿；**selfcheck 11 层全 PASS（L1=30 / L8=18，含 3D）**；core 1107（不新增用例）。未改 viz → 测试数不变（README 维持 core 1107 / viz 1283 / total 2390）。
+- 因污染树本地 count:check 不可信 → push 用 `--no-verify`；CI 干净树已验证 count:check 通过（#56 不改测试数）。
 
 ### 🔴 并发会话（仍勿动 / 勿 `git add -A`）
-`visualization/src/components/composition/*`、`src/store/compositionStore.ts`、`tests/composition/*`（含 fieldLines/fieldLineSeeds），mtime 停在 ~11:51Z（stalled）。所有 `git add` 用显式路径。若下轮这些文件已被合入或被清除，工作树即"干净"，可正常跑 count:sync/完整 precheck。
+`visualization/src/components/composition/*`、`src/store/compositionStore.ts`、`tests/composition/*`（含 fieldLines/fieldLineSeeds），mtime 停在 ~11:51Z。所有 `git add` 用显式路径。若这些被合入/清场，工作树即干净，可正常跑完整 precheck。
 
-### 下一步建议（按优先级）
-1. **#55 步骤2**（#55 仍 OPEN）：61 个 B 类 sceneId 逐条常量/单位核对（scene `parameters[].unit`/default + 渲染引用常量 vs 引擎 `PHYSICS_CONSTANTS`/`ParameterSpec.unit`）。分批填"核对记录表"，发现不一致→另立 issue，**不在 #55 内改数值**。纯读核对，受污染影响小。
-2. **#56**（M1.5）：3D 基础层收口（`TrajectoryPoint3D` 接口归属 / 3D 自检接入 / 2D-3D 边界文档）。⚠️ 先确认并发 3D/fieldLines 未提交文件是否已合入 main，避免撞车。若 #56 要加自检层，注意自检现为 11 层（改动需同步 8 处文档 + CI 步骤名，见 #53）。
-3. #44（React19 等）保持 open，勿动。
+### 下一步建议
+1. **#55 步骤2（唯一实质性剩余项，#55 仍 OPEN）**：61 个 B 类 sceneId 逐条常量/单位核对。方法见 #55 评论：逐 scene 取 `parameters[].unit`/default + 渲染引用常量，比对引擎 `PHYSICS_CONSTANTS`/`ParameterSpec.unit`。分批填"核对记录表"；发现不一致→**另立 issue**，不在 #55 内改数值。纯读，受污染影响小。可考虑写脚本自动比对 unit（若发现可自动化模式→另立门禁 issue）。
+2. 若 M1 全部收口后需要新里程碑方向，读 issue/PR 现状再定（#44 React19 等依赖专项保持 open，勿动）。
 
 ### 不要做的事
 - 不重试 React 19 / 不上调 bundle 预算（#44）。不动 PR #23/#25。
 - 不做文档数字漂移批量清理（#46–#50 已扫尽；历史快照保留）。
 - 代码/docs commit 与 `.agent/` commit 分开。动他人未提交文件 / `git add -A` / stash。
+- 别给自检 +1 层，除非确实需要 —— 优先像 #56 这样并入既有层，省 8 处文档同步。
 
 ### 环境备注
 - `export PATH="$HOME/.local/share/mise/shims:$PATH"`；Linux 用 `npx`。
-- 改 physics-core/src 后跑 viz 测试/typecheck 前必须 `npm run build:core`（dist 含 barrel 导出）。#54 未改 core，dist 沿用。
+- 改 physics-core/src 后跑 viz 测试/typecheck 前必须 `npm run build:core`（#56 改了 boris3d.ts 注释，已重建）。
 - 沙箱：后台 test/precheck/selfcheck 用 required_permissions=all（/tmp 只读假红）。
-- 污染树：凡测试数/count:check 以 CI 干净树为准；bundle/build 类可本地量（不受 test-count 污染影响）。
-- 自检现为 **11 层**；M1 代码主干（#51/#52/#53/#54）完成。
+- 污染树：测试数/count:check 以 CI 干净树为准；selfcheck/bundle 类可本地量（不受 test-count 污染影响）。
+- 自检现为 **11 层**；M1 + M1.5 代码全部收口（#51/#52/#53/#54/#56/#57 CLOSED）。
