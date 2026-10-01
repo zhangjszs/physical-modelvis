@@ -9,6 +9,10 @@ import { GuidancePanel } from '../components/guidance/GuidancePanel';
 const LazyWorkbenchScene = lazy(() =>
     import('../components/workbench/WorkbenchScene').then(m => ({ default: m.WorkbenchScene }))
 );
+// 组合实验台 (L4) 同样 lazy — three.js 交互舞台不进首屏包
+const LazyCompositionLab = lazy(() =>
+    import('../components/composition/CompositionLab').then(m => ({ default: m.CompositionLab }))
+);
 
 export function App() {
     const errorMessage = useSimulationStore(s => s.errorMessage);
@@ -18,6 +22,8 @@ export function App() {
     const toggleTheme = useSimulationStore(s => s.toggleTheme);
     const ensureScenesLoaded = useSimulationStore(s => s.ensureScenesLoaded);
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    // 顶层模式: 教材实验目录 / 自由组合实验台
+    const [mode, setMode] = useState<'scenes' | 'composition-lab'>('scenes');
 
     // 挂载即预载全部场景配置(懒加载领域 chunk)
     useEffect(() => {
@@ -34,6 +40,12 @@ export function App() {
                     </div>
                 </div>
                 <div className="top-bar-right">
+                    <button
+                        className="btn btn-sm"
+                        onClick={() => setMode(m => (m === 'composition-lab' ? 'scenes' : 'composition-lab'))}
+                    >
+                        {mode === 'composition-lab' ? '📚 教材实验' : '🧪 组合实验台'}
+                    </button>
                     <OCRPanel />
                     <GuidancePanel />
                     <button className="btn btn-sm" onClick={toggleTheme}>
@@ -64,7 +76,11 @@ export function App() {
                         </div>
                     }
                 >
-                    <LazyWorkbenchScene />
+                    {mode === 'composition-lab' ? (
+                        <LazyCompositionLab onExit={() => setMode('scenes')} />
+                    ) : (
+                        <LazyWorkbenchScene />
+                    )}
                 </Suspense>
             </main>
 
