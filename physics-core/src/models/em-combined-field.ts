@@ -40,7 +40,7 @@ export class EMCombinedFieldModel extends PhysicsModelBase {
         this.throwIfInvalid(problem);
 
         const body = problem.bodies[0]!;
-        const q = body.charge?.value ?? 1.6e-19;
+        const q = body.charge?.value ?? PHYSICS_CONSTANTS.e.value;
         const m = body.mass.value;
         const x0 = body.position;
         const v0 = body.velocity;

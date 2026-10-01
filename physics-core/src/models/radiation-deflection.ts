@@ -1,4 +1,5 @@
 import { PhysicsModelBase } from './base.js';
+import { PHYSICS_CONSTANTS } from '../units/constants.js';
 import type { PhysicsProblem } from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, ChartSeries } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
@@ -27,7 +28,7 @@ export class RadiationDeflectionModel extends PhysicsModelBase {
         const B = c.Bfield,
             E_MeV = c.particleEnergy,
             type = c.particleType;
-        const e = 1.602e-19,
+        const e = PHYSICS_CONSTANTS.e.value,
             MeV_to_J = 1.602e-13;
 
         let m: number, q: number, label: string;

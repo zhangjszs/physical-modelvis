@@ -31,7 +31,10 @@ const LITERAL_PATTERNS: Array<{ name: string; re: RegExp }> = [
     // 摩尔气体常量
     { name: 'R=8.314', re: /(?<![\d.])8\.314(?![\d])/ },
     // 基本电荷 / 光速
-    { name: 'e=1.602176634e-19', re: /(?<![\d.])1\.602176634e-19/ },
+    // e 覆盖全精度与常见截断写法 (1.602e-19 / 1.6e-19 此前绕过门禁, 见 #51)。
+    //   用 1\.6 前缀 (而非更窄的 1\.60) 才能同时捕获 1.6e-19; (?<![\d.]) 抑制
+    //   被数字/小数点前缀包裹的误伤; 指数固定 e-19, 故 1.602e-13(MeV→J) 等不受波及。
+    { name: 'e=1.602176634e-19', re: /(?<![\d.])1\.6\d*e-19/ },
     { name: 'c=299792458', re: /(?<![\d.])299792458(?![\d])/ }
 ];
 
@@ -127,4 +130,39 @@ describe('#13 物理常量单一真源', () => {
             }
         });
     });
+});
+
+/**
+ * 门禁模式自检 (#51): 逐条验证 LITERAL_PATTERNS 的正/负样例。
+ * 防止模式本身写错 —— 电荷模式曾只匹配全精度写法, 截断写法 (1.6e-19) 完全绕过。
+ * 约定: 每条模式必须命中其正样例, 且不命中其负样例; 新模式未在 PATTERN_SAMPLES
+ * 登记即判失败 (强制补样例)。
+ */
+const PATTERN_SAMPLES: Record<string, { positive: string[]; negative: string[] }> = {
+    'g=9.8': { positive: ['const g = 9.8;', 'a = 9.8 * m'], negative: ['9.80665', '98', '0.985'] },
+    'k=8.9875517923e9': { positive: ['const k = 8.9875517923e9;'], negative: ['8.99e9', '8.9875517923e8'] },
+    'mu0=4π×1e-7': { positive: ['4 * Math.PI * 1e-7', '4*Math.PI*1e-7'], negative: ['4 * Math.PI * 1e-8'] },
+    'R=8.314': { positive: ['const R = 8.314;'], negative: ['8.314462618', '8.31'] },
+    'e=1.602176634e-19': {
+        positive: ['1.602176634e-19', '1.602e-19', '1.6e-19', 'const q = 1.6e-19;', 'total * 200e6 * 1.602e-19'],
+        negative: ['2.5e-19', '1.602e-13', '1.6e-20', '11.6e-19']
+    },
+    'c=299792458': { positive: ['const c = 299792458;'], negative: ['2997924580', '2.99792458e8'] }
+};
+
+describe('#51 门禁模式自检 (正/负样例)', () => {
+    for (const { name, re } of LITERAL_PATTERNS) {
+        const samples = PATTERN_SAMPLES[name];
+        it(`${name}: 已在 PATTERN_SAMPLES 登记`, () => {
+            expect(samples, `LITERAL_PATTERNS 里的 ${name} 缺少 PATTERN_SAMPLES 登记`).toBeDefined();
+        });
+        it(`${name}: 命中全部正样例`, () => {
+            if (!samples) return;
+            for (const s of samples.positive) expect(re.test(s), `正样例未被命中: ${JSON.stringify(s)}`).toBe(true);
+        });
+        it(`${name}: 不命中任何负样例`, () => {
+            if (!samples) return;
+            for (const s of samples.negative) expect(re.test(s), `负样例被误伤: ${JSON.stringify(s)}`).toBe(false);
+        });
+    }
 });

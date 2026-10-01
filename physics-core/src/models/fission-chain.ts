@@ -1,4 +1,5 @@
 import { PhysicsModelBase } from './base.js';
+import { PHYSICS_CONSTANTS } from '../units/constants.js';
 import type { PhysicsProblem } from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, ChartSeries } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
@@ -43,7 +44,7 @@ export class FissionChainModel extends PhysicsModelBase {
         }
 
         const kStatus = Math.abs(k - 1) < 1e-6 ? '临界' : k > 1 ? '超临界(k>1)' : '次临界(k<1)';
-        const E_tot = total * 200e6 * 1.602e-19;
+        const E_tot = total * 200e6 * PHYSICS_CONSTANTS.e.value;
 
         return {
             meta: this.makeMeta('analytical'),

@@ -2,11 +2,12 @@ import type { PhysicsProblem } from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
+import { PHYSICS_CONSTANTS } from '../units/constants.js';
 
 // 普朗克常量 (J·s), 元电荷 (C), 1 eV (J)
 const h = 6.626e-34;
-const e = 1.602e-19;
-const eV = 1.602e-19;
+const e = PHYSICS_CONSTANTS.e.value;
+const eV = PHYSICS_CONSTANTS.e.value;
 
 /**
  * 光电效应模型 — 爱因斯坦方程 hν = W₀ + e·U_c (选必三 第四章 §2)

@@ -4,6 +4,7 @@ import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries } from '.
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
 import { Vec2 } from '../math/vector2d.js';
+import { PHYSICS_CONSTANTS } from '../units/constants.js';
 
 /** 匀强磁场中的带电粒子运动模型 */
 export class UniformMagneticModel extends PhysicsModelBase {
@@ -24,7 +25,7 @@ export class UniformMagneticModel extends PhysicsModelBase {
         this.throwIfInvalid(problem);
 
         const body = problem.bodies[0]!;
-        const q = body.charge?.value ?? 1.6e-19;
+        const q = body.charge?.value ?? PHYSICS_CONSTANTS.e.value;
         const m = body.mass.value;
         const x0 = body.position;
         const v0 = body.velocity;

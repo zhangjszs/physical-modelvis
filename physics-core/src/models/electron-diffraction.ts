@@ -1,4 +1,5 @@
 import { PhysicsModelBase } from './base.js';
+import { PHYSICS_CONSTANTS } from '../units/constants.js';
 import type { PhysicsProblem } from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, ChartSeries } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
@@ -26,7 +27,7 @@ export class ElectronDiffractionModel extends PhysicsModelBase {
         const d = (c.crystalLattice ?? 0.213) * 1e-9;
         const h = 6.626e-34,
             m = 9.109e-31,
-            e = 1.602e-19;
+            e = PHYSICS_CONSTANTS.e.value;
         const lam = h / Math.sqrt(2 * m * e * U);
         const N = c.sampleCount ?? 50;
 
