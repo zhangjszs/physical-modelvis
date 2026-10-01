@@ -59,7 +59,9 @@ test-results/
 # Self-check run reports (regenerated on each precheck)
 .scratch/
 
-# Agent tool local state (must never be committed)
+# Agent 工具本地状态：以下均不提交。
+# 例外：.agent/ 是"时间流接力"状态目录（ENV/STATE/HANDOFF/ISSUE_DRAFTS），
+#       随仓库提交；仅其运行时锁 LOCK 由 .agent/.gitignore 排除。
 .omc/
 **/.omc/
 .omo/
@@ -71,7 +73,6 @@ test-results/
 .agents/
 .superpowers/
 **/.superpowers/
-.agent/
 docs/superpowers/
 
 # Windows reserved name
