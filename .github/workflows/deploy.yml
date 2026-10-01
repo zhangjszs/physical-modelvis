@@ -33,7 +33,7 @@ jobs:
             physics-core/package-lock.json
             visualization/package-lock.json
 
-      - name: 安装依赖 (npm workspaces: 根目录一次装齐)
+      - name: 安装依赖 (npm workspaces 根目录一次装齐)
         run: npm ci
 
       - name: 构建
