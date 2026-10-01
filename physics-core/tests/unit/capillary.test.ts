@@ -26,12 +26,14 @@ describe('G8: Capillary', () => {
         expect(m.modelType).toBe('capillary');
     });
     it('chart', () => {
-        expect(
-            m.solve(
-                makeProblem('capillary', {
-                    capillary: { tubeRadius: 0.0005, liquidMode: 'water', materialMode: 'glass' }
-                })
-            ).charts.x_t
-        ).toBeDefined();
+        const res = m.solve(
+            makeProblem('capillary', {
+                capillary: { tubeRadius: 0.0005, liquidMode: 'water', materialMode: 'glass' }
+            })
+        );
+        expect(res.charts.x_t).toBeDefined();
+        // #58 单一真源: 水 σ 取自 PHYSICS_CONSTANTS.sigmaWater20C (0.0728), 与 surface-tension 同值
+        const mv = res.diagnostics.maxValues as Record<string, number>;
+        expect(mv.sigma).toBeCloseTo(0.0728, 6);
     });
 });

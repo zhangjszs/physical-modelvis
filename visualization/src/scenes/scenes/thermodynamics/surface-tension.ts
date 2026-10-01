@@ -15,7 +15,7 @@ export const surface_tensionScene: SceneConfig = {
             max: 1,
             step: 1,
             default: 0,
-            description: '水 σ₀=0.072 N/m; 水银 σ₀=0.487 N/m (20°C)'
+            description: '水 σ₀=0.0728 N/m; 水银 σ₀=0.487 N/m (20°C)'
         },
         {
             name: 'sliderLength',

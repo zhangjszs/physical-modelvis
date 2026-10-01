@@ -27,12 +27,15 @@ describe('G7: SurfaceTension', () => {
     });
     // temperature 单位为 °C (非 K) — 与 requiredParameters 声明一致
     it('chart', () => {
-        expect(
-            m.solve(
-                makeProblem('surface-tension', {
-                    surfaceTension: { liquidMode: 'water', sliderLength: 0.05, temperature: 20 }
-                })
-            ).charts.x_t
-        ).toBeDefined();
+        const res = m.solve(
+            makeProblem('surface-tension', {
+                surfaceTension: { liquidMode: 'water', sliderLength: 0.05, temperature: 20 }
+            })
+        );
+        expect(res.charts.x_t).toBeDefined();
+        // #58 单一真源: 水 σ₀ 取自 PHYSICS_CONSTANTS.sigmaWater20C (0.0728), 不得回退内联 0.072
+        const mv = res.diagnostics.maxValues as Record<string, number>;
+        expect(mv.sigma0).toBeCloseTo(0.0728, 6);
+        expect(mv.sigma).toBeCloseTo(0.0728, 6); // T=20 → σ=σ₀
     });
 });

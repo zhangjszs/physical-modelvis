@@ -2,6 +2,7 @@ import type { PhysicsProblem } from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
+import { PHYSICS_CONSTANTS } from '../units/constants.js';
 
 /**
  * 表面张力约束 — 选必三 液体表面性质
@@ -15,7 +16,7 @@ import { PhysicsModelBase } from './base.js';
  * 物理原理：
  *   表面张力: F_sigma = 2 * sigma * L (液膜有两个表面)
  *   温度依赖: sigma(T) = sigma_0 - beta * (T - T_0) (线性降低)
- *   水: sigma_0 ≈ 0.072 N/m (20°C), beta ≈ 1.5e-4 N/(m·K)
+ *   水: sigma_0 ≈ 0.0728 N/m (20°C, IAPWS), beta ≈ 1.5e-4 N/(m·K)
  *   水银: sigma_0 ≈ 0.487 N/m (20°C), beta ≈ 2.0e-4 N/(m·K)
  */
 export class SurfaceTensionModel extends PhysicsModelBase {
@@ -47,8 +48,9 @@ export class SurfaceTensionModel extends PhysicsModelBase {
         const L = sc.sliderLength;
         const T = sc.temperature;
 
-        // 表面张力参数
-        const sigma0 = liquidMode === 'water' ? 0.072 : 0.487; // N/m at 20°C
+        // 表面张力参数 (σ₀ 取自 PHYSICS_CONSTANTS 单一真源 — #58 消除内联 0.072 双源)
+        const sigma0 =
+            liquidMode === 'water' ? PHYSICS_CONSTANTS.sigmaWater20C.value : PHYSICS_CONSTANTS.sigmaMercury20C.value; // N/m at 20°C
         const beta = liquidMode === 'water' ? 1.5e-4 : 2.0e-4; // N/(m·K)
         const T0 = 20; // °C
 

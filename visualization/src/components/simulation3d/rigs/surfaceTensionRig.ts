@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { SceneRig } from '../EquipmentStage';
 import { makeBox, makeCylinder, makeArrow, makeTextSprite } from '../primitives';
 import { num, setLabel } from './params';
+import { SIGMA_WATER_20C, SIGMA_MERCURY_20C } from '../../../rendering/constants';
 
 const WORLD_SCALE = 0.16;
 
@@ -188,8 +189,10 @@ function updateST(h: SurfaceTensionHandles, params: Record<string, number>): voi
     const L_cm = num(params['sliderLength'], 4.0);
     const T = num(params['temperature'], 20);
 
-    const sigma0 = isMercury ? 0.487 : 0.072; // N/m (20°C)
-    const sigma = Math.max(0.01, sigma0 * (1 - (T - 20) * 0.002));
+    // σ₀ / 温度模型与引擎 surface-tension.ts 同源 (#58): 常数取自 SIGMA_*_20C, 温度用加法线性降低。
+    const sigma0 = isMercury ? SIGMA_MERCURY_20C : SIGMA_WATER_20C; // N/m (20°C)
+    const beta = isMercury ? 2.0e-4 : 1.5e-4; // N/(m·K)
+    const sigma = Math.max(0.01, sigma0 - beta * (T - 20));
     const L_m = L_cm / 100;
     // 双层液膜表面张力合力
     const F_sigma = 2 * sigma * L_m;

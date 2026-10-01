@@ -11,7 +11,7 @@
  * 设计原则：纯函数 + 屏幕坐标, 零依赖 React/Zustand/CoordinateTransformer
  */
 import type { SimulationResult } from 'physics-core';
-import { G_ACCELERATION } from './constants';
+import { G_ACCELERATION, SIGMA_WATER_20C, SIGMA_MERCURY_20C } from './constants';
 import {
     roundRectPath,
     clearScene,
@@ -317,9 +317,13 @@ export function drawSurfaceTensionScene(o: ThermalSceneOptions): void {
     const isMercury = (params['medium'] ?? 0) === 1;
     const L = params['sliderLength'] ?? 4;
     const Tdeg = params['temperature'] ?? 20;
-    const sigma0 = isMercury ? 0.487 : 0.072;
-    const sigma = sigma0 * (1 - 0.002 * (Tdeg - 20));
-    const F = 2 * sigma * (L / 100);
+    // 单一真源 (#58): headline σ₀ / σ(T) / F 优先消费引擎 surface-tension 输出 (diagnostics.maxValues);
+    // 无引擎结果时回退自算 — 常数取自 SIGMA_*_20C (即 PHYSICS_CONSTANTS), 温度用与引擎一致的加法线性降低模型。
+    const stMv = simulationResult?.diagnostics?.maxValues as Record<string, number> | undefined;
+    const sigma0 = stMv?.sigma0 ?? (isMercury ? SIGMA_MERCURY_20C : SIGMA_WATER_20C);
+    const beta = stMv?.beta ?? (isMercury ? 2.0e-4 : 1.5e-4); // N/(m·K), 与引擎 surface-tension.ts 同模型
+    const sigma = stMv?.sigma ?? Math.max(0, sigma0 - beta * (Tdeg - 20));
+    const F = stMv?.Fsigma ?? 2 * sigma * (L / 100);
 
     drawTitle(ctx, '表面张力 (液膜收缩)', w, isDark, { size: 18, y: 28 });
 
@@ -516,15 +520,17 @@ export function drawCapillaryScene(o: ThermalSceneOptions): void {
     const isMercury = (params['medium'] ?? 0) === 1;
     const isParaffin = (params['material'] ?? 0) === 1;
 
-    // 物理参数 (Jurin 公式, 常量与引擎 capillary.ts 同源)
-    const sigma = isMercury ? 0.487 : 0.072;
-    const rho = isMercury ? 13534 : 1000;
-    const thetaDeg = isMercury ? (isParaffin ? 150 : 140) : isParaffin ? 105 : 0;
-    const thetaRad = (thetaDeg * Math.PI) / 180;
+    // 物理参数 (Jurin 公式)。单一真源 (#58): 优先消费引擎 capillary 输出 (maxValues.sigma/density/thetaDeg/h/hMm),
+    // 无引擎结果时回退自算 — σ 取 SIGMA_*_20C (即 PHYSICS_CONSTANTS), 与引擎常量同源。
+    const capMv = simulationResult?.diagnostics?.maxValues as Record<string, number> | undefined;
     const g = G_ACCELERATION;
     const r = rMm * 1e-3;
-    const capillaryHM = (2 * sigma * Math.cos(thetaRad)) / (rho * g * r); // m
-    const hMm = capillaryHM * 1000;
+    const sigma = capMv?.sigma ?? (isMercury ? SIGMA_MERCURY_20C : SIGMA_WATER_20C);
+    const rho = capMv?.density ?? (isMercury ? 13534 : 1000);
+    const thetaDeg = capMv?.thetaDeg ?? (isMercury ? (isParaffin ? 150 : 140) : isParaffin ? 105 : 0);
+    const thetaRad = (thetaDeg * Math.PI) / 180;
+    const capillaryHM = capMv?.h ?? (2 * sigma * Math.cos(thetaRad)) / (rho * g * r); // m
+    const hMm = capMv?.hMm ?? capillaryHM * 1000;
 
     drawTitle(ctx, '毛细现象 (液面升降)', w, isDark, { size: 18, y: 28 });
 

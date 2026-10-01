@@ -66,5 +66,20 @@ export const PHYSICS_CONSTANTS = {
      * CODATA 2018 推荐值。此前 gas-law / adiabatic-compression 各自内联 8.314,
      * 属双源; 统一到此处。理论值 8.314462618…, 教材取 8.314。
      */
-    R: q(8.314, 'J/(mol·K)', 'R')
+    R: q(8.314, 'J/(mol·K)', 'R'),
+
+    /**
+     * 水在 20℃ 的表面张力系数 σ_水 (N/m) — IAPWS R1-95
+     *
+     * #58: 此前引擎 surface-tension/capillary 内联 0.072, 渲染层 constants.ts 取 0.0728,
+     * 属跨包双源且取值分歧。统一到此处 (IAPWS 0.0728), 引擎与渲染均引用本条目。
+     */
+    sigmaWater20C: q(0.0728, 'N/m', 'σ_水'),
+
+    /**
+     * 水银在 20℃ 的表面张力系数 σ_水银 (N/m)
+     *
+     * #58 一并收录, 供引擎 surface-tension/capillary 与渲染层引用 (消除内联 0.487 双源)。
+     */
+    sigmaMercury20C: q(0.487, 'N/m', 'σ_水银')
 } as const;

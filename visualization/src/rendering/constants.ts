@@ -26,11 +26,11 @@ export const SIGMA_COPPER_20C = 5.8e7;
 /** 斯特藩-玻尔兹曼常数 (W/m²K⁴) — 引用引擎单一真源 (#54) */
 export const SIGMA_STEFAN_BOLTZMANN = PHYSICS_CONSTANTS.sigmaSB.value;
 
-/** 表面张力 — 水在 20℃ (N/m) — IAPWS R1-95 */
-export const SIGMA_WATER_20C = 0.0728;
+/** 表面张力 — 水在 20℃ (N/m) — 引用引擎单一真源 (#58, IAPWS 0.0728) */
+export const SIGMA_WATER_20C = PHYSICS_CONSTANTS.sigmaWater20C.value;
 
-/** 表面张力 — 水银在 20℃ (N/m) */
-export const SIGMA_MERCURY_20C = 0.487;
+/** 表面张力 — 水银在 20℃ (N/m) — 引用引擎单一真源 (#58) */
+export const SIGMA_MERCURY_20C = PHYSICS_CONSTANTS.sigmaMercury20C.value;
 
 /** 表面张力温度系数 — 水 (近似线性, N/m/℃) */
 export const SIGMA_WATER_DT = -0.002;

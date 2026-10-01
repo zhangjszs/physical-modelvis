@@ -59,7 +59,8 @@ export class CapillaryModel extends PhysicsModelBase {
 
         // 液体参数
         const rho = liquidMode === 'water' ? 1000 : 13534; // kg/m³
-        const sigma = liquidMode === 'water' ? 0.072 : 0.487; // N/m
+        const sigma =
+            liquidMode === 'water' ? PHYSICS_CONSTANTS.sigmaWater20C.value : PHYSICS_CONSTANTS.sigmaMercury20C.value; // N/m (#58 单一真源)
 
         // 接触角 (度)
         let thetaDeg: number;
