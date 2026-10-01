@@ -44,8 +44,8 @@
 | C-轨迹 | 15 | 引擎驱动 |
 | C-charts | 9 | 引擎驱动 |
 | A-动态自算 | 27 | **高危,优先迁移** |
-| B-静态自算 | 34 | 多为仪器读数场景 |
-| B-数值自算 | 13 | 数值关系自算 |
+| B-静态自算 | 37 | 多为仪器读数场景（#55 校正：原表头 34，实测条目 37）|
+| B-数值自算 | 30 | 数值关系自算（#55 校正：原表头 13，实测条目 30）|
 
 ## A 类:高危动态双源 (27)
 
@@ -81,23 +81,27 @@
 | vertical-circle | vertical-circle | drawVerticalCircleScene |
 | water-diffraction | water-diffraction | drawWaterDiffractionScene |
 
-## B 类:静态/数值自算 (47)
+## B 类:静态/数值自算 (61 · 去重后：静态 37 + 数值 30 − 6 重复)
 
 > 静态仪器绘图(游标卡尺、多用电表等)自算合理;数值自算(电路读数、光学关系)需在迁移时核对常量。
 
-B-静态自算 (34):bohr / center-of-gravity / force-composition / cavendish / circuit / resistance-law /
+B-静态自算 (37):bohr / center-of-gravity / force-composition / cavendish / circuit / resistance-law /
 load-voltage / multimeter-tool / vernier-caliper-tool / micrometer-tool / bulb-vi /
 parallel-plate-capacitor / coulomb-force-explore / electroscope / electrostatic-induction /
 electrostatic-shielding / faraday-cup / efield-lines / em-spectrum / magnetic-force / ampere-force /
 current-magnetic / molecular-force / oil-film / cosmic-ray / neutron-discovery / wetting /
-joule-electrical / energy-transformation / double-slit(sound-interference) / single-slit / thin-film /
+joule-electrical / energy-transformation / double-slit / single-slit / thin-film /
 refraction / total-internal-reflection / black-body / electron-diffraction / micro-deformation
 
-B-数值自算 (13):diffraction-grating / polarization-malus / interference / doppler-effect /
+B-数值自算 (30):diffraction-grating / polarization-malus / interference / doppler-effect /
 photoelectric / hall-effect / thermistor / photoresistor / strain-gauge / gas-law / capacitor-charge /
 radioactive / decay-statistics / alpha-scattering / fission-chain / heat-transfer / diffusion /
 brownian-motion / melting-curve / surface-tension / joule-electrical / liquid-mixing / perpetuum-mobile /
 heat-direction / adiabatic-compression / energy-transformation / load-voltage / resistance-law / vernier-caliper-tool / micrometer-tool
+
+> **去重与别名说明（#55）**：
+> - 上述 6 个场景同时出现在 B-静态与 B-数值两类（既有静态仪器示意、又含数值自算关系）：`resistance-law` / `load-voltage` / `vernier-caliper-tool` / `micrometer-tool` / `joule-electrical` / `energy-transformation`。故 B 类唯一场景数 = 37 + 30 − 6 = **61**（原表头 34+13=47 系误计）。
+> - 原 `double-slit(sound-interference)` 为误合并：`sound-interference` 已在第 3 批迁引擎（新建 `drawSoundInterferenceScene`、读引擎 `charts`），属**已迁移**场景，不在 B 类；此处仅保留 `double-slit`（光学双缝自算示意）。
 
 ## 阶段 3 迁移进展 (2026-08-02)
 
