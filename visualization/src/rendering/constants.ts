@@ -4,24 +4,27 @@
  * 所有定制的 Canvas 渲染器涉及数值计算时使用本模块,
  * 减少 magic number 重复, 并便于 L3 自检公式对比。
  *
- * 注: physics-core 的 PHYSICS_CONSTANTS 不含 k_B, h, sigma_SB,
- * 因此本模块对它们做局部定义 (已在 L0 同步加入 PHYSICS_CONSTANTS)。
+ * 注: 与引擎重叠的 k_B / e / μ₀ / σ_SB / h 已统一引用 PHYSICS_CONSTANTS (#54 消除跨包双源),
+ * 取值与改前逐项相等 (零数值变化)。仅引擎未收录的量
+ * (σ_水/水银、铜电导率、扩散系数等) 保留本地定义。
  */
 
-/** 玻尔兹曼常数 k_B (J/K) */
-export const K_BOLTZMANN = 1.380649e-23;
+import { PHYSICS_CONSTANTS } from 'physics-core';
 
-/** 基本电荷 e (C) */
-export const E_CHARGE = 1.602176634e-19;
+/** 玻尔兹曼常数 k_B (J/K) — 引用引擎单一真源 (#54) */
+export const K_BOLTZMANN = PHYSICS_CONSTANTS.kB.value;
 
-/** 真空磁导率 μ₀ (T·m/A) */
-export const MU0 = 4 * Math.PI * 1e-7;
+/** 基本电荷 e (C) — 引用引擎单一真源 (#54) */
+export const E_CHARGE = PHYSICS_CONSTANTS.e.value;
+
+/** 真空磁导率 μ₀ (T·m/A) — 引用引擎单一真源 (#54) */
+export const MU0 = PHYSICS_CONSTANTS.mu0.value;
 
 /** 铜电导率 (20℃) — 电磁阻尼用 (S/m) */
 export const SIGMA_COPPER_20C = 5.8e7;
 
-/** 斯特藩-玻尔兹曼常数 (W/m²K⁴) */
-export const SIGMA_STEFAN_BOLTZMANN = 5.670374419e-8;
+/** 斯特藩-玻尔兹曼常数 (W/m²K⁴) — 引用引擎单一真源 (#54) */
+export const SIGMA_STEFAN_BOLTZMANN = PHYSICS_CONSTANTS.sigmaSB.value;
 
 /** 表面张力 — 水在 20℃ (N/m) — IAPWS R1-95 */
 export const SIGMA_WATER_20C = 0.0728;
@@ -38,8 +41,8 @@ export const D_LIQUID_25C = 1e-9;
 /** 扩散系数 — 气体中分子在 25℃ (m²/s) — 量级参考 */
 export const D_GAS_25C = 1e-5;
 
-/** 普朗克常数 h (J·s) — 光电效应/电子衍射 */
-export const PLANCK_H = 6.62607015e-34;
+/** 普朗克常数 h (J·s) — 光电效应/电子衍射 — 引用引擎单一真源 (#54) */
+export const PLANCK_H = PHYSICS_CONSTANTS.h.value;
 
 /**
  * 重力加速度 g (m/s²) — 教材口径 9.8 (与引擎 PHYSICS_CONSTANTS.g.value 同值)。
