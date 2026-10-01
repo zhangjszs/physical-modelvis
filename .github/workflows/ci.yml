@@ -19,21 +19,10 @@ jobs:
         with:
           node-version: 24
           cache: npm
-          cache-dependency-path: |
-            package-lock.json
-            physics-core/package-lock.json
-            visualization/package-lock.json
+          cache-dependency-path: package-lock.json
 
-      - name: 安装根依赖
+      - name: 安装全部依赖 (npm workspaces)
         run: npm ci
-
-      - name: 安装 physics-core 依赖
-        run: npm ci
-        working-directory: physics-core
-
-      - name: 安装 visualization 依赖
-        run: npm ci
-        working-directory: visualization
 
       - name: 构建 physics-core（visualization 依赖其 dist）
         run: npm run build

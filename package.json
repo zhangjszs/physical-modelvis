@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "description": "高中物理教学可视化仿真平台 — 自研零依赖 TypeScript 物理引擎 + React/Canvas 2D 前端，覆盖 176 个实验 / 123 个场景 / 113 个物理模型",
   "private": true,
+  "workspaces": [
+    "physics-core",
+    "visualization"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/zhangjszs/physical-modelvis.git"

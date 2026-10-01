@@ -59,22 +59,14 @@ physical_modelvis/
 
 ```bash
 # 克隆项目
-git clone <your-repo-url>
+git clone https://github.com/zhangjszs/physical-modelvis.git
 cd physical_modelvis
 
-# 安装根依赖（含 husky，会自动配置 git hooks）
-npm ci
+# 一次性安装全部依赖 (npm workspaces: 根工具链 + physics-core + visualization, 含 husky)
+npm install
 
-# 安装 physics-core 依赖并构建（visualization 依赖其 dist）
-cd physics-core
-npm ci
-npm run build
-cd ..
-
-# 安装 visualization 依赖
-cd visualization
-npm ci
-cd ..
+# 构建 physics-core (visualization 依赖其 dist 产物)
+npm run build:core
 ```
 
 ### 运行

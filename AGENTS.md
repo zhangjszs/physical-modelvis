@@ -12,9 +12,9 @@
 
 ## Build & Test
 ```bash
-# 安装依赖
-cd physics-core && npm install && npm run build && cd ..
-cd visualization && npm install && cd ..
+# 安装依赖 (npm workspaces, 根目录一次装齐 physics-core + visualization + 根工具链)
+npm install
+npm run build:core   # 构建 physics-core dist (visualization 依赖其构建产物)
 
 # 一键本地全量门禁 (与 CI 等价, pre-push 钩子会强制执行)
 npm run precheck     # build:core → typecheck → lint → format:check → test → count:check → build:viz → check:bundle → selfcheck

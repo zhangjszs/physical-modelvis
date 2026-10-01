@@ -1,7 +1,7 @@
 {
   "name": "physics-core",
   "version": "1.0.0",
-  "description": "面向高中物理教学的二维物理模拟引擎核心",
+  "description": "面向高中物理教学的二维/三维物理模拟引擎核心 (零依赖, 解析解 + Boris 数值积分)",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -10,6 +10,29 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     }
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "license": "MIT",
+  "author": "zhangjszs",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zhangjszs/physical-modelvis.git",
+    "directory": "physics-core"
+  },
+  "keywords": [
+    "physics",
+    "physics-engine",
+    "simulation",
+    "education",
+    "numerical-integration",
+    "boris",
+    "typescript"
+  ],
+  "engines": {
+    "node": ">=20"
   },
   "scripts": {
     "build": "tsc",
