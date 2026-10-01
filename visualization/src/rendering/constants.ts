@@ -58,6 +58,12 @@ export const GAS_CONSTANT_R = 8.314;
 export const LIGHT_SPEED = 299792458;
 
 /**
+ * 库仑常数 k = 1/(4πε₀) (N·m²/C²) — 与引擎 PHYSICS_CONSTANTS.k.value 同值。
+ * (#53 发现 #52 漏计 electrostaticFieldScenes 的 2 处内联, 一并收敛)
+ */
+export const COULOMB_K = 8.9875517923e9;
+
+/**
  * 干簧管磁场强度简化模型: H(d) = H₀ / (1 + (d/d₀)²)
  *
  * 注: 这是经验公式, 模拟磁铁距离干簧管越近越强的单调趋势;

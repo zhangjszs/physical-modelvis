@@ -49,7 +49,7 @@ jobs:
       - name: 测试数与文档一致性校验
         run: node scripts/count-tests.mjs --check --from-report
 
-      - name: 10 层物理自检
+      - name: 11 层物理自检
         run: node scripts/self-check.mjs
 
       - name: 构建 visualization

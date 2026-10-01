@@ -2,7 +2,7 @@
 /**
  * PhysVis 物理自检循环 — 整合 CLI
  *
- * 顺序运行 10 层自检 (L0-L6 + L8-L10; 无 L7, L7 编号为 CLI 自身的历史遗留),
+ * 顺序运行 11 层自检 (L0-L6 + L8-L11; 无 L7, L7 编号为 CLI 自身的历史遗留),
  * 生成报告到 stdout + .scratch/selfcheck-run-<ISO>.jsonl
  * exit-code: 0 = 全部通过; 1 = 存在失败
  *
@@ -50,7 +50,8 @@ const LAYERS = [
             'physics-correctness.modern.test.ts'
         ]
     },
-    { id: 'L10', name: '人类可读输出 NaN 扫描', pkg: 'visualization', test: 'physics-correctness.l10.test.ts' }
+    { id: 'L10', name: '人类可读输出 NaN 扫描', pkg: 'visualization', test: 'physics-correctness.l10.test.ts' },
+    { id: 'L11', name: '渲染层常量单一真源', pkg: 'visualization', test: 'rendering-constants-single-source.test.ts' }
 ];
 
 /**

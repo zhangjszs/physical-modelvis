@@ -11,7 +11,7 @@
  * 设计原则：纯函数 + 屏幕坐标, 零依赖 React/Zustand/CoordinateTransformer
  */
 import type { SimulationResult, Vector2D } from 'physics-core';
-import { G_ACCELERATION } from './constants';
+import { COULOMB_K, G_ACCELERATION } from './constants';
 import {
     COLORS,
     roundRectPath,
@@ -51,7 +51,7 @@ export function drawCoulombForceExploreScene(opts: ElectromagnetismSceneOptions)
     const { ctx, width, height, isDark, params } = opts;
     clearScene(ctx, width, height, isDark);
     drawTitle(ctx, '探究电荷间作用力 (库仑定律)', width, isDark, { size: 18, y: 28 });
-    const K = 8.9875517923e9;
+    const K = COULOMB_K;
     const q1 = params['q1'] ?? 1;
     const q2 = params['q2'] ?? 1;
     const distance = params['distance'] ?? 5;
@@ -121,7 +121,7 @@ export function drawElectroscopeScene(opts: ElectromagnetismSceneOptions): void 
     const { ctx, width, height, isDark, params } = opts;
     clearScene(ctx, width, height, isDark);
     drawTitle(ctx, '验电器 (箔片张角 vs 电量)', width, isDark, { size: 18, y: 28 });
-    const K = 8.9875517923e9;
+    const K = COULOMB_K;
     const q = params['charge'] ?? 1;
     const foilLength = params['foilLength'] ?? 5;
     const foilMass = params['foilMass'] ?? 1;

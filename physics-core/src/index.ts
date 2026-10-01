@@ -109,6 +109,8 @@ export { Vec2 } from './math/vector2d.js';
 export { Vec3 } from './math/vector3d.js';
 // QuantityFactory/convert/quantity 无外部消费者 (仅测试使用), 不再通过 barrel 公开
 export { PHYSICS_CONSTANTS } from './units/constants.js';
+// 常量字面量门禁模式 (#53): 引擎侧与渲染侧测试共用的单一真源
+export { LITERAL_PATTERNS, stripCommentsAndStrings, PATTERN_SAMPLES } from './units/constantPatterns.js';
 
 // === 3D 场源与数值积分 (拖拽组合实验的地基) ===
 export type { ElectricFieldSource, MagneticFieldSource, FieldSource } from './physics/fields3d.js';

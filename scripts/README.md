@@ -8,7 +8,7 @@
 
 | 脚本文件 | 运行时 | 主要职责 | 依赖条件 |
 | :--- | :--- | :--- | :--- |
-| `self-check.mjs` | Node.js | **10 层物理自检** (L0-L6 + L8-L10；无 L7)：验证物理常数、守恒律、单源真理契约、公式漂移、输出 NaN 及 694+ 极限参数数值鲁棒性 | 无需外部服务，直接运行 |
+| `self-check.mjs` | Node.js | **11 层物理自检** (L0-L6 + L8-L11；无 L7)：验证物理常数、守恒律、单源真理契约、公式漂移、输出 NaN 及 694+ 极限参数数值鲁棒性 | 无需外部服务，直接运行 |
 | `count-tests.mjs` | Node.js | **测试数统计单源**：实跑 core+viz 并输出测试数；`--check` 校验 README/plan 三处标记行与实跑一致（precheck/CI 内置），`--write` 回写；`--from-report` 复用已有报告不重跑 | 依赖已产出的 vitest JSON 报告（`.scratch/`） |
 | `verify-3d-smoke.cjs` | Playwright | **3D 实验仪器冒烟**：测试 14 个代表性 3D/2D 场景双轮切换与 Rig 渲染稳定性 | 需本地 Dev Server 运行中 |
 | `verify-e1-render-smoke.cjs` | Playwright | **基础 2D 渲染冒烟**：验证抛体、自由落体、机械波、分子扩散、布朗运动真实绘制 | 需本地 Dev Server 运行中 |
@@ -20,7 +20,7 @@
 
 ## 🚀 运行方式
 
-### 1. 物理引擎 10 层自检 (本地门禁与 CI 核心)
+### 1. 物理引擎 11 层自检 (本地门禁与 CI 核心)
 
 ```bash
 # 通过 npm 一键调用

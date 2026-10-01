@@ -55,7 +55,7 @@ GitHub Actions 流水线，配置文件位于 `.github/workflows/`。
 2. **ESLint 静态分析** — typescript-eslint recommended 规则集
 3. **Prettier 格式检查** — `format:check`
 4. **单元测试** — physics-core + visualization 各自 `vitest run`
-5. **10 层物理自检** — `node scripts/self-check.mjs`（LAYERS 数组 = L0-L6 + L8 Boris 数值积分 + L9 跨场景数值鲁棒性 + L10 输出 NaN 扫描；无 L7）
+5. **11 层物理自检** — `node scripts/self-check.mjs`（LAYERS 数组 = L0-L6 + L8 Boris 数值积分 + L9 跨场景数值鲁棒性 + L10 输出 NaN 扫描 + L11 渲染层常量单一真源；无 L7）
 6. **构建** — physics-core → visualization（带 `VITE_BASE_PATH` 子路径）
 7. **首屏包体积门禁** — `node scripts/check-bundle-size.mjs`（入口 chunks gzip ≤70kB，现状约 63kB）
 
@@ -123,7 +123,7 @@ visualization/         — React 可视化前端
   tests/ocr/           — OCR 测试
 
 experiments/           — 人教版高中物理实验整理 (176 个实验, 6 册教材)
-scripts/               — 验证脚本 (self-check.mjs L0-L6 + L8-L10 物理自检, verify-*.cjs 冒烟测试)
+scripts/               — 验证脚本 (self-check.mjs L0-L6 + L8-L11 物理自检, verify-*.cjs 冒烟测试)
 ```
 
 ## Key Patterns

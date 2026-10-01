@@ -4,21 +4,21 @@
 
 ## 架构
 
-自检循环分 10 层 (L0-L6 + L8-L10; 无 L7), 顺序执行, 每层依赖前一层通过:
+自检循环分 11 层 (L0-L6 + L8-L11; 无 L7), 顺序执行, 每层依赖前一层通过:
 
 ```
-L0 物理常数 → L1 模型验证 → L2 SceneConfig 契约 → L3 渲染器公式 → L4 FormulaPanel 漂移 → L5 路由完整性 → L6 参数范围 → L8 Boris 数值积分 → L9 跨场景数值鲁棒性 → L10 人类可读输出 NaN 扫描
+L0 物理常数 → L1 模型验证 → L2 SceneConfig 契约 → L3 渲染器公式 → L4 FormulaPanel 漂移 → L5 路由完整性 → L6 参数范围 → L8 Boris 数值积分 → L9 跨场景数值鲁棒性 → L10 人类可读输出 NaN 扫描 → L11 渲染层常量单一真源
 ```
 
 每层一个独立 commit, 独立运行, 独立门禁。
 
-> 层数以 `scripts/self-check.mjs` 的 `LAYERS` 数组为单一真源(当前 10 层)。
+> 层数以 `scripts/self-check.mjs` 的 `LAYERS` 数组为单一真源(当前 11 层)。
 > L7 编号为 CLI 自身的历史遗留, 已跳过。
 
 ## 运行
 
 ```bash
-# 顺序运行全部 10 层
+# 顺序运行全部 11 层
 npm run self-check
 
 # 可视化输出 (默认表格)
@@ -113,6 +113,12 @@ cd visualization && npm test -- tests/accuracy/renderers.test.ts
 - number NaN/Infinity → 记录路径
 - 字符串级 `NaN`/`Infinity` (被 `toFixed()`/模板字符串包成文本) → 记录路径
 - charts 中的 `{NaN, NaN}` 折线断开标记 → 豁免 (doppler 超声速激波区合法产生)
+
+### L11 渲染层常量单一真源 — `visualization/tests/accuracy/rendering-constants-single-source.test.ts`
+
+用与引擎侧 `constants-single-source.test.ts` 同一套 `LITERAL_PATTERNS` / `stripCommentsAndStrings`
+(由 `physics-core/src/units/constantPatterns.ts` 单一真源提供, 两侧共用), 扫描 `visualization/src/rendering/*.ts`
+(排除常量定义处 `constants.ts`), 断言计算代码中无内联 g/k/mu0/R/e/c 字面量。依 D3 不做白名单豁免。
 
 ## 报告
 
