@@ -40,6 +40,7 @@
 ## 已完成（最近，≤20 条）
 - **#51** 门禁加严电荷模式 `1\.6\d*e-19`（含前缀 (?<!) 数字/小数点拦截）+ 8 处内联电荷常量收敛到 PHYSICS_CONSTANTS.e.value（commit 89910d1，**已 push + CLOSED**；#52 解 blocked）
 - 恢复 `.agent/` 接力提交载体；README/plan.md 测试数：core 1089→1107，**viz 保持 CI 真值 1259/39 / total 2366**（本地 count:sync 一度把并发会话未提交的 +2 viz 测试计成 phantom 1278/41，已手改回）
+- **#57** Deploy 修复（deploy.yml 子目录 `npm ci` 触发根 prepare→husky exit 127）：对齐 CI 单步根 `npm ci` + 修 YAML 冒号解析 bug（commits 89b7dcc / d45cd39）；CI `36861867969`、Deploy `36862039842` 均转绿，Pages 恢复发布
 
 ## 阻塞项 / 风险
 - **#44 React 19 / vite 8 / express 5 / TS 7**：保持 open，**不要重试**（react-dom 19 +23kB 触发 #42 的 70kB 首屏门禁）。M1 期间不碰。

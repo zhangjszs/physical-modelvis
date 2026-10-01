@@ -54,6 +54,12 @@
 2. **可并行 P2（未 blocked）**：#55（B3 清单数字修正 34→37/13→30/去重 61 + 61 场景常量单位核对）；
    #56（3D 基础层收口：接口归属/自检接入/2D-3D 边界文档，**前置已满足** Vec3/fields3d/boris3d 已在 main，范围不含重实现）。
 
+### 附带修复 #57（Deploy 挂，非 #51 但同源污染问题）
+- push 后 CI 绿但 Deploy 失败：`deploy.yml` 安装步骤在根 `npm ci` 后又跑子目录 `npm ci`，workspaces 下冗余且从子目录再触发根 `prepare`→`husky not found`(exit 127)。
+- 修复：对齐 `ci.yml` 单步根 `npm ci`（`89b7dcc`）；顺带修我自己引入的 YAML bug——步骤名未加引号含 `": "` 被当嵌套映射→workflow 0s 解析失败（`d45cd39`）。
+- 验证：CI `36861867969` 绿、Deploy `36862039842` 绿，Pages 恢复。#57 已 CLOSED。
+- **教训**：改 `.github/*.yml` 后先本地 `js-yaml`/yaml parser 校验再 push（工作树污染时 pre-push 钩子测不到 workflow，CI 是唯一真验证）。
+
 ### 不要做的事
 - 不重试 React 19 / 不为它上调 bundle 预算（#44 保持 open）。
 - 不动 PR #23 / #25（他人）。
