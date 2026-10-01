@@ -71,6 +71,8 @@ test-results/
 .agents/
 .superpowers/
 **/.superpowers/
+.agent/
+docs/superpowers/
 
 # Windows reserved name
 nul
