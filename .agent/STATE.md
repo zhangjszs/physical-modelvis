@@ -21,9 +21,10 @@
 | 运行时锁见 `.agent/LOCK`（不提交） | qoder-20261001T114739Z | #51 | 2026-10-01T11:47:39Z |
 
 ## 当前活跃
-**#51 [P1] 常量门禁漏洞（8 处内联电荷常量绕过）** — 本轮**已完成**（待 push + 关闭 issue）
+**#51 [P1] 常量门禁漏洞（8 处内联电荷常量绕过）** — 本轮**已完成并 CLOSED**
+- 代码 commit `89910d1` 已 push；GitHub 因 `fix: #51` 关键字自动 CLOSED；#52 已解 blocked。
 - 门禁模式加严（先红：实跑捕获 7 文件）+ 8 处内联收敛到 `PHYSICS_CONSTANTS.e.value`（后绿）。
-- 验证：core 1089→1107 全绿、viz 1278 全绿（41 文件）、precheck EXIT=0、10 层自检全 PASS；未改任何测试容差。
+- 验证：core 1089→1107 全绿、**viz 1259（39 files，CI 干净树真值）**、precheck 全绿、10 层自检全 PASS；未改任何测试容差。
 - 收尾后规划者动作：摘除 #52 的 `blocked`（#51 是 #52 唯一前置）——本轮已代做（见下「规划者动作」）。
 
 ## M1 依赖链（现状，源自 GitHub issue 标签）
@@ -37,13 +38,13 @@
 | #56 | 3D 物理基础层收口（接口归属/自检接入/2D-3D 边界） | P2 | 否 | **前置已满足**：Vec3/fields3d/boris3d 已在 main（d387f21）；范围不含重实现三层 |
 
 ## 已完成（最近，≤20 条）
-- **#51** 门禁加严电荷模式 `(?<![\d.])1\.6\d*e-19` + 8 处内联电荷常量收敛到 PHYSICS_CONSTANTS.e.value（commit 89910d1）
-- 恢复 `.agent/` 接力提交载体 + 校正 README/plan.md 测试数（顺带修 viz 既有漂移 1259/39→1278/41）
+- **#51** 门禁加严电荷模式 `1\.6\d*e-19`（含前缀 (?<!) 数字/小数点拦截）+ 8 处内联电荷常量收敛到 PHYSICS_CONSTANTS.e.value（commit 89910d1，**已 push + CLOSED**；#52 解 blocked）
+- 恢复 `.agent/` 接力提交载体；README/plan.md 测试数：core 1089→1107，**viz 保持 CI 真值 1259/39 / total 2366**（本地 count:sync 一度把并发会话未提交的 +2 viz 测试计成 phantom 1278/41，已手改回）
 
 ## 阻塞项 / 风险
 - **#44 React 19 / vite 8 / express 5 / TS 7**：保持 open，**不要重试**（react-dom 19 +23kB 触发 #42 的 70kB 首屏门禁）。M1 期间不碰。
 - **sandbox 陷阱**：后台执行（bwrap）会把 `/` 只读挂载，vitest 需写 `/tmp/*\/ssr` → `mkdir ENOENT`，导致"126 files failed / no tests"假失败。跑 precheck/selfcheck 需在有可写 /tmp 的（非只读沙箱）环境下执行；本轮以 required_permissions=all 复跑通过。
-- **viz 测试数既有漂移**：README 曾长期记 1259/39，实为 1278/41（L4 后未再 count:sync）。本轮已校正，非 #51 引入。
+- **⚠️ 并发未提交测试污染 count**：本地 `count:sync`/`npm test` 会把并发会话**未提交**的 viz 测试（`fieldLineSeeds.test.ts` 等 +2 文件/+19 例）计入 → phantom 1278/41，与 CI 干净树(1259/39)不符，曾致 CI `count:check` 失败。已手改三处标记回 **core 1107(126)/ viz 1259(39)/ total 2366**；**污染工作树上勿再跑 count:sync**。
 
 ## 规划者动作（本轮已代做，理由见 HANDOFF）
 - 关闭 #51（评论留红→绿证据 + 数值影响）。
