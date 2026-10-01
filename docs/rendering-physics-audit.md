@@ -451,3 +451,93 @@ grep -oE "scene\('[a-z0-9-]+'\)" visualization/tests/accuracy/single-source-cont
 ```
 
 **新增迁移场景时, 同步在契约文件补 ≥1 用例**(引擎端独立公式复算 + 渲染消费端源码契约), 否则回退自算无人拦截。
+
+---
+
+## #55 步骤2: B 类场景常量/单位核对记录 (2026-10-01 · agent qoder-20261001T163330Z)
+
+> 对应 B3「B 类仪器场景保留自算, 仅核对常量与单位一致」。本表逐项核对 61 个 B 类 sceneId 的
+> **场景 UI 单位**(`parameters[].unit`) → **`buildProblem` 换算** → **引擎侧值/`ParameterSpec.unit`** 三者是否自洽。
+>
+> **方法(可复现)**:一次性脚本 `tsx` 导入 `getAllScenes()` + 引擎 `getModel()`,对每个 B 类场景以
+> 默认参数调用 `buildProblem(defaults)` 探针,直接读出**引擎侧实际数值**(换算已生效),与场景 UI
+> 单位/默认值逐项比对;`ParameterSpec.unit` 同名参数自动比对单位串。非正则解析,数据来自运行时对象。
+>
+> **结论**:60 个真实 sceneId 的**单位换算数值全部正确**(含 kPa→Pa、L→m³、mm→m、μm/μF→m/F、
+> cP→Pa·s、GPa→Pa、×10ⁿ 标度电荷/速度/质量、指数→Hz、kΩ→Ω 等),无漏换算/数量级错误。
+> 3 项**非物理数值**问题见文末「核对发现」, 已各自另立 issue #58/#59/#60(本 issue 内不改数值)。
+
+### 核对表
+
+图例:`换算✓`=场景 UI 单位经 buildProblem 正确换算为引擎单位(列出引擎侧实读值);
+`同单位`=UI 与引擎同单位、无换算;`F1/F2/F3`=见「核对发现」。
+
+| sceneId | 换算/单位核对 | 结论 |
+|---|---|---|
+| bohr | series/maxN 无量纲; seriesB→'Balmer' | 一致 |
+| center-of-gravity | vertices m(引擎), shapeType 无量纲 | 一致 |
+| force-composition | f1/f2 N、angleDeg ° 同单位 | 一致 |
+| cavendish | m1/m2 kg、distance/mirrorDist m、torsionConst N·m/rad 同单位; armLength=1 m 硬编码 | 一致 |
+| circuit | emf V、r/r1/r2/r3 Ω; internalResistance/resistance 仅改名值不变 | 一致 |
+| resistance-law | length m、diameter mm 同单位; 引擎内 d/1000 mm→m; ρ Cu1.68e-8/Fe1.0e-7/Nichrome1.1e-6 ✓ | 一致 |
+| load-voltage | emf V、internalResistance Ω; loadRange[loadRMin Ω, loadRMax kΩ→**10000 Ω**] | 换算✓ |
+| multimeter-tool | mode/range/testValue 无量纲(选档示数) | 一致 |
+| vernier-caliper-tool | objectSize mm 同单位 | 一致 |
+| micrometer-tool | thickness mm 同单位 | 一致 |
+| bulb-vi | emf V、r/R_bulb Ω(→circuit 改名) | 一致 |
+| parallel-plate-capacitor | area m²、epsilonR 无量纲; **distance 1 mm→0.001 m**(×1e-3) | 换算✓ |
+| coulomb-force-explore | q1/q2 μC、distance cm 同单位(引擎亦 μC/cm) | 一致 |
+| electroscope | charge μC、foilLength cm、foilMass g 同单位 | 一致 |
+| electrostatic-induction | chargeC μC、separation/distanceAC cm 同单位 | 一致 |
+| electrostatic-shielding | externalField V/m、cavityCharge μC 同单位 | 一致 |
+| faraday-cup | totalCharge μC、probe 无量纲 | 一致 |
+| efield-lines | q/dipoleCharge nC、plateVoltage V(引擎 field-lines 无 ParameterSpec 冲突) | 一致 |
+| em-spectrum | **freqMinExp=1→10 Hz、freqMaxExp=16→1e16 Hz**(10^exp) | 换算✓ |
+| magnetic-force | B T、I A、L m、theta °; **q 1.6×10⁻¹⁹→1.6e-19 C、v 1×10⁶→1e6 m/s、mass 9.1×10⁻³¹→9.1e-31 kg** | 换算✓ |
+| ampere-force | B T、I A、L m、angle ° 同单位 | 一致 |
+| current-magnetic | current A、turns/radius 无量纲/同单位 | 一致 |
+| molecular-force | **epsilon 1×10⁻²¹→1e-21 J、sigma 0.34 nm→3.4e-10 m** | 换算✓ |
+| oil-film | oilConcentration、drops/mL、filmArea cm² 同单位; drops=1 硬编码 | 一致 |
+| cosmic-ray | altitude m 同单位 | 一致 |
+| neutron-discovery | alphaEnergy MeV、targetMass u 同单位 | 一致 |
+| wetting | medium/surface 无量纲枚举→liquidMode/surfaceMode | 一致 |
+| joule-electrical | voltage V、resistance Ω、time s、waterMass kg 同单位 | 一致 |
+| energy-transformation | inputEnergy J、efficiency 无量纲 同单位 | 一致 |
+| double-slit | **注册表无此 sceneId**;真实「双缝干涉」= `interference`(见 F1) | **F1** |
+| single-slit | slitWidth mm、wavelength nm、screenDist m 同单位 | 一致 |
+| thin-film | thickness/wavelength nm 同单位; incAngle °→incidentAngleDeg 'deg'(F2); substrateIndex | 一致 |
+| refraction | n1/n2 无量纲; angle °→incidentAngleDeg(改名值不变) | 一致 |
+| total-internal-reflection | 同 refraction(n1/n2/°), mode 无量纲 | 一致 |
+| black-body | temperature K 同单位 | 一致 |
+| electron-diffraction | accVoltage V 同单位; crystalLattice=0.213 nm 硬编码(量级合理) | 一致 |
+| micro-deformation | pressure N、laserDist/mirrorDist m; **youngModulus 10 GPa→1e10 Pa**(×1e9); thickness/tableLength 引擎内 | 换算✓ |
+| diffraction-grating | wavelength nm、orderMax/slitCount 无量纲; **gratingConstant/slitWidth 'um' vs 'μm'**(F2,值不换算,μm 原生) | 一致 |
+| polarization-malus | initIntensity/nPolarizers 无量纲; angles °→polarizerAngles 'deg'(F2) | 一致 |
+| interference | wavelengthNm nm、slitSeparationMm mm、screenDistanceM m(名称内嵌单位=场景同单位) | 一致 |
+| doppler-effect | soundSpeed/sourceSpeed m/s、sourceFreq Hz 同单位; directionAngle °→'deg'(F2) | 一致 |
+| photoelectric | workFunction eV、freqMin/MaxTHz THz(改名值不变, 单位内嵌) | 一致 |
+| hall-effect | current A、magneticField T、chargeDensity m⁻³、thickness m 同单位 | 一致 |
+| thermistor | temperature/BValue K、R0 Ω 同单位; B=3950 K、T0=298.15 K 引擎内 ✓ | 一致 |
+| photoresistor | darkResistance Ohm、sensitivity 1/lx、lightIntensity lx 同单位; temperature °C→temperatureCelsius(值不变) | 一致 |
+| strain-gauge | strain με、gaugeFactor 无量纲、bridgeVoltage V 同单位 | 一致 |
+| gas-law | n mol→moles、T0 K; **p0 101.3 kPa→101300 Pa**(×1e3)、**V0 22.4 L→0.0224 m³**(/1e3) | 换算✓ |
+| capacitor-charge | resistance Ω、emf V; **capacitance 100 μF→1e-4 F**(×1e-6) | 换算✓ |
+| radioactive | N0 个→initialAtoms、halfLife/tEnd s(→duration) 同单位 | 一致 |
+| decay-statistics | meanCount/nTrials 无量纲 | 一致 |
+| alpha-scattering | alphaEnergy MeV、targetZ 无量纲; foilThickness=1e-6 m 硬编码(量级合理) | 一致 |
+| fission-chain | multiplicationFactor/generations 无量纲 | 一致 |
+| heat-transfer | ambientTemp/initialTemp K、time s; materialType='copper'(引擎) | 一致 |
+| diffusion | temperature K、particleCount 无量纲; gridSize=1e-6 m 硬编码 | 一致 |
+| brownian-motion | liquidTemp K、duration s; **particleRadius 1 μm→1e-6 m**、**fluidViscosity 1 cP→0.001 Pa·s**(×1e-3) | 换算✓ |
+| melting-curve | meltingPoint °C、heatingRate °C/min、duration min(→timeConfig 1200 s ×60) ✓; latentHeat=334 J/kg(冰)✓ | 换算✓ |
+| surface-tension | sliderLength **4 cm→0.04 m**、temperature °C 换算✓; **但 σ_水取值三方不一致 + 渲染自算**(见 F3) | **F3** |
+| liquid-mixing | volumeWater/Alcohol mL 同单位 | 一致 |
+| perpetuum-mobile | hotTemp/coldTemp K 同单位 | 一致 |
+| heat-direction | hotTemp/coldTemp K、thermalConductivity W/(m·K) 同单位 | 一致 |
+| adiabatic-compression | initialTemp K、compressionRatio 无量纲(+gamma=1.4 双原子) | 一致 |
+
+### 核对发现(均另立 issue #58/#59/#60, 本 issue 内不改物理数值)
+
+- **F1 · `double-slit` 为幻影 sceneId**:B-静态清单登记的 `double-slit` 在 `visualization/src` 中**无对应 `id:'double-slit'` 场景**;真实「双缝干涉」场景 id 为 `interference`(已列于 B-数值)。故 B 类「61 个唯一场景」实际含 1 个不存在的 id(真实唯一 sceneId = 60),且 `doubleSlitIntensity` 仅是 `rendering/constants.ts` 的绘图辅助函数名。→ 建议修正 B-静态清单(以 `interference` 计/去重)与并集计数口径（→ issue #59）。
+- **F2 · 引擎 `ParameterSpec.unit` 记号 split(可自动化模式)**:引擎侧角度单位串存在 `'deg'`(13 处:polarization/doppler/hologram/wetting/single-slit/water-diffraction/double-pendulum/thin-film)与 `'°'`(17 处)并存;长度单位 `'um'`(diffraction-grating/hologram)与 `'μm'` 并存。场景侧统一用 `'°'`/`'μm'`。**纯 UI 记号差异,无数值/换算影响**(同为度 / 同为微米、buildProblem 不换算)。因属可正则检出的模式 → 记为潜在门禁候选,是否收口交规划者判定（→ issue #60）。
+- **F3 · surface-tension σ_水三方取值不一致 + headline 值自算(单源缺口)**:① `rendering/constants.ts` 单一真源 `SIGMA_WATER_20C=0.0728`(IAPWS,仅 `renderers.test.ts` L3 断言使用),② 引擎 `surface-tension.ts` 硬编码 `sigma0=0.072`,③ 渲染 `drawSurfaceTensionScene` 亦硬编码 `sigma0=0.072` **并自算 `F=2σ(L/100)` 展示 headline σ/F,未消费引擎 `forceCurve` charts**(仅底部 σ-T 曲线读 `charts.y_t`)。②=③(0.072)但≠①(0.0728),三者约 1% 偏差;温度模型亦不同(②加法 β=1.5e-4 vs ③①乘法 −0.002·σ₀)。`drawCapillaryScene` 亦硬编码 0.072 复现同模式。→ 属常量取值不一致 + 有引擎数据却自算,违单源约定（→ issue #58）。
