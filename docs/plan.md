@@ -61,8 +61,8 @@
 | security-alarm | ✅ 已迁 | 标志位读 maxValues(引擎滞回) |
 | reed-switch | ✅ 已迁 | H=K/d³ 读引擎(替代旧自算公式) |
 
-### B3. B 类仪器场景 — ✅ 核对完成 (#55 步骤2)
-保留自算(静态绘图合理),仅核对常量与单位一致(游标卡尺、多用电表等 **61** 个场景：B-静态 37 ∪ B-数值 30 去重 6 = 61)。#55 已校正清单计数（原 47=34+13 系表头误计）；**步骤2 已逐场景核对完成**（方法：`buildProblem(defaults)` 探针 + 引擎 `ParameterSpec` 单位比对），60 个真实 sceneId **单位换算数值全部正确**，核对表见 `docs/rendering-physics-audit.md` 末节。发现 3 项非物理数值问题另立 issue #58/#59/#60：F1 `double-slit` 为幻影 sceneId（真实=interference，已在 B-数值，故唯一真实 id 为 60）、F2 引擎单位串 `'deg'`/`'°'`、`'um'`/`'μm'` 记号 split、F3 surface-tension σ_水 三方取值不一致（0.0728 vs 0.072）+ 渲染 headline 值自算未消费引擎。
+### B3. B 类仪器场景 — ✅ 核对完成 (#55 步骤2 + #59 清单修正)
+保留自算(静态绘图合理),仅核对常量与单位一致(游标卡尺、多用电表等 **60** 个场景：B-静态 36 ∪ B-数值 30 去重 6 = 60；#59 移除幻影 double-slit)。#55 已校正清单计数（原 47=34+13 系表头误计）；**步骤2 已逐场景核对完成**（方法：`buildProblem(defaults)` 探针 + 引擎 `ParameterSpec` 单位比对），60 个真实 sceneId **单位换算数值全部正确**，核对表见 `docs/rendering-physics-audit.md` 末节。发现 3 项非物理数值问题另立 issue #58/#59/#60：F1 `double-slit` 为幻影 sceneId（真实=interference，已在 B-数值）——**#59 已修**（移除后 B-静态 37→36、并集 61→60）；F2 引擎单位串 `'deg'`/`'°'`、`'um'`/`'μm'` 记号 split（待规划）；F3 surface-tension σ_水 三方取值不一致（0.0728 vs 0.072）+ 渲染 headline 值自算未消费引擎（待修）。
 
 ### 迁移通用套路(已验证)
 - 位置/轨迹:`getFrame(simulationResult, currentTime, trajectoryIndex)`(第三参选多物体轨迹)

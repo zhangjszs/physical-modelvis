@@ -44,7 +44,7 @@
 | C-轨迹 | 15 | 引擎驱动 |
 | C-charts | 9 | 引擎驱动 |
 | A-动态自算 | 27 | **高危,优先迁移** |
-| B-静态自算 | 37 | 多为仪器读数场景（#55 校正：原表头 34，实测条目 37）|
+| B-静态自算 | 36 | 多为仪器读数场景（#55 校正 34→37；#59 移除幻影 double-slit→36）|
 | B-数值自算 | 30 | 数值关系自算（#55 校正：原表头 13，实测条目 30）|
 
 ## A 类:高危动态双源 (27)
@@ -81,16 +81,16 @@
 | vertical-circle | vertical-circle | drawVerticalCircleScene |
 | water-diffraction | water-diffraction | drawWaterDiffractionScene |
 
-## B 类:静态/数值自算 (61 · 去重后：静态 37 + 数值 30 − 6 重复)
+## B 类:静态/数值自算 (60 · 去重后：静态 36 + 数值 30 − 6 重复)
 
 > 静态仪器绘图(游标卡尺、多用电表等)自算合理;数值自算(电路读数、光学关系)需在迁移时核对常量。
 
-B-静态自算 (37):bohr / center-of-gravity / force-composition / cavendish / circuit / resistance-law /
+B-静态自算 (36):bohr / center-of-gravity / force-composition / cavendish / circuit / resistance-law /
 load-voltage / multimeter-tool / vernier-caliper-tool / micrometer-tool / bulb-vi /
 parallel-plate-capacitor / coulomb-force-explore / electroscope / electrostatic-induction /
 electrostatic-shielding / faraday-cup / efield-lines / em-spectrum / magnetic-force / ampere-force /
 current-magnetic / molecular-force / oil-film / cosmic-ray / neutron-discovery / wetting /
-joule-electrical / energy-transformation / double-slit / single-slit / thin-film /
+joule-electrical / energy-transformation / single-slit / thin-film /
 refraction / total-internal-reflection / black-body / electron-diffraction / micro-deformation
 
 B-数值自算 (30):diffraction-grating / polarization-malus / interference / doppler-effect /
@@ -100,8 +100,8 @@ brownian-motion / melting-curve / surface-tension / joule-electrical / liquid-mi
 heat-direction / adiabatic-compression / energy-transformation / load-voltage / resistance-law / vernier-caliper-tool / micrometer-tool
 
 > **去重与别名说明（#55）**：
-> - 上述 6 个场景同时出现在 B-静态与 B-数值两类（既有静态仪器示意、又含数值自算关系）：`resistance-law` / `load-voltage` / `vernier-caliper-tool` / `micrometer-tool` / `joule-electrical` / `energy-transformation`。故 B 类唯一场景数 = 37 + 30 − 6 = **61**（原表头 34+13=47 系误计）。
-> - 原 `double-slit(sound-interference)` 为误合并：`sound-interference` 已在第 3 批迁引擎（新建 `drawSoundInterferenceScene`、读引擎 `charts`），属**已迁移**场景，不在 B 类；此处仅保留 `double-slit`（光学双缝自算示意）。
+> - 上述 6 个场景同时出现在 B-静态与 B-数值两类（既有静态仪器示意、又含数值自算关系）：`resistance-law` / `load-voltage` / `vernier-caliper-tool` / `micrometer-tool` / `joule-electrical` / `energy-transformation`。故 B 类唯一场景数 = 36 + 30 − 6 = **60**（#55 校正原表头 34+13=47 系误计；#59 进一步移除幻影 `double-slit` 使 B-静态 37→36、并集 61→60）。
+> - 原 `double-slit(sound-interference)` 为误合并：`sound-interference` 已在第 3 批迁引擎（新建 `drawSoundInterferenceScene`、读引擎 `charts`），属**已迁移**场景，不在 B 类。**#59 进一步核实**：拆分后保留的 `double-slit` 本身仍**非注册 sceneId**（真实“双缝干涉”场景为 `interference`，已列于 B-数值），故已从 B-静态清单移除。
 
 ## 阶段 3 迁移进展 (2026-08-02)
 
@@ -503,7 +503,7 @@ grep -oE "scene\('[a-z0-9-]+'\)" visualization/tests/accuracy/single-source-cont
 | wetting | medium/surface 无量纲枚举→liquidMode/surfaceMode | 一致 |
 | joule-electrical | voltage V、resistance Ω、time s、waterMass kg 同单位 | 一致 |
 | energy-transformation | inputEnergy J、efficiency 无量纲 同单位 | 一致 |
-| double-slit | **注册表无此 sceneId**;真实「双缝干涉」= `interference`(见 F1) | **F1** |
+| double-slit | **注册表无此 sceneId**;真实「双缝干涉」= `interference`(见 F1) | **F1→#59 已修** |
 | single-slit | slitWidth mm、wavelength nm、screenDist m 同单位 | 一致 |
 | thin-film | thickness/wavelength nm 同单位; incAngle °→incidentAngleDeg 'deg'(F2); substrateIndex | 一致 |
 | refraction | n1/n2 无量纲; angle °→incidentAngleDeg(改名值不变) | 一致 |
@@ -538,6 +538,6 @@ grep -oE "scene\('[a-z0-9-]+'\)" visualization/tests/accuracy/single-source-cont
 
 ### 核对发现(均另立 issue #58/#59/#60, 本 issue 内不改物理数值)
 
-- **F1 · `double-slit` 为幻影 sceneId**:B-静态清单登记的 `double-slit` 在 `visualization/src` 中**无对应 `id:'double-slit'` 场景**;真实「双缝干涉」场景 id 为 `interference`(已列于 B-数值)。故 B 类「61 个唯一场景」实际含 1 个不存在的 id(真实唯一 sceneId = 60),且 `doubleSlitIntensity` 仅是 `rendering/constants.ts` 的绘图辅助函数名。→ 建议修正 B-静态清单(以 `interference` 计/去重)与并集计数口径（→ issue #59）。
+- **F1 · `double-slit` 为幻影 sceneId（✅ #59 已修）**:B-静态清单登记的 `double-slit` 在 `visualization/src` 中**无对应 `id:'double-slit'` 场景**;真实「双缝干涉」场景 id 为 `interference`(已列于 B-数值)。故 B 类「61 个唯一场景」实际含 1 个不存在的 id(真实唯一 sceneId = 60),且 `doubleSlitIntensity` 仅是 `rendering/constants.ts` 的绘图辅助函数名。→ 建议修正 B-静态清单(以 `interference` 计/去重)与并集计数口径（→ issue #59）。**#59 已执行**：从 B-静态清单移除 `double-slit`，B-静态 37→36、并集 61→60，分类统计表与去重说明同步。
 - **F2 · 引擎 `ParameterSpec.unit` 记号 split(可自动化模式)**:引擎侧角度单位串存在 `'deg'`(13 处:polarization/doppler/hologram/wetting/single-slit/water-diffraction/double-pendulum/thin-film)与 `'°'`(17 处)并存;长度单位 `'um'`(diffraction-grating/hologram)与 `'μm'` 并存。场景侧统一用 `'°'`/`'μm'`。**纯 UI 记号差异,无数值/换算影响**(同为度 / 同为微米、buildProblem 不换算)。因属可正则检出的模式 → 记为潜在门禁候选,是否收口交规划者判定（→ issue #60）。
 - **F3 · surface-tension σ_水三方取值不一致 + headline 值自算(单源缺口)**:① `rendering/constants.ts` 单一真源 `SIGMA_WATER_20C=0.0728`(IAPWS,仅 `renderers.test.ts` L3 断言使用),② 引擎 `surface-tension.ts` 硬编码 `sigma0=0.072`,③ 渲染 `drawSurfaceTensionScene` 亦硬编码 `sigma0=0.072` **并自算 `F=2σ(L/100)` 展示 headline σ/F,未消费引擎 `forceCurve` charts**(仅底部 σ-T 曲线读 `charts.y_t`)。②=③(0.072)但≠①(0.0728),三者约 1% 偏差;温度模型亦不同(②加法 β=1.5e-4 vs ③①乘法 −0.002·σ₀)。`drawCapillaryScene` 亦硬编码 0.072 复现同模式。→ 属常量取值不一致 + 有引擎数据却自算,违单源约定（→ issue #58）。
