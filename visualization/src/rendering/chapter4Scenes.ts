@@ -11,6 +11,7 @@
  * 设计原则：纯函数 + 屏幕坐标, 零依赖 React/Zustand/CoordinateTransformer
  */
 import type { SimulationResult } from 'physics-core';
+import { G_ACCELERATION } from './constants';
 import {
     roundRectPath,
     textColor,
@@ -135,7 +136,7 @@ export function drawNewtonSecondLawScene(opts: MechanicsSceneOptions): void {
     const v0 = params['v0'] ?? 0;
     const includeFriction = (params['includeFriction'] ?? 0) === 1;
     const mu = includeFriction ? (params['friction'] ?? 0.2) : 0; // 无量纲动摩擦因数
-    const g = 9.8;
+    const g = G_ACCELERATION;
     const groundY = height * 0.66;
     const fK = mu * mass * g; // 滑动摩擦力 (N)
 
@@ -196,7 +197,7 @@ export function drawOverweightScene(opts: MechanicsSceneOptions): void {
     const modeIdx = Math.round(params['mode'] ?? 0);
     const mass = params['mass'] ?? 1;
     const accMag = params['accMagnitude'] ?? 2;
-    const g = params['gravity'] ?? 9.8;
+    const g = params['gravity'] ?? G_ACCELERATION;
     const modes = ['upStart', 'upStop', 'downStart', 'downStop'] as const;
     const mode = modes[modeIdx] ?? 'upStart';
 

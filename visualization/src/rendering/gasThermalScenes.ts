@@ -7,6 +7,7 @@
  * 设计原则：纯函数 + 屏幕坐标, 零依赖 React/Zustand/CoordinateTransformer
  */
 import type { SimulationResult } from 'physics-core';
+import { GAS_CONSTANT_R } from './constants';
 import { clearScene, drawTitle, drawHud, drawInfoBar } from './renderingUtils';
 
 export interface ThermalSceneOptions {
@@ -31,7 +32,7 @@ export function drawGasLawScene(o: ThermalSceneOptions): void {
     const p0 = params['p0'] ?? 101.3; // kPa
     const V0 = params['V0'] ?? 22.4; // L
     const T0 = params['T0'] ?? 273.15; // K
-    const R = 8.314;
+    const R = GAS_CONSTANT_R;
 
     const modeLabel = mode === 'isothermal' ? '等温过程' : mode === 'isobaric' ? '等压过程' : '等容过程';
     const modeColor = mode === 'isothermal' ? '#3b82f6' : mode === 'isobaric' ? '#f59e0b' : '#ef4444';

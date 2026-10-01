@@ -13,6 +13,7 @@
  * 设计原则：纯函数 + 屏幕坐标, 零依赖 React/Zustand/CoordinateTransformer
  */
 import type { SimulationResult } from 'physics-core';
+import { G_ACCELERATION } from './constants';
 import {
     roundRectPath,
     shadeColor,
@@ -495,7 +496,7 @@ export function drawProjectileCollisionScene(opts: MechanicsSceneOptions): void 
     const v1 = params['v1Initial'] ?? 2;
     const tableH = params['tableHeight'] ?? 0.8;
     const e = params['restitution'] ?? 1;
-    const g = params['gravity'] ?? 9.8;
+    const g = params['gravity'] ?? G_ACCELERATION;
     const tFall = Math.sqrt((2 * tableH) / g);
     const v1After = ((m1 - e * m2) * v1) / (m1 + m2);
     const v2After = ((1 + e) * m1 * v1) / (m1 + m2);
@@ -647,7 +648,7 @@ export function drawVerticalCircleScene(opts: MechanicsSceneOptions): void {
     const length = params['length'] ?? 1;
     const mass = params['mass'] ?? 0.2;
     const v0 = params['initialSpeed'] ?? 5;
-    const g = 9.8;
+    const g = G_ACCELERATION;
     const r = Math.min(width, height) * 0.27;
     const cx = width * 0.52;
     const cy = height * 0.5;
@@ -724,7 +725,7 @@ export function drawCentrifugalScene(opts: MechanicsSceneOptions): void {
     const radius = params['radius'] ?? 0.3;
     const omega = params['angularSpeed'] ?? 5;
     const mu = params['frictionCoeff'] ?? 0.5;
-    const g = 9.8;
+    const g = G_ACCELERATION;
 
     const omegaCrit = Math.sqrt((mu * g) / Math.max(0.01, radius));
     const isSliding = omega > omegaCrit;

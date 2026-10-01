@@ -11,6 +11,7 @@
  * 设计原则：纯函数 + 屏幕坐标, 零依赖 React/Zustand/CoordinateTransformer
  */
 import type { SimulationResult } from 'physics-core';
+import { G_ACCELERATION } from './constants';
 import {
     roundRectPath,
     mutedColor,
@@ -43,7 +44,7 @@ const RED = '#ef4444';
 export function drawFreeFallScene(opts: MechanicsSceneOptions): void {
     const { ctx, width, height, isDark, params, simulationResult, currentTime } = opts;
     const h0 = params['height'] ?? 20;
-    const g = params['g'] ?? 9.8;
+    const g = params['g'] ?? G_ACCELERATION;
     const frame = getFrame(simulationResult, currentTime);
     const fallen = frame ? Math.max(0, h0 - frame.position.y) : Math.min(h0, 0.5 * g * currentTime * currentTime);
     const v = frame ? Math.abs(frame.velocity.y) : g * currentTime;
@@ -107,7 +108,7 @@ export function drawGalileoInclineScene(opts: MechanicsSceneOptions): void {
     const { ctx, width, height, isDark, params, simulationResult, currentTime } = opts;
     const angleDeg = params['angleDeg'] ?? 30;
     const length = params['inclineLength'] ?? 2;
-    const g = params['gravity'] ?? 9.8;
+    const g = params['gravity'] ?? G_ACCELERATION;
     const theta = (angleDeg * Math.PI) / 180;
     const a = g * Math.sin(theta);
     const frame = getFrame(simulationResult, currentTime);
@@ -156,7 +157,7 @@ export function drawGalileoInclineScene(opts: MechanicsSceneOptions): void {
 export function drawReactionTimeScene(opts: MechanicsSceneOptions): void {
     const { ctx, width, height, isDark, params, simulationResult, currentTime } = opts;
     const targetDistance = params['distance'] ?? 0.2;
-    const g = params['gravity'] ?? 9.8;
+    const g = params['gravity'] ?? G_ACCELERATION;
     const frame = getFrame(simulationResult, currentTime);
     const distance = clamp(frame ? Math.abs(frame.position.y) : 0.5 * g * currentTime * currentTime, 0, targetDistance);
     const reaction = Math.sqrt((2 * targetDistance) / g);

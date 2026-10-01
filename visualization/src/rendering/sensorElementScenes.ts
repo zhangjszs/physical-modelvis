@@ -11,6 +11,7 @@
  * 设计原则：纯函数 + 屏幕坐标, 零依赖 React/Zustand/CoordinateTransformer
  */
 import type { SimulationResult } from 'physics-core';
+import { E_CHARGE } from './constants';
 import {
     roundRectPath,
     clearScene,
@@ -56,7 +57,7 @@ export function drawHallEffectScene(o: SensorSceneOptions): void {
     const B = params['magneticField'] ?? 0.3;
     const n = params['chargeDensity'] ?? 1e22;
     const t = params['thickness'] ?? 0.001;
-    const q = 1.602e-19;
+    const q = E_CHARGE;
 
     // V_H 解析值 (伏特)
     const Vh = (I * B) / (n * q * t);

@@ -11,6 +11,7 @@
  * 设计原则：纯函数 + 屏幕坐标, 零依赖 React/Zustand/CoordinateTransformer
  */
 import type { SimulationResult } from 'physics-core';
+import { G_ACCELERATION } from './constants';
 import {
     roundRectPath,
     clearScene,
@@ -520,7 +521,7 @@ export function drawCapillaryScene(o: ThermalSceneOptions): void {
     const rho = isMercury ? 13534 : 1000;
     const thetaDeg = isMercury ? (isParaffin ? 150 : 140) : isParaffin ? 105 : 0;
     const thetaRad = (thetaDeg * Math.PI) / 180;
-    const g = 9.8;
+    const g = G_ACCELERATION;
     const r = rMm * 1e-3;
     const capillaryHM = (2 * sigma * Math.cos(thetaRad)) / (rho * g * r); // m
     const hMm = capillaryHM * 1000;

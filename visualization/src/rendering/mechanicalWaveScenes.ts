@@ -7,6 +7,7 @@
  * 设计原则：纯函数 + 屏幕坐标, 零依赖 React/Zustand/CoordinateTransformer
  */
 import type { SimulationResult } from 'physics-core';
+import { G_ACCELERATION } from './constants';
 import {
     drawTitle,
     drawHud,
@@ -228,7 +229,7 @@ export function drawBallXTimeScene(o: MechanicsSceneOptions): void {
     }
     const duration = params['duration'] ?? 10;
     const L = params['length'] ?? 1.0;
-    const g = params['g'] ?? 9.8;
+    const g = params['g'] ?? G_ACCELERATION;
     // 优先从真实轨迹过零实测周期 (大摆角下 != 小角度公式); 窗口太短回退小角度估算
     const Tsmall = 2 * Math.PI * Math.sqrt(Math.max(1e-6, L) / Math.max(1e-6, g));
     const Tmeasured = measurePendulumPeriod(traj);

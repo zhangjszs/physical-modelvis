@@ -20,6 +20,7 @@
  */
 
 import type { SimulationResult } from 'physics-core';
+import { G_ACCELERATION } from './constants';
 import {
     roundRectPath,
     getFrame,
@@ -216,7 +217,7 @@ export function drawDoublePendulumSyncScene(opts: Chapter2SceneOptions): void {
     const A1deg = params['angle1'] ?? 10;
     const A2deg = params['angle2'] ?? 10;
     const phaseDiffDeg = params['phaseDiff'] ?? 0;
-    const g = params['gravity'] ?? 9.8;
+    const g = params['gravity'] ?? G_ACCELERATION;
 
     const omega1 = Math.sqrt(g / L1);
     const omega2 = Math.sqrt(g / L2);

@@ -9,6 +9,7 @@
  * 设计原则：纯函数 + 屏幕坐标, 零依赖 React/Zustand/CoordinateTransformer
  */
 import type { SimulationResult } from 'physics-core';
+import { G_ACCELERATION } from './constants';
 import {
     roundRectPath,
     textColor,
@@ -297,7 +298,7 @@ export function drawMoonEarthTestScene(opts: MechanicsSceneOptions): void {
     const R_earth = 6.371e6;
     const r_moon = 3.844e8;
     const T_moon = 27.3 * 86400;
-    const g_surface = 9.8;
+    const g_surface = G_ACCELERATION;
 
     // 回退自算 (无引擎结果时)
     const a_moon = engMax?.aMoon ?? (4 * Math.PI * Math.PI * r_moon) / (T_moon * T_moon);

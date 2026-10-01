@@ -13,6 +13,7 @@
  * 设计原则：纯函数 + 屏幕坐标, 零依赖 React/Zustand/CoordinateTransformer
  */
 import type { SimulationResult } from 'physics-core';
+import { G_ACCELERATION } from './constants';
 import {
     roundRectPath,
     clearScene,
@@ -372,7 +373,7 @@ export function drawJouleMechanicalScene(o: ThermalSceneOptions): void {
     const drops = params['drops'] ?? 100;
     const waterMass = params['waterMass'] ?? 0.5;
     const c = params['specificHeat'] ?? 4184;
-    const work = mass * 9.8 * height * drops;
+    const work = mass * G_ACCELERATION * height * drops;
     const deltaT = work / (waterMass * c);
     const tankX = w * 0.42;
     const tankY = h * 0.36;

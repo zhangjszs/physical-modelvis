@@ -18,6 +18,7 @@
  */
 
 import type { SimulationResult } from 'physics-core';
+import { E_CHARGE } from './constants';
 import { roundRectPath, clearScene, drawTitle, drawHud, drawArrow, drawGlowCircle } from './renderingUtils';
 
 // ========== 共享类型 ==========
@@ -729,7 +730,7 @@ export function drawFissionChainScene(o: NuclearSceneOptions): void {
         totalFissions = lastPt ? lastPt.y : totalFissions;
     }
     const E_total_MeV = totalFissions * 200;
-    const E_MJ = E_total_MeV * 1.602e-19; // 1 MeV = 1.602e-13 J = 1.602e-19 MJ
+    const E_MJ = E_total_MeV * E_CHARGE; // 1 MeV = 1.602e-13 J = 1.602e-19 MJ
 
     const infoRows = [
         `k = ${k.toFixed(2)}`,

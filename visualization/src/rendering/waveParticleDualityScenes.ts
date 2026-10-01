@@ -17,7 +17,8 @@ import {
     stefanBoltzmannExitance,
     PLANCK_H,
     E_CHARGE,
-    K_BOLTZMANN
+    K_BOLTZMANN,
+    LIGHT_SPEED
 } from './constants';
 
 export interface ModernSceneOptions {
@@ -174,7 +175,7 @@ export function drawBlackBodyScene(o: ModernSceneOptions): void {
         plotH = h - plotY - 70;
     const lamMin = 50,
         lamMax = 3000; // nm
-    const hc = PLANCK_H * 299792458;
+    const hc = PLANCK_H * LIGHT_SPEED;
     const kT = K_BOLTZMANN * T;
     const Blambda = (lamNm: number) => {
         const lam = lamNm * 1e-9;

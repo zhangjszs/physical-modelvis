@@ -42,6 +42,22 @@ export const D_GAS_25C = 1e-5;
 export const PLANCK_H = 6.62607015e-34;
 
 /**
+ * 重力加速度 g (m/s²) — 教材口径 9.8 (与引擎 PHYSICS_CONSTANTS.g.value 同值)。
+ * 渲染层场景回退默认 g 用此常量, 避免 20+ 处内联 9.8 漂移 (#52)。
+ */
+export const G_ACCELERATION = 9.8;
+
+/**
+ * 摩尔气体常量 R (J/(mol·K)) — 教材口径 8.314 (与引擎 PHYSICS_CONSTANTS.R.value 同值)。
+ */
+export const GAS_CONSTANT_R = 8.314;
+
+/**
+ * 真空中光速 c (m/s) — CODATA 精确值 299792458 (与引擎 PHYSICS_CONSTANTS.c.value 同值)。
+ */
+export const LIGHT_SPEED = 299792458;
+
+/**
  * 干簧管磁场强度简化模型: H(d) = H₀ / (1 + (d/d₀)²)
  *
  * 注: 这是经验公式, 模拟磁铁距离干簧管越近越强的单调趋势;

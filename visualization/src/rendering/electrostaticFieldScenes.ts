@@ -11,6 +11,7 @@
  * 设计原则：纯函数 + 屏幕坐标, 零依赖 React/Zustand/CoordinateTransformer
  */
 import type { SimulationResult, Vector2D } from 'physics-core';
+import { G_ACCELERATION } from './constants';
 import {
     COLORS,
     roundRectPath,
@@ -126,7 +127,7 @@ export function drawElectroscopeScene(opts: ElectromagnetismSceneOptions): void 
     const foilMass = params['foilMass'] ?? 1;
     const qC = q * 1e-6;
     const L = Math.max(foilLength * 1e-2, 0.01);
-    const g = 9.8;
+    const g = G_ACCELERATION;
     // 简化模型：箔尖斥力 F = k q² / (2L)²，与重力矩平衡 → tanθ = F/(mg)
     const repel = (K * qC * qC) / (4 * L * L);
     const gravity = Math.max(foilMass * 1e-3 * g, 1e-9);

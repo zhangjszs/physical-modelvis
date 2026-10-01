@@ -15,6 +15,7 @@
  */
 
 import type { SimulationResult } from 'physics-core';
+import { G_ACCELERATION } from './constants';
 import { roundRectPath, getFrame, drawEmptyState, drawHud, drawInfoBar, draw3DBlock } from './renderingUtils';
 
 // ========== 共享类型 ==========
@@ -105,7 +106,7 @@ export function drawHookeLawScene(opts: Chapter3SceneOptions): void {
     const k = params['k'] ?? 20;
     const massPerWeight_g = params['massPerWeight'] ?? 50;
     const weightCount = Math.max(1, params['weightCount'] ?? 4);
-    const g = params['g'] ?? 9.8;
+    const g = params['g'] ?? G_ACCELERATION;
     const m = (massPerWeight_g / 1000) * weightCount;
     const x_eq = (m * g) / k; // 平衡位置弹簧伸长量 (m)
 
@@ -281,7 +282,7 @@ export function drawSlidingFrictionScene(opts: Chapter3SceneOptions): void {
     const mass = params['mass'] ?? 1;
     const v0 = params['v0'] ?? 0.5;
     const uniformMotion = (params['uniformMotion'] ?? 1) === 1;
-    const g = params['g'] ?? 9.8;
+    const g = params['g'] ?? G_ACCELERATION;
 
     const N = mass * g;
     const f = mu * N;

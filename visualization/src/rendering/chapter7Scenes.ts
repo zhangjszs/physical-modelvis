@@ -8,6 +8,7 @@
  * 设计原则：纯函数 + 屏幕坐标, 零依赖 React/Zustand/CoordinateTransformer
  */
 import type { SimulationResult } from 'physics-core';
+import { G_ACCELERATION } from './constants';
 import {
     roundRectPath,
     mutedColor,
@@ -45,7 +46,7 @@ export function drawEnergyConservationScene(opts: MechanicsSceneOptions): void {
     const h0 = params['h0'] ?? 10;
     const v0 = params['v0'] ?? 0;
     const mass = params['mass'] ?? 1;
-    const g = params['g'] ?? 9.8;
+    const g = params['g'] ?? G_ACCELERATION;
     const friction = params['friction'] ?? 0;
 
     const frame = getFrame(simulationResult, currentTime);
@@ -199,7 +200,7 @@ export function drawSimplePendulumScene(opts: MechanicsSceneOptions): void {
     const L = params['length'] ?? 1.0;
     const angleDeg = params['angle'] ?? 15;
     const mass = params['mass'] ?? 1;
-    const g = params['g'] ?? 9.8;
+    const g = params['g'] ?? G_ACCELERATION;
     const damping = params['damping'] ?? 0;
     const T = 2 * Math.PI * Math.sqrt(L / g);
     const omega0 = Math.sqrt(g / L);

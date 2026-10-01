@@ -16,6 +16,7 @@
  */
 
 import type { SimulationResult } from 'physics-core';
+import { G_ACCELERATION } from './constants';
 import { roundRectPath, drawEmptyState, drawHud, drawInfoBar, drawArrow, interpSeries } from './renderingUtils';
 
 // ========== 共享类型 ==========
@@ -204,7 +205,7 @@ export function drawCurrentBalanceScene(opts: EmEquipSceneOptions): void {
     const l = params['wireLen'] ?? 0.05;
     const n = params['turns'] ?? 20;
     const m = params['mass'] ?? 0.01;
-    const g = params['gravity'] ?? 9.8;
+    const g = params['gravity'] ?? G_ACCELERATION;
 
     const F_ampere = n * B * I * l;
     const F_gravity = m * g;
@@ -542,7 +543,7 @@ export function drawEmDampingScene(opts: EmEquipSceneOptions): void {
         : omega0 * Math.exp(-gamma * currentTime); // 回退: 与引擎公式同源
     const A0 = 0.35; // rad 初始振幅 (演示)
     const A_t = omega0 > 0 ? (A0 * Math.max(0, omegaNow)) / omega0 : 0; // 包络 ∝ 引擎 ω
-    const omegaPend = Math.sqrt(9.8 / 0.5); // 演示摆频率 (悬挂示意, 与引擎无关)
+    const omegaPend = Math.sqrt(G_ACCELERATION / 0.5); // 演示摆频率 (悬挂示意, 与引擎无关)
     const phi = A_t * Math.cos(omegaPend * currentTime);
 
     // 天花板
