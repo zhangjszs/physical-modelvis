@@ -128,6 +128,7 @@ scripts/               — 验证脚本 (self-check.mjs L0-L6 + L8-L11 物理自
 
 ## Key Patterns
 - physics-core 使用解析解 (除电磁复合场用 Boris 数值积分)
+- **2D/3D 路径边界 (#56)**: 纯 2D 匀强场场景用 `em-combined-field` 解析模型 (特化路径更精确); 3D / 非匀强 / 组合场 (拖拽实验台) 用 `physics/boris3d` + `physics/fields3d`。`borisTrajectory3D` 返回**独立的 `TrajectoryPoint3D` 通道** (position/velocity 为 `Vector3D`), **不并入 `SimulationResult`** —— 后者的 `TrajectoryPoint`(Vector2D) 是 123 场景 / `getFrame` / 单一真源契约的支点, 扩成 2D/3D 联合属破坏性变更 (方案 A, 见 `physics/boris3d.ts` 注释)。3D 积分与场源已纳入自检 (L8 含 `boris3d.test.ts`, L1 含 `fields3d.test.ts`)。
 - 物理模型继承 PhysicsModelBase，通过 registerModel 注册到全局注册表
 - PhysicsProblem 是引擎输入，SimulationResult 是引擎输出
 - **渲染单一真源约定 (阶段 3 迁移)**:有引擎数据的场景,渲染层必须消费引擎结果,不得用 `currentTime + 公式` 自算物理——否则引擎改公式时画面漂移。迁移模式:

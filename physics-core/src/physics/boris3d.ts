@@ -34,8 +34,14 @@ export type FieldEvaluator = (position: Vector3D) => FieldAtPoint;
  */
 const BORIS_MAX_TZ = Math.PI / 4;
 
-/** 3D 轨迹点 (与 types/result.ts 的 TrajectoryPoint 对应的 3D 版本;
- * 待上层 SimulationResult 扩展出 3D 通道后再归并) */
+/** 3D 轨迹点 — **独立于 `SimulationResult` 的 3D 通道**（#56 接口归属决策, 采用方案 A）。
+ *
+ * 为什么不归并进 types/result.ts 的 `SimulationResult`：`SimulationResult.trajectories`
+ * 的元素 `TrajectoryPoint`(`position`/`velocity`: `Vector2D`) 是渲染层单一真源契约的支点 ——
+ * 被 123 个场景、`getFrame()` 与 `visualization/tests/accuracy/single-source-contract.test.ts`
+ * 全面依赖; 把它扩成 2D/3D 联合类型属破坏性变更, 波及整个渲染层, 收益不足以抵消风险。
+ * 故 `borisTrajectory3D` 返回本独立结构, 由调用方（3D 可视化 / 组合实验台）单独消费。
+ * 若将来渲染层确立统一的 3D 轨迹契约, 再评估归并（届时需同步改上述依赖面）。 */
 export interface TrajectoryPoint3D {
     readonly t: number;
     readonly position: Vector3D;

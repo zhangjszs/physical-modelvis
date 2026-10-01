@@ -31,13 +31,23 @@ function log(line) {
 
 const LAYERS = [
     { id: 'L0', name: '物理常数完整性', pkg: 'physics-core', test: 'constants.test.ts' },
-    { id: 'L1', name: '模型守恒律+解析解', pkg: 'physics-core', test: 'fixtures.test.ts' },
+    {
+        id: 'L1',
+        name: '模型守恒律+解析解',
+        pkg: 'physics-core',
+        test: ['fixtures.test.ts', 'tests/unit/fields3d.test.ts']
+    },
     { id: 'L2', name: 'SceneConfig↔引擎契约', pkg: 'visualization', test: 'scene-contract.test.ts' },
     { id: 'L3', name: '渲染器公式', pkg: 'visualization', test: 'renderers.test.ts' },
     { id: 'L4', name: 'FormulaPanel 漂移', pkg: 'visualization', test: 'formula-drift.test.ts' },
     { id: 'L5', name: '渲染器-场景路由', pkg: 'visualization', test: 'renderer-routing.test.ts' },
     { id: 'L6', name: '参数面板物理范围', pkg: 'visualization', test: 'parameter-ranges.test.ts' },
-    { id: 'L8', name: 'Boris 数值积分正确性+收敛', pkg: 'physics-core', test: 'boris-correctness.test.ts' },
+    {
+        id: 'L8',
+        name: 'Boris 数值积分正确性+收敛',
+        pkg: 'physics-core',
+        test: ['boris-correctness.test.ts', 'tests/unit/boris3d.test.ts']
+    },
     {
         id: 'L9',
         name: '跨场景数值鲁棒性',
@@ -67,7 +77,7 @@ function runLayer(layer) {
         // .scratch/ 下的全量测试报告覆盖成单层结果, 破坏 count:check --from-report。
         const cmd = isWin ? 'npx.cmd' : 'npx';
         const testFiles = Array.isArray(layer.test) ? layer.test : [layer.test];
-        const args = ['vitest', 'run', ...testFiles.map(t => 'tests/accuracy/' + t)];
+        const args = ['vitest', 'run', ...testFiles.map(t => (t.includes('/') ? t : 'tests/accuracy/' + t))];
         if (layer.pkg === 'physics-core' && testFiles.includes('constants.test.ts')) {
             // physics-core 的 constants.test.ts 在 tests/unit 下, 重定向路径
             const idx = args.findIndex(a => a.endsWith('constants.test.ts'));
