@@ -9,6 +9,10 @@ import { snapVector } from '../utils/compositionCoords';
  * 重仿真时机: add / remove / 参数修改 / 粒子修改 / commit (拖拽松手)。
  * 拖拽进行中 (moveSource) **不**重仿真 — 强磁场源每步要算 96 段毕奥-萨伐尔,
  * 逐帧重算会卡顿; 拖拽中轨迹短暂滞留旧值, 松手即刷新。
+ *
+ * 场线 (L5): 场线只依赖 sources, 与粒子/轨迹无关。任何 sources 变化 (含拖拽
+ * 中的 moveSource) 自增 fieldLineRevision, 渲染层订阅它并按 100ms 节流重建 —
+ * 于是拖拽中场线实时跟手, 而昂贵的轨迹仿真仍只在松手后重算。
  */
 
 export type SourceKind = FieldSource['kind'];
@@ -66,6 +70,13 @@ interface CompositionState {
     /** 校验/求解的当前问题 (null = 状态健康) */
     validationMessage: string | null;
 
+    /** 显示电场线 (默认开) */
+    showElectricFieldLines: boolean;
+    /** 显示磁场线 (默认关, 避免默认画面过密) */
+    showMagneticFieldLines: boolean;
+    /** sources 发生变化即自增 — 渲染层据此节流重建场线 */
+    fieldLineRevision: number;
+
     addSource: (kind: SourceKind, position?: Vector3D) => void;
     /** 拖拽中更新位置 (吸附后), 不触发重仿真 */
     moveSource: (id: string, position: Vector3D) => void;
@@ -76,6 +87,8 @@ interface CompositionState {
     select: (id: string | null) => void;
     setParticle: (patch: Partial<CompositionParticle>) => void;
     setDuration: (duration: number) => void;
+    toggleElectricFieldLines: () => void;
+    toggleMagneticFieldLines: () => void;
     resetLab: () => void;
 }
 
@@ -106,6 +119,9 @@ export const useCompositionStore = create<CompositionState>((set, get) => ({
     sampleCount: SAMPLE_COUNT_DEFAULT,
     result: null,
     validationMessage: null,
+    showElectricFieldLines: true,
+    showMagneticFieldLines: false,
+    fieldLineRevision: 0,
 
     addSource: (kind, position) => {
         const def = SOURCE_DEFAULTS[kind];
@@ -115,7 +131,8 @@ export const useCompositionStore = create<CompositionState>((set, get) => ({
         set(s => {
             const next: Partial<CompositionState> = {
                 sources: [...s.sources, { id, source: placed }],
-                selectedId: id
+                selectedId: id,
+                fieldLineRevision: s.fieldLineRevision + 1
             };
             return { ...next, ...recompute({ ...get(), ...next } as CompositionState) };
         });
@@ -125,7 +142,8 @@ export const useCompositionStore = create<CompositionState>((set, get) => ({
         set(s => ({
             sources: s.sources.map(p =>
                 p.id === id ? { ...p, source: applyPosition(p.source, snapVector(position)) } : p
-            )
+            ),
+            fieldLineRevision: s.fieldLineRevision + 1
         }));
     },
 
@@ -136,7 +154,8 @@ export const useCompositionStore = create<CompositionState>((set, get) => ({
             const next: Partial<CompositionState> = {
                 sources: s.sources.map(p =>
                     p.id === id ? { ...p, source: { ...p.source, ...patch } as FieldSource } : p
-                )
+                ),
+                fieldLineRevision: s.fieldLineRevision + 1
             };
             return { ...next, ...recompute({ ...get(), ...next } as CompositionState) };
         });
@@ -146,7 +165,8 @@ export const useCompositionStore = create<CompositionState>((set, get) => ({
         set(s => {
             const next: Partial<CompositionState> = {
                 sources: s.sources.filter(p => p.id !== id),
-                selectedId: s.selectedId === id ? null : s.selectedId
+                selectedId: s.selectedId === id ? null : s.selectedId,
+                fieldLineRevision: s.fieldLineRevision + 1
             };
             return { ...next, ...recompute({ ...get(), ...next } as CompositionState) };
         });
@@ -169,16 +189,19 @@ export const useCompositionStore = create<CompositionState>((set, get) => ({
         });
     },
 
+    toggleElectricFieldLines: () => set(s => ({ showElectricFieldLines: !s.showElectricFieldLines })),
+    toggleMagneticFieldLines: () => set(s => ({ showMagneticFieldLines: !s.showMagneticFieldLines })),
+
     resetLab: () => {
-        const next: Partial<CompositionState> = {
+        set(s => ({
             sources: [],
             selectedId: null,
             particle: { ...PARTICLE_DEFAULT },
             duration: DURATION_DEFAULT,
             result: null,
-            validationMessage: null
-        };
-        set(next);
+            validationMessage: null,
+            fieldLineRevision: s.fieldLineRevision + 1
+        }));
     }
 }));
 

@@ -4,17 +4,36 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import type { TrajectoryPoint3D } from 'physics-core';
 import { useCompositionStore } from '../../store/compositionStore';
 import { makeSourceMesh, updateSourceMesh } from './sourceMeshes';
+import { buildFieldLines } from './fieldLines';
+import type { FieldKind } from './fieldLineSeeds';
+import { makeArrow, makeLine, disposeObject } from '../simulation3d/primitives';
 import { physicsToWorld, worldToPhysics, snapVector } from '../../utils/compositionCoords';
 
 /**
- * CompositionStage — 组合实验台的 3D 交互舞台 (L4)。
+ * CompositionStage — 组合实验台的 3D 交互舞台 (L4) + 场线渲染 (L5)。
  *
  * 沿用 3D 引擎的 build-once / mutate-via-refs / render-in-rAF 模式:
  * - 器材网格随 store 的 sources/selectedId 对账 (增/删/原位更新)
  * - 轨迹线随 result 重建, 粒子小球在 rAF 里沿引擎轨迹循环播放
+ * - 场线只依赖 sources, 订阅 fieldLineRevision 后按 100ms 节流重建,
+ *   拖拽中实时跟手 (E/B 色系区分, 每条线带方向箭头)
  * - 指针交互: 点击选中, 按住拖拽 (水平面投影 + 0.05m 网格吸附),
  *   拖拽期间关闭 OrbitControls, 松手 commit 重仿真
  */
+
+/** 电场线 / 磁场线色系 (与轨迹蓝、器材色区分) */
+const FIELD_LINE_COLORS: Record<FieldKind, number> = {
+    electric: 0xf97316,
+    magnetic: 0x7c3aed
+};
+
+/** 场线重建节流间隔 — 拖拽中约 10Hz 刷新, 兼顾跟手与算力 */
+const FIELD_LINE_THROTTLE_MS = 100;
+
+/** 方向箭头长度与箭头头部尺寸 (世界坐标) */
+const FIELD_ARROW_LENGTH = 0.12;
+const FIELD_ARROW_HEAD_LENGTH = 0.07;
+const FIELD_ARROW_HEAD_WIDTH = 0.045;
 
 interface DragState {
     readonly id: string;
@@ -72,6 +91,53 @@ export function CompositionStage() {
 
         const sourcesGroup = new THREE.Group();
         scene.add(sourcesGroup);
+
+        // 场线组 (L5): 全量重建, sources 变化时清空后按当前开关重画
+        const fieldLinesGroup = new THREE.Group();
+        scene.add(fieldLinesGroup);
+
+        const rebuildFieldLines = () => {
+            for (const child of [...fieldLinesGroup.children]) {
+                fieldLinesGroup.remove(child);
+                disposeObject(child);
+            }
+            const { sources, showElectricFieldLines, showMagneticFieldLines } = useCompositionStore.getState();
+            const sourceList = sources.map(p => p.source);
+            const kinds: FieldKind[] = [];
+            if (showElectricFieldLines) kinds.push('electric');
+            if (showMagneticFieldLines) kinds.push('magnetic');
+            for (const kind of kinds) {
+                const color = FIELD_LINE_COLORS[kind];
+                for (const points of buildFieldLines(sourceList, kind)) {
+                    fieldLinesGroup.add(
+                        makeLine(
+                            points.map(p => new THREE.Vector3(p.x, p.y, p.z)),
+                            color,
+                            0.8
+                        )
+                    );
+                    // 中线处一枚方向箭头 (沿折线前进方向 = 场方向)
+                    const at = Math.floor(points.length * 0.35);
+                    const from = points[at];
+                    const to = points[at + 1];
+                    if (from && to) {
+                        const dir = new THREE.Vector3(to.x - from.x, to.y - from.y, to.z - from.z);
+                        if (dir.lengthSq() > 0) {
+                            fieldLinesGroup.add(
+                                makeArrow(
+                                    dir,
+                                    new THREE.Vector3(from.x, from.y, from.z),
+                                    FIELD_ARROW_LENGTH,
+                                    color,
+                                    FIELD_ARROW_HEAD_LENGTH,
+                                    FIELD_ARROW_HEAD_WIDTH
+                                )
+                            );
+                        }
+                    }
+                }
+            }
+        };
 
         // 轨迹线 + 粒子小球 (有引擎结果时可见)
         const trajectoryLine = new THREE.Line(
@@ -147,6 +213,42 @@ export function CompositionStage() {
         rebuildTrajectory();
         const unsubscribeResult = useCompositionStore.subscribe((state, prev) => {
             if (state.result !== prev.result) rebuildTrajectory();
+        });
+
+        // --- 场线重建 (订阅 fieldLineRevision + E/B 开关, 100ms 节流) ---
+        let fieldLineTimer: number | null = null;
+        let lastFieldLineBuild = 0;
+        const scheduleFieldLines = () => {
+            if (fieldLineTimer !== null) return; // 已有待执行, 不重复排
+            const elapsed = performance.now() - lastFieldLineBuild;
+            if (elapsed >= FIELD_LINE_THROTTLE_MS) {
+                rebuildFieldLines();
+                lastFieldLineBuild = performance.now();
+            } else {
+                fieldLineTimer = window.setTimeout(() => {
+                    fieldLineTimer = null;
+                    rebuildFieldLines();
+                    lastFieldLineBuild = performance.now();
+                }, FIELD_LINE_THROTTLE_MS - elapsed);
+            }
+        };
+        rebuildFieldLines();
+        const unsubscribeFieldLines = useCompositionStore.subscribe((state, prev) => {
+            const toggled =
+                state.showElectricFieldLines !== prev.showElectricFieldLines ||
+                state.showMagneticFieldLines !== prev.showMagneticFieldLines;
+            const sourcesChanged = state.fieldLineRevision !== prev.fieldLineRevision;
+            if (toggled) {
+                // 开关是用户显式操作 — 立即重画 (取消在途节流)
+                if (fieldLineTimer !== null) {
+                    window.clearTimeout(fieldLineTimer);
+                    fieldLineTimer = null;
+                }
+                rebuildFieldLines();
+                lastFieldLineBuild = performance.now();
+            } else if (sourcesChanged) {
+                scheduleFieldLines();
+            }
         });
 
         // --- 拖拽交互 ---
@@ -254,9 +356,11 @@ export function CompositionStage() {
         // --- 清理 ---
         return () => {
             cancelAnimationFrame(raf);
+            if (fieldLineTimer !== null) window.clearTimeout(fieldLineTimer);
             observer.disconnect();
             unsubscribeStore();
             unsubscribeResult();
+            unsubscribeFieldLines();
             renderer.domElement.removeEventListener('pointerdown', onPointerDown);
             renderer.domElement.removeEventListener('pointermove', onPointerMove);
             renderer.domElement.removeEventListener('pointerup', onPointerUp);

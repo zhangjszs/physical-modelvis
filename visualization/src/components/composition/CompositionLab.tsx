@@ -63,6 +63,10 @@ export function CompositionLab({ onExit }: { onExit: () => void }) {
     const removeSource = useCompositionStore(s => s.removeSource);
     const setParticle = useCompositionStore(s => s.setParticle);
     const setDuration = useCompositionStore(s => s.setDuration);
+    const showElectricFieldLines = useCompositionStore(s => s.showElectricFieldLines);
+    const showMagneticFieldLines = useCompositionStore(s => s.showMagneticFieldLines);
+    const toggleElectricFieldLines = useCompositionStore(s => s.toggleElectricFieldLines);
+    const toggleMagneticFieldLines = useCompositionStore(s => s.toggleMagneticFieldLines);
     const resetLab = useCompositionStore(s => s.resetLab);
 
     const selected = sources.find(p => p.id === selectedId) ?? null;
@@ -126,6 +130,21 @@ export function CompositionLab({ onExit }: { onExit: () => void }) {
                     <button className="btn btn-sm" style={{ width: '100%', marginTop: 6 }} onClick={resetLab}>
                         清空实验台
                     </button>
+                </div>
+
+                <div className="panel-section">
+                    <div className="panel-title">场线显示</div>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, margin: '4px 0' }}>
+                        <input type="checkbox" checked={showElectricFieldLines} onChange={toggleElectricFieldLines} />
+                        <span>显示电场线 (E)</span>
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, margin: '4px 0' }}>
+                        <input type="checkbox" checked={showMagneticFieldLines} onChange={toggleMagneticFieldLines} />
+                        <span>显示磁场线 (B)</span>
+                    </label>
+                    <p style={{ fontSize: 11, color: '#94a3b8', margin: '4px 0 0' }}>
+                        场线由场源实时追踪, 拖拽器材时跟手刷新; 线上箭头指示 E/B 方向。
+                    </p>
                 </div>
 
                 <div className="panel-section">

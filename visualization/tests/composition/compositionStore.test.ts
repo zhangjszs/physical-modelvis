@@ -81,4 +81,44 @@ describe('compositionStore 组合实验台状态', () => {
         expect(validationMessage).toBeNull();
         expect(result).not.toBeNull();
     });
+
+    it('场线开关默认 E 开 / B 关, toggle 可翻转', () => {
+        const initial = useCompositionStore.getState();
+        expect(initial.showElectricFieldLines).toBe(true);
+        expect(initial.showMagneticFieldLines).toBe(false);
+        initial.toggleElectricFieldLines();
+        initial.toggleMagneticFieldLines();
+        expect(useCompositionStore.getState().showElectricFieldLines).toBe(false);
+        expect(useCompositionStore.getState().showMagneticFieldLines).toBe(true);
+    });
+
+    it('fieldLineRevision 时机: 拖拽 moveSource 自增而轨迹不重算; 粒子/时长变化不自增', () => {
+        useCompositionStore.getState().addSource('point-charge');
+        const id = useCompositionStore.getState().sources[0]!.id;
+        const revisionBeforeDrag = useCompositionStore.getState().fieldLineRevision;
+        const resultBeforeDrag = useCompositionStore.getState().result;
+
+        // 拖拽中: 场线版本号自增 (渲染层据此节流重建, 实时跟手), 但昂贵的轨迹不重算
+        useCompositionStore.getState().moveSource(id, { x: 0.2, y: 0.1, z: 0.15 });
+        expect(useCompositionStore.getState().result).toBe(resultBeforeDrag);
+        expect(useCompositionStore.getState().fieldLineRevision).toBe(revisionBeforeDrag + 1);
+
+        // 粒子/时长变化不涉及 sources, 版本号保持 → 不触发场线重建
+        const revisionAfterDrag = useCompositionStore.getState().fieldLineRevision;
+        useCompositionStore.getState().setParticle({ charge: 1e-6 });
+        useCompositionStore.getState().setDuration(3);
+        expect(useCompositionStore.getState().fieldLineRevision).toBe(revisionAfterDrag);
+    });
+
+    it('fieldLineRevision 时机: 增删器材 / 改参数均自增', () => {
+        const r0 = useCompositionStore.getState().fieldLineRevision;
+        useCompositionStore.getState().addSource('straight-wire');
+        const r1 = useCompositionStore.getState().fieldLineRevision;
+        expect(r1).toBe(r0 + 1);
+        const id = useCompositionStore.getState().sources[0]!.id;
+        useCompositionStore.getState().updateSourceParams(id, { current: 12 });
+        expect(useCompositionStore.getState().fieldLineRevision).toBe(r1 + 1);
+        useCompositionStore.getState().removeSource(id);
+        expect(useCompositionStore.getState().fieldLineRevision).toBe(r1 + 2);
+    });
 });
