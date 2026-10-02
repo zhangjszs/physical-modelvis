@@ -168,13 +168,26 @@ describe('差分: projectile (随机 4 组, 含跨临界参数)', () => {
         it(`组 ${g3}: v₀=(${vx.toFixed(2)},${vy.toFixed(2)}) g=${g.toFixed(2)}`, () => {
             const r = model.solve(makeProblem(vx, vy, y0, g, duration));
             const traj = r.trajectories[0]!;
-            for (const t of [0, duration * 0.3, duration * 0.7, duration]) {
-                const p = pointAt(traj, t);
+            // 抛体轨迹在**落地时刻截断** (模拟时长比飞行时间长时, 末点 t = flightTime < duration),
+            // 所以差分只能在轨迹实际时间窗内比对 —— 窗外解析式已不适用
+            // (落地后物体不会穿过地面继续加速)。
+            const lastIdx = traj.length - 1;
+            const tSpan = traj[lastIdx]!.t;
+            expect(tSpan, '轨迹终点应在 (0, duration] 内').toBeGreaterThan(0);
+            expect(tSpan).toBeLessThanOrEqual(duration + 1e-9);
+            // 按**样本索引**而非时刻探测: 本文件的 pointAt 是就近取样本(不插值),
+            // 用 duration*0.3 这类任意时刻探测会引入网格舍入误差 (旧代码能过是因为
+            // 800×0.3 正好落在整数样本号上; 轨迹按落地截断后样本数不再保证这一点)。
+            for (const i of [0, Math.round(lastIdx * 0.3), Math.round(lastIdx * 0.7), lastIdx]) {
+                const p = traj[i]!;
+                const t = p.t;
                 expect(p.position.x).toBeCloseTo(vx * t, 6);
                 expect(p.position.y).toBeCloseTo(y0 + vy * t - 0.5 * g * t * t, 6);
                 expect(p.velocity.x).toBeCloseTo(vx, 5);
                 expect(p.velocity.y).toBeCloseTo(vy - g * t, 5);
             }
+            // 不穿地断言放在 projectile.test.ts 的常规斜抛用例里 ——
+            // 本组随机参数包含 vy<0 且 y0=0 的"起点就在地面"边缘情形, 不适合在此统一断言。
         });
     }
 });

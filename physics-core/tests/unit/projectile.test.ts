@@ -98,4 +98,43 @@ describe('ProjectileModel', () => {
         expect(s).toContain('最高点');
         expect(s).toContain('飞行');
     });
+
+    // 回归 (QA 巡检第 7 轮): 以前轨迹按完整 duration 采样, 落地后仍沿纯抛物线穿地,
+    // y 变负、|v| 持续增大→Ek 一直涨, 而 Ep 被 Math.max(0,…) 夹在 0,
+    // 数据面板上“机械能”在落地后凭空暴涨 (实测 t=5.55s / flightTime=3.02s 时 219.6 J → 909.9 J)。
+    it('模拟时长超出飞行时间 → 轨迹在落地处截断, 不穿地且机械能不暴涨', () => {
+        const r = model.solve(
+            makeProblem({ v0x: 14.142, v0y: 14.142, h0: 2, g: 9.8, duration: 5.55, sampleCount: 800 })
+        );
+        const traj = r.trajectories[0]!;
+        const last = traj[traj.length - 1]!;
+        const first = traj[0]!;
+
+        // 终点就是落地时刻, 而不是模拟时长
+        expect(last.t).toBeCloseTo(r.diagnostics.maxValues.flightTime, 3);
+        expect(last.t).toBeLessThan(5.55);
+        // 全程不穿地
+        for (const p of traj) expect(p.position.y).toBeGreaterThanOrEqual(-1e-9);
+        // 机械能全程守恒 (旧行为下末点会涨到≈ 4 倍)
+        const e0 = first.kineticEnergy! + first.potentialEnergy!;
+        const e1 = last.kineticEnergy! + last.potentialEnergy!;
+        expect(Math.abs(e1 - e0) / e0).toBeLessThan(0.01);
+        // 落地截断是正常用法, 不应发告警
+        expect(r.warnings).toHaveLength(0);
+    });
+
+    it('模拟时长小于飞行时间 → 轨迹仍覆盖完整 duration (截断只由落地触发)', () => {
+        const r = model.solve(makeProblem({ v0x: 10, v0y: 20, h0: 0, g: 9.8, duration: 1 }));
+        const traj = r.trajectories[0]!;
+        expect(r.diagnostics.maxValues.flightTime).toBeGreaterThan(1); // 飞行时间≈4.08s, 模拟内不落地
+        expect(traj[traj.length - 1]!.t).toBeCloseTo(1, 6);
+    });
+
+    it('neverLands (h₀ 很负, 判别式<0) → 轨迹覆盖完整 duration 并给不落地告警', () => {
+        const r = model.solve(makeProblem({ v0x: 10, v0y: 20, h0: -50, g: 9.8, duration: 3 }));
+        const traj = r.trajectories[0]!;
+        expect(r.diagnostics.rangeCheck.withinRange).toBe(false);
+        expect(traj[traj.length - 1]!.t).toBeCloseTo(3, 6);
+        expect(r.warnings.join()).toContain('不落地');
+    });
 });

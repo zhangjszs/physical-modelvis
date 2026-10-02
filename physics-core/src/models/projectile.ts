@@ -49,10 +49,38 @@ export class ProjectileModel extends PhysicsModelBase {
         const a = { x: 0, y: -g };
         const duration = problem.timeConfig.duration;
         const sampleCount = problem.timeConfig.sampleCount ?? 1000;
+
+        // 特征量与落地时刻 —— **必须在采样之前算**。
+        // 以前是先按完整 duration 采样、再算 tLand, 于是落地后轨迹仍沿纯抛物线往地下延伸:
+        // y 变负、|v| 持续增大 → Ek 一直涨, 而 Ep 被 Math.max(0, y-groundY) 夹在 0,
+        // 结果面板上“机械能”在落地后凭空暴涨 (实测 t=5.55s / flightTime=3.02s 时 E 从 219.6 J 跳到 909.9 J)。
+        const v0y = v0.y;
+        const v0x = v0.x;
+        const h0 = x0.y;
+        const tApex = v0y / g;
+        const apexHeight = h0 + (v0y * v0y) / (2 * g);
+
+        // 飞行时间 (落地解方程 h₀ + v₀y·t − ½gt² = 0)
+        // 判别式 disc = v₀y² + 2gh₀: ≤ 0 表示轨迹与地面无交点, 模拟期内不落地。
+        // 此时若静默回退 tLand = duration, 算出的"射程"是伪值(会被当作测量结果),
+        // 故显式标记为未落地并给出告警。
+        const disc = v0y * v0y + 2 * g * h0;
+        const neverLands = disc <= 0;
+        const tLand = neverLands ? duration : (v0y + Math.sqrt(disc)) / g;
+        const range = neverLands ? 0 : v0x * tLand;
+
+        // 采样终点: **落地即止** (取 min(飞行时间, 模拟时长))。
+        // 这样时间轴上限自然等于飞行时间, “穿地”区间从源头不可达;
+        // 模拟时长仍作为上界生效 (飞行时间比它长时依旧截到 duration)。
+        const dt = sampleCount > 0 ? duration / sampleCount : duration;
+        const tEnd = neverLands ? duration : Math.min(tLand, duration);
+        const simEnd = duration > 0 ? Math.max(tEnd, Math.min(dt, duration)) : 0;
+        const endSampleCount = Math.max(2, duration > 0 ? Math.round(sampleCount * (simEnd / duration)) : sampleCount);
+
         // 解析解采样: 平抛运动 (公共脚手架 sampleTrajectory)
         const trajectory = sampleTrajectory({
-            sampleCount,
-            duration,
+            sampleCount: endSampleCount,
+            duration: simEnd,
             sampleAt: t => {
                 const x = x0.x + v0.x * t;
                 const y = x0.y + v0.y * t - 0.5 * g * t * t;
@@ -69,22 +97,6 @@ export class ProjectileModel extends PhysicsModelBase {
             }
         });
 
-        // 特征量
-        const v0y = v0.y;
-        const v0x = v0.x;
-        const h0 = x0.y;
-        const tApex = v0y / g;
-        const apexHeight = h0 + (v0y * v0y) / (2 * g);
-
-        // 飞行时间 (落地解方程 h₀ + v₀y·t − ½gt² = 0)
-        // 判别式 disc = v₀y² + 2gh₀: < 0 表示轨迹始终在地面之上、模拟期内不落地。
-        // 此时若静默回退 tLand = duration, 算出的"射程"是伪值(会被当作测量结果),
-        // 故显式标记为未落地并给出告警。
-        const disc = v0y * v0y + 2 * g * h0;
-        const neverLands = disc <= 0;
-        const tLand = neverLands ? duration : (v0y + Math.sqrt(disc)) / g;
-        const range = neverLands ? 0 : v0x * tLand;
-
         const landWarnings: string[] = [];
         if (neverLands) {
             landWarnings.push(
@@ -92,6 +104,9 @@ export class ProjectileModel extends PhysicsModelBase {
                     `模拟时长 ${duration}s 内物体不落地 (判别式 v₀y²+2gh₀=${disc.toFixed(3)} ≤ 0), 射程不可定义, 记为 0`
             );
         }
+        // 注: 模拟时长大于飞行时间时**不发告警** —— 把 duration 设得比飞行时间长
+        // 是抛体实验的正常用法 (要看完整落地过程), 轨迹在落地处结束是预期行为而非异常,
+        // 关键帧已经用「落地点」标签说明了终点为何提前。
 
         // 关键帧
         const keyframes: Keyframe[] = [
@@ -113,7 +128,6 @@ export class ProjectileModel extends PhysicsModelBase {
             });
         }
         {
-            const tEnd = neverLands ? duration : Math.min(tLand, duration);
             const landX = x0.x + v0x * tEnd;
             const landY = neverLands
                 ? h0 + v0y * tEnd - 0.5 * g * tEnd * tEnd
