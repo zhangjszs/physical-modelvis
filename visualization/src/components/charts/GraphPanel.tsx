@@ -84,18 +84,14 @@ export function GraphPanel() {
 
     const inCompareMode = compareMode && compareSeries.length > 0;
 
-    if (!simulationResult && !inCompareMode) {
-        return (
-            <div className="panel-section">
-                <div className="panel-title">曲线图</div>
-                <div className="empty-state">等待仿真运行...</div>
-            </div>
-        );
-    }
-
     // 单仿真模式: 提取序列
+    // 注意: 本组件内**所有 hook 必须在任何早退 return 之前**调用完。
+    // 以前空态判断 (`if (!simulationResult && !inCompareMode) return …`) 写在下面三个 useMemo 之前,
+    // 而切场景瞬间 store 会把 simulationResult 置 null → 那一帧少调 3 个 hook → React 报
+    // "Rendered fewer hooks than expected", 曲线区被 ErrorBoundary 接成粘滞的「图表加载失败」,
+    // 只能刷新页面才能恢复。空态判断已下移到全部 hook 之后。
     const series = useMemo(
-        () => extractGraphSeries(simulationResult!, selectedGraph),
+        () => (simulationResult ? extractGraphSeries(simulationResult, selectedGraph) : []),
         [simulationResult, selectedGraph]
     );
     const currentSeries = series[0];
@@ -166,6 +162,16 @@ export function GraphPanel() {
         () => currentSeries?.data.map(d => ({ t: parseFloat(d.t.toFixed(4)), value: d.value })) ?? [],
         [currentSeries]
     );
+
+    // ↓↓↓ 空态与早退统一放在全部 hook 之后 (见上方 series 处的说明) ↓↓↓
+    if (!simulationResult && !inCompareMode) {
+        return (
+            <div className="panel-section">
+                <div className="panel-title">曲线图</div>
+                <div className="empty-state">等待仿真运行...</div>
+            </div>
+        );
+    }
 
     if (!inCompareMode && !currentSeries) return null;
 
