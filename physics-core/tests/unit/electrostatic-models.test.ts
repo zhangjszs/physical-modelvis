@@ -147,6 +147,22 @@ describe('必修三 §12 静电学 Model 集成测试', () => {
                 expect(p.y).toBe(0);
             }
         });
+        it('纯场模型允许 bodies 为空 (与场景侧 buildProblem 一致)', () => {
+            // 回归: 场景 visualization/src/scenes/scenes/electromagnetism/electrostatic-shielding.ts
+            // 传的是 bodies: [] —— 以前被基类「至少需要一个物理物体」拦下，
+            // 页面表现为「求解失败」红条 + 3D 舞台全空。
+            const problem: PhysicsProblem = {
+                id: 'shield-empty',
+                model: 'electrostatic-shielding',
+                bodies: [],
+                constraints: { electrostaticShielding: { isGrounded: true, externalField: 500, cavityCharge: 0 } },
+                environment: {},
+                timeConfig: { duration: 1, sampleCount: 20 }
+            };
+            expect(model.validate(problem).valid).toBe(true);
+            const r = model.solve(problem);
+            expect(r.diagnostics.maxValues.thetaGrounded).toBe(0);
+        });
     });
 
     describe('FaradayCupModel', () => {
