@@ -2,11 +2,10 @@
 
 > 可机器解析的事实账本：活跃任务 / 已完成 / 阻塞。接力通过 git 历史 + GitHub issue + 本目录（ENV/STATE/HANDOFF）三重载体。
 
-- 当前 agent-id: `qoder-20261002T042500Z`（**执行者**·浏览器 QA 巡检第 2、3 轮）
-- 会话开始: 2026-10-02T04:25:00Z (UTC)
-- 本轮代码 commit: `8984fc9`（fix #70）+ `5700693`（fix(ci) 超时 45）+ `e5a367a`（fix #71）+ `921e5a4`（chore(tools) 巡检加红条判定）
-- **巡检流水线首跑已确认绿**：run `37002178007`（全量 123 场景）**completed success**，实测耗时 **27 分钟**
-- 脉络：…→ `qoder-20261002T032000Z`(#69 舞台永久空白) → 本棒 T042500Z（#70 handles 错配 + 巡检接入 CI）。
+- 当前 agent-id: `qoder-20261002T055000Z`（**执行者**·浏览器 QA 巡检第 4 轮）
+- 会话开始: 2026-10-02T05:50:00Z (UTC)
+- 本轮代码 commit: `e0c0f1d`（fix #72）· **CI + Deploy 绿** · pre-push 全量 precheck 绿
+- 脉络：…→ `qoder-20261002T042500Z`(#70 参数不随动 + #71 静电屏蔽 + 巡检接入 CI) → 本棒 T055000Z（#72 十二场景红条 + L2 门禁空转）
 - **阶段任务**：按用户指令用内置浏览器逐场景巡检 123 个实验，一轮修一个明确问题，修完立刻浏览器复验。
 
 ## 接力载体
@@ -15,85 +14,77 @@
 ## 文件锁
 | 文件/目录 | 持有者 | 任务 | 时间 |
 |---|---|---|---|
-| `.agent/LOCK`（不提交，收尾删除） | qoder-20261002T042500Z | 浏览器 QA 巡检第 2 轮 | 2026-10-02T04:25:00Z |
+| `.agent/LOCK`（不提交，收尾删除） | qoder-20261002T055000Z | 巡检第 4 轮（#72） | 2026-10-02T05:50:00Z |
 
-## 巡检战果（跨棒累计，同一脚本同一判定口径）
+## 巡检战果（跨棒累计，同一脚本同一判定口径，123 场景全量）
 
-| 指标 | 初始（#69 前） | #69 后 | **#70 后（本轮）** |
-|---|---|---|---|
-| 舞台空白（0 canvas）场景 | **101** | 0 | **0** |
-| console / pageerror 场景 | 0（被空白掩盖） | 55 | **0** |
-| ERROR 级场景合计 | 101 | 55 | **0** |
-| 完全无异常场景 | 9 | 34 | **69** |
-| 剩余 WARN | 114 | 54 | **54**（播放按钮类，见下） |
-| **可见错误提示条（第 8 类判定，新增）** | — | — | **12 个场景仍向用户显示「求解失败: 至少需要一个物理物体」** |
+| 指标 | 初始 | #69 后 | #70 后 | #71 后（加红条判定） | **#72 后（本轮）** |
+|---|---|---|---|---|---|
+| 舞台空白（0 canvas） | **101** | 0 | 0 | 0 | **0** |
+| console / pageerror | 0（被掩盖） | 55 | **0** | 0 | **0** |
+| 可见错误提示条 | — | — | — | **12** | **0** |
+| ERROR 级场景合计 | 101 | 55 | 0 | 12 | **0** ✅ |
+| 完全无异常场景 | 9 | 34 | 69 | 69 | **72** |
+| 剩余 WARN | 114 | 54 | 54 | 54 | **51**（全为 playback 类） |
+
+**ERROR 类问题已清零**，剩余 51 个 WARN 全属同一族（播放按钮，见「下一步」）。
 
 ## 当前活跃
-**无**（#70 / #71 均已 CLOSED）。开放 issue：
+**无**（#72 已 CLOSED）。开放 issue：
 
 | # | 状态 | 说明 |
 |---|---|---|
 | **#61** | P1 · ready-for-agent · 可执行 | M3 前置守卫（B 类单源快照豁免表 + 差集自动化） |
-| #60 | P2 · ready-for-agent · 可执行 | 引擎单位记号统一 + 门禁 |
-| #68 | P2 · ready-for-agent · 可执行 | lint/format 门禁盲区收口 |
+| #60 / #68 | P2 · ready-for-agent · 可执行 | 单位记号统一+门禁 / lint-format 盲区 |
 | #62–#66 | P2 · blocked（← #61） | M3 五批单源迁移 |
-| #44 | P2 · 人类持有 | react19/vite8/express5/TS7，勿动 |
+| #44 | P2 · 人类持有 | 依赖大版本迁移，勿动 |
 
-## 本轮已做（#70 + #71，均 CLOSED）
-3D 场景切换后「**拖参数器材不动**」（55/123 场景，错误被 try-catch 吞成一条 console.error，页面看不出异常）：
-1. 根因：`useSceneRig` 的 `rig` state **不记录它属于哪个场景**。切场景那一帧 `currentScene` 已是新值而
-   `rig` 仍是旧的；`SceneStage` 用 `key={currentScene}` 重挂 → `EquipmentStage`（mount effect 依赖 `[]`）
-   **用旧 rig 建 handles** → 新 rig 到位后 `updateEquipment(旧 handles)` → 55 个场景报了 **9 种不同属性**的
-   `Cannot read properties of undefined`。属 `docs/plan.md` 阶段 D2"场景切换竞态"家族的残留形态。
-2. 修复：`rig`/`error` 与 `sceneId` 绑成一个 `RigEntry` state，派生前先按 sceneId 过滤 →
-   切换那一帧 `rig` 必为 `null`，不可能用旧 rig 挂载；`rigLoading` 改由 `!rig && !rigError` 派生。
-3. **巡检接入 CI**（用户批准）：新增 `.github/workflows/qa-sweep.yml`
-   —— PR 跑前 12 场景 + `QA_STRICT=canvas`（只拦"舞台未渲染"，console 降级 WARN 不卡正常 PR）；
-   nightly/手动跑全量 123 场景 + 严格口径；报告上传 artifact 14 天。
-   脚本相应新增 `QA_STRICT` 开关。已 `workflow_dispatch` 实跑验证（run `37002178007` → **success**）。
-   **CI 全量结果（含逐参数 min/max 边界扫描，比本地那次更宽）：123 场景 ERROR 0 / WARN 54 / OK 69，
-   边界异常 0 项** —— 即全场景参数拉到上下限时都没有 NaN/Infinity/undefined 泄漏到页面。
-4. 验证：巡检 console finding **55 → 0**、ERROR 场景 **55 → 0**、无异常场景 **34 → 69**；
-   内置浏览器实测 自由落体 h0 / 胡克定律 k / 单摆 L 拉到 max·min **器材均可见随动**，全程 0 error 0 warning；
-   `useSceneRig.test.ts` 7 例绿；`npm run precheck` 全绿；测试数 **core 1107 / viz 1305 / total 2412**。
+## 本轮已做（#72，CLOSED）
+**双重发现**：12 个场景对用户显示「求解失败: 至少需要一个物理物体」，而**本该拦住它们的 L2 自检断言一直在空转**。
 
-**#71（第 3 轮）——「静电屏蔽」舞台全空 + 红条「求解失败: 至少需要一个物理物体」**：
-1. 根因：`electrostatic-shielding` 是**纯场模型**（全文件 0 次引用 `problem.bodies`），但
-   `base.validate()` 无条件要求“至少一个物体”→ 场景 `buildProblem` 交的 `bodies: []` 被判非法。
-   错误只写进 DOM（toast）不进 console，所以历轮“零报错”结论漏掉了它。
-2. 修复：按仓库**现有惯例**声明 `requiresValidation() → false`（`thermistor` / `strain-gauge` /
-   `security-alarm` / `light-control-switch` 四个同类模型已这么做），**未往场景塞假物体**
-   —— 假物体会顺着轨迹/数据抽屉/CSV 导出/3D 舞台泄漏成一个不存在的实验对象。引擎单测 +1 例。
-3. **给巡检脚本补上第 8 类判定「可见错误提示条」**（`921e5a4`）—— 这个盲区就是本单能存活的原因。
-   全量重扫立即**又挖出 12 个同症状场景**（电阻定律 / 路端电压 / 电容充放电 / 平行板电容器 /
-   静电感应 / 验电器 / 库仑定律 / 法拉第圆筒 / 游标卡尺 / 螺旋测微器 / 多用电表 / 安培力因素），
-   **已全部完成分诊（12 个均不引用 bodies，属同一行修法）**，清单与分诊表见 #71 末尾评论。
+1. **门禁 bug**：`scene-contract.test.ts` 第 3 条 check 把 `expect(v.valid).toBe(true)` 写在
+   `try { … } catch { /* skip */ }` 里 → AssertionError 被空 catch 吞掉 → 无论多少场景 validate 失败都是绿的。
+   改为**收集 failures 数组、循环后一次性断言**（一次报出全部违规，而非只报第一个）。收紧后当场报出 12 个，
+   与浏览器巡检看到的 12 个红条 **1:1 对应**。
+2. **引擎 bug**：12 个模型全文不引用 `problem.bodies`，却被基类无条件要求"至少一个物体"。
+   **没有沿用 #71 的 `requiresValidation()` 大锤** —— 批量套上去后 `micrometer`（刻意软限程模型）的
+   "thickness=NaN 仍被 NON_FINITE_PARAMETER 拒绝"契约当场失败，证明大锤会连带关掉 #8 的参数范围与 NaN/Inf 守卫。
+   → 在 `PhysicsModelBase` 新增**窄钩子 `requiresBodies()`**（默认 true，只作用于 NO_BODIES 一项），
+   13 个模型改用它（12 新修 + `electrostatic-shielding` 从大锤迁来），并给 `requiresValidation()` 加大锤警示注释。
+3. **契约测试 +3 例**（`base-validate.test.ts`）：豁免模型不再产出 NO_BODIES / 未豁免模型仍产出（防钩子被全局关掉）/
+   **窄豁免不关掉 NaN-Inf 守卫**（固化这次被打回的教训）。
+4. **验证**：巡检 `error-banner` 12→0、ERROR 场景 12→0、无异常场景 69→72、playback 54→51
+   （静电感应/验电器/库仑定律 求解跑通后播放复活）；内置浏览器目视复验 6 个代表场景 **6/6 通过且画面非空白**、
+   console 0 error；`npm run precheck` 全绿。测试数 **core 1111 / viz 1305 / total 2416**。
 
 ## 已完成（最近，≤20 条）
-- **#71** 「静电屏蔽」场景求解失败（纯场模型漏声明 `requiresValidation`）+ 巡检新增「错误提示条」判定→又挖出 12 个同症状场景 — `e5a367a` / `921e5a4`，**本轮 CLOSED**
-- **#70** 3D 切场景旧 rig 泄漏 → updateEquipment 消费错配 handles（55 场景参数不随动）+ 巡检接入 CI — `8984fc9`，**本轮 CLOSED**
+- **#72** L2 validate 断言空转（expect 被空 catch 吞）+ 12 个纯场模型误要求 bodies → 新增窄钩子 `requiresBodies()` — `e0c0f1d`，**本轮 CLOSED**
+- **#71** 静电屏蔽求解失败 + 巡检新增「可见错误提示条」判定（显形 12 场景）— `e5a367a` / `921e5a4`
+- **#70** 3D 切场景旧 rig 泄漏 → updateEquipment 消费错配 handles（55 场景参数不随动）+ 巡检接入 CI — `8984fc9` / `5700693`
 - **#69** 3D 场景切换舞台永久空白（101/123）— `71573d5`
 - **#67** L5 组合实验台场线渲染收尾 — `83fa03e` + 验证收口
-- **#58** σ_水 三方取值统一到单一真源 0.0728 — 51ccaa7 · **#59** 幻影 double-slit 计数 61→60 — abc4a72
-- **#55** B3 清单与 61 场景单位核对 — 2a0e312/8eda01b · **#56** 3D 基础层收口 — 2e9ccf1
-- **#54** 跨包双源消除 — 3ea8ced · **#53** 渲染层常量门禁 — 04241b2 · **#52** 24 处内联收敛 — 5ec7122 · **#51** 电荷门禁加严 — 89910d1
-- **#57** Deploy 修复 — 89b7dcc/d45cd39
-- README/plan.md 测试数 **core 1108 / viz 1305(42 files) / total 2413**（本棒 count:sync 已回写）
+- **#58** σ_水 单一真源 0.0728 — 51ccaa7 · **#59** 幻影 double-slit 61→60 — abc4a72 · **#55** B3 核对 — 2a0e312/8eda01b
+- **#56** 3D 基础层收口 — 2e9ccf1 · **#54** 跨包双源消除 — 3ea8ced · **#53** 渲染层常量门禁 — 04241b2 · **#52** 24 处内联收敛 — 5ec7122 · **#51** 电荷门禁加严 — 89910d1 · **#57** Deploy 修复 — 89b7dcc/d45cd39
+- README/plan.md 测试数 **core 1111 / viz 1305(42 files) / total 2416**（本棒 count:sync 已回写）
 
 ## 阻塞项 / 风险
 - **无脏树**，全量 `precheck` / `count:sync` 正常。
-- **jsdom 单测复现不出这类挂载时序 bug**：本轮新用例在旧实现下**也通过**（React passive effect 是"子先父后"，
-  `renderHook` 不涉及子组件）。所以 3D 舞台类改动的判据是**浏览器巡检**，不是单测 —— 已在测试注释与 #70 正文写明。
-- **巡检流水线已实跑验证通过**（run `37002178007` success）：npm ci → 构建 core → Playwright Chromium 安装
-  → 起 dev server → 等待就绪 → 全量巡检 → 上传 artifact 全部可用。全量耗时 27 分钟，
-  因此 `timeout-minutes` 已调为 45（`5700693`）—— 下一棒改脚本时如果再变慢请同步调这个值。
-- **#44**：人类 assignee，勿重试 React19 / 勿上调 70 kB bundle 预算。
-- **自检维持 11 层**（#61 接入方式 = 追加到 `scripts/self-check.mjs` 的 L11 `test` 数组）。
+- **「断言被 catch 包住」是系统性风险**：本轮只修了 L2 一处。全仓还有多少空转断言未知 —— 这类门禁比没有门禁更糟。
+- **`physics-core/tsconfig.json` 的 `exclude` 含 `tests`** → 引擎测试**不参与类型检查**；
+  `base-validate.test.ts` 里就有两行 `problem.bodies = [...]`（readonly 属性赋值）的真实类型错误，IDE 报错而 CI 全绿。
+  本轮未动（属改 CI/构建配置，须规划者批准）。
+- **4 个模型仍用大锤 `requiresValidation() → false`**（`thermistor` / `strain-gauge` / `security-alarm` /
+  `light-control-switch`）→ 它们的参数范围与 NaN/Inf 守卫目前是关着的。迁移到 `requiresBodies()` 需逐个验证。
+- **#44**：人类 assignee，勿动。**自检维持 11 层**。
 
 ## 环境备注
-- 本机无 msedge → 新脚本用 Playwright 自带 chromium；现有 `verify-*.cjs` 硬编 `channel:'msedge'` 在 Linux 跑不了。
+- `export PATH="$HOME/.local/share/mise/shims:$PATH"`；Linux 用 `npx`；本机无 msedge（新脚本用 Playwright 自带 chromium）。
 - 起 dev server：`cd visualization && npx vite --port 5199 --strictPort`；跑测试/脚本/浏览器需 `required_permissions=all`。
-- **杀 dev server 别用 `pkill -f "vite..."`**：命令行里只要含 "vite" 字样（包括同条命令的其它参数）就会连沙箱包装进程一起自杀。
-- **`gh issue close` 不支持 `--comment-file`**（静默不关闭）→ 先 comment，再 close，最后 view 复核 state。
-- **跑巡检期间不要编辑 `visualization/src/**`**（HMR 会污染基线）；改 `scripts/` 与 `.github/` 是安全的。
-- 巡检产物在 `.scratch/`（gitignore）：`qa-sweep-{before,after,r2}.json`、`sweep-*.log`、`probe-*.cjs`、`verify*.png`、`fix-*.png`。
+- **杀 dev server 不要用 `pkill -f "vite..."`**（命令行含 "vite" 就会连沙箱包装进程自杀）→ 用 `.scratch/kill-vite.cjs`（按 /proc 匹配 + 排除自身）。
+- **core 测试里用 `getModel()` 必须从 `../../src/index.js` 导入**：模型注册在 `solver/solver-router.ts` 的模块副作用里，
+  从 `models/base.js` 直接拿会看到空注册表（`UnsupportedModelError: 该模型尚未注册`）。
+- **跑巡检期间不要编辑 `visualization/src/**` / `physics-core/src/**`**（HMR 污染基线；改引擎还要重建 dist）。
+- **写含反引号/引号的中文正文一律用 Write 工具落文件**，别用 `printf`（会被 shell 当命令替换执行 / EOF 报错）。
+- `gh issue close` 不支持 `--comment-file` → 先 comment 再 close，最后 `--json state` 复核。
+- 巡检产物在 `.scratch/`（gitignore）：`qa-sweep-{before,after,r2}.json`、`qa-{banner,r4}.json`、`sweep-*.log`、
+  `probe-*.cjs`、`apply-exemption.cjs`、`kill-vite.cjs`、截图 `verify*.png` / `fix-*.png` / `shield-*.png` / `r4-*.png`。
