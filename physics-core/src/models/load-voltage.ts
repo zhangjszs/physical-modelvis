@@ -36,6 +36,15 @@ export class LoadVoltageModel extends PhysicsModelBase {
         { name: 'loadRange', description: '负载电阻范围 (Ω)', unit: 'Ω', required: true }
     ];
 
+    /**
+     * 纯场 / 传感器 / 仪器建模: 本文件不读 `problem.bodies`, 结果只由 constraints 与参数决定,
+     * 故取消基类「至少需要一个物理物体」这一项要求 (保留参数范围与 NaN/Inf 守卫)。
+     * 若将来改成用 bodies 建模, 必须同时删掉本 override 让校验重新生效。
+     */
+    protected requiresBodies(): boolean {
+        return false;
+    }
+
     solve(problem: PhysicsProblem): SimulationResult {
         this.throwIfInvalid(problem);
 

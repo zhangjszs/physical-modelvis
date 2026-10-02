@@ -32,14 +32,11 @@ export class ElectrostaticShieldingModel extends PhysicsModelBase {
     ];
 
     /**
-     * 本模型是**纯场分析模型**：只读 `constraints.electrostaticShielding`，全程不碰 `problem.bodies`。
-     * 基类「至少需要一个物理物体」等 bodies/mass 校验与本模型无关，故沿用
-     * `thermistor` / `strain-gauge` / `security-alarm` / `light-control-switch` 的同款豁免。
-     *
-     * 不加这一行会怎样：场景侧 `buildProblem` 只能塞一个假物体来过校验，
-     * 而假物体会顺着轨迹、数据抽屉、CSV 导出与 3D 舞台一路泄漏成一个不存在的实验对象。
+     * 纯场 / 传感器 / 仪器建模: 本文件不读 `problem.bodies`, 结果只由 constraints 与参数决定,
+     * 故取消基类「至少需要一个物理物体」这一项要求 (保留参数范围与 NaN/Inf 守卫)。
+     * 若将来改成用 bodies 建模, 必须同时删掉本 override 让校验重新生效。
      */
-    protected requiresValidation(): boolean {
+    protected requiresBodies(): boolean {
         return false;
     }
 

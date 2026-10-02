@@ -14,6 +14,7 @@ import { resolve } from 'node:path';
 import { beforeAll, describe, it, expect } from 'vitest';
 import { getScenesSync, loadAllScenes } from '../../src/scenes/sceneRegistry';
 import { getModel, listModels } from 'physics-core';
+import type { PhysicsProblem } from 'physics-core';
 import type { SceneConfig } from '../../src/types/visualization';
 
 const registeredModels = new Set(listModels());
@@ -51,25 +52,25 @@ describe('L2: SceneConfig ↔ 引擎契约', () => {
     });
 
     it('所有 scene 的 buildProblem 产出符合 getModel(model).validate 要求', () => {
+        // 注意: 断言**不能**放在 `try { expect(...) } catch {}` 里 —— expect 失败会抛 AssertionError,
+        // 被空 catch 吞掉后本条 check 会空转全绿。
+        // （历史事故: 12 个纯场/仪器模型的 bodies: [] 被 validate 判非法, 而这条断言一直是绿的。）
+        const failures: string[] = [];
         for (const scene of getScenesSync()) {
+            if (!registeredModels.has(scene.model)) continue; // 未注册 model 由第 1 条 check 负责
             const params = defaultParams(scene);
-            let problem: any;
+            let problem: PhysicsProblem;
             try {
                 problem = scene.buildProblem(params);
             } catch {
-                continue; // 已在上一条 check
+                continue; // buildProblem 抛错已由上一条 check 覆盖
             }
-            try {
-                const m = getModel(scene.model);
-                const v = m.validate(problem);
-                expect(
-                    v.valid,
-                    `scene '${scene.id}' validate 失败: ${JSON.stringify(v.errors.map(e => e.message))}`
-                ).toBe(true);
-            } catch {
-                // getModel 找不到已在第 1 条 check 覆盖, 这里 skip
+            const v = getModel(scene.model).validate(problem);
+            if (!v.valid) {
+                failures.push(`${scene.id} [${scene.model}]: ${v.errors.map(e => e.message).join('; ')}`);
             }
         }
+        expect(failures, `validate 失败的场景共 ${failures.length} 个:\n${failures.join('\n')}`).toEqual([]);
     });
 
     it('timeConfig.sampleCount ≥50 或 dt>0 (二选一)', () => {

@@ -81,8 +81,32 @@ export abstract class PhysicsModelBase {
      * 该模型是否需要参数校验.
      * 纯传感器 / 场模型 (无 bodies, 仅依赖 constraints) 可 override 返回 false,
      * 跳过基类中 bodies / mass 等与其无关的校验项. 默认 true — 执行完整校验.
+     *
+     * ⚠ 这是**大锤**: 返回 false 会连带关掉 #8 的参数范围拦截与
+     *   NON_FINITE_PARAMETER (NaN/Inf) 守卫。只需要豁免"至少一个物体"时，
+     *   请用下面的 {@link requiresBodies}，不要用本钩子。
      */
     protected requiresValidation(): boolean {
+        return true;
+    }
+
+    /**
+     * 该模型是否需要 `problem.bodies` 至少包含一个物体 (默认 true).
+     *
+     * 适用于**纯场 / 传感器 / 仪器建模**的窄豁免: 这类模型的结果只由
+     * `constraints` 与参数决定, 全文不读 `problem.bodies`, 基类的"至少需要一个物理物体"
+     * 对它们是无意义的约束, 会导致场景侧 `buildProblem` 不得不塞一个假物体来过校验
+     * (假物体会顺着轨迹 / 数据抽屉 / CSV 导出 / 3D 舞台泄漏成一个不存在的实验对象)。
+     *
+     * 与 {@link requiresValidation} 的区别是本钩子**只取消 NO_BODIES 这一项要求**,
+     * 保留模型 mismatch、duration/sampleCount、参数范围与 NaN/Inf 守卫。
+     * 典型用户: electrostatic-shielding / resistance-law / load-voltage / capacitor-charge /
+     * parallel-plate-capacitor / electrostatic-induction / electroscope / coulomb-force-explore /
+     * faraday-cup / vernier-caliper / micrometer / multimeter / ampere-force。
+     *
+     * 若某模型将来改成读 bodies 建模, 必须同时删掉它的 override 让校验重新生效。
+     */
+    protected requiresBodies(): boolean {
         return true;
     }
 
@@ -191,8 +215,8 @@ export abstract class PhysicsModelBase {
             });
         }
 
-        // 检查必须有物体
-        if (!problem.bodies || problem.bodies.length === 0) {
+        // 检查必须有物体 (纯场 / 传感器 / 仪器模型可用 requiresBodies() 窄豁免)
+        if (this.requiresBodies() && (!problem.bodies || problem.bodies.length === 0)) {
             errors.push({
                 code: 'NO_BODIES',
                 message: '至少需要一个物理物体',

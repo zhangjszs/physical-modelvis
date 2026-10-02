@@ -19,6 +19,9 @@ import { OrbitalModel } from '../../src/models/orbital.js';
 import { DiffractionGratingModel } from '../../src/models/diffraction-grating.js';
 import { MicrometerModel } from '../../src/models/micrometer.js';
 import { PhysicsModelBase } from '../../src/models/base.js';
+// getModel 从包根导入: 模型注册发生在 solver/solver-router.ts 的模块副作用里,
+// 直接从 base.js 拿 getModel 会看到空注册表 (UnsupportedModelError: 该模型尚未注册)。
+import { getModel } from '../../src/index.js';
 import { ParameterOutOfRangeError } from '../../src/errors/index.js';
 import type { PhysicsProblem } from '../../src/types/problem.js';
 import type { SimulationResult, TrajectoryPoint } from '../../src/types/result.js';
@@ -310,6 +313,58 @@ describe('base.validate(): 声明式 min/max 拦截 (#8)', () => {
 
             (soft as unknown as { overrides: boolean }).overrides = true;
             expect(soft.validate(problem).valid).toBe(false);
+        });
+    });
+
+    describe('requiresBodies() 窄豁免 (纯场 / 传感器 / 仪器模型)', () => {
+        /** 全文不读 problem.bodies 的 13 个模型 (各自都有 requiresBodies override) */
+        const EXEMPT: PhysicsProblem['model'][] = [
+            'electrostatic-shielding',
+            'resistance-law',
+            'load-voltage',
+            'capacitor-charge',
+            'parallel-plate-capacitor',
+            'electrostatic-induction',
+            'electroscope',
+            'coulomb-force-explore',
+            'faraday-cup',
+            'vernier-caliper',
+            'micrometer',
+            'multimeter',
+            'ampere-force'
+        ];
+
+        const noBodies = (
+            model: PhysicsProblem['model'],
+            constraints: Record<string, unknown> = {}
+        ): PhysicsProblem => ({
+            id: 'no-bodies-test',
+            model,
+            bodies: [],
+            constraints,
+            environment: {},
+            timeConfig: { duration: 1, sampleCount: 50, dt: 0.02 }
+        });
+
+        it('13 个豁免模型不再产出 NO_BODIES (场景侧无需塞入假物体)', () => {
+            for (const type of EXEMPT) {
+                const v = getModel(type).validate(noBodies(type));
+                expect(
+                    v.errors.some(e => e.code === 'NO_BODIES'),
+                    `${type} 仍要求 bodies`
+                ).toBe(false);
+            }
+        });
+
+        it('未豁免模型仍产出 NO_BODIES (防止钩子被误改成全局关闭)', () => {
+            const v = getModel('simple-pendulum').validate(noBodies('simple-pendulum'));
+            expect(v.errors.some(e => e.code === 'NO_BODIES')).toBe(true);
+        });
+
+        it('窄豁免只取消 NO_BODIES, 不关掉 NaN/Inf 守卫', () => {
+            // 回归: 用 requiresValidation() 大锤豁免会连带关掉本断言里的 NON_FINITE_PARAMETER 拦截
+            const v = getModel('micrometer').validate(noBodies('micrometer', { micrometer: { thickness: NaN } }));
+            expect(v.errors.some(e => e.code === 'NON_FINITE_PARAMETER')).toBe(true);
         });
     });
 });

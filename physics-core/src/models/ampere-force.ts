@@ -35,6 +35,15 @@ export class AmpereForceModel extends PhysicsModelBase {
         { name: 'angle', description: '导线与磁场夹角 (度)', unit: '°', required: true, min: 0, max: 90 }
     ];
 
+    /**
+     * 纯场 / 传感器 / 仪器建模: 本文件不读 `problem.bodies`, 结果只由 constraints 与参数决定,
+     * 故取消基类「至少需要一个物理物体」这一项要求 (保留参数范围与 NaN/Inf 守卫)。
+     * 若将来改成用 bodies 建模, 必须同时删掉本 override 让校验重新生效。
+     */
+    protected requiresBodies(): boolean {
+        return false;
+    }
+
     solve(problem: PhysicsProblem): SimulationResult {
         this.throwIfInvalid(problem);
 
