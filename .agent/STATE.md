@@ -2,10 +2,10 @@
 
 > 可机器解析的事实账本：活跃任务 / 已完成 / 阻塞。接力通过 git 历史 + GitHub issue + 本目录（ENV/STATE/HANDOFF）三重载体。
 
-- 当前 agent-id: `qoder-20261002T055000Z`（**执行者**·浏览器 QA 巡检第 4 轮）
-- 会话开始: 2026-10-02T05:50:00Z (UTC)
-- 本轮代码 commit: `e0c0f1d`（fix #72）· **CI + Deploy 绿** · pre-push 全量 precheck 绿
-- 脉络：…→ `qoder-20261002T042500Z`(#70 参数不随动 + #71 静电屏蔽 + 巡检接入 CI) → 本棒 T055000Z（#72 十二场景红条 + L2 门禁空转）
+- 当前 agent-id: `qoder-20261002T070000Z`（**执行者**·浏览器 QA 巡检第 5 轮）
+- 会话开始: 2026-10-02T07:00:00Z (UTC)
+- 本轮代码 commit: `33d5fee`（fix #73）· pre-push 全量 precheck 绿 · CI/Deploy 见文末
+- 脉络：…→ `qoder-20261002T055000Z`(#72 十二场景红条 + L2 断言空转) → 本棒 T070000Z（#73 面板量纲错乱）
 - **阶段任务**：按用户指令用内置浏览器逐场景巡检 123 个实验，一轮修一个明确问题，修完立刻浏览器复验。
 
 ## 接力载体
@@ -14,77 +14,79 @@
 ## 文件锁
 | 文件/目录 | 持有者 | 任务 | 时间 |
 |---|---|---|---|
-| `.agent/LOCK`（不提交，收尾删除） | qoder-20261002T055000Z | 巡检第 4 轮（#72） | 2026-10-02T05:50:00Z |
+| `.agent/LOCK`（不提交，收尾删除） | qoder-20261002T070000Z | 巡检第 5 轮（#73） | 2026-10-02T07:00:00Z |
 
-## 巡检战果（跨棒累计，同一脚本同一判定口径，123 场景全量）
+## 巡检战果（123 场景全量，同一脚本同一口径）
 
-| 指标 | 初始 | #69 后 | #70 后 | #71 后（加红条判定） | **#72 后（本轮）** |
-|---|---|---|---|---|---|
-| 舞台空白（0 canvas） | **101** | 0 | 0 | 0 | **0** |
-| console / pageerror | 0（被掩盖） | 55 | **0** | 0 | **0** |
-| 可见错误提示条 | — | — | — | **12** | **0** |
-| ERROR 级场景合计 | 101 | 55 | 0 | 12 | **0** ✅ |
-| 完全无异常场景 | 9 | 34 | 69 | 69 | **72** |
-| 剩余 WARN | 114 | 54 | 54 | 54 | **51**（全为 playback 类） |
-
-**ERROR 类问题已清零**，剩余 51 个 WARN 全属同一族（播放按钮，见「下一步」）。
+| 指标 | 初始 | #69 后 | #70 后 | #71 后 | #72 后 | **#73 后** |
+|---|---|---|---|---|---|---|
+| 舞台空白（0 canvas） | **101** | 0 | 0 | 0 | 0 | **0** |
+| console / pageerror | 0（被掩盖） | 55 | **0** | 0 | 0 | **0** |
+| 可见错误提示条 | — | — | — | **12** | **0** | **0** |
+| ERROR 级场景 | 101 | 55 | 0 | 12 | 0 | **0** ✅ |
+| 完全无异常场景 | 9 | 34 | 69 | 69 | 72 | **72** |
+| WARN（播放按钮类） | 114 | 54 | 54 | 54 | 51 | **51** |
 
 ## 当前活跃
-**无**（#72 已 CLOSED）。开放 issue：
+**无**（#73 已 CLOSED）。开放 issue：#61（P1 可执行）· #60 / #68（P2）· #62–#66（blocked）· #44（人类持有）。
 
-| # | 状态 | 说明 |
-|---|---|---|
-| **#61** | P1 · ready-for-agent · 可执行 | M3 前置守卫（B 类单源快照豁免表 + 差集自动化） |
-| #60 / #68 | P2 · ready-for-agent · 可执行 | 单位记号统一+门禁 / lint-format 盲区 |
-| #62–#66 | P2 · blocked（← #61） | M3 五批单源迁移 |
-| #44 | P2 · 人类持有 | 依赖大版本迁移，勿动 |
+## 本轮已做（#73，CLOSED）
+**问题**：数据抽屉「实时状态」面板显示「位置 y = 90.000 **m**」「势能 Ep = 90.000 **J**」「动能 Ek = 1.000 **J**」——
+面板没算错，它只是老实打印了引擎塞进 `TrajectoryPoint` 的东西
+（`electroscope`：`position={x:q, y:θ}`、`kineticEnergy: q²`、`potentialEnergy: θ`）。
 
-## 本轮已做（#72，CLOSED）
-**双重发现**：12 个场景对用户显示「求解失败: 至少需要一个物理物体」，而**本该拦住它们的 L2 自检断言一直在空转**。
+**先做影响面普查**（82 个有轨迹数据的场景，判据用"不需要场景语义就能判定矛盾"的物理自洽性）：
+- **K1 自相矛盾**（`velocity ≡ 0` 却报非零动能）：**2 个** — `electroscope`、`coulomb-force-explore`（后者把 N 当动能、C 当势能）
+- **K2 字段复用**（`velocity ≡ 0` 但 `position` 随 t 变 = 轨迹数组当参数扫描曲线用）：**24 个**
+- 求解抛错：0
 
-1. **门禁 bug**：`scene-contract.test.ts` 第 3 条 check 把 `expect(v.valid).toBe(true)` 写在
-   `try { … } catch { /* skip */ }` 里 → AssertionError 被空 catch 吞掉 → 无论多少场景 validate 失败都是绿的。
-   改为**收集 failures 数组、循环后一次性断言**（一次报出全部违规，而非只报第一个）。收紧后当场报出 12 个，
-   与浏览器巡检看到的 12 个红条 **1:1 对应**。
-2. **引擎 bug**：12 个模型全文不引用 `problem.bodies`，却被基类无条件要求"至少一个物体"。
-   **没有沿用 #71 的 `requiresValidation()` 大锤** —— 批量套上去后 `micrometer`（刻意软限程模型）的
-   "thickness=NaN 仍被 NON_FINITE_PARAMETER 拒绝"契约当场失败，证明大锤会连带关掉 #8 的参数范围与 NaN/Inf 守卫。
-   → 在 `PhysicsModelBase` 新增**窄钩子 `requiresBodies()`**（默认 true，只作用于 NO_BODIES 一项），
-   13 个模型改用它（12 新修 + `electrostatic-shielding` 从大锤迁来），并给 `requiresValidation()` 加大锤警示注释。
-3. **契约测试 +3 例**（`base-validate.test.ts`）：豁免模型不再产出 NO_BODIES / 未豁免模型仍产出（防钩子被全局关掉）/
-   **窄豁免不关掉 NaN-Inf 守卫**（固化这次被打回的教训）。
-4. **验证**：巡检 `error-banner` 12→0、ERROR 场景 12→0、无异常场景 69→72、playback 54→51
-   （静电感应/验电器/库仑定律 求解跑通后播放复活）；内置浏览器目视复验 6 个代表场景 **6/6 通过且画面非空白**、
-   console 0 error；`npm run precheck` 全绿。测试数 **core 1111 / viz 1305 / total 2416**。
+**最小修复**：
+1. 引擎：两个 K1 模型删掉 `kineticEnergy`/`potentialEnergy`（字段本身 optional；两场景都没配 `ke_t`/`pe_t` 曲线；
+   渲染层 0 处读能量字段 → 唯一消费者就是说谎的面板）
+2. `StateInspector`：能量/加速度缺失时显示 `—`，不再用 `?? 0` 把"未计算"报成"0 焦耳"
+3. 新增常驻守卫 `tests/accuracy/trajectory-semantics.test.ts`（2 例）：K1 零容忍 + K2 24 项白名单
+   （逐项注明 position 实际存什么），断言"不得超出白名单" → 以后这么干必须显式承认
+
+**验证**：
+- 红→绿：换回旧模型时 K1 断言精确报出 `max Ek = 17.975`（库仑）与 `max Ek = 1`（验电器）；修复后全绿
+- 浏览器复验 + **回归对照**：验电器/库仑探究能量三行均为 `—`；**抛体运动能量行仍是正常数值且随时间变化
+  （Ek 200→100→216 J、Ep 反向），机械能全程 219.600 J 精确守恒**，自由落体亦正常 → 证明没误伤真力学场景
+- `npm run precheck` 全绿（126+43 测试文件 / 62.4 kB / 11 层 PASS）；测试数 **core 1111 / viz 1307 / total 2418**
 
 ## 已完成（最近，≤20 条）
-- **#72** L2 validate 断言空转（expect 被空 catch 吞）+ 12 个纯场模型误要求 bodies → 新增窄钩子 `requiresBodies()` — `e0c0f1d`，**本轮 CLOSED**
-- **#71** 静电屏蔽求解失败 + 巡检新增「可见错误提示条」判定（显形 12 场景）— `e5a367a` / `921e5a4`
-- **#70** 3D 切场景旧 rig 泄漏 → updateEquipment 消费错配 handles（55 场景参数不随动）+ 巡检接入 CI — `8984fc9` / `5700693`
+- **#73** 数据面板量纲错乱（2 处自相矛盾能量 + 24 处字段复用登记）— `33d5fee`，**本轮 CLOSED**
+- **#72** L2 validate 断言空转 + 12 个纯场模型误要求 bodies → 新增窄钩子 `requiresBodies()` — `e0c0f1d`
+- **#71** 静电屏蔽求解失败 + 巡检新增「可见错误提示条」判定 — `e5a367a` / `921e5a4`
+- **#70** 3D 切场景旧 rig 泄漏 → updateEquipment 消费错配 handles（55 场景）+ 巡检接入 CI — `8984fc9` / `5700693`
 - **#69** 3D 场景切换舞台永久空白（101/123）— `71573d5`
-- **#67** L5 组合实验台场线渲染收尾 — `83fa03e` + 验证收口
-- **#58** σ_水 单一真源 0.0728 — 51ccaa7 · **#59** 幻影 double-slit 61→60 — abc4a72 · **#55** B3 核对 — 2a0e312/8eda01b
-- **#56** 3D 基础层收口 — 2e9ccf1 · **#54** 跨包双源消除 — 3ea8ced · **#53** 渲染层常量门禁 — 04241b2 · **#52** 24 处内联收敛 — 5ec7122 · **#51** 电荷门禁加严 — 89910d1 · **#57** Deploy 修复 — 89b7dcc/d45cd39
-- README/plan.md 测试数 **core 1111 / viz 1305(42 files) / total 2416**（本棒 count:sync 已回写）
+- **#67** L5 场线渲染收尾 — `83fa03e` · **#58** σ_水 单一真源 — 51ccaa7 · **#59** 幻影 double-slit — abc4a72
+- **#55** B3 核对 — 2a0e312/8eda01b · **#56** 3D 基础层收口 — 2e9ccf1 · **#54** 跨包双源 — 3ea8ced · **#53** 渲染门禁 — 04241b2 · **#52** 24 处内联 — 5ec7122 · **#51** 电荷门禁 — 89910d1 · **#57** Deploy — 89b7dcc/d45cd39
+- README/plan.md 测试数 **core 1111 / viz 1307(43 files) / total 2418**（本棒 count:sync 已回写）
 
 ## 阻塞项 / 风险
-- **无脏树**，全量 `precheck` / `count:sync` 正常。
-- **「断言被 catch 包住」是系统性风险**：本轮只修了 L2 一处。全仓还有多少空转断言未知 —— 这类门禁比没有门禁更糟。
-- **`physics-core/tsconfig.json` 的 `exclude` 含 `tests`** → 引擎测试**不参与类型检查**；
-  `base-validate.test.ts` 里就有两行 `problem.bodies = [...]`（readonly 属性赋值）的真实类型错误，IDE 报错而 CI 全绿。
-  本轮未动（属改 CI/构建配置，须规划者批准）。
-- **4 个模型仍用大锤 `requiresValidation() → false`**（`thermistor` / `strain-gauge` / `security-alarm` /
-  `light-control-switch`）→ 它们的参数范围与 NaN/Inf 守卫目前是关着的。迁移到 `requiresBodies()` 需逐个验证。
-- **#44**：人类 assignee，勿动。**自检维持 11 层**。
+- **本轮复验新发现的崩溃级 bug 未修**（已完整定位，见 HANDOFF 下一步第 1 条）：
+  `GraphPanel.tsx:87` 提前 return 位于两个 `useMemo` 之前 → 切场景时 `simulationResult` 瞬时为 null
+  → "Rendered fewer hooks than expected" → 曲线图区崩成「图表加载失败」且 **ErrorBoundary 粘滞，只能刷新页面**。
+  与本棒改动无关（diff 不含该文件），是 HEAD 上就存在的结构性缺陷。
+- **「断言被 catch 包住」/「hooks 顺序」这类结构缺陷肉眼难查**：建议给巡检或测试加静态守卫
+  （扫组件里 return 之后是否还有 `use[A-Z]`）。
+- **K2 的 24 个场景**仍把轨迹当数据载体（验电器面板「位置 y = 90 m」、y–t 图把 θ 当 y 画）——
+  根治需在 A（模型改用 charts 承载曲线）/ B（面板读 charts 的 label/unit）之间定方向，见 #73 正文。
+- **`physics-core/tsconfig.json` 排除 tests** → 引擎测试不参与类型检查（该目录存在真实 readonly 赋值类型错误而 CI 全绿）。
+- **4 个模型仍用大锤 `requiresValidation() → false`**（thermistor / strain-gauge / security-alarm / light-control-switch）。
+- **#44 勿动**；自检维持 11 层；无脏树。
 
 ## 环境备注
 - `export PATH="$HOME/.local/share/mise/shims:$PATH"`；Linux 用 `npx`；本机无 msedge（新脚本用 Playwright 自带 chromium）。
 - 起 dev server：`cd visualization && npx vite --port 5199 --strictPort`；跑测试/脚本/浏览器需 `required_permissions=all`。
-- **杀 dev server 不要用 `pkill -f "vite..."`**（命令行含 "vite" 就会连沙箱包装进程自杀）→ 用 `.scratch/kill-vite.cjs`（按 /proc 匹配 + 排除自身）。
-- **core 测试里用 `getModel()` 必须从 `../../src/index.js` 导入**：模型注册在 `solver/solver-router.ts` 的模块副作用里，
-  从 `models/base.js` 直接拿会看到空注册表（`UnsupportedModelError: 该模型尚未注册`）。
-- **跑巡检期间不要编辑 `visualization/src/**` / `physics-core/src/**`**（HMR 污染基线；改引擎还要重建 dist）。
-- **写含反引号/引号的中文正文一律用 Write 工具落文件**，别用 `printf`（会被 shell 当命令替换执行 / EOF 报错）。
+- **杀 dev server 用 `node .scratch/kill-vite.cjs`**（`pkill -f "vite..."` 会连沙箱包装进程自杀）。
+- **core 测试里 `getModel()` 必须从 `../../src/index.js` 导入**（注册在 `solver/solver-router.ts` 副作用里）。
+- **可视化测试里放临时探针文件时注意相对路径深度**：`tests/x.test.ts` 用 `../src/...`，`tests/accuracy/x.test.ts` 用 `../../src/...`。
+  临时探针**用完必须删**，否则会被 `npm test` 收进测试数。
+- 改 `physics-core/src` 后必须 `npm run build:core` 再跑前端测试（#15 dist 守卫）；跑巡检期间不要编辑 src（HMR 污染基线）。
+- **教材目录 `<details>` 分组会自动折叠** → 自动化每次切换场景前需重新 `d.open = true`。
+- **写含反引号/引号的中文正文一律用 Write 工具落文件**，别用 `printf`。
 - `gh issue close` 不支持 `--comment-file` → 先 comment 再 close，最后 `--json state` 复核。
-- 巡检产物在 `.scratch/`（gitignore）：`qa-sweep-{before,after,r2}.json`、`qa-{banner,r4}.json`、`sweep-*.log`、
-  `probe-*.cjs`、`apply-exemption.cjs`、`kill-vite.cjs`、截图 `verify*.png` / `fix-*.png` / `shield-*.png` / `r4-*.png`。
+- 全量巡检：本地 ~8 分钟（`QA_SKIP_PARAMS=1`）；CI 含参数边界实测 27 分钟（`timeout-minutes: 45`）。
+- 产物在 `.scratch/`（gitignore）：`qa-{banner,r4}.json`、`sweep-*.log`、`probe-*.cjs`、`apply-exemption.cjs`、
+  `kill-vite.cjs`、`*.fixed.ts`（红→绿对照用的快照）、截图 `r4-*.png` / `r5-*.png` / `verify*.png` / `fix-*.png`。
