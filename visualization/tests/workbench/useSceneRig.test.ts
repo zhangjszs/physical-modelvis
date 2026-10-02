@@ -110,4 +110,37 @@ describe('useSceneRig', () => {
         expect(result.current.rigLoading).toBe(false);
         expect(result.current.rigError).toContain('缺少 3D 器材配置');
     });
+
+    it('回归: 切场景的中间帧不得把旧场景 rig 泄漏给新场景 (防旧 rig 建器材 + 新 rig 调 update 的句柄错配)', async () => {
+        const rigA = { buildEquipment: vi.fn(), updateEquipment: vi.fn() } as unknown as SceneRig;
+        const rigB = { buildEquipment: vi.fn(), updateEquipment: vi.fn() } as unknown as SceneRig;
+        // 可控延迟: 把新场景的加载挂在 pending 状态, 才能观察到“切换那一帧”的 rig 到底是什么
+        let resolveB: (r: SceneRig) => void = () => {};
+        const pendingB = new Promise<SceneRig>(res => {
+            resolveB = res;
+        });
+        mockHasSceneRig.mockReturnValue(true);
+        mockLoadSceneRig.mockResolvedValueOnce(rigA).mockReturnValueOnce(pendingB);
+
+        const { result, rerender } = renderHook(({ id }) => useSceneRig(id), {
+            initialProps: { id: 'projectile' }
+        });
+        await act(async () => {});
+        expect(result.current.rig).toBe(rigA);
+
+        // 切到 free-fall, 但新 rig 还在路上 → 绝不能继续把 rigA 当作当前场景的 rig 交出去,
+        // 否则 SceneStage 的 key={currentScene} 会让 EquipmentStage 用**旧 rig** 建器材,
+        // 新 rig 到位后再调 updateEquipment(旧 handles) → 各场景报不同的 undefined 属性
+        rerender({ id: 'free-fall' });
+        expect(result.current.rig).toBeNull();
+        expect(result.current.rigReady).toBe(false);
+        expect(result.current.rigLoading).toBe(true);
+
+        await act(async () => {
+            resolveB(rigB);
+            await pendingB;
+        });
+        expect(result.current.rig).toBe(rigB);
+        expect(result.current.rigReady).toBe(true);
+    });
 });

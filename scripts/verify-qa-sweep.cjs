@@ -19,6 +19,9 @@
  *   QA_OUT            报告输出路径 (默认 .scratch/qa-sweep.json)
  *   QA_CHANNEL        浏览器渠道: 留空 = Playwright 自带 chromium (跨平台默认);
  *                     需系统 Edge/Chrome 时填 msedge / chrome (现有 verify-*.cjs 硬编 msedge, Linux 跑不了)
+ *   QA_STRICT         失败口径: 默认 error = 任何 ERROR(console/pageerror/no-canvas/找不到场景)均退出 1;
+ *                     canvas = 只对「舞台没渲染」类失败 (no-canvas / scene-not-clickable) 退出 1,
+ *                     console 报错降级为 WARN 仍上报 —— 给 PR 门禁用, 不被已知存量报错卡死
  *
  * 退出码: 0 = 无 ERROR 级问题; 1 = 存在 ERROR (console/pageerror/场景未找到)
  */
@@ -32,6 +35,8 @@ const LIMIT = Number(process.env.QA_LIMIT || '0');
 const SKIP_PARAMS = process.env.QA_SKIP_PARAMS === '1';
 const OUT = process.env.QA_OUT || '.scratch/qa-sweep.json';
 const CHANNEL = process.env.QA_CHANNEL || '';
+/** 'canvas' = 只把「舞台未渲染/场景打不开」当作失败; 其余口径下 console 报错也算 ERROR */
+const STRICT = process.env.QA_STRICT || 'error';
 
 /** 每跑 N 个场景重载一次页面, 规避浏览器 WebGL 上下文数量上限造成的假红 */
 const RELOAD_EVERY = 20;
@@ -301,7 +306,13 @@ async function sliderMeta(page, selector) {
         }
 
         const newLogs = logs.slice(before);
-        newLogs.forEach(l => findings.push({ level: 'ERROR', kind: l.kind, text: l.text }));
+        newLogs.forEach(l =>
+            findings.push({
+                level: STRICT === 'canvas' ? 'WARN' : 'ERROR',
+                kind: l.kind,
+                text: l.text
+            })
+        );
 
         const worst = findings.some(f => f.level === 'ERROR')
             ? 'ERROR'
@@ -320,12 +331,18 @@ async function sliderMeta(page, selector) {
 
     current = '';
     fs.mkdirSync(path.dirname(OUT), { recursive: true });
-    fs.writeFileSync(OUT, JSON.stringify({ base: BASE, at: new Date().toISOString(), results }, null, 2));
+    fs.writeFileSync(
+        OUT,
+        JSON.stringify({ base: BASE, at: new Date().toISOString(), strict: STRICT, results }, null, 2)
+    );
 
     const errN = results.filter(r => r.worst === 'ERROR').length;
     const warnN = results.filter(r => r.worst === 'WARN').length;
     console.log(
         `\n=== 汇总 === ${results.length} 场景: ERROR ${errN} / WARN ${warnN} / OK ${results.length - errN - warnN}`
+    );
+    console.log(
+        `口径: QA_STRICT=${STRICT}` + (STRICT === 'canvas' ? ' (console 报错已降级为 WARN — 仍上报但不拦截)' : '')
     );
     console.log(`报告: ${OUT}`);
     await browser.close();
