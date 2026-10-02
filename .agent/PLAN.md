@@ -9,6 +9,8 @@
 > 举一反三 demo，全链审查缺口一并立单，见 D13）——插 M2 尾（#60/#68）之后、M3 之前。
 > 2026-10-03 四次滚动：**M2.6 · 3D 性能底层线立单**（用户报告「越点越慢」并指令现在就建底层，见 D14）——
 > 止血 #79 → 门禁 #80 → 根治 #81，插队可执行队列**首位**，M2 尾与 M2.5 顺延。
+> 2026-10-03 五次滚动：**M2.7 · 引擎基础加固线立单**（foundation 三梯队评估，见 D15）——
+> #83/#84/#85/#86 排 M2.6 后；**B1 #82（charts 类型化最小切片）插 M3 内部 #61 后 #62 前**（#62–#66 已挂 blocked_by #82）。
 
 ## 当前方向
 
@@ -51,6 +53,19 @@ compositionStore(+39) / compositionStore.test(+40)。风险低：基于 L4 之�
 
 **执行顺序**：#79 → #80 → #81（#81 必须最后——#79 的纹理释放先行否则上下文复用后 CanvasTexture 变真泄漏，#80 的判定作验收工具）。**进度**：0/3
 
+## M2.7 · 引擎基础加固线（foundation 三梯队评估，用户 2026-10-03 拍板，D15）
+
+判别标准「成本随代码量增长」。四单全部小而独立、低风险；K2 为设计调查单（实施单待产出后另立）。
+
+| # | 主题 | 状态 | 优先级 | 验收标准（摘要） | 依赖 |
+|---|---|---|---|---|---|
+| [#83](https://github.com/zhangjszs/physical-modelvis/issues/83) | 引擎测试纳入 tsc（tsconfig exclude 移除 tests，1111 测试进类型检查，已知 2 处真实错误） | 已建 | P2 | tsc 覆盖引擎测试且绿；readonly 赋值修掉；不扩大 strict 面（#10 边界） | — |
+| [#84](https://github.com/zhangjszs/physical-modelvis/issues/84) | 静态守卫：断言不得被空 catch 吞掉（#72 教训固化，现存 5 处处置） | 已建 | P2 | 人为造空 catch 扫描变红；现存 5 处处置完；门禁进 precheck/CI | — |
+| [#85](https://github.com/zhangjszs/physical-modelvis/issues/85) | 4 大锤模型（thermistor/strain-gauge/security-alarm/light-control-switch）迁移窄钩子恢复守卫 | 已建 | P2 | grep 无大锤残留；NaN/Inf 拒绝契约 4/4；巡检 4 场景无红条；建议 #63 前 | — |
+| [#86](https://github.com/zhangjszs/physical-modelvis/issues/86) | K2 参数扫描数据通道**设计调查**（24 场景轨迹语义复用根治，含 51 playback WARN 交集梳理） | 已建 | P3 | 设计文档：分类清单 + 方案与理由 + 接口草案 + 影响面 + 分批建议；可据它直接立实施单 | — |
+
+**执行顺序**：#83 → #84 → #85 → #86（互相独立，按创建序）。**进度**：0/4
+
 ## M2.5 · OCR 拍照解题功能线（用户 2026-10-02 提出，D13）
 
 OCR 链路（E-4 已完成）全链审查后立单：多提供方扩展 + 质量收口 + 举一反三 demo + 孤儿模块处置。
@@ -87,14 +102,15 @@ B-数值 30 场景中 **22 个**的 draw 函数拿到 `simulationResult` 却从�
 | # | 主题 | 状态 | 优先级 | 依赖 |
 |---|---|---|---|---|
 | [#61](https://github.com/zhangjszs/physical-modelvis/issues/61) | 前置守卫：「渲染消费引擎结果」快照豁免表 + 迁移/契约差集自动化（自检仍 11 层） | 已建 · **blocked**（blocked_by #67） | P1 | #67 |
-| [#62](https://github.com/zhangjszs/physical-modelvis/issues/62) | 批次 1 光学波动 + 波粒二象（5）：diffraction-grating / polarization-malus / interference / doppler / photoelectric | 已建 · blocked | P2 | #61 |
-| [#63](https://github.com/zhangjszs/physical-modelvis/issues/63) | 批次 2 传感器元件（4）：**thermistor 已坐实双源** / hall-effect / photoresistor / strain-gauge | 已建 · blocked | P2 | #61 |
-| [#64](https://github.com/zhangjszs/physical-modelvis/issues/64) | 批次 3 热学定律（5）：heat-direction / perpetuum-mobile 沿用阶段 C 既有豁免结论 | 已建 · blocked | P2 | #61 |
-| [#65](https://github.com/zhangjszs/physical-modelvis/issues/65) | 批次 4 气体分子 / 静能 / 核（4）：gas-law（249 行自算）/ capacitor-charge / radioactive / liquid-mixing | 已建 · blocked | P2 | #61 |
-| [#66](https://github.com/zhangjszs/physical-modelvis/issues/66) | 批次 5 电路 + 测量仪器（4）· **收口批**：附带改写 audit/plan 的 B3「保留自算」旧口径 | 已建 · blocked | P2 | #61 |
+| [#82](https://github.com/zhangjszs/physical-modelvis/issues/82) | **B1 前置**：charts 类型化访问层最小切片（每模型 typed accessor）——五批迁移写新 API 不返工 | 已建 | P1 | #61 |
+| [#62](https://github.com/zhangjszs/physical-modelvis/issues/62) | 批次 1 光学波动 + 波粒二象（5）：diffraction-grating / polarization-malus / interference / doppler / photoelectric | 已建 · blocked（← #61/#82） | P2 | #61 · #82 |
+| [#63](https://github.com/zhangjszs/physical-modelvis/issues/63) | 批次 2 传感器元件（4）：**thermistor 已坐实双源** / hall-effect / photoresistor / strain-gauge | 已建 · blocked（← #61/#82） | P2 | #61 · #82 |
+| [#64](https://github.com/zhangjszs/physical-modelvis/issues/64) | 批次 3 热学定律（5）：heat-direction / perpetuum-mobile 沿用阶段 C 既有豁免结论 | 已建 · blocked（← #61/#82） | P2 | #61 · #82 |
+| [#65](https://github.com/zhangjszs/physical-modelvis/issues/65) | 批次 4 气体分子 / 静能 / 核（4）：gas-law（249 行自算）/ capacitor-charge / radioactive / liquid-mixing | 已建 · blocked（← #61/#82） | P2 | #61 · #82 |
+| [#66](https://github.com/zhangjszs/physical-modelvis/issues/66) | 批次 5 电路 + 测量仪器（4）· **收口批**：附带改写 audit/plan 的 B3「保留自算」旧口径 | 已建 · blocked（← #61/#82） | P2 | #61 · #82 |
 
-**进度**：0/6 · **执行顺序**：#61 必须最先（先建豁免表与差集守卫，再逐批迁移，红→绿）。#62–#66 同为 P2，
-按创建时间从早到晚依次接手。
+**进度**：0/7 · **执行顺序**：#61 必须最先（先建豁免表与差集守卫，再逐批迁移，红→绿）→ **#82 B1**
+（charts 类型化访问层）→ #62–#66 同为 P2，按创建时间从早到晚依次接手。
 **已定稿口径（D12，用户 2026-10-02 复核确认，勿重议）**：M3 不早于 #67 CLOSED；#61 用「函数体直接文本引用」
 的保守快照口径（已知局限写注释），经 helper 间接消费的误报留给 #62–#66 逐场景复核。
 
@@ -102,8 +118,9 @@ B-数值 30 场景中 **22 个**的 draw 函数拿到 `simulationResult` 却从�
 M2+M3 合计开放 P1 = 2（#67 / #61），但只有 #67 处于可开工状态（#61 带 `blocked`）→ 不产生争抢。
 发现漂移时规划者负责降级并在 issue 留言。
 
-**blocked 现状一览（摘除全归规划者）**：#62–#66 ← #61；#76 ← #74；#81 ← #79/#80（软依赖，正文注明）。
-#61 的 blocked 已随 #67 CLOSED 摘除。当前可执行队列 = **#79 → #80 → #81 → #60 → #68 → #74 → #75 → #76 → #77 → #61**。
+**blocked 现状一览（摘除全归规划者）**：#62–#66 ← #61/#82；#76 ← #74；#81 ← #79/#80（软依赖，正文注明）。
+#61 的 blocked 已随 #67 CLOSED 摘除。当前可执行队列 =
+**#79 → #80 → #81 → #83 → #84 → #85 → #86 → #60 → #68 → #74 → #75 → #76 → #77 → #61 → #82 → #62–#66**。
 ⚠️ 工作树现已干净（README 已记 viz 1302），执行棒恢复正常全量 `precheck`（含 count:sync）纪律。
 
 ## M2 之后的场线延伸（#67 收编完成后定）
