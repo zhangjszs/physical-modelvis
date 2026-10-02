@@ -5,10 +5,11 @@
  *   1. console error / pageerror (含切场景与播放过程)
  *   2. 可见文本里的 NaN / Infinity / undefined (数据泄漏到 UI)
  *   3. 2D 画布空白 (整块像素同色) 与 canvas 数为 0 (舞台根本没挂载)
- *   4. 文本溢出裁切 (scrollWidth > clientWidth)
- *   5. 播放链路: 播放后时间是否推进
- *   6. 参数边界: 每个 .param-slider 拉到 min / max 后是否出现异常值或报错
- *   7. 时间轴拖到末尾后的状态
+ *   4. 页面错误提示条（.error-banner / .equipment-error / [role=alert]）—— 只进 DOM 不进 console 的错误
+ *   5. 文本溢出裁切 (scrollWidth > clientWidth)
+ *   6. 播放链路: 播放后时间是否推进
+ *   7. 参数边界: 每个 .param-slider 拉到 min / max 后是否出现异常值或报错
+ *   8. 时间轴拖到末尾后的状态
  *
  * 运行: node scripts/verify-qa-sweep.cjs   (需 dev server, 默认 http://localhost:5199/)
  * 环境变量:
@@ -122,6 +123,22 @@ async function scanCanvas(page) {
     });
 }
 
+/** 扫描可见的错误提示条（红条/toast）—— 这类错误只写进 DOM 不进 console，靠文本扫描才能发现 */
+async function scanBanners(page) {
+    return page.evaluate(() => {
+        const out = [];
+        const nodes = document.querySelectorAll('.error-banner, .equipment-error, [role="alert"]');
+        for (const el of nodes) {
+            if (!el.offsetParent) continue; // 隐藏的不算
+            const txt = (el.innerText || el.textContent || '').replace(/\s+/g, ' ').trim();
+            if (!txt) continue;
+            out.push(txt.slice(0, 120));
+            if (out.length >= 3) break;
+        }
+        return out;
+    });
+}
+
 /** 用 React 认可的方式设置受控 input 的值 (native setter + input + change) */
 async function setSlider(page, selector, index, value) {
     return page.evaluate(
@@ -229,6 +246,8 @@ async function sliderMeta(page, selector) {
             });
         }
         canvas.reports.forEach(r => findings.push({ level: 'WARN', kind: 'canvas', text: JSON.stringify(r) }));
+        const banners = await scanBanners(page);
+        banners.forEach(t => findings.push({ level: 'ERROR', kind: 'error-banner', text: t }));
         const clipped = await scanClipped(page);
         clipped.forEach(c =>
             findings.push({ level: 'INFO', kind: 'clipped', text: `${c.cls} "${c.text}" +${c.over}px` })
