@@ -20,9 +20,10 @@
  *   QA_OUT            报告输出路径 (默认 .scratch/qa-sweep.json)
  *   QA_CHANNEL        浏览器渠道: 留空 = Playwright 自带 chromium (跨平台默认);
  *                     需系统 Edge/Chrome 时填 msedge / chrome (现有 verify-*.cjs 硬编 msedge, Linux 跑不了)
- *   QA_STRICT         失败口径: 默认 error = 任何 ERROR(console/pageerror/no-canvas/找不到场景)均退出 1;
+ *   QA_STRICT         失败口径: 默认 error = 任何 ERROR(console/pageerror/no-canvas/error-banner/找不到场景)均退出 1;
  *                     canvas = 只对「舞台没渲染」类失败 (no-canvas / scene-not-clickable) 退出 1,
- *                     console 报错降级为 WARN 仍上报 —— 给 PR 门禁用, 不被已知存量报错卡死
+ *                     console 报错与错误提示条降级为 WARN 仍上报 —— 给 PR 门禁用,
+ *                     不被已知存量问题（或目录顺序变动）卡死正常 PR
  *
  * 退出码: 0 = 无 ERROR 级问题; 1 = 存在 ERROR (console/pageerror/场景未找到)
  */
@@ -247,7 +248,13 @@ async function sliderMeta(page, selector) {
         }
         canvas.reports.forEach(r => findings.push({ level: 'WARN', kind: 'canvas', text: JSON.stringify(r) }));
         const banners = await scanBanners(page);
-        banners.forEach(t => findings.push({ level: 'ERROR', kind: 'error-banner', text: t }));
+        banners.forEach(t =>
+            findings.push({
+                level: STRICT === 'canvas' ? 'WARN' : 'ERROR',
+                kind: 'error-banner',
+                text: t
+            })
+        );
         const clipped = await scanClipped(page);
         clipped.forEach(c =>
             findings.push({ level: 'INFO', kind: 'clipped', text: `${c.cls} "${c.text}" +${c.over}px` })
@@ -361,7 +368,8 @@ async function sliderMeta(page, selector) {
         `\n=== 汇总 === ${results.length} 场景: ERROR ${errN} / WARN ${warnN} / OK ${results.length - errN - warnN}`
     );
     console.log(
-        `口径: QA_STRICT=${STRICT}` + (STRICT === 'canvas' ? ' (console 报错已降级为 WARN — 仍上报但不拦截)' : '')
+        `口径: QA_STRICT=${STRICT}` +
+            (STRICT === 'canvas' ? ' (console 报错与错误提示条已降级为 WARN — 仍上报但不拦截)' : '')
     );
     console.log(`报告: ${OUT}`);
     await browser.close();
