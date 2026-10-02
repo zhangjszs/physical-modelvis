@@ -80,6 +80,42 @@ describe('useSceneSimulation', () => {
         expect(mockRun).toHaveBeenCalledTimes(1);
     });
 
+    // 回归 (QA 巡检第 8 轮): ParameterPanel 用 150ms debounce 延迟调用 onRunSimulation(),
+    // 定时器拿到的是“创建它那一帧”的 runSimulation 身份。旧实现从渲染期闭包读 parameters,
+    // 于是每次重算用的都是上一个参数值 → 用户看到“改完参数结果滞后一步，必须再改一次才刷新”。
+    it('回归: 用旧一帧的 runSimulation 身份重算, 也必须用最新参数', () => {
+        mockRun.mockReturnValue({ result: okResult, error: null });
+        const { result } = renderHook(() => useSceneSimulation());
+        const staleRun = result.current.runSimulation; // debounce 捕获的就是这个旧身份
+
+        act(() => {
+            useSimulationStore.getState().setParameter('angle', 60);
+        });
+        mockRun.mockClear();
+
+        act(() => {
+            staleRun();
+        });
+        const passedParams = mockRun.mock.calls[0]![1];
+        expect(passedParams, '重算用的是过期参数 → 结果会滞后一步').toMatchObject({ angle: 60 });
+    });
+
+    it('回归: 连续两次修改参数, 第二次重算必须反映第二次的值', () => {
+        mockRun.mockReturnValue({ result: okResult, error: null });
+        const { result } = renderHook(() => useSceneSimulation());
+
+        act(() => {
+            useSimulationStore.getState().setParameter('angle', 30);
+        });
+        act(() => {
+            useSimulationStore.getState().setParameter('angle', 75);
+        });
+        mockRun.mockClear();
+        act(() => result.current.runSimulation());
+
+        expect(mockRun.mock.calls[0]![1]).toMatchObject({ angle: 75 });
+    });
+
     it('air-track 场景 + 有结果 → 写入光电门数据', () => {
         mockRun.mockReturnValue({ result: okResult, error: null });
         useSimulationStore.setState({

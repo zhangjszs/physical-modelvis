@@ -30,10 +30,17 @@ export function useSceneSimulation(): { runSimulation: () => void } {
     }, [currentScene, ensureSceneParameters, scene]);
 
     // 运行仿真
+    //
+    // 参数与场景一律**在调用瞬间从 store 即时读取**，不用渲染期闭包快照。
+    // 因为 ParameterPanel 的 150ms debounce 会持有“创建它的那一帧”的 runSimulation 身份，
+    // 若从闭包读 parameters，每次重算用的都是上一个参数值 ——
+    // 表现为“改完参数后仿真结果稳定滞后一次修改，必须再改一次或点重置才刷新”。
     const runSimulation = useCallback(() => {
-        if (!scene) return;
-        const currentParams = Object.keys(parameters).length > 0 ? parameters : getDefaultParams(currentScene);
-        const { result, error } = runSceneSimulation(scene, currentParams);
+        const { currentScene: activeSceneId, parameters: liveParams, scenes } = useSimulationStore.getState();
+        const activeScene = scenes.find(s => s.id === activeSceneId);
+        if (!activeScene) return;
+        const currentParams = Object.keys(liveParams).length > 0 ? liveParams : getDefaultParams(activeSceneId);
+        const { result, error } = runSceneSimulation(activeScene, currentParams);
         if (error) {
             setErrorMessage(error);
             return;
@@ -41,7 +48,7 @@ export function useSceneSimulation(): { runSimulation: () => void } {
         if (result) {
             setSimulationResult(result);
         }
-    }, [scene, parameters, currentScene, setSimulationResult, setErrorMessage]);
+    }, [setSimulationResult, setErrorMessage]);
 
     // 首次加载自动运行
     useEffect(() => {
