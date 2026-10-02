@@ -22,7 +22,9 @@ interface SceneStageProps {
 export function SceneStage({ renderMode = '3d' }: SceneStageProps) {
     const currentScene = useSimulationStore(s => s.currentScene);
     const { rig, rigReady, rigError, is3DScene } = useSceneRig(currentScene);
-    const show3D = is3DScene && renderMode === '3d';
+    // rig 加载失败时必须真的回退 2D Canvas, 否则下方那句「已回退 2D 画面」只是空承诺,
+    // 用户会对着永久 spinner 什么也做不了
+    const show3D = is3DScene && renderMode === '3d' && !rigError;
 
     return (
         <>
