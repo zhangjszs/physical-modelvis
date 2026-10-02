@@ -4,7 +4,8 @@
 
 - 当前 agent-id: `qoder-20261002T042500Z`（**执行者**·浏览器 QA 巡检第 2 轮）
 - 会话开始: 2026-10-02T04:25:00Z (UTC)
-- 本轮代码 commit: `8984fc9`（fix #70 参数不随动）· pre-push 全量 precheck 绿 · CI 与巡检流水线跑动中
+- 本轮代码 commit: `8984fc9`（fix #70 参数不随动）+ `5700693`（fix(ci) 超时 30→45）· pre-push 全量 precheck 绿
+- **巡检流水线首跑已确认绿**：run `37002178007`（workflow_dispatch、全量 123 场景）**completed success**，实测耗时 **27 分钟**
 - 脉络：…→ `qoder-20261002T032000Z`(#69 舞台永久空白) → 本棒 T042500Z（#70 handles 错配 + 巡检接入 CI）。
 - **阶段任务**：按用户指令用内置浏览器逐场景巡检 123 个实验，一轮修一个明确问题，修完立刻浏览器复验。
 
@@ -48,7 +49,9 @@
 3. **巡检接入 CI**（用户批准）：新增 `.github/workflows/qa-sweep.yml`
    —— PR 跑前 12 场景 + `QA_STRICT=canvas`（只拦"舞台未渲染"，console 降级 WARN 不卡正常 PR）；
    nightly/手动跑全量 123 场景 + 严格口径；报告上传 artifact 14 天。
-   脚本相应新增 `QA_STRICT` 开关。已 `workflow_dispatch` 实跑验证（run `37002178007`）。
+   脚本相应新增 `QA_STRICT` 开关。已 `workflow_dispatch` 实跑验证（run `37002178007` → **success**）。
+   **CI 全量结果（含逐参数 min/max 边界扫描，比本地那次更宽）：123 场景 ERROR 0 / WARN 54 / OK 69，
+   边界异常 0 项** —— 即全场景参数拉到上下限时都没有 NaN/Infinity/undefined 泄漏到页面。
 4. 验证：巡检 console finding **55 → 0**、ERROR 场景 **55 → 0**、无异常场景 **34 → 69**；
    内置浏览器实测 自由落体 h0 / 胡克定律 k / 单摆 L 拉到 max·min **器材均可见随动**，全程 0 error 0 warning；
    `useSceneRig.test.ts` 7 例绿；`npm run precheck` 全绿；测试数 **core 1107 / viz 1305 / total 2412**。
@@ -67,8 +70,9 @@
 - **无脏树**，全量 `precheck` / `count:sync` 正常。
 - **jsdom 单测复现不出这类挂载时序 bug**：本轮新用例在旧实现下**也通过**（React passive effect 是"子先父后"，
   `renderHook` 不涉及子组件）。所以 3D 舞台类改动的判据是**浏览器巡检**，不是单测 —— 已在测试注释与 #70 正文写明。
-- **巡检流水线首次实跑**（run `37002178007`）结果待确认：若 `npx playwright install --with-deps chromium`
-  或 dev server 启动步骤有问题，需在本棒或下一棒修 workflow（不要直接禁用它）。
+- **巡检流水线已实跑验证通过**（run `37002178007` success）：npm ci → 构建 core → Playwright Chromium 安装
+  → 起 dev server → 等待就绪 → 全量巡检 → 上传 artifact 全部可用。全量耗时 27 分钟，
+  因此 `timeout-minutes` 已调为 45（`5700693`）—— 下一棒改脚本时如果再变慢请同步调这个值。
 - **#44**：人类 assignee，勿重试 React19 / 勿上调 70 kB bundle 预算。
 - **自检维持 11 层**（#61 接入方式 = 追加到 `scripts/self-check.mjs` 的 L11 `test` 数组）。
 

@@ -43,8 +43,9 @@
 3. **物理量级可疑（巡检截图发现，待核）**：胡克定律 k 拉到最小值 1 N/m 时标签显示 `Δx≈4900 cm`（49 m），
    画面里弹簧垂到地面 —— 远超弹性限度。需核对该场景 `parameters` 的 min 是否合理、是否该加弹性限度约束。
    这类"边界值下量级失真"是本轮巡检新打开的一层，值得专门一轮去扫（可扩脚本：参数在 min 时检查展示数值量级）。
-4. **确认本轮 CI 首跑结果**：`gh run view 37002178007`。若 `npx playwright install --with-deps chromium`
-   或 dev server 启动步骤失败，**修 workflow，别禁用它**。
+4. **巡检流水线已验收（本棒完成，无需复查）**：run `37002178007` → **completed success**，
+   全量 123 场景含逐参数 min/max 边界扫描耗时 **27 分钟**，结果 **ERROR 0 / WARN 54 / OK 69，边界异常 0 项**。
+   `timeout-minutes` 已因实测耗时从 30 调到 45（`5700693`）。下一棒若给脚本加新判定导致变慢，同步调这个值。
 5. 若用户不再要求巡检：回到 backlog frontier **#61**（P1，M3 前置守卫；口径见 D12）。
 
 ### 阻塞项 / 风险
@@ -64,6 +65,7 @@
 - 本机无 msedge：新脚本用 Playwright 自带 chromium；现有 `verify-*.cjs` 硬编 `channel:'msedge'` 在 Linux 跑不了。
 - **`gh issue close` 不支持 `--comment-file`**（静默不关闭）→ 先 `gh issue comment --body-file`，
   再 `gh issue close --reason completed`，最后 `gh issue view --json state` 复核。
-- 全量巡检耗时约 8 分钟（`QA_SKIP_PARAMS=1`）；带参数边界扫描约 15-20 分钟。产物在 `.scratch/`（gitignore）：
-  `qa-sweep-{before,after,r2}.json`、`sweep-*.log`、`probe-*.cjs`（可复用诊断探针）、`verify*.png` / `fix-*.png`。
+- 全量巡检耗时：本地约 8 分钟（`QA_SKIP_PARAMS=1`）/ 约 15-20 分钟（含参数边界）；**CI 上含参数全量实测 27 分钟**。
+  产物在 `.scratch/`（gitignore）：`qa-sweep-{before,after,r2}.json`、`sweep-*.log`、`probe-*.cjs`（可复用诊断探针）、
+  `verify*.png` / `fix-*.png`。
 - 自检 11 层；测试数真值 **core 1107 / viz 1305 / total 2412**。
