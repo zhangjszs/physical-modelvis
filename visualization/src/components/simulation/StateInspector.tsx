@@ -24,10 +24,15 @@ export function StateInspector() {
     const frame = interpolateFrame(p0, p1, currentTime);
 
     const speed = Math.sqrt(frame.velocity.x ** 2 + frame.velocity.y ** 2);
-    const accMag = frame.acceleration ? Math.sqrt(frame.acceleration.x ** 2 + frame.acceleration.y ** 2) : 0;
-    const ke = frame.kineticEnergy ?? 0;
-    const pe = frame.potentialEnergy ?? 0;
-    const totalE = ke + pe;
+    // 引擎里 acceleration / kineticEnergy / potentialEnergy 都是可选字段:
+    // 静态类实验（验电器、库仑构型、传感器曲线等）本就没有运动学与能量语义。
+    // 以前一律 `?? 0` 会把"未计算"报成"等于 0 焦耳", 与真值混淆；缺失时显示占位符。
+    const accVec = frame.acceleration;
+    const accMag = accVec ? Math.sqrt(accVec.x ** 2 + accVec.y ** 2) : null;
+    const ke = frame.kineticEnergy ?? null;
+    const pe = frame.potentialEnergy ?? null;
+    const totalE = ke !== null && pe !== null ? ke + pe : null;
+    const NOT_APPLICABLE = '—';
 
     return (
         <div className="panel-section">
@@ -39,10 +44,13 @@ export function StateInspector() {
                 <StateRow label="速度 vx" value={formatQuantity(frame.velocity.x, 'm/s')} />
                 <StateRow label="速度 vy" value={formatQuantity(frame.velocity.y, 'm/s')} />
                 <StateRow label="速率 |v|" value={formatQuantity(speed, 'm/s')} />
-                <StateRow label="加速度 |a|" value={formatQuantity(accMag, 'm/s²')} />
-                <StateRow label="动能 Ek" value={formatQuantity(ke, 'J')} />
-                <StateRow label="势能 Ep" value={formatQuantity(pe, 'J')} />
-                <StateRow label="机械能 E" value={formatQuantity(totalE, 'J')} />
+                <StateRow
+                    label="加速度 |a|"
+                    value={accMag === null ? NOT_APPLICABLE : formatQuantity(accMag, 'm/s²')}
+                />
+                <StateRow label="动能 Ek" value={ke === null ? NOT_APPLICABLE : formatQuantity(ke, 'J')} />
+                <StateRow label="势能 Ep" value={pe === null ? NOT_APPLICABLE : formatQuantity(pe, 'J')} />
+                <StateRow label="机械能 E" value={totalE === null ? NOT_APPLICABLE : formatQuantity(totalE, 'J')} />
             </div>
         </div>
     );

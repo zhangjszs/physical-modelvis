@@ -138,9 +138,10 @@ export class CoulombForceExploreModel extends PhysicsModelBase {
                     t,
                     position: { x: q_i, y: F_i },
                     velocity: { x: 0, y: 0 },
-                    acceleration: { x: q_i_C, y: F_i },
-                    kineticEnergy: F_i,
-                    potentialEnergy: q_i_C
+                    acceleration: { x: q_i_C, y: F_i }
+                    // 不再填 kineticEnergy = F_i / potentialEnergy = q_i_C:
+                    // 库仑力探究是静态双电荷构型, 速度恒为 0 却报动能 17.98「J」是自相矛盾的，
+                    // 且那两个值的量纲实际是 N 与 C，不可能是能量。
                 });
             }
             // 同时给 F-1/r² 静态图 (固定 q1,q2, 扫描 r)

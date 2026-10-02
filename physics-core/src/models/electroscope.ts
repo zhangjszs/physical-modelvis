@@ -100,9 +100,10 @@ export class ElectroscopeModel extends PhysicsModelBase {
                 t,
                 position: { x: q_i, y: theta_i },
                 velocity: { x: 0, y: 0 },
-                acceleration: { x: factor_i, y: theta_i },
-                kineticEnergy: q_i * q_i,
-                potentialEnergy: theta_i
+                acceleration: { x: factor_i, y: theta_i }
+                // 不再填 kineticEnergy / potentialEnergy: 验电器箔片是静态平衡, 速度恒为 0,
+                // 而原来填的 q² 与 θ 既不是动能也不是势能 (单位对不上 J),
+                // 会直接让数据面板显示「势能 = 90 J」这种假读数。
             });
         }
 
