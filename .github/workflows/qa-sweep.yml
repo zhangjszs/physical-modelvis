@@ -23,7 +23,9 @@ jobs:
     qa-sweep:
         name: 逐场景巡检（浏览器）
         runs-on: ubuntu-latest
-        timeout-minutes: 30
+        # 实测：nightly 全量（123 场景 + 逐参数 min/max 边界扫描）在 CI 上约 20-30 分钟，
+        # PR smoke（12 场景）约 3-5 分钟。留 45 分钟余量，避免被 timeout 误判为流水线坏。
+        timeout-minutes: 45
         env:
             # PR → 只跑前 12 个场景且用 canvas 口径；定时/手动 → 全量且严格
             QA_LIMIT: ${{ github.event_name == 'pull_request' && '12' || '0' }}
