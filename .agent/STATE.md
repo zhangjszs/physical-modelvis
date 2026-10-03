@@ -2,162 +2,66 @@
 
 > 可机器解析的事实账本：活跃任务 / 已完成 / 阻塞。接力通过 git 历史 + GitHub issue + 本目录（ENV/STATE/HANDOFF）三重载体。
 
-- 当前 agent-id: `qoder-20261003T010000Z`（**执行者**·浏览器 QA 巡检第 8 轮）
-- 会话开始: 2026-10-03T01:00:00Z (UTC)
-- 本轮代码 commit: `fdca402`（fix #88 参数滞后一步）· pre-push 全量 precheck 绿· CI 跑动中
-- 脉络：…→ T000000Z(#87 抛体落地截断) → 本棒 T010000Z（#88 过期闭包致参数滞后）
-- **阶段任务**：按用户指令用内置浏览器逐场景巡检 123 个实验，一轮修一个明确问题，修完立刻浏览器复验。
-
-## ⚠️ 并发规划会话（本轮再次出现，但这次没有互踩）
-`f331e67 chore(agent): OCR 功能线立单 #74-#77 + D13 + M2.5 排程（M3 顺延）` 由另一规划会话写入，
-**只改了 `.agent/PLAN.md` 与 `DECISIONS.md`**（规划者所有文件），未碰执行者的 `STATE.md`/`HANDOFF.md`，
-也未碰我当时的未提交改动 → 文件职责分界生效，无覆盖事故。
-**它改变了 backlog 排程**：M2.5（OCR 线 #74→#75→#76→#77）插在 M2 尾与 M3 之间，
-故**若停止巡检，下一手是 #60，不是 #61**（我上一轮 HANDOFF 的说法已过时，本轮已纠正）。
+- 当前 agent-id: `zcode-exec-2819`（**执行者**·M2.6 性能线）
+- 会话开始: 2026-10-02T23:39:00Z (UTC) ≈ 本地 2026-10-03 07:39
+- 本轮代码 commit: `01ac2a3`（fix #79 3D 性能止血包）· pre-push 全量 precheck 绿 · 已推送
+- 脉络：…→ qoder-20261003T010000Z（#88 参数滞后一步） → 本棒 zcode-exec-2819（**#79 3D 性能止血包**，阶段任务由浏览器巡检切回 PLAN 队列：规划者 D14 记录用户 2026-10-03 指令「现在就建性能底层」，M2.6 插队首位）
+- **本棒不再延续浏览器巡检阶段任务**：无对应 ready issue，D14 用户指令（性能底层）为更新的直接指令，按 PLAN 队列执行。
 
 ## 接力载体
-- `.agent/` 随仓库提交（`.agent/.gitignore` 仅排 `LOCK`）。PLAN.md / DECISIONS.md 归规划者（现至 D13）；
+- `.agent/` 随仓库提交（`.agent/.gitignore` 仅排 `LOCK`）。PLAN.md / DECISIONS.md 归规划者（现至 D15）；
   STATE.md / HANDOFF.md 归执行者。
 
 ## 文件锁
 | 文件/目录 | 持有者 | 任务 | 时间 |
 |---|---|---|---|
-| `.agent/LOCK`（不提交，收尾删除） | qoder-20261002T080000Z | 巡检第 6 轮（#78） | 2026-10-02T08:00:00Z |
-
-## 巡检战果（123 场景全量，同一脚本同一口径）
-
-| 指标 | 初始 | #69 后 | #70 后 | #71 后 | #72 后 | #73 后 | **#78 后** |
-|---|---|---|---|---|---|---|---|
-| 舞台空白（0 canvas） | **101** | 0 | 0 | 0 | 0 | 0 | **0** |
-| console / pageerror | 0（被掩盖） | 55 | **0** | 0 | 0 | 0 | **0** |
-| 可见错误提示条 | — | — | — | **12** | **0** | 0 | **0** |
-| ERROR 级场景 | 101 | 55 | 0 | 12 | 0 | 0 | **0** ✅ |
-| 完全无异常场景 | 9 | 34 | 69 | 69 | 72 | 72 | **72** |
-| WARN（播放按钮类） | 114 | 54 | 54 | 54 | 51 | 51 | **51** |
-
-**注**：#78 的图表崩溃**不在这六项指标里**——巡检脚本从不打开「数据/图像」抽屉，
-抽屉内的崩溃与 ErrorBoundary 粘滞是**浏览器子代理肉眼发现的**。→ 队列里有"给巡检加抽屉覆盖"一项。
+| `.agent/LOCK`（不提交，收尾删除） | zcode-exec-2819 | #79（已完成）→ #80（进行中） | 2026-10-03 07:39 起本地 |
 
 ## 当前活跃
-**无**（#88 已 CLOSED）。开放 issue 与排程（按规划会话最新 PLAN）：
-**#60 → #68 → #74–#77（OCR）→ #79–#81（3D 性能）→ #61 → #62–#66**；#44 人类持有勿动。
-⚠️ 规划会话仍在活跃建单（编号已到 #87，本轮占 #88），引用编号前先 `gh issue create` 拿真号。
+**#80 · 3D 性能回归防护门禁**（P2，M2.6 第二单）：巡检内存/耗时判定 + dispose 契约测试 + 懒 chunk 硬门禁。
+- #79 已完成并回写（[评论](https://github.com/zhangjszs/physical-modelvis/issues/79#issuecomment-5963667526)），待规划者复核关闭。
+- 队列（PLAN D14/D15 口径）：**#80 → #81 → #83 → #84 → #85 → #86 → #60 → #68 → #74–#77 → #61 → #82 → #62–#66**；#44 人类持有勿动。
 
-## 本轮已做（#88，CLOSED）
-**问题**：拖参数滑块后仿真不刷新，结果稳定反映**上一个**参数值，必须再改一次或点「重置参数」才更新。
-影响**所有场景的参数交互**（时间轴上限 / 图表 / 实时状态 / 诊断报告全部滞后）。
+## 本轮已做（#79，实现完成，待规划者关闭）
+M2.6 性能线首单「止血包」三项（用户报告「越点越慢」，D14 确证 4 缺陷中的 3 个次要项）：
 
-**根因是过期闭包，不是"没触发重算"**：`ParameterPanel` 用 150ms debounce 调 `onRunSimulation()`，
-定时器持有的是"创建它那一帧"的函数身份；而 `runSimulation` 是 `useCallback` 且
-**从渲染期闭包读 `parameters`** → 150ms 后执行的是旧函数，闭包里还是改动前的值。
-（`setParameter` 不 bump `sceneLoadVersion` 使自动运行那条路也帮不上；重置/预设走 `applyPreset`
-会 bump 版本 → 所以点重置就正常，与观测完全吻合。）
+1. **纹理释放**：`primitives.ts` 新增 `disposeMaterial()` —— 遍历材质全部属性、`instanceof THREE.Texture` 即释放（map/emissiveMap/数组材质/Sprite/嵌套全覆盖）。旧实现只释放 geometry+material，CanvasTexture 靠 `forceContextLoss` 兜底，#81 落地后立即变真泄漏。
+2. **rig 缓存 LRU**：`useSceneRig.ts` 缓存 Record→Map，命中触碰、上限 8、淘汰队首调 `rig.dispose?.()`；`SceneRig` 新增可选 `dispose()` 清理钩子（现状全为 no-op，为 #81 预留）。淘汰恒为队首，当前场景不会误删。
+3. **暂停按需渲染**：`EquipmentStage.tsx` 新增 `dirtyRef` —— controls `change`（拖拽/滚轮/阻尼/视角预设/缩放）+ store 任何写入（拖进度条/改参数/换结果/换主题）置脏；播放中或脏才 sync+render。**实测暂停空闲 0 render**（旧实现满帧）。`controls.update()` 每帧照跑（damping 收敛依赖，无 GPU 工作）。
 
-**修复**：`runSimulation` 改为在调用瞬间 `useSimulationStore.getState()` 读
-`currentScene`/`parameters`/`scenes`，useCallback 依赖收敛到两个稳定 setter。
-这样**任何**被延迟持有的旧身份被调用都拿到最新状态，从根上消除这类时序错配（而不是只在
-ParameterPanel 打补丁）。debounce 保留（避免每次 input 事件重算上千采样点造成卡顿）。
+**验证**（全部真实证据）：
+- precheck 全绿（含 11 层自检）；测试数 **core 1114 / viz 1325 / total 2439**（+14，count:sync 已回写）
+- qa-sweep 123 场景含参数边界实测：**ERROR 0 / WARN 51 / OK 72** —— 与第 8 轮基线逐项一致，#70 零回归
+- 浏览器 draw-call 探针（`.scratch/probe-79-render.cjs`）：暂停 idle 1s Δ=0；拖轴/改参数恰好一帧（Δ=136）；旋转 Δ=5620（交互+阻尼）；播放 600ms Δ=3264。3D→3D 切换×3 无错、console 0 error
 
-**同类残留已扫完**：全仓只有 4 处定时器 —— `CompositionStage:228` 本来就用 `getState()`（正确写法），
-`ParameterPanel` 三处调的都是本次修好的 `onRunSimulation` → **无残留**。
-
-**新增 +2 回归用例**：①用旧一帧 `runSimulation` 身份重算也必须用最新参数
-（旧实现下报 `expected { angle: 45 } to match object { angle: 60 }`，就是滞后一步的字面证据）；
-②连续两次改参数，第二次重算必须反映第二次的值。
-
-**验证**（内置浏览器 6 项判定全过）：模拟时长 5→1 时 timelineMax 立即=1；→20 立即回到 3.0212（落地截断）；
-v₀→40 时 Ek 立即=800.000 J 且 timelineMax=5.8422（与解析值完全吻合）；θ→90 则 range=0 /
-thetaDeg=90 / flightTime=8.213 / apexHeight=83.633=2+1600/19.6；重置回基线无残留；
-**换单摆（数值积分模型）摆长 1→5 时 periodSmall 立即 2.007→4.488=2π√(5/9.8)** ——
-解析与数值两类模型都立即响应，证明修的是调度层。全程 console 0 error。
-测试数 **core 1114 / viz 1311 / total 2425**。
-
-⚠️ 本轮与上一轮相同，**截图因标签页被置后台（`visibilityState=hidden`）而失败**，
-结论全部来自 DOM/JS 读数，未做像素级视觉确认。
-
-## 上轮已做（#87，CLOSED）
-**场景**：抛体运动 (平抛+斜抛)。默认模拟时长 5s 而飞行时间仅 3.02s。
-**问题**：播放到末尾时面板显示「位置 y = -70.443 m」「机械能 E = 909.945 J」——
-小球穿地继续掉，而且**这一页正在讲机械能守恒，面板显示的机械能恰好不守恒**（飞行期间明明是 219.600 J）。
-**根因**：`projectile.ts` 把特征量与落地时刻 `tLand` 算在 `sampleTrajectory` **之后**，
-轨迹按完整 duration 用纯抛物线采样 → `t > tLand` 是物理上不存在的外推：y 变负、|v| 无界增长→Ek 一直涨，
-而 Ep = `m·g·Math.max(0, y-groundY)` 被夹在 0 → 两者相加自然暴涨。（关键帧那边倒是已经用了
-`Math.min(tLand, duration)`，所以只有轨迹/图表/面板越界。）
-**修复**：特征量/落地时刻计算前移到采样之前，轨迹只采样到 `tEnd = min(tLand, duration)`
-（simEnd 至少留一个步长防退化、endSampleCount 按比例缩放保持密度）。时间轴上限自然等于 flightTime
-（getTotalDuration 由轨迹算出），穿地区间从源头不可达；模拟时长仍是上界；neverLands 分支完全不变。
-**刻意不加告警**：duration 大于飞行时间是正常用法，落地即止是预期行为，发告警等于天天报“狼来了”。
-**连带修正测试自身的隐含假设**：`differential-analytic.test.ts` 的抛体组原在 `t = duration·{0.3,0.7,1}` 探测，
-而该文件 `pointAt()` 是**就近取样本、不插值** —— 旧代码能过纯属巧合（800×0.3=240 正好落在整数样本号）。
-改为**按样本索引**探测并用每个样本自己的 `p.t` 套解析式（对差分反而更严格）。
-**新增 +3 回归用例**：截断后末点 t≈flightTime 且全程 y≥0 且机械能偏差<1% 且无告警 /
-duration<flightTime 时末点仍等于 duration（截断只由落地触发）/ neverLands 时末点等于 duration 且有告警。
-**验证**：浏览器实测 timelineMax 5.55 → **3.0212（=flightTime）**；末态 y=0 m、E=**219.600 J**；
-y-t 曲线 1633 个采样点 min=0、无负值、末点与 0 刻度像素重合；诊断报告 `✓ 所有检查通过`；
-切场景往返数值一致无红条；console 0 error；引擎 1114 + 可视化 1309 全绿。
-
-## 上轮已做（#78，CLOSED）
-**问题**：数据抽屉打开时从力学场景切到静态场景，曲线图崩成红字「图表加载失败」，
-且 **ErrorBoundary 粘滞——之后切任何场景都不恢复，只能刷新页面**；控制台
-`Rendered fewer hooks than expected`。
-
-**根因**：`GraphPanel.tsx` 把空态早退 `if (!simulationResult && !inCompareMode) return …`
-写在三个 `useMemo`（L97/L104/L165）**之前**。切场景瞬间 store 把 `simulationResult` 置 null
-→ 该帧少调 3 个 hook → React 抛错。
-
-**修复**：① 空态早退下移到全部 hook 之后；`series` memo 改 null 安全
-（`simulationResult ? extractGraphSeries(...) : []`，去掉 `simulationResult!` 断言）；
-组件内留注释防止后人挪回去。② 新增 `tests/charts/hook-order.test.tsx`（2 例）——
-仓库没装 `eslint-plugin-react-hooks`，故自带两道防线：
-**静态扫描**（顶层早退 return 之后不得再有顶层 hook；依赖 prettier 4 空格缩进判定顶层，
-已验证修复后全仓 0 命中、旧版精确命中 `GraphPanel.tsx 早退@L87→hook@L165`）+
-**行为回归**（真实渲染走 有→null→有，旧实现下复现出与生产完全一致的报错）。
-
-**验证**：浏览器复验抽屉开着切静态场景 `hasChartError=false` 且曲线正常重绘；
-**不刷新继续切单摆/抛体均恢复（粘滞消失）**；力学场景回归正常（`.recharts-line-curve` path 764px、
-8 个选项卡齐全）；参数对比模式 5 条曲线 + 图例正常；全程 console **0 error**。
-`npm run precheck` 全绿（126 + 44 测试文件 / 62.4 kB / 11 层 PASS）；测试数 **core 1111 / viz 1309 / total 2420**。
+## 上轮已做（#88，CLOSED）
+改参数后仿真结果滞后一步 —— `runSimulation` 读渲染期闭包快照被 debounce 旧身份调用；改为调用瞬间 `getState()` 读参数。详见 git 历史 `fdca402` 与上轮 HANDOFF。
 
 ## 已完成（最近，≤20 条）
-- **#88** 改参数后仿真结果滞后一步（runSimulation 读渲染期闭包快照，被 debounce 旧身份调用）+ 同类残留已扫 — `fdca402`，**本轮 CLOSED**
-- **#87** 抛体运动落地后穿地、机械能凭空涨 4 倍（轨迹未按 flightTime 截断）+ 修正差分测试的格点假设 — `83f2632`
-- **#78** GraphPanel 空态早退致曲线图崩溃+粘滞 + hooks 顺序双守卫 — `06ee453`
-- **#73** 数据面板量纲错乱（2 处自相矛盾能量 + 24 处字段复用登记）— `33d5fee`
-- **#72** L2 validate 断言空转 + 12 个纯场模型误要求 bodies → 窄钩子 `requiresBodies()` — `e0c0f1d`
-- **#71** 静电屏蔽求解失败 + 巡检新增「可见错误提示条」判定 — `e5a367a` / `921e5a4`
-- **#70** 3D 切场景旧 rig 泄漏 → updateEquipment 错配 handles（55 场景）+ 巡检接入 CI — `8984fc9` / `5700693`
-- **#69** 3D 场景切换舞台永久空白（101/123）— `71573d5` · **#67** L5 场线收尾 — `83fa03e`
-- **#58** σ_水 单一真源 — 51ccaa7 · **#59** 幻影 double-slit — abc4a72 · **#55** B3 核对 — 2a0e312/8eda01b
-- **#56** 3D 基础层 — 2e9ccf1 · **#54** 跨包双源 — 3ea8ced · **#53** 渲染门禁 — 04241b2 · **#52** 24 处内联 — 5ec7122 · **#51** 电荷门禁 — 89910d1 · **#57** Deploy — 89b7dcc/d45cd39
-- README/plan.md 测试数 **core 1114 / viz 1311(44 files) / total 2425**（本棒 count:sync 已回写）
+- **#79** 3D 性能止血包（纹理释放 + LRU 缓存 + 暂停按需渲染）+ draw-call 浏览器探针 — `01ac2a3`，本轮完成
+- **#88** 参数滞后一步（过期闭包） — `fdca402` · **#87** 抛体落地截断 — `83f2632` · **#78** GraphPanel hooks 崩溃 — `06ee453`
+- **#73** 数据面板量纲 — `33d5fee` · **#72** L2 断言空转 — `e0c0f1d` · **#71** 静电屏蔽 — `e5a367a`/`921e5a4`
+- **#70** 3D 切场景 rig 泄漏 — `8984fc9`/`5700693` · **#69** 3D 舞台空白 — `71573d5` · **#67** L5 场线 — `83fa03e`
+
+## 巡检战果（历史基线，#79 sweep 复核仍成立）
+舞台空白 101→0；console/pageerror 55→0；错误提示条 12→0；ERROR 场景 101→**0**；WARN（播放按钮类）稳定 **51**。#79 sweep 与基线一致 → 无回归。
 
 ## 阻塞项 / 风险
-- **巡检脚本不打开「数据/图像」抽屉** → 抽屉内的崩溃（#78 这类）与 ErrorBoundary 粘滞**完全不在覆盖范围内**。
-  这是本轮最重要的方法论教训：ERROR 指标"清零"不等于没问题，只是**当前判据看不见**。
-- **ErrorBoundary 会把崩溃降级成局部错误区**且粘滞不恢复 → 评估严重度时不能只看有没有红条。
-- **参数交互类 bug 靠现有门禁完全看不见**（#88 直到第 7 轮才被浏览器巡检撞出）：
-  门禁不测"改参数 → 结果刷新"，巡检也不开抽屉、不改参数。→ 队列第 1 项就是补这个能力。
-- **自动化浏览器标签页会被置后台导致截图失败**（连续两轮）：结论只能停在 DOM/JS 读数，
-  像素级视觉确认（重叠 / 裁切 / 颜色不可见）仍需人工或先把标签页置于前台。
-- **`visualization/tsconfig.json` 的 `include` 含 `tests`**（core 不含）→ 可视化测试参与类型检查，
-  写测试要保证类型干净；而 **core 测试不参与类型检查**（`base-validate.test.ts` 里有真实 readonly 赋值错误而 CI 全绿）。
-- **K2 的 24 个场景**仍把轨迹当数据载体（静态场景图表沿用 `y (m)` 等力学字段名/单位）→ 需定 A/B 方向，见 #73。
-- **4 个模型仍用大锤 `requiresValidation() → false`**（thermistor / strain-gauge / security-alarm / light-control-switch）。
+- **#80 的判定工具已备好**：`.scratch/probe-79-render.cjs` 的 WebGL draw-call 计数（addInitScript 包 getContext）是实例级准确的渲染/耗时口径 —— three.js `WebGLRenderer.render` 是**实例属性**（闭包工厂），原型补丁无效，别再踩。
+- **OrbitControls mock 升级**：`equipment-stage.test.tsx` 的 mock 现带 `addEventListener/emit` + `OrbitControls.instances` 登记，3D 交互测试可直接取实例派发 `change`。
+- **"ERROR 清零"≠没问题**：巡检 6 项判据不覆盖抽屉内崩溃、交互后一致性（#78/#88 教训）——判据扩展仍无 issue 承接，交规划者。
+- **51 个 playback WARN** 与 3D 取景/控件语义、胡克定律边界量级等可读性问题仍在 backlog 外漂浮（原巡检 HANDOFF 第 2-6 项建议）。
+- **`visualization/tsconfig.json` 含 tests**（core 不含）→ 可视化测试参与类型检查；core 测试不参与（#83 待做）。
 - **#44 勿动**；自检维持 11 层；无脏树。
 
-## 环境备注
-- `export PATH="$HOME/.local/share/mise/shims:$PATH"`；Linux 用 `npx`；本机无 msedge（新脚本用 Playwright 自带 chromium）。
-- 起 dev server：`cd visualization && npx vite --port 5199 --strictPort`；跑测试/脚本/浏览器需 `required_permissions=all`。
-- **杀 dev server 用 `node .scratch/kill-vite.cjs`**（`pkill -f "vite..."` 会连沙箱包装进程自杀）。
-- **jsdom 渲染 recharts 需 `ResizeObserver` stub**（照 `tests/rendering/equipment-stage.test.tsx` 的局部类写法，别改共享 setup）。
-- **core 测试里 `getModel()` 必须从 `../../src/index.js` 导入**（注册在 `solver/solver-router.ts` 副作用里）。
-- 临时探针测试文件注意相对路径深度（`tests/` 用 `../src`，`tests/accuracy/` 用 `../../src`），**用完必须删**。
-- 改 `physics-core/src` 后必须 `npm run build:core`；跑巡检期间不要编辑 src（HMR 污染基线）。
-- **教材目录 `<details>` 分组会自动折叠** → 自动化每次切换场景前重新 `d.open = true`。
-- **写含反引号/引号的中文正文一律用 Write 工具落文件**，别用 `printf`。
-- `gh issue close` 不支持 `--comment-file` → 先 comment 再 close，最后 `--json state` 复核。
-- **issue 编号会被并发会话占用**：本轮预想编号 #74 实际是 #78（#74–#77 已被规划会话建掉）→
-  在正文/测试注释里引用 issue 号前，先 `gh issue create` 拿到真号。
-- 全量巡检：本地 ~8 分钟（`QA_SKIP_PARAMS=1`）；CI 含参数边界实测 27 分钟（`timeout-minutes: 45`）。
-- 产物在 `.scratch/`（gitignore）：`qa-{banner,r4}.json`、`sweep-*.log`、`probe-*.cjs`、`*.v2.tsx`/`*.fixed.ts`
-  （红→绿对照快照）、截图 `r6-*.png` / `r5-*.png` / `r4-*.png` / `verify*.png` / `fix-*.png` / `shield-*.png`。
+## 环境备注（继承前几棒，仍有效）
+- `export PATH="$HOME/.local/share/mise/shims:$PATH"`；Linux 用 `npx`。
+- 起 dev server：`cd visualization && npx vite --port 5199 --strictPort`；**杀用 `node .scratch/kill-vite.cjs`**（pkill 会连沙箱自杀）。
+- **跑巡检/探针期间不要编辑 src**（HMR 污染基线）；改 `scripts/`、`.agent/` 安全。
+- **performance resource entries 缓冲区只有 ~250 条**，会被 physics-core 249 个模型模块挤满 → 懒加载 chunk 的 URL 别从 resource entries 找，改从 `.vite/deps/` 目录 + react.js 的 `?v=` 哈希拼。
+- **改完 `physics-core/src` 若再跑 prettier，必须重新 `npm run build:core`**（guard-dist-freshness 拦截；本轮开局就吃了一次上棒遗留的陈旧 dist）。
+- jsdom 渲染 recharts 需 `ResizeObserver` stub（照 `tests/rendering/equipment-stage.test.tsx` 局部类写法）。
+- 写含反引号/引号的中文正文一律用 Write 工具落文件。
+- `gh issue close` 不支持 `--comment-file` → 先 comment 再 close。
+- 全量 sweep（含参数实测）：本地 ~12 分钟；CI 27 分钟（timeout 45）。
+- 自检 11 层；测试数真值 **core 1114 / viz 1325 / total 2439**。
