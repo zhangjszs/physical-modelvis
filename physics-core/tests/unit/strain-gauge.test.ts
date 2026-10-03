@@ -31,4 +31,11 @@ describe('F12: StrainGaugeModel', () => {
         );
         expect(r.explanation.summary).toBeTruthy();
     });
+    it('NaN 参数 → validate 拒绝 (NON_FINITE_PARAMETER, #85 守卫恢复)', () => {
+        const v = model.validate(
+            makeProblem('strain-gauge', { strainGauge: { strain: NaN, gaugeFactor: 2, bridgeVoltage: 5 } })
+        );
+        expect(v.valid).toBe(false);
+        expect(v.errors.some(e => e.code === 'NON_FINITE_PARAMETER')).toBe(true);
+    });
 });

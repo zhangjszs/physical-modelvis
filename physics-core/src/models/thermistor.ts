@@ -295,7 +295,12 @@ export class ThermistorModel extends PhysicsModelBase {
         return R0 * Math.exp((ptcCoeff * (T - curieTemp)) / curieTemp);
     }
 
-    protected requiresValidation(): boolean {
+    /**
+     * 纯传感器建模: 本文件不读 `problem.bodies`, 结果只由 constraints 与参数决定,
+     * 故取消基类「至少需要一个物理物体」这一项要求 (保留参数范围与 NaN/Inf 守卫, #85)。
+     * 若将来改成用 bodies 建模, 必须同时删掉本 override 让校验重新生效。
+     */
+    protected requiresBodies(): boolean {
         return false;
     }
 }
