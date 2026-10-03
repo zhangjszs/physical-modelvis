@@ -2,75 +2,88 @@
 
 > 每轮结束**整体重写**（不追加）。给下一棒看：本轮做了什么、留了什么、下一步做什么。
 
-## 本轮（2026-10-03 · `zcode-exec-2819` · 执行者）· M2.6 性能线三单连做 #79 → #80 → #81 · **全闭环** · 更新于 ~11:00 本地
+## 本轮（2026-10-03 · `zcode-exec-2819` · 执行者·第三棒）· M2.6 全闭环 + #83 暂停交接 · 更新于 ~11:30 本地
 
-### 任务来源说明
-巡检阶段任务（第 6-8 棒）已被 D14 用户指令「现在就建性能底层」取代。本棒按 PLAN 队列连续完成
-**#79 → #80 → #81** 三个执行单元，每个单元独立：调查 → 实现 → 真实验证 → commit → push → issue 回写 → 状态重写。
-
----
-
-## 执行单元 1 —— #79 3D 止血包（`01ac2a3`，已回写待关闭）
-纹理释放（disposeMaterial 遍历材质属性 instanceof Texture 即释放）+ rig LRU 上限 8（Map 插入序，淘汰调 `rig.dispose?.()`）+ 暂停按需渲染（dirtyRef：controls change + store 写入置脏，**暂停空闲 0 render**）。
-验证：+14 单测；123 场景 sweep 与基线一致；浏览器 draw-call 探针暂停 idle Δ=0、交互各补一帧。
-
-## 执行单元 2 —— #80 性能门禁（`a6e1173`，已回写待关闭）
-1. 巡检内存/耗时判定：30 场景「暖场趟+计量趟」双趟，两趟间 CDP 强制 GC 采样 JS 堆；两档预算 `QA_PERF_TIER=pr(24MB/25s)|nightly(12MB/10s)`；qa-sweep.yml 按事件注入。
-2. rig dispose 契约 +124 例（全 123 rig build→dispose→重建：计数守恒/对象全新/无 use-after-dispose）。
-3. 懒 chunk 硬门禁：预算表 vendor-physics 185/vendor-three 175/GraphPanel 120/SimulationCanvas 115/FormulaPanel 42（实测×1.2）+ 通用 60kB，超限 exit 1 带明细。
-**红→绿闭环**：基线 2.2MB 绿 → 注入泄漏 87.2MB「内存判定命中」红（场景级 ERROR=0，判定独立）→ 还原复绿。
-
-## 执行单元 3 —— #81 根治（`85ca829`，已回写待关闭）
-**方案一「注入式」**：新增 `StageRenderer`（renderer/canvas 拥有者，render-prop 注入，不按场景 key）；EquipmentStage 每次切换只重建 Scene/Camera/Controls，卸载只 disposeObject(scene)；`key={currentScene}` 留在 EquipmentStage，**#70 三道防线零回退**；切 2D/离开工作台时 StageRenderer 卸载并销毁上下文（全应用唯一 forceContextLoss 点）。
-弃「模块单例」的理由：StrictMode 双挂载下要么双建上下文要么永不释放；React 拥有者生命周期清晰、jsdom 可测。
-
-**验证**（dev StrictMode 与生产构建分别实测）：
-- 累积趋势：31 场景暖趟×2 **逐场景配对耗时比** dev 中位 **0.99** / prod **1.00**（最差 ×1.04/×1.11）——切换耗时无累积
-- `info.programs` 62 次切换后段增长 −6（饱和）；堆冷趟 6.5/5.7MB < 12MB；canvas 恒 1
-- #70 参数随动：模拟时长→min，timelineMax 3.0212→0.5 立即生效
-- 全量 123 场景 sweep 含参数实测 **ERROR 0 / WARN 51 / OK 72**（与基线一致）
-- 6 场景截图目视复验正常；precheck 绿；core 1114 / viz 1452 / total 2566
+### 棒内三段
+1. **M2.6 三单连做并全部验收关闭**（规划者 `40ab0c3` 确认）：
+   #79 止血包 `01ac2a3`（纹理释放 + rig LRU 8 + 暂停按需渲染）→
+   #80 门禁 `a6e1173`（内存/耗时双趟判定红绿闭环 + rig dispose 契约 124 例 + 懒 chunk 硬门禁）→
+   #81 根治 `85ca829`（StageRenderer 注入式上下文复用，配对比 0.99/1.00 零累积，#70 防线零回退）。
+   踩坑全记录见 git 历史两份 HANDOFF（`0358135`/`829342a`）与三个 issue 评论——仍有效，勿丢。
+2. **收官状态** `eb1500a`。
+3. **#83 启动后主动暂停**（下文）。
 
 ---
 
-## 本轮踩坑记录（下一棒必读）
+## #83 暂停记录（下一棒第一优先）
 
-1. **「首/末对比」会把场景复杂度差异误判成累积**：暖趟后 10 个恰好含 4 个重 rig 场景（700-960ms，冷暖两趟相同——零累积旁证），prod 一度以 1.2% 误报 FAIL。正确口径 = **逐场景配对耗时比**（已固化进 `.scratch/probe-81-context.cjs`）。
-2. **canvas 常驻后巡检信号要重审**：「等 canvas 出现」全部退化为 0ms；sweep 耗时就绪信号已改「激活项匹配 + 2 rAF」。no-canvas 判定仍有效（ErrorBoundary 回退 2D 也有 canvas）。
-3. **`pkill -f` 模式别含本命令行子串**：`pkill -f "vite preview"` 把自己的 shell 杀了（python 编辑静默未执行）；用 `vite.[p]review` 转义。
-4. three.js `WebGLRenderer.render` 是**实例属性**（闭包工厂），原型补丁计数无效——用 addInitScript 包 `getContext` 包装 drawArrays/drawElements（probe-79/81 已固化）。
-5. 泄漏注入手段自身不得抛错（`push(...200k args)` RangeError 污染过信号）；探针参数判定要考虑物理截断行为（模拟时长 4.4s > 飞行 3.02s 时 timelineMax 本就不变）。
-6. performance resource entries 缓冲 ~250 条被 physics-core 模块挤满；three URL 从 `.vite/deps/` + react.js `?v=` 拼。
-7. headless chromium 本轮 **rAF 正常且截图可用**（6/6），旧「标签页置后台」问题未复现——但历史原因未根除，关键证据仍以 DOM/JS 读数为主。
+**状态**：调查与机制验证 100% 完成、**实现 0%**（零代码改动、零测试文件修改、树干净）。
+**暂停原因**：执行者对本轮末端工具输出的判读连续不可靠——在「不改任何测试语义」硬约束下
+继续编辑测试文件风险不可接受，按止损规程交棒。**以下工程事实来自 tsc 三轮稳定输出，可信。**
 
-## 下一步（按 PLAN 队列，M2.6 已收官）
+### 已定案的机制（直接照抄）
 
-**#83 · 引擎测试纳入类型检查**（P2，M2.7 首单）：physics-core tsconfig 移除对 tests 的 exclude——
-已知 2 处真实 readonly 赋值错误（`base-validate.test.ts` 的 `problem.bodies = [...]`）要修；
-**不扩大 strict 面**（#10 决定：不开 noUncheckedIndexedAccess，150 处可证明安全访问不逐个加守卫）。
-之后 #84（空 catch 静态守卫）→ #85（4 大锤模型恢复守卫）→ #86（K2 设计调查）。
+`build:core` = `tsc`（emit dist、rootDir=src）→ **不能**把 tests 塞进主 tsconfig（会 emit 测试 / TS6059）。
+正确机制 = 专用 typecheck 配置 + typecheck 脚本指向它：
 
-### 遗留（交规划者，本棒未动）
-1. 巡检判据扩展（抽屉覆盖 + 交互后一致性）仍无 issue 承接（#78/#88 教训）。
-2. 51 个 playback WARN、3D 取景/控件语义、胡克定律边界、图表参考线标签重叠——可读性类。
-3. primitives.ts:209 阴影图 1024² 保持原样（回常值需单独立单）。
+```jsonc
+// physics-core/tsconfig.typecheck.json （已验证可复现 24 错）
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "noEmit": true, "rootDir": "..", "types": ["node"] },
+  "include": ["src/**/*", "tests/**/*"],
+  "exclude": ["node_modules", "dist"]
+}
+```
+根 package.json `typecheck` 改：`cd physics-core && npx tsc --noEmit -p tsconfig.typecheck.json`。
+
+**两个已踩过的坑**：
+- `extends` 会继承主配置 `rootDir: "src"` → 必须显式覆盖；`rootDir: ".."`（仓库根）以容纳
+  optics-waves.test.ts 对 repo 根 `scripts/lib/find-non-finite.ts` 的合法跨包导入（该文件类型干净）。
+- `@types/node` 已在 physics-core/node_modules/@types —— `"types": ["node"]` 即解 TS2591 ×2。
+
+### 24 个真实错误清单（全部「真实错误」类，无一属 #10 排除项；实测于该配置）
+
+| 文件:行 | 码 | 修法（改写法不改语义） |
+|---|---|---|
+| base-validate.test.ts:133,144 | TS2540 | `problem.bodies = [...]` readonly——改为构造时注入（makeProblem 支持则传参，否则展开覆盖） |
+| gas-law.test.ts:19-21 | TS2540 | `model.initialPressure/Volume/Temperature = x` readonly——改为构造参数注入 |
+| center-of-gravity.test.ts:28 | TS2551 | `.solver` → `.solve`（API 改名测试未跟；该行断言 solver 不存在，改为对现 API 的等价断言） |
+| geometry-units.test.ts（12 错） | TS2339/18046/7006/2345 | helper 返回无类型 `{}`/`unknown`——给 helper 标注返回类型（plates/lines 结构），连锁消除 |
+| inertia.test.ts:215 | TS2578 | 删除已失效的 `@ts-expect-error` 指令 |
+| integration-stability.test.ts:47 | TS2352 | `Record<string,unknown>[]` → `PhysicalBody[]` 改 `as unknown as`（刻意测试 cast，语义不变） |
+| integration-stability.test.ts:199 | TS18048 | `curve.points` 可能 undefined——`?? []` 或空守卫 |
+| uniform-electric-field.test.ts:3 | TS2459 | `PhysicalBody` 未从 types/problem.js 导出——查正确导出模块后改 import |
+| boris-correctness.test.ts:217 | TS2339 | `ChartSeries \| ForceDiagram` 联合——`'points' in x` 窄化 |
+| fixtures.test.ts:63 | TS2353 | `SimplePendulumConstraint` 无 `gravity` 键——核对类型定义：多余键删除或类型补可选字段（以类型真值为准） |
+
+### 下一棒第一步（照单执行，预计一个短棒）
+
+1. 重建 `tsconfig.typecheck.json`（上方内容）→ `npx tsc --noEmit -p tsconfig.typecheck.json` 应复现 **24 错**。
+2. 按表逐文件修（**每处修改前重新精读该文件现场，不要凭本表记忆**）。
+3. 全量引擎测试必须仍 **1114 全绿**（语义未变的证明）。
+4. 根 package.json 接线 typecheck 脚本 → `precheck` 全绿 → count:sync → commit/push → issue #83 回写（附 24 错分类统计，满足验收 3）。
+5. 验收对照：①tsc 覆盖测试且绿 ②2 处已知 readonly 修掉 ③>20 错已列分类统计 ④precheck 绿。
+
+### 纪律提醒（本棒的真实教训）
+
+- **Bash cwd 跨调用残留**：`cd physics-core` 后所有相对路径错位解析——命令一律绝对路径或开头 `cd <repo根> &&`。
+- **判读纪律**：连续两次对文件内容判读不确定 → 立即停止编辑、交棒。宁慢勿错。
+- 长会话优先信确定性工具（tsc/vitest/git）的输出；grep/sed 结果做修改前必须重新精读现场。
+
+---
+
+## 队列（规划者 `40ab0c3` 后）
+
+**#83（暂停中，接上表）→ #84（空 catch 静态守卫）→ #85（4 大锤恢复）→ #86（K2 设计调查）→ #89（巡检判据扩展，规划者新立）→ #60 → #68 → #74–#77 → #61 → #82 → #62–#66**；#44 人类持有勿动。
 
 ## 阻塞项 / 风险
-- 无阻塞。#44 勿动；自检维持 11 层；工作树干净；远程已同步（`85ca829`）。
-- 并发规划会话仍可能活跃：引用 issue 编号前先查列表拿真号。
-- StageRenderer 是上下文唯一拥有者（单实例假设）；未来「多 3D 舞台同屏」需先扩展。
+- 无外部阻塞。#44 勿动；自检 11 层；工作树干净；远程同步至 `40ab0c3`（本棒最后推送 `eb1500a` + 本次 chore）。
+- 并发规划会话活跃（`40ab0c3` 刚落）：引用 issue 编号前先查列表。
 
-## 环境备注（务必读）
-- `export PATH="$HOME/.local/share/mise/shims:$PATH"`；Linux 用 `npx`。
-- 起 dev server：`cd visualization && npx vite --port 5199 --strictPort`；**杀用 `node .scratch/kill-vite.cjs`**。
-- 生产验证：`npm run build:viz` + `cd visualization && npx vite preview --port 4173 --strictPort`。
-- **跑巡检/探针期间不要编辑 src**（HMR 污染基线）；改 `scripts/`、`.agent/` 安全。
-- 改完 `physics-core/src` 再跑 prettier 必须重建 `build:core`（guard-dist-freshness 拦截）。
-- jsdom 渲染 recharts / StageRenderer 均需 ResizeObserver stub（照测试文件局部类写法）。
-- core 测试 `getModel()` 从 `../../src/index.js` 导入；临时探针测试文件用完必须删。
-- 写含反引号/引号的中文正文一律用 Write 工具落文件；`gh issue close` 不支持 `--comment-file`。
-- 全量 sweep（含参数）本地 ~15 分钟；CI 27 分钟（timeout 45）；双趟性能判定额外 ~2 分钟。
-- 产物在 `.scratch/`：`probe-79-render.cjs` / `probe-81-context.cjs`（验收探针，可复用）、
-  `qa-sweep-{79,81}.log`、`qa-perf-*.json`、`perf-*.log`、`r9-shot-*.png`（6 场景截图）、
-  `issue-comment-{79,80,81}.md`、`commit-msg-*.txt`。
+## 环境备注（继承，仍有效）
+- `export PATH="$HOME/.local/share/mise/shims:$PATH"`；杀 dev server `node .scratch/kill-vite.cjs`；pkill 用 `vite.[p]review` 转义。
+- canvas 常驻后巡检就绪信号 = 「激活项匹配 + 2 rAF」；WebGLRenderer.render 是实例属性，计数用 getContext 包装。
+- headless chromium rAF/截图可用；跑巡检不编辑 src；改 physics-core/src 后 prettier 需 build:core。
+- 探针在 `.scratch/`：`probe-79-render.cjs`（draw-call/渲染计数）、`probe-81-context.cjs`（切换配对计时 + programs）。
 - 自检 11 层；测试数真值 **core 1114 / viz 1452 / total 2566**。
