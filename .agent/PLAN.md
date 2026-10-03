@@ -19,12 +19,16 @@
 > #90（#80 NaN 静默放行堵洞 + perfVisit 提取 + projectile 边界注释）验收关闭。
 > **顺带修复存量事故**：setSlider 键名不匹配致巡检边界检查自诞生起空转（#89 红向验证暴露）。
 > M2.7 六单 + #91 全部 CLOSED，可执行队列首位 = **#60**。
+> 2026-10-03 十次滚动：**用户观察「巡检边界段只扫文本不扫错误横幅」摸底收官（D16）**——全量普查
+> （123 场景 × 571 参数）坐实 3 处 #91 同类真实失配（audioFreq/q/epsilon）+ 1 处普查假阳性（collision 动态 model，
+> 已转为 #92 实现警示）+ 61 处 default 脱网格（良性，未立单）；决策：**不补 scanBanners**，立静态边界门禁单
+> **#92** 排 #61 后 #82 前。#76 的 `blocked` 标签漂移已补（D13 记录的原生边实际不存在）。
 
 ## 当前方向
 
 **M2 · L5 组合实验台场线渲染收尾**（用户 2026-10-02 定夺，见 D6/D7；D10 补充前置）——
 直通终极愿景（3D 引擎 + 拖拽组合实验台；基础层 L0-L2 `d387f21` / 组合层 L3 `f56b0f2` /
-交互层 L4 `0c38f43` 已提交）。后继里程碑 **M3 · B 类数值单源深化**（D9，#61–#66）已串行排队。
+交互层 L4 `0c38f43` 已提交）。后继里程碑 **M3 · B 类数值单源深化**（D9：#61 守卫 → #92 参数域边界 → #82 B1 → #62–#66 五批）已串行排队。
 
 | # | 主题 | 状态 | 优先级 | 验收标准（摘要） | 依赖 |
 |---|---|---|---|---|---|
@@ -36,7 +40,8 @@
 #91 为执行中 auto-discovered 的赫兹场景域 bug，已修复关闭）
 → M2 尾巴 **#60（P2 小项）→ #68**（#67 已 CLOSED）
 → **M2.5 OCR 线：#74 → #75 → #76 → #77**（#76 被 #74 硬阻塞）
-→ **M3：#61 → #82(B1) → #62–#66**（D12 排序口径不变；被 M2.6/M2.7/OCR 线顺延）。
+→ **M3：#61 → #92 → #82(B1) → #62–#66**（D12 排序口径不变；#92 为 D16 摸底新单插 #61 后 #82 前；
+被 M2.6/M2.7/OCR 线顺延）。
 
 **进度**：1/3（#67 ✅）
 
@@ -83,7 +88,8 @@ compositionStore(+39) / compositionStore.test(+40)。风险低：基于 L4 之�
 **收官纪要**：#89 引入的两类判据（抽屉覆盖 / 交互后一致性往返）成为巡检常驻能力；
 实测绿基线 = ERROR 0 / WARN 51 / OK 72（`.scratch/qa-sweep-89-final.json` 起）。
 **遗留观察（未立单）**：巡检边界段每参数只 scanText 不 scanBanners，「边界值触发引擎错误横幅」
-类问题 interaction 判定撞见过、边界段看不见（#91 即此类）——是否补 scanBanners 待规划者摸底存量噪声后定。
+类问题 interaction 判定撞见过、边界段看不见（#91 即此类）。**2026-10-03 十次滚动已摸底并处置（D16）**：
+全量普查坐实 3 处 #91 同类真实失配，决策「不补 scanBanners、立静态门禁单 #92」——本观察闭环，后续看 #92。
 
 ## M2.5 · OCR 拍照解题功能线（用户 2026-10-02 提出，D13）
 
@@ -94,7 +100,7 @@ OCR 链路（E-4 已完成）全链审查后立单：多提供方扩展 + 质量
 |---|---|---|---|---|---|
 | [#74](https://github.com/zhangjszs/physical-modelvis/issues/74) | 多提供方扩展：VisionProvider 抽象 + OpenAI 兼容适配器 + 前端配置收口（顺带收口硬编码 `localhost:3001` / placeholder "gpt-4o" 误导 / 模型静默回落三缺口） | 已建 | P2 | OpenAI 兼容 env 可识别出题且 schema 一致；Anthropic 路径回归全绿；前端可选提供方、回落有提示；冒烟不回归 | — |
 | [#75](https://github.com/zhangjszs/physical-modelvis/issues/75) | 质量收口：OCRPanel 组件测试 + 代理 HTTP 层测试 + 巡检覆盖 + 组合台模式切换修复 | 已建 | P3 | 组件测试 ≥5 例；HTTP 400/429/502/504/成功 5 路径；巡检判定生效；组合台加载仿真切回教材模式 | 建议 #74 后（避免测试返工） |
-| [#76](https://github.com/zhangjszs/physical-modelvis/issues/76) | 「举一反三」demo（自动写题）：`/api/problems/generate` + 题卡按钮 → 变式题可加载仿真 | 已建 | P3 | curl 出 ≥1 道合法变式（schema 同 recognize）；前端按钮→生成→加载仿真链路通（demo 质量档，不设变式质量门禁） | **#74**（原生 blocked_by） |
+| [#76](https://github.com/zhangjszs/physical-modelvis/issues/76) | 「举一反三」demo（自动写题）：`/api/problems/generate` + 题卡按钮 → 变式题可加载仿真 | 已建 | P3 | curl 出 ≥1 道合法变式（schema 同 recognize）；前端按钮→生成→加载仿真链路通（demo 质量档，不设变式质量门禁） | **#74**（本轮补挂 `blocked` 标签，D16 治理记录） |
 | [#77](https://github.com/zhangjszs/physical-modelvis/issues/77) | problemAnalyzer 孤儿模块处置：接线「粘贴题干→自动建模」或归档 | 已建 | P3 | 不留孤儿——要么被 UI 消费（含测试），要么模块删除/归档注明 | 无硬依赖 |
 
 **执行顺序**：#74 → #75 → #76 → #77。**进度**：0/4
@@ -127,24 +133,33 @@ B-数值 30 场景中 **22 个**的 draw 函数拿到 `simulationResult` 却从�
 |---|---|---|---|---|
 | [#61](https://github.com/zhangjszs/physical-modelvis/issues/61) | 前置守卫：「渲染消费引擎结果」快照豁免表 + 迁移/契约差集自动化（自检仍 11 层） | 已建（blocked_by #67 已随其 CLOSED 摘除） | P1 | — |
 | [#82](https://github.com/zhangjszs/physical-modelvis/issues/82) | **B1 前置**：charts 类型化访问层最小切片（每模型 typed accessor）——五批迁移写新 API 不返工 | 已建 | P1 | #61 |
+| [#92](https://github.com/zhangjszs/physical-modelvis/issues/92) | **参数域边界门禁**（D16 用户观察摸底）：每场景每参数 min/max 边界值须过引擎 validate（并入 L2 家族）+ 存量 3 处 #91 同类失配修复（audioFreq 200→20kHz / q min 负电荷方向裁决 / epsilon min 0.1） | 已建 | P2 | 无（排 #61 后） |
 | [#62](https://github.com/zhangjszs/physical-modelvis/issues/62) | 批次 1 光学波动 + 波粒二象（5）：diffraction-grating / polarization-malus / interference / doppler / photoelectric | 已建 · blocked（← #61/#82） | P2 | #61 · #82 |
 | [#63](https://github.com/zhangjszs/physical-modelvis/issues/63) | 批次 2 传感器元件（4）：**thermistor 已坐实双源** / hall-effect / photoresistor / strain-gauge | 已建 · blocked（← #61/#82） | P2 | #61 · #82 |
 | [#64](https://github.com/zhangjszs/physical-modelvis/issues/64) | 批次 3 热学定律（5）：heat-direction / perpetuum-mobile 沿用阶段 C 既有豁免结论 | 已建 · blocked（← #61/#82） | P2 | #61 · #82 |
 | [#65](https://github.com/zhangjszs/physical-modelvis/issues/65) | 批次 4 气体分子 / 静能 / 核（4）：gas-law（249 行自算）/ capacitor-charge / radioactive / liquid-mixing | 已建 · blocked（← #61/#82） | P2 | #61 · #82 |
 | [#66](https://github.com/zhangjszs/physical-modelvis/issues/66) | 批次 5 电路 + 测量仪器（4）· **收口批**：附带改写 audit/plan 的 B3「保留自算」旧口径 | 已建 · blocked（← #61/#82） | P2 | #61 · #82 |
 
-**进度**：0/7 · **执行顺序**：#61 必须最先（先建豁免表与差集守卫，再逐批迁移，红→绿）→ **#82 B1**
+**进度**：0/8 · **执行顺序**：#61 必须最先（先建豁免表与差集守卫，再逐批迁移，红→绿）→ **#92 参数域边界门禁**
+（D16：#91 同类存量 3 处修复 + L2 家族边界守卫，护卫后续迁移批次参数域不回退）→ **#82 B1**
 （charts 类型化访问层）→ #62–#66 同为 P2，按创建时间从早到晚依次接手。
 **已定稿口径（D12，用户 2026-10-02 复核确认，勿重议）**：M3 不早于 #67 CLOSED；#61 用「函数体直接文本引用」
 的保守快照口径（已知局限写注释），经 helper 间接消费的误报留给 #62–#66 逐场景复核。
 
-**优先级纪律说明**：M3 实质主干只留 2 个 P1（#61 前置守卫 + #82 B1 类型化），5 个批次均 P2 —— 避免 P1 通胀；
+**优先级纪律说明**：M3 实质主干只留 2 个 P1（#61 前置守卫 + #82 B1 类型化），5 个批次 + #92 参数域边界门禁均 P2 —— 避免 P1 通胀；
 M2+M3 开放 P1 = 2（#61 / #82），均在 M3 序列内串行（#61 先、#82 后），不产生争抢。
 发现漂移时规划者负责降级并在 issue 留言。
 
-**blocked 现状一览（摘除全归规划者）**：#62–#66 ← #61/#82（原生边已核验）；#76 ← #74（原生边已核验）。
+**blocked 现状一览（摘除全归规划者）**：#62–#66 ← #61/#82（原生边已核验）；#76 ← #74（**本轮补挂 `blocked` 标签**——
+D13 记录的「原生 blocked_by」在 GitHub API 侧不存在，历轮靠队列序维持，本轮按 #62–#66 同口径补标签恢复一致）。
 #61 的 blocked 已随 #67 CLOSED 摘除（2026-10-03 API 复核：0 阻塞边）。当前可执行队列 =
-**#60 → #68 → #74 → #75 → #76 → #77 → #61 → #82 → #62–#66**（#89/#90 已 CLOSED，M2.7 收官）。
+**#60 → #68 → #74 → #75 → #76 → #77 → #61 → #92 → #82 → #62–#66**（#89/#90 已 CLOSED，M2.7 收官；
+#92 为 D16 摸底新单，插 #61 后 #82 前）。
+
+**遗留观察（未立单）**：**61/571 参数的 default 不在 step 网格**（D16 普查，良性类）——首次交互时滑块吸附到
+网格点造成小幅静默漂移（如 spring.k 10→10.1）；灾难性组合（吸附值超引擎域）已被 #92 门禁阻止
+（场景域⊆引擎域 ⇒ 吸附值≤引擎上界）。若将来要做「参数初值精确呈现」UX 收口，从此观察立项，
+治理面 = 逐场景把 default 移上网格或把 min 对齐网格，需评估画面初值变化，暂不做。
 ⚠️ 工作树干净，README 测试数 = core 1118 / viz 1452 / total 2570（2026-10-03 与 count:check 一致），
 执行棒恢复正常全量 `precheck`（含 count:sync）纪律。
 
