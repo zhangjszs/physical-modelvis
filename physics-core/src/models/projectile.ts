@@ -69,18 +69,25 @@ export class ProjectileModel extends PhysicsModelBase {
         const tLand = neverLands ? duration : (v0y + Math.sqrt(disc)) / g;
         const range = neverLands ? 0 : v0x * tLand;
 
-        // 采样终点: **落地即止** (取 min(飞行时间, 模拟时长))。
+        // 物理终点 tEnd: **落地即止** (取 min(飞行时间, 模拟时长))。
         // 这样时间轴上限自然等于飞行时间, “穿地”区间从源头不可达;
         // 模拟时长仍作为上界生效 (飞行时间比它长时依旧截到 duration)。
         const dt = sampleCount > 0 ? duration / sampleCount : duration;
         const tEnd = neverLands ? duration : Math.min(tLand, duration);
-        const simEnd = duration > 0 ? Math.max(tEnd, Math.min(dt, duration)) : 0;
-        const endSampleCount = Math.max(2, duration > 0 ? Math.round(sampleCount * (simEnd / duration)) : sampleCount);
+        // 采样终点 sampleEnd: tEnd 向「至少一个采样步长」取 max 的防退化取舍 ——
+        // 飞行时间短于单步 (tLand < dt) 时, 若径直采到 tEnd 只会得到 1 个点,
+        // 轨迹/图表退化。代价: 末样本可能略微越过 tLand (y 微负), 属刻意边界语义;
+        // 与 #87 修复前「采满 duration 穿地」有本质区别 (那时整段穿地区间都进轨迹)。
+        const sampleEnd = duration > 0 ? Math.max(tEnd, Math.min(dt, duration)) : 0;
+        const endSampleCount = Math.max(
+            2,
+            duration > 0 ? Math.round(sampleCount * (sampleEnd / duration)) : sampleCount
+        );
 
         // 解析解采样: 平抛运动 (公共脚手架 sampleTrajectory)
         const trajectory = sampleTrajectory({
             sampleCount: endSampleCount,
-            duration: simEnd,
+            duration: sampleEnd,
             sampleAt: t => {
                 const x = x0.x + v0.x * t;
                 const y = x0.y + v0.y * t - 0.5 * g * t * t;

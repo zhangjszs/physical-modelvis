@@ -43,9 +43,12 @@
  *   QA_INTERACT_EVERY 交互后一致性抽粒度 (#89): 每 N 个场景抽 1 个做深度交互断言,
  *                     默认 10; 0 = 关闭交互断言 (抽屉覆盖仍执行)
  *   QA_INTERACT_ONLY  只对名字含该子串的场景做交互断言 (调试用, 覆盖 EVERY 抽样)
+ *   QA_INJECT_PERF_NAN 1 = 自检钩子 (#90): 让 heapMB 返回 NaN 模拟采样失败,
+ *                     验证门禁对采样异常拒绝放行 (应 exit 1); 默认不启用
  *
  * 退出码: 0 = 无 ERROR 级问题; 1 = 存在 ERROR (console/pageerror/场景未找到/性能内存超限/
- *         抽屉 ErrorBoundary 粘滞或抽屉内 console 错误/交互读数不随动, nightly 下含切换耗时超限)
+ *         性能采样异常(堆/耗时 NaN)/抽屉 ErrorBoundary 粘滞或抽屉内 console 错误/
+ *         交互读数不随动, nightly 下含切换耗时超限)
  */
 const { chromium } = require('playwright');
 const fs = require('fs');
@@ -387,6 +390,33 @@ async function checkTimelineFollowsTime(page) {
     return { verdict: 'pass', reason: `时间轴 → 读数随动 (${state.slider})` };
 }
 
+// ---- #90: 共享页面操作 (消除 perfVisit 与主循环的逐字复制) ----
+
+/** 展开教材目录里全部 <details> 折叠分区 */
+async function expandDetails(page) {
+    await page.evaluate(() => {
+        document.querySelectorAll('details').forEach(d => {
+            d.open = true;
+        });
+    });
+}
+
+/** 点击目录里名字精确匹配的场景项; 返回是否点中 */
+async function clickScene(page, name) {
+    return page.$$eval(
+        '.directory-scene',
+        (els, t) => {
+            const el = [...els].find(e => (e.querySelector('span')?.textContent || '').trim() === t);
+            if (el) {
+                el.click();
+                return true;
+            }
+            return false;
+        },
+        name
+    );
+}
+
 (async () => {
     const browser = await chromium.launch({ headless: true, ...(CHANNEL ? { channel: CHANNEL } : {}) });
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
@@ -416,11 +446,7 @@ async function checkTimelineFollowsTime(page) {
 
     await page.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 90000 });
     await page.waitForSelector('.directory-scene', { timeout: 60000 });
-    await page.evaluate(() => {
-        document.querySelectorAll('details').forEach(d => {
-            d.open = true;
-        });
-    });
+    await expandDetails(page);
 
     const names = await page.$$eval('.directory-scene span:first-child', els => [
         ...new Set(els.map(e => e.textContent.trim()).filter(Boolean))
@@ -440,25 +466,10 @@ async function checkTimelineFollowsTime(page) {
         if (i > 0 && i % RELOAD_EVERY === 0) {
             await page.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 90000 });
             await page.waitForSelector('.directory-scene', { timeout: 60000 });
-            await page.evaluate(() => {
-                document.querySelectorAll('details').forEach(d => {
-                    d.open = true;
-                });
-            });
+            await expandDetails(page);
         }
 
-        const clicked = await page.$$eval(
-            '.directory-scene',
-            (els, t) => {
-                const el = [...els].find(e => (e.querySelector('span')?.textContent || '').trim() === t);
-                if (el) {
-                    el.click();
-                    return true;
-                }
-                return false;
-            },
-            name
-        );
+        const clicked = await clickScene(page, name);
         if (!clicked) {
             findings.push({ level: 'ERROR', kind: 'scene-not-clickable', text: '目录里找不到该场景名' });
         }
@@ -688,43 +699,29 @@ async function checkTimelineFollowsTime(page) {
     const cdp = await page.context().newCDPSession(page);
     await cdp.send('Performance.enable');
     const heapMB = async () => {
+        // 自检钩子 (#90): 模拟采样失败, 验证门禁对 NaN 拒绝放行 (红向验证用, 默认不启用)
+        if (process.env.QA_INJECT_PERF_NAN === '1') return NaN;
         try {
             await withTimeout(cdp.send('HeapProfiler.collectGarbage'), 30000, 'CDP GC');
         } catch (e) {
             console.log(`  (GC 未完成: ${e.message} — 采样仍继续, 可能偏高)`);
         }
-        const { metrics } = await withTimeout(cdp.send('Performance.getMetrics'), 15000, 'Performance.getMetrics');
-        const heap = metrics.find(m => m.name === 'JSHeapUsedSize');
-        return heap ? heap.value / 1048576 : NaN;
+        try {
+            const { metrics } = await withTimeout(cdp.send('Performance.getMetrics'), 15000, 'Performance.getMetrics');
+            const heap = metrics.find(m => m.name === 'JSHeapUsedSize');
+            return heap ? heap.value / 1048576 : NaN;
+        } catch (e) {
+            // 采样失败必须变成「可判定的 NaN」而不是抛出: 抛出会让整个脚本非正常崩溃,
+            // 返回 NaN 则由下方 perfErrors 统一记「性能采样异常」并 exit 1
+            console.log(`  (getMetrics 失败: ${e.message} — 记为采样异常, 门禁将拒绝放行)`);
+            return NaN;
+        }
     };
     const perfVisit = async name => {
         const t0 = Date.now();
         let readyOk = true;
-        await withTimeout(
-            page.evaluate(() => {
-                document.querySelectorAll('details').forEach(d => {
-                    d.open = true;
-                });
-            }),
-            15000,
-            '展开目录'
-        );
-        const clicked = await withTimeout(
-            page.$$eval(
-                '.directory-scene',
-                (els, t) => {
-                    const el = [...els].find(e => (e.querySelector('span')?.textContent || '').trim() === t);
-                    if (el) {
-                        el.click();
-                        return true;
-                    }
-                    return false;
-                },
-                name
-            ),
-            15000,
-            '点击场景'
-        );
+        await withTimeout(expandDetails(page), 15000, '展开目录');
+        const clicked = await withTimeout(clickScene(page, name), 15000, '点击场景');
         if (clicked) {
             try {
                 // #81 后 canvas 跨场景常驻, 「canvas 可见」不再随切换变化;
@@ -787,15 +784,31 @@ async function checkTimelineFollowsTime(page) {
             if (!aborted) heapFinal = await heapMB();
         }
         inPerfPass = false;
-        const deltaMB = heapFinal - heapBaseline; // NaN 传播 → 下面 ok=false
+        // #90: 采样异常 (NaN) 必须显式变成 perfErrors —— 此前 deltaMB 为 NaN 时
+        // heapBreach/timeBreaches 双双为 false, 既不加 perfErrors 也不改退出码,
+        // 内存判定在最需要报警的采样失败场景反而静默放行 (exit 0)
+        const deltaMB = heapFinal - heapBaseline;
+        const heapSampleOk = Number.isFinite(heapBaseline) && Number.isFinite(heapFinal) && Number.isFinite(deltaMB);
+        const timeSampleOk = times.length > 0 && times.every(t => Number.isFinite(t.ms));
         const timesSafe = times.length ? times : [{ name: '(未完成)', ms: NaN }];
         const maxTime = Math.max(...timesSafe.map(t => t.ms));
-        const heapBreach = Number.isFinite(deltaMB) && deltaMB > HEAP_BUDGET_MB;
-        const timeBreaches = times.filter(t => t.ms > SWITCH_BUDGET_MS);
+        const heapBreach = heapSampleOk && deltaMB > HEAP_BUDGET_MB;
+        const timeBreaches = timeSampleOk ? times.filter(t => t.ms > SWITCH_BUDGET_MS) : [];
         const perfErrors = [];
         if (heapBreach) {
             perfErrors.push(
                 `内存判定命中: 双趟切换 ${perfSubset.length} 场景后 JS 堆增量 ${deltaMB.toFixed(1)} MB > 预算 ${HEAP_BUDGET_MB} MB (疑似泄漏)`
+            );
+        }
+        if (!heapSampleOk) {
+            perfErrors.push(
+                `性能采样异常: 双趟 JS 堆采样失败 (基线=${heapBaseline}, 终态=${heapFinal}) — Performance.getMetrics 缺 JSHeapUsedSize 或超时, 内存判定不可信, 拒绝放行`
+            );
+        }
+        if (!timeSampleOk) {
+            const nNaN = times.filter(t => !Number.isFinite(t.ms)).length;
+            perfErrors.push(
+                `性能采样异常: 切换耗时应有 ${perfSubset.length} 个有限值, 实得 ${times.length} 个 (${nNaN} 个非有限), 拒绝放行`
             );
         }
         if (aborted) {
@@ -811,14 +824,14 @@ async function checkTimelineFollowsTime(page) {
                 finalMB: Number(heapFinal.toFixed(1)),
                 deltaMB: Number(deltaMB.toFixed(1)),
                 budgetMB: HEAP_BUDGET_MB,
-                ok: !heapBreach && Number.isFinite(deltaMB)
+                ok: !heapBreach && heapSampleOk
             },
             switchTime: {
                 budgetMs: SWITCH_BUDGET_MS,
                 maxMs: maxTime,
                 readyMisses,
                 breached: timeBreaches.map(t => ({ name: t.name, ms: t.ms })),
-                ok: timeBreaches.length === 0
+                ok: timeSampleOk && timeBreaches.length === 0
             },
             times,
             problems: perfProblems,
@@ -829,12 +842,14 @@ async function checkTimelineFollowsTime(page) {
         }
         perf.errors = perfErrors;
         console.log(
-            `内存: 基线 ${heapBaseline.toFixed(1)} MB → 终态 ${heapFinal.toFixed(1)} MB, 增量 ${deltaMB.toFixed(1)} MB / 预算 ${HEAP_BUDGET_MB} MB ${heapBreach ? '✗' : '✓'}`
+            `内存: 基线 ${heapBaseline.toFixed(1)} MB → 终态 ${heapFinal.toFixed(1)} MB, 增量 ${deltaMB.toFixed(1)} MB / 预算 ${HEAP_BUDGET_MB} MB ${
+                heapBreach ? '✗' : heapSampleOk ? '✓' : '✗(采样异常)'
+            }`
         );
         console.log(
             `耗时: 单场景最长 ${maxTime} ms / 预算 ${SWITCH_BUDGET_MS} ms, 超限 ${timeBreaches.length} 个${
                 timeBreaches.length ? ` (${timeBreaches.map(t => `${t.name} ${t.ms}ms`).join(', ')})` : ''
-            }`
+            }${timeSampleOk ? '' : ' ✗(采样异常)'}`
         );
         if (perfProblems.length) console.log(`双趟过程问题: ${perfProblems.slice(0, 5).join(' | ')}`);
     }
