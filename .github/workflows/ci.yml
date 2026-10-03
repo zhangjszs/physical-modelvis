@@ -30,7 +30,7 @@ jobs:
 
       - name: TypeScript 类型检查
         run: |
-          cd physics-core && npx tsc --noEmit && cd ../visualization && npx tsc --noEmit
+          cd physics-core && npx tsc --noEmit -p tsconfig.typecheck.json && cd ../visualization && npx tsc --noEmit
 
       - name: ESLint 静态分析
         run: npm run lint
