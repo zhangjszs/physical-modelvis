@@ -18,6 +18,14 @@ export interface SceneRigState {
 }
 
 /**
+ * rig 缓存容量上限 (#79)。
+ * 当前 rig 是无状态单例、常驻影响≈0，但一旦某个 rig 在单例上捕获每次 build 的 handles
+ * 就会升级为无界泄漏 —— 用 LRU 上限兜底；淘汰时调用 rig.dispose?.() 清理钩子
+ * (无状态 rig 未实现即 no-op，为根治后的有状态场景预留，见 SceneRig.dispose)。
+ */
+const RIG_CACHE_LIMIT = 8;
+
+/**
  * 3D 实验器材 (rig) 加载状态机。
  * 按场景 ID 缓存已加载 rig；同步识别是否 3D 场景，杜绝切换时的 2D Canvas 瞬间闪烁。
  *
@@ -32,11 +40,12 @@ export interface SceneRigState {
  * 现在所有派生值都先按 sceneId 过滤, 不匹配即视为"还没有 rig"。
  */
 export function useSceneRig(sceneId: string): SceneRigState {
-    const rigCacheRef = useRef<Record<string, SceneRig>>({});
+    // Map 保持插入序即 LRU 序：命中时 delete+set 移到队尾，淘汰时从队首取最久未用
+    const rigCacheRef = useRef<Map<string, SceneRig>>(new Map());
     const is3DScene = hasSceneRig(sceneId);
 
     const [entry, setEntry] = useState<RigEntry | null>(() => {
-        const cached = rigCacheRef.current[sceneId];
+        const cached = rigCacheRef.current.get(sceneId);
         return cached ? { sceneId, rig: cached, error: null } : null;
     });
 
@@ -54,8 +63,12 @@ export function useSceneRig(sceneId: string): SceneRigState {
             return;
         }
 
-        const cached = rigCacheRef.current[sceneId];
+        const cache = rigCacheRef.current;
+        const cached = cache.get(sceneId);
         if (cached) {
+            // LRU 触碰: 移到队尾标记"最近使用"
+            cache.delete(sceneId);
+            cache.set(sceneId, cached);
             setEntry({ sceneId, rig: cached, error: null });
             return;
         }
@@ -66,7 +79,19 @@ export function useSceneRig(sceneId: string): SceneRigState {
             .then(loaded => {
                 if (cancelled) return;
                 if (loaded) {
-                    rigCacheRef.current[sceneId] = loaded;
+                    cache.set(sceneId, loaded);
+                    // 容量兜底: 淘汰最久未用的 rig, 并调用其清理钩子
+                    while (cache.size > RIG_CACHE_LIMIT) {
+                        const oldest = cache.keys().next().value;
+                        if (oldest === undefined) break;
+                        const evicted = cache.get(oldest);
+                        cache.delete(oldest);
+                        try {
+                            evicted?.dispose?.();
+                        } catch (err) {
+                            console.error('[useSceneRig] rig 清理钩子失败:', err);
+                        }
+                    }
                     setEntry({ sceneId, rig: loaded, error: null });
                 } else {
                     // SCENE_TO_MODULE 有登记但 bundle 里缺该 key: 报错而非永久转圈

@@ -229,15 +229,28 @@ export function createEnvironment(scene: THREE.Scene, bgColor = 0xf8fafc): Envir
 // 释放资源
 // ---------------------------------------------------------------------------
 
+/**
+ * 释放单个材质及其全部纹理属性。
+ * 纹理必须显式 dispose：makeTextSprite 每次新建 CanvasTexture，仅靠 renderer
+ * forceContextLoss 兜底时 GPU 端不会真正回收；上下文复用 (#81) 后更是直接泄漏。
+ */
+function disposeMaterial(material: THREE.Material): void {
+    for (const key of Object.keys(material)) {
+        const value = (material as unknown as Record<string, unknown>)[key];
+        if (value instanceof THREE.Texture) value.dispose();
+    }
+    material.dispose();
+}
+
 export function disposeObject(obj: THREE.Object3D): void {
     obj.traverse(child => {
         const drawable = child as THREE.Mesh | THREE.Line | THREE.Sprite;
         if ('geometry' in drawable && drawable.geometry) drawable.geometry.dispose();
         const material = drawable.material;
         if (Array.isArray(material)) {
-            material.forEach(m => m.dispose());
+            material.forEach(disposeMaterial);
         } else if (material) {
-            material.dispose();
+            disposeMaterial(material);
         }
     });
 }

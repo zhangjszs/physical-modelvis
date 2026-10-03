@@ -11,9 +11,10 @@
  * 策略: 保留真实 three.js 几何类 (纯 JS, Node 可用), 仅 stub WebGLRenderer
  * (jsdom 无 WebGL context) 与 OrbitControls。
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, type MockInstance } from 'vitest';
 import { render, cleanup, act } from '@testing-library/react';
 import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { EquipmentStage, type SceneRig } from '../../src/components/simulation3d/EquipmentStage';
 import { useSimulationStore } from '../../src/store/simulationStore';
 import type { SimulationResult } from 'physics-core';
@@ -46,17 +47,34 @@ vi.mock('three', async importOriginal => {
 });
 
 vi.mock('three/addons/controls/OrbitControls.js', () => {
-    class OrbitControls {
+    const instances: OrbitControlsMock[] = [];
+    class OrbitControlsMock {
+        static readonly instances = instances;
         target = { set() {} };
         enableDamping = false;
         dampingFactor = 0;
         minDistance = 0;
         maxDistance = 0;
         maxPolarAngle = 0;
+        private listeners = new Map<string, Set<() => void>>();
+        constructor() {
+            instances.push(this);
+        }
+        addEventListener(type: string, cb: () => void) {
+            if (!this.listeners.has(type)) this.listeners.set(type, new Set());
+            this.listeners.get(type)!.add(cb);
+        }
+        removeEventListener(type: string, cb: () => void) {
+            this.listeners.get(type)?.delete(cb);
+        }
+        /** 测试辅助: 手动派发事件 (如相机移动触发的 'change') */
+        emit(type: string) {
+            this.listeners.get(type)?.forEach(cb => cb());
+        }
         update() {}
         dispose() {}
     }
-    return { OrbitControls };
+    return { OrbitControls: OrbitControlsMock };
 });
 
 /** 可记录的 mock rig: 每个方法记录调用, buildEquipment 返回独立可追踪的 handles */
@@ -176,5 +194,114 @@ describe('EquipmentStage 行为', () => {
             await new Promise(r => setTimeout(r, 50));
         });
         expect(rig.getVisualPosition).toHaveBeenCalled();
+    });
+});
+
+// ---------------------------------------------------------------------------
+// 暂停时按需渲染 (#79) — 手动 rAF 队列 + renderer.render 计数
+// 旧实现 isPlaying 只门控时间推进, renderer.render 每帧照跑 (GPU 常驻负载)；
+// 新实现暂停时仅交互/状态变化补帧。
+// ---------------------------------------------------------------------------
+
+/** 组件循环排入的 requestAnimationFrame 回调, 由 flushFrames 手动逐帧推进 */
+let rafQueue: FrameRequestCallback[] = [];
+let frameTime = 0;
+
+function flushFrames(count: number) {
+    for (let i = 0; i < count; i++) {
+        const callbacks = rafQueue;
+        rafQueue = [];
+        frameTime += 16;
+        callbacks.forEach(cb => cb(frameTime));
+    }
+}
+
+describe('暂停时按需渲染 (#79)', () => {
+    let renderSpy: MockInstance<() => void>;
+
+    beforeEach(() => {
+        rafQueue = [];
+        frameTime = 0;
+        vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
+            rafQueue.push(cb);
+            return rafQueue.length;
+        });
+        vi.stubGlobal('cancelAnimationFrame', () => {});
+        // mock 的 WebGLRenderer 所有实例共享原型 render, 挂 spy 即可计数全部渲染
+        renderSpy = vi.spyOn(
+            (THREE.WebGLRenderer as unknown as { prototype: { render: () => void } }).prototype,
+            'render'
+        );
+    });
+
+    afterEach(() => {
+        vi.unstubAllGlobals();
+    });
+
+    function mountPausedStage() {
+        const rig = makeMockRig('paused-test');
+        render(<EquipmentStage rig={rig} />);
+        act(() => {
+            useSimulationStore.getState().setSimulationResult(minimalResult());
+        });
+        return rig;
+    }
+
+    it('挂载后首帧渲染一次; 暂停且无交互时连续 60 帧 0 次 render', () => {
+        mountPausedStage();
+        flushFrames(1);
+        expect(renderSpy).toHaveBeenCalledTimes(1);
+        renderSpy.mockClear();
+        flushFrames(60);
+        expect(renderSpy).not.toHaveBeenCalled();
+    });
+
+    it('暂停时外部改写 currentTime (拖进度条): 恰好补一帧, 不持续渲染', () => {
+        mountPausedStage();
+        flushFrames(1);
+        renderSpy.mockClear();
+        act(() => {
+            useSimulationStore.getState().setCurrentTime(0.5);
+        });
+        flushFrames(1);
+        expect(renderSpy).toHaveBeenCalledTimes(1);
+        flushFrames(60);
+        expect(renderSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('暂停时改参数: 补一帧', () => {
+        mountPausedStage();
+        flushFrames(1);
+        renderSpy.mockClear();
+        act(() => {
+            useSimulationStore.getState().setParameter('angle', 30);
+        });
+        flushFrames(1);
+        expect(renderSpy).toHaveBeenCalledTimes(1);
+        flushFrames(60);
+        expect(renderSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('暂停时旋转视角 (controls change): 补一帧, 相机停止后不再渲染', () => {
+        mountPausedStage();
+        flushFrames(1);
+        renderSpy.mockClear();
+        const instances = (OrbitControls as unknown as { instances: { emit(type: string): void }[] }).instances;
+        instances[instances.length - 1]!.emit('change');
+        flushFrames(1);
+        expect(renderSpy).toHaveBeenCalledTimes(1);
+        flushFrames(60);
+        expect(renderSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('恢复播放: 回到每帧渲染', () => {
+        mountPausedStage();
+        flushFrames(1);
+        renderSpy.mockClear();
+        act(() => {
+            useSimulationStore.getState().play();
+        });
+        flushFrames(5);
+        expect(renderSpy.mock.calls.length).toBeGreaterThanOrEqual(5);
     });
 });

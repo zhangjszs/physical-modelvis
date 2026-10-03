@@ -62,6 +62,12 @@ export interface SceneRig {
         handles: Record<string, unknown>,
         ctx: { time: number; ballPos: THREE.Vector3; params: Record<string, number> }
     ): void;
+    /**
+     * rig 缓存淘汰清理钩子 (useSceneRig LRU 上限, #79)。
+     * 现有 rig 均为无状态单例, 不实现即 no-op；根治单 (#81) 引入在单例上捕获
+     * handles/纹理的有状态 rig 后, 必须实现本钩子否则淘汰后仍持资源。
+     */
+    dispose?(): void;
 }
 
 interface EquipmentStageProps {
@@ -130,6 +136,10 @@ export function EquipmentStage({ rig, cameraPosition, cameraTarget, caption }: E
 
     const [viewPreset, setViewPreset] = useState<ViewPreset>('default');
 
+    // 按需渲染脏标记 (#79)：暂停期间只有交互(controls change)或 store 状态变化才补一帧,
+    // 初始为 true 保证挂载后首帧一定渲染
+    const dirtyRef = useRef(true);
+
     const playbackSpeed = useSimulationStore(s => s.playbackSpeed);
     const parameters = useSimulationStore(s => s.parameters);
     const visibleLayers = useSimulationStore(s => s.visibleLayers);
@@ -145,6 +155,9 @@ export function EquipmentStage({ rig, cameraPosition, cameraTarget, caption }: E
         currentTimeRef.current = useSimulationStore.getState().currentTime;
         return useSimulationStore.subscribe(state => {
             currentTimeRef.current = state.currentTime;
+            // 暂停期间的任何 store 写入 (拖进度条 / 改参数 / 换结果 / 换主题) 都标记需要补一帧；
+            // 播放中本就每帧渲染，多置一次脏标记无副作用
+            dirtyRef.current = true;
         });
     }, []);
 
@@ -196,6 +209,11 @@ export function EquipmentStage({ rig, cameraPosition, cameraTarget, caption }: E
         controls.panSpeed = 1.0;
         controls.maxPolarAngle = Math.PI * 0.49;
         controls.update();
+        // 相机一动 (拖拽/滚轮/阻尼滑行/视角预设/缩放按钮) 就标记需要补帧 —— 暂停时的按需渲染依据
+        const markDirty = () => {
+            dirtyRef.current = true;
+        };
+        controls.addEventListener('change', markDirty);
         initialViewRef.current = { pos: defaultCamPos, target: defaultTarget, dist: 9.0 };
 
         createEnvironment(scene);
@@ -264,6 +282,7 @@ export function EquipmentStage({ rig, cameraPosition, cameraTarget, caption }: E
 
         return () => {
             ro.disconnect();
+            controls.removeEventListener('change', markDirty);
             controls.dispose();
             disposeObject(scene);
             try {
@@ -438,65 +457,70 @@ export function EquipmentStage({ rig, cameraPosition, cameraTarget, caption }: E
             }
 
             if (handles && simulationResult) {
-                const idx = findFrameIndex(simulationResult.trajectories, now);
-                // 逐物体更新球位置 (多体场景: 每轨迹一个球)
-                for (let i = 0; i < handles.balls.length; i++) {
-                    const points = simulationResult.trajectories[i] ?? [];
-                    if (points.length === 0) continue;
-                    const p0 = points[idx];
-                    const p1 = points[Math.min(idx + 1, points.length - 1)];
-                    if (!p0 || !p1) continue;
-                    const frame = interpolateFrame(p0, p1, now);
-                    let ballPos: THREE.Vector3;
-                    try {
-                        ballPos = rig.getVisualPosition(frame.position, params);
-                    } catch (err) {
-                        console.error('[EquipmentStage] getVisualPosition in tick failed:', err);
-                        ballPos = new THREE.Vector3(0, 1, 0);
-                    }
-                    if (rig.clampToGround) {
-                        ballPos.y = Math.max(ballRadius, ballPos.y);
-                    }
-                    const ball = handles.balls[i];
-                    if (!ball) continue;
-                    ball.position.copy(ballPos);
-                    ball.rotation.y += delta * 2.4;
-                    if (i === 0) {
-                        // 投影线/阴影跟随主球
-                        handles.shadowPlate.position.set(ballPos.x, 0.028, ballPos.z);
-                        const projPos = handles.projectionLine.geometry.attributes['position'] as
-                            THREE.BufferAttribute | undefined;
-                        if (projPos && projPos.array) {
-                            const arr = projPos.array as Float32Array;
-                            arr[0] = ballPos.x;
-                            arr[1] = 0.035;
-                            arr[2] = ballPos.z;
-                            arr[3] = ballPos.x;
-                            arr[4] = ballPos.y;
-                            arr[5] = ballPos.z;
-                            projPos.needsUpdate = true;
+                // damping 收敛与交互探测每帧照跑 (update 本身不做 GPU 工作, 相机未动时近乎空转)；
+                // 同步场景对象 + render 只在播放中或有脏标记时执行 —— 暂停且无交互时 0 render (#79)
+                handles.controls.update();
+                if (isPlaying || dirtyRef.current) {
+                    dirtyRef.current = false;
+                    const idx = findFrameIndex(simulationResult.trajectories, now);
+                    // 逐物体更新球位置 (多体场景: 每轨迹一个球)
+                    for (let i = 0; i < handles.balls.length; i++) {
+                        const points = simulationResult.trajectories[i] ?? [];
+                        if (points.length === 0) continue;
+                        const p0 = points[idx];
+                        const p1 = points[Math.min(idx + 1, points.length - 1)];
+                        if (!p0 || !p1) continue;
+                        const frame = interpolateFrame(p0, p1, now);
+                        let ballPos: THREE.Vector3;
+                        try {
+                            ballPos = rig.getVisualPosition(frame.position, params);
+                        } catch (err) {
+                            console.error('[EquipmentStage] getVisualPosition in tick failed:', err);
+                            ballPos = new THREE.Vector3(0, 1, 0);
                         }
-                        if (rig.onAnimate) {
-                            try {
-                                rig.onAnimate(handles.equipmentHandles, { time: now, ballPos, params });
-                            } catch {
-                                // 防御异常不中断循环
+                        if (rig.clampToGround) {
+                            ballPos.y = Math.max(ballRadius, ballPos.y);
+                        }
+                        const ball = handles.balls[i];
+                        if (!ball) continue;
+                        ball.position.copy(ballPos);
+                        ball.rotation.y += delta * 2.4;
+                        if (i === 0) {
+                            // 投影线/阴影跟随主球
+                            handles.shadowPlate.position.set(ballPos.x, 0.028, ballPos.z);
+                            const projPos = handles.projectionLine.geometry.attributes['position'] as
+                                THREE.BufferAttribute | undefined;
+                            if (projPos && projPos.array) {
+                                const arr = projPos.array as Float32Array;
+                                arr[0] = ballPos.x;
+                                arr[1] = 0.035;
+                                arr[2] = ballPos.z;
+                                arr[3] = ballPos.x;
+                                arr[4] = ballPos.y;
+                                arr[5] = ballPos.z;
+                                projPos.needsUpdate = true;
+                            }
+                            if (rig.onAnimate) {
+                                try {
+                                    rig.onAnimate(handles.equipmentHandles, { time: now, ballPos, params });
+                                } catch {
+                                    // 防御异常不中断循环
+                                }
                             }
                         }
                     }
+                    // 图层可见性
+                    handles.trajectory.visible = layers.trajectory;
+                    handles.trajectories.forEach((t, i) => {
+                        t.visible = layers.trajectory && i < simulationResult.trajectories.length;
+                    });
+                    handles.ghostBalls.forEach(g => {
+                        g.visible = layers.trajectory;
+                    });
+                    handles.projectionLine.visible = layers.axes;
+                    handles.shadowPlate.visible = layers.trajectory;
+                    handles.renderer.render(handles.scene, handles.camera);
                 }
-                // 图层可见性
-                handles.trajectory.visible = layers.trajectory;
-                handles.trajectories.forEach((t, i) => {
-                    t.visible = layers.trajectory && i < simulationResult.trajectories.length;
-                });
-                handles.ghostBalls.forEach(g => {
-                    g.visible = layers.trajectory;
-                });
-                handles.projectionLine.visible = layers.axes;
-                handles.shadowPlate.visible = layers.trajectory;
-                handles.controls.update();
-                handles.renderer.render(handles.scene, handles.camera);
             }
             if (running) {
                 animId = requestAnimationFrame(tick);

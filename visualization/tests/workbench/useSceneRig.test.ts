@@ -144,3 +144,78 @@ describe('useSceneRig', () => {
         expect(result.current.rigReady).toBe(true);
     });
 });
+
+describe('useSceneRig 缓存上限 LRU (#79)', () => {
+    beforeEach(() => {
+        cleanup();
+        vi.clearAllMocks();
+    });
+
+    /** 每个场景一个独立 rig (带 dispose 清理钩子), 模拟真实按场景注册的 rig 表 */
+    function makeRigRegistry() {
+        const rigs = new Map<string, SceneRig>();
+        mockLoadSceneRig.mockImplementation(async (id: string) => {
+            let rig = rigs.get(id);
+            if (!rig) {
+                rig = {
+                    buildEquipment: vi.fn(),
+                    updateEquipment: vi.fn(),
+                    dispose: vi.fn()
+                } as unknown as SceneRig;
+                rigs.set(id, rig);
+            }
+            return rig;
+        });
+        return rigs;
+    }
+
+    it('超过 8 个场景后最久未用的 rig 被淘汰, 其 dispose 清理钩子被调用', async () => {
+        mockHasSceneRig.mockReturnValue(true);
+        const rigs = makeRigRegistry();
+
+        const { result, rerender } = renderHook(({ id }) => useSceneRig(id), {
+            initialProps: { id: 's0' }
+        });
+        await act(async () => {});
+        for (let i = 1; i <= 8; i++) {
+            rerender({ id: `s${i}` });
+            await act(async () => {});
+        }
+        // 9 个场景都触发过加载
+        expect(mockLoadSceneRig).toHaveBeenCalledTimes(9);
+        // s0 最久未用 → 被淘汰且清理钩子被调用; 当前场景 s8 的 rig 不受影响
+        const rig0 = rigs.get('s0');
+        expect((rig0 as { dispose?: ReturnType<typeof vi.fn> } | undefined)?.dispose).toHaveBeenCalled();
+        expect(result.current.rig).toBe(rigs.get('s8'));
+
+        // 重访 s0: 缓存已淘汰 → 必须重新 load
+        const callsBefore = mockLoadSceneRig.mock.calls.length;
+        rerender({ id: 's0' });
+        await act(async () => {});
+        expect(mockLoadSceneRig.mock.calls.length).toBe(callsBefore + 1);
+    });
+
+    it('命中缓存时刷新 LRU 顺序: 触碰最旧的 s1 后, 下一次淘汰的是 s2 而非 s1', async () => {
+        mockHasSceneRig.mockReturnValue(true);
+        const rigs = makeRigRegistry();
+
+        const { rerender } = renderHook(({ id }) => useSceneRig(id), {
+            initialProps: { id: 's0' }
+        });
+        await act(async () => {});
+        for (let i = 1; i <= 8; i++) {
+            rerender({ id: `s${i}` });
+            await act(async () => {});
+        }
+        // 缓存顺序 [s1..s8] (s0 已淘汰), s1 最旧。触碰 s1 把它移到队尾,
+        // 再插入 s9 → 被淘汰的应是新的队首 s2
+        rerender({ id: 's1' });
+        await act(async () => {});
+        rerender({ id: 's9' });
+        await act(async () => {});
+        const rig1 = rigs.get('s1');
+        expect((rig1 as { dispose?: ReturnType<typeof vi.fn> } | undefined)?.dispose).not.toHaveBeenCalled();
+        const rig2 = rigs.get('s2');
+        expect((rig2 as { dispose?: ReturnType<typeof vi.fn> } | undefined)?.dispose).toHaveBeenCalled();
+    });
+});
