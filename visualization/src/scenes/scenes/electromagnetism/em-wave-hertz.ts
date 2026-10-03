@@ -12,8 +12,8 @@ export const em_wave_hertzScene: SceneConfig = {
             unit: 'MHz',
             value: 100,
             min: 0.01,
-            max: 300,
-            step: 0.5,
+            max: 100,
+            step: 0.01,
             default: 100,
             description: 'LC 振荡频率 (MHz)'
         },
