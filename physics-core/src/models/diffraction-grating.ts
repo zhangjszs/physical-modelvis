@@ -28,12 +28,12 @@ export class DiffractionGratingModel extends PhysicsModelBase {
         {
             name: 'gratingConstant',
             description: '光栅常数 d (um, 相邻狭缝距离)',
-            unit: 'um',
+            unit: 'μm',
             required: true,
             min: 0.5,
             max: 20
         },
-        { name: 'slitWidth', description: '缝宽 a (um)', unit: 'um', required: true, min: 0.2, max: 10 },
+        { name: 'slitWidth', description: '缝宽 a (um)', unit: 'μm', required: true, min: 0.2, max: 10 },
         { name: 'wavelength', description: '光波长 (nm)', unit: 'nm', required: true, min: 380, max: 780 },
         { name: 'orderMax', description: '最大衍射级次', unit: '', required: true, min: 1, max: 10 },
         { name: 'slitCount', description: '光栅总缝数 N', unit: '', required: true, min: 10, max: 10000 }
@@ -82,7 +82,7 @@ export class DiffractionGratingModel extends PhysicsModelBase {
         const intensityCurve: ChartSeries = {
             xLabel: '衍射角 theta (度)',
             yLabel: '相对光强 (归一化)',
-            xUnit: 'deg',
+            xUnit: '°',
             yUnit: '',
             points: []
         };
@@ -120,7 +120,7 @@ export class DiffractionGratingModel extends PhysicsModelBase {
         const spectrumCurve: ChartSeries = {
             xLabel: '衍射角 theta (度)',
             yLabel: '相对光强 (彩色叠加)',
-            xUnit: 'deg',
+            xUnit: '°',
             yUnit: '',
             points: intensityCurve.points.map(p => ({ x: p.x, y: p.y }))
         };
@@ -253,7 +253,7 @@ export class DiffractionGratingModel extends PhysicsModelBase {
                         name: '光栅方程',
                         formula: 'd*sin(theta) = k*lambda',
                         variables: {
-                            d: { value: c.gratingConstant, unit: 'um' },
+                            d: { value: c.gratingConstant, unit: 'μm' },
                             lambda: { value: c.wavelength, unit: 'nm' }
                         }
                     },

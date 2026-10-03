@@ -99,6 +99,33 @@ describe('#13 物理常量单一真源', () => {
     });
 });
 
+/**
+ * #60 单位记号 Unicode 收口门禁 (D5/D5a)
+ *
+ * 背景: 引擎侧曾两套记号并存 —— unit 面 'deg'(13)/'°'(17)、'um'(4)/'μm'(1)；
+ * 场景侧与教材写法统一用 '°'/'μm', 引擎向场景对齐 (纯展示串, 无数值/换算影响,
+ * 前端 unitFormat 无 'deg' 特判)。本门禁防回潮:
+ *   - models/ 的 ParameterSpec.unit / charts xUnit|yUnit / explanation variables
+ *     不得再出现 ASCII 记号 'deg' / 'um' ('°C' 是摄氏温度, 语义不同, 天然不命中);
+ *   - 渲染层展示串的对应断言在 visualization/tests/accuracy/
+ *     rendering-constants-single-source.test.ts (L11 同族)。
+ */
+describe('#60 单位记号 Unicode 收口 (deg→° / um→μm, 防回潮)', () => {
+    const ASCII_UNIT_RE = /[Uu]nit: '(?:deg|um)'/;
+
+    it("models/ 中无 ASCII 单位记号 'deg' / 'um' (°C 不命中, 不受影响)", () => {
+        const offenders: string[] = [];
+        const modelFiles = readdirSync(MODELS_DIR).filter(f => f.endsWith('.ts') && f !== 'base.ts');
+        for (const file of modelFiles) {
+            const src = readFileSync(join(MODELS_DIR, file), 'utf-8');
+            if (ASCII_UNIT_RE.test(src)) offenders.push(file);
+        }
+        expect(offenders, `以下文件仍有 ASCII 单位记号, 应改为 '°' / 'μm' (D5):\n  ${offenders.join('\n  ')}`).toEqual(
+            []
+        );
+    });
+});
+
 // PATTERN_SAMPLES / LITERAL_PATTERNS 由 units/constantPatterns.ts 提供 (#53, 引擎+渲染共用)。
 describe('#51 门禁模式自检 (正/负样例)', () => {
     for (const { name, re } of LITERAL_PATTERNS) {

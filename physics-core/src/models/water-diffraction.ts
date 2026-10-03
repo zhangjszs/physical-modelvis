@@ -62,7 +62,7 @@ export class WaterDiffractionModel extends PhysicsModelBase {
         const intensityCurve: ChartSeries = {
             xLabel: '衍射角 theta (度)',
             yLabel: '相对振幅',
-            xUnit: 'deg',
+            xUnit: '°',
             yUnit: '',
             points: []
         };
@@ -214,7 +214,7 @@ export class WaterDiffractionModel extends PhysicsModelBase {
                     {
                         name: '半宽度',
                         formula: 'theta_min = arcsin(lambda/a)',
-                        variables: { halfWidthAngle: { value: halfWidthAngle, unit: 'deg' } }
+                        variables: { halfWidthAngle: { value: halfWidthAngle, unit: '°' } }
                     }
                 ]
             },

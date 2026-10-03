@@ -203,14 +203,14 @@ export class WettingModel extends PhysicsModelBase {
                             gammaSL: { value: gamma.sl, unit: 'mJ/m²' },
                             gammaLV: { value: gamma.lv, unit: 'mJ/m²' },
                             cosTheta: { value: parseFloat(cosTheta.toFixed(4)), unit: '' },
-                            theta: { value: theta, unit: 'deg' }
+                            theta: { value: theta, unit: '°' }
                         }
                     },
                     {
                         name: '润湿性判据',
                         formula: 'wetting ⇔ θ < 90°',
                         variables: {
-                            theta: { value: theta, unit: 'deg' },
+                            theta: { value: theta, unit: '°' },
                             adhesive: { value: parseFloat(adhesive.toFixed(3)), unit: '' },
                             cohesive: { value: parseFloat(cohesive.toFixed(3)), unit: '' }
                         }

@@ -33,7 +33,7 @@ export class ThinFilmModel extends PhysicsModelBase {
         { name: 'thickness', description: '薄膜中心厚度 d (nm)', unit: 'nm', required: true, min: 10, max: 5000 },
         { name: 'refIndex', description: '薄膜折射率 n', unit: '', required: true, min: 1, max: 3 },
         { name: 'wavelength', description: '入射光波长 (nm)', unit: 'nm', required: true, min: 380, max: 780 },
-        { name: 'incidentAngle', description: '入射角 (度, 相对法线)', unit: 'deg', required: true, min: 0, max: 90 },
+        { name: 'incidentAngle', description: '入射角 (度, 相对法线)', unit: '°', required: true, min: 0, max: 90 },
         { name: 'substrateIndex', description: '基片折射率 (薄膜下方介质)', unit: '', required: false, min: 1, max: 4 }
     ];
 

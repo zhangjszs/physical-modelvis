@@ -43,13 +43,13 @@ export class PolarizationModel extends PhysicsModelBase {
         {
             name: 'polarizerAngles',
             description: '各偏振片透振方向角度数组 (度), 长度=nPolarizers',
-            unit: 'deg',
+            unit: '°',
             required: true
         },
         {
             name: 'incidentAngle',
             description: '入射光偏振方向 (度, 仅 nPolarizers>=1 时有效)',
-            unit: 'deg',
+            unit: '°',
             required: false,
             min: 0,
             max: 360
@@ -91,7 +91,7 @@ export class PolarizationModel extends PhysicsModelBase {
         const malusCurve: ChartSeries = {
             xLabel: '偏振片角度 (度)',
             yLabel: '透射光强 I/I0',
-            xUnit: 'deg',
+            xUnit: '°',
             yUnit: '',
             points: []
         };
@@ -105,7 +105,7 @@ export class PolarizationModel extends PhysicsModelBase {
         const polarCurve: ChartSeries = {
             xLabel: '角度 (度)',
             yLabel: '透射光强 (极径)',
-            xUnit: 'deg',
+            xUnit: '°',
             yUnit: '',
             points: malusCurve.points.map(p => ({ x: p.x, y: p.y }))
         };
@@ -114,7 +114,7 @@ export class PolarizationModel extends PhysicsModelBase {
         const multiScan: ChartSeries = {
             xLabel: '第 2 片角度 (度)',
             yLabel: '透射光强',
-            xUnit: 'deg',
+            xUnit: '°',
             yUnit: '',
             points: []
         };

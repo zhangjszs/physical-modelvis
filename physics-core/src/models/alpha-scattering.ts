@@ -63,7 +63,7 @@ export class AlphaScatteringModel extends PhysicsModelBase {
         const thetaDist: ChartSeries = {
             xLabel: '散射角 (度)',
             yLabel: '粒子数',
-            xUnit: 'deg',
+            xUnit: '°',
             yUnit: '',
             points: Array.from({ length: 18 }, (_, i) => ({ x: (i + 1) * 10, y: 0 }))
         };

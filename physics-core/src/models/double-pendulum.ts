@@ -38,12 +38,12 @@ export class DoublePendulumSyncModel extends PhysicsModelBase {
     readonly requiredParameters: ParameterSpec[] = [
         { name: 'length1', description: '摆1摆长 L1 (m)', unit: 'm', required: true, min: 0.1, max: 10 },
         { name: 'length2', description: '摆2摆长 L2 (m)', unit: 'm', required: true, min: 0.1, max: 10 },
-        { name: 'initialAngle1', description: '摆1初始角 (度)', unit: 'deg', required: true, min: 0, max: 15 },
-        { name: 'initialAngle2', description: '摆2初始角 (度)', unit: 'deg', required: true, min: 0, max: 15 },
+        { name: 'initialAngle1', description: '摆1初始角 (度)', unit: '°', required: true, min: 0, max: 15 },
+        { name: 'initialAngle2', description: '摆2初始角 (度)', unit: '°', required: true, min: 0, max: 15 },
         {
             name: 'phaseDiff',
             description: '相位差 phi2-phi1 (度) — 0=同相, 180=反相',
-            unit: 'deg',
+            unit: '°',
             required: true,
             min: 0,
             max: 360
@@ -97,7 +97,7 @@ export class DoublePendulumSyncModel extends PhysicsModelBase {
             xLabel: '时间 (s)',
             yLabel: '摆1角位移 (度)',
             xUnit: 's',
-            yUnit: 'deg',
+            yUnit: '°',
             points: trajectory.map(p => ({
                 x: parseFloat(p.t.toFixed(4)),
                 y: parseFloat(((p.position.x * 180) / Math.PI).toFixed(4))
@@ -107,7 +107,7 @@ export class DoublePendulumSyncModel extends PhysicsModelBase {
             xLabel: '时间 (s)',
             yLabel: '摆2角位移 (度)',
             xUnit: 's',
-            yUnit: 'deg',
+            yUnit: '°',
             points: trajectory.map(p => {
                 const th2 = th2Amp * Math.cos(omega2 * p.t + phaseDiffRad);
                 return { x: parseFloat(p.t.toFixed(4)), y: parseFloat(((th2 * 180) / Math.PI).toFixed(4)) };

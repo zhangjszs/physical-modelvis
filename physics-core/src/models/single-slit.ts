@@ -57,7 +57,7 @@ export class SingleSlitModel extends PhysicsModelBase {
         const intensityCurve: ChartSeries = {
             xLabel: '衍射角 theta (度)',
             yLabel: '相对光强 I/I0',
-            xUnit: 'deg',
+            xUnit: '°',
             yUnit: '',
             points: []
         };
@@ -219,7 +219,7 @@ export class SingleSlitModel extends PhysicsModelBase {
                     {
                         name: '极小位置',
                         formula: 'sin(theta_m) = +-m*lambda/a',
-                        variables: { theta_1: { value: (theta1 * 180) / Math.PI, unit: 'deg' } }
+                        variables: { theta_1: { value: (theta1 * 180) / Math.PI, unit: '°' } }
                     }
                 ]
             },

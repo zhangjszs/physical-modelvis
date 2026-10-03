@@ -757,7 +757,7 @@ export function drawWettingScene(o: ThermalSceneOptions): void {
         ctx,
         isDark,
         [
-            { label: 'theta', value: `${theta} deg` },
+            { label: 'theta', value: `${theta} °` },
             { label: 'medium', value: medium < 0.5 ? 'water' : 'mercury' },
             { label: 'state', value: theta < 90 ? 'wetting' : 'non-wetting' }
         ],

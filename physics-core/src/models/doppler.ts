@@ -49,7 +49,7 @@ export class DopplerModel extends PhysicsModelBase {
         {
             name: 'directionAngle',
             description: '声源运动方向与观察者连线的夹角 theta (度) — 0=朝向, 180=远离',
-            unit: 'deg',
+            unit: '°',
             required: true
         }
     ];
@@ -139,7 +139,7 @@ export class DopplerModel extends PhysicsModelBase {
         const thetaScan: ChartSeries = {
             xLabel: '方向角 theta (度)',
             yLabel: "接收频率 f' (Hz)",
-            xUnit: 'deg',
+            xUnit: '°',
             yUnit: 'Hz',
             points: []
         };

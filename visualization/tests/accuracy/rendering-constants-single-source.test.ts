@@ -52,3 +52,29 @@ describe('#53 渲染层常量单一真源', () => {
         }
     });
 });
+
+/**
+ * #60 渲染层单位记号 Unicode 收口门禁 (D5/D5a 第四面)
+ *
+ * 引擎侧 (unit/xUnit/yUnit/explanation) 的断言在 physics-core constants-single-source.test.ts;
+ * 本层管渲染展示串: HUD/读数里不得再出现 ASCII 角度/微米记号。防的是
+ * `value: \`${theta} deg\`` 这类逐字复制 (#55 F2 的 solidLiquidScenes 原型)。
+ *
+ * 模式只认两种真实反模式 —— 窄模板 (${...} 后接 deg/um) 与整串 'deg'/'um';
+ * `const deg = ...` 这类局部标识符不误伤 (无 ${{} 前缀且非整串字面量)。
+ */
+describe('#60 渲染层单位记号 Unicode 收口 (deg→° / um→μm, 防回潮)', () => {
+    const ASCII_UNIT_RE = /'deg'|'um'|\$\{[^}]*\}\s+(?:deg|um)\b/;
+
+    it('rendering/ 展示串中无 ASCII 单位记号 (${x} deg / ${x} um / 整串 deg|um)', () => {
+        const offenders: string[] = [];
+        for (const file of renderingFiles) {
+            const src = readFileSync(join(RENDERING_DIR, file), 'utf-8');
+            if (ASCII_UNIT_RE.test(src)) offenders.push(file);
+        }
+        expect(
+            offenders,
+            `以下渲染文件仍有 ASCII 单位展示记号, 应改为 '°' / 'μm' (D5a):\n  ${offenders.join('\n  ')}`
+        ).toEqual([]);
+    });
+});

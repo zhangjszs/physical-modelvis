@@ -35,7 +35,7 @@ export class HologramModel extends PhysicsModelBase {
         {
             name: 'referenceAngle',
             description: '参考光与光轴夹角 theta_r (度)',
-            unit: 'deg',
+            unit: '°',
             required: true,
             min: 0,
             max: 70
@@ -43,7 +43,7 @@ export class HologramModel extends PhysicsModelBase {
         {
             name: 'objectAngle',
             description: '物光与光轴夹角 theta_o (度) — 决定条纹间距',
-            unit: 'deg',
+            unit: '°',
             required: true,
             min: -30,
             max: 30
@@ -105,7 +105,7 @@ export class HologramModel extends PhysicsModelBase {
         const reconstructCurve: ChartSeries = {
             xLabel: '衍射角 (度)',
             yLabel: '相对衍射强度',
-            xUnit: 'deg',
+            xUnit: '°',
             yUnit: '',
             points: []
         };
@@ -227,7 +227,7 @@ export class HologramModel extends PhysicsModelBase {
                     {
                         name: '条纹间距',
                         formula: 'Delta_x = lambda/|sin(theta_r)-sin(theta_o)|',
-                        variables: { Delta_x: { value: fringeSpacing_um, unit: 'um' } }
+                        variables: { Delta_x: { value: fringeSpacing_um, unit: 'μm' } }
                     }
                 ]
             },
