@@ -33,12 +33,13 @@
     "format": "prettier --write \"physics-core/src/**/*.ts\" \"physics-core/tests/**/*.ts\" \"visualization/src/**/*.{ts,tsx}\" \"visualization/tests/**/*.{ts,tsx}\" \"visualization/server/**/*.ts\" \"scripts/**/*.{mjs,cjs,js}\"",
     "format:check": "prettier --check \"physics-core/src/**/*.ts\" \"physics-core/tests/**/*.ts\" \"visualization/src/**/*.{ts,tsx}\" \"visualization/tests/**/*.{ts,tsx}\" \"visualization/server/**/*.ts\" \"scripts/**/*.{mjs,cjs,js}\"",
     "selfcheck": "node scripts/self-check.mjs",
+    "sweep:test": "node scripts/sweep-swallowed-assertions.mjs",
     "count": "node scripts/count-tests.mjs",
     "count:check": "node scripts/count-tests.mjs --check --from-report",
     "count:sync": "node scripts/count-tests.mjs --write",
     "check:bundle": "node scripts/check-bundle-size.mjs",
     "verify:3d": "cd visualization && npx vitest run tests/rendering/equipment-stage.test.tsx tests/rendering/rigs-build.test.ts",
-    "precheck": "npm run build:core && npm run typecheck && npm run lint && npm run format:check && npm test && npm run count:check && npm run build:viz && npm run check:bundle && npm run selfcheck"
+    "precheck": "npm run build:core && npm run typecheck && npm run lint && npm run format:check && npm run sweep:test && npm test && npm run count:check && npm run build:viz && npm run check:bundle && npm run selfcheck"
   },
   "keywords": [
     "physics",
