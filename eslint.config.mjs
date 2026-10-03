@@ -79,6 +79,8 @@ export default tseslint.config(
                 __dirname: 'readonly',
                 __filename: 'readonly',
                 document: 'readonly',
+                setTimeout: 'readonly',
+                clearTimeout: 'readonly',
             },
         },
         rules: {

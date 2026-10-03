@@ -30,6 +30,8 @@ jobs:
             # PR → 只跑前 12 个场景且用 canvas 口径；定时/手动 → 全量且严格
             QA_LIMIT: ${{ github.event_name == 'pull_request' && '12' || '0' }}
             QA_STRICT: ${{ github.event_name == 'pull_request' && 'canvas' || 'error' }}
+            # 性能判定档位 (#80): PR 宽预算防 flaky (耗时超限只 WARN); nightly 严预算, 内存/耗时超限都红
+            QA_PERF_TIER: ${{ github.event_name == 'pull_request' && 'pr' || 'nightly' }}
             QA_BASE: http://localhost:5199/
             QA_OUT: qa-sweep.json
         steps:

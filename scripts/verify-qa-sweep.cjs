@@ -10,6 +10,10 @@
  *   6. 播放链路: 播放后时间是否推进
  *   7. 参数边界: 每个 .param-slider 拉到 min / max 后是否出现异常值或报错
  *   8. 时间轴拖到末尾后的状态
+ *   9. 性能-内存 (#80): 对前 N(≤30) 个场景做「暖场趟 + 计量趟」双趟切换,
+ *      两趟之间 CDP 强制 GC 后采样 JS 堆, 增量超预算 → ERROR (人为造泄漏可复验变红)
+ *  10. 性能-切换耗时 (#80): 计量趟逐场景测「点击 → 舞台 canvas 可见」耗时,
+ *      超预算 nightly 记 ERROR / pr 记 WARN (CI 机器噪声大, PR 档不拦截)
  *
  * 运行: node scripts/verify-qa-sweep.cjs   (需 dev server, 默认 http://localhost:5199/)
  * 环境变量:
@@ -24,8 +28,13 @@
  *                     canvas = 只对「舞台没渲染」类失败 (no-canvas / scene-not-clickable) 退出 1,
  *                     console 报错与错误提示条降级为 WARN 仍上报 —— 给 PR 门禁用,
  *                     不被已知存量问题（或目录顺序变动）卡死正常 PR
+ *   QA_PERF_TIER      性能判定档位: pr (默认, 宽预算, 耗时超限只 WARN) |
+ *                     nightly (严预算, 内存/耗时超限都 ERROR)
+ *   QA_HEAP_BUDGET_MB 覆盖内存增量预算 (默认按档位: nightly 12 / pr 24)
+ *   QA_SWITCH_BUDGET_MS 覆盖单场景切换耗时预算 (默认按档位: nightly 10000 / pr 25000)
  *
- * 退出码: 0 = 无 ERROR 级问题; 1 = 存在 ERROR (console/pageerror/场景未找到)
+ * 退出码: 0 = 无 ERROR 级问题; 1 = 存在 ERROR (console/pageerror/场景未找到/性能内存超限,
+ *         nightly 下含切换耗时超限)
  */
 const { chromium } = require('playwright');
 const fs = require('fs');
@@ -44,6 +53,12 @@ const STRICT = process.env.QA_STRICT || 'error';
 const RELOAD_EVERY = 20;
 
 const ANOMALY_RE = /\bNaN\b|\bInfinity\b|\bundefined\b/;
+
+// ---- 性能判定 (#80) ----
+const PERF_TIER = process.env.QA_PERF_TIER || 'pr';
+const PERF_SCENES = 30; // 双趟子集上限 (连续切换 ≥30 是 nightly 建议值)
+const HEAP_BUDGET_MB = Number(process.env.QA_HEAP_BUDGET_MB ?? (PERF_TIER === 'nightly' ? 12 : 24));
+const SWITCH_BUDGET_MS = Number(process.env.QA_SWITCH_BUDGET_MS ?? (PERF_TIER === 'nightly' ? 10000 : 25000));
 
 /** 在浏览器里扫描可见文本中的异常值, 返回 [{ token, around }] */
 async function scanText(page) {
@@ -175,10 +190,25 @@ async function sliderMeta(page, selector) {
 
     let current = '';
     const logs = [];
-    page.on('pageerror', e => logs.push({ scene: current, level: 'ERROR', kind: 'pageerror', text: e.message }));
+    // 性能双趟期间 (inPerfPass) 的报错单独归档, 不与主巡检 findings 混算
+    let inPerfPass = false;
+    const perfLogs = [];
+    page.on('pageerror', e => {
+        (inPerfPass ? perfLogs : logs).push({
+            scene: current,
+            level: 'ERROR',
+            kind: 'pageerror',
+            text: e.message
+        });
+    });
     page.on('console', m => {
         if (m.type() === 'error')
-            logs.push({ scene: current, level: 'ERROR', kind: 'console', text: m.text().slice(0, 300) });
+            (inPerfPass ? perfLogs : logs).push({
+                scene: current,
+                level: 'ERROR',
+                kind: 'console',
+                text: m.text().slice(0, 300)
+            });
     });
 
     await page.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 90000 });
@@ -356,16 +386,192 @@ async function sliderMeta(page, selector) {
     }
 
     current = '';
+
+    // ---- 性能判定 (#80): 暖场趟 + 计量趟 双趟切换前 N 个场景 ----
+    // 刻意不触发 RELOAD_EVERY 的整页重载: 重载会清空 JS 堆, 两趟增量就没有可比性。
+    // 合法缓存 (场景配置/rig 模块) 在暖场趟建立; 计量趟的增长只可能来自真泄漏。
+    // 看门狗纪律: 泄漏构建下页面可能卡死/崩溃, 本段每个 await 都必须有界,
+    // 总时长超 PERF_DEADLINE_MS 即提前终止并记为性能 ERROR —— 门禁脚本绝不允许挂死。
+    const PERF_DEADLINE_MS = 8 * 60 * 1000;
+    const perfDeadline = Date.now() + PERF_DEADLINE_MS;
+    const withTimeout = (promise, ms, label) => {
+        let timer;
+        const timeout = new Promise((_, rej) => {
+            timer = setTimeout(() => rej(new Error(`${label} 超时(${ms}ms)`)), ms);
+        });
+        return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+    };
+    const perfSubset = list.slice(0, Math.min(PERF_SCENES, list.length));
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send('Performance.enable');
+    const heapMB = async () => {
+        try {
+            await withTimeout(cdp.send('HeapProfiler.collectGarbage'), 30000, 'CDP GC');
+        } catch (e) {
+            console.log(`  (GC 未完成: ${e.message} — 采样仍继续, 可能偏高)`);
+        }
+        const { metrics } = await withTimeout(cdp.send('Performance.getMetrics'), 15000, 'Performance.getMetrics');
+        const heap = metrics.find(m => m.name === 'JSHeapUsedSize');
+        return heap ? heap.value / 1048576 : NaN;
+    };
+    const perfVisit = async name => {
+        const t0 = Date.now();
+        let canvasOk = true;
+        await withTimeout(
+            page.evaluate(() => {
+                document.querySelectorAll('details').forEach(d => {
+                    d.open = true;
+                });
+            }),
+            15000,
+            '展开目录'
+        );
+        const clicked = await withTimeout(
+            page.$$eval(
+                '.directory-scene',
+                (els, t) => {
+                    const el = [...els].find(e => (e.querySelector('span')?.textContent || '').trim() === t);
+                    if (el) {
+                        el.click();
+                        return true;
+                    }
+                    return false;
+                },
+                name
+            ),
+            15000,
+            '点击场景'
+        );
+        if (clicked) {
+            try {
+                await page.waitForSelector('.stage-viewport canvas', { state: 'visible', timeout: SWITCH_BUDGET_MS });
+            } catch {
+                canvasOk = false; // 计时超限判定会兜住; canvas 缺失在主巡检已按 ERROR 报
+            }
+        } else {
+            canvasOk = false;
+        }
+        const elapsed = Date.now() - t0;
+        await page.waitForTimeout(600); // 等自动运行首帧渲染完成, 保证两趟采样点同相位
+        return { elapsed, canvasOk, clicked };
+    };
+
+    let perf = null;
+    if (perfSubset.length > 0) {
+        inPerfPass = true;
+        console.log(`\n--- 性能判定 (#80, 档位 ${PERF_TIER}): ${perfSubset.length} 场景 × 2 趟 ---`);
+        const perfProblems = [];
+        let aborted = false;
+        for (const name of perfSubset) {
+            if (Date.now() > perfDeadline) {
+                aborted = true;
+                break;
+            }
+            current = name;
+            await perfVisit(name).catch(e => perfProblems.push(`暖场趟 ${name}: ${e.message}`));
+        }
+        let heapBaseline = NaN;
+        let heapFinal = NaN;
+        const times = [];
+        let canvasMisses = 0;
+        if (!aborted) {
+            heapBaseline = await heapMB();
+            for (const name of perfSubset) {
+                if (Date.now() > perfDeadline) {
+                    aborted = true;
+                    break;
+                }
+                current = name;
+                try {
+                    const { elapsed, canvasOk, clicked } = await perfVisit(name);
+                    times.push({ name, ms: elapsed });
+                    if (!canvasOk) canvasMisses += 1;
+                    if (!clicked) perfProblems.push(`计量趟找不到场景: ${name}`);
+                } catch (e) {
+                    perfProblems.push(`计量趟 ${name}: ${e.message}`);
+                }
+            }
+            if (!aborted) heapFinal = await heapMB();
+        }
+        inPerfPass = false;
+        const deltaMB = heapFinal - heapBaseline; // NaN 传播 → 下面 ok=false
+        const timesSafe = times.length ? times : [{ name: '(未完成)', ms: NaN }];
+        const maxTime = Math.max(...timesSafe.map(t => t.ms));
+        const heapBreach = Number.isFinite(deltaMB) && deltaMB > HEAP_BUDGET_MB;
+        const timeBreaches = times.filter(t => t.ms > SWITCH_BUDGET_MS);
+        const perfErrors = [];
+        if (heapBreach) {
+            perfErrors.push(
+                `内存判定命中: 双趟切换 ${perfSubset.length} 场景后 JS 堆增量 ${deltaMB.toFixed(1)} MB > 预算 ${HEAP_BUDGET_MB} MB (疑似泄漏)`
+            );
+        }
+        if (aborted) {
+            perfErrors.push(
+                `性能双趟看门狗终止 (上限 ${PERF_DEADLINE_MS / 60000} 分钟): 页面疑似卡死/崩溃, 本身即异常信号`
+            );
+        }
+        perf = {
+            tier: PERF_TIER,
+            scenes: perfSubset.length,
+            heap: {
+                baselineMB: Number(heapBaseline.toFixed(1)),
+                finalMB: Number(heapFinal.toFixed(1)),
+                deltaMB: Number(deltaMB.toFixed(1)),
+                budgetMB: HEAP_BUDGET_MB,
+                ok: !heapBreach && Number.isFinite(deltaMB)
+            },
+            switchTime: {
+                budgetMs: SWITCH_BUDGET_MS,
+                maxMs: maxTime,
+                canvasMisses,
+                breached: timeBreaches.map(t => ({ name: t.name, ms: t.ms })),
+                ok: timeBreaches.length === 0
+            },
+            times,
+            problems: perfProblems,
+            consoleErrorsDuringPass: perfLogs.length
+        };
+        if (canvasMisses > 0) {
+            perfErrors.push(`计量趟 ${canvasMisses} 个场景切换后舞台 canvas 未在预算内可见 (见 perf.times)`);
+        }
+        perf.errors = perfErrors;
+        console.log(
+            `内存: 基线 ${heapBaseline.toFixed(1)} MB → 终态 ${heapFinal.toFixed(1)} MB, 增量 ${deltaMB.toFixed(1)} MB / 预算 ${HEAP_BUDGET_MB} MB ${heapBreach ? '✗' : '✓'}`
+        );
+        console.log(
+            `耗时: 单场景最长 ${maxTime} ms / 预算 ${SWITCH_BUDGET_MS} ms, 超限 ${timeBreaches.length} 个${
+                timeBreaches.length ? ` (${timeBreaches.map(t => `${t.name} ${t.ms}ms`).join(', ')})` : ''
+            }`
+        );
+        if (perfProblems.length) console.log(`双趟过程问题: ${perfProblems.slice(0, 5).join(' | ')}`);
+    }
+
     fs.mkdirSync(path.dirname(OUT), { recursive: true });
     fs.writeFileSync(
         OUT,
-        JSON.stringify({ base: BASE, at: new Date().toISOString(), strict: STRICT, results }, null, 2)
+        JSON.stringify({ base: BASE, at: new Date().toISOString(), strict: STRICT, perf, results }, null, 2)
     );
 
     const errN = results.filter(r => r.worst === 'ERROR').length;
     const warnN = results.filter(r => r.worst === 'WARN').length;
+    // 性能判定: perf.errors 中的条目 (内存命中/看门狗终止/canvas 缺失) 恒为 ERROR;
+    // 切换耗时超限 nightly ERROR / pr WARN
+    let perfErrN = 0;
+    let perfWarnN = 0;
+    if (perf) {
+        if (perf.errors.length > 0) perfErrN += 1;
+        if (perf.switchTime.breached.length > 0) {
+            if (PERF_TIER === 'nightly') perfErrN += 1;
+            else perfWarnN += 1;
+        }
+    }
     console.log(
-        `\n=== 汇总 === ${results.length} 场景: ERROR ${errN} / WARN ${warnN} / OK ${results.length - errN - warnN}`
+        `\n=== 汇总 === ${results.length} 场景: ERROR ${errN + perfErrN} / WARN ${warnN + perfWarnN} / OK ${
+            results.length - errN - warnN
+        }` +
+            (perf
+                ? ` | 性能(${perf.tier}): 堆增量 ${perf.heap.deltaMB} MB, 耗时超限 ${perf.switchTime.breached.length}`
+                : '')
     );
     console.log(
         `口径: QA_STRICT=${STRICT}` +
@@ -373,5 +579,5 @@ async function sliderMeta(page, selector) {
     );
     console.log(`报告: ${OUT}`);
     await browser.close();
-    process.exit(errN > 0 ? 1 : 0);
+    process.exit(errN + perfErrN > 0 ? 1 : 0);
 })();
