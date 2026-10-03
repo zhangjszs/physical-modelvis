@@ -60,7 +60,8 @@ function makePendulum(L: number, theta0Deg: number, damping = 0): PhysicsProblem
         id: 'pend',
         model: 'simple-pendulum',
         bodies: [{ id: 'b', mass: { value: 1, unit: 'kg' }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } }],
-        constraints: { simplePendulum: { length: L, initialAngleDeg: theta0Deg, gravity: 9.8, damping } },
+        // g 走模型内 PHYSICS_CONSTANTS.g (=9.8); SimplePendulumConstraint 无 gravity 键
+        constraints: { simplePendulum: { length: L, initialAngleDeg: theta0Deg, damping } },
         environment: { gravity: { enabled: true, value: 9.8 } },
         timeConfig: { duration: 20, sampleCount: 2000 }
     };

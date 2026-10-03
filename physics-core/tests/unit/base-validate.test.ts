@@ -129,8 +129,10 @@ describe('base.validate(): 声明式 min/max 拦截 (#8)', () => {
         const model = new OrbitalModel();
 
         it('radius=0 (由 body.position 派生) → valid:false (sqrt(GM/r) 会为 Inf)', () => {
-            const problem = makeProblem('orbital', { orbital: { GM: 3.986e14 } });
-            problem.bodies = [makeBody({ vx: 7000 })]; // position = (0,0) → radius = 0
+            const problem = {
+                ...makeProblem('orbital', { orbital: { GM: 3.986e14 } }),
+                bodies: [makeBody({ vx: 7000 })] // position = (0,0) → radius = 0
+            };
             const v = model.validate(problem);
             expect(v.valid).toBe(false);
             expect(
@@ -140,8 +142,10 @@ describe('base.validate(): 声明式 min/max 拦截 (#8)', () => {
         });
 
         it('radius 来自非零 body.position → 校验通过', () => {
-            const problem = makeProblem('orbital', { orbital: { GM: 3.986e14 } });
-            problem.bodies = [makeBody({ x: 7e6, vy: 7000 })]; // radius = 7e6 m
+            const problem = {
+                ...makeProblem('orbital', { orbital: { GM: 3.986e14 } }),
+                bodies: [makeBody({ x: 7e6, vy: 7000 })] // radius = 7e6 m
+            };
             const v = model.validate(problem);
             expect(v.valid, JSON.stringify(v.errors)).toBe(true);
         });

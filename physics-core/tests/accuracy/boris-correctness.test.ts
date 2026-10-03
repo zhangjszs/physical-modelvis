@@ -213,7 +213,7 @@ describe('L8: 极端参数 — 不产生 NaN/Inf, 不抛异常', () => {
         );
         expect(allFinite(r)).toBe(true);
         for (const series of Object.values(r.charts)) {
-            if (!series) continue;
+            if (!series || !('points' in series)) continue;
             for (const pt of series.points) {
                 expect(Number.isFinite(pt.x) && Number.isFinite(pt.y)).toBe(true);
             }

@@ -10,6 +10,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { ElectricFieldLinesModel } from '../../src/models/electric-field-lines.js';
+import type { ElectricFieldExtra } from '../../src/models/electric-field-lines.js';
 import { MagneticForceModel } from '../../src/models/magnetic-force.js';
 import { Vec2 } from '../../src/math/vector2d.js';
 import type { PhysicsProblem } from '../../src/types/problem.js';
@@ -28,13 +29,20 @@ function makeProblem(model: PhysicsProblem['model'], constraints: Record<string,
 describe('#9 平行板电场线几何随 plateGap 联动', () => {
     const model = new ElectricFieldLinesModel();
 
-    const build = (plateGap: number) => {
+    // SimulationResult.extra 的静态类型是 Record<string, unknown>; 此处还原模型声明的真实结构
+    const build = (
+        plateGap: number
+    ): {
+        plates: NonNullable<ElectricFieldExtra['plates']>;
+        lines: ElectricFieldExtra['fieldLines'];
+        plateField: ElectricFieldExtra['plateField'];
+    } => {
         const r = model.solve(
             makeProblem('electric-field-lines', {
                 electricFieldLines: { mode: 'parallel-plate', charges: [], plateGap, plateLength: 2, plateVoltage: 12 }
             })
         );
-        const extra = r.extra!;
+        const extra = r.extra as unknown as ElectricFieldExtra;
         return { plates: extra.plates!, lines: extra.fieldLines, plateField: extra.plateField };
     };
 

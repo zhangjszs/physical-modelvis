@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { UniformElectricModel } from '../../src/models/uniform-electric-field.js';
-import type { PhysicalBody, EnvironmentConfig } from '../../src/types/problem.js';
-import type { Vector2D } from '../../src/types/common.js';
+import type { EnvironmentConfig } from '../../src/types/problem.js';
+import type { PhysicalBody, Vector2D } from '../../src/types/common.js';
 
 /**
  * 匀强电场模型测试 — physics-asserting, 不是 smoke。

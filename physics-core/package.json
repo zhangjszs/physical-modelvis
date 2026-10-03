@@ -38,7 +38,7 @@
     "build": "tsc",
     "test": "vitest run --reporter=default --reporter=json --outputFile.json=../.scratch/core-tests.json",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
     "lint": "eslint src/**/*.ts"
   },
   "devDependencies": {

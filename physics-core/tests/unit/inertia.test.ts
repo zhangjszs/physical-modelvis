@@ -212,7 +212,7 @@ describe('InertiaModel — 边界条件', () => {
                 { id: 't', mass: { value: 0.1, unit: 'kg' }, position: { x: 0, y: 1 }, velocity: { x: 0, y: 0 } },
                 { id: 'b', mass: { value: 1, unit: 'kg' }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } }
             ],
-            // @ts-expect-error 故意传入非法 mode 触发 default 分支
+            // 故意传入非法 mode (as never 绕过联合类型) 触发 default 分支
             constraints: { inertia: { mode: 'unknown' as never } },
             timeConfig: { duration: 1, sampleCount: 100 }
         };

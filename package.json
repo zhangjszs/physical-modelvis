@@ -27,7 +27,7 @@
     "build": "cd physics-core && npm run build && cd ../visualization && npm run build",
     "build:core": "cd physics-core && npm run build",
     "build:viz": "cd visualization && npm run build",
-    "typecheck": "node scripts/guard-dist-freshness.mjs --quiet && cd physics-core && npx tsc --noEmit && cd ../visualization && npx tsc --noEmit",
+    "typecheck": "node scripts/guard-dist-freshness.mjs --quiet && cd physics-core && npx tsc --noEmit -p tsconfig.typecheck.json && cd ../visualization && npx tsc --noEmit",
     "lint": "eslint \"physics-core/src/**/*.ts\" \"physics-core/tests/**/*.ts\" \"visualization/src/**/*.{ts,tsx}\" \"visualization/tests/**/*.{ts,tsx}\" \"visualization/server/**/*.ts\" \"scripts/**/*.{mjs,cjs,js}\"",
     "lint:fix": "eslint --fix \"physics-core/src/**/*.ts\" \"physics-core/tests/**/*.ts\" \"visualization/src/**/*.{ts,tsx}\" \"visualization/tests/**/*.{ts,tsx}\" \"visualization/server/**/*.ts\" \"scripts/**/*.{mjs,cjs,js}\"",
     "format": "prettier --write \"physics-core/src/**/*.ts\" \"physics-core/tests/**/*.ts\" \"visualization/src/**/*.{ts,tsx}\" \"visualization/tests/**/*.{ts,tsx}\" \"visualization/server/**/*.ts\" \"scripts/**/*.{mjs,cjs,js}\"",

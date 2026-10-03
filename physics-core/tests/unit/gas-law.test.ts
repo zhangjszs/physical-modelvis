@@ -15,10 +15,13 @@ function makeProblem(
     } = {}
 ): PhysicsProblem {
     const { moles = 1, mode = 'isothermal', initialPressure, initialVolume, initialTemperature } = overrides;
-    const gc: GasLawConstraint = { moles, mode };
-    if (initialPressure !== undefined) gc.initialPressure = initialPressure;
-    if (initialVolume !== undefined) gc.initialVolume = initialVolume;
-    if (initialTemperature !== undefined) gc.initialTemperature = initialTemperature;
+    const gc: GasLawConstraint = {
+        moles,
+        mode,
+        ...(initialPressure !== undefined && { initialPressure }),
+        ...(initialVolume !== undefined && { initialVolume }),
+        ...(initialTemperature !== undefined && { initialTemperature })
+    };
     return {
         id: 'gas-law-test',
         model: 'gas-law',

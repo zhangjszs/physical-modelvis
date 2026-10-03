@@ -25,7 +25,14 @@ describe('CenterOfGravityModel', () => {
     it('模型元数据正确', () => {
         expect(model.modelType).toBe('center-of-gravity');
         expect(model.name).toBe('悬挂法确定重心');
-        expect(model.solver).toBeUndefined();
+        // 现 API 无 model.solver 属性 (solver 挂在 result.meta 上); 本模型走解析解路径
+        const vertices: Vector2D[] = [
+            { x: 0, y: 0 },
+            { x: 1, y: 0 },
+            { x: 1, y: 1 },
+            { x: 0, y: 1 }
+        ];
+        expect(model.solve(makeProblem(vertices)).meta.solver).toBe('analytical');
     });
 
     it('正方形形心 = 几何中心 (0.5, 0.5)', () => {

@@ -44,7 +44,7 @@ function problem(
     return {
         id: 'stability-test',
         model,
-        bodies: [body] as PhysicsProblem['bodies'],
+        bodies: [body] as unknown as PhysicsProblem['bodies'],
         constraints: constraints as unknown as PhysicsProblem['constraints'],
         environment: environment as PhysicsProblem['environment'],
         timeConfig: { duration, sampleCount }
@@ -196,7 +196,7 @@ describe('#6 受迫振动: 无阻尼共振不得报 A=0', () => {
             )
         );
         const curve = (r.charts as Record<string, { points?: Array<{ x: number; y: number }> }>).A_f_drive!;
-        for (const p of curve.points) {
+        for (const p of curve.points ?? []) {
             if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) {
                 expect(Number.isNaN(p.x) && Number.isNaN(p.y)).toBe(true);
             }
