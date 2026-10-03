@@ -12,7 +12,7 @@
  *   8. 时间轴拖到末尾后的状态
  *   9. 性能-内存 (#80): 对前 N(≤30) 个场景做「暖场趟 + 计量趟」双趟切换,
  *      两趟之间 CDP 强制 GC 后采样 JS 堆, 增量超预算 → ERROR (人为造泄漏可复验变红)
- *  10. 性能-切换耗时 (#80): 计量趟逐场景测「点击 → 舞台 canvas 可见」耗时,
+ *  10. 性能-切换耗时 (#80): 计量趟逐场景测「点击 → 场景激活 + 首帧渲染完成 (2 rAF)」耗时,
  *      超预算 nightly 记 ERROR / pr 记 WARN (CI 机器噪声大, PR 档不拦截)
  *
  * 运行: node scripts/verify-qa-sweep.cjs   (需 dev server, 默认 http://localhost:5199/)
@@ -416,7 +416,7 @@ async function sliderMeta(page, selector) {
     };
     const perfVisit = async name => {
         const t0 = Date.now();
-        let canvasOk = true;
+        let readyOk = true;
         await withTimeout(
             page.evaluate(() => {
                 document.querySelectorAll('details').forEach(d => {
@@ -444,16 +444,26 @@ async function sliderMeta(page, selector) {
         );
         if (clicked) {
             try {
-                await page.waitForSelector('.stage-viewport canvas', { state: 'visible', timeout: SWITCH_BUDGET_MS });
+                // #81 后 canvas 跨场景常驻, 「canvas 可见」不再随切换变化;
+                // 就绪信号 = 目录激活项匹配到目标场景 (store 已切) + 2 个 rAF (React 提交 + 首帧渲染完成)
+                await page.waitForFunction(
+                    target => {
+                        const el = document.querySelector('.directory-scene.active span');
+                        return el ? el.textContent.trim() === target : false;
+                    },
+                    name,
+                    { timeout: SWITCH_BUDGET_MS, polling: 100 }
+                );
+                await page.evaluate(() => new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res))));
             } catch {
-                canvasOk = false; // 计时超限判定会兜住; canvas 缺失在主巡检已按 ERROR 报
+                readyOk = false; // 计时超限判定会兜住; canvas 缺失在主巡检已按 ERROR 报
             }
         } else {
-            canvasOk = false;
+            readyOk = false;
         }
         const elapsed = Date.now() - t0;
         await page.waitForTimeout(600); // 等自动运行首帧渲染完成, 保证两趟采样点同相位
-        return { elapsed, canvasOk, clicked };
+        return { elapsed, readyOk, clicked };
     };
 
     let perf = null;
@@ -473,7 +483,7 @@ async function sliderMeta(page, selector) {
         let heapBaseline = NaN;
         let heapFinal = NaN;
         const times = [];
-        let canvasMisses = 0;
+        let readyMisses = 0;
         if (!aborted) {
             heapBaseline = await heapMB();
             for (const name of perfSubset) {
@@ -483,9 +493,9 @@ async function sliderMeta(page, selector) {
                 }
                 current = name;
                 try {
-                    const { elapsed, canvasOk, clicked } = await perfVisit(name);
+                    const { elapsed, readyOk, clicked } = await perfVisit(name);
                     times.push({ name, ms: elapsed });
-                    if (!canvasOk) canvasMisses += 1;
+                    if (!readyOk) readyMisses += 1;
                     if (!clicked) perfProblems.push(`计量趟找不到场景: ${name}`);
                 } catch (e) {
                     perfProblems.push(`计量趟 ${name}: ${e.message}`);
@@ -523,7 +533,7 @@ async function sliderMeta(page, selector) {
             switchTime: {
                 budgetMs: SWITCH_BUDGET_MS,
                 maxMs: maxTime,
-                canvasMisses,
+                readyMisses,
                 breached: timeBreaches.map(t => ({ name: t.name, ms: t.ms })),
                 ok: timeBreaches.length === 0
             },
@@ -531,8 +541,8 @@ async function sliderMeta(page, selector) {
             problems: perfProblems,
             consoleErrorsDuringPass: perfLogs.length
         };
-        if (canvasMisses > 0) {
-            perfErrors.push(`计量趟 ${canvasMisses} 个场景切换后舞台 canvas 未在预算内可见 (见 perf.times)`);
+        if (readyMisses > 0) {
+            perfErrors.push(`计量趟 ${readyMisses} 个场景切换未在预算内就绪 (激活项未匹配/首帧未完成, 见 perf.times)`);
         }
         perf.errors = perfErrors;
         console.log(

@@ -72,6 +72,8 @@ export interface SceneRig {
 
 interface EquipmentStageProps {
     rig: SceneRig;
+    /** 由 StageRenderer 注入的共享 WebGL 上下文 (#81) —— 跨场景复用, 本组件绝不 dispose */
+    renderer: THREE.WebGLRenderer;
     /** 相机初始位置 */
     cameraPosition?: [number, number, number];
     /** 相机注视目标 */
@@ -119,8 +121,7 @@ const BALL_COLORS = [0x2563eb, 0xdc2626, 0x16a34a] as const;
 // 组件
 // ---------------------------------------------------------------------------
 
-export function EquipmentStage({ rig, cameraPosition, cameraTarget, caption }: EquipmentStageProps) {
-    const hostRef = useRef<HTMLDivElement | null>(null);
+export function EquipmentStage({ rig, renderer, cameraPosition, cameraTarget, caption }: EquipmentStageProps) {
     const handlesRef = useRef<StageHandles | null>(null);
     const lastTimeRef = useRef(0);
 
@@ -178,9 +179,11 @@ export function EquipmentStage({ rig, cameraPosition, cameraTarget, caption }: E
     const ballRadius = rig.ballRadius ?? 0.22;
 
     // —— 1. 初始化：构建环境 + 器材 + 运动证据 ——
+    // renderer 由 StageRenderer 注入 (#81)：跨场景复用, 本组件只重建 Scene/Camera/Controls,
+    // 卸载时绝不 dispose renderer / forceContextLoss —— 那是每切场景重建上下文的旧病根
     useEffect(() => {
-        const host = hostRef.current;
-        if (!host) return;
+        const canvas = renderer.domElement;
+        if (!canvas) return;
 
         const isDark = theme === 'dark';
         const bgColor = isDark ? 0x0b1020 : 0xf8fafc;
@@ -192,13 +195,7 @@ export function EquipmentStage({ rig, cameraPosition, cameraTarget, caption }: E
         const defaultCamPos = cameraPosition ?? [6.5, 4.5, 8.0];
         camera.position.set(...defaultCamPos);
 
-        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        renderer.shadowMap.enabled = true;
-        renderer.shadowMap.type = THREE.PCFShadowMap;
-        host.appendChild(renderer.domElement);
-
-        const controls = new OrbitControls(camera, renderer.domElement);
+        const controls = new OrbitControls(camera, canvas);
         const defaultTarget = cameraTarget ?? [3.2, 0.8, 0];
         controls.target.set(...defaultTarget);
         controls.enableDamping = true;
@@ -269,31 +266,21 @@ export function EquipmentStage({ rig, cameraPosition, cameraTarget, caption }: E
         };
 
         const resize = () => {
-            const rect = host.getBoundingClientRect();
-            const w = Math.max(1, Math.floor(rect.width));
-            const h = Math.max(1, Math.floor(rect.height));
-            renderer.setSize(w, h, false);
+            // 尺寸调整由 StageRenderer 负责 (renderer.setSize)；这里只同步相机纵横比
+            const w = Math.max(1, Math.floor(canvas.clientWidth));
+            const h = Math.max(1, Math.floor(canvas.clientHeight));
             camera.aspect = w / h;
             camera.updateProjectionMatrix();
         };
         resize();
         const ro = new ResizeObserver(resize);
-        ro.observe(host);
+        ro.observe(canvas);
 
         return () => {
             ro.disconnect();
             controls.removeEventListener('change', markDirty);
             controls.dispose();
             disposeObject(scene);
-            try {
-                renderer.dispose();
-                renderer.forceContextLoss();
-            } catch {
-                // 防御异常
-            }
-            if (renderer.domElement.parentElement === host) {
-                host.removeChild(renderer.domElement);
-            }
             handlesRef.current = null;
         };
     }, []);
@@ -559,8 +546,9 @@ export function EquipmentStage({ rig, cameraPosition, cameraTarget, caption }: E
         setViewPreset('default');
     };
 
+    // 舞台容器与 canvas 由 StageRenderer 持有；本组件只渲染逐场景的 overlay UI
     return (
-        <div className="projectile-3d-stage" ref={hostRef}>
+        <>
             {captionText && (
                 <div className="stage-caption">
                     <span>{captionText}</span>
@@ -607,6 +595,6 @@ export function EquipmentStage({ rig, cameraPosition, cameraTarget, caption }: E
                     🎯
                 </button>
             </div>
-        </div>
+        </>
     );
 }

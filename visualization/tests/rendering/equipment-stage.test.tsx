@@ -11,7 +11,7 @@
  * 策略: 保留真实 three.js 几何类 (纯 JS, Node 可用), 仅 stub WebGLRenderer
  * (jsdom 无 WebGL context) 与 OrbitControls。
  */
-import { describe, it, expect, vi, beforeEach, afterEach, type MockInstance } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, cleanup, act } from '@testing-library/react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -110,6 +110,18 @@ function makeMockRig2(name: string) {
     return makeMockRig(name);
 }
 
+/** 注入式 renderer (#81) 的测试替身: EquipmentStage 只消费 domElement 与 render */
+function makeFakeRenderer(): THREE.WebGLRenderer {
+    return {
+        domElement: document.createElement('canvas'),
+        render: () => {},
+        setSize: () => {},
+        setPixelRatio: () => {},
+        dispose: () => {},
+        shadowMap: { enabled: false, type: 0 }
+    } as unknown as THREE.WebGLRenderer;
+}
+
 class ResizeObserverStub {
     observe() {}
     unobserve() {}
@@ -135,7 +147,7 @@ afterEach(() => {
 describe('EquipmentStage 行为', () => {
     it('挂载时调用 buildEquipment, 并用其返回的 handles 调用 updateEquipment', () => {
         const rig = makeMockRig('pendulum');
-        render(<EquipmentStage rig={rig} />);
+        render(<EquipmentStage rig={rig} renderer={makeFakeRenderer()} />);
         expect(rig.buildEquipment).toHaveBeenCalledTimes(1);
         expect(rig.updateEquipment).toHaveBeenCalledTimes(1);
         const received = rig.updateEquipment.mock.calls[0]![0] as Record<string, unknown>;
@@ -144,7 +156,7 @@ describe('EquipmentStage 行为', () => {
 
     it('参数变化时 updateEquipment 收到最新参数', () => {
         const rig = makeMockRig('pendulum');
-        render(<EquipmentStage rig={rig} />);
+        render(<EquipmentStage rig={rig} renderer={makeFakeRenderer()} />);
         act(() => {
             useSimulationStore.getState().setParameter('angle', 45);
         });
@@ -156,11 +168,11 @@ describe('EquipmentStage 行为', () => {
     it('场景切换 (key 变化 remount): 新 rig 的 updateEquipment 必须消费新 rig 自己的 handles', () => {
         // 回归保护: 竞态 bug 中, 旧 rig handles + 新 rig updateEquipment 错配导致崩溃
         const rigA = makeMockRig2('projectile');
-        const first = render(<EquipmentStage key="projectile" rig={rigA} />);
+        const first = render(<EquipmentStage key="projectile" rig={rigA} renderer={makeFakeRenderer()} />);
         first.unmount();
 
         const rigB = makeMockRig2('inertia');
-        render(<EquipmentStage key="inertia" rig={rigB} />);
+        render(<EquipmentStage key="inertia" rig={rigB} renderer={makeFakeRenderer()} />);
         expect(rigB.buildEquipment).toHaveBeenCalledTimes(1);
         expect(rigB.updateEquipment).toHaveBeenCalledTimes(1);
         const received = rigB.updateEquipment.mock.calls[0]![0] as Record<string, unknown>;
@@ -173,9 +185,9 @@ describe('EquipmentStage 行为', () => {
         // 模拟极端时序: 组件实例复用时 rig 从 A 换成 B (key 未变)
         // EquipmentStage 自身必须保持防御性 — 不白屏
         const rigA = makeMockRig2('projectile');
-        const { rerender } = render(<EquipmentStage rig={rigA} />);
+        const { rerender } = render(<EquipmentStage rig={rigA} renderer={makeFakeRenderer()} />);
         const rigB = makeMockRig2('inertia');
-        expect(() => rerender(<EquipmentStage rig={rigB} />)).not.toThrow();
+        expect(() => rerender(<EquipmentStage rig={rigB} renderer={makeFakeRenderer()} />)).not.toThrow();
         // 新 rig 的 updateEquipment 被调用 (旧 handles 是 A 的), 防御层应吞掉异常
         expect(rigB.updateEquipment).toHaveBeenCalled();
     });
@@ -185,7 +197,7 @@ describe('EquipmentStage 行为', () => {
         rig.getVisualPosition.mockImplementation(() => {
             throw new Error('bad visual position');
         });
-        render(<EquipmentStage rig={rig} />);
+        render(<EquipmentStage rig={rig} renderer={makeFakeRenderer()} />);
         act(() => {
             useSimulationStore.getState().setSimulationResult(minimalResult());
         });
@@ -217,8 +229,6 @@ function flushFrames(count: number) {
 }
 
 describe('暂停时按需渲染 (#79)', () => {
-    let renderSpy: MockInstance<() => void>;
-
     beforeEach(() => {
         rafQueue = [];
         frameTime = 0;
@@ -227,11 +237,6 @@ describe('暂停时按需渲染 (#79)', () => {
             return rafQueue.length;
         });
         vi.stubGlobal('cancelAnimationFrame', () => {});
-        // mock 的 WebGLRenderer 所有实例共享原型 render, 挂 spy 即可计数全部渲染
-        renderSpy = vi.spyOn(
-            (THREE.WebGLRenderer as unknown as { prototype: { render: () => void } }).prototype,
-            'render'
-        );
     });
 
     afterEach(() => {
@@ -240,15 +245,17 @@ describe('暂停时按需渲染 (#79)', () => {
 
     function mountPausedStage() {
         const rig = makeMockRig('paused-test');
-        render(<EquipmentStage rig={rig} />);
+        const fakeRenderer = makeFakeRenderer();
+        const renderSpy = vi.spyOn(fakeRenderer, 'render');
+        render(<EquipmentStage rig={rig} renderer={fakeRenderer} />);
         act(() => {
             useSimulationStore.getState().setSimulationResult(minimalResult());
         });
-        return rig;
+        return renderSpy;
     }
 
     it('挂载后首帧渲染一次; 暂停且无交互时连续 60 帧 0 次 render', () => {
-        mountPausedStage();
+        const renderSpy = mountPausedStage();
         flushFrames(1);
         expect(renderSpy).toHaveBeenCalledTimes(1);
         renderSpy.mockClear();
@@ -257,7 +264,7 @@ describe('暂停时按需渲染 (#79)', () => {
     });
 
     it('暂停时外部改写 currentTime (拖进度条): 恰好补一帧, 不持续渲染', () => {
-        mountPausedStage();
+        const renderSpy = mountPausedStage();
         flushFrames(1);
         renderSpy.mockClear();
         act(() => {
@@ -270,7 +277,7 @@ describe('暂停时按需渲染 (#79)', () => {
     });
 
     it('暂停时改参数: 补一帧', () => {
-        mountPausedStage();
+        const renderSpy = mountPausedStage();
         flushFrames(1);
         renderSpy.mockClear();
         act(() => {
@@ -283,7 +290,7 @@ describe('暂停时按需渲染 (#79)', () => {
     });
 
     it('暂停时旋转视角 (controls change): 补一帧, 相机停止后不再渲染', () => {
-        mountPausedStage();
+        const renderSpy = mountPausedStage();
         flushFrames(1);
         renderSpy.mockClear();
         const instances = (OrbitControls as unknown as { instances: { emit(type: string): void }[] }).instances;
@@ -295,7 +302,7 @@ describe('暂停时按需渲染 (#79)', () => {
     });
 
     it('恢复播放: 回到每帧渲染', () => {
-        mountPausedStage();
+        const renderSpy = mountPausedStage();
         flushFrames(1);
         renderSpy.mockClear();
         act(() => {

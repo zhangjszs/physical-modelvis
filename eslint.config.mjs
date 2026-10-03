@@ -81,6 +81,8 @@ export default tseslint.config(
                 document: 'readonly',
                 setTimeout: 'readonly',
                 clearTimeout: 'readonly',
+                // verify-*.cjs 的 page.evaluate 代码段里会用到浏览器定时回调
+                requestAnimationFrame: 'readonly',
             },
         },
         rules: {

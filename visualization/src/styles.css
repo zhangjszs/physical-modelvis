@@ -1852,6 +1852,10 @@ body {
     overflow: hidden;
     background: linear-gradient(180deg, #eff8ff 0%, #dbeafe 54%, #c7d2fe 100%);
 }
+.projectile-3d-stage .stage-canvas-host {
+    position: absolute;
+    inset: 0;
+}
 .projectile-3d-stage canvas {
     width: 100%;
     height: 100%;

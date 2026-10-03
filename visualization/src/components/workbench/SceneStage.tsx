@@ -9,6 +9,9 @@ const LazyEquipmentStage = lazy(() =>
     import('../simulation3d/EquipmentStage').then(m => ({ default: m.EquipmentStage }))
 );
 
+// WebGL 上下文拥有者 (#81)：renderer/canvas 常驻，跨场景复用；同为 three 消费方，必须 lazy
+const LazyStageRenderer = lazy(() => import('../simulation3d/StageRenderer').then(m => ({ default: m.StageRenderer })));
+
 // SimulationCanvas 2D 渲染链同样 lazy，与 3D 路径对称 (#16)
 const LazySimulationCanvas = lazy(() =>
     import('../simulation/SimulationCanvas').then(m => ({ default: m.SimulationCanvas }))
@@ -57,7 +60,13 @@ export function SceneStage({ renderMode = '3d' }: SceneStageProps) {
                                     </div>
                                 }
                             >
-                                <LazyEquipmentStage key={currentScene} rig={rig} />
+                                {/* StageRenderer 不按场景加 key —— renderer/canvas 跨场景常驻 (#81)；
+                                    key 仍留在 EquipmentStage 上, #70 的 remount + sceneId 绑定 rig 语义不变 */}
+                                <LazyStageRenderer>
+                                    {renderer => (
+                                        <LazyEquipmentStage key={currentScene} rig={rig} renderer={renderer} />
+                                    )}
+                                </LazyStageRenderer>
                             </Suspense>
                         ) : (
                             <div className="equipment-loading">
