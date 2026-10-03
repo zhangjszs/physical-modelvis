@@ -13,6 +13,8 @@
 > #83/#84/#85/#86 排 M2.6 后；**B1 #82（charts 类型化最小切片）插 M3 内部 #61 后 #62 前**（#62–#66 已挂 blocked_by #82）。
 > 2026-10-03 六次滚动：**M2.6 三单由执行棒连做落地并经规划者验收关闭**（#79/#80/#81，见 D14 后续事实）；
 > 巡检第 7/8 轮 #87/#88 自发现自修复关闭；执行棒移交的「巡检判据扩展」立为 #89 归 M2.7 尾。可执行队列首位 = **#83**。
+> 2026-10-03 七次滚动：**M2.7 四单（#83–#86）执行棒落地 + 双轴 code-review 后验收关闭**（无硬违规；
+> review 抓到 #80 判定 NaN 静默放行小洞立 **#90** 归 M2.7 尾）。可执行队列首位 = **#89**。
 
 ## 当前方向
 
@@ -64,13 +66,14 @@ compositionStore(+39) / compositionStore.test(+40)。风险低：基于 L4 之�
 
 | # | 主题 | 状态 | 优先级 | 验收标准（摘要） | 依赖 |
 |---|---|---|---|---|---|
-| [#83](https://github.com/zhangjszs/physical-modelvis/issues/83) | 引擎测试纳入 tsc（tsconfig exclude 移除 tests，1111 测试进类型检查，已知 2 处真实错误） | 已建 | P2 | tsc 覆盖引擎测试且绿；readonly 赋值修掉；不扩大 strict 面（#10 边界） | — |
-| [#84](https://github.com/zhangjszs/physical-modelvis/issues/84) | 静态守卫：断言不得被空 catch 吞掉（#72 教训固化，现存 5 处处置） | 已建 | P2 | 人为造空 catch 扫描变红；现存 5 处处置完；门禁进 precheck/CI | — |
-| [#85](https://github.com/zhangjszs/physical-modelvis/issues/85) | 4 大锤模型（thermistor/strain-gauge/security-alarm/light-control-switch）迁移窄钩子恢复守卫 | 已建 | P2 | grep 无大锤残留；NaN/Inf 拒绝契约 4/4；巡检 4 场景无红条；建议 #63 前 | — |
-| [#86](https://github.com/zhangjszs/physical-modelvis/issues/86) | K2 参数扫描数据通道**设计调查**（24 场景轨迹语义复用根治，含 51 playback WARN 交集梳理） | 已建 | P3 | 设计文档：分类清单 + 方案与理由 + 接口草案 + 影响面 + 分批建议；可据它直接立实施单 | — |
+| [#83](https://github.com/zhangjszs/physical-modelvis/issues/83) | 引擎测试纳入 tsc（专用 typecheck 配置，24 处真实错误全修，门禁等效偏离已判定成立） | ✅ CLOSED | P2 | `d101b4d`+`1395b9d` |
+| [#84](https://github.com/zhangjszs/physical-modelvis/issues/84) | 静态守卫：断言不得被空 catch 吞掉（AST 扫描入列；原「5 处」粗计数经审查纠偏为 0 违规） | ✅ CLOSED | P2 | `1752280` |
+| [#85](https://github.com/zhangjszs/physical-modelvis/issues/85) | 4 大锤模型迁移窄钩子恢复守卫（#8 成果重新覆盖 4 模型，#63 前置就位） | ✅ CLOSED | P2 | `9ce41e3` |
+| [#86](https://github.com/zhangjszs/physical-modelvis/issues/86) | K2 参数扫描数据通道**设计调查**（24 场景 A6/B2/C12/D4 分型 + sweeps 方案定案 + WARN 交集 7/24；实施单待 M4 前后据文档另立） | ✅ CLOSED | P3 | 设计文档在 issue |
 | [#89](https://github.com/zhangjszs/physical-modelvis/issues/89) | 巡检判据扩展：数据抽屉覆盖 + 交互后一致性（#78 崩溃盲区教训固化，执行棒移交） | 已建 | P3 | 人为复现 hooks 违规 sweep 变红；123 场景抽屉打开 0 console error；nightly 时长增幅 <20% | — |
+| [#90](https://github.com/zhangjszs/physical-modelvis/issues/90) | Review 收尾：#80 判定 NaN 静默放行堵洞 + perfVisit 重复块提取等三处小收尾 | 已建 | P3 | mock 采样异常 → exit 1；提取后 sweep 与基线一致；precheck 绿 | — |
 
-**执行顺序**：#83 → #84 → #85 → #86 → #89（互相独立，按创建序）。**进度**：0/5
+**执行顺序**：#89 → #90 →（M2.7 收口）。**进度**：4/6
 
 ## M2.5 · OCR 拍照解题功能线（用户 2026-10-02 提出，D13）
 
@@ -131,7 +134,7 @@ M2+M3 合计开放 P1 = 2（#67 / #61），但只有 #67 处于可开工状态�
 
 **blocked 现状一览（摘除全归规划者）**：#62–#66 ← #61/#82；#76 ← #74。
 #61 的 blocked 已随 #67 CLOSED 摘除。当前可执行队列 =
-**#83 → #84 → #85 → #86 → #89 → #60 → #68 → #74 → #75 → #76 → #77 → #61 → #82 → #62–#66**。
+**#89 → #90 → #60 → #68 → #74 → #75 → #76 → #77 → #61 → #82 → #62–#66**。
 ⚠️ 工作树现已干净（README 已记 viz 1302），执行棒恢复正常全量 `precheck`（含 count:sync）纪律。
 
 ## M2 之后的场线延伸（#67 收编完成后定）
