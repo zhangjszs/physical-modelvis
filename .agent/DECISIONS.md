@@ -150,6 +150,17 @@
   lint/format 门禁盲区收口，执行顺序排在 #67/#60 之后）。
 - **后续纪律**：外部 PR 一律由规划者评估后提请用户定夺，执行棒不动他人 PR。
 
+**后续事实（2026-10-03 十一次滚动，#68 按「重复」关闭）**：规划者在 #60 验收轮处理执行棒移交信号
+（「#68 范围第 2 项可能踩到 19 处存量 any warning」）时复核发现——**#68 的全部范围已于 2026-09-28
+由 #14 的两个 commit 落地**：`2d4c66f`（lint/format glob 覆盖 physics-core/tests + visualization/tests，
+eslint tests 目录 `no-explicit-any` 降 warn）与 `36aed93`（移除 scripts/** ignore、.mjs/.cjs/.js
+按类型配环境——即本决策想参考的 PR #25 方案、package.json glob 加 scripts、prettier 复排 7 文件）。
+两者均早于 #68 建单（2026-10-01），且活过 workspaces 迁移 `596cfa8`。本轮实测：`npm run lint`
+0 errors / 19 warnings（全在 tests，即 warn 基线不阻塞）、`npm run format:check` 全过、CI 常绿。
+→ #68 关闭（证据表见 issue 评论）；DEVELOPMENT_GUIDE 三处「仅 src+server」为 2026-07-13 历史日志，
+对其日期属实，非漂移。**教训**：D8 把 PR #25 意图转内部立单时，未交叉核验 #14 关闭时的实际落地内容——
+后续「意图转内部」类决策必须先比对已关闭 issue 的交付物。
+
 ---
 
 ## D5a · #60 覆盖面的补充事实（规划者追加，不改 D5 结论）
