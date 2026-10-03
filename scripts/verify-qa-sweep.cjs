@@ -14,6 +14,12 @@
  *      两趟之间 CDP 强制 GC 后采样 JS 堆, 增量超预算 → ERROR (人为造泄漏可复验变红)
  *  10. 性能-切换耗时 (#80): 计量趟逐场景测「点击 → 场景激活 + 首帧渲染完成 (2 rAF)」耗时,
  *      超预算 nightly 记 ERROR / pr 记 WARN (CI 机器噪声大, PR 档不拦截)
+ *  11. 数据抽屉覆盖 (#89): 每场景打开「数据/图像」懒加载抽屉 → 断言 0 console error /
+ *      无 ErrorBoundary 粘滞 (图表加载失败等兜底文案) → 关闭。修 #78 类盲区:
+ *      抽屉不打开, 里面的 hooks 崩溃与 ErrorBoundary 粘滞在全场景判定下全绿通过
+ *  12. 交互后一致性 (#89, 抽样): 代表性子集上验证「改参数 → 诊断读数随动」与
+ *      「拖时间轴 → 时间读数随动」, 覆盖 #87/#88 类「改完不重算/滞后一步」缺陷。
+ *      抽样而非全场景, 控制 nightly 时长增幅
  *
  * 运行: node scripts/verify-qa-sweep.cjs   (需 dev server, 默认 http://localhost:5199/)
  * 环境变量:
@@ -24,17 +30,22 @@
  *   QA_OUT            报告输出路径 (默认 .scratch/qa-sweep.json)
  *   QA_CHANNEL        浏览器渠道: 留空 = Playwright 自带 chromium (跨平台默认);
  *                     需系统 Edge/Chrome 时填 msedge / chrome (现有 verify-*.cjs 硬编 msedge, Linux 跑不了)
- *   QA_STRICT         失败口径: 默认 error = 任何 ERROR(console/pageerror/no-canvas/error-banner/找不到场景)均退出 1;
+ *   QA_STRICT         失败口径: 默认 error = 任何 ERROR(console/pageerror/no-canvas/error-banner/找不到场景/
+ *                     抽屉 ErrorBoundary 粘滞/交互读数不随动)均退出 1;
  *                     canvas = 只对「舞台没渲染」类失败 (no-canvas / scene-not-clickable) 退出 1,
- *                     console 报错与错误提示条降级为 WARN 仍上报 —— 给 PR 门禁用,
- *                     不被已知存量问题（或目录顺序变动）卡死正常 PR
+ *                     console 报错/错误提示条/抽屉与交互判定降级为 WARN 仍上报 —— 给 PR 门禁用,
+ *                     不被已知存量问题（或目录顺序变动/CI 机器交互计时噪声）卡死正常 PR
  *   QA_PERF_TIER      性能判定档位: pr (默认, 宽预算, 耗时超限只 WARN) |
  *                     nightly (严预算, 内存/耗时超限都 ERROR)
  *   QA_HEAP_BUDGET_MB 覆盖内存增量预算 (默认按档位: nightly 12 / pr 24)
  *   QA_SWITCH_BUDGET_MS 覆盖单场景切换耗时预算 (默认按档位: nightly 10000 / pr 25000)
+ *   QA_SKIP_DRAWER    1 = 跳过抽屉覆盖判定 (#89, 最快调试用)
+ *   QA_INTERACT_EVERY 交互后一致性抽粒度 (#89): 每 N 个场景抽 1 个做深度交互断言,
+ *                     默认 10; 0 = 关闭交互断言 (抽屉覆盖仍执行)
+ *   QA_INTERACT_ONLY  只对名字含该子串的场景做交互断言 (调试用, 覆盖 EVERY 抽样)
  *
- * 退出码: 0 = 无 ERROR 级问题; 1 = 存在 ERROR (console/pageerror/场景未找到/性能内存超限,
- *         nightly 下含切换耗时超限)
+ * 退出码: 0 = 无 ERROR 级问题; 1 = 存在 ERROR (console/pageerror/场景未找到/性能内存超限/
+ *         抽屉 ErrorBoundary 粘滞或抽屉内 console 错误/交互读数不随动, nightly 下含切换耗时超限)
  */
 const { chromium } = require('playwright');
 const fs = require('fs');
@@ -48,6 +59,14 @@ const OUT = process.env.QA_OUT || '.scratch/qa-sweep.json';
 const CHANNEL = process.env.QA_CHANNEL || '';
 /** 'canvas' = 只把「舞台未渲染/场景打不开」当作失败; 其余口径下 console 报错也算 ERROR */
 const STRICT = process.env.QA_STRICT || 'error';
+
+// ---- 数据抽屉覆盖 + 交互后一致性 (#89) ----
+const SKIP_DRAWER = process.env.QA_SKIP_DRAWER === '1';
+/** 交互断言抽样粒度: 每 N 个场景抽 1 个; 0 = 只做抽屉覆盖, 不做交互断言 */
+const INTERACT_EVERY = Number(process.env.QA_INTERACT_EVERY || '10');
+const INTERACT_ONLY = process.env.QA_INTERACT_ONLY || '';
+/** 抽屉内 ErrorBoundary 兜底文案 (DataDrawer 三处 ErrorBoundary 的 fallback) */
+const DRAWER_FALLBACK_RE = /图表加载失败|加载失败/;
 
 /** 每跑 N 个场景重载一次页面, 规避浏览器 WebGL 上下文数量上限造成的假红 */
 const RELOAD_EVERY = 20;
@@ -169,7 +188,7 @@ async function setSlider(page, selector, index, value) {
             el.dispatchEvent(new document.defaultView.Event('change', { bubbles: true }));
             return true;
         },
-        { sel: selector, index, val: value }
+        { sel: selector, idx: index, val: value }
     );
 }
 
@@ -182,6 +201,190 @@ async function sliderMeta(page, selector) {
             label: (el.closest('.param-item')?.querySelector('.param-label')?.textContent || '').trim()
         }));
     }, selector);
+}
+
+// ---- #89: 抽屉开关 / 诊断读数 / 时间读数 的浏览器侧辅助 ----
+
+/** 「数据/图像」抽屉开关 (WorkbenchScene 顶栏按钮, 展开后文案变为「收起数据」) */
+async function drawerToggleIndex(page) {
+    return page.evaluate(() => {
+        const btns = [...document.querySelectorAll('.btn-secondary')];
+        const idx = btns.findIndex(b => (b.textContent || '').includes('数据/图像'));
+        return idx;
+    });
+}
+
+/**
+ * 打开抽屉并等待懒加载 chunk 就绪。
+ * 返回 'opened' (抽屉可见) | 'not-visible' (按钮点在但抽屉没展开) | 'no-button' (找不到开关)
+ */
+async function openDrawer(page) {
+    const idx = await drawerToggleIndex(page);
+    if (idx < 0) return 'no-button';
+    await page.evaluate(i => {
+        const btns = [...document.querySelectorAll('.btn-secondary')];
+        btns[i]?.click();
+    }, idx);
+    try {
+        await page.waitForSelector('.classroom-data-drawer .graph-panel, .classroom-data-drawer .empty-state', {
+            timeout: 4000
+        });
+    } catch {
+        // 兜底文案出现时没有上述节点 — scanDrawerFallbacks 会报; 这里不额外判错
+    }
+    await page.waitForTimeout(400);
+    const visible = await page.evaluate(() => !!document.querySelector('.classroom-data-drawer-wrapper'));
+    return visible ? 'opened' : 'not-visible';
+}
+
+/** 关闭抽屉 (抽屉头部的「✕ 收起」按钮) */
+async function closeDrawer(page) {
+    await page.evaluate(() => {
+        const btn = document.querySelector('.classroom-data-drawer-wrapper [aria-label="收起数据抽屉"]');
+        btn?.click();
+    });
+}
+
+/** 扫描抽屉内可见的 ErrorBoundary 兜底文案 —— #78 崩溃的粘滞签名 */
+async function scanDrawerFallbacks(page) {
+    return page.evaluate(reSource => {
+        const re = new RegExp(reSource);
+        const out = [];
+        const nodes = document.querySelectorAll('.classroom-data-drawer *');
+        for (const el of nodes) {
+            if (!el.offsetParent || el.children.length > 0) continue;
+            const txt = (el.textContent || '').trim();
+            if (txt && re.test(txt)) out.push(txt.slice(0, 60));
+            if (out.length >= 3) break;
+        }
+        return out;
+    }, DRAWER_FALLBACK_RE.source);
+}
+
+/** 诊断读数快照 (排除「计算耗时」—— 它随每次运行抖动, 不构成参数随动证据) */
+async function readDiagValues(page) {
+    return page.evaluate(() => {
+        const items = [...document.querySelectorAll('.classroom-data-drawer .diag-item')];
+        return items
+            .map(it => ({
+                label: (it.querySelector('.diag-label')?.textContent || '').trim(),
+                value: (it.querySelector('.diag-value')?.textContent || '').trim()
+            }))
+            .filter(d => d.label && d.label !== '计算耗时')
+            .map(d => `${d.label}=${d.value}`)
+            .join(' | ');
+    });
+}
+
+/**
+ * 交互后一致性判定 A (#89): 改参数 → 诊断读数随动 (往返语义)。
+ * 对前 3 个参数依次尝试「对侧边界 + 中值」两个目标:
+ *   ① 目标值下读数相对变更前必须变化 (完全不响应 = 不重算/卡死);
+ *   ② 还原后读数必须回到原值 (回不去 = 滞后一步: 本次结果对应上一个参数态,
+ *      #88 的 DOM 签名)。
+ * 任一参数/目标组合同时满足 ①② 即通过; 3 个参数 6 个组合全部无响应 → fail。
+ * 为什么需要多候选: 离散参数存在别名值 (如电梯 mode 0=向上加速/3=向下减速
+ * 加速度相同, 读数 legit 一致), 首个参数的单一目标值不能证明「无响应」。
+ * 轮询等待重算落定 (3D 场景 rig 重建可能慢)。
+ */
+async function checkParamFollowsDiag(page) {
+    const params = await sliderMeta(page, '.param-slider');
+    if (params.length === 0) return { verdict: 'skip', reason: '无参数滑块' };
+    const base = await readDiagValues(page);
+    if (!base) return { verdict: 'skip', reason: '无诊断读数 (仿真未运行或无统计量)' };
+    const candidates = params.slice(0, 3);
+    const attempts = [];
+    for (const meta of candidates) {
+        const lo = Number(meta.min);
+        const hi = Number(meta.max);
+        const cur = Number(meta.value);
+        const targets = [];
+        if (Number.isFinite(lo) && Number.isFinite(hi) && hi > lo) {
+            targets.push(cur <= (lo + hi) / 2 ? hi : lo);
+            targets.push((lo + hi) / 2);
+        }
+        for (const target of targets) {
+            if (String(target) === String(meta.value)) continue;
+            attempts.push({ meta, target });
+        }
+    }
+    for (const { meta, target } of attempts) {
+        const before = await readDiagValues(page);
+        if (!before) return { verdict: 'skip', reason: '读数中途消失' };
+        await setSlider(page, '.param-slider', params.indexOf(meta), target);
+        let after = before;
+        for (let w = 0; w < 4 && after === before; w++) {
+            await page.waitForTimeout(500);
+            after = await readDiagValues(page);
+        }
+        if (after !== before) {
+            // ② 还原 → 读数必须归位
+            await setSlider(page, '.param-slider', params.indexOf(meta), meta.value);
+            let restored = after;
+            for (let w = 0; w < 4 && restored !== before; w++) {
+                await page.waitForTimeout(500);
+                restored = await readDiagValues(page);
+            }
+            if (restored !== before) {
+                return {
+                    verdict: 'fail',
+                    reason: `参数「${meta.label || '#' + params.indexOf(meta)}」还原后读数未归位 (滞后一步签名; 当前: ${restored.slice(0, 80)})`
+                };
+            }
+            return { verdict: 'pass', reason: `参数「${meta.label}」→ 读数随动且还原归位` };
+        }
+        // 无响应: 还原后重取基线再试下一组合 (还原可能触发重算, 基线必须现取)
+        await setSlider(page, '.param-slider', params.indexOf(meta), meta.value);
+        await page.waitForTimeout(400);
+    }
+    return {
+        verdict: 'fail',
+        reason: `前 ${candidates.length} 个参数的边界/中值组合均未改变诊断读数 (不重算/卡死签名; 基线: ${base.slice(0, 80)})`
+    };
+}
+
+/**
+ * 交互后一致性判定 B (#89): 拖时间轴 → 时间读数随动。
+ * 受控 input 下「store 卡住」会让滑块与读数一起不变, 因此同时校验:
+ * ① 拖拽后滑块值确实离开原位; ② 时间读数与滑块实际位置一致 (容忍 step 吸附)。
+ * tSemantics ≠ 真实时间的场景 (#86 设计文档: 48 个 totalDuration=0 的
+ * 单点占位/参数扫描场景, 时间轴滑块是扫描轴或无意义) 直接 SKIP ——
+ * 判据按现状分层, sweeps 通道上线 (#86 实施单) 后随批次收紧。
+ */
+async function checkTimelineFollowsTime(page) {
+    const tl = await sliderMeta(page, '.timeline-slider');
+    if (!tl.length || !tl[0].max || Number(tl[0].max) <= 0) {
+        return { verdict: 'skip', reason: '无有效时间轴' };
+    }
+    const totalDuration = await page.evaluate(() => {
+        const labels = document.querySelectorAll('.time-label');
+        // 第二个 .time-label 是 totalDuration (PlaybackControls 渲染 currentTime + totalDuration)
+        return labels.length >= 2 ? Number.parseFloat(labels[1].textContent) : NaN;
+    });
+    if (!Number.isFinite(totalDuration) || totalDuration <= 0) {
+        return { verdict: 'skip', reason: `无真实时间轴 (totalDuration=${totalDuration}, tSemantics≠时间)` };
+    }
+    const beforeSlider = Number(tl[0].value);
+    const target = beforeSlider < Number(tl[0].max) / 2 ? Number(tl[0].max) : 0;
+    await setSlider(page, '.timeline-slider', 0, target);
+    await page.waitForTimeout(500);
+    const state = await page.evaluate(() => ({
+        slider: Number(document.querySelector('.timeline-slider')?.value),
+        label: Number.parseFloat(document.querySelector('.time-label')?.textContent)
+    }));
+    // 复位到 0, 避免影响后续播放链路判定 (播放从 t0 推进到 t1)
+    await setSlider(page, '.timeline-slider', 0, 0);
+    await page.waitForTimeout(300);
+    const moved = Math.abs(state.slider - beforeSlider) > 1e-6;
+    const consistent =
+        moved &&
+        Number.isFinite(state.label) &&
+        Math.abs(state.label - state.slider) <= Math.max(0.05, Math.abs(state.slider - target) + 0.02);
+    if (!moved) return { verdict: 'fail', reason: `时间轴拖到 ${target} 后滑块值未动 (卡在 ${state.slider})` };
+    if (!consistent) {
+        return { verdict: 'fail', reason: `时间轴在 ${state.slider} 但读数显示 ${state.label}` };
+    }
+    return { verdict: 'pass', reason: `时间轴 → 读数随动 (${state.slider})` };
 }
 
 (async () => {
@@ -290,6 +493,78 @@ async function sliderMeta(page, selector) {
             findings.push({ level: 'INFO', kind: 'clipped', text: `${c.cls} "${c.text}" +${c.over}px` })
         );
 
+        // 5) 数据抽屉覆盖 (#89): 打开「数据/图像」懒加载抽屉 → 断言 0 console error /
+        //    无 ErrorBoundary 粘滞 (兜底文案) → 关闭。修 #78 盲区: 不打开抽屉,
+        //    里面的崩溃与粘滞在全场景判定下全绿通过
+        const drawerInfo = { opened: false, skipped: SKIP_DRAWER };
+        let drawerLogsN = 0;
+        if (!SKIP_DRAWER) {
+            const drawerBefore = logs.length;
+            const drawerState = await openDrawer(page);
+            drawerInfo.opened = drawerState === 'opened';
+            if (drawerState === 'no-button') {
+                findings.push({
+                    level: 'WARN',
+                    kind: 'drawer-not-openable',
+                    text: '找不到「数据/图像」抽屉开关'
+                });
+            } else if (drawerState === 'not-visible') {
+                findings.push({
+                    level: 'WARN',
+                    kind: 'drawer-not-openable',
+                    text: '点击开关后抽屉未展开 (覆盖判定降级)'
+                });
+            } else {
+                await page.waitForTimeout(600); // 等懒加载 chunk 首帧图表渲染
+                const fallbacks = await scanDrawerFallbacks(page);
+                fallbacks.forEach(t =>
+                    findings.push({
+                        level: STRICT === 'canvas' ? 'WARN' : 'ERROR',
+                        kind: 'drawer-errorboundary',
+                        text: `ErrorBoundary 粘滞: ${t}`
+                    })
+                );
+                // 抽屉段产生的 console/pageerror 以独立 kind 归入本段 (最终汇总时跳过, 避免重复上报)
+                drawerLogsN = logs.length - drawerBefore;
+                logs.slice(drawerBefore).forEach(l =>
+                    findings.push({
+                        level: STRICT === 'canvas' ? 'WARN' : 'ERROR',
+                        kind: l.kind === 'pageerror' ? 'drawer-pageerror' : 'drawer-console',
+                        text: l.text
+                    })
+                );
+
+                // 交互后一致性 (#89, 抽样): 只对代表性子集做深度断言, 控制 nightly 时长
+                const sampled =
+                    INTERACT_EVERY > 0 &&
+                    (i + 1) % INTERACT_EVERY === 0 &&
+                    (!INTERACT_ONLY || name.includes(INTERACT_ONLY));
+                drawerInfo.interaction = { sampled };
+                if (sampled) {
+                    const paramRes = await checkParamFollowsDiag(page);
+                    drawerInfo.interaction.paramFollowsDiag = paramRes;
+                    if (paramRes.verdict === 'fail') {
+                        findings.push({
+                            level: STRICT === 'canvas' ? 'WARN' : 'ERROR',
+                            kind: 'param-diag-not-following',
+                            text: `${paramRes.reason}`
+                        });
+                    }
+                    const timeRes = await checkTimelineFollowsTime(page);
+                    drawerInfo.interaction.timelineFollowsTime = timeRes;
+                    if (timeRes.verdict === 'fail') {
+                        findings.push({
+                            level: STRICT === 'canvas' ? 'WARN' : 'ERROR',
+                            kind: 'timeline-time-not-following',
+                            text: `${timeRes.reason}`
+                        });
+                    }
+                }
+                await closeDrawer(page);
+                await page.waitForTimeout(300);
+            }
+        }
+
         // 2) 播放链路: 时间是否推进
         const t0 = await page.evaluate(() => {
             const el = document.querySelector('.timeline-slider');
@@ -361,7 +636,8 @@ async function sliderMeta(page, selector) {
             }
         }
 
-        const newLogs = logs.slice(before);
+        // 抽屉段日志已按 drawer-* kind 单列, 这里跳过避免重复上报
+        const newLogs = logs.slice(before + drawerLogsN);
         newLogs.forEach(l =>
             findings.push({
                 level: STRICT === 'canvas' ? 'WARN' : 'ERROR',
@@ -375,7 +651,14 @@ async function sliderMeta(page, selector) {
             : findings.some(f => f.level === 'WARN')
               ? 'WARN'
               : 'OK';
-        results.push({ index: i + 1, name, worst, params: (await sliderMeta(page, '.param-slider')).length, findings });
+        results.push({
+            index: i + 1,
+            name,
+            worst,
+            params: (await sliderMeta(page, '.param-slider')).length,
+            drawer: drawerInfo,
+            findings
+        });
         const tag = worst === 'OK' ? '·' : worst === 'WARN' ? '⚠' : '✗';
         console.log(
             `${tag} [${i + 1}/${list.length}] ${worst.padEnd(5)} ${name}` +
@@ -582,6 +865,26 @@ async function sliderMeta(page, selector) {
             (perf
                 ? ` | 性能(${perf.tier}): 堆增量 ${perf.heap.deltaMB} MB, 耗时超限 ${perf.switchTime.breached.length}`
                 : '')
+    );
+    // #89: 抽屉覆盖与交互后一致性汇总
+    const drawerOpened = results.filter(r => r.drawer && r.drawer.opened).length;
+    const drawerSticky = results.filter(r => r.findings.some(f => f.kind === 'drawer-errorboundary')).length;
+    const drawerConsole = results.filter(r =>
+        r.findings.some(f => f.kind === 'drawer-console' || f.kind === 'drawer-pageerror')
+    ).length;
+    const drawerNotOpenable = results.filter(r => r.findings.some(f => f.kind === 'drawer-not-openable')).length;
+    const interactSampled = results.filter(r => r.drawer?.interaction?.sampled).length;
+    const paramFails = results.filter(r => r.findings.some(f => f.kind === 'param-diag-not-following'));
+    const timeFails = results.filter(r => r.findings.some(f => f.kind === 'timeline-time-not-following'));
+    console.log(
+        `抽屉覆盖 (#89): ${drawerOpened}/${results.length} 场景打开, ErrorBoundary 粘滞 ${drawerSticky}, ` +
+            `抽屉内 console 错误 ${drawerConsole}, 开关缺失 ${drawerNotOpenable}`
+    );
+    console.log(
+        `交互一致性 (#89, 抽样): ${interactSampled} 场景, 参数→读数不随动 ${paramFails.length}` +
+            `${paramFails.length ? ` (${paramFails.map(r => r.name).join(', ')})` : ''}` +
+            `, 时间轴→读数不随动 ${timeFails.length}` +
+            `${timeFails.length ? ` (${timeFails.map(r => r.name).join(', ')})` : ''}`
     );
     console.log(
         `口径: QA_STRICT=${STRICT}` +
