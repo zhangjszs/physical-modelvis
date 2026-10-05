@@ -1,34 +1,63 @@
 import express, { type Request, type Response, type NextFunction } from 'express';
 import cors from 'cors';
-import { stripJsonFence, normalizeRecognizeResult, resolveModel } from './ocr-utils';
+import {
+    stripJsonFence,
+    normalizeRecognizeResult,
+    resolveModel,
+    parseImageDataUrl,
+    mapUpstreamError,
+    parseCsvList
+} from './ocr-utils';
+import {
+    resolveProviderConfigs,
+    OCR_SYSTEM_PROMPT,
+    type ProviderConfig,
+    type VisionProvider,
+    type VisionImage
+} from './vision-providers';
+import { createAnthropicProvider } from './providers/anthropic';
+import { createOpenAICompatibleProvider } from './providers/openai-compatible';
 
 const app = express();
 const PORT = Number(process.env.OCR_PROXY_PORT ?? 3001);
 
-// Anthropic API 配置
-const ANTHROPIC_BASE_URL = process.env.ANTHROPIC_BASE_URL ?? 'https://api.anthropic.com';
-const ANTHROPIC_AUTH_TOKEN = process.env.ANTHROPIC_AUTH_TOKEN ?? process.env.ANTHROPIC_API_KEY;
-const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-6';
-
 // 上游请求超时 (ms) — 防止慢请求挂起 Express handler (#26)
 const OCR_PROXY_TIMEOUT_MS = Number(process.env.OCR_PROXY_TIMEOUT_MS ?? 60000);
 
-// 模型白名单: 仅允许列表内的模型标识透传上游 (#26)
-// 默认仅 ANTHROPIC_MODEL 本身; 可用逗号分隔配置多个
-const OCR_PROXY_ALLOWED_MODELS = (process.env.OCR_PROXY_ALLOWED_MODELS ?? '')
-    .split(',')
-    .map(s => s.trim())
-    .filter(Boolean);
-const ALLOWED_MODELS = OCR_PROXY_ALLOWED_MODELS.length > 0 ? OCR_PROXY_ALLOWED_MODELS : [ANTHROPIC_MODEL];
+// --- 提供方解析 (#74): env → 可用提供方实例 + 默认提供方 ---
+function createProvider(config: ProviderConfig): VisionProvider {
+    switch (config.protocol) {
+        case 'anthropic':
+            return createAnthropicProvider(config);
+        case 'openai-compatible':
+            return createOpenAICompatibleProvider(config);
+    }
+}
 
-if (!ANTHROPIC_AUTH_TOKEN) {
+const resolution = resolveProviderConfigs(process.env);
+const providers = new Map<string, { config: ProviderConfig; vision: VisionProvider }>();
+for (const config of resolution.providers) {
+    providers.set(config.id, { config, vision: createProvider(config) });
+}
+
+if (providers.size === 0) {
     console.error('错误: 未设置 ANTHROPIC_AUTH_TOKEN 或 ANTHROPIC_API_KEY 环境变量');
     process.exit(1);
 }
+if (!providers.has(resolution.defaultProviderId)) {
+    console.error(
+        `错误: OCR_PROVIDER=${resolution.defaultProviderId} 未配置或不可用; 可用提供方: ${[...providers.keys()].join(', ')}`
+    );
+    process.exit(1);
+}
+const defaultProviderId = resolution.defaultProviderId;
 
-console.log(`使用 API: ${ANTHROPIC_BASE_URL}`);
-console.log(`使用模型: ${ANTHROPIC_MODEL}`);
-console.log(`模型白名单: ${ALLOWED_MODELS.join(', ')}`);
+for (const { config } of providers.values()) {
+    console.log(
+        `提供方 ${config.id}: API ${config.baseUrl} · 模型 ${config.defaultModel} · 白名单 ${config.allowedModels.join(', ') || '(仅默认模型)'}`
+    );
+}
+console.log(`默认提供方: ${defaultProviderId}`);
 console.log(`上游超时: ${OCR_PROXY_TIMEOUT_MS}ms`);
 
 // --- Rate limiting (in-memory, 10 req/min per IP) ---
@@ -62,7 +91,13 @@ function rateLimit(req: Request, res: Response, next: NextFunction): void {
 }
 
 // --- Middleware ---
-app.use(cors({ origin: ['http://localhost:3000', 'http://localhost:5173'] }));
+// CORS 白名单: 默认本地开发端口, 可用 OCR_PROXY_CORS_ORIGINS (逗号分隔) 追加 (#74)
+const CORS_ORIGINS = [
+    'http://localhost:3000',
+    'http://localhost:5173',
+    ...parseCsvList(process.env.OCR_PROXY_CORS_ORIGINS)
+];
+app.use(cors({ origin: CORS_ORIGINS }));
 app.use(express.json({ limit: '15mb' }));
 app.use(rateLimit);
 
@@ -81,7 +116,7 @@ function validateImage(dataUrl: string): string | null {
 
 // --- OCR endpoint ---
 app.post('/api/ocr/recognize', async (req: Request, res: Response) => {
-    const { image, model } = req.body as { image?: string; model?: string };
+    const { image, model, provider } = req.body as { image?: string; model?: string; provider?: string };
 
     const validationError = validateImage(image ?? '');
     if (validationError) {
@@ -94,72 +129,43 @@ app.post('/api/ocr/recognize', async (req: Request, res: Response) => {
         return;
     }
 
-    try {
-        // Anthropic Messages API 格式
-        const base64Data = image.replace(/^data:image\/\w+;base64,/, '');
-        const mediaType = image.match(/data:(image\/\w+);/)?.[1] ?? 'image/png';
-        const resolvedModel = resolveModel(model, ALLOWED_MODELS, ANTHROPIC_MODEL);
+    // 提供方路由 (#74): 请求显式指定且可用 → 用之; 指定但不可用 → 400; 未指定 → 服务端默认
+    const requestedProvider = typeof provider === 'string' ? provider.trim().toLowerCase() : '';
+    if (requestedProvider && !providers.has(requestedProvider)) {
+        res.status(400).json({
+            error: `提供方 ${requestedProvider} 不可用; 可用提供方: ${[...providers.keys()].join(', ')}`
+        });
+        return;
+    }
+    const providerId = requestedProvider || defaultProviderId;
+    const active = providers.get(providerId)!;
 
-        const upstream = await fetch(`${ANTHROPIC_BASE_URL}/v1/messages`, {
+    const parsedImage = parseImageDataUrl(image);
+    if (!parsedImage) {
+        res.status(400).json({ error: '仅支持 PNG/JPEG/WebP/GIF 格式' });
+        return;
+    }
+    const visionImage: VisionImage = { dataUrl: image, ...parsedImage };
+
+    try {
+        const resolvedModel = resolveModel(model, active.config.allowedModels, active.config.defaultModel);
+        const upstreamReq = active.vision.buildRequest(visionImage, resolvedModel, OCR_SYSTEM_PROMPT);
+        const upstream = await fetch(upstreamReq.url, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': ANTHROPIC_AUTH_TOKEN!,
-                'anthropic-version': '2023-06-01'
-            },
+            headers: upstreamReq.headers,
             signal: AbortSignal.timeout(OCR_PROXY_TIMEOUT_MS),
-            body: JSON.stringify({
-                model: resolvedModel,
-                max_tokens: 3000,
-                system: `你是高中物理题目识别助手。识别图片中的物理题目，图片中可能包含一道或多道题，严格返回 JSON：
-{"problems":[{"index":1,"type":"single-choice|multiple-choice|fill-blank|essay","title":"题目标题","description":"题目描述","source":"来源","given":{"参数":"值"},"options":[{"letter":"A","text":"选项文本"}],"answer":{"correct":["正确选项"],"explanation":"解题思路"},"sceneTemplate":"projectile|electric-field|magnetic-field|null","formulas":["公式"]}]}
-规则：
-- 图片中有几道题就返回几个 problems 元素，index 从 1 开始递增
-- type 取值：single-choice(单选题)/multiple-choice(多选题)/fill-blank(填空题)/essay(解答题)
-- 选择题必须填 options，answer.correct 填正确选项字母（多选题填多个）
-- sceneTemplate 根据题目物理场景选择：
-  - 平抛/斜抛运动 → "projectile"
-  - 匀强电场中的带电粒子 → "electric-field"
-  - 匀强磁场中的带电粒子 → "magnetic-field"
-  - 碰撞 → "collision"
-  - 弹簧振子 → "spring"
-  - 斜面运动 → "inclined-plane"
-  - 电磁复合场 → "em-combined"
-  - 其他 → null
-- given 只放数值型物理量，单位换算为 SI
-只返回 JSON，不要其他文字。`,
-                messages: [
-                    {
-                        role: 'user',
-                        content: [
-                            {
-                                type: 'image',
-                                source: { type: 'base64', media_type: mediaType, data: base64Data }
-                            },
-                            { type: 'text', text: '请识别这张物理题目图片中的内容，返回 JSON。' }
-                        ]
-                    }
-                ]
-            })
+            body: JSON.stringify(upstreamReq.body)
         });
 
         if (!upstream.ok) {
             const errText = await upstream.text().catch(() => '');
-            if (upstream.status === 401) {
-                res.status(502).json({ error: '上游 API Key 无效' });
-                return;
-            }
-            if (upstream.status === 429) {
-                res.status(502).json({ error: '上游 API 请求过于频繁' });
-                return;
-            }
-            res.status(502).json({ error: `上游 API 错误 (${upstream.status}): ${errText.slice(0, 200)}` });
+            const mapped = mapUpstreamError(upstream.status, errText);
+            res.status(mapped.httpStatus).json({ error: mapped.error });
             return;
         }
 
-        // Anthropic 响应格式: { content: [{ type: "text", text: "..." }] }
-        const data = (await upstream.json()) as { content?: Array<{ type?: string; text?: string }> };
-        const content = data.content?.[0]?.text;
+        const data: unknown = await upstream.json();
+        const content = active.vision.parseResponse(data);
         if (!content) {
             res.status(502).json({ error: 'AI 未返回内容' });
             return;
@@ -174,7 +180,11 @@ app.post('/api/ocr/recognize', async (req: Request, res: Response) => {
                 res.status(502).json({ error: 'AI 返回内容中未识别到有效题目' });
                 return;
             }
-            res.json({ result: normalized });
+            const modelFallback = Boolean(model) && resolvedModel !== model;
+            res.json({
+                result: normalized,
+                meta: { provider: providerId, model: resolvedModel, requestedModel: model ?? null, modelFallback }
+            });
         } catch {
             res.status(502).json({ error: 'AI 返回内容无法解析为 JSON' });
         }
@@ -191,7 +201,11 @@ app.post('/api/ocr/recognize', async (req: Request, res: Response) => {
 
 // --- Health check ---
 app.get('/api/ocr/health', (_req: Request, res: Response) => {
-    res.json({ status: 'ok' });
+    res.json({
+        status: 'ok',
+        defaultProvider: defaultProviderId,
+        providers: [...providers.values()].map(({ config }) => ({ id: config.id, defaultModel: config.defaultModel }))
+    });
 });
 
 // --- Global error handler ---

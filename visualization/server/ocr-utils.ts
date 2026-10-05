@@ -117,3 +117,60 @@ export function resolveModel(requested: string | undefined, allowList: string[],
     if (requested && allowList.includes(requested)) return requested;
     return fallback;
 }
+
+/**
+ * 解析 data URL 图片为媒体类型 + 纯 base64 数据 (#74)
+ *
+ * @returns 非 `data:image/*;base64,` 形态时返回 null (由调用方转 400)
+ */
+export function parseImageDataUrl(dataUrl: string): { mediaType: string; base64: string } | null {
+    const match = /^data:(image\/[\w.+-]+);base64,(.+)$/.exec(dataUrl);
+    if (!match) return null;
+    return { mediaType: match[1]!, base64: match[2]! };
+}
+
+/**
+ * 上游非 2xx 状态 → 对客户端的错误响应 (#26 口径, #74 自 ocr-proxy 抽取为纯函数)
+ *
+ * 401 (Key 无效) 与 429 (限流) 特化为固定文案, 其余状态统一 502 并透传上游片段。
+ */
+export function mapUpstreamError(status: number, errText: string): { httpStatus: number; error: string } {
+    if (status === 401) return { httpStatus: 502, error: '上游 API Key 无效' };
+    if (status === 429) return { httpStatus: 502, error: '上游 API 请求过于频繁' };
+    return { httpStatus: 502, error: `上游 API 错误 (${status}): ${errText.slice(0, 200)}` };
+}
+
+/** 解析逗号分隔的环境变量值为字符串列表 (空串/缺省 → 空数组) (#74) */
+export function parseCsvList(value: string | undefined): string[] {
+    return (value ?? '')
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
+}
+
+// --- 前后端共享的接口类型 (#74) ---
+
+/** /api/ocr/health 返回的单个可用提供方 */
+export interface ProviderHealthInfo {
+    id: string;
+    defaultModel: string;
+}
+
+/** /api/ocr/health 响应 */
+export interface OcrHealthResponse {
+    status: string;
+    defaultProvider: string;
+    providers: ProviderHealthInfo[];
+}
+
+/** /api/ocr/recognize 响应中的 meta 字段 (提供方路由与模型回落提示用) */
+export interface RecognizeMeta {
+    /** 实际使用的提供方 id */
+    provider: string;
+    /** 实际使用的模型 (回落后) */
+    model: string;
+    /** 调用方请求的模型 (未指定为 null) */
+    requestedModel: string | null;
+    /** 请求模型不在白名单、已回落默认 */
+    modelFallback: boolean;
+}

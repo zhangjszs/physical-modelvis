@@ -1,39 +1,55 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useSimulationStore } from '../../store/simulationStore';
 import { resolveScene, buildSceneParams, inferProblemTypeLabel } from './ocrUtils';
-import type { RecognizeResponse, RecognizedProblem } from '../../../server/ocr-utils';
+import type { RecognizeResponse, RecognizedProblem, OcrHealthResponse, RecognizeMeta } from '../../../server/ocr-utils';
 
-const OCR_PROXY_URL = 'http://localhost:3001';
-const STORAGE_KEY = 'physvis_viz_ocr_model';
+// 代理地址可在构建时注入 (GitHub Pages 等非本机部署), 缺省本地开发地址 (#74)
+const OCR_PROXY_URL = import.meta.env.VITE_OCR_PROXY_URL ?? 'http://localhost:3001';
+const STORAGE_KEY_MODEL = 'physvis_viz_ocr_model';
+const STORAGE_KEY_PROVIDER = 'physvis_viz_ocr_provider';
 
 function loadModel(): string {
-    return localStorage.getItem(STORAGE_KEY) ?? '';
+    return localStorage.getItem(STORAGE_KEY_MODEL) ?? '';
 }
 
 function saveModel(model: string) {
-    localStorage.setItem(STORAGE_KEY, model);
+    localStorage.setItem(STORAGE_KEY_MODEL, model);
 }
 
-async function checkBackendHealth(): Promise<boolean> {
+function loadProvider(): string {
+    return localStorage.getItem(STORAGE_KEY_PROVIDER) ?? '';
+}
+
+function saveProvider(provider: string) {
+    localStorage.setItem(STORAGE_KEY_PROVIDER, provider);
+}
+
+async function checkBackendHealth(): Promise<OcrHealthResponse | null> {
     try {
         const resp = await fetch(`${OCR_PROXY_URL}/api/ocr/health`, { signal: AbortSignal.timeout(3000) });
-        return resp.ok;
+        if (!resp.ok) return null;
+        return (await resp.json()) as OcrHealthResponse;
     } catch {
-        return false;
+        return null;
     }
 }
 
-async function recognizeProblem(base64Image: string, model: string): Promise<RecognizeResponse> {
+interface RecognizeCallResult {
+    result: RecognizeResponse;
+    meta?: RecognizeMeta;
+}
+
+async function recognizeProblem(base64Image: string, model: string, provider: string): Promise<RecognizeCallResult> {
     const resp = await fetch(`${OCR_PROXY_URL}/api/ocr/recognize`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: base64Image, model: model || undefined })
+        body: JSON.stringify({ image: base64Image, model: model || undefined, provider: provider || undefined })
     });
 
-    const data = (await resp.json()) as { result?: RecognizeResponse; error?: string };
+    const data = (await resp.json()) as { result?: RecognizeResponse; error?: string; meta?: RecognizeMeta };
     if (!resp.ok) throw new Error(data.error ?? `请求失败 (${resp.status})`);
     if (!data.result) throw new Error('后端未返回识别结果');
-    return data.result;
+    return { result: data.result, meta: data.meta };
 }
 
 export function OCRPanel() {
@@ -48,6 +64,8 @@ export function OCRPanel() {
     const base64Ref = useRef<string | null>(null);
 
     const [model, setModel] = useState(loadModel);
+    const [provider, setProvider] = useState(loadProvider);
+    const [health, setHealth] = useState<OcrHealthResponse | null>(null);
 
     const { setScene, setParameter } = useSimulationStore();
 
@@ -56,7 +74,16 @@ export function OCRPanel() {
     useEffect(() => {
         if (!isOpen) return;
         setBackendOk(null);
-        checkBackendHealth().then(setBackendOk);
+        setHealth(null);
+        checkBackendHealth().then(h => {
+            setBackendOk(h !== null);
+            setHealth(h);
+            // 本地记住的提供方在当前后端不可用时回退服务端默认 (#74)
+            if (h) {
+                const ids = h.providers.map(p => p.id);
+                setProvider(cur => (cur && ids.includes(cur) ? cur : ''));
+            }
+        });
     }, [isOpen]);
 
     const handleFile = useCallback((file: File) => {
@@ -92,23 +119,33 @@ export function OCRPanel() {
     const doRecognize = useCallback(async () => {
         if (!base64Ref.current) return;
         saveModel(model);
+        saveProvider(provider);
         setLoading(true);
         setStatus({ type: 'info', msg: '正在识别...' });
         setProblems(null);
         setActiveIndex(0);
         try {
-            const r = await recognizeProblem(base64Ref.current, model);
-            if (r.problems.length === 0) throw new Error('未识别到有效题目');
-            setStatus({ type: 'success', msg: `识别完成: 共 ${r.problems.length} 题` });
-            setProblems(r.problems);
+            const r = await recognizeProblem(base64Ref.current, model, provider);
+            if (r.result.problems.length === 0) throw new Error('未识别到有效题目');
+            // 模型回落提示 (#74): 请求模型不在服务端白名单、已回落默认
+            const fallbackNote = r.meta?.modelFallback
+                ? `（模型 ${r.meta.requestedModel} 不在白名单，已回落默认 ${r.meta.model}）`
+                : '';
+            setStatus({ type: 'success', msg: `识别完成: 共 ${r.result.problems.length} 题${fallbackNote}` });
+            setProblems(r.result.problems);
         } catch (e) {
             setStatus({ type: 'error', msg: e instanceof Error ? e.message : '识别失败' });
         } finally {
             setLoading(false);
         }
-    }, [model]);
+    }, [model, provider]);
 
     const activeProblem = problems?.[activeIndex] ?? null;
+
+    // 提供方下拉与 placeholder 由 /health 驱动 (#74); 旧版后端无 providers 字段时隐藏下拉
+    const providerOptions = health?.providers ?? [];
+    const effectiveProvider = provider || health?.defaultProvider || '';
+    const selectedDefaultModel = health?.providers.find(p => p.id === effectiveProvider)?.defaultModel ?? '';
 
     const loadIntoSimulation = useCallback(() => {
         const problem = problems?.[activeIndex];
@@ -195,13 +232,34 @@ export function OCRPanel() {
                             {backendOk === null ? '检测中...' : backendOk ? '已连接' : '未连接 (请启动 ocr-proxy)'}
                         </span>
                     </div>
+                    {providerOptions.length > 0 && (
+                        <div className="ocr-field">
+                            <label>提供方</label>
+                            <select
+                                value={provider}
+                                onChange={e => {
+                                    setProvider(e.target.value);
+                                    saveProvider(e.target.value);
+                                }}
+                            >
+                                <option value="">
+                                    默认{health?.defaultProvider ? ` (${health.defaultProvider})` : ''}
+                                </option>
+                                {providerOptions.map(p => (
+                                    <option key={p.id} value={p.id}>
+                                        {p.id}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
                     <div className="ocr-field">
                         <label>模型</label>
                         <input
                             type="text"
                             value={model}
                             onChange={e => setModel(e.target.value)}
-                            placeholder="gpt-4o (默认)"
+                            placeholder={selectedDefaultModel ? `${selectedDefaultModel} (默认)` : '默认模型'}
                         />
                     </div>
                 </details>
