@@ -2,32 +2,44 @@
 
 > 可机器解析的事实账本：活跃任务 / 已完成 / 阻塞。接力通过 git 历史 + GitHub issue + 本目录（ENV/STATE/HANDOFF）三重载体。
 
-- 当前 agent-id: `zcode-exec-1003-6`（**执行者·第六棒**）· **本轮已正常收尾，锁已释放**
-- 会话: 2026-10-03T11:1xZ ≈ 本地 19:1x → 收尾 ~19:5x（承接规划者十次滚动交接）
-- 本轮代码 commit: `fff307f`（#60 引擎单位记号 Unicode 收口）—— 已推送，CI/Deploy 绿
-- 脉络：规划者十次滚动（cc0eb86）交接「下一棒从 #60 开工」→ 本棒执行 #60 完工，**待规划者验收关闭**（本轮规划者为用户会话，执行者不自行关闭）。
+- 当前 agent-id: `executor-1010-1`（**执行者·第七棒**）· 本轮 #74 完工转 in-review，待规划者验收
+- 会话: 2026-10-05T07:14Z ≈ 本地 15:14 → 进行中
+- 本轮代码 commit: `ad7a1d5`（#74 OCR 代理多提供方扩展）—— 分支 `agent/issue-74-ocr-provider`，合回 main 后推送
+- 脉络：十二次滚动（f5a3629）后队首 #74 → 本棒领取执行完工，**待规划者验收关闭**
 
 ## 接力载体
-- `.agent/` 随仓库提交（`.agent/.gitignore` 仅排 `LOCK`）。PLAN.md / DECISIONS.md 归规划者（用户本轮亲任，现至 D16 + 十次滚动）；
+- `.agent/` 随仓库提交（`.agent/.gitignore` 仅排 `LOCK`）。PLAN.md / DECISIONS.md 归规划者；
   STATE.md / HANDOFF.md 归执行者。
 
 ## 文件锁
-无（本轮已释放）。
+运行中（executor-1010-1，issue #74，收尾时释放）。
 
 ## 当前活跃
-无活跃任务。**#60 已完工回写，等规划者验收**。下一棒第一优先（验收后）= **#68**（lint/format 门禁盲区收口，M2 尾巴第 2 项）。
+**#74 in-review**（OCR 多提供方扩展，`ad7a1d5`）。验收要点见 issue 执行报告 comment。
+下一棒第一优先（验收后）= **#75**（OCR 质量收口：OCRPanel 组件测试 + HTTP 层测试 + 巡检覆盖 + 组合台模式切换修复）。
 
 ## 已完成（本棒全程，≤10 条）
-- **#60** 引擎单位记号 Unicode 收口 — `fff307f` ✅ 完工待验收：29 处替换（'deg'→'°' 25 / 'um'→'μm' 4，10 个模型文件 + 渲染 HUD 1 处）；'°C' 4 处按 D5 排除；双包防回潮门禁各 +1 it（引擎 constants-single-source / 渲染 rendering-constants-single-source，L11 同族）；双门禁红向验证（注入即红、还原即绿）；precheck 全绿；count:sync 回写（core 1119 / viz 1453 / total 2572）。
+- **#74** OCR 代理多提供方扩展 — `ad7a1d5` ✅ 完工待验收：VisionProvider 抽象（vision-providers.ts）+
+  anthropic.ts 迁入（行为不变）+ openai-compatible.ts 新增；配置面 OCR_PROVIDER + 动态 `<PREFIX>_*` 槽位
+  （DeepSeek 等一套适配器全覆盖）；/health 返回可用提供方；recognize 增 provider 字段 + meta 回落提示；
+  前端提供方下拉 / placeholder 实际默认模型 / VITE_OCR_PROXY_URL 收口 / CORS env 追加；
+  补 tsx devDependency（修复 server:dev 依赖缺失）；测试 +35（core 1119 / viz 1488 / total 2607）。
+- **基础设施**：仓库缺 `in-progress`/`in-review` 生命周期标签，按契约 1.5 补建（gh label create）。
 
 ## 阻塞项 / 风险
-- 无外部阻塞。#44 人类持有勿动；自检 11 层；工作树干净；远程同步至 `fff307f`。
-- 规划者已立 **#92**（静态边界门禁 + 3 处 #91 同类失配修复，排 #61 后 #82 前），执行时注意 issue 内的 collision 假阳性警示（门禁须校验 `problem.model` 而非 `scene.model`）。
+- 无外部阻塞。#44 人类持有勿动；工作树干净（分支合回后）。
+- **冒烟脚本环境限制**：`scripts/verify-ocr-mount.cjs` 及同族 verify-*.cjs 硬编码 `channel: 'msedge'`，
+  本 WSL 环境 Linux 侧无 msedge → 原样脚本无法执行；已用同脚本 chromium 通道变体（.scratch）实跑通过。
+  若后续需要常态化跑冒烟，需规划者决策（装 Linux Edge / 脚本通道可配置）。
+- **端口 3000 被本机其他项目（weibo-sentiment-analysis）dev server 占用**——冒烟/联调时把自己的
+  vite 固定 `--port 3200 --strictPort` 即可，勿杀他人进程。
 
 ## 环境备注（继承 + 新增）
-- `export PATH="$HOME/.local/share/mise/shims:$PATH"`；杀 dev server 用 `node .scratch/kill-vite.cjs`。
-- 改 `physics-core/src` 后：可视化测试/typecheck 前必须 `npm run build:core`（dist 新鲜度守卫会拦）。
-- **grep 大小写陷阱**：`xUnit`/`yUnit` 是 capital U——统计 `unit: 'deg'` 类字样时小写模式会漏计轴记号；做全量字面量统计用 `'deg'|'um'` 精确串。
-- **git checkout 还原注入验证后会误伤同文件既有改动**（本棒实测：diffraction-grating 的 #60 替换被首次注入失败的 checkout 回失，重做一遍）——红向验证的「还原」步改用反向 sed，勿用 checkout。
-- 测试数真值 **core 1119 / viz 1453 / total 2572**（#60 后，count:sync 已回写）。
-- 巡检绿基线 JSON：`.scratch/qa-sweep-89-final.json`（ERROR 0/WARN 51/OK 72）。
+- `export PATH="$HOME/.local/share/mise/shims:$PATH"`；改 `physics-core/src` 后跑可视化前必须 `npm run build:core`。
+- **tsx 之前不在依赖里**：`server:dev` 引用 tsx 但 devDependencies 缺失（npx 临时下载才"能用"）；
+  本棒已补进 visualization devDependencies。
+- **playwright waitForFunction 签名**：`waitForFunction(fn, arg, options)`——options 传第二参会落空（默认 30s）。
+- **`<details>` 折叠时 innerText 不含隐藏内容**：面板探测需先 click summary 再断言文本。
+- **pkill 自杀陷阱**：`pkill -f "xxx.mjs"` 会匹配自身 bash 命令行杀死会话 shell，模式用 `[x]` 转义
+  （如 `mock-upstream.[m]js`）；崩溃残留的后台 mock/proxy 会占端口导致下一轮诡异失败——异常退出后先查 9201/3001/3200。
+- 测试数真值 **core 1119 / viz 1488 / total 2607**（#74 后，count:sync 已回写）。
