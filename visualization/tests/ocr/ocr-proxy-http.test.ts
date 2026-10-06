@@ -1,7 +1,8 @@
 /**
- * OCR 代理 HTTP 层测试 (#75)
+ * OCR 代理 HTTP 层测试 (#75, #76 扩展 generate 端点)
  *
- * 覆盖验收标准 2 的 5 条路径 + 启动期配置校验 (/health):
+ * 覆盖 recognize 验收标准 2 的 5 条路径 + generate (#76) 输入校验/归一化复用/截断 +
+ * 启动期配置校验 (/health):
  *   - 400 入参校验 (缺图/格式/超 10MB) / 429 限流 / 502 上游错误 / 504 上游超时 / 成功归一化
  *
  * 方案: ocr-proxy-app 工厂在进程内创建独立 app (限流计数器随实例隔离),
@@ -236,5 +237,149 @@ describe('GET /api/ocr/health', () => {
             defaultProvider: 'anthropic',
             providers: [{ id: 'anthropic', defaultModel: 'claude-sonnet-4-6' }]
         });
+    });
+});
+
+// --- 举一反三: POST /api/problems/generate (#76) ---
+
+/** 样例原题 (schema 同 recognize 输出) */
+const SAMPLE_PROBLEM = {
+    index: 1,
+    type: 'fill-blank',
+    title: '平抛运动',
+    description: '从 20m 高处以 5m/s 水平抛出一个小球, 求落地时间',
+    given: { 初速度: 5, 高度: 20 },
+    sceneTemplate: 'projectile',
+    formulas: ['h = 0.5 * g * t^2']
+};
+
+/** 构造含 n 道变式的上游围栏文本 (题目间用标题区分) */
+function variantsFence(n: number): string {
+    const problems = Array.from({ length: n }, (_, i) => ({
+        type: 'fill-blank',
+        title: `变式题${i + 1}`,
+        description: `第 ${i + 1} 道变式: 从 ${20 + i}m 高处水平抛出`,
+        given: { 初速度: 5 + i, 高度: 20 + i },
+        sceneTemplate: 'projectile'
+    }));
+    return '```json\n' + JSON.stringify({ problems }) + '\n```';
+}
+
+describe('POST /api/problems/generate — 输入校验 400', () => {
+    it('edge: 缺 problem / problem 为数组 → 400 缺少原题数据', async () => {
+        upstreamHandler = (_req, res) => respondAnthropicText(res, variantsFence(1));
+        const proxy = await startProxy();
+        open.push(proxy);
+
+        const missing = await postJson(proxy.baseUrl, '/api/problems/generate', { count: 2 });
+        expect(missing.status).toBe(400);
+        expect(missing.json.error).toBe('缺少原题数据');
+
+        const arrayProblem = await postJson(proxy.baseUrl, '/api/problems/generate', {
+            problem: [SAMPLE_PROBLEM]
+        });
+        expect(arrayProblem.status).toBe(400);
+        expect(arrayProblem.json.error).toBe('缺少原题数据');
+    });
+
+    it('edge: count 越界 (0/6/小数/非数字) → 400 生成数量文案', async () => {
+        upstreamHandler = (_req, res) => respondAnthropicText(res, variantsFence(1));
+        const proxy = await startProxy();
+        open.push(proxy);
+
+        for (const count of [0, 6, 1.5, '3']) {
+            const r = await postJson(proxy.baseUrl, '/api/problems/generate', { problem: SAMPLE_PROBLEM, count });
+            expect(r.status).toBe(400);
+            expect(r.json.error).toBe('生成数量须为 1-5 的整数');
+        }
+    });
+
+    it('edge: provider 不可用 → 400 (与 recognize 共用路由)', async () => {
+        upstreamHandler = (_req, res) => respondAnthropicText(res, variantsFence(1));
+        const proxy = await startProxy();
+        open.push(proxy);
+
+        const r = await postJson(proxy.baseUrl, '/api/problems/generate', {
+            problem: SAMPLE_PROBLEM,
+            provider: 'nope'
+        });
+        expect(r.status).toBe(400);
+        expect(String(r.json.error)).toContain('nope');
+    });
+});
+
+describe('POST /api/problems/generate — 成功与归一化复用', () => {
+    it('positive: 上游返回 5 道 + count=3 → 截断为 3 道, schema 与 recognize 一致, meta 在案', async () => {
+        const seen: Array<Record<string, unknown>> = [];
+        upstreamHandler = (req, res) => {
+            let body = '';
+            req.on('data', c => (body += c));
+            req.on('end', () => {
+                seen.push(JSON.parse(body) as Record<string, unknown>);
+                respondAnthropicText(res, variantsFence(5));
+            });
+        };
+        const proxy = await startProxy();
+        open.push(proxy);
+
+        const r = await postJson(proxy.baseUrl, '/api/problems/generate', {
+            problem: SAMPLE_PROBLEM,
+            count: 3
+        });
+        expect(r.status).toBe(200);
+        const result = r.json.result as { problems: Array<Record<string, unknown>> };
+        expect(result.problems).toHaveLength(3); // 上游 5 道 → 服务端截断 ≤count
+        expect(result.problems[0]!.title).toBe('变式题1');
+        // 归一化复用: 补 1-based 题号 + 字段透传 (type/sceneTemplate/given 齐全)
+        expect(result.problems.map(p => p.index)).toEqual([1, 2, 3]);
+        expect(result.problems[0]).toMatchObject({ type: 'fill-blank', sceneTemplate: 'projectile' });
+        expect(result.problems[0]!.given).toEqual({ 初速度: 5, 高度: 20 });
+        expect(r.json.meta).toMatchObject({ provider: 'anthropic', modelFallback: false });
+
+        // 上游请求为纯文本消息 (无图片块), system 走 Anthropic 顶层字段
+        expect(seen).toHaveLength(1);
+        expect(typeof seen[0]!.system).toBe('string');
+        const messages = seen[0]!.messages as Array<{ role: string; content: unknown }>;
+        expect(messages).toHaveLength(1);
+        const user = messages[0] as { role: string; content: Array<{ type: string; text: string }> };
+        expect(user.role).toBe('user');
+        expect(user.content).toHaveLength(1);
+        expect(user.content[0]!.type).toBe('text');
+        expect(user.content[0]!.text).toContain('生成 3 道变式题');
+        expect(user.content[0]!.text).toContain('平抛运动');
+    });
+
+    it('positive: count 缺省 → 默认 3, 上游 5 道截断为 3 道', async () => {
+        upstreamHandler = (_req, res) => respondAnthropicText(res, variantsFence(5));
+        const proxy = await startProxy();
+        open.push(proxy);
+
+        const r = await postJson(proxy.baseUrl, '/api/problems/generate', { problem: SAMPLE_PROBLEM });
+        expect(r.status).toBe(200);
+        const result = r.json.result as { problems: unknown[] };
+        expect(result.problems).toHaveLength(3);
+    });
+
+    it('edge: 上游返回空数组 (归一化后零题) → 502', async () => {
+        upstreamHandler = (_req, res) => respondAnthropicText(res, '```json\n{"problems":[]}\n```');
+        const proxy = await startProxy();
+        open.push(proxy);
+
+        const r = await postJson(proxy.baseUrl, '/api/problems/generate', { problem: SAMPLE_PROBLEM });
+        expect(r.status).toBe(502);
+        expect(r.json.error).toBe('AI 返回内容中未识别到有效变式题');
+    });
+
+    it('edge: 上游 500 → 502 透传片段 (与 recognize 共用错误映射)', async () => {
+        upstreamHandler = (_req, res) => {
+            res.writeHead(500, { 'Content-Type': 'text/plain' });
+            res.end('generate upstream exploded');
+        };
+        const proxy = await startProxy();
+        open.push(proxy);
+
+        const r = await postJson(proxy.baseUrl, '/api/problems/generate', { problem: SAMPLE_PROBLEM });
+        expect(r.status).toBe(502);
+        expect(r.json.error).toBe('上游 API 错误 (500): generate upstream exploded');
     });
 });

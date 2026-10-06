@@ -41,6 +41,24 @@ export function createOpenAICompatibleProvider(config: ProviderConfig): VisionPr
                 }
             };
         },
+        buildTextRequest(userText, model, systemPrompt): UpstreamRequest {
+            return {
+                url: `${config.baseUrl}/chat/completions`,
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${config.authToken}`
+                },
+                body: {
+                    model,
+                    // 变式生成一次产出多道完整题干, 上限较识别放宽 (#76)
+                    max_tokens: 4000,
+                    messages: [
+                        { role: 'system', content: systemPrompt },
+                        { role: 'user', content: userText }
+                    ]
+                }
+            };
+        },
         parseResponse(json: unknown): string | null {
             // OpenAI 兼容响应格式: { choices: [{ message: { content: "..." } }] }
             if (!isRecord(json) || !Array.isArray(json.choices)) return null;
