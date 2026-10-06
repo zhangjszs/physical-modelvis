@@ -354,6 +354,68 @@ describe('OCRPanel — 举一反三 (#76)', () => {
     });
 });
 
+describe('OCRPanel — 粘贴题干自动建模 (#77, problemAnalyzer 接线)', () => {
+    /** 既有 problemAnalyzer 单测验证过的平抛样本: projectile / v0=10 / angle=0 / g=9.8 */
+    const PROJECTILE_TEXT = '从距地面20m高处以10m/s的速度水平抛出一小球，取g=9.8m/s²。';
+
+    async function switchToTextMode() {
+        fireEvent.click(screen.getByRole('button', { name: /粘贴题干/ }));
+        await waitFor(() => expect(screen.getByPlaceholderText(/粘贴题目文字/)).toBeTruthy());
+    }
+
+    it('edge: 空文本 → 自动建模按钮禁用 (纯前端路径, 不依赖后端连接)', async () => {
+        stubFetch(recognizeOk([]));
+        render(<OCRPanel />);
+        await openPanel();
+        await switchToTextMode();
+
+        const button = screen.getByRole('button', { name: /自动建模/ });
+        expect(button.hasAttribute('disabled')).toBe(true);
+    });
+
+    it('positive: 粘贴平抛题干 → 自动匹配 projectile → 加载仿真落库 (场景/参数/appMode) + 面板关闭', async () => {
+        stubFetch(recognizeOk([]));
+        render(<OCRPanel />);
+        useSimulationStore.setState({ appMode: 'composition-lab', currentScene: 'collision', parameters: {} });
+        await openPanel();
+        await switchToTextMode();
+
+        fireEvent.change(screen.getByPlaceholderText(/粘贴题目文字/), { target: { value: PROJECTILE_TEXT } });
+        fireEvent.click(screen.getByRole('button', { name: /自动建模/ }));
+
+        // 首次调用 analyzePhysicsProblem 需动态加载场景领域 chunk (vitest 冷启动约 1.1s),
+        // 超出 waitFor 默认 1000ms, 故给宽裕超时 (#77)
+        await waitFor(() => expect(screen.getByText(/置信度/)).toBeTruthy(), { timeout: 5000 });
+        expect(screen.getByText('自动建模完成: 抛体运动 (平抛+斜抛)')).toBeTruthy();
+        // 低置信度提示不出现 (该题干关键词明确)
+        expect(screen.queryByText(/自动建模置信度较低/)).toBeNull();
+
+        fireEvent.click(screen.getByRole('button', { name: '加载仿真' }));
+
+        const state = useSimulationStore.getState();
+        expect(state.appMode).toBe('scenes');
+        expect(state.currentScene).toBe('projectile');
+        expect(state.parameters['v0']).toBe(10); // 10m/s → v0
+        expect(state.parameters['g']).toBe(9.8); // g 提取
+        await waitFor(() => expect(document.querySelector('.ocr-overlay')).toBeNull());
+    });
+
+    it('edge: 无关键词题干 → 回退场景且低置信度提示可见', async () => {
+        stubFetch(recognizeOk([]));
+        render(<OCRPanel />);
+        await openPanel();
+        await switchToTextMode();
+
+        fireEvent.change(screen.getByPlaceholderText(/粘贴题目文字/), { target: { value: '一个物体在运动。' } });
+        fireEvent.click(screen.getByRole('button', { name: /自动建模/ }));
+
+        // 同上: 冷加载场景 chunk 可能慢于默认超时 (#77)
+        await waitFor(() => expect(screen.getByText('自动建模置信度较低，建议手动确认或切换场景')).toBeTruthy(), {
+            timeout: 5000
+        });
+    });
+});
+
 afterEach(() => {
     cleanup();
     vi.unstubAllGlobals();
