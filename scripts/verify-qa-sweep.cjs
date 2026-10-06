@@ -20,6 +20,9 @@
  *  12. 交互后一致性 (#89, 抽样): 代表性子集上验证「改参数 → 诊断读数随动」与
  *      「拖时间轴 → 时间读数随动」, 覆盖 #87/#88 类「改完不重算/滞后一步」缺陷。
  *      抽样而非全场景, 控制 nightly 时长增幅
+ *  13. OCR 面板 (#75): 顶栏「拍照解题」入口存在 → 打开面板 → 关闭 → 零 console error。
+ *      与 scripts/verify-ocr-mount.cjs 同口径 (3001 后端未启动的网络错误属预期噪音);
+ *      全局跑一次 (不随场景循环), QA_SKIP_OCR=1 跳过
  *
  * 运行: node scripts/verify-qa-sweep.cjs   (需 dev server, 默认 http://localhost:5199/)
  * 环境变量:
@@ -40,6 +43,7 @@
  *   QA_HEAP_BUDGET_MB 覆盖内存增量预算 (默认按档位: nightly 12 / pr 24)
  *   QA_SWITCH_BUDGET_MS 覆盖单场景切换耗时预算 (默认按档位: nightly 10000 / pr 25000)
  *   QA_SKIP_DRAWER    1 = 跳过抽屉覆盖判定 (#89, 最快调试用)
+ *   QA_SKIP_OCR       1 = 跳过 OCR 面板判定 (#75, 调试用)
  *   QA_INTERACT_EVERY 交互后一致性抽粒度 (#89): 每 N 个场景抽 1 个做深度交互断言,
  *                     默认 10; 0 = 关闭交互断言 (抽屉覆盖仍执行)
  *   QA_INTERACT_ONLY  只对名字含该子串的场景做交互断言 (调试用, 覆盖 EVERY 抽样)
@@ -48,6 +52,7 @@
  *
  * 退出码: 0 = 无 ERROR 级问题; 1 = 存在 ERROR (console/pageerror/场景未找到/性能内存超限/
  *         性能采样异常(堆/耗时 NaN)/抽屉 ErrorBoundary 粘滞或抽屉内 console 错误/
+ *         OCR 面板打不开/关不上/OCR 段 console 错误/
  *         交互读数不随动, nightly 下含切换耗时超限)
  */
 const { chromium } = require('playwright');
@@ -207,6 +212,11 @@ async function sliderMeta(page, selector) {
 }
 
 // ---- #89: 抽屉开关 / 诊断读数 / 时间读数 的浏览器侧辅助 ----
+
+/** OCR 面板 (#75): 后端未启动时的健康探测网络错误属预期噪音 (与 verify-ocr-mount.cjs 同口径) */
+const OCR_NOISE_RE =
+    /favicon|the server responded with a status of 404|localhost:3001|api\/ocr\/health|ERR_CONNECTION_REFUSED/i;
+const SKIP_OCR = process.env.QA_SKIP_OCR === '1';
 
 /** 「数据/图像」抽屉开关 (WorkbenchScene 顶栏按钮, 展开后文案变为「收起数据」) */
 async function drawerToggleIndex(page) {
@@ -854,14 +864,116 @@ async function clickScene(page, name) {
         if (perfProblems.length) console.log(`双趟过程问题: ${perfProblems.slice(0, 5).join(' | ')}`);
     }
 
+    // ---- OCR 面板判定 (#75): 入口存在 → 打开 → 关闭 → 零 console error ----
+    // 全局跑一次 (面板挂在顶栏, 不随场景循环); 3001 后端未启动的健康探测网络错误属预期噪音。
+    // 每个有界等待 5s/1.2s, 与主巡检同纪律: 门禁脚本绝不允许挂死。
+    let ocr = null;
+    const ocrFindings = [];
+    if (!SKIP_OCR) {
+        current = '(ocr-panel)';
+        const ocrBefore = logs.length;
+        let overlayAppeared = false;
+        let titleOk = false;
+        let healthShown = false;
+        let closed = false;
+        const buttonIdx = await page.evaluate(() => {
+            const btns = [...document.querySelectorAll('.top-bar-right button')];
+            return btns.findIndex(b => (b.textContent || '').includes('拍照解题'));
+        });
+        if (buttonIdx < 0) {
+            ocrFindings.push({ level: 'ERROR', kind: 'ocr-panel', text: '顶栏缺少「拍照解题」入口按钮' });
+        } else {
+            await page.evaluate(i => {
+                const btns = [...document.querySelectorAll('.top-bar-right button')];
+                btns[i]?.click();
+            }, buttonIdx);
+            try {
+                await page.waitForSelector('.ocr-overlay', { timeout: 5000 });
+                overlayAppeared = true;
+            } catch {
+                overlayAppeared = false;
+            }
+            if (!overlayAppeared) {
+                ocrFindings.push({
+                    level: 'ERROR',
+                    kind: 'ocr-panel',
+                    text: '点击入口后 .ocr-overlay 未出现 (面板打不开)'
+                });
+            } else {
+                try {
+                    const modalText = await page.textContent('.ocr-modal');
+                    titleOk = (modalText || '').includes('AI 拍照解题');
+                    healthShown = /(已连接|未连接|检测中)/.test(modalText || '');
+                    if (!titleOk) {
+                        ocrFindings.push({
+                            level: 'ERROR',
+                            kind: 'ocr-panel',
+                            text: '面板已打开但缺少标题「AI 拍照解题」'
+                        });
+                    }
+                    await page.$eval('.ocr-close', el => el.click());
+                    await page.waitForTimeout(300);
+                    closed = (await page.$('.ocr-overlay')) === null;
+                    if (!closed) {
+                        ocrFindings.push({
+                            level: 'ERROR',
+                            kind: 'ocr-panel',
+                            text: '点击关闭钮后 .ocr-overlay 未消失 (面板关不上)'
+                        });
+                    }
+                } catch (e) {
+                    // 面板崩溃 (React 卸载整树等) → 结构化 ERROR 而非脚本带病死亡 (门禁不允许挂死)
+                    ocrFindings.push({ level: 'ERROR', kind: 'ocr-panel', text: `OCR 面板操作异常: ${e.message}` });
+                }
+            }
+            // 本段 console/pageerror — 打不开与打开成功两支都要归集, 滤掉 3001 未启动等预期噪音
+            logs.slice(ocrBefore).forEach(l => {
+                if (!OCR_NOISE_RE.test(l.text)) {
+                    ocrFindings.push({
+                        level: STRICT === 'canvas' ? 'WARN' : 'ERROR',
+                        kind: l.kind === 'pageerror' ? 'ocr-pageerror' : 'ocr-console',
+                        text: l.text
+                    });
+                }
+            });
+            ocr = { opened: titleOk && overlayAppeared, healthShown, closed, errorCount: ocrFindings.length };
+        }
+        // 汇总口径行 (ERROR/WARN 由下方统一计数; 入口缺失与点击后打不开是两种失败, ocr 状态区分)
+        console.log(
+            `OCR 面板 (#75): ${
+                SKIP_OCR
+                    ? '已跳过 (QA_SKIP_OCR=1)'
+                    : ocr
+                      ? `打开 ${ocr.opened ? '✓' : '✗'} / 关闭 ${ocr.closed ? '✓' : '✗'} / 后端状态${ocr.healthShown ? '可见' : '未显示'}`
+                      : '入口按钮缺失'
+            } — 问题 ${ocrFindings.length} 项`
+        );
+    }
+    current = '';
+
     fs.mkdirSync(path.dirname(OUT), { recursive: true });
     fs.writeFileSync(
         OUT,
-        JSON.stringify({ base: BASE, at: new Date().toISOString(), strict: STRICT, perf, results }, null, 2)
+        JSON.stringify(
+            {
+                base: BASE,
+                at: new Date().toISOString(),
+                strict: STRICT,
+                perf,
+                // #75: checked=false = QA_SKIP_OCR 跳过; state 段缺省 = 入口缺失/未打开; findings 含结构性与 console 错误明细
+                ocr: { checked: !SKIP_OCR, ...(ocr ?? {}), findings: ocrFindings },
+                results
+            },
+            null,
+            2
+        )
     );
 
     const errN = results.filter(r => r.worst === 'ERROR').length;
     const warnN = results.filter(r => r.worst === 'WARN').length;
+    // OCR 面板判定 (#75): 结构性失败/段内 console 错误恒为 ERROR; STRICT=canvas 时降级 WARN
+    const ocrErrN = STRICT === 'canvas' ? 0 : ocrFindings.filter(f => f.level === 'ERROR').length;
+    const ocrWarnN = ocrFindings.filter(f => f.level === 'WARN').length;
     // 性能判定: perf.errors 中的条目 (内存命中/看门狗终止/canvas 缺失) 恒为 ERROR;
     // 切换耗时超限 nightly ERROR / pr WARN
     let perfErrN = 0;
@@ -874,7 +986,7 @@ async function clickScene(page, name) {
         }
     }
     console.log(
-        `\n=== 汇总 === ${results.length} 场景: ERROR ${errN + perfErrN} / WARN ${warnN + perfWarnN} / OK ${
+        `\n=== 汇总 === ${results.length} 场景: ERROR ${errN + perfErrN + ocrErrN} / WARN ${warnN + perfWarnN + ocrWarnN} / OK ${
             results.length - errN - warnN
         }` +
             (perf
@@ -907,5 +1019,5 @@ async function clickScene(page, name) {
     );
     console.log(`报告: ${OUT}`);
     await browser.close();
-    process.exit(errN + perfErrN > 0 ? 1 : 0);
+    process.exit(errN + perfErrN + ocrErrN > 0 ? 1 : 0);
 })();
