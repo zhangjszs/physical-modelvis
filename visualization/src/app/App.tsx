@@ -17,13 +17,13 @@ const LazyCompositionLab = lazy(() =>
 export function App() {
     const errorMessage = useSimulationStore(s => s.errorMessage);
     const theme = useSimulationStore(s => s.theme);
+    const appMode = useSimulationStore(s => s.appMode);
     // action selectors 返回稳定引用, 不会触发重渲染
     const setErrorMessage = useSimulationStore(s => s.setErrorMessage);
     const toggleTheme = useSimulationStore(s => s.toggleTheme);
     const ensureScenesLoaded = useSimulationStore(s => s.ensureScenesLoaded);
+    const setAppMode = useSimulationStore(s => s.setAppMode);
     const [sidebarOpen, setSidebarOpen] = useState(false);
-    // 顶层模式: 教材实验目录 / 自由组合实验台
-    const [mode, setMode] = useState<'scenes' | 'composition-lab'>('scenes');
 
     // 挂载即预载全部场景配置(懒加载领域 chunk)
     useEffect(() => {
@@ -42,9 +42,9 @@ export function App() {
                 <div className="top-bar-right">
                     <button
                         className="btn btn-sm"
-                        onClick={() => setMode(m => (m === 'composition-lab' ? 'scenes' : 'composition-lab'))}
+                        onClick={() => setAppMode(appMode === 'composition-lab' ? 'scenes' : 'composition-lab')}
                     >
-                        {mode === 'composition-lab' ? '📚 教材实验' : '🧪 组合实验台'}
+                        {appMode === 'composition-lab' ? '📚 教材实验' : '🧪 组合实验台'}
                     </button>
                     <OCRPanel />
                     <GuidancePanel />
@@ -76,8 +76,8 @@ export function App() {
                         </div>
                     }
                 >
-                    {mode === 'composition-lab' ? (
-                        <LazyCompositionLab onExit={() => setMode('scenes')} />
+                    {appMode === 'composition-lab' ? (
+                        <LazyCompositionLab onExit={() => setAppMode('scenes')} />
                     ) : (
                         <LazyWorkbenchScene />
                     )}

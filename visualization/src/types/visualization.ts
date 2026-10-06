@@ -104,6 +104,8 @@ export interface CompareEntry {
 // ========== 状态 ==========
 
 export interface SimulationState {
+    /** 顶层应用模式: 教材实验目录 / 自由组合实验台 (#75 自 App 局部 state 提升, 供 OCR 等全局组件切换) */
+    appMode: 'scenes' | 'composition-lab';
     currentScene: string;
     parameters: Record<string, number>;
     parametersSceneId: string | null;
@@ -128,6 +130,7 @@ export interface SimulationState {
     compareResults: CompareEntry[];
 
     // Actions
+    setAppMode: (mode: 'scenes' | 'composition-lab') => void;
     setScene: (sceneId: string) => void;
     setSceneWithParameters: (sceneId: string, parameters: Record<string, number>) => void;
     ensureSceneParameters: (sceneId: string, defaults: Record<string, number>) => void;

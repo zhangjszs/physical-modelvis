@@ -33,6 +33,7 @@ function getDefaultGraphForScene(sceneId: string): GraphType {
 }
 
 export const useSimulationStore = create<SimulationState>((set, get) => ({
+    appMode: 'scenes',
     currentScene: 'projectile',
     parameters: {},
     parametersSceneId: null,
@@ -53,6 +54,10 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
     compareMode: false,
     compareConfig: null,
     compareResults: [],
+
+    setAppMode: mode => {
+        set({ appMode: mode });
+    },
 
     setScene: sceneId => {
         const defaults = getDefaultParams(sceneId);

@@ -67,7 +67,7 @@ export function OCRPanel() {
     const [provider, setProvider] = useState(loadProvider);
     const [health, setHealth] = useState<OcrHealthResponse | null>(null);
 
-    const { setScene, setParameter } = useSimulationStore();
+    const { setScene, setParameter, setAppMode } = useSimulationStore();
 
     // 仅在面板打开时检查后端健康, 避免页面加载时对 3001 发起请求
     // (后端未启动时会产生浏览器网络错误噪音, 污染页面 console)
@@ -150,6 +150,8 @@ export function OCRPanel() {
     const loadIntoSimulation = useCallback(() => {
         const problem = problems?.[activeIndex];
         if (!problem) return;
+        // 组合实验台等顶层模式下加载仿真 → 切回教材实验模式, 让用户看到仿真 (#75)
+        setAppMode('scenes');
         setScene(resolveScene(problem.sceneTemplate));
 
         // 尝试填入数值型参数
@@ -158,7 +160,7 @@ export function OCRPanel() {
         }
 
         setIsOpen(false);
-    }, [problems, activeIndex, setScene, setParameter]);
+    }, [problems, activeIndex, setScene, setParameter, setAppMode]);
 
     if (!isOpen) {
         return (
