@@ -2,11 +2,16 @@
  * OCR 入口挂载冒烟 (Playwright)
  * 验证: 顶栏「📷 拍照解题」按钮存在 → 打开面板 → 后端状态显示 → 关闭面板 → 零 console error
  * 运行: node scripts/verify-ocr-mount.cjs (需 dev server http://localhost:3000/)
+ *   SMOKE_BROWSER_CHANNEL 浏览器渠道 (#98): 缺省 msedge (兼容现状); 置空 = Playwright 自带
+ *   chromium (无 Edge 的 Linux/CI 可用); 其他值原样传给 Playwright (chrome / chrome-beta ...)
  */
 const { chromium } = require('playwright');
 
+// #98: 通道参数化 — `??` 而非 `||`, 让显式置空能选自带 chromium
+const CHANNEL = process.env.SMOKE_BROWSER_CHANNEL ?? 'msedge';
+
 (async () => {
-    const browser = await chromium.launch({ headless: true, channel: 'msedge' });
+    const browser = await chromium.launch({ headless: true, ...(CHANNEL ? { channel: CHANNEL } : {}) });
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
     const errors = [];
     page.on('pageerror', e => errors.push('PAGEERROR: ' + e.message));

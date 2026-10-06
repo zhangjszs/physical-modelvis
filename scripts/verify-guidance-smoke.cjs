@@ -3,15 +3,19 @@
  * - 打开页面 → 点击「📖 导学」→ 面板出现 → 逐步推进 → 关闭
  * - 切换到回退场景 (无精编步骤), 验证通用步骤
  * 用法: node scripts/verify-guidance-smoke.cjs
+ *   SMOKE_BROWSER_CHANNEL 浏览器渠道 (#98): 缺省 msedge (兼容现状); 置空 = Playwright 自带
+ *   chromium (无 Edge 的 Linux/CI 可用); 其他值原样传给 Playwright
  */
 const { chromium } = require('playwright');
 
 const BASE = process.env.BASE_URL ?? 'http://localhost:3000/';
+// #98: 通道参数化 — `??` 而非 `||`, 让显式置空能选自带 chromium
+const CHANNEL = process.env.SMOKE_BROWSER_CHANNEL ?? 'msedge';
 const log = (...a) => console.log('[guidance]', ...a);
 const errors = [];
 
 async function main() {
-    const browser = await chromium.launch({ channel: 'msedge', headless: true });
+    const browser = await chromium.launch({ ...(CHANNEL ? { channel: CHANNEL } : {}), headless: true });
     const page = await browser.newPage();
     page.on('console', msg => {
         if (msg.type() === 'error') {

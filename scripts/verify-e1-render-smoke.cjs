@@ -9,8 +9,13 @@
  *
  * 验证: 切场景无 pageerror / console error, 播放 2 秒无异常。
  * 运行: node scripts/verify-e1-render-smoke.cjs (需 dev server http://localhost:3000/)
+ *   SMOKE_BROWSER_CHANNEL 浏览器渠道 (#98): 缺省 msedge (兼容现状); 置空 = Playwright 自带
+ *   chromium (无 Edge 的 Linux/CI 可用); 其他值原样传给 Playwright
  */
 const { chromium } = require('playwright');
+
+// #98: 通道参数化 — `??` 而非 `||`, 让显式置空能选自带 chromium
+const CHANNEL = process.env.SMOKE_BROWSER_CHANNEL ?? 'msedge';
 
 const SCENES = [
     '抛体运动 (平抛+斜抛)',
@@ -21,7 +26,7 @@ const SCENES = [
 ];
 
 (async () => {
-    const browser = await chromium.launch({ headless: true, channel: 'msedge' });
+    const browser = await chromium.launch({ headless: true, ...(CHANNEL ? { channel: CHANNEL } : {}) });
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
     const pageErrors = [];
     page.on('pageerror', e => pageErrors.push('PAGEERROR: ' + e.message));

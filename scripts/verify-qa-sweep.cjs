@@ -32,7 +32,8 @@
  *   QA_SKIP_PARAMS    1 = 跳过参数边界扫描 (最快)
  *   QA_OUT            报告输出路径 (默认 .scratch/qa-sweep.json)
  *   QA_CHANNEL        浏览器渠道: 留空 = Playwright 自带 chromium (跨平台默认);
- *                     需系统 Edge/Chrome 时填 msedge / chrome (现有 verify-*.cjs 硬编 msedge, Linux 跑不了)
+ *                     需系统 Edge/Chrome 时填 msedge / chrome (#98 后其余 verify-*.cjs
+ *                     亦已用 SMOKE_BROWSER_CHANNEL 参数化, 缺省 msedge、置空走自带 chromium)
  *   QA_STRICT         失败口径: 默认 error = 任何 ERROR(console/pageerror/no-canvas/error-banner/找不到场景/
  *                     抽屉 ErrorBoundary 粘滞/交互读数不随动)均退出 1;
  *                     canvas = 只对「舞台没渲染」类失败 (no-canvas / scene-not-clickable) 退出 1,
