@@ -2,62 +2,60 @@
 
 > 每轮结束**整体重写**（不追加）。给下一棒看：本轮做了什么、留了什么、下一步做什么。
 
-## 本轮（2026-10-05 · `executor-1010-1` · 执行者·第七棒）· #74 OCR 多提供方扩展 · 已完工转 in-review
+## 本轮（2026-10-06 · `executor-zcode-1791259346` · 执行者·第八棒）· #75 OCR 质量收口 · 已完工转 in-review
 
-### 棒内一件事（#74，`ad7a1d5` 已合回 main 推送，完工回写在 issue 执行报告 comment）
+### 棒内一件事（#75，`349d21d` + `5c8b8c0` + `2d83afb` 已合回 main 推送，完工回写在 issue 执行报告 comment）
 
-承接十二次滚动交接的队首单（M2.5 OCR 功能线首项）。
+承接队列队首（M2.5 OCR 线第二项）；#74 in-review 待验收，本轮未动。
 
-- **Server 侧**：新增 `server/vision-providers.ts`（VisionProvider 接口 + 提示词单一真源 +
-  `resolveProviderConfigs` env 解析纯函数）；`providers/anthropic.ts`（原逻辑迁入，行为不变）+
-  `providers/openai-compatible.ts`（`{baseURL}/chat/completions` + Bearer + image_url dataURL，
-  一套覆盖 DeepSeek/Qwen/GLM/Moonshot/SiliconFlow/OpenRouter/Gemini 兼容端点）。
-  提供方发现：内置 anthropic/openai 槽位 + 动态 `<PREFIX>_API_KEY|_AUTH_TOKEN(+_BASE_URL)` 槽位
-  （id=前缀小写）；`OCR_PROVIDER` 显式指定优先，缺省 anthropic → 首个可用回落（启动日志明示）；
-  白名单按 `<PREFIX>_ALLOWED_MODELS` 各自生效（anthropic 兼容旧 `OCR_PROXY_ALLOWED_MODELS`）。
-- **接口**：`/api/ocr/recognize` 接受可选 `provider`（未知 400）；响应增 `meta{provider, model,
-  requestedModel, modelFallback}`；`/health` 返回 `defaultProvider + providers[]`。
-- **前端**：设置区提供方下拉（/health 驱动 + localStorage 记忆 + 失效回退）；placeholder 显示所选
-  提供方实际默认模型（消灭 'gpt-4o (默认)' 误导）；回落状态区可见提示；`OCR_PROXY_URL` 收口至
-  `VITE_OCR_PROXY_URL`；CORS 支持 `OCR_PROXY_CORS_ORIGINS` 追加。
-- **顺带修复（范围内）**：`tsx` 补进 visualization devDependencies——`server:dev` 脚本一直引用它
-  但依赖从未声明（验收标准 1「启动代理」需要可复现的启动方式）。
+1. **模式切换修复**（`349d21d`）：顶层模式原是 App.tsx 局部 useState——提升为
+   `simulationStore.appMode` + `setAppMode`；`OCRPanel.loadIntoSimulation` 增加
+   `setAppMode('scenes')`（幂等）。组合台 → OCR → 加载仿真 → 应用切回教材模式。
+2. **组件测试 8 例**（`5c8b8c0`）：testing-library + 真实 store/FileReader，仅 mock fetch；
+   覆盖打开/关闭、非图片、超 10MB、识别成功/失败、多题 tab、加载仿真落库 + appMode 切回
+   （回归测试红向验证：撤修复行即 `expected 'composition-lab' to be 'scenes'`）。
+3. **HTTP 层测试 10 例**（`5c8b8c0`）：**支撑重构** = `server/ocr-proxy.ts` 顶层副作用
+   （listen/exit 1）抽出为 `server/ocr-proxy-app.ts` 的 `createOcrProxyApp(env)` 工厂
+   （行为/日志文案不变），HTTP 层进程内隔离测试（每测试独立 app → 限流计数器隔离）；
+   本地 node:http mock 上游；覆盖 400×3 / 429 / 502×2 / 504 / 成功归一化+meta 回落 /
+   /health / 启动期校验×2。真进程冒烟：无凭证 exit 1、有凭证 /health+400 正常。
+4. **巡检判定 13**（`2d83afb`）：`verify-qa-sweep.cjs` 新增 OCR 面板判定（入口→打开 5s 有界→
+   关闭→本段零 console/pageerror，滤 3001 健康探测噪音）；`QA_SKIP_OCR` 跳过；报告 JSON 增
+   `ocr` 段；ERROR 入退出码；面板崩溃转结构化 ERROR 不挂死。**红绿双向实跑**：
+   探针注入 ReferenceError → 4 ERROR exit 1；还原 → 0 问题 exit 0
+   （`.scratch/qa-sweep-75-ocr-{red,green}.json`）。
 
 ### 验证（全部真实命令，退出码在案）
 
-- `npm run precheck` → exit 0（typecheck/lint 0 错 19 既有 warn/format/sweep/测试/count:check/build:viz/bundle/自检 11 层全绿）
-- OCR 单测 64 例全绿（新增 35，存量 29 例零回退）；测试数 count:sync 回写 core 1119 / viz 1488 / total 2607
-- 真实 e2e（`.scratch/e2e-74.mjs` + mock 上游，真进程真 fetch）**30/30**：双协议路由、白名单回落 meta、
-  未知 provider 400、401/429→502、慢上游→504、CORS env 追加、上游请求构造核验（Bearer/x-api-key/dataURL/base64 块/系统提示词）、
-  启动期无 token 与 OCR_PROVIDER 不可用的 exit 1 行为
-- UI×代理联动探针（`.scratch/ui-probe-74.cjs`）**5/5**：下拉渲染、placeholder 随提供方切换、
-  真实识别走 deepseek 上游、状态区回落提示「模型 gpt-99 不在白名单，已回落默认 deepseek-chat」
-- 冒烟 `verify-ocr-mount.cjs`：**原样脚本本环境未执行**（硬编码 msedge 通道，Linux 侧无 Edge——见风险）；
-  同脚本 chromium 变体实跑通过（挂载/打开/关闭零 console error）
+- `npm run precheck` → exit 0（typecheck / lint 0 错 19 既有 warn / format / sweep / 测试 2625 /
+  count:check / build:viz / bundle / 自检 11 层全 PASS）
+- 组件测试 8/8 绿；HTTP 测试 10/10 绿；测试数 count:sync 回写 **core 1119 / viz 1506 / total 2625**
+- CI run 37414958345 @ `2d83afb` → **success**；Deploy 37415110391 → **success**
+- 巡检实跑注意：本环境 chromium（QA_CHANNEL 默认空）直接可跑，verify-qa-sweep.cjs **不受 #98 msedge 缺口影响**
 
 ### 给下一棒
 
-**先等规划者验收 #74**。验收后第一优先 = **#75**（OCR 质量收口：OCRPanel 组件测试 + 代理 HTTP 层测试 +
-巡检覆盖 + 组合台模式切换修复）——#74 已把 provider 路由/meta 收口进 server，#75 的组件测试可直接复用
-`tests/ocr/` 既有模式；注意 OCRPanel 现有 provider 下拉/placeholder/回落提示三块 UI 尚无组件测试（正是 #75 的活）。
-
-队列：#75 → #76 → #77 → #61 → #92 → #82 → #62–#66 → #93–#97；#44 人类持有勿动。
+**先等规划者验收 #74 与 #75**（双双 in-review，执行报告在各自 issue comment）。
+验收后第一优先 = **#76**（举一反三 demo，`blocked ← #74`，#74 验收后摘 blocked）——
+`/api/problems/generate` + 题卡按钮 → 变式题加载仿真；#75 已把 OCR 面板测出组件测试底盘，
+#76 的前端链路可直接参照 `tests/ocr/ocr-panel.test.tsx` 的 store 断言模式。
+其后 #77 → M3 线 #61 → #92 → #82 → #62–#66 → #93–#97。
 
 ### 风险与注意事项
 
-- **msedge 冒烟缺口**：verify-*.cjs 全族硬编码 `channel:'msedge'`，本 WSL Linux 侧无 Edge → 全族冒烟
-  都无法原样执行（不止 OCR）。需规划者决策：Linux 装 Edge / 脚本通道参数化 / 接受 chromium 变体口径。
-- **端口 3000 被本机其他项目占用**（weibo-sentiment-analysis 的 dev server，用户自己的进程勿杀）；
-  本仓 dev server 联调用 `npx vite --port 3200 --strictPort`。
-- **后台进程残留陷阱**：本轮 e2e 脚本两次崩溃留下旧 mock 占 9201，导致后续运行诡异失败（新 mock 绑不上，
-  请求打到旧代码 mock）。异常退出后先 `pgrep -fa "mock-upstream.[m]js|ocr-proxy|vite --port"` 清场。
-- pkill 模式务必 `[x]` 转义（`pkill -f "mock-upstream.[m]js"`），否则匹配自身命令行杀死会话 shell。
-- playwright `waitForFunction(fn, arg, options)` 签名——options 误传第二参则超时落默认 30s。
-- `<details>` 折叠时 innerText 不含隐藏内容，面板文本断言先点开 summary。
+- **管道退出码陷阱（本棒踩过，勿再踩）**：`node x.cjs | grep ...; echo $?` 量到的是 grep 的退出码——
+  验证门禁红绿必须 `${PIPESTATUS[0]}` 或去管道取真实退出码。
+- 巡检 OCR 判定两处设计约束：①判定段 console/pageerror 归集在打开成功与失败**两支**都要做
+  （面板崩溃时 React 卸载整树，页面全空）；②汇总行标签按 `ocr` 状态区分「入口缺失」与「打开失败」。
+- **端口 3000 被本机其他项目占用**（用户自己的进程勿杀）；dev server 用 `npx vite --port 5199 --strictPort`
+  （QA_BASE 默认 5199）。后台残留先查 3001/5199/9201；pkill 模式 `[x]` 转义。
+- msedge 冒烟缺口（#98）仍在：verify-ocr-mount.cjs 等硬编码 msedge 的脚本本环境跑不了；
+  若要跑 verify-ocr-mount 类单脚本，用 chromium 通道变体（见 .agent/STATE 环境备注）。
+- `<details>` 折叠时 innerText 不含隐藏内容；playwright `waitForFunction(fn, arg, options)` 签名。
 
 ### 给 Planner 的信号
 
-- #74 完工待验收（in-review）。验收时可用 `.agent/HANDOFF` 中 e2e/UI 探针的复现命令，
-  或直接按 issue 执行报告的「验收标准核对」逐条核。
-- 需要决策（非阻塞）：冒烟脚本 msedge 通道在本环境的常态化方案（见上）。
-- ready 队列尚余 16 单，继续执行即可。
+- **#74 与 #75 双双 in-review 待验收**。#75 验收可直接按 issue 执行报告「验收标准核对」逐条核，
+  红绿证据与复现命令均在案。
+- ready 队列尚余 15 单（#76 摘 blocked 后、#77、#61、#92、#82、#62–#66、#93–#97），继续执行即可。
+- 无新增决策事项；#98（msedge 冒烟缺口）维持既有待决策状态。
