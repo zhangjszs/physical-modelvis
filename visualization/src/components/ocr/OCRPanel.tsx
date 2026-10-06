@@ -52,6 +52,64 @@ async function recognizeProblem(base64Image: string, model: string, provider: st
     return { result: data.result, meta: data.meta };
 }
 
+/** 举一反三: 从原题请求同题型变式题 (#76, demo 质量档) */
+const GENERATE_COUNT = 3;
+
+async function generateVariants(
+    problem: RecognizedProblem,
+    model: string,
+    provider: string
+): Promise<RecognizeResponse> {
+    const resp = await fetch(`${OCR_PROXY_URL}/api/problems/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            problem,
+            count: GENERATE_COUNT,
+            model: model || undefined,
+            provider: provider || undefined
+        })
+    });
+
+    const data = (await resp.json()) as { result?: RecognizeResponse; error?: string };
+    if (!resp.ok) throw new Error(data.error ?? `请求失败 (${resp.status})`);
+    if (!data.result) throw new Error('后端未返回生成结果');
+    return data.result;
+}
+
+/** 题卡正文 (题干/选项/公式/答案) — 识别结果与变式题共用 (#76) */
+function ProblemBody({ problem }: { problem: RecognizedProblem }) {
+    return (
+        <>
+            <div className="ocr-result-desc">{problem.description}</div>
+            {(problem.options ?? []).length > 0 && (
+                <div className="ocr-result-options">
+                    {problem.options!.map(o => (
+                        <div key={o.letter} className="ocr-result-opt">
+                            <strong>{o.letter}.</strong> {o.text}
+                        </div>
+                    ))}
+                </div>
+            )}
+            {problem.formulas && problem.formulas.length > 0 && (
+                <div className="ocr-result-formulas">{problem.formulas.join('; ')}</div>
+            )}
+            {problem.answer && (
+                <div className="ocr-result-answer">
+                    <strong>答案：</strong>
+                    {problem.answer.correct?.join('、')}
+                    {problem.answer.explanation && (
+                        <>
+                            <br />
+                            {problem.answer.explanation}
+                        </>
+                    )}
+                </div>
+            )}
+        </>
+    );
+}
+
 export function OCRPanel() {
     const [isOpen, setIsOpen] = useState(false);
     const [preview, setPreview] = useState<string | null>(null);
@@ -59,6 +117,10 @@ export function OCRPanel() {
     const [problems, setProblems] = useState<RecognizedProblem[] | null>(null);
     const [activeIndex, setActiveIndex] = useState(0);
     const [loading, setLoading] = useState(false);
+    // 举一反三变式题 (#76): 独立区块展示, 切题/重识别/换图时清空
+    const [variants, setVariants] = useState<RecognizedProblem[] | null>(null);
+    const [variantIndex, setVariantIndex] = useState(0);
+    const [generating, setGenerating] = useState(false);
     const [backendOk, setBackendOk] = useState<boolean | null>(null);
     const fileRef = useRef<HTMLInputElement>(null);
     const base64Ref = useRef<string | null>(null);
@@ -103,6 +165,8 @@ export function OCRPanel() {
             setStatus(null);
             setProblems(null);
             setActiveIndex(0);
+            setVariants(null);
+            setVariantIndex(0);
         };
         reader.readAsDataURL(file);
     }, []);
@@ -124,6 +188,8 @@ export function OCRPanel() {
         setStatus({ type: 'info', msg: '正在识别...' });
         setProblems(null);
         setActiveIndex(0);
+        setVariants(null);
+        setVariantIndex(0);
         try {
             const r = await recognizeProblem(base64Ref.current, model, provider);
             if (r.result.problems.length === 0) throw new Error('未识别到有效题目');
@@ -141,26 +207,64 @@ export function OCRPanel() {
     }, [model, provider]);
 
     const activeProblem = problems?.[activeIndex] ?? null;
+    const activeVariant = variants?.[variantIndex] ?? null;
+
+    /** 切换识别结果主 tab: 变式题属于切走的那道题, 一并清空 (#76) */
+    const switchProblemTab = useCallback((i: number) => {
+        setActiveIndex(i);
+        setVariants(null);
+        setVariantIndex(0);
+    }, []);
+
+    const doGenerate = useCallback(async () => {
+        const problem = problems?.[activeIndex];
+        if (!problem) return;
+        saveModel(model);
+        saveProvider(provider);
+        setGenerating(true);
+        setStatus({ type: 'info', msg: '正在生成变式题...' });
+        setVariants(null);
+        setVariantIndex(0);
+        try {
+            const r = await generateVariants(problem, model, provider);
+            if (r.problems.length === 0) throw new Error('未生成有效变式题');
+            setStatus({ type: 'success', msg: `已生成 ${r.problems.length} 道变式题` });
+            setVariants(r.problems);
+            setVariantIndex(0);
+        } catch (e) {
+            setStatus({ type: 'error', msg: e instanceof Error ? e.message : '生成失败' });
+        } finally {
+            setGenerating(false);
+        }
+    }, [problems, activeIndex, model, provider]);
 
     // 提供方下拉与 placeholder 由 /health 驱动 (#74); 旧版后端无 providers 字段时隐藏下拉
     const providerOptions = health?.providers ?? [];
     const effectiveProvider = provider || health?.defaultProvider || '';
     const selectedDefaultModel = health?.providers.find(p => p.id === effectiveProvider)?.defaultModel ?? '';
 
+    /** 把一道题落到仿真: 场景/参数写入 store 并关闭面板 (识别结果与变式题共用, #76) */
+    const loadProblemIntoSimulation = useCallback(
+        (problem: RecognizedProblem) => {
+            // 组合实验台等顶层模式下加载仿真 → 切回教材实验模式, 让用户看到仿真 (#75)
+            setAppMode('scenes');
+            setScene(resolveScene(problem.sceneTemplate));
+
+            // 尝试填入数值型参数
+            for (const { key, value } of buildSceneParams(problem.given)) {
+                setParameter(key, value);
+            }
+
+            setIsOpen(false);
+        },
+        [setScene, setParameter, setAppMode]
+    );
+
     const loadIntoSimulation = useCallback(() => {
         const problem = problems?.[activeIndex];
         if (!problem) return;
-        // 组合实验台等顶层模式下加载仿真 → 切回教材实验模式, 让用户看到仿真 (#75)
-        setAppMode('scenes');
-        setScene(resolveScene(problem.sceneTemplate));
-
-        // 尝试填入数值型参数
-        for (const { key, value } of buildSceneParams(problem.given)) {
-            setParameter(key, value);
-        }
-
-        setIsOpen(false);
-    }, [problems, activeIndex, setScene, setParameter, setAppMode]);
+        loadProblemIntoSimulation(problem);
+    }, [problems, activeIndex, loadProblemIntoSimulation]);
 
     if (!isOpen) {
         return (
@@ -212,6 +316,8 @@ export function OCRPanel() {
                                 base64Ref.current = null;
                                 setProblems(null);
                                 setActiveIndex(0);
+                                setVariants(null);
+                                setVariantIndex(0);
                                 setStatus(null);
                             }}
                             style={{ marginTop: 8, color: '#ef4444' }}
@@ -269,7 +375,7 @@ export function OCRPanel() {
                 <button
                     className="btn btn-primary"
                     onClick={doRecognize}
-                    disabled={!preview || loading || backendOk === false}
+                    disabled={!preview || loading || generating || backendOk === false}
                     style={{ width: '100%', marginTop: 12 }}
                 >
                     {loading ? '识别中...' : '识别题目'}
@@ -285,7 +391,7 @@ export function OCRPanel() {
                                 role="tab"
                                 aria-selected={i === activeIndex}
                                 className={`ocr-nav-btn ${i === activeIndex ? 'active' : ''}`}
-                                onClick={() => setActiveIndex(i)}
+                                onClick={() => switchProblemTab(i)}
                             >
                                 {i + 1}
                             </button>
@@ -306,38 +412,76 @@ export function OCRPanel() {
                                 {activeProblem.title ?? '未命名'}
                             </span>
                         </div>
-                        <div className="ocr-result-desc">{activeProblem.description}</div>
-                        {(activeProblem.options ?? []).length > 0 && (
-                            <div className="ocr-result-options">
-                                {activeProblem.options!.map(o => (
-                                    <div key={o.letter} className="ocr-result-opt">
-                                        <strong>{o.letter}.</strong> {o.text}
-                                    </div>
+                        <ProblemBody problem={activeProblem} />
+                        <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                            <button className="btn btn-primary" onClick={loadIntoSimulation} style={{ flex: 1 }}>
+                                加载仿真
+                            </button>
+                            <button
+                                className="btn"
+                                onClick={doGenerate}
+                                disabled={generating || backendOk === false}
+                                style={{
+                                    flex: 1,
+                                    background: 'rgba(251,191,36,0.15)',
+                                    borderColor: 'rgba(251,191,36,0.3)',
+                                    color: '#fbbf24'
+                                }}
+                            >
+                                {generating ? '生成中...' : '✨ 举一反三'}
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {variants && variants.length > 0 && (
+                    <div
+                        className="ocr-result"
+                        style={{ marginTop: 12, borderTop: '1px dashed rgba(148,163,184,0.4)', paddingTop: 12 }}
+                    >
+                        <div className="ocr-result-head">
+                            <span className="ocr-result-type">举一反三</span>
+                            <span className="ocr-result-title">变式题 (共 {variants.length} 道)</span>
+                        </div>
+                        {variants.length > 1 && (
+                            <div className="ocr-nav" role="tablist" aria-label="变式题导航">
+                                {variants.map((_, i) => (
+                                    <button
+                                        key={i}
+                                        role="tab"
+                                        aria-selected={i === variantIndex}
+                                        className={`ocr-nav-btn ${i === variantIndex ? 'active' : ''}`}
+                                        onClick={() => setVariantIndex(i)}
+                                    >
+                                        {i + 1}
+                                    </button>
                                 ))}
                             </div>
                         )}
-                        {activeProblem.formulas && activeProblem.formulas.length > 0 && (
-                            <div className="ocr-result-formulas">{activeProblem.formulas.join('; ')}</div>
+                        {activeVariant && (
+                            <>
+                                <div className="ocr-result-head">
+                                    <span className="ocr-result-type">
+                                        {inferProblemTypeLabel(
+                                            activeVariant.type,
+                                            (activeVariant.options ?? []).length > 0
+                                        )}
+                                    </span>
+                                    <span className="ocr-result-title">
+                                        {variants.length > 1 ? `第 ${variantIndex + 1} 题: ` : ''}
+                                        {activeVariant.title ?? '未命名'}
+                                    </span>
+                                </div>
+                                <ProblemBody problem={activeVariant} />
+                                <button
+                                    className="btn btn-primary"
+                                    onClick={() => loadProblemIntoSimulation(activeVariant)}
+                                    style={{ width: '100%', marginTop: 12 }}
+                                >
+                                    加载仿真
+                                </button>
+                            </>
                         )}
-                        {activeProblem.answer && (
-                            <div className="ocr-result-answer">
-                                <strong>答案：</strong>
-                                {activeProblem.answer.correct?.join('、')}
-                                {activeProblem.answer.explanation && (
-                                    <>
-                                        <br />
-                                        {activeProblem.answer.explanation}
-                                    </>
-                                )}
-                            </div>
-                        )}
-                        <button
-                            className="btn btn-primary"
-                            onClick={loadIntoSimulation}
-                            style={{ width: '100%', marginTop: 12 }}
-                        >
-                            加载仿真
-                        </button>
                     </div>
                 )}
             </div>

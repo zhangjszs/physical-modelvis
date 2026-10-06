@@ -45,6 +45,8 @@ export interface VisionProvider {
     id: string;
     protocol: VisionProtocol;
     buildRequest(image: VisionImage, model: string, systemPrompt: string): UpstreamRequest;
+    /** 纯文本请求 (#76, 无图片; 举一反三生成等文本任务复用同一上游通道) */
+    buildTextRequest(userText: string, model: string, systemPrompt: string): UpstreamRequest;
     /** 从上游 JSON 响应提取文本; 无内容返回 null (由路由统一转 502) */
     parseResponse(json: unknown): string | null;
 }
@@ -92,6 +94,23 @@ export const OCR_SYSTEM_PROMPT = `你是高中物理题目识别助手。识别�
 只返回 JSON，不要其他文字。`;
 
 export const OCR_USER_TEXT = '请识别这张物理题目图片中的内容，返回 JSON。';
+
+/** 举一反三生成提示词单一真源 (#76) — 返回 schema 与识别提示词一致, 归一化层零分叉 */
+export const GENERATE_SYSTEM_PROMPT = `你是高中物理变式题生成助手。基于给定的原题生成指定数量的同题型变式题，严格返回 JSON：
+{"problems":[{"index":1,"type":"single-choice|multiple-choice|fill-blank|essay","title":"题目标题","description":"题目描述","source":"原题变式","given":{"参数":"值"},"options":[{"letter":"A","text":"选项文本"}],"answer":{"correct":["正确选项"],"explanation":"解题思路"},"sceneTemplate":"projectile|electric-field|magnetic-field|null","formulas":["公式"]}]}
+变式规则：
+- problems 数组元素数量必须等于要求生成的变式数量，index 从 1 开始递增
+- 保持原题的题型 (type) 与考点，只改变数值或情境细节
+- 数值须物理自洽、可解，避免除以零、负数开方等无解组合
+- sceneTemplate 与原题保持一致
+- 选择题必须填 options，answer.correct 填正确选项字母（多选题填多个）
+- given 只放数值型物理量，单位换算为 SI
+只返回 JSON，不要其他文字。`;
+
+/** 构造变式生成用户消息 (#76): 原题 JSON 内联 + 指定生成数量 */
+export function buildGenerateUserText(problem: unknown, count: number): string {
+    return `请基于以下原题生成 ${count} 道变式题，返回 JSON。\n原题：\n${JSON.stringify(problem)}`;
+}
 
 /** 未知结构收窄为纯对象 (排除数组与 null, 适配器解析上游响应用) */
 export function isRecord(value: unknown): value is Record<string, unknown> {

@@ -8,7 +8,14 @@ import { describe, it, expect } from 'vitest';
 import { createAnthropicProvider } from '../../server/providers/anthropic';
 import { createOpenAICompatibleProvider } from '../../server/providers/openai-compatible';
 import { parseImageDataUrl, mapUpstreamError, parseCsvList } from '../../server/ocr-utils';
-import { OCR_SYSTEM_PROMPT, OCR_USER_TEXT, isRecord, type ProviderConfig } from '../../server/vision-providers';
+import {
+    OCR_SYSTEM_PROMPT,
+    OCR_USER_TEXT,
+    GENERATE_SYSTEM_PROMPT,
+    buildGenerateUserText,
+    isRecord,
+    type ProviderConfig
+} from '../../server/vision-providers';
 
 const anthropicConfig: ProviderConfig = {
     id: 'anthropic',
@@ -61,6 +68,29 @@ describe('createAnthropicProvider — buildRequest', () => {
     });
 });
 
+describe('createAnthropicProvider — buildTextRequest (#76 纯文本变体)', () => {
+    const provider = createAnthropicProvider(anthropicConfig);
+
+    it('positive: URL/头与图片请求一致, user.content 仅文本块无图片块', () => {
+        const req = provider.buildTextRequest('生成 3 道变式', 'claude-sonnet-4-6', GENERATE_SYSTEM_PROMPT);
+        expect(req.url).toBe('https://api.anthropic.com/v1/messages');
+        expect(req.headers['x-api-key']).toBe('sk-ant-test');
+        expect(req.headers['anthropic-version']).toBe('2023-06-01');
+        expect(req.body.model).toBe('claude-sonnet-4-6');
+        expect(req.body.system).toBe(GENERATE_SYSTEM_PROMPT);
+        const messages = req.body.messages as Array<{ role: string; content: Array<Record<string, unknown>> }>;
+        expect(messages).toHaveLength(1);
+        expect(messages[0]!.role).toBe('user');
+        expect(messages[0]!.content).toEqual([{ type: 'text', text: '生成 3 道变式' }]);
+    });
+
+    it('edge: 空串 userText 原样透传 (不注入默认文案)', () => {
+        const req = provider.buildTextRequest('', 'm', 'sys');
+        const messages = req.body.messages as Array<{ content: Array<{ text: string }> }>;
+        expect(messages[0]!.content[0]!.text).toBe('');
+    });
+});
+
 describe('createAnthropicProvider — parseResponse', () => {
     const provider = createAnthropicProvider(anthropicConfig);
 
@@ -99,6 +129,26 @@ describe('createOpenAICompatibleProvider — buildRequest', () => {
             { type: 'image_url', image_url: { url: 'data:image/png;base64,QUJD' } },
             { type: 'text', text: OCR_USER_TEXT }
         ]);
+    });
+});
+
+describe('createOpenAICompatibleProvider — buildTextRequest (#76 纯文本变体)', () => {
+    const provider = createOpenAICompatibleProvider(openaiConfig);
+
+    it('positive: system + user 纯字符串消息 (无 image_url)', () => {
+        const req = provider.buildTextRequest('生成 3 道变式', 'deepseek-chat', GENERATE_SYSTEM_PROMPT);
+        expect(req.url).toBe('https://api.deepseek.com/v1/chat/completions');
+        expect(req.headers.Authorization).toBe('Bearer sk-ds-test');
+        expect(req.body.model).toBe('deepseek-chat');
+        const messages = req.body.messages as Array<{ role: string; content: unknown }>;
+        expect(messages[0]).toEqual({ role: 'system', content: GENERATE_SYSTEM_PROMPT });
+        expect(messages[1]).toEqual({ role: 'user', content: '生成 3 道变式' });
+    });
+
+    it('edge: 空串 userText 原样透传', () => {
+        const req = provider.buildTextRequest('', 'm', 'sys');
+        const messages = req.body.messages as Array<{ content: unknown }>;
+        expect(messages[1]!.content).toBe('');
     });
 });
 
@@ -160,6 +210,20 @@ describe('提示词单一真源', () => {
         expect(OCR_SYSTEM_PROMPT).toContain('"problems"');
         expect(OCR_SYSTEM_PROMPT).toContain('sceneTemplate');
         expect(OCR_SYSTEM_PROMPT).toContain('只返回 JSON，不要其他文字。');
+    });
+
+    it('positive: 生成提示词 (#76) 与识别同 schema, 含变式规则关键串', () => {
+        expect(GENERATE_SYSTEM_PROMPT).toContain('"problems"');
+        expect(GENERATE_SYSTEM_PROMPT).toContain('sceneTemplate');
+        expect(GENERATE_SYSTEM_PROMPT).toContain('同题型变式题');
+        expect(GENERATE_SYSTEM_PROMPT).toContain('只返回 JSON，不要其他文字。');
+    });
+
+    it('positive: buildGenerateUserText 内联原题 JSON 并指定数量', () => {
+        const userText = buildGenerateUserText({ title: '平抛', given: { v0: 10 } }, 3);
+        expect(userText).toContain('生成 3 道变式题');
+        expect(userText).toContain('"title":"平抛"');
+        expect(userText).toContain('原题：');
     });
 });
 

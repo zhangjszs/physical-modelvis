@@ -44,6 +44,23 @@ export function createAnthropicProvider(config: ProviderConfig): VisionProvider 
                 }
             };
         },
+        buildTextRequest(userText, model, systemPrompt): UpstreamRequest {
+            return {
+                url: `${config.baseUrl}/v1/messages`,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': config.authToken,
+                    'anthropic-version': '2023-06-01'
+                },
+                body: {
+                    model,
+                    // 变式生成一次产出多道完整题干, 上限较识别放宽 (#76)
+                    max_tokens: 4000,
+                    system: systemPrompt,
+                    messages: [{ role: 'user', content: [{ type: 'text', text: userText }] }]
+                }
+            };
+        },
         parseResponse(json: unknown): string | null {
             // Anthropic 响应格式: { content: [{ type: "text", text: "..." }] }
             if (!isRecord(json) || !Array.isArray(json.content)) return null;

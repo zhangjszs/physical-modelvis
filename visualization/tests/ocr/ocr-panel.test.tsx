@@ -1,14 +1,15 @@
 /**
- * OCRPanel 组件行为测试 (#75)
+ * OCRPanel 组件行为测试 (#75, #76 扩展举一反三)
  *
- * 覆盖验收标准 1 的 5 类交互 + 模式切换修复回归 (验收标准 4):
+ * 覆盖验收标准 1 的 5 类交互 + 模式切换修复回归 (验收标准 4) + 举一反三生成链路 (#76):
  *   1. 打开/关闭 (入口按钮 ↔ 遮罩/关闭钮)
  *   2. 文件校验 (非图片 / 超 10MB)
  *   3. 识别成功 (状态提示 + 结果渲染) / 识别失败 (错误文案)
  *   4. 多题 tab 导航
  *   5. 加载仿真 (store 动作: appMode 切回教材模式 + setScene/setParameter 落库 + 面板关闭)
+ *   6. 举一反三: 生成 → 变式 tab → 变式加载仿真 / 生成失败 / 切主 tab 清空变式
  *
- * mock 边界: 仅 mock global fetch (health/recognize 两个端点), store 与 FileReader 走真实实现。
+ * mock 边界: 仅 mock global fetch (health/recognize/generate 三个端点), store 与 FileReader 走真实实现。
  */
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
@@ -33,14 +34,22 @@ function recognizeOk(problems: RecognizeResponse['problems']): { ok: boolean; st
     };
 }
 
-/** 按请求 URL 路由的 fetch 桩: /health → HEALTH_RESPONSE, /recognize → 每测试预设响应 */
-function stubFetch(recognize: { ok: boolean; status: number; body: unknown }): void {
+/** 按请求 URL 路由的 fetch 桩: /health → HEALTH_RESPONSE, /recognize → 每测试预设响应,
+ *  /generate → 可选预设 (未预设时返回 500, 防止用例误触发生成链路) (#76) */
+function stubFetch(
+    recognize: { ok: boolean; status: number; body: unknown },
+    generate?: { ok: boolean; status: number; body: unknown }
+): void {
     vi.stubGlobal(
         'fetch',
         vi.fn(async (input: RequestInfo | URL) => {
             const url = String(input);
             if (url.includes('/api/ocr/health')) {
                 return new Response(JSON.stringify(HEALTH_RESPONSE), { status: 200 });
+            }
+            if (url.includes('/api/problems/generate')) {
+                const g = generate ?? { ok: false, status: 500, body: { error: 'generate 未打桩' } };
+                return new Response(JSON.stringify(g.body), { status: g.status });
             }
             return new Response(JSON.stringify(recognize.body), { status: recognize.status });
         })
@@ -223,6 +232,125 @@ describe('OCRPanel — 加载仿真 (含 #75 模式切换修复回归)', () => {
         const state = useSimulationStore.getState();
         expect(state.appMode).toBe('scenes');
         expect(state.currentScene).toBe('projectile');
+    });
+});
+
+describe('OCRPanel — 举一反三 (#76)', () => {
+    const ORIGINAL = {
+        index: 1,
+        title: '平抛运动',
+        description: '从 20m 高处以 5m/s 水平抛出',
+        sceneTemplate: 'projectile',
+        given: { 初速度: 5 }
+    };
+    const VARIANTS = [
+        {
+            index: 1,
+            title: '变式·高塔抛出',
+            description: '从 45m 高处以 8m/s 水平抛出',
+            sceneTemplate: 'projectile',
+            given: { 初速度: 8, 高度: 45 }
+        },
+        {
+            index: 2,
+            title: '变式·斜面滑块',
+            description: '质量 2kg 沿斜面下滑',
+            sceneTemplate: 'inclined-plane',
+            given: { 质量: 2 }
+        }
+    ];
+
+    it('positive: 识别 → 举一反三 → 变式 tab 出现 → 切变式 → 点变式「加载仿真」→ store 落库 + 面板关闭', async () => {
+        stubFetch(recognizeOk([ORIGINAL]), {
+            ok: true,
+            status: 200,
+            body: {
+                result: { problems: VARIANTS },
+                meta: { provider: 'anthropic', model: 'm1', requestedModel: null, modelFallback: false }
+            }
+        });
+        render(<OCRPanel />);
+        await openPanel();
+        await uploadImageAndWaitPreview(SMALL_IMAGE());
+        fireEvent.click(screen.getByRole('button', { name: '识别题目' }));
+        await waitFor(() => expect(screen.getByText(/识别完成: 共 1 题/)).toBeTruthy());
+
+        fireEvent.click(screen.getByRole('button', { name: /举一反三/ }));
+        await waitFor(() => expect(screen.getByText(/已生成 2 道变式题/)).toBeTruthy());
+        expect(screen.getByText('变式题 (共 2 道)')).toBeTruthy();
+
+        // 请求体核验: 原题 JSON + count=3 (前端默认)
+        const generateCall = vi
+            .mocked(fetch)
+            .mock.calls.find(([input]) => String(input).includes('/api/problems/generate'));
+        expect(generateCall).toBeTruthy();
+        const sentBody = JSON.parse(String((generateCall![1] as RequestInit).body)) as {
+            problem: { title: string };
+            count: number;
+        };
+        expect(sentBody.problem.title).toBe('平抛运动');
+        expect(sentBody.count).toBe(3);
+
+        // 变式导航: 本例主结果仅 1 题 (无主 tab), 2 个 tab 均为变式, 默认第 1 道
+        const tabs = screen.getAllByRole('tab');
+        expect(tabs).toHaveLength(2);
+        expect(screen.getByText(/变式·高塔抛出/)).toBeTruthy();
+
+        // 切第 2 道变式 → 内容切换
+        fireEvent.click(tabs[1]!);
+        expect(screen.getByText(/变式·斜面滑块/)).toBeTruthy();
+        expect(screen.queryByText(/变式·高塔抛出/)).toBeNull();
+
+        // 变式卡片的「加载仿真」(主卡与变式卡各有一个, 取后者)
+        const loadButtons = screen.getAllByRole('button', { name: '加载仿真' });
+        expect(loadButtons).toHaveLength(2);
+        fireEvent.click(loadButtons[1]!);
+
+        const state = useSimulationStore.getState();
+        expect(state.appMode).toBe('scenes');
+        expect(state.currentScene).toBe('inclined-plane'); // 变式 2 的场景
+        expect(state.parameters['mass']).toBe(2); // buildSceneParams: 质量 → mass
+        await waitFor(() => expect(document.querySelector('.ocr-overlay')).toBeNull());
+    });
+
+    it('edge: 生成失败 (后端 502) → 状态区错误文案, 不出现变式区块', async () => {
+        stubFetch(recognizeOk([ORIGINAL]), {
+            ok: false,
+            status: 502,
+            body: { error: 'AI 返回内容中未识别到有效变式题' }
+        });
+        render(<OCRPanel />);
+        await openPanel();
+        await uploadImageAndWaitPreview(SMALL_IMAGE());
+        fireEvent.click(screen.getByRole('button', { name: '识别题目' }));
+        await waitFor(() => expect(screen.getByRole('button', { name: /举一反三/ })).toBeTruthy());
+
+        fireEvent.click(screen.getByRole('button', { name: /举一反三/ }));
+        await waitFor(() => expect(document.querySelector('.ocr-status.error')).toBeTruthy());
+        expect(screen.getByText('AI 返回内容中未识别到有效变式题')).toBeTruthy();
+        expect(screen.queryByText(/变式题 \(共/)).toBeNull();
+    });
+
+    it('edge: 生成后切换主题 tab → 变式区块清空 (变式属于原题)', async () => {
+        stubFetch(recognizeOk([ORIGINAL, { index: 2, title: '题目乙', description: '第二题描述' }]), {
+            ok: true,
+            status: 200,
+            body: { result: { problems: VARIANTS } }
+        });
+        render(<OCRPanel />);
+        await openPanel();
+        await uploadImageAndWaitPreview(SMALL_IMAGE());
+        fireEvent.click(screen.getByRole('button', { name: '识别题目' }));
+        await waitFor(() => expect(screen.getAllByRole('tab')).toHaveLength(2)); // 主导航 2 题
+
+        fireEvent.click(screen.getByRole('button', { name: /举一反三/ }));
+        await waitFor(() => expect(screen.getByText(/已生成 2 道变式题/)).toBeTruthy());
+        expect(screen.getByText(/变式题 \(共 2 道\)/)).toBeTruthy();
+
+        // 切主 tab 到第 2 题 (主导航在 DOM 前部) → 变式区块消失
+        fireEvent.click(screen.getAllByRole('tab')[1]!);
+        expect(screen.getByText(/题目乙/)).toBeTruthy();
+        expect(screen.queryByText(/变式题 \(共/)).toBeNull();
     });
 });
 
