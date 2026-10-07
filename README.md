@@ -4,7 +4,7 @@
 
 ## 测试状态
 
-- **测试数**: core 1119 / viz 1525 / 总计 2644 (全部通过) <!-- test-count -->
+- **测试数**: core 1119 / viz 1532 / 总计 2651 (全部通过) <!-- test-count -->
 - 质量门禁:`npm run precheck`(build:core → typecheck → lint → format:check → test → count:check → selfcheck)
 
 ## 项目简介
@@ -273,8 +273,8 @@ cd visualization && npm run dev          # Vite dev server
 
 ```
 physics-core:   1119 tests passed (126 files)
-visualization:  1525 tests passed (51 files)
-Total:          2644 tests passed
+visualization:  1532 tests passed (52 files)
+Total:          2651 tests passed
 ```
 
 准确性测试矩阵（`*/tests/accuracy/`）：
