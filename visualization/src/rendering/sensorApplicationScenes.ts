@@ -8,6 +8,7 @@
  * 设计原则：纯函数 + 屏幕坐标, 零依赖 React/Zustand/CoordinateTransformer
  */
 import type { SimulationResult } from 'physics-core';
+import { chartsOf } from 'physics-core';
 import {
     roundRectPath,
     clearScene,
@@ -352,9 +353,7 @@ export function drawLightControlSwitchScene(o: SensorSceneOptions): void {
     const Esupply = params['Esupply'] ?? 12;
 
     // 引擎单一真源: x_t = 24h 照度曲线 (h/lux), y_t = 开关状态 (h/0·1), maxValues 数值
-    const engCharts = simulationResult?.charts as
-        | { x_t?: { points: Array<{ x: number; y: number }> }; y_t?: { points: Array<{ x: number; y: number }> } }
-        | undefined;
+    const engCharts = simulationResult ? chartsOf(simulationResult, 'light-control-switch') : undefined;
     const engMax = simulationResult?.diagnostics?.maxValues as
         { rLdr?: number; vB?: number; lightOnFlag?: number; transistorOnFlag?: number } | undefined;
     // currentTime 模拟小时 (场景 duration 单位 = h)

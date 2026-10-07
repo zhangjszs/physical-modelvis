@@ -16,6 +16,7 @@
  */
 
 import type { SimulationResult } from 'physics-core';
+import { chartsOf } from 'physics-core';
 import { G_ACCELERATION } from './constants';
 import { roundRectPath, drawEmptyState, drawHud, drawInfoBar, drawArrow, interpSeries } from './renderingUtils';
 
@@ -513,8 +514,7 @@ export function drawEmDampingScene(opts: EmEquipSceneOptions): void {
     const k = 0.5 * sigma * Math.pow(R, 4);
     // 引擎单一真源: τ_c 读 maxValues (J/(kB²)), 回退自算
     const engMax = simulationResult?.diagnostics?.maxValues as { tauC_s?: number; omega0_rad_s?: number } | undefined;
-    const engChart = simulationResult?.charts as
-        { angular_velocity_vs_time?: { points: Array<{ x: number; y: number }> } } | undefined;
+    const engChart = simulationResult ? chartsOf(simulationResult, 'em-damping') : undefined;
     const tauC = engMax?.tauC_s ?? J / (k * B * B + 1e-30);
     const gamma = 1 / Math.max(tauC, 1e-30);
 
@@ -804,12 +804,7 @@ export function drawMutualInductanceScene(opts: EmEquipSceneOptions): void {
     const E2pk = M * I0 * omega;
 
     // 引擎数据: I1(t)/E2(t) 波形 (x 轴 s) + M/E2pk (maxValues); 取模到周期内插值, 回退自算
-    const engCharts = simulationResult?.charts as
-        | {
-              primary_current_vs_time?: { points: Array<{ x: number; y: number }> }; // I1(t) A
-              secondary_emf_vs_time?: { points: Array<{ x: number; y: number }> }; // E2(t) V
-          }
-        | undefined;
+    const engCharts = simulationResult ? chartsOf(simulationResult, 'mutual-inductance') : undefined;
     const engMax = simulationResult?.diagnostics?.maxValues as
         { M_H?: number; E2_amplitude_V?: number; T_period_s?: number; f_Hz?: number } | undefined;
     const engM = engMax?.M_H ?? M;
@@ -1525,14 +1520,8 @@ export function drawLCOscillatorScene(opts: EmEquipSceneOptions): void {
     const E_total = (Q0 * Q0) / (2 * C);
 
     // 当前状态: 优先读引擎 charts (q_t μC / i_t mA / Ee_t, Em_t μJ), 回退自算解析公式
-    const engCharts = simulationResult?.charts as
-        | {
-              x_t?: { points: Array<{ x: number; y: number }> }; // q(t) μC
-              y_t?: { points: Array<{ x: number; y: number }> }; // i(t) mA
-              ke_t?: { points: Array<{ x: number; y: number }> }; // Ee(t) μJ
-              pe_t?: { points: Array<{ x: number; y: number }> }; // Em(t) μJ
-          }
-        | undefined;
+    // (键名 x_t/y_t/ke_t/pe_t 与物理语义 q/i/Ee/Em 的映射已入引擎登记表 MODEL_CHART_KEYS 行内注释)
+    const engCharts = simulationResult ? chartsOf(simulationResult, 'lc-oscillator') : undefined;
     const interp = (pts: Array<{ x: number; y: number }> | undefined, tUs: number): number | null => {
         if (!pts || pts.length < 2) return null;
         const tt = (((tUs % 2e6) + 2e6) % 2e6) + pts[0]!.x; // 引擎覆盖 2T; 取模循环

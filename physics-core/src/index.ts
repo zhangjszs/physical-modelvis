@@ -95,6 +95,8 @@ export type {
     ExplanationStep,
     FormulaUsage
 } from './types/result.js';
+export type { ChartKey, RegisteredModel, ModelCharts } from './types/chart-registry.js';
+export { MODEL_CHART_KEYS, chartsOf, getChart } from './types/chart-registry.js';
 
 // === 错误类导出 ===
 export {

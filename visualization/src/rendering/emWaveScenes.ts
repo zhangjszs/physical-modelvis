@@ -10,6 +10,7 @@
  * 设计原则：纯函数 + 屏幕坐标, 零依赖 React/Zustand/CoordinateTransformer
  */
 import type { SimulationResult } from 'physics-core';
+import { chartsOf } from 'physics-core';
 import {
     COLORS,
     roundRectPath,
@@ -51,9 +52,7 @@ export function drawAcCurrentScene(opts: ElectromagnetismSceneOptions): void {
     const nRatio = params['nRatio'] ?? 0.1;
 
     // 引擎单一真源: x_t = e(t) (ms/V, 2 周期), y_t = u2(t); maxValues 峰值/频率/匝比
-    const engCharts = simulationResult?.charts as
-        | { x_t?: { points: Array<{ x: number; y: number }> }; y_t?: { points: Array<{ x: number; y: number }> } }
-        | undefined;
+    const engCharts = simulationResult ? chartsOf(simulationResult, 'ac-current') : undefined;
     const engMax = simulationResult?.diagnostics?.maxValues as
         { peakEmf?: number; frequency?: number; turnsRatio?: number; secondaryPeak?: number } | undefined;
     const fEng = engMax?.frequency ?? freq;

@@ -871,7 +871,9 @@ describe('L1-migration: 渲染单一真源契约 (后续迁移场景)', () => {
     it('bohr: 渲染层能级/波长/ΔE 读引擎且保留回退 (源码契约)', () => {
         const sceneFn = renderFn('atomicModelScenes.ts', 'drawBohrScene');
         expect(sceneFn, '能级标注读引擎').toContain('readEngineBohrLevels(simulationResult)');
-        expect(sceneFn, '谱线波长读引擎 y_t').toContain("['y_t']");
+        expect(sceneFn, '谱线波长读引擎 y_t (经 #82 类型化访问层 chartsOf)').toContain(
+            "chartsOf(simulationResult, 'bohr-model')?.y_t"
+        );
         expect(sceneFn, '无引擎结果回退里德伯公式').toContain('Rydberg');
         const orbitFn = renderFn('atomicModelScenes.ts', 'drawBohrOrbitScene');
         expect(orbitFn, '跃迁 ΔE 取引擎能级差').toContain('readEngineBohrLevels(simulationResult)');

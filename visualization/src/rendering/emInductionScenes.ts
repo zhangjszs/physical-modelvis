@@ -8,6 +8,7 @@
  * 设计原则：纯函数 + 屏幕坐标, 零依赖 React/Zustand/CoordinateTransformer
  */
 import type { SimulationResult } from 'physics-core';
+import { chartsOf } from 'physics-core';
 import {
     COLORS,
     roundRectPath,
@@ -50,9 +51,7 @@ export function drawEmInductionScene(opts: ElectromagnetismSceneOptions): void {
     const fluxSelf = n * b * area * Math.cos(angle);
 
     // 引擎逐时数据: x_t = Φ(t) mWb, y_t = ε(t) mV (x 轴 ms, 20ms 周期)
-    const engCharts = simulationResult?.charts as
-        | { x_t?: { points: Array<{ x: number; y: number }> }; y_t?: { points: Array<{ x: number; y: number }> } }
-        | undefined;
+    const engCharts = simulationResult ? chartsOf(simulationResult, 'em-induction') : undefined;
     const engMax = simulationResult?.diagnostics?.maxValues as { emfPeak?: number; fluxTotal?: number } | undefined;
     const tMs = (((currentTime % 0.02) + 0.02) % 0.02) * 1000;
     // 引擎 x_t 为单匝磁通 B·A·cos(ωt) (mWb), HUD 显示总磁通需乘匝数 N
