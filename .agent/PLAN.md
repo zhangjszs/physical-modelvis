@@ -50,13 +50,20 @@
 > **治理异常收编（D18）**：发现 #99–#105 共 7 单于 2026-10-06 16:16Z 绕过规划落盘纪律带外建立（PLAN 无载），
 > 内容为远景 B/C/D + M4 延伸——已纳入新增 **M5（候选）** 节尾部排队；**#99（npm 发布/CI-CD 红线）+ #105（英文物料/D17 不做）降 needs-info**
 > 待用户决策（D19/D20/D21）；新建 **#106**（#98 残留：冒烟脚本 BASE_URL/通道变量收口，P3 尾）。**队首 = #92**。
+> 2026-10-07 十五次滚动：**第十一棒 #92/#82 双单验收 CLOSED——M3 前置三件套（#61 守卫/#92 门禁/#82 类型层）收官，进度 3/8**。
+> 实跑复验：#92 边界门禁 5/5 绿（红基线 3 处与 D16 普查逐字吻合；**epsilon 0.1×1e-21 浮点落引擎域外** 9.99e-23<1e-22 为本轮新发现，
+> 修 0.2 非 issue 预设 0.1；q 裁决场景对齐引擎域，引擎 |q| 无符号语义）；#82 charts 类型化（编译期红→绿 TS2345 常驻单测 +
+> 渲染层强转 9 处清零 + 双向夹逼，31 模型登记表）。**#62–#66 blocked 已摘除**（十五次滚动，M3 迁移批次开工）。
+> **用户 D20/D21 定夺落盘**（十四次滚动·续在 #107/#99/#105 记录）：dry-run 门禁先行 → **#107 入图 ready**（P2，真实发布暂缓、#99 维持 needs-info）；
+> 英文物料随发布走（#105 维持 needs-info）。**D19（M5 立项）仍 pending**。AGENTS.md charts 强转陷阱条目已改写指向 chartsOf/getChart。
+> **队首 = #62**。
 
 ## 当前方向
 
 **M2 · L5 组合实验台场线渲染收尾**（用户 2026-10-02 定夺，见 D6/D7；D10 补充前置）——
 直通终极愿景（3D 引擎 + 拖拽组合实验台）。**M2 三单已全部收官（#67/#60/#68）、M2.5 · OCR 拍照解题功能线
 也已 4/4 收官（#74/#75/#76/#77）**。当前方向为 **M3 · B 类数值单源深化**
-（D9：#61 守卫 ✅ → #92 参数域边界 → #82 B1 → #62–#66 五批；**进度 1/8，队首 #92**，#82 已随 #61 解锁）。
+（D9：#61 守卫 ✅ → #92 门禁 ✅ → #82 B1 ✅ → #62–#66 五批；**进度 3/8，队首 #62**，前置三件套全就位）。
 其后 **M4 · 组合实验台深化与体验收尾**（#93–#97，D17）；再后 **M5（候选）· 组合实验台深化 + 架构治理**
 （#100–#104，D18 收编，待用户确认立项，见 D19）。
 
@@ -71,9 +78,9 @@
 → M2 尾巴 **#60 → #68**（均已 CLOSED，#68 范围经 #14 提前落地）
 → **M2.5 OCR 线：#74 → #75 → #76 → #77**（**全部 CLOSED，OCR 线 4/4 收官**）
 → 验证基础设施 **#98**（msedge 通道参数化，✅ CLOSED；残留转 #106）
-→ **M3：#61 → #92 → #82(B1) → #62–#66**（#61 ✅ CLOSED，进度 1/8；#92 现队首；#82 已解锁；D12 排序口径不变）。
+→ **M3：#61 → #92 → #82(B1) → #62–#66**（#61/#92/#82 均已 ✅ CLOSED，进度 3/8；前置三件套收官，#62 队首；D12 排序口径不变）。
 
-**进度**：M2 3/3（#67 ✅ / #60 ✅ / #68 ✅）+ M2.5 4/4（#74/#75/#76/#77 ✅）—— **M2 + M2.5 均收官**，当前方向 **M3**（进度 1/8，队首 #92，#82 已解锁）。
+**进度**：M2 3/3（#67 ✅ / #60 ✅ / #68 ✅）+ M2.5 4/4（#74/#75/#76/#77 ✅）—— **M2 + M2.5 均收官**，当前方向 **M3**（进度 3/8，队首 #62，前置全就位）。
 
 ### #67 背景备忘（原「候选 A 详细」收编记录）
 
@@ -162,30 +169,31 @@ B-数值 30 场景中 **22 个**的 draw 函数拿到 `simulationResult` 却从�
 | # | 主题 | 状态 | 优先级 | 依赖 |
 |---|---|---|---|---|
 | [#61](https://github.com/zhangjszs/physical-modelvis/issues/61) | 前置守卫：「渲染消费引擎结果」快照豁免表 + 迁移/契约差集自动化（自检仍 11 层） | ✅ **CLOSED**（`1bf9ff6`/`ae15536`；2026-10-07 验收 9/9：守卫 7/7 实跑绿 + 豁免 22/例外 7 核对 + L11 数组化） | P1 | — |
-| [#82](https://github.com/zhangjszs/physical-modelvis/issues/82) | **B1 前置**：charts 类型化访问层最小切片（每模型 typed accessor）——五批迁移写新 API 不返工 | 已建 · **ready**（#61 CLOSED 后摘 blocked） | P1 | ~~#61~~（已 CLOSED） |
-| [#92](https://github.com/zhangjszs/physical-modelvis/issues/92) | **参数域边界门禁**（D16 用户观察摸底）：每场景每参数 min/max 边界值须过引擎 validate（并入 L2 家族）+ 存量 3 处 #91 同类失配修复（audioFreq 200→20kHz / q min 负电荷方向裁决 / epsilon min 0.1） | 已建 | P2 | 无（排 #61 后） |
-| [#62](https://github.com/zhangjszs/physical-modelvis/issues/62) | 批次 1 光学波动 + 波粒二象（5）：diffraction-grating / polarization-malus / interference / doppler / photoelectric | 已建 · blocked（← #61/#82） | P2 | #61 · #82 |
-| [#63](https://github.com/zhangjszs/physical-modelvis/issues/63) | 批次 2 传感器元件（4）：**thermistor 已坐实双源** / hall-effect / photoresistor / strain-gauge | 已建 · blocked（← #61/#82） | P2 | #61 · #82 |
-| [#64](https://github.com/zhangjszs/physical-modelvis/issues/64) | 批次 3 热学定律（5）：heat-direction / perpetuum-mobile 沿用阶段 C 既有豁免结论 | 已建 · blocked（← #61/#82） | P2 | #61 · #82 |
-| [#65](https://github.com/zhangjszs/physical-modelvis/issues/65) | 批次 4 气体分子 / 静能 / 核（4）：gas-law（249 行自算）/ capacitor-charge / radioactive / liquid-mixing | 已建 · blocked（← #61/#82） | P2 | #61 · #82 |
-| [#66](https://github.com/zhangjszs/physical-modelvis/issues/66) | 批次 5 电路 + 测量仪器（4）· **收口批**：附带改写 audit/plan 的 B3「保留自算」旧口径 | 已建 · blocked（← #61/#82） | P2 | #61 · #82 |
+| [#82](https://github.com/zhangjszs/physical-modelvis/issues/82) | **B1 前置**：charts 类型化访问层最小切片（每模型 typed accessor）——五批迁移写新 API 不返工 | ✅ **CLOSED**（`7b93cda`/`fc083a3`；2026-10-07 验收：编译期红→绿 TS2345 常驻单测 6/6 + 渲染层强转 9 处清零 + 双向夹逼 + #61 守卫 7/7 兼容） | P1 | ~~#61~~（已 CLOSED） |
+| [#92](https://github.com/zhangjszs/physical-modelvis/issues/92) | **参数域边界门禁**（D16 用户观察摸底）：每场景每参数 min/max 边界值须过引擎 validate（并入 L2 家族）+ 存量 3 处 #91 同类失配修复（audioFreq 200→20kHz / q min −10→0.1 / epsilon min 0.01→0.2） | ✅ **CLOSED**（`180261d`/`8d7293e`；2026-10-07 验收：5/5 实跑 + 红基线 3 处与普查逐字吻合；epsilon 0.1×1e-21 浮点落引擎域外为新发现，修 0.2） | P2 | 无 |
+| [#62](https://github.com/zhangjszs/physical-modelvis/issues/62) | 批次 1 光学波动 + 波粒二象（5）：diffraction-grating / polarization-malus / interference / doppler / photoelectric | 已建 · **ready（现队首）** | P2 | 前置 #61/#82/#92 均已 CLOSED |
+| [#63](https://github.com/zhangjszs/physical-modelvis/issues/63) | 批次 2 传感器元件（4）：**thermistor 已坐实双源** / hall-effect / photoresistor / strain-gauge | 已建 · **ready** | P2 | 同上 |
+| [#64](https://github.com/zhangjszs/physical-modelvis/issues/64) | 批次 3 热学定律（5）：heat-direction / perpetuum-mobile 沿用阶段 C 既有豁免结论 | 已建 · **ready** | P2 | 同上 |
+| [#65](https://github.com/zhangjszs/physical-modelvis/issues/65) | 批次 4 气体分子 / 静能 / 核（4）：gas-law（249 行自算）/ capacitor-charge / radioactive / liquid-mixing | 已建 · **ready** | P2 | 同上 |
+| [#66](https://github.com/zhangjszs/physical-modelvis/issues/66) | 批次 5 电路 + 测量仪器（4）· **收口批**：附带改写 audit/plan 的 B3「保留自算」旧口径 | 已建 · **ready** | P2 | 同上 |
 
-**进度**：1/8（#61 ✅ CLOSED）· **执行顺序**：#61 已最先落地（豁免表 + 差集守卫基线）→ **#92 参数域边界门禁（队首）**
-（D16：#91 同类存量 3 处修复 + L2 家族边界守卫，护卫后续迁移批次参数域不回退）→ **#82 B1**（已解锁，charts 类型化访问层）
-→ #62–#66 同为 P2，按创建时间从早到晚依次接手（均仍 blocked ← #82）。
+**进度**：**3/8**（#61 ✅ / #92 ✅ / #82 ✅）· **执行顺序**：#61 守卫 → #92 边界门禁 → #82 B1 类型层均已落地（前置三件套收官）
+→ **#62–#66 五批迁移（现队首 #62）**，同为 P2 按创建时间从早到晚依次接手；每迁一景：改渲染消费 `chartsOf` → 从 `EXEMPTION_TABLE` 销名 → 补契约用例，
+两道守卫 + 边界门禁自动把关。
 **已定稿口径（D12，用户 2026-10-02 复核确认，勿重议）**：M3 不早于 #67 CLOSED；#61 用「函数体直接文本引用」
 的保守快照口径（已知局限写注释），经 helper 间接消费的误报留给 #62–#66 逐场景复核。
 
-**优先级纪律说明**：M3 实质主干只留 2 个 P1（#61 前置守卫 + #82 B1 类型化），5 个批次 + #92 参数域边界门禁均 P2 —— 避免 P1 通胀；
-M2+M3 开放 P1 = **1**（#82，#61 已 CLOSED），串行推进不产生争抢（P1 总数已较十三次滚动降 1）。
+**优先级纪律说明**：M3 实质主干曾留 2 个 P1（#61 前置守卫 + #82 B1 类型化），5 个批次 + #92 参数域边界门禁均 P2 —— 避免 P1 通胀；
+**M3 开放 P1 = 0**（#61/#82 均已 CLOSED，十五次滚动），剩余批次全 P2。
 发现漂移时规划者负责降级并在 issue 留言。
 
-**blocked 现状一览（摘除全归规划者）**：#62–#66 ← #82（#61 已 CLOSED；仍留 #82 一条硬边，保持 blocked）；
-**#82 已摘 blocked**（← #61 已 CLOSED，十四次滚动）。#76/#61 的历史 blocked 均已随前置 CLOSED 摘除。
-**#99 / #105 → needs-info**（D18 收编：#99 npm 发布/CI-CD 红线，#105 英文物料/D17 不做 + 依赖 #99，均待用户决策）。
-当前可执行队列 = **#92 → #82 → #62–#66 → #93–#97（M4）→ #100–#104（M5 候选，parked）**
-（#92 为 D16 参数域边界门禁、现队首；#82 B1 已解锁；#93–#97 为 M4，D17 用户授权；
-#100–#104 为 D18 带外收编的 M5 候选，尾部排队且需用户确认立项；#106 验证基础设施小单插尾部）。
+**blocked 现状一览（摘除全归规划者）**：M3 内 **无 blocked**——#62–#66 的 blocked 已随前置三件套 CLOSED 摘除（十五次滚动）；
+#76/#61/#82 的历史 blocked 均已随前置 CLOSED 摘除。
+**#99 / #105 → needs-info**（D20/D21 用户已定夺：真实发布暂缓、英文物料随发布走——两单维持 needs-info，真实发布重启前不领）。
+当前可执行队列 = **#62 → #63 → #64 → #65 → #66 → #107 → #93–#97（M4）→ #100–#104（M5 候选，parked）→ #106**
+（#62 现队首；#107 为 D20 授权的发布 dry-run 安全切片，P2，插 M3 批次后 M4 前；
+#93–#97 为 M4，D17 用户授权；#100–#104 为 D18 带外收编的 M5 候选，尾部排队且需用户确认立项 D19；
+#106 验证基础设施小单插尾部）。
 
 ## 验证基础设施单（非里程碑，十三次滚动定级）
 
@@ -193,13 +201,14 @@ M2+M3 开放 P1 = **1**（#82，#61 已 CLOSED），串行推进不产生争抢�
 |---|---|---|---|---|
 | [#98](https://github.com/zhangjszs/physical-modelvis/issues/98) | verify-*.cjs 冒烟脚本 msedge 通道参数化（方案 A：`SMOKE_BROWSER_CHANNEL` env，对齐 sweep 既有 `QA_CHANNEL`） | ✅ **CLOSED**（`5a01f2b`/`8622dd8`；2026-10-07 验收 3/3：4 脚本 grep 复核参数化 + 红/绿向证据 + CI/Deploy success） | P3 | 残留（BASE_URL/通道变量名统一）已转 #106 |
 | [#106](https://github.com/zhangjszs/physical-modelvis/issues/106) | 冒烟脚本参数化收口：3 脚本 BASE_URL env 化 + 通道变量名统一评估（#98 后续） | 已建 · ready（2026-10-07 十四次滚动） | P3 | 尾部排队，不入当前执行队列；~10 行低风险，响应 #98 报告移交信号而建 |
+| [#107](https://github.com/zhangjszs/physical-modelvis/issues/107) | physics-core 发布 dry-run CI 门禁：publish --dry-run + files/体积/元数据断言（**无外部发布、不触网、不需 token**，#99 安全切片） | 已建 · **ready**（2026-10-07 十五次滚动入图） | P2 | **D20 用户授权切片**：真实发布暂缓、dry-run 先行；排 M3 批次后 M4 前；包名决策留待真实发布 |
 
 **遗留观察（未立单）**：**61/571 参数的 default 不在 step 网格**（D16 普查，良性类）——首次交互时滑块吸附到
 网格点造成小幅静默漂移（如 spring.k 10→10.1）；灾难性组合（吸附值超引擎域）已被 #92 门禁阻止
 （场景域⊆引擎域 ⇒ 吸附值≤引擎上界）。若将来要做「参数初值精确呈现」UX 收口，从此观察立项，
 治理面 = 逐场景把 default 移上网格或把 min 对齐网格，需评估画面初值变化，暂不做。
-⚠️ 工作树干净，README 测试数 = core 1119 / viz **1532** / total **2651**（#61 后 count:sync 已回写，
-规划者十四次滚动实跑核与 HEAD 一致），执行棒保持全量 `precheck`（含 count:sync）纪律。
+⚠️ 工作树干净，README 测试数 = core **1125** / viz **1534** / total **2659**（#82 后 count:sync 已回写，
+规划者十五次滚动实跑 count:check 一致），执行棒保持全量 `precheck`（含 count:sync）纪律。
 
 ## M4 · 组合实验台深化与体验收尾（3D 愿景延伸 · 2026-10-04 立单，排在 M3 后）
 
@@ -230,17 +239,17 @@ M2+M3 开放 P1 = **1**（#82，#61 已 CLOSED），串行推进不产生争抢�
 | [#102](https://github.com/zhangjszs/physical-modelvis/issues/102) | **调查**：多线圈场求值性能（Biot-Savart × Worker 化评估） | ready（parked） | P3 | 调查单，不动代码 |
 | [#103](https://github.com/zhangjszs/physical-modelvis/issues/103) | **调查**：渲染层结构治理（按机制抽 primitives + 巨型文件拆分路线） | ready（parked） | P2 | 远景 C：调查安全；**实施重构属红线，需另请示** |
 | [#104](https://github.com/zhangjszs/physical-modelvis/issues/104) | **调查**：引擎契约上帝对象治理（ConstraintConfig 拆分 + charts 键名规范） | ready（parked） | P3 | 远景 B：同 #103，实施需另请示；与 #82 不重叠 |
-| [#99](https://github.com/zhangjszs/physical-modelvis/issues/99) | physics-core 发布流水线：npm publish + provenance + 包名决策 | ⚠️ **needs-info**（D20 待决） | P2 | **契约 1.8 红线**（外部不可逆 + CI/CD）——用户定前不入 ready |
-| [#105](https://github.com/zhangjszs/physical-modelvis/issues/105) | README 双语化 + CONTRIBUTING 外部贡献者视角补全 | ⚠️ **needs-info**（D21 待决） | P3 | 触 D17「英文化明确不做」+ 硬依赖 #99——待决 |
+| [#99](https://github.com/zhangjszs/physical-modelvis/issues/99) | physics-core 发布流水线：npm publish + provenance + 包名决策 | ⚠️ **needs-info**（真实发布部分；**D20 已定夺：暂缓**，dry-run 切片已拆出 #107 ready） | P2 | **契约 1.8 红线**（外部不可逆 + CI/CD）——真实发布重启前不入 ready |
+| [#105](https://github.com/zhangjszs/physical-modelvis/issues/105) | README 双语化 + CONTRIBUTING 外部贡献者视角补全 | ⚠️ **needs-info**（**D21 已定夺：英文物料随发布决策走**，发布暂缓故维持） | P3 | 触 D17「英文化明确不做」+ 硬依赖 #99 发布决策——维持 needs-info |
 
 **执行顺序**：均在 M4（#93–#97）之后。#99/#105 红线/未决，用户确认前绝不入队。#103/#104 调查派生的重构需据
 结论向用户请示后另立实施单（红线）。
 
 ## 给 Executor 的指令
 
-1. **队首 = #92**（M3 参数域边界静态门禁，#61 守卫已就位）→ #82 B1 → #62–#66（#82 前仍 blocked）。
-   **勿领 M5 候选（#99–#105）**——#99/#105 已转 needs-info、#100–#104 仅 parked 待用户确认立项；领前先查本队列。
-2. **标签流转纪律**：第十棒（#76/#77/#98/#61）已规范完成 领取 `in-progress` → 完工 `in-review`，继续保持。
+1. **队首 = #62**（M3 批次 1 光学波动 + 波粒二象；前置三件套 #61/#92/#82 已全部验收关闭）→ #63 → #64 → #65 → #66
+   → #107 → M4。**勿领 M5 候选（#100–#104）**——仅 parked 待用户确认立项（D19）；#99/#105 维持 needs-info；领前先查本队列。
+2. **标签流转纪律**：第十/十一棒均已规范完成 领取 `in-progress` → 完工 `in-review`，继续保持。
 3. **无凭证环境注意**（继承 #75 轮）：OCR demo 链路的端到端验证用 mock 上游（参照 tests/ocr/
    ocr-proxy-http.test.ts 与 .scratch/e2e-74.mjs 模式），真实上游凭证不在本机。
 
