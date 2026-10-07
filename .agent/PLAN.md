@@ -63,13 +63,20 @@
 > 「维持现状专注 M3+M4」，当时仅 D20/D21 入档、**D19 漏记**（见 D19）；#100–#104 维持 parked、不立项 M5，
 > **pending 区现已清空**。**现场：第十二棒 Executor 已领取 #62（`in-progress`，分支 `agent/issue-62-batch1-optics`）**——
 > 本轮不动其现场；注：**#62 已领取但 `.agent/LOCK` 不存在**，下棒开工先补建锁并按 1.2 记心跳。
+> 2026-10-07 十七次滚动：**M3 批次 1/2（#62 五景 + #63 四景）双单验收 CLOSED → 进度 5/8**，in-review 清零——
+> 规划者实跑复核（定向三件套 **100 passed · exit 0**、`count:check` exit 0 = core 1125/viz 1552/**total 2677**、
+> 豁免表精确计数 **22→13**、两批共 9 个 sceneId 已全部销名、5+4 个 draw 函数体抽源码确认真消费引擎数据且走 #82 `chartsOf`
+> 类型层零强转、**两批均未改引擎**、CI/Deploy @ ac4ffb1/5205370 success）。**新立 #108（P2）**：#62 报告观察到的
+> 引擎截断 `h=6.626e-34` 经查为 **`LITERAL_PATTERNS` 名单从未含 h**（同 #51 的 e 截断绕过同类），4 文件/5 处静默越过 M1 常量门禁；
+> 执行棒判「不另立 issue」，**门禁面属规划者职责故立单**。另记 photoresistor **真双源修复**（旧渲染漏引擎暗电阻温度项，同 #58 性质）
+> 印证 D9 立 M3 判断。**队首 = #64**。
 
 ## 当前方向
 
 **M2 · L5 组合实验台场线渲染收尾**（用户 2026-10-02 定夺，见 D6/D7；D10 补充前置）——
 直通终极愿景（3D 引擎 + 拖拽组合实验台）。**M2 三单已全部收官（#67/#60/#68）、M2.5 · OCR 拍照解题功能线
 也已 4/4 收官（#74/#75/#76/#77）**。当前方向为 **M3 · B 类数值单源深化**
-（D9：#61 守卫 ✅ → #92 门禁 ✅ → #82 B1 ✅ → #62–#66 五批；**进度 3/8，队首 #62**，前置三件套全就位）。
+（D9：#61 守卫 ✅ → #92 门禁 ✅ → #82 B1 ✅ → #62–#66 五批（#62 ✅ #63 ✅）；**进度 5/8，队首 #64**，豁免表 22→13）。
 其后 **M4 · 组合实验台深化与体验收尾**（#93–#97，D17）；**M5（候选）· 组合实验台深化 + 架构治理**
 （#100–#104，D18 收编）——**用户 D19 已定：不立项、维持 parked**，M3+M4 收口前不领。
 
@@ -84,9 +91,9 @@
 → M2 尾巴 **#60 → #68**（均已 CLOSED，#68 范围经 #14 提前落地）
 → **M2.5 OCR 线：#74 → #75 → #76 → #77**（**全部 CLOSED，OCR 线 4/4 收官**）
 → 验证基础设施 **#98**（msedge 通道参数化，✅ CLOSED；残留转 #106）
-→ **M3：#61 → #92 → #82(B1) → #62–#66**（#61/#92/#82 均已 ✅ CLOSED，进度 3/8；前置三件套收官，#62 队首；D12 排序口径不变）。
+→ **M3：#61 → #92 → #82(B1) → #62–#66**（前置三件套 ✅ + 批次 1/2 ✅，**进度 5/8**；现队首 #64；D12 排序口径不变）。
 
-**进度**：M2 3/3（#67 ✅ / #60 ✅ / #68 ✅）+ M2.5 4/4（#74/#75/#76/#77 ✅）—— **M2 + M2.5 均收官**，当前方向 **M3**（进度 3/8，队首 #62，前置全就位）。
+**进度**：M2 3/3（#67 ✅ / #60 ✅ / #68 ✅）+ M2.5 4/4（#74/#75/#76/#77 ✅）—— **M2 + M2.5 均收官**，当前方向 **M3**（进度 5/8，队首 #64，豁免表 13/22 已销）。
 
 ### #67 背景备忘（原「候选 A 详细」收编记录）
 
@@ -177,14 +184,15 @@ B-数值 30 场景中 **22 个**的 draw 函数拿到 `simulationResult` 却从�
 | [#61](https://github.com/zhangjszs/physical-modelvis/issues/61) | 前置守卫：「渲染消费引擎结果」快照豁免表 + 迁移/契约差集自动化（自检仍 11 层） | ✅ **CLOSED**（`1bf9ff6`/`ae15536`；2026-10-07 验收 9/9：守卫 7/7 实跑绿 + 豁免 22/例外 7 核对 + L11 数组化） | P1 | — |
 | [#82](https://github.com/zhangjszs/physical-modelvis/issues/82) | **B1 前置**：charts 类型化访问层最小切片（每模型 typed accessor）——五批迁移写新 API 不返工 | ✅ **CLOSED**（`7b93cda`/`fc083a3`；2026-10-07 验收：编译期红→绿 TS2345 常驻单测 6/6 + 渲染层强转 9 处清零 + 双向夹逼 + #61 守卫 7/7 兼容） | P1 | ~~#61~~（已 CLOSED） |
 | [#92](https://github.com/zhangjszs/physical-modelvis/issues/92) | **参数域边界门禁**（D16 用户观察摸底）：每场景每参数 min/max 边界值须过引擎 validate（并入 L2 家族）+ 存量 3 处 #91 同类失配修复（audioFreq 200→20kHz / q min −10→0.1 / epsilon min 0.01→0.2） | ✅ **CLOSED**（`180261d`/`8d7293e`；2026-10-07 验收：5/5 实跑 + 红基线 3 处与普查逐字吻合；epsilon 0.1×1e-21 浮点落引擎域外为新发现，修 0.2） | P2 | 无 |
-| [#62](https://github.com/zhangjszs/physical-modelvis/issues/62) | 批次 1 光学波动 + 波粒二象（5）：diffraction-grating / polarization-malus / interference / doppler / photoelectric | 已建 · **ready（现队首）** | P2 | 前置 #61/#82/#92 均已 CLOSED |
-| [#63](https://github.com/zhangjszs/physical-modelvis/issues/63) | 批次 2 传感器元件（4）：**thermistor 已坐实双源** / hall-effect / photoresistor / strain-gauge | 已建 · **ready** | P2 | 同上 |
+| [#62](https://github.com/zhangjszs/physical-modelvis/issues/62) | 批次 1 光学波动 + 波粒二象（5）：diffraction-grating / polarization-malus / interference / doppler / photoelectric | ✅ **CLOSED**（`ac4ffb1`；十七次滚动验收 9/9：4×B + 1×A 逐量决策、契约 +10、零强转走 chartsOf；未动 unit 记号、未改引擎） | P2 | — |
+| [#63](https://github.com/zhangjszs/physical-modelvis/issues/63) | 批次 2 传感器元件（4）：**thermistor 已坐实双源** / hall-effect / photoresistor / strain-gauge | ✅ **CLOSED**（`5205370`；十七次滚动验收 9/9：**thermistor 落 B（硬条件达成）**、photoresistor 漏温度项 **真双源修复**、契约 +8、回退常数同源） | P2 | — |
 | [#64](https://github.com/zhangjszs/physical-modelvis/issues/64) | 批次 3 热学定律（5）：heat-direction / perpetuum-mobile 沿用阶段 C 既有豁免结论 | 已建 · **ready** | P2 | 同上 |
 | [#65](https://github.com/zhangjszs/physical-modelvis/issues/65) | 批次 4 气体分子 / 静能 / 核（4）：gas-law（249 行自算）/ capacitor-charge / radioactive / liquid-mixing | 已建 · **ready** | P2 | 同上 |
 | [#66](https://github.com/zhangjszs/physical-modelvis/issues/66) | 批次 5 电路 + 测量仪器（4）· **收口批**：附带改写 audit/plan 的 B3「保留自算」旧口径 | 已建 · **ready** | P2 | 同上 |
 
-**进度**：**3/8**（#61 ✅ / #92 ✅ / #82 ✅）· **执行顺序**：#61 守卫 → #92 边界门禁 → #82 B1 类型层均已落地（前置三件套收官）
-→ **#62–#66 五批迁移（现队首 #62）**，同为 P2 按创建时间从早到晚依次接手；每迁一景：改渲染消费 `chartsOf` → 从 `EXEMPTION_TABLE` 销名 → 补契约用例，
+**进度**：**5/8**（#61 ✅ / #92 ✅ / #82 ✅ / #62 ✅ / #63 ✅）· **执行顺序**：前置三件套（守卫/边界门禁/类型层）+ 批次 1/2 已收官，**豁免表 22→13**
+→ **#64–#66 剩余三批（现队首 #64；#64 的 heat-direction / perpetuum-mobile 沿用阶段 C 既有豁免结论——判 C 留表并写明理由，不迁）**，
+同为 P2 按创建时间从早到晚依次接手；每迁一景：改渲染消费 `chartsOf` → 从 `EXEMPTION_TABLE` 销名 → 补契约用例，
 两道守卫 + 边界门禁自动把关。
 **已定稿口径（D12，用户 2026-10-02 复核确认，勿重议）**：M3 不早于 #67 CLOSED；#61 用「函数体直接文本引用」
 的保守快照口径（已知局限写注释），经 helper 间接消费的误报留给 #62–#66 逐场景复核。
@@ -196,8 +204,9 @@ B-数值 30 场景中 **22 个**的 draw 函数拿到 `simulationResult` 却从�
 **blocked 现状一览（摘除全归规划者）**：M3 内 **无 blocked**——#62–#66 的 blocked 已随前置三件套 CLOSED 摘除（十五次滚动）；
 #76/#61/#82 的历史 blocked 均已随前置 CLOSED 摘除。
 **#99 / #105 → needs-info**（D20/D21 用户已定夺：真实发布暂缓、英文物料随发布走——两单维持 needs-info，真实发布重启前不领）。
-当前可执行队列 = **#62 → #63 → #64 → #65 → #66 → #107 → #93–#97（M4）→ #100–#104（M5 候选，parked）→ #106**
-（#62 现队首；#107 为 D20 授权的发布 dry-run 安全切片，P2，插 M3 批次后 M4 前；
+当前可执行队列 = **#64 → #65 → #66 → #108 → #107 → #93–#97（M4）→ #100–#104（M5 候选，parked）→ #106**
+（**#64 现队首**；**#108** 为十七次滚动新立的常量单一真源门禁补漏（h 未入 LITERAL_PATTERNS，P2），与剩余批次 #64–#66 的 13 个豁免场景**零重叠**，插批次后；
+#107 为 D20 授权的发布 dry-run 安全切片，P2，插 M3 批次后 M4 前；
 #93–#97 为 M4，D17 用户授权；#100–#104 为 D18 带外收编的 M5 候选，**D19 已定：parked 不立项，不领**；
 #106 验证基础设施小单插尾部）。
 
@@ -213,8 +222,11 @@ B-数值 30 场景中 **22 个**的 draw 函数拿到 `simulationResult` 却从�
 网格点造成小幅静默漂移（如 spring.k 10→10.1）；灾难性组合（吸附值超引擎域）已被 #92 门禁阻止
 （场景域⊆引擎域 ⇒ 吸附值≤引擎上界）。若将来要做「参数初值精确呈现」UX 收口，从此观察立项，
 治理面 = 逐场景把 default 移上网格或把 min 对齐网格，需评估画面初值变化，暂不做。
-⚠️ 工作树干净，README 测试数 = core **1125** / viz **1534** / total **2659**（#82 后 count:sync 已回写，
-规划者十五次滚动实跑 count:check 一致），执行棒保持全量 `precheck`（含 count:sync）纪律。
+**遗留观察（未立单）**：**canvas 公式标注与计算式粒度不一**（#63 验收记录）——光敏电阻面板式仍写
+`R(E) = R_dark · exp(−k·E)`（`sensorElementScenes.ts:450`）而计算已含引擎温度项 `R_dark(T)=R_dark·exp(−0.02(T−25))`；
+T=25℃ 时二者等价，无正确性影响，属「面板公式与算法严格对齐」类 UX 收口，将来从此观察立项。
+⚠️ 工作树干净，README 测试数 = core **1125** / viz **1552** / total **2677**（#63 后 count:sync 已回写，
+规划者十七次滚动实跑 `count:check` exit 0 一致），执行棒保持全量 `precheck`（含 count:sync）纪律。
 
 ## M4 · 组合实验台深化与体验收尾（3D 愿景延伸 · 2026-10-04 立单，排在 M3 后）
 
@@ -254,8 +266,11 @@ B-数值 30 场景中 **22 个**的 draw 函数拿到 `simulationResult` 却从�
 
 ## 给 Executor 的指令
 
-1. **队首 = #62**（M3 批次 1 光学波动 + 波粒二象；前置三件套 #61/#92/#82 已全部验收关闭）→ #63 → #64 → #65 → #66
-   → #107 → M4。**#100–#104 勿领**（D19 用户已定：parked、不立项）；#99/#105 维持 needs-info；领前先查本队列。
+1. **队首 = #64**（M3 批次 3 热学定律 5 场景；**heat-direction / perpetuum-mobile 沿用阶段 C 既有豁免结论 → 判 C 留表并写明理由，不迁**）
+   → #65 → #66（收口批，附带改写 audit/plan 的 B3 旧口径）→ **#108**（常量门禁补漏）→ #107 → M4。
+   迁移面已知坑（#63 报告交接）：viz tsconfig 开 `noUncheckedIndexedAccess` → `maxValues.xxx` 算术需 `?? 0`；
+   改完渲染先 `prettier --write` 再复跑契约测试（源码断言读字符串，防重排）；插值处沿用 `Number.isFinite` 守卫（超声速 NaN）。
+   **#100–#104 勿领**（D19 已定 parked）；#99/#105 维持 needs-info；领前先查本队列。
 2. **标签流转纪律 + LOCK**：第十/十一棒均已规范完成 领取 `in-progress` → 完工 `in-review`，继续保持；
    **本轮发现 #62 已标 `in-progress` 但 `.agent/LOCK` 不存在**——领取时先建 LOCK（JSON: owner/acquired_at/issue/heartbeat_at），
    每完成一单刷一次心跳，收尾（含异常收尾）删锁；否则规划者无法区分「正在跑」与「已中断现场」。
