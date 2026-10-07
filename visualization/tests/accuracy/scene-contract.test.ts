@@ -71,6 +71,49 @@ describe('L2: SceneConfig ↔ 引擎契约', () => {
             }
         }
         expect(failures, `validate 失败的场景共 ${failures.length} 个:\n${failures.join('\n')}`).toEqual([]);
+
+        // ---- 参数域边界门禁 (#92, D16) ----
+        // 每场景每参数取 min / max (其余参数 default) 构建 problem, 对 **problem.model**
+        // (buildProblem 实际产出; collision 等动态模型场景 ≠ scene.model, 用 scene.model 会误报)
+        // 跑 validate —— 场景参数域必须 ⊆ 引擎声明域, 否则滑块拖到边界即触发引擎错误横幅
+        // (整场景参数重算失败, #91 赫兹场景同类)。
+        // 软限程模型 (enforcesParameterRanges() === false) 的越界项被 validate 自动放行, 无需豁免表。
+        const boundaryFailures: string[] = [];
+        for (const scene of getScenesSync()) {
+            for (const param of scene.parameters) {
+                for (const edge of ['min', 'max'] as const) {
+                    const edgeValue = param[edge];
+                    if (!Number.isFinite(edgeValue)) continue;
+                    const params = defaultParams(scene);
+                    params[param.name] = edgeValue;
+                    let boundaryProblem: PhysicsProblem;
+                    try {
+                        boundaryProblem = scene.buildProblem(params);
+                    } catch (err) {
+                        boundaryFailures.push(
+                            `${scene.id}.${param.name} ${edge}=${edgeValue}: buildProblem 抛错: ${String(err)}`
+                        );
+                        continue;
+                    }
+                    if (!registeredModels.has(boundaryProblem.model)) continue; // 由第 1 条 check 负责
+                    const bv = getModel(boundaryProblem.model).validate(boundaryProblem);
+                    const rangeErrors = bv.errors.filter(
+                        e => e.code === 'PARAMETER_OUT_OF_RANGE' || e.code === 'NON_FINITE_PARAMETER'
+                    );
+                    if (rangeErrors.length > 0) {
+                        boundaryFailures.push(
+                            `${scene.id}.${param.name} ${edge}=${edgeValue}: ${rangeErrors
+                                .map(e => e.message)
+                                .join('; ')}`
+                        );
+                    }
+                }
+            }
+        }
+        expect(
+            boundaryFailures,
+            `场景参数域边界超出引擎声明域共 ${boundaryFailures.length} 处:\n${boundaryFailures.join('\n')}`
+        ).toEqual([]);
     });
 
     it('timeConfig.sampleCount ≥50 或 dt>0 (二选一)', () => {

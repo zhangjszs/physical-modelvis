@@ -23,7 +23,7 @@ export const em_wave_communicationScene: SceneConfig = {
             unit: 'kHz',
             value: 1,
             min: 0.1,
-            max: 200,
+            max: 20, // 引擎声明域 audioFreq ≤ 20000 Hz (#92: 200 kHz 拖满即触发引擎错误横幅)
             step: 0.1,
             default: 1,
             description: '音频/基带信号频率 fm (kHz)'

@@ -11,7 +11,7 @@ export const molecular_forceScene: SceneConfig = {
             label: '势阱深度 ε',
             unit: '×10⁻²¹ J',
             value: 1.0,
-            min: 0.01,
+            min: 0.2, // 引擎声明域 epsilon ≥ 1e-22 J; 0.1×10⁻²¹ J 经 *1e-21 浮点转换落在域外 (9.99e-23 < 1e-22), 取 0.2 稳定居内 (#92)
             max: 10,
             step: 0.01,
             default: 1.0,
