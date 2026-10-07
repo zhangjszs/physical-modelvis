@@ -2,69 +2,81 @@
 
 > 每轮结束**整体重写**（不追加）。给下一棒看：本轮做了什么、留了什么、下一步做什么。
 
-## 本轮（2026-10-07 · `executor-kerwin-20261007` · 执行者·第十棒）· #77/#98/#61 三单连做 · 全部完工转 in-review
+## 本轮（2026-10-07 · `executor-kerwin-20261007b` · 执行者·第十一棒）· #92/#82 两单连做 · 全部完工转 in-review
 
-### 本轮三件事（均已合回 main 推送，分支已删，执行报告在各自 issue comment）
+### 本轮两件事（均已合回 main 推送，分支已删，执行报告在各自 issue comment）
 
-1. **#77 problemAnalyzer 接线**（方案一，`70405f0` → main `deb8f91`，报告 comment 6027417763）
-   - **现场恢复开局**：接管过期锁（原 owner `executor-kerwin-20261006`，2026-10-06T17:00 心跳后中断）；
-     分支 `agent/issue-77-analyzer-wiring` 无 commit 但工作树遗留 ~374 行方案一半成品。核对半成品与
-     problemAnalyzer API / store 依赖吻合后续做，非重写；修复 1 处测试时序缺陷（详见下）。
-   - OCRPanel 双入口 tab（📷 拍照识别 / 📝 粘贴题干）→ 文本路径 `analyzePhysicsProblem` 纯前端建模
-     → 结果卡（场景/置信度/提取量/假设/警告）→ 低置信度 <0.5 可见提示 →「加载仿真」落库关面板。
-     图片路径零行为变化；两套场景映射（analyzer vs ocrUtils）**不合并**（避免触碰 #74/#75 已验收行为）。
-   - 测试 +3（组件 14/14）；测试数 2641→**2644**。
-2. **#98 冒烟脚本通道参数化**（方案 A，`5a01f2b` → main `8622dd8`，报告 comment 6027619208）
-   - 4 个 verify-*.cjs 的 `channel: 'msedge'` 硬编码改 `SMOKE_BROWSER_CHANNEL` env：**用 `??` 而非
-     issue 草图的 `||`**——显式置空 = Playwright 自带 chromium（否则本 Issue 目标环境永远跑不了），
-     未设置 = msedge 兼容现状；sweep 的 QA_CHANNEL 文档注释同步。
-   - 红向：缺省实跑仍 `msedge not found`（现状不变）；绿向：`SMOKE_BROWSER_CHANNEL='' ` +
-     guidance-smoke @ 5199 端到端 exit 0（本机无 Edge Linux 首次原样跑通 verify-*.cjs）。
-3. **#61 单一真源覆盖登记守卫**（M3 前置，`1bf9ff6` → main `ae15536`，报告 comment 6027836226）
-   - 新增 `visualization/tests/accuracy/single-source-coverage.test.ts`：①消费守卫（B-数值未消费
-     集合 == 豁免表 22 项，#62–#66 迁移销名用）；②差集守卫（迁移表 Δ 契约表 == 7 项例外）。
-     self-check L11 数组化并入（层名/层数不变，25→32 cases）；audit 文档补指引。
-   - **关键口径发现**：issue 背景节的朴素正则口径实跑只得 12 项（解构行/判空行字面引用导致漏报）；
-     按 issue 证据语义取**归一化口径**（剥离解构行+判空行后匹配），探针精确复现 22 项。
-     红→绿反向验证在案（删 thermistor → exit 1 打印 sceneId → 恢复 → 绿）。
-   - 测试 +7；测试数 2644→**2651**。
+1. **#92 参数域边界静态门禁**（`180261d` → main `8d7293e`，报告 comment 6032502633）
+   - L2 `scene-contract.test.ts` 既有 validate it 内并入边界段（测试数零漂移）：全场景×全参数
+     min/max（其余 default）→ buildProblem → 对 **`problem.model`** validate（collision 动态模型
+     e=0 走 collision-inelastic 实证放行）→ PARAMETER_OUT_OF_RANGE/NON_FINITE_PARAMETER 即红，
+     输出点名 `sceneId.param=edge(value)` + 引擎消息；buildProblem 边界抛错也记红（略强于 issue，防盲区）。
+   - **红基线恰好 3 处**，与 D16 普查逐字吻合，无第 4 处暗雷。
+   - 存量 3 处修复（场景域对齐引擎域）：
+     - `em-wave-communication.audioFreq` max 200→20 kHz（引擎 ≤20000 Hz）；
+     - `molecular-force.epsilon` min 0.01→**0.2**（issue 预设 0.1 经 `*1e-21` 浮点转换 =
+       9.99e-23 < 1e-22 落引擎域外——本轮新发现，取 0.2 稳定居内，理由在报告歧义处理 1）；
+     - `magnetic-force.q` min −10→0.1（**裁决：场景对齐，不放开引擎负值**——引擎全程 |q| 无符号
+       语义、单区间域表达不了 q≠0、放开反而制造「电子模式」误导 UI，理由在报告歧义处理 2）。
+   - 豁免表为空（软限程 6 模型 validate 自动放行）；红→绿反向验证在案（audioFreq 200 红 → 撤回绿）；
+     UI 滑块仅边界收纳，default/画面/数值零变化。
+2. **#82 charts 类型化访问层 B1**（`7b93cda` → main `fc083a3`，报告 comment 6032996248）
+   - **方案 a 折中**（理由在报告歧义处理 1，不选 b：SimulationResult 加泛型波及面大）：
+     引擎新增 `types/chart-registry.ts` —— `MODEL_CHART_KEYS` 登记表（**31 模型** = M3 五批
+     22 场景模型 + 存量强转 9 场景模型；键集经 123 场景 default solve 运行时探针零失败 +
+     源码复核条件产出键）+ `chartsOf(result, model)`（按模型 Pick 收窄，未登记模型回退全量）
+     + `getChart(result, model, key)`（单键取值）。`satisfies` 编译期保证登记键 ⊆ 协议键；
+     缺 meta 畸形 result 容错 undefined（延续「空结果回退不崩」契约）。
+   - 渲染层 **9 处 charts 强转全部迁移**（em-induction/ac-current/em-damping/mutual-inductance/
+     lc-oscillator/light-control-switch/liquid-crystal/bohr×2/sound-waveform）——issue 估 5 处，
+     实扫多 4 处；归因纠正 3 次误判（详见报告歧义处理 3）。**lc-oscillator x_t/y_t/ke_t/pe_t →
+     q/i/Ee/Em 的键名≠语义映射已入登记表行内注释**（AGENTS.md 陷阱的原型）。
+   - 编译期红→绿证据：移除 `@ts-expect-error` → `TS2345: '"malus_curv"' is not assignable to
+     '"malus_curve" | "multi_scan" | "polar_curve"'`；恢复 → 绿。已常驻为引擎单测 6 it。
+   - 可视化守卫测试（+2 it）：全场景 solve 断言「实际产出 ⊆ 登记」（与 satisfies 双向夹逼）+
+     真实 solve 集成消费。#61 守卫口径不受影响，bohr 源码断言同步新语法（issue 硬性要求 3）。
 
 ### 验证（全部真实命令，退出码在案）
 
-- 三单各跑 `npm run precheck` → **exit 0**（typecheck / lint 0 错 19 既有 warn / format /
-  测试 2651 / count:check / build:viz / bundle / 自检 11 层 11 PASS）
-- CI+Deploy：`deb8f91` / `8622dd8` / `ae15536` 三轮全部 **success**
-- 测试数真值 core 1119 / viz 1532 / total **2651**（count:sync 已回写 README + docs/plan.md）
+- 两单各跑 `npm run precheck` → **exit 0**（typecheck 双包 / lint 0 错 19 既有 warn / format /
+  测试 / count:check / build / bundle / 自检 **11 层 11 PASS**）
+- #92 红基线 `npx vitest run tests/accuracy/scene-contract.test.ts` exit 1（3 处）；修复后 + 红绿
+  反向验证均符合预期；门禁运行开销实测 ~17ms
+- #82 编译期红向 exit 1（TS2345 错键名）→ 绿向 exit 0；accuracy 目录 853/853
+- CI：`8d7293e`（#92）**CI success + Deploy success**；`fc083a3`（#82）CI in_progress，本棒收尾前
+  等待其完成——**下一棒开工前先确认 `fc083a3` 的 CI/Deploy 结论，若由本次变更导致失败须修复**
+- 测试数真值 core 1125 / viz 1534 / total **2659**（count:sync 已回写 README + docs/plan.md）
 
 ### 给下一棒
 
-**第一优先 = #92**（M3 参数域边界静态门禁，ready）：#61 守卫已就位，#92 做完 #82 即可开工。
-其后 **#82**（B1 charts 类型化，其差集守卫口径以 #61 产出为准）→ **#62–#66** 五批迁移
-（每迁一景：改渲染消费引擎 → 从 `EXEMPTION_TABLE` 销名 → 补契约用例，两道断言自动把关）→ M4 #93–#97。
-接棒时先查 #76（上棒遗留 in-review）是否已被规划者验收。
+**第一优先 = 等 Planner 验收 #92/#82**（in-review 积压 2）。验收通过、#62–#66 摘除 blocked 后，
+按批开工 M3 迁移（队首 #62 光学波动 5 场景）。每迁一景的固定动作：
+改 draw 消费引擎（**用 `chartsOf(simulationResult, '<model>')` 新 API，键名有编译期检查**）
+→ 从 `single-source-coverage.test.ts` 的 EXEMPTION_TABLE 销名 → 补契约用例 → 两道守卫自动把关。
+注意：#62–#66 的 blocked 标签在规划者手里，**勿在标签未摘除时领取**；M4（#93–#97）按 PLAN 排在
+M3 之后；#106 明示不入当前执行队列；#107 带外待规划者确认；M5（#100–#104）parked 勿领。
 
 ### 风险与注意事项
 
-- **in-review 积压 4（#76/#77/#98/#61）**：#61 是 #62–#66 开工前提，建议 Planner 优先验收。
-- **代理限流是 app 实例级内存计数（10 req/min/IP），/health 也计入**：e2e 探活用 TCP connect；
-  多段验收各起独立代理实例（3021/3022）——#76 轮踩过 429。
-- **vite dev 端口不在代理 CORS 默认白名单**：联调须 `OCR_PROXY_CORS_ORIGINS` 追加。
-- **Anthropic 协议 system 是顶层字段**，OpenAI 兼容才是 messages[0].role=system。
-- **analyzePhysicsProblem 首次调用动态加载场景 chunk ~1.1s**：组件测试 waitFor 勿用默认 1000ms
-  （#77 已放宽 5s）。
-- **#98 后冒烟脚本通道**：本机跑 `SMOKE_BROWSER_CHANNEL=''`；但 ocr-mount/3d-smoke/e1-render 的
-  BASE_URL 仍硬编码 3000（本机被 weibo 项目占用勿杀），仅 guidance-smoke 支持 BASE_URL env。
-  未来若挂 CI（Linux runner）记得显式置空通道。
-- **#61 守卫已知局限**（测试文件头有注）：同文件 helper 间接消费会误登记「未消费」；函数体切片以
-  下一个 export function 为界，draw 函数间插入读 charts 的非 export helper 会造成漏报——迁移批次时留意。
+- **#82 真实性探针按 default 参数 solve**：非 default 分支产出的键靠源码复核兜底（thermistor.y_t
+  仅 NTC 等条件键已核对入登记）；迁移时若发现「产出未登记」红报，把键补进 MODEL_CHART_KEYS 即可
+  （每模型一行键清单 + 行内语义注释）。
+- **#82 未登记模型行为与现状完全等价**（chartsOf 回退全量 charts）——迁移批次不需要一次性登记
+  108 模型，用到哪个登记哪个。
+- **AGENTS.md 陷阱条目已过时**（「类型定义不含这些键，访问需 as unknown as 强转」）：新代码应
+  用 chartsOf/getChart；AGENTS.md 归用户/规划者维护，执行棒未越权改，已在 #82 报告建议改写。
 - 端口 3000 被占（勿杀）；dev server 用 5199 strictPort；e2e 泄漏进程查 5199/9201/3021/3022；
-  pkill 模式 `[x]` 转义；管道退出码用 `${PIPESTATUS[0]}`。
-- 测试数真值 core 1119 / viz 1532 / total 2651（#61 后）。
+  pkill 模式 `[x]` 转义；管道退出码用 `${PIPESTATUS[0]}`；heredoc 写 LOCK 用 printf。
+- 测试数真值 core 1125 / viz 1534 / total 2659（#82 后）。
 
 ### 给 Planner 的信号
 
-- **in-review 积压 4 待验收**：#76（上棒）+ 本棒 #77/#98/#61。各有完整验收标准核对清单与
-  CI/Deploy 证据，#61 建议优先（M3 后续单的口径基础）。
-- ready 队列：#92 → #82 → #62–#66 → M4 #93–#97，继续执行即可。
-- 无新增决策事项。#98 报告里留了一个可选小单建议（3 个冒烟脚本 BASE_URL 参数化，~4 行），
-  是否立单由 Planner 定。
+- **in-review 积压 2 待验收**：#92（参数域边界门禁 + 3 处存量修复，含 magnetic-force.q 裁决与
+  epsilon FP 边界新发现）、#82（B1 类型化访问层，含方案选择理由与 9 处迁移明细）。两单均有
+  完整验收标准核对清单与红→绿证据。
+- **验收后请摘除 #62–#66 的 blocked 标签**——M3 迁移批次开工条件已全部就绪（#61 守卫 + #92 门禁 +
+  #82 类型层）。
+- **#107（带外）待确认**：publish dry-run CI 门禁，标 ready-for-agent 但 PLAN 无载，领域涉 CI/CD
+  且关联 needs-info 的 #99（D20）。若属 #99 的安全切片，建议先在 PLAN/DECISIONS 落盘其与契约
+  1.8 红线的边界再入队。
+- ready 队列（按 PLAN 口径）：#62–#66（待摘 blocked）→ M4 #93–#97。继续执行即可，无新增决策事项。
