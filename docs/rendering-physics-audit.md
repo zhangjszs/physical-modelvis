@@ -325,6 +325,29 @@ viz 测试数 1159 → 1161。
 |------|------|
 | vertical-circle | 杆 v0=1/L=1: `vMin`=0 且 `passesTop`=true; 绳同参数: `vMin`≈√9.8 且 `passesTop`=false; helper 非法输入回退; 源码含 `readEngineVerticalCircle(simulationResult)` + `passesTop` + `isRod` 回退 |
 
+## M3 批次 1 迁移进展 (2026-10-07): 光学波动 + 波粒二象 (#62), 契约用例 +10
+
+B-数值批次迁移第 1/5 批。逐场景逐量决策 (规则 A 全量 / B 局部 / C 豁免, 见 #62);
+charts 访问走 #82 类型化访问层 `chartsOf(simulationResult, model)`。豁免表 22 → 17 项。
+
+| 场景 | 决策 | 消费方式 | 备注 |
+|------|------|------|------|
+| `diffraction-grating` | B 局部 | k_max 读 `maxValues.orderMax` (引擎按 \|sinθ\|≤1 截断, 与 floor(d/λ) 同式) | 主极大射线 θ_k=asin(kλ/d) 与引擎 principalMaxima 逐字同式, 作为示意图保留自绘; 引擎 grating_intensity 曲线主极大为针状峰 (N=500 峰宽 < 采样步长), 无对应画布元素可替换 |
+| `polarization-malus` | B 局部 | 最终出射光强 I (HUD/副标题/末片强度条) 读 `maxValues.Ifinal` | 中间片强度引擎未产出序列, 逐片级联自算与引擎 `polarization.ts` 逐字同式保留 (示意); 无结果回退级联末值 |
+| `interference` | B 局部 | 条纹间距 Δy (HUD/副标题) 读 `maxValues.deltaYmm` | 屏上条纹带与光强曲线为**像素空间示意图** (纵轴是像素而非物理坐标; 引擎 x_t 为物理 mm 远场曲线), 标定不同故保留自绘, 注释在案 |
+| `doppler-effect` | B 局部 | 前 (θ=0°) / 后 (θ=180°) 观察者 f′ 由 `charts.fprime_vs_theta` 插值 (`interpSeries`), 非有限回退同式 f′=f·v/(v∓v_s) | 波前圆推进为装饰示意; 引擎 maxValues.fObserved 对应场景 dirAngle 而非固定 θ=0, 故取 θ 扫描曲线插值保证两观察者读数与 dirAngle 无关 |
+| `photoelectric` | **A 全量 (曲线) + B (读数)** | Ek-ν 直线整条读 `charts.y_t` 点列 (止于引擎采样域上界); ν₀ 读 `maxValues.thresholdFrequency_THz`; HUD K_max 与动画电子由 y_t 插值 (`kAt`) | 无引擎结果回退同式自算 (ν₀=W₀/h, 斜率 h/e, 常数取共享 `PHYSICS_CONSTANTS`); 引擎 `photoelectric.ts` 局部 h=6.626e-34 为截断字面量 (与 units/constants 的 6.62607015e-34 有 1e-5 相对差), 教学不可见, 回退取精确值 |
+
+### 契约用例新增 (#62 × 10, 每场景 2 例)
+
+| 场景 | 断言 |
+|------|------|
+| diffraction-grating | `orderMax`=min(4, floor(2/0.55))=3; 曲线中央主极大=1、±θ 对称、远离 0 级趋零; 源码含 `mvGrating?.orderMax ?? Math.min(orderMax` |
+| polarization-malus | `Ifinal`=cos²(0)·cos²(45°)=0.5、`transmission`=0.5; multi_scan 在 45° 处=0.5; 源码含 `mvMalus?.Ifinal ??` + `cascaded` |
+| interference | `deltaYmm`=2.4; x_t 在 ±Δy 处=1 (主极大)、±Δy/2 处=0 (暗纹); 源码含 `mvInterf?.deltaYmm ??` |
+| doppler-effect | `fObserved`=548.39、`fBeat`=48.39; θ 扫描 0°/180° 插值=548.39/459.46; 源码含 `chartsOf(simulationResult, 'doppler')?.fprime_vs_theta` + `interpSeries(thetaScan` + `Number.isFinite(engF)` |
+| photoelectric | `thresholdFrequency_THz`≈556.1 (CODATA); y_t 末点 (1500, K≈3.90); 首点 x≥ν₀; x_t 末点与 y_t 数值一致; 源码含 `chartsOf(simulationResult, 'photoelectric')` + `mvPhoto?.thresholdFrequency_THz ??` + `kAt(nuMax)` + `ekSeries?.points` |
+
 ## 审计副产物:模型层方向 bug 修复 (2026-08-02)
 
 覆盖审计(1c)为最后 2 个零覆盖模型补测试时,新测试抓出 1 个**真实物理 bug**:

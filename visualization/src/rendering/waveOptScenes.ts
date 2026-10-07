@@ -26,7 +26,8 @@ import {
     drawArrow,
     drawHud,
     arrowHead,
-    drawInfoBar
+    drawInfoBar,
+    interpSeries
 } from './renderingUtils';
 
 // ========== 共享类型 ==========
@@ -353,13 +354,17 @@ export function drawSoundInterferenceScene(o: WaveOptSceneOptions): void {
 // ========== 3. 多普勒效应 ==========
 
 export function drawDopplerScene(o: WaveOptSceneOptions) {
-    const { ctx, width: w, height: h, isDark, params, currentTime: t } = o;
+    const { ctx, width: w, height: h, isDark, params, currentTime: t, simulationResult } = o;
     clearScene(ctx, w, h, isDark);
     drawTitle(ctx, '多普勒效应', w, isDark, { size: 20, y: 32 });
 
     const vSource = params.sourceSpeed ?? 50;
     const vWave = params.waveSpeed ?? 340;
     const f0 = params.frequency ?? 1;
+    // 前 (θ=0°) / 后 (θ=180°) 观察者读数消费引擎 (#62): 从 fprime_vs_theta 扫描曲线插值,
+    // 与场景 dirAngle 参数无关地给出两个方向的确定值; 波前圆推进为装饰示意 (引擎无逐时波前输出)。
+    // 无引擎结果回退同式自算 f' = f·v/(v ∓ v_s) (即引擎公式取 cosθ=±1)。
+    const thetaScan = simulationResult ? chartsOf(simulationResult, 'doppler')?.fprime_vs_theta : undefined;
     const maxRadius = Math.max(w, h);
     const cx = ((vSource * t) % (w + 200)) - 100;
     const cy = h / 2;
@@ -402,7 +407,8 @@ export function drawDopplerScene(o: WaveOptSceneOptions) {
         ctx.arc(obs.x, cy, 6, 0, 2 * Math.PI);
         ctx.fill();
         const dir = obs.x > cx ? 1 : -1;
-        const fObs = (f0 * vWave) / (vWave - dir * vSource);
+        const engF = interpSeries(thetaScan, dir === 1 ? 0 : 180);
+        const fObs = Number.isFinite(engF) ? engF : (f0 * vWave) / (vWave - dir * vSource);
         ctx.fillStyle = isDark ? '#f1f5f9' : '#1e293b';
         ctx.font = '12px sans-serif';
         ctx.fillText(`${obs.label}: f'=${fObs.toFixed(2)}`, obs.x - 30, cy + 24);
@@ -745,7 +751,7 @@ function mutedText(isDark: boolean): string {
 // ========== 8. 双缝干涉 (杨氏实验, 参数 slitSep/screenDist) ==========
 
 export function drawInterferenceScene(o: WaveOptSceneOptions) {
-    const { ctx, width: w, height: h, isDark, params } = o;
+    const { ctx, width: w, height: h, isDark, params, simulationResult } = o;
     clearScene(ctx, w, h, isDark);
     drawTitle(ctx, '双缝干涉 (杨氏实验)', w, isDark, { size: 20, y: 32 });
 
@@ -758,6 +764,12 @@ export function drawInterferenceScene(o: WaveOptSceneOptions) {
     const slitX = w * 0.28;
     const screenX = slitX + 230;
     const slitSep = dMm * 60;
+
+    // 条纹间距定量值读引擎 maxValues.deltaYmm (#62, Δy = λL/d 同式);
+    // 屏上条纹带与光强曲线为像素空间示意图 (纵轴是像素而非物理坐标, 引擎 x_t 为
+    // 物理坐标 mm 的远场曲线, 二者标定不同), 保留自绘。
+    const mvInterf = simulationResult?.diagnostics?.maxValues as { deltaYmm?: number } | undefined;
+    const dY = (mvInterf?.deltaYmm ?? ((lambda * L) / d) * 1e3) / 1000; // m
 
     // 光源
     ctx.fillStyle = RED;
@@ -797,7 +809,6 @@ export function drawInterferenceScene(o: WaveOptSceneOptions) {
         else ctx.lineTo(x, 40 + py);
     }
     ctx.stroke();
-    const dY = (lambda * L) / d; // m
     drawHud(
         ctx,
         isDark,
@@ -835,7 +846,7 @@ export function drawInterferenceScene(o: WaveOptSceneOptions) {
 // ========== 9. 光栅衍射 (光栅方程 d sinθ = kλ) ==========
 
 export function drawDiffractionGratingScene(o: WaveOptSceneOptions) {
-    const { ctx, width: w, height: h, isDark, params } = o;
+    const { ctx, width: w, height: h, isDark, params, simulationResult } = o;
     clearScene(ctx, w, h, isDark);
     drawTitle(ctx, '光栅衍射 (光栅方程)', w, isDark, { size: 20, y: 32 });
 
@@ -845,7 +856,10 @@ export function drawDiffractionGratingScene(o: WaveOptSceneOptions) {
     const N = params.slitCount ?? 500;
     const d = dUm * 1e-6;
     const lambda = lambdaNm * 1e-9;
-    const kMax = Math.min(orderMax, Math.floor(d / lambda));
+    // 可见级次 k_max 读引擎 maxValues.orderMax (#62: 引擎按 |sinθ|≤1 截断, 与 floor(d/λ) 同式);
+    // 主极大射线 θ_k = asin(kλ/d) 与引擎 principalMaxima 逐字同式, 作为示意图保留自绘。
+    const mvGrating = simulationResult?.diagnostics?.maxValues as { orderMax?: number } | undefined;
+    const kMax = mvGrating?.orderMax ?? Math.min(orderMax, Math.floor(d / lambda));
 
     const cx = w * 0.5;
     const cy = h * 0.5;
@@ -905,7 +919,7 @@ export function drawDiffractionGratingScene(o: WaveOptSceneOptions) {
 // ========== 10. 偏振光 (马吕斯定律) ==========
 
 export function drawPolarizationMalusScene(o: WaveOptSceneOptions) {
-    const { ctx, width: w, height: h, isDark, params } = o;
+    const { ctx, width: w, height: h, isDark, params, simulationResult } = o;
     clearScene(ctx, w, h, isDark);
     drawTitle(ctx, '偏振光 (马吕斯定律)', w, isDark, { size: 20, y: 32 });
 
@@ -917,15 +931,29 @@ export function drawPolarizationMalusScene(o: WaveOptSceneOptions) {
     const incAngle = params.incAngle ?? 0;
     const angles = [a0, a1, a2].slice(0, n);
 
-    let I = I0;
-    let prev = incAngle;
+    // 逐片级联自算 (I_i = I_{i-1}·cos²(θᵢ−θᵢ₋₁), 与引擎 polarization.ts 逐字同式):
+    // 中间片强度引擎未产出序列, 作为示意图保留; 最终出射光强 I 读引擎 maxValues.Ifinal (#62),
+    // 无引擎结果回退级联末值。
+    const cascaded: number[] = [];
+    {
+        let running = I0;
+        let prev = incAngle;
+        for (let i = 0; i < n; i++) {
+            const p = angles[i] ?? 0;
+            const delta = ((p - prev) * Math.PI) / 180;
+            running *= Math.cos(delta) ** 2;
+            prev = p;
+            cascaded.push(running);
+        }
+    }
+    const mvMalus = simulationResult?.diagnostics?.maxValues as { Ifinal?: number } | undefined;
+    const I = mvMalus?.Ifinal ?? cascaded[cascaded.length - 1] ?? I0;
+
     const rowH = 64;
     const top = h * 0.26;
     for (let i = 0; i < n; i++) {
         const p = angles[i] ?? 0;
-        const delta = ((p - prev) * Math.PI) / 180;
-        I *= Math.cos(delta) ** 2;
-        prev = p;
+        const barI = i === n - 1 ? I : (cascaded[i] ?? I0);
         const y = top + i * rowH;
         // 偏振片
         ctx.fillStyle = isDark ? '#1e293b' : '#e2e8f0';
@@ -951,7 +979,7 @@ export function drawPolarizationMalusScene(o: WaveOptSceneOptions) {
         roundRectPath(ctx, barX, y - 16, 200, 14, 4);
         ctx.fill();
         ctx.fillStyle = BLUE;
-        roundRectPath(ctx, barX, y - 16, 200 * clamp(I, 0, 1), 14, 4);
+        roundRectPath(ctx, barX, y - 16, 200 * clamp(barI, 0, 1), 14, 4);
         ctx.fill();
     }
     drawHud(

@@ -10,7 +10,8 @@
  * 设计原则：纯函数 + 屏幕坐标, 零依赖 React/Zustand/CoordinateTransformer
  */
 import type { SimulationResult } from 'physics-core';
-import { clamp, clearScene, drawTitle, drawHud, drawArrow } from './renderingUtils';
+import { chartsOf } from 'physics-core';
+import { clamp, clearScene, drawTitle, drawHud, drawArrow, interpSeries } from './renderingUtils';
 import {
     photoThresholdFrequencyTHz,
     wienPeakWavelength,
@@ -55,15 +56,25 @@ function temperatureColor(T: number): string {
 }
 
 export function drawPhotoelectricScene(o: ModernSceneOptions): void {
-    const { ctx, width: w, height: h, isDark, params, currentTime } = o;
+    const { ctx, width: w, height: h, isDark, params, currentTime, simulationResult } = o;
     clearScene(ctx, w, h, isDark);
     drawTitle(ctx, '光电效应 — 爱因斯坦方程 K_max = hν − W₀', w, isDark, { size: 18, y: 28 });
 
     const W0 = params['W0'] ?? 2.3;
     const nuMin = params['nuMin'] ?? 300;
     const nuMax = params['nuMax'] ?? 1500;
-    const nu0 = photoThresholdFrequencyTHz(W0); // THz
-    const h_eV_per_THz = 4.135667696e-3; // h = 4.135667696e-15 eV·s → 每 THz
+    // 消费引擎 (#62): Ek-ν 直线整条读 charts.y_t (引擎采样域 [ν_min, ν_max] 内 ν ≥ ν₀ 段),
+    // ν₀ 读 maxValues.thresholdFrequency_THz, HUD K_max 由 y_t 在 ν_max 处插值;
+    // 无引擎结果回退同式自算 (ν₀ = W₀/h, 斜率 h/e; 常数取共享物理常量模块, 与引擎一致)。
+    const engCharts = simulationResult ? chartsOf(simulationResult, 'photoelectric') : undefined;
+    const ekSeries = engCharts?.y_t;
+    const mvPhoto = simulationResult?.diagnostics?.maxValues as { thresholdFrequency_THz?: number } | undefined;
+    const nu0 = mvPhoto?.thresholdFrequency_THz ?? photoThresholdFrequencyTHz(W0); // THz
+    const h_eV_per_THz = (PLANCK_H / E_CHARGE) * 1e12; // Ek = hν − W₀ (eV) 的每 THz 斜率 h/e
+    const kAt = (f: number): number => {
+        const eng = interpSeries(ekSeries, f);
+        return Number.isFinite(eng) ? eng : h_eV_per_THz * f - W0;
+    };
 
     const plotX = 70,
         plotY = 60,
@@ -110,12 +121,23 @@ export function drawPhotoelectricScene(o: ModernSceneOptions): void {
     ctx.fillText(`ν₀ = ${nu0.toFixed(0)} THz`, x0, plotY + 12);
     ctx.textAlign = 'left';
 
-    // K_max 直线 (ν > ν₀ 段)
+    // K_max 直线 (ν ≥ ν₀ 段): 整条读引擎 y_t 序列 (#62), 止于引擎采样域上界;
+    // 无引擎结果回退同式直线 (延伸到绘图右缘)
     ctx.strokeStyle = COL.green;
     ctx.lineWidth = 2.5;
     ctx.beginPath();
-    ctx.moveTo(x0, kToY(0));
-    ctx.lineTo(fToX(fRight), kToY(h_eV_per_THz * fRight - W0));
+    const ekPts = ekSeries?.points ?? [];
+    if (ekPts.length >= 2) {
+        ekPts.forEach((p, idx) => {
+            const px = fToX(p.x);
+            const py = kToY(p.y);
+            if (idx === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+        });
+    } else {
+        ctx.moveTo(x0, kToY(0));
+        ctx.lineTo(fToX(fRight), kToY(h_eV_per_THz * fRight - W0));
+    }
     ctx.stroke();
     // ν < ν₀ 段 (K = 0, 虚线贴轴)
     ctx.strokeStyle = isDark ? '#64748b' : '#94a3b8';
@@ -136,7 +158,7 @@ export function drawPhotoelectricScene(o: ModernSceneOptions): void {
     ctx.arc(photonX, photonY, 4, 0, Math.PI * 2);
     ctx.fill();
     if (animatedF > nu0) {
-        const K = h_eV_per_THz * animatedF - W0;
+        const K = kAt(animatedF);
         const ey = kToY(K);
         ctx.fillStyle = COL.cyan;
         ctx.beginPath();
@@ -154,7 +176,7 @@ export function drawPhotoelectricScene(o: ModernSceneOptions): void {
             { label: 'W₀', value: `${W0.toFixed(2)} eV` },
             { label: 'ν₀', value: `${nu0.toFixed(0)} THz` },
             { label: 'ν_max', value: `${nuMax} THz` },
-            { label: 'K_max', value: `${(h_eV_per_THz * nuMax - W0).toFixed(2)} eV` }
+            { label: 'K_max', value: `${kAt(nuMax).toFixed(2)} eV` }
         ],
         { boxW: 230, lineH: 16 }
     );

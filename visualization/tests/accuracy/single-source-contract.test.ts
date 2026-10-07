@@ -18,9 +18,10 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
+import { chartsOf } from 'physics-core';
 import { getSceneSync, loadAllScenes } from '../../src/scenes/sceneRegistry';
 import { runSceneSimulation } from '../../src/adapters/physicsCoreAdapter';
-import { getFrame } from '../../src/rendering/renderingUtils';
+import { getFrame, interpSeries } from '../../src/rendering/renderingUtils';
 import { readEngineOrbitRadii, readEngineBohrLevels } from '../../src/rendering/atomicModelScenes';
 import { readEngineDiffusionCoeff, readEngineBrownianCoeff } from '../../src/rendering/molecularKineticScenes';
 import { readEngineAlphaK } from '../../src/rendering/nuclearScenes';
@@ -1059,5 +1060,161 @@ describe('L1-migration: 渲染单一真源契约 (#34: 竖直圆临界值模型�
         expect(fn, '临界读引擎').toContain('readEngineVerticalCircle(simulationResult)');
         expect(fn, '通过性消费 flags.passesTop').toContain('passesTop');
         expect(fn, '回退区分杆模型').toContain('isRod');
+    });
+});
+
+describe('L1-migration: 渲染单一真源契约 (M3 批次 1: 光学波动 + 波粒二象 #62)', () => {
+    beforeAll(async () => {
+        await loadAllScenes();
+    });
+
+    function scene(id: string) {
+        const s = getSceneSync(id);
+        expect(s, `场景 ${id} 已注册`).toBeDefined();
+        return s!;
+    }
+
+    it('diffraction-grating: k_max = min(orderMax, floor(d/λ)) 且光强曲线中央主极大归一化为 1、±k 对称', () => {
+        const sc = scene('diffraction-grating');
+        const params: Record<string, number> = {
+            gratingConst: 2,
+            wavelength: 550,
+            orderMax: 4,
+            slitCount: 500,
+            slitWidth: 1
+        };
+        const { result, error } = runSceneSimulation(sc, params);
+        expect(error).toBeNull();
+
+        const mv = result!.diagnostics.maxValues as Record<string, number>;
+        // k_max = min(orderMax=4, floor(d/λ) = floor(2/0.55) = 3) = 3 (引擎按 |sinθ|≤1 截断)
+        expect(mv.orderMax).toBe(Math.min(4, Math.floor(2 / 0.55)));
+        // I(θ): 中央主极大归一化 I(0)=1; 主极大为针状峰 (N=500, 峰宽 < 网格步长),
+        // 远离 0 级处相对光强趋近 0; ±θ 严格对称 (I 只依赖 sin²θ)
+        const pts = chartsOf(result!, 'diffraction-grating')?.grating_intensity?.points ?? [];
+        expect(pts.length).toBeGreaterThan(100);
+        const central = pts.reduce((best, p) => (Math.abs(p.x) < Math.abs(best.x) ? p : best), pts[0]!);
+        expect(central!.y).toBeCloseTo(1, 3);
+        expect(Math.max(...pts.map(p => p.y))).toBeCloseTo(1, 3);
+        const at = (deg: number) =>
+            pts.reduce((best, p) => (Math.abs(p.x - deg) < Math.abs(best.x - deg) ? p : best), pts[0]!);
+        expect(at(5)!.y).toBeCloseTo(at(-5)!.y, 9);
+        expect(Math.abs(at(5)!.y)).toBeLessThan(0.05);
+    });
+
+    it('diffraction-grating: k_max 读引擎 maxValues.orderMax, 主极大射线示意保留 (源码契约)', () => {
+        const fn = renderFn('waveOptScenes.ts', 'drawDiffractionGratingScene');
+        expect(fn, 'k_max 读引擎 maxValues.orderMax').toContain('mvGrating?.orderMax ?? Math.min(orderMax');
+        expect(fn, '射线示意性质有注释记录').toContain('示意图');
+    });
+
+    it('polarization-malus: 双片级联 I = I₀·cos²(θ₁−θ₀)·cos²(θ₂−θ₁) 与独立复算一致, multi_scan 逐点吻合', () => {
+        const sc = scene('polarization-malus');
+        const params: Record<string, number> = {
+            initIntensity: 1,
+            nPolarizers: 2,
+            angle0: 0,
+            angle1: 45,
+            angle2: 90,
+            incAngle: 0
+        };
+        const { result, error } = runSceneSimulation(sc, params);
+        expect(error).toBeNull();
+
+        const mv = result!.diagnostics.maxValues as Record<string, number>;
+        // 独立公式: I = 1·cos²(0−0)·cos²(45°−0°) = 0.5
+        expect(mv.Ifinal).toBeCloseTo(0.5, 4);
+        expect(mv.transmission).toBeCloseTo(0.5, 4);
+        // multi_scan: 第 2 片转到 45° 时透射 = cos²(0)·cos²(45°) = 0.5
+        const scan = chartsOf(result!, 'polarization')?.multi_scan?.points ?? [];
+        const at45 = scan.reduce((best, p) => (Math.abs(p.x - 45) < Math.abs(best.x - 45) ? p : best), scan[0]!);
+        expect(at45!.y).toBeCloseTo(0.5, 3);
+    });
+
+    it('polarization-malus: 出射光强读引擎 maxValues.Ifinal, 中间片级联回退同式 (源码契约)', () => {
+        const fn = renderFn('waveOptScenes.ts', 'drawPolarizationMalusScene');
+        expect(fn, '最终光强读引擎 Ifinal').toContain('mvMalus?.Ifinal ??');
+        expect(fn, '中间片强度保留同式级联回退').toContain('cascaded');
+    });
+
+    it('interference: Δy = λL/d 与独立复算一致, 光强曲线在 ±Δy 处为主极大', () => {
+        const sc = scene('interference');
+        const params: Record<string, number> = { wavelength: 600, slitSep: 0.5, screenDist: 2 };
+        const { result, error } = runSceneSimulation(sc, params);
+        expect(error).toBeNull();
+
+        const mv = result!.diagnostics.maxValues as Record<string, number>;
+        // Δy = 600nm × 2m / 0.5mm = 2.4 mm
+        expect(mv.deltaYmm).toBeCloseTo(2.4, 3);
+        // I(x) = cos²(π·d·x/(λ·L)): x = ±Δy 处 φ = ±π → I = 1 (主极大); x = ±Δy/2 处 I = 0 (暗纹)
+        const pts = chartsOf(result!, 'interference')?.x_t?.points ?? [];
+        expect(pts.length).toBeGreaterThan(100);
+        const at = (mm: number) =>
+            pts.reduce((best, p) => (Math.abs(p.x - mm) < Math.abs(best.x - mm) ? p : best), pts[0]!);
+        expect(at(2.4)!.y).toBeCloseTo(1, 3);
+        expect(at(-2.4)!.y).toBeCloseTo(1, 3);
+        expect(Math.abs(at(1.2)!.y)).toBeLessThan(0.02);
+    });
+
+    it('interference: 条纹间距读引擎 maxValues.deltaYmm, 屏上条纹示意保留 (源码契约)', () => {
+        const fn = renderFn('waveOptScenes.ts', 'drawInterferenceScene');
+        expect(fn, 'Δy 读引擎 maxValues.deltaYmm').toContain('mvInterf?.deltaYmm ??');
+        expect(fn, '像素空间示意图性质有注释记录').toContain('示意图');
+    });
+
+    it("doppler-effect: f' = f·v/(v − v_s·cosθ) 与独立复算一致, θ 扫描曲线覆盖靠近/远离两端", () => {
+        const sc = scene('doppler-effect');
+        const params: Record<string, number> = { soundSpeed: 340, sourceFreq: 500, sourceSpeed: 30, dirAngle: 0 };
+        const { result, error } = runSceneSimulation(sc, params);
+        expect(error).toBeNull();
+
+        const mv = result!.diagnostics.maxValues as Record<string, number>;
+        // θ=0° (靠近): f' = 500×340/(340−30) = 548.39 Hz; 拍频 48.39 Hz
+        expect(mv.fObserved).toBeCloseTo((500 * 340) / 310, 2);
+        expect(mv.fBeat).toBeCloseTo(48.39, 2);
+        // θ 扫描: 0° = 靠近值, 180° = 远离值 f' = 500×340/370 = 459.46 Hz
+        const thetaScan = chartsOf(result!, 'doppler')?.fprime_vs_theta;
+        expect(thetaScan).toBeDefined();
+        expect(interpSeries(thetaScan, 0)).toBeCloseTo(548.39, 1);
+        expect(interpSeries(thetaScan, 180)).toBeCloseTo(459.46, 1);
+    });
+
+    it('doppler-effect: 前/后观察者读数由 fprime_vs_theta 插值, 回退同式 (源码契约)', () => {
+        const fn = renderFn('waveOptScenes.ts', 'drawDopplerScene');
+        expect(fn, 'θ 扫描曲线读引擎 (经 #82 chartsOf)').toContain(
+            "chartsOf(simulationResult, 'doppler')?.fprime_vs_theta"
+        );
+        expect(fn, '观察者读数插值').toContain('interpSeries(thetaScan');
+        expect(fn, '插值非有限时回退同式公式').toContain('Number.isFinite(engF)');
+    });
+
+    it('photoelectric: ν₀ = W₀/h 与 Ek = hν − W₀ 和独立复算一致, y_t 采样域覆盖 [ν₀, ν_max]', () => {
+        const sc = scene('photoelectric');
+        const params: Record<string, number> = { W0: 2.3, nuMin: 300, nuMax: 1500 };
+        const { result, error } = runSceneSimulation(sc, params);
+        expect(error).toBeNull();
+
+        const mv = result!.diagnostics.maxValues as Record<string, number>;
+        // 独立复算 (CODATA): ν₀ = W₀/h = 2.3 eV / 4.135667696e-15 eV·s ≈ 556.1 THz
+        expect(mv.thresholdFrequency_THz).toBeCloseTo(2.3 / 4.135667696e-3, 0);
+        // Ek(ν) 直线: K(1500 THz) = 4.135667696e-3×1500 − 2.3 ≈ 3.90 eV (引擎 h 用截断字面量, 容差 2 位小数)
+        const ek = chartsOf(result!, 'photoelectric')?.y_t?.points ?? [];
+        expect(ek.length).toBeGreaterThan(50);
+        const last = ek[ek.length - 1]!;
+        expect(last.x).toBeCloseTo(1500, 0);
+        expect(last.y).toBeCloseTo(4.135667696e-3 * 1500 - 2.3, 2);
+        // 曲线从阈值起画: 首点 x ≥ ν₀ (ν < ν₀ 无光电子)
+        expect(ek[0]!.x).toBeGreaterThanOrEqual((mv.thresholdFrequency_THz ?? 0) - 1);
+        // U_c-ν (x_t) 与 Ek 数值相同 (U_c = E_k/e, 单位 V)
+        const uc = chartsOf(result!, 'photoelectric')?.x_t?.points ?? [];
+        expect(uc[uc.length - 1]!.y).toBeCloseTo(last.y, 3);
+    });
+
+    it('photoelectric: Ek-ν 直线读引擎 y_t, ν₀/K_max 读引擎 (源码契约)', () => {
+        const fn = renderFn('waveParticleDualityScenes.ts', 'drawPhotoelectricScene');
+        expect(fn, 'Ek-ν 直线读引擎 y_t (经 #82 chartsOf)').toContain("chartsOf(simulationResult, 'photoelectric')");
+        expect(fn, 'ν₀ 读引擎 maxValues').toContain('mvPhoto?.thresholdFrequency_THz ??');
+        expect(fn, 'K_max 由引擎序列插值').toContain('kAt(nuMax)');
+        expect(fn, '直线由引擎点列驱动').toContain('ekSeries?.points');
     });
 });
