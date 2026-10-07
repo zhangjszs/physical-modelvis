@@ -70,6 +70,12 @@
 > 引擎截断 `h=6.626e-34` 经查为 **`LITERAL_PATTERNS` 名单从未含 h**（同 #51 的 e 截断绕过同类），4 文件/5 处静默越过 M1 常量门禁；
 > 执行棒判「不另立 issue」，**门禁面属规划者职责故立单**。另记 photoresistor **真双源修复**（旧渲染漏引擎暗电阻温度项，同 #58 性质）
 > 印证 D9 立 M3 判断。**队首 = #64**。
+> 2026-10-07 十八次滚动（治理轮，**无 in-review 待验收**、无执行棒运行）：对即将开工的批次三单补做 **ready 门禁质检**——
+> #64 正文质量合格（阶段 C 豁免可核：audit「第 5 批 1c 覆盖抽查收尾」7 个可保留清单；双登记陷阱与「勿动 audit 总计数」均已写明）；
+> 但查到一处**真实误导风险**：#64/#65/#66 均将「迁移套路」指向 #62 正文，而 #62 第 28 行仍存 **#82 之前的旧口径**
+> （「访问需 `as unknown as Record<…>` 强转」）——AGENTS.md 已于 `d51fcf2` 改为禁用强转、走 chartsOf/getChart。
+> 已给 **#64/#65/#66** 各发一条「口径更新」comment（不改已关闭单的历史正文）；新录 **遗留观察**：渲染层仍存 4 处
+> `as unknown as`，但作用于 `simulationResult.extra`/`.meta` 而非 charts（属 D15 为 #82 划定的未覆盖面，归 #104 范畴）。**队列不变，队首仍 #64**。
 
 ## 当前方向
 
@@ -225,6 +231,10 @@ B-数值 30 场景中 **22 个**的 draw 函数拿到 `simulationResult` 却从�
 **遗留观察（未立单）**：**canvas 公式标注与计算式粒度不一**（#63 验收记录）——光敏电阻面板式仍写
 `R(E) = R_dark · exp(−k·E)`（`sensorElementScenes.ts:450`）而计算已含引擎温度项 `R_dark(T)=R_dark·exp(−0.02(T−25))`；
 T=25℃ 时二者等价，无正确性影响，属「面板公式与算法严格对齐」类 UX 收口，将来从此观察立项。
+**遗留观察（未立单）**：渲染层仍有 **4 处 `as unknown as`** 作用于 `simulationResult.extra`（`electrostaticFieldScenes.ts:414` /
+`magneticFieldScenes.ts:163`）与 `.meta`（`emEquipmentScenes.ts:225/1179`）——**非 charts**，属 D15 为 #82 划定的「最小切片未覆盖面」，
+**不构成 #82 回归**；extra/meta 的类型化归 **#104**（M5 parked，D19 已定不立项）范畴，若将来 M3 收尾后想先把这一小面收掉，
+可从本观察直接立 P3 单（改动面小、与 M3 批次零冲突），暂不预支。
 ⚠️ 工作树干净，README 测试数 = core **1125** / viz **1552** / total **2677**（#63 后 count:sync 已回写，
 规划者十七次滚动实跑 `count:check` exit 0 一致），执行棒保持全量 `precheck`（含 count:sync）纪律。
 
@@ -271,6 +281,8 @@ T=25℃ 时二者等价，无正确性影响，属「面板公式与算法严格
    迁移面已知坑（#63 报告交接）：viz tsconfig 开 `noUncheckedIndexedAccess` → `maxValues.xxx` 算术需 `?? 0`；
    改完渲染先 `prettier --write` 再复跑契约测试（源码断言读字符串，防重排）；插值处沿用 `Number.isFinite` 守卫（超声速 NaN）。
    **#100–#104 勿领**（D19 已定 parked）；#99/#105 维持 needs-info；领前先查本队列。
+   ⚠️ **读 charts 只用 `chartsOf`/`getChart`，禁止新添 `as unknown as Record<…>` 强转**（AGENTS.md 硬口径；
+   #62 正文的旧强转写法已作废，详见 #64/#65/#66 的「口径更新」comment）。
 2. **标签流转纪律 + LOCK**：第十/十一棒均已规范完成 领取 `in-progress` → 完工 `in-review`，继续保持；
    **本轮发现 #62 已标 `in-progress` 但 `.agent/LOCK` 不存在**——领取时先建 LOCK（JSON: owner/acquired_at/issue/heartbeat_at），
    每完成一单刷一次心跳，收尾（含异常收尾）删锁；否则规划者无法区分「正在跑」与「已中断现场」。
