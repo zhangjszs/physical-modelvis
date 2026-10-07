@@ -41,7 +41,7 @@ cd visualization && npm run dev
   - **已工程化兜底(#15)**:`scripts/guard-dist-freshness.mjs` 比较 `src` 与 `dist` 的 mtime,陈旧即拦截。已接入 `visualization` 的 `pretest` 与根 `typecheck`,无需再靠记忆。
 - **Windows PowerShell 环境**:`npx` 需写 `npx.cmd`;`rg` 不可用(用 grep 工具);PowerShell 引号转义用反引号。
 - **husky pre-push 钩子**会运行完整 `precheck`,任何门禁失败都会阻止 push(跳过:`git push --no-verify`)。
-- **引擎 charts 键名与语义名不同**:如 lc-oscillator 返回 `x_t/y_t/ke_t/pe_t`(语义是 q_t/i_t/Ee_t/Em_t);类型定义不含这些键,访问需 `as unknown as Record<string, {points: ...}>` 强转。迁移前先读模型源码确认 charts 键名与单位。
+- **引擎 charts 键名与语义名不同,须用类型化访问层 (#82)**:读 charts 一律走 `chartsOf(simulationResult, model)` / `getChart(...)`,键名以 `physics-core/src/types/chart-registry.ts` 的 `MODEL_CHART_KEYS` 行内注释为准(如 lc-oscillator 的 `x_t/y_t/ke_t/pe_t` 语义是 q/i/Ee/Em)。写错键名 tsc 直接报错;**禁止新添 `as unknown as Record<...>` 强转**;新模型产出键需入登记表(运行时真实性探针会拦)。迁移前先读模型源码确认 charts 键名与单位。
 - **场景切换竞态(3D)**:3D 场景切换时需按场景缓存 rig(避免卸载/重建竞态),见 `EquipmentStage.tsx` 的 `rigReady` + `sceneRigCache` 机制。
 - **vitest 路径过滤语法**:`npx.cmd vitest run tests/unit/foo.test.ts` (单文件);多个用 `npx.cmd vitest run -t "keyword"` (按测试名筛选)。
 
