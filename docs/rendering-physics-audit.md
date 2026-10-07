@@ -348,6 +348,28 @@ charts 访问走 #82 类型化访问层 `chartsOf(simulationResult, model)`。�
 | doppler-effect | `fObserved`=548.39、`fBeat`=48.39; θ 扫描 0°/180° 插值=548.39/459.46; 源码含 `chartsOf(simulationResult, 'doppler')?.fprime_vs_theta` + `interpSeries(thetaScan` + `Number.isFinite(engF)` |
 | photoelectric | `thresholdFrequency_THz`≈556.1 (CODATA); y_t 末点 (1500, K≈3.90); 首点 x≥ν₀; x_t 末点与 y_t 数值一致; 源码含 `chartsOf(simulationResult, 'photoelectric')` + `mvPhoto?.thresholdFrequency_THz ??` + `kAt(nuMax)` + `ekSeries?.points` |
 
+## M3 批次 2 迁移进展 (2026-10-07): 传感器元件 (#63), 契约用例 +8
+
+B-数值批次迁移第 2/5 批。逐场景逐量决策 (规则 A 全量 / B 局部 / C 豁免, 见 #62);
+charts 访问走 #82 类型化访问层 `chartsOf(simulationResult, model)`。豁免表 17 → 13 项。
+本批为 M3 证据最硬一批: `thermistor` 系 #61 worked example; `photoresistor` 旧渲染漏温度修正 (又一真双源, T≠25℃ 画面偏离引擎)。
+
+| 场景 | 决策 | 消费方式 | 备注 |
+|------|------|------|------|
+| `thermistor` | B 局部 | 实时 R (HUD/副标题/公式末值) 读 `maxValues.resistance` (引擎 NTC B 方程在目标温度求解, 与回退式逐字同式, 零漂移) | R-T 曲线/温度计/滑杆为示意图保留自算: 引擎 charts.x_t 采样域 [250,400]K 远窄于画面量程 [200,600]K 且峰值标记 T 可越域, 直取断线; 引擎 y_t (lnR–1/T, 仅 NTC 分支产出) 本画面不展示故不消费, 天然规避 PTC 分支 y_t 缺失 |
+| `hall-effect` | B 局部 | V_H 表头/HUD 读数读 `maxValues.hallVoltageAbs_mV` (引擎 \|U_H\| 的 mV 幅值, 与回退式 \|Vh\|·1000 逐字同式, 零漂移) | 场景 carrierType 恒 'electron' → 带极性 hallVoltage_mV<0, 画面取幅值; 载流子偏转/上下表面 +/− 极性等示意保留 |
+| `photoresistor` | **A 全量 (曲线) + B (读数)** | R-E 曲线整条读 `charts.x_t` (引擎对数采样、含温度修正 R_dark(T)=R_dark·exp(−0.02·(T−25))); 工作点 R 读 `maxValues.workResistance_Ohm` | **修旧渲染漏温度项双源**: T≠25℃ 时旧自算 R_dark·exp(−k·E) 偏离引擎; 阈值线按实际绘制域 log 重标定; 昼夜判定/灯光/滑杆示意保留; 无结果回退含同源 TEMP_COEFF |
+| `strain-gauge` | B 局部 | ΔU 表/HUD 读 `maxValues.deltaUMV`, ΔR/R 读 `maxValues.deltaROverR` (引擎 ΔR/R=K·ε、全桥 ΔU=U_K·K·ε/4, 与回退式逐字同式, 零漂移) | ΔR=120Ω·ΔR/R 用标称阻值 (引擎无绝对 R 输出); ΔU-ε 曲线/形变示意保留: 引擎 charts.y_t 采样域 [−2000,2000]με 窄于画面 [−5000,5000] 且峰值可越域; 无结果回退同式 |
+
+### 契约用例新增 (#63 × 8, 每场景 2 例)
+
+| 场景 | 断言 |
+|------|------|
+| thermistor | `resistance`=1e4·exp(3950·(1/300−1/298.15))≈9094.5; `modeFlag`=0; x_t 在 T=300 (采样点) =resistance; 源码含 `mvTherm?.resistance ??` + `示意图` |
+| hall-effect | `hallVoltageAbs_mV`=I·B/(n·q·t)·1e3 (q=CODATA e); `hallVoltage_mV`<0、abs=−signed; 源码含 `mvHall?.hallVoltageAbs_mV ??` + `示意` |
+| photoresistor | T=25 `workResistance_Ohm`=1e6·exp(−0.2); T=75 =T25·e^−1 (温度修正、减半); x_t 覆盖 E=100 与 maxValues 同值 (2%); 源码含 `chartsOf(simulationResult, 'photoresistor')` + `mvPhoto?.workResistance_Ohm ??` + `reSeries?.points` |
+| strain-gauge | `deltaROverR`=2.1e−3、`deltaUMV`=2.625mV; y_t 电桥曲线存在; 源码含 `mvStrain?.deltaROverR ??` + `mvStrain?.deltaUMV ??` + `示意` |
+
 ## 审计副产物:模型层方向 bug 修复 (2026-08-02)
 
 覆盖审计(1c)为最后 2 个零覆盖模型补测试时,新测试抓出 1 个**真实物理 bug**:

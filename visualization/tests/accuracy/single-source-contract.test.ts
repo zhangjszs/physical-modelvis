@@ -18,7 +18,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
-import { chartsOf } from 'physics-core';
+import { chartsOf, PHYSICS_CONSTANTS } from 'physics-core';
 import { getSceneSync, loadAllScenes } from '../../src/scenes/sceneRegistry';
 import { runSceneSimulation } from '../../src/adapters/physicsCoreAdapter';
 import { getFrame, interpSeries } from '../../src/rendering/renderingUtils';
@@ -1216,5 +1216,115 @@ describe('L1-migration: 渲染单一真源契约 (M3 批次 1: 光学波动 + �
         expect(fn, 'ν₀ 读引擎 maxValues').toContain('mvPhoto?.thresholdFrequency_THz ??');
         expect(fn, 'K_max 由引擎序列插值').toContain('kAt(nuMax)');
         expect(fn, '直线由引擎点列驱动').toContain('ekSeries?.points');
+    });
+});
+
+describe('L1-migration: 渲染单一真源契约 (M3 批次 2: 传感器元件 #63)', () => {
+    beforeAll(async () => {
+        await loadAllScenes();
+    });
+
+    function scene(id: string) {
+        const s = getSceneSync(id);
+        expect(s, `场景 ${id} 已注册`).toBeDefined();
+        return s!;
+    }
+
+    it('thermistor: NTC B 方程 R=R₀·exp(B(1/T−1/T₀)) 与独立复算一致, maxValues.resistance 与 x_t 曲线同点吻合', () => {
+        const sc = scene('thermistor');
+        const params: Record<string, number> = { temperature: 300, R0: 1e4, BValue: 3950, duration: 1 };
+        const { result, error } = runSceneSimulation(sc, params);
+        expect(error).toBeNull();
+
+        const mv = result!.diagnostics.maxValues as Record<string, number>;
+        // 独立复算 (T₀=298.15): R(300K)=1e4·exp(3950·(1/300−1/298.15))
+        const expectedR = 1e4 * Math.exp(3950 * (1 / 300 - 1 / 298.15));
+        expect(mv.resistance).toBeCloseTo(expectedR, 2);
+        expect(mv.modeFlag).toBe(0); // NTC (场景 buildProblem 恒 'NTC')
+        // 引擎 R-T 曲线 x_t 在 T=300 (恰为采样点) 处与 maxValues.resistance 同值 — 画面读数即此值
+        const rt = chartsOf(result!, 'thermistor')?.x_t;
+        expect(rt?.points.length).toBeGreaterThan(50);
+        expect(interpSeries(rt, 300)).toBeCloseTo(expectedR, 1);
+    });
+
+    it('thermistor: 实时电阻读数读引擎 maxValues.resistance, R-T 曲线/温度计示意保留 (源码契约)', () => {
+        const fn = renderFn('sensorElementScenes.ts', 'drawThermistorScene');
+        expect(fn, 'R 读数读引擎 maxValues.resistance').toContain('mvTherm?.resistance ??');
+        expect(fn, '曲线/温度计示意性质有注释记录').toContain('示意图');
+    });
+
+    it('hall-effect: |U_H|=I·B/(n·q·t) 与独立复算一致, 电子载流子使 hallVoltage_mV 为负 (画面取幅值)', () => {
+        const sc = scene('hall-effect');
+        const params: Record<string, number> = {
+            current: 2,
+            magneticField: 0.5,
+            chargeDensity: 1e22,
+            thickness: 0.002,
+            duration: 1
+        };
+        const { result, error } = runSceneSimulation(sc, params);
+        expect(error).toBeNull();
+
+        const mv = result!.diagnostics.maxValues as Record<string, number>;
+        const q = PHYSICS_CONSTANTS.e.value;
+        const expected_mV = ((2 * 0.5) / (1e22 * q * 0.002)) * 1e3;
+        expect(mv.hallVoltageAbs_mV).toBeCloseTo(expected_mV, 1);
+        // 场景 carrierType 恒 'electron' → 带极性 hallVoltage_mV 为负, 幅值为正; 画面消费幅值
+        expect(mv.hallVoltage_mV).toBeLessThan(0);
+        expect(mv.hallVoltageAbs_mV).toBeCloseTo(-(mv.hallVoltage_mV ?? 0), 6);
+    });
+
+    it('hall-effect: V_H 表头/HUD 读数读引擎 maxValues.hallVoltageAbs_mV, 偏转极性等示意保留 (源码契约)', () => {
+        const fn = renderFn('sensorElementScenes.ts', 'drawHallEffectScene');
+        expect(fn, 'V_H 读数读引擎 hallVoltageAbs_mV').toContain('mvHall?.hallVoltageAbs_mV ??');
+        expect(fn, '偏转/极性示意性质有注释记录').toContain('示意');
+    });
+
+    it('photoresistor: R=R_dark(T)·exp(−k·E) 含温度修正, T≠25℃ 工作点随温度下降 (旧渲染漏此温度项)', () => {
+        const sc = scene('photoresistor');
+        const base = { darkResistance: 1e6, sensitivity: 2e-3, lightIntensity: 100, duration: 5 };
+        const { result: r25, error: e25 } = runSceneSimulation(sc, { ...base, temperature: 25 });
+        const { result: r75, error: e75 } = runSceneSimulation(sc, { ...base, temperature: 75 });
+        expect(e25).toBeNull();
+        expect(e75).toBeNull();
+        const mv25 = r25!.diagnostics.maxValues as Record<string, number>;
+        const mv75 = r75!.diagnostics.maxValues as Record<string, number>;
+        // 独立复算: T=25 无修正 R=1e6·exp(−0.2); T=75 暗电阻 ×exp(−0.02·(75−25))=×e^−1
+        const noT = 1e6 * Math.exp(-2e-3 * 100);
+        const with75 = noT * Math.exp(-0.02 * (75 - 25));
+        expect(mv25.workResistance_Ohm).toBeCloseTo(noT, 0);
+        expect(mv75.workResistance_Ohm).toBeCloseTo(with75, 0);
+        // 温度修正使 T=75 工作点显著低于 T=25 (旧渲染自算不含温度项, 两者相等 = 双源 bug)
+        expect(mv75.workResistance_Ohm).toBeLessThan((mv25.workResistance_Ohm ?? 0) * 0.5);
+        // 引擎 R-E 曲线 x_t 覆盖工作点 E=100, 与 maxValues 同值 (对数采样线性内插容差 2%)
+        const re = chartsOf(r25!, 'photoresistor')?.x_t;
+        expect(re?.points.length).toBeGreaterThan(50);
+        expect(Math.abs(interpSeries(re, 100) - noT)).toBeLessThan(noT * 0.02);
+    });
+
+    it('photoresistor: R-E 曲线整条读引擎 x_t, 工作点 R 读 maxValues (源码契约 · A 全量)', () => {
+        const fn = renderFn('sensorElementScenes.ts', 'drawPhotoresistorScene');
+        expect(fn, 'R-E 曲线读引擎 x_t (经 #82 chartsOf)').toContain("chartsOf(simulationResult, 'photoresistor')");
+        expect(fn, '工作点 R 读引擎 maxValues.workResistance_Ohm').toContain('mvPhoto?.workResistance_Ohm ??');
+        expect(fn, '曲线由引擎点列驱动').toContain('reSeries?.points');
+    });
+
+    it('strain-gauge: ΔR/R=K·ε 与全桥 ΔU=U_K·K·ε/4 与独立复算一致, y_t 电桥输出曲线在', () => {
+        const sc = scene('strain-gauge');
+        const params: Record<string, number> = { strain: 1000, gaugeFactor: 2.1, bridgeVoltage: 5, duration: 1 };
+        const { result, error } = runSceneSimulation(sc, params);
+        expect(error).toBeNull();
+        const mv = result!.diagnostics.maxValues as Record<string, number>;
+        const eps = 1000 * 1e-6;
+        expect(mv.deltaROverR).toBeCloseTo(2.1 * eps, 6);
+        expect(mv.deltaUMV).toBeCloseTo(((5 * 2.1 * eps) / 4) * 1000, 4); // 2.625 mV
+        expect(chartsOf(result!, 'strain-gauge')?.y_t?.points.length).toBeGreaterThan(50);
+    });
+
+    it('strain-gauge: ΔU 与 ΔR/R 读数读引擎 maxValues, ΔU-ε 曲线/形变示意保留 (源码契约)', () => {
+        const fn = renderFn('sensorElementScenes.ts', 'drawStrainGaugeScene');
+        expect(fn, 'ΔR/R 读数读引擎 deltaROverR').toContain('mvStrain?.deltaROverR ??');
+        expect(fn, 'ΔU 读数读引擎 deltaUMV').toContain('mvStrain?.deltaUMV ??');
+        expect(fn, '曲线/形变示意性质有注释记录').toContain('示意');
     });
 });

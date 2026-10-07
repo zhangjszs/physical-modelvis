@@ -11,6 +11,7 @@
  * 设计原则：纯函数 + 屏幕坐标, 零依赖 React/Zustand/CoordinateTransformer
  */
 import type { SimulationResult } from 'physics-core';
+import { chartsOf } from 'physics-core';
 import { E_CHARGE } from './constants';
 import {
     roundRectPath,
@@ -59,8 +60,13 @@ export function drawHallEffectScene(o: SensorSceneOptions): void {
     const t = params['thickness'] ?? 0.001;
     const q = E_CHARGE;
 
-    // V_H 解析值 (伏特)
+    // V_H 幅值读数消费引擎 (#63 · B): 读 diagnostics.maxValues.hallVoltageAbs_mV
+    // (引擎 |U_H|=I·B/(n·q·t) 的 mV 幅值, 与画面回退式 |Vh|·1000 逐字同式, 零数值漂移);
+    // 场景 carrierType 恒 'electron', 极性等示意标注 (载流子偏转/上下表面 +/−) 保留自绘,
+    // 偏转幅度仅依赖 |V_H|; 无结果回退同式自算。
     const Vh = (I * B) / (n * q * t);
+    const mvHall = simulationResult?.diagnostics?.maxValues as { hallVoltageAbs_mV?: number } | undefined;
+    const Vh_mV = mvHall?.hallVoltageAbs_mV ?? Math.abs(Vh) * 1000;
 
     drawTitle(ctx, '霍尔元件 (霍尔电压 V_H)', w, isDark, { size: 18, y: 28 });
 
@@ -171,7 +177,7 @@ export function drawHallEffectScene(o: SensorSceneOptions): void {
     ctx.font = '10px sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('V_H (mV)', meterX, meterY + 12);
-    const VmV = Vh * 1000;
+    const VmV = Vh_mV;
     ctx.fillStyle = '#10b981';
     ctx.font = 'bold 22px monospace';
     ctx.fillText(`${VmV >= 0 ? '+' : ''}${VmV.toFixed(2)}`, meterX, meterY + 44);
@@ -198,7 +204,7 @@ export function drawHallEffectScene(o: SensorSceneOptions): void {
             { label: 'B', value: `${B.toFixed(3)} T` },
             { label: 'n', value: `${n.toExponential(1)} m^-3` },
             { label: 't', value: `${(t * 1000).toFixed(3)} mm` },
-            { label: 'V_H', value: `${(Vh * 1000).toFixed(3)} mV` },
+            { label: 'V_H', value: `${Vh_mV.toFixed(3)} mV` },
             { label: 't(s)', value: `${currentTime.toFixed(2)} s` }
         ],
         { boxW: 210, lineH: 16 }
@@ -225,7 +231,18 @@ export function drawPhotoresistorScene(o: SensorSceneOptions): void {
     const E = params['lightIntensity'] ?? 100;
     const T = params['temperature'] ?? 25;
 
-    const R = Rdark * Math.exp(-k * E);
+    // 阻值/曲线消费引擎 (#63 · A 全量): R-E 曲线整条读 charts.x_t, 工作点 R 读
+    // diagnostics.maxValues.workResistance_Ohm。引擎先对暗电阻作温度修正
+    // R_dark(T)=R_dark·exp(−0.02·(T−25)) 再 R=R_dark(T)·exp(−k·E) — 旧渲染自算漏了温度项
+    // (本批实测的又一双源点: T≠25℃ 时旧画面偏离引擎); 现整条消费引擎, 峰标记 E 恒在
+    // 引擎采样域 [0.01, max(5E,1e4)] 内。阈值 E<5lx 昼夜判定与灯光/滑杆为示意保留。
+    // 无结果回退同式 (含同源温度修正项, TEMP_COEFF 取引擎 photoresistor.ts 值 0.02)。
+    const TEMP_COEFF = 0.02; // 与引擎 photoresistor.ts 暗电阻温度系数同源 (回退分支用)
+    const Rdark_T = Rdark * Math.exp(-TEMP_COEFF * (T - 25));
+    const engCharts = simulationResult ? chartsOf(simulationResult, 'photoresistor') : undefined;
+    const reSeries = engCharts?.x_t;
+    const mvPhoto = simulationResult?.diagnostics?.maxValues as { workResistance_Ohm?: number } | undefined;
+    const R = mvPhoto?.workResistance_Ohm ?? Rdark_T * Math.exp(-k * E);
     // 阈值开关逻辑: E < 5 lx 相当于夜晚 → 灯亮
     const isNight = E < 5;
     const thresholdE = 5;
@@ -364,17 +381,26 @@ export function drawPhotoresistorScene(o: SensorSceneOptions): void {
     const chartW = w * 0.55;
     const chartH = h * 0.5;
 
-    // 计算 R-E 数据
-    const N = 80;
-    const xs: number[] = [];
-    const ys: number[] = [];
+    // 计算 R-E 数据: 优先整条消费引擎 charts.x_t (#63 · A 全量, 引擎对数采样含温度修正);
+    // 无引擎结果回退同式自算 (含 TEMP_COEFF 温度修正, 固定域 [0.1,1e5] 与原画面一致)
     const eMin = 0.1;
     const eMax = 1e5;
-    for (let i = 0; i <= N; i++) {
-        const logE = Math.log10(eMin) + (Math.log10(eMax) - Math.log10(eMin)) * (i / N);
-        const Ev = Math.pow(10, logE);
-        xs.push(Ev);
-        ys.push(Rdark * Math.exp(-k * Ev));
+    const engPts = reSeries?.points ?? [];
+    let xs: number[];
+    let ys: number[];
+    if (engPts.length >= 2) {
+        xs = engPts.map(p => p.x);
+        ys = engPts.map(p => p.y);
+    } else {
+        xs = [];
+        ys = [];
+        const N = 80;
+        for (let i = 0; i <= N; i++) {
+            const logE = Math.log10(eMin) + (Math.log10(eMax) - Math.log10(eMin)) * (i / N);
+            const Ev = Math.pow(10, logE);
+            xs.push(Ev);
+            ys.push(Rdark_T * Math.exp(-k * Ev));
+        }
     }
 
     drawMiniChart({
@@ -396,9 +422,11 @@ export function drawPhotoresistorScene(o: SensorSceneOptions): void {
         logY: true
     });
 
-    // 阈值线
+    // 阈值线 (位置按实际绘制域 [xs[0], xs[n-1]] 的 log 标定, 兼容引擎/回退两种数据源)
+    const dEmin = xs[0] ?? eMin;
+    const dEmax = xs[xs.length - 1] ?? eMax;
     const thresholdX =
-        chartX + ((Math.log10(thresholdE) - Math.log10(eMin)) / (Math.log10(eMax) - Math.log10(eMin))) * chartW;
+        chartX + ((Math.log10(thresholdE) - Math.log10(dEmin)) / (Math.log10(dEmax) - Math.log10(dEmin))) * chartW;
     if (thresholdX >= chartX && thresholdX <= chartX + chartW) {
         ctx.strokeStyle = '#ef4444';
         ctx.lineWidth = 1;
@@ -460,7 +488,14 @@ export function drawThermistorScene(o: SensorSceneOptions): void {
     const R0 = params['R0'] ?? 1e4;
     const B = params['BValue'] ?? 3950;
     const T0 = 298.15;
-    const R = R0 * Math.exp(B * (1 / T - 1 / T0));
+    // 实时电阻读数消费引擎 (#63 · B): 读 diagnostics.maxValues.resistance (引擎按 NTC B 方程
+    // R=R₀·exp(B(1/T−1/T₀)) 在目标温度处求解, 与画面回退式逐字同式, 零数值漂移);
+    // R-T 曲线 / 温度计 / 滑杆为示意图保留自算 — 引擎 charts.x_t 采样域 [250,400] K 远窄于画面
+    // 温度计量程 [200,600] K, 且峰值标记 T 可越引擎域, 直取会断线; 引擎 y_t (lnR–1/T, 仅 NTC
+    // 分支产出) 本画面不展示, 故不消费, 天然规避 PTC 分支 y_t 缺失。无结果回退同式自算。
+    const Rcalc = R0 * Math.exp(B * (1 / T - 1 / T0));
+    const mvTherm = simulationResult?.diagnostics?.maxValues as { resistance?: number } | undefined;
+    const R = mvTherm?.resistance ?? Rcalc;
 
     drawTitle(ctx, '热敏电阻 (R-T 特性)', w, isDark, { size: 18, y: 28 });
 
@@ -950,11 +985,18 @@ export function drawStrainGaugeScene(o: SensorSceneOptions): void {
     const UK = params['bridgeVoltage'] ?? 5;
 
     const epsilon = strain * 1e-6; // 无量纲
-    const deltaRR = K * epsilon;
-    const R0 = 120; // 标称 120 Ω
+    // ΔR/R 与电桥输出 ΔU 读数消费引擎 (#63 · B): 读 diagnostics.maxValues.deltaROverR / deltaUMV
+    // (引擎 ΔR/R=K·ε、全桥 ΔU=U_K·K·ε/4, 与画面回退式逐字同式, 零数值漂移);
+    // ΔR=120Ω·ΔR/R 用标称电阻 (引擎无绝对 R 输出), 形变示意与 ΔU-ε 曲线保留自算 —
+    // 引擎 charts.y_t 采样域 [−2000,2000] με 窄于画面量程 [−5000,5000] 且峰值可越域, 直取会断线;
+    // 无结果回退同式自算。
+    const mvStrain = simulationResult?.diagnostics?.maxValues as
+        { deltaROverR?: number; deltaUMV?: number } | undefined;
+    const deltaRR = mvStrain?.deltaROverR ?? K * epsilon;
+    const R0 = 120; // 标称 120 Ω (渲染层示意常量, 引擎不产出绝对电阻)
     const deltaR = R0 * deltaRR;
-    // 单臂电桥输出: ΔU ≈ UK/4 · K · ε
-    const deltaU = (UK / 4) * K * epsilon;
+    // 单臂/全桥电桥输出 ΔU ≈ U_K·K·ε/4: 优先引擎 mV 读数, 回退同式 (伏特)
+    const deltaU = (mvStrain?.deltaUMV ?? (UK / 4) * K * epsilon * 1000) / 1000;
 
     drawTitle(ctx, '电阻应变片 (惠斯通电桥)', w, isDark, { size: 18, y: 28 });
 

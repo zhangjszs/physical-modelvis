@@ -4,7 +4,7 @@
  * 把 docs/rendering-physics-audit.md 里原本纯手工复核的两件事固化为机器门禁:
  *   ① 消费守卫 — B-数值自算场景中, draw 函数体「未消费引擎结果」的集合必须恰好等于
  *      本文件登记的豁免表 EXEMPTION_TABLE (首版 = #61 实测 22 项; M3 批次 1 (#62) 已销名
- *      5 项迁往引擎消费, 现余 17 项「待迁」)。
+ *      5 项, 批次 2 (#63) 再销名 4 项迁往引擎消费, 现余 13 项「待迁」)。
  *      #62–#66 每迁完一个场景就从表里删掉它的名字, 想偷偷回退自算会被拦。
  *   ② 差集守卫 — audit 文档「迁移进展表场景集 Δ 契约覆盖场景集」必须恰好等于 7 项
  *      登记例外 (文档「已迁场景 → 契约覆盖对照」一节, 与本文件 EXCEPTIONS 互链)。
@@ -36,16 +36,13 @@ const AUDIT_DOC = join(VIZ_ROOT, '../docs/rendering-physics-audit.md');
 const CONSUME_RE = /simulationResult|charts|maxValues|getFrame|diagnostics/;
 
 /**
- * ① 豁免表 (首版 22 项 @ 2026-10-07; #62 批次 1 销名 5 项后现余 **17 项**): B-数值自算场景中
- * draw 函数体未消费引擎结果的登记名单。全部「待迁」—— #63–#66 分批迁移后逐项销名。
+ * ① 豁免表 (首版 22 项 @ 2026-10-07; #62 批次 1 销名 5 项 + #63 批次 2 销名 4 项后现余 **13 项**): B-数值自算场景中
+ * draw 函数体未消费引擎结果的登记名单。全部「待迁」—— #64–#66 分批迁移后逐项销名。
  * 来源: #61 issue 未消费清单 (2026-10-02 实测 @ 93b846f), 按渲染文件归组注释。
  */
 const EXEMPTION_TABLE: Array<{ sceneId: string; note: string }> = [
-    // sensorElementScenes.ts (4) — 待迁 (#63)
-    { sceneId: 'hall-effect', note: '待迁: 仅 drawEmptyState 判空, 霍尔电压自算' },
-    { sceneId: 'thermistor', note: '待迁 (#61 worked example): R-T 曲线自算, 引擎 charts.x_t/y_t 未读' },
-    { sceneId: 'photoresistor', note: '待迁: 光电阻值关系自算' },
-    { sceneId: 'strain-gauge', note: '待迁: 应变电桥读数自算' },
+    // sensorElementScenes.ts (4) — 已迁 (#63): hall-effect/thermistor/photoresistor/strain-gauge
+    //   均改为消费引擎 charts/maxValues, 已从本表销名。
     // thermodynamicLawScenes.ts (5) — 待迁 (#63–#66)
     { sceneId: 'joule-electrical', note: '待迁: 焦耳热自算 (兼 B-静态)' },
     { sceneId: 'perpetuum-mobile', note: '待迁: 热机效率自算' },
