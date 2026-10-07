@@ -55,7 +55,7 @@ export const magnetic_forceScene: SceneConfig = {
             label: '粒子电荷 q (洛伦兹力)',
             unit: '×10⁻¹⁹ C',
             value: 1.6,
-            min: -10,
+            min: 0.1, // 引擎声明域 charge > 0 (#92): 模型按 |q| 计算, 负电荷无符号语义, 场景域对齐引擎域
             max: 10,
             step: 0.1,
             default: 1.6,
