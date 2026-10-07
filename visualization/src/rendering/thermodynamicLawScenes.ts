@@ -415,9 +415,14 @@ export function drawJouleElectricalScene(o: ThermalSceneOptions): void {
     const resistance = params['resistance'] ?? 10;
     const time = params['time'] ?? 300;
     const waterMass = params['waterMass'] ?? 0.5;
-    const power = (voltage * voltage) / Math.max(resistance, 1e-6);
-    const heat = power * time;
-    const deltaT = heat / (waterMass * 4184);
+    // 面板读数消费引擎 (#64 · B): P/Q/ΔT 读 diagnostics.maxValues.powerW / workTotalJ / deltaT_K
+    // (引擎 P=V²/R、W=P·t、ΔT=W/(M·c水), 与画面回退式逐字同式, c水=4184 与引擎 C_WATER 同源);
+    // 电路/电阻发热曲线/箭头为示意保留; 无结果回退同式自算。
+    const mvJoule = simulationResult?.diagnostics?.maxValues as
+        { powerW?: number; workTotalJ?: number; deltaT_K?: number } | undefined;
+    const power = mvJoule?.powerW ?? (voltage * voltage) / Math.max(resistance, 1e-6);
+    const heat = mvJoule?.workTotalJ ?? power * time;
+    const deltaT = mvJoule?.deltaT_K ?? heat / (waterMass * 4184);
     const cx = w * 0.52;
     const cy = h * 0.54;
     ctx.strokeStyle = isDark ? '#94a3b8' : '#64748b';
@@ -457,8 +462,11 @@ export function drawAdiabaticCompressionScene(o: ThermalSceneOptions): void {
     drawTitle(ctx, '绝热压缩', w, isDark, { size: 18, y: 28 });
     const t0 = params['initialTemp'] ?? 300;
     const ratio = params['compressionRatio'] ?? 9;
-    const gamma = 1.4;
-    const t2 = t0 * ratio ** (gamma - 1);
+    // 终温读数消费引擎 (#64 · B): T2 读 diagnostics.maxValues.T2_K (引擎 gamma 在侧, T2=T1·r^(γ−1),
+    // 与画面回退式逐字同式); 活塞压缩动画 (progress) 为示意保留; 无结果回退同式。
+    const mvAdia = simulationResult?.diagnostics?.maxValues as { T2_K?: number } | undefined;
+    const gamma = 1.4; // 回退式用, 与引擎 GAMMA_AIR + 场景 buildProblem gamma:1.4 同源
+    const t2 = mvAdia?.T2_K ?? t0 * ratio ** (gamma - 1);
     const progress = Math.min(1, currentTime / 5);
     const cylX = w * 0.35;
     const cylY = h * 0.25;
@@ -499,8 +507,12 @@ export function drawEnergyTransformationScene(o: ThermalSceneOptions): void {
     drawTitle(ctx, '能量转化与守恒', w, isDark, { size: 18, y: 28 });
     const input = params['inputEnergy'] ?? 100;
     const efficiency = params['efficiency'] ?? 0.85;
-    const useful = input * efficiency;
-    const loss = input - useful;
+    // 能量分配读数消费引擎 (#64 · B): 有用输出 Eout / 损耗 Eloss 读 diagnostics.maxValues.Eout_J / Eloss_J
+    // (引擎 Eout=Ein·η, Eloss=Ein−Eout, η=efficiency param, 与画面回退式逐字同式);
+    // 能量柱高度 (输入/有用/损失比例) 与箭头为示意保留; 无结果回退同式。
+    const mvEnergy = simulationResult?.diagnostics?.maxValues as { Eout_J?: number; Eloss_J?: number } | undefined;
+    const useful = mvEnergy?.Eout_J ?? input * efficiency;
+    const loss = mvEnergy?.Eloss_J ?? input - useful;
     const x = w * 0.18;
     const y = h * 0.46;
     drawEnergyBar(ctx, x, y - 90, 54, 130, 1, '#3b82f6', '输入', isDark);

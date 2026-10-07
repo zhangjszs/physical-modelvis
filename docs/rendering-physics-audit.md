@@ -370,6 +370,30 @@ charts 访问走 #82 类型化访问层 `chartsOf(simulationResult, model)`。�
 | photoresistor | T=25 `workResistance_Ohm`=1e6·exp(−0.2); T=75 =T25·e^−1 (温度修正、减半); x_t 覆盖 E=100 与 maxValues 同值 (2%); 源码含 `chartsOf(simulationResult, 'photoresistor')` + `mvPhoto?.workResistance_Ohm ??` + `reSeries?.points` |
 | strain-gauge | `deltaROverR`=2.1e−3、`deltaUMV`=2.625mV; y_t 电桥曲线存在; 源码含 `mvStrain?.deltaROverR ??` + `mvStrain?.deltaUMV ??` + `示意` |
 
+## M3 批次 3 迁移进展 (2026-10-07): 热学定律 (#64), 契约用例 +6
+
+B-数值批次迁移第 3/5 批。逐场景逐量决策 (规则 A/B/C, 见 #62 + 十八次滚动口径更新: charts 走 `chartsOf`/`getChart`, 禁 `as unknown as Record`)。
+热学引擎多为**平衡态标量** (`diagnostics.maxValues`)、本批画面未绘逐时曲线 → 迁移项均落 **B 局部** (面板读数读 maxValues, 过程/动画示意保留)。
+豁免表 13 → **10** (迁 B 销名 3 项; 2 项判 C 留表并改写理由)。**audit B 类计数口径未动** (B-静态 36 / B-数值 30 / 去重 60)。
+
+| 场景 | 决策 | 消费方式 | 备注 |
+|------|------|------|------|
+| `joule-electrical` | B 局部 | HUD P/Q/ΔT 读 `maxValues.powerW/workTotalJ/deltaT_K` (引擎 P=V²/R、W=P·t、ΔT=W/(M·c水), c水=4184 与引擎 C_WATER 同源, 与回退式逐字同式) | 电路/电阻发热曲线/箭头示意保留; 兼 B-静态∩B-数值重复项, 本批为唯一处理归属 (不两处各迁) |
+| `adiabatic-compression` | B 局部 | HUD 终温 T2 读 `maxValues.T2_K` (引擎 gamma 在侧, T2=T1·r^(γ−1), 与回退式逐字同式) | 活塞压缩动画 (progress) 为示意保留; T0/r 为输入回显 (读 param) |
+| `energy-transformation` | B 局部 | 有用/损耗读 `maxValues.Eout_J/Eloss_J` (引擎 Eout=Ein·η、Eloss=Ein−Eout, η=efficiency param, 与回退式逐字同式) | 能量柱高度 (输入/有用/损失比例) 与箭头示意保留; 兼 B-静态∩B-数值重复项 |
+
+本批另有 2 项判 **C**（沿用阶段 C 第 5 批「可保留」清单，**不进迁移进展表 · 无契约用例**，豁免理由登记于 #61 豁免表 note）：
+- heat-direction：热流方向为动画示意; Qdot=k·ΔT 取 arb 单位速率; 引擎 x_t/y_t 是 T–t 演化序列但本画面不绘该曲线 → 无对应可消费标量。
+- perpetuum-mobile：卡诺效率 1−Tc/Th 与引擎逐字同式; 转轮为动画示意。
+
+### 契约用例新增 (#64 × 6, 迁 B 的 3 景各 2 例)
+
+| 场景 | 断言 |
+|------|------|
+| joule-electrical | `powerW`=14.4、`workTotalJ`=4320、`deltaT_K`=4320/2092≈2.065; x_t 末点=总功; 源码含 `mvJoule?.powerW ??` / `workTotalJ` / `deltaT_K` + `示意` |
+| adiabatic-compression | `gamma`=1.4、`T2_K`=300·9^0.4≈722.5; x_t 在 r=9 处=T2; 源码含 `mvAdia?.T2_K ??` + `示意` |
+| energy-transformation | `Eout_J`=85、`Eloss_J`=15、`eta`=0.85、Ein=Eout+Eloss; 源码含 `mvEnergy?.Eout_J ??` / `Eloss_J` + `示意` |
+
 ## 审计副产物:模型层方向 bug 修复 (2026-08-02)
 
 覆盖审计(1c)为最后 2 个零覆盖模型补测试时,新测试抓出 1 个**真实物理 bug**:

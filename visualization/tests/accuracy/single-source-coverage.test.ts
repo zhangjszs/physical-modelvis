@@ -3,8 +3,8 @@
  *
  * 把 docs/rendering-physics-audit.md 里原本纯手工复核的两件事固化为机器门禁:
  *   ① 消费守卫 — B-数值自算场景中, draw 函数体「未消费引擎结果」的集合必须恰好等于
- *      本文件登记的豁免表 EXEMPTION_TABLE (首版 = #61 实测 22 项; M3 批次 1 (#62) 已销名
- *      5 项, 批次 2 (#63) 再销名 4 项迁往引擎消费, 现余 13 项「待迁」)。
+ *      本文件登记的豁免表 EXEMPTION_TABLE (首版 = #61 实测 22 项; M3 批次 1 (#62) 销名 5 项,
+ *      批次 2 (#63) 销名 4 项, 批次 3 (#64) 迁 B 销名 3 项后现余 10 项「待迁/C 保留」)。
  *      #62–#66 每迁完一个场景就从表里删掉它的名字, 想偷偷回退自算会被拦。
  *   ② 差集守卫 — audit 文档「迁移进展表场景集 Δ 契约覆盖场景集」必须恰好等于 7 项
  *      登记例外 (文档「已迁场景 → 契约覆盖对照」一节, 与本文件 EXCEPTIONS 互链)。
@@ -36,19 +36,23 @@ const AUDIT_DOC = join(VIZ_ROOT, '../docs/rendering-physics-audit.md');
 const CONSUME_RE = /simulationResult|charts|maxValues|getFrame|diagnostics/;
 
 /**
- * ① 豁免表 (首版 22 项 @ 2026-10-07; #62 批次 1 销名 5 项 + #63 批次 2 销名 4 项后现余 **13 项**): B-数值自算场景中
- * draw 函数体未消费引擎结果的登记名单。全部「待迁」—— #64–#66 分批迁移后逐项销名。
+ * ① 豁免表 (首版 22 项 @ 2026-10-07; #62 批次 1 销名 5 项 + #63 批次 2 销名 4 项 + #64 批次 3 迁 3 项销名后现余 **10 项**): B-数值自算场景中
+ * draw 函数体未消费引擎结果的登记名单（含 perpetuum-mobile / heat-direction 两个 C 保留项）。全部「待迁」—— #65–#66 分批迁移后逐项销名。
  * 来源: #61 issue 未消费清单 (2026-10-02 实测 @ 93b846f), 按渲染文件归组注释。
  */
 const EXEMPTION_TABLE: Array<{ sceneId: string; note: string }> = [
     // sensorElementScenes.ts (4) — 已迁 (#63): hall-effect/thermistor/photoresistor/strain-gauge
     //   均改为消费引擎 charts/maxValues, 已从本表销名。
-    // thermodynamicLawScenes.ts (5) — 待迁 (#63–#66)
-    { sceneId: 'joule-electrical', note: '待迁: 焦耳热自算 (兼 B-静态)' },
-    { sceneId: 'perpetuum-mobile', note: '待迁: 热机效率自算' },
-    { sceneId: 'heat-direction', note: '待迁: 热流方向自算' },
-    { sceneId: 'adiabatic-compression', note: '待迁: 绝热过程自算' },
-    { sceneId: 'energy-transformation', note: '待迁: 能量转换自算 (兼 B-静态)' },
+    // thermodynamicLawScenes.ts — #64 批次 3: joule-electrical / adiabatic-compression / energy-transformation 已迁 B (读 maxValues) 销名;
+    //   perpetuum-mobile / heat-direction 判 C, 沿用阶段 C 第 5 批「可保留」结论 (audit 文档)
+    {
+        sceneId: 'perpetuum-mobile',
+        note: 'C 保留 (#64): 卡诺效率 1−Tc/Th 与引擎逐字同式 + 转轮为动画示意 (引用 audit 第 5 批可保留清单)'
+    },
+    {
+        sceneId: 'heat-direction',
+        note: 'C 保留 (#64): 热流方向为动画示意; Qdot=k·ΔT 取 arb 单位速率, 引擎 x_t/y_t 是 T–t 演化序列本画面不绘, 无对应可消费标量 (引用 audit 第 5 批可保留清单)'
+    },
     // gasThermalScenes.ts / molecularKineticScenes.ts / electrostaticEnergyScenes.ts / nuclearRadiationScenes.ts (4) — 待迁 (#63–#66)
     { sceneId: 'gas-law', note: '待迁: 气体定律自算' },
     { sceneId: 'liquid-mixing', note: '待迁: 混合温度自算' },

@@ -1328,3 +1328,76 @@ describe('L1-migration: 渲染单一真源契约 (M3 批次 2: 传感器元件 #
         expect(fn, '曲线/形变示意性质有注释记录').toContain('示意');
     });
 });
+
+describe('L1-migration: 渲染单一真源契约 (M3 批次 3: 热学定律 #64)', () => {
+    beforeAll(async () => {
+        await loadAllScenes();
+    });
+
+    function scene(id: string) {
+        const s = getSceneSync(id);
+        expect(s, `场景 ${id} 已注册`).toBeDefined();
+        return s!;
+    }
+
+    it('joule-electrical: P=V²/R、W=P·t、ΔT=W/(M·c) 与独立复算一致 (c水=4184 与引擎 C_WATER 同源)', () => {
+        const sc = scene('joule-electrical');
+        const params: Record<string, number> = { voltage: 12, resistance: 10, time: 300, waterMass: 0.5, duration: 5 };
+        const { result, error } = runSceneSimulation(sc, params);
+        expect(error).toBeNull();
+        const mv = result!.diagnostics.maxValues as Record<string, number>;
+        expect(mv.powerW).toBeCloseTo((12 * 12) / 10, 3); // 14.4 W
+        expect(mv.workTotalJ).toBeCloseTo(((12 * 12) / 10) * 300, 0); // 4320 J
+        expect(mv.deltaT_K).toBeCloseTo(4320 / (0.5 * 4184), 3); // ≈2.065 K
+        // 引擎 W-t 曲线 x_t 末点 = 总功 (与 maxValues.workTotalJ 同值)
+        const wp = chartsOf(result!, 'joule-electrical')?.x_t?.points ?? [];
+        expect(wp[wp.length - 1]!.y).toBeCloseTo(mv.workTotalJ ?? 0, 0);
+    });
+
+    it('joule-electrical: HUD P/Q/ΔT 读数读引擎 maxValues, 电路/箭头示意保留 (源码契约)', () => {
+        const fn = renderFn('thermodynamicLawScenes.ts', 'drawJouleElectricalScene');
+        expect(fn, 'P 读引擎 powerW').toContain('mvJoule?.powerW ??');
+        expect(fn, 'Q 读引擎 workTotalJ').toContain('mvJoule?.workTotalJ ??');
+        expect(fn, 'ΔT 读引擎 deltaT_K').toContain('mvJoule?.deltaT_K ??');
+        expect(fn, '电路/箭头示意性质有注释记录').toContain('示意');
+    });
+
+    it('adiabatic-compression: T2=T1·r^(γ−1) 与独立复算一致 (引擎 gamma 在侧), x_t 末点=r_max 处 T2', () => {
+        const sc = scene('adiabatic-compression');
+        const params: Record<string, number> = { initialTemp: 300, compressionRatio: 9, duration: 5 };
+        const { result, error } = runSceneSimulation(sc, params);
+        expect(error).toBeNull();
+        const mv = result!.diagnostics.maxValues as Record<string, number>;
+        expect(mv.gamma).toBeCloseTo(1.4, 6);
+        expect(mv.T2_K).toBeCloseTo(300 * 9 ** 0.4, 1); // ≈722.5 K
+        const tr = chartsOf(result!, 'adiabatic-compression')?.x_t;
+        expect(tr?.points.length).toBeGreaterThan(20);
+        expect(interpSeries(tr, 9)).toBeCloseTo(mv.T2_K ?? 0, 1);
+    });
+
+    it('adiabatic-compression: 终温 T2 读数读引擎 maxValues.T2_K, 活塞动画示意保留 (源码契约)', () => {
+        const fn = renderFn('thermodynamicLawScenes.ts', 'drawAdiabaticCompressionScene');
+        expect(fn, 'T2 读数读引擎 T2_K').toContain('mvAdia?.T2_K ??');
+        expect(fn, '活塞动画示意性质有注释记录').toContain('示意');
+    });
+
+    it('energy-transformation: Eout=Ein·η、Eloss=Ein−Eout 与独立复算一致且守恒 Ein=Eout+Eloss', () => {
+        const sc = scene('energy-transformation');
+        const params: Record<string, number> = { mode: 0, inputEnergy: 100, efficiency: 0.85, duration: 5 };
+        const { result, error } = runSceneSimulation(sc, params);
+        expect(error).toBeNull();
+        const mv = result!.diagnostics.maxValues as Record<string, number>;
+        expect(mv.Ein_J).toBeCloseTo(100, 3);
+        expect(mv.Eout_J).toBeCloseTo(85, 3);
+        expect(mv.Eloss_J).toBeCloseTo(15, 3);
+        expect(mv.eta).toBeCloseTo(0.85, 4);
+        expect((mv.Eout_J ?? 0) + (mv.Eloss_J ?? 0)).toBeCloseTo(mv.Ein_J ?? 0, 3);
+    });
+
+    it('energy-transformation: 有用/损耗读数读引擎 maxValues, 能量柱/箭头示意保留 (源码契约)', () => {
+        const fn = renderFn('thermodynamicLawScenes.ts', 'drawEnergyTransformationScene');
+        expect(fn, '有用输出读引擎 Eout_J').toContain('mvEnergy?.Eout_J ??');
+        expect(fn, '损耗读引擎 Eloss_J').toContain('mvEnergy?.Eloss_J ??');
+        expect(fn, '能量柱/箭头示意性质有注释记录').toContain('示意');
+    });
+});
