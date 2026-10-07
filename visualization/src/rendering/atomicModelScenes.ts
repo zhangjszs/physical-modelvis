@@ -8,6 +8,7 @@
  * 设计原则：纯函数 + 屏幕坐标, 零依赖 React/Zustand/CoordinateTransformer
  */
 import type { SimulationResult } from 'physics-core';
+import { chartsOf } from 'physics-core';
 import { clamp, clearScene, drawTitle, drawHud, drawGlowCircle } from './renderingUtils';
 
 export interface ModernSceneOptions {
@@ -53,9 +54,7 @@ const BOHR_RADIUS_NM = 0.0529;
  */
 export function readEngineOrbitRadii(result: SimulationResult | null): ((n: number) => number) | null {
     // 引擎键名 x_t 对应语义"能级图" (n, E) —— 见 bohr.ts 的 charts: { x_t: energyDiagram }
-    const series = (result?.charts as Record<string, { points?: Array<{ x: number; y: number }> }> | undefined)?.[
-        'x_t'
-    ];
+    const series = result ? chartsOf(result, 'bohr-model')?.x_t : undefined;
     const points = series?.points;
     if (!points || points.length === 0) return null;
 
@@ -89,9 +88,7 @@ export function readEngineOrbitRadii(result: SimulationResult | null): ((n: numb
  */
 export function readEngineBohrLevels(result: SimulationResult | null): Map<number, number> | null {
     // 引擎键名 x_t 对应语义"能级图" (n, E) —— 见 bohr.ts 的 charts: { x_t: energyDiagram }
-    const series = (result?.charts as Record<string, { points?: Array<{ x: number; y: number }> }> | undefined)?.[
-        'x_t'
-    ];
+    const series = result ? chartsOf(result, 'bohr-model')?.x_t : undefined;
     const points = series?.points;
     if (!points || points.length === 0) return null;
 
@@ -134,9 +131,7 @@ export function drawBohrScene(o: ModernSceneOptions): void {
      * 元素 i 对应 n₂=n₁+1+i (引擎 seriesLines 嵌套循环同序, 见 bohr.ts);
      * 无引擎结果回退里德伯公式。
      */
-    const engineSpectrum = (
-        simulationResult?.charts as Record<string, { points?: Array<{ x: number; y: number }> }> | undefined
-    )?.['y_t']?.points;
+    const engineSpectrum = simulationResult ? chartsOf(simulationResult, 'bohr-model')?.y_t?.points : undefined;
     const Rydberg = 1.097e7; // m⁻¹ (回退公式用; 引擎真源为 maxValues.R_inf)
     const lambdaNmFor = (n2: number): number => {
         const y = engineSpectrum?.[n2 - n1 - 1]?.y;

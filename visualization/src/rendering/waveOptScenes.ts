@@ -16,6 +16,7 @@
  */
 
 import type { SimulationResult } from 'physics-core';
+import { chartsOf } from 'physics-core';
 import {
     clearScene,
     drawTitle,
@@ -65,9 +66,7 @@ export function drawSoundWaveformScene(o: WaveOptSceneOptions) {
 
     // 引擎波形 (时域, ms 轴): y(x) = engine_wave[(t - x/v) mod duration] — 行波快照等效时移
     // 波形数组已含 duration 跨度, 用二分+线性插值采样
-    const enginePts = (
-        simulationResult?.charts as { waveform_t?: { points: Array<{ x: number; y: number }> } } | undefined
-    )?.waveform_t?.points;
+    const enginePts = simulationResult ? chartsOf(simulationResult, 'sound-waveform')?.waveform_t?.points : undefined;
     const engDuration = enginePts && enginePts.length > 1 ? enginePts[enginePts.length - 1]!.x - enginePts[0]!.x : 0;
     const sampleWave = (tEng: number): number => {
         if (!enginePts || enginePts.length < 2) return 0;

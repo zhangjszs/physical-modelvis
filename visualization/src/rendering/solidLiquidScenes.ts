@@ -11,6 +11,7 @@
  * 设计原则：纯函数 + 屏幕坐标, 零依赖 React/Zustand/CoordinateTransformer
  */
 import type { SimulationResult } from 'physics-core';
+import { chartsOf } from 'physics-core';
 import { G_ACCELERATION, SIGMA_WATER_20C, SIGMA_MERCURY_20C } from './constants';
 import {
     roundRectPath,
@@ -907,10 +908,7 @@ export function drawLiquidCrystalScene(o: ThermalSceneOptions): void {
     if (chartH > 60) {
         const xs: number[] = [];
         const ys: number[] = [];
-        const xChart = (
-            simulationResult?.charts as unknown as
-                Record<string, { points: Array<{ x: number; y: number }> }> | undefined
-        )?.['x_t'];
+        const xChart = simulationResult ? chartsOf(simulationResult, 'liquid-crystal')?.x_t : undefined;
         const enginePoints = xChart?.points;
         if (enginePoints && enginePoints.length >= 1) {
             // 引擎曲线覆盖 -10~90℃ (1.667℃ 网格), 取扫描区间内的点并各向外扩一点
