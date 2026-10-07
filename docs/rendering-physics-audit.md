@@ -452,6 +452,11 @@ grep -oE "scene\('[a-z0-9-]+'\)" visualization/tests/accuracy/single-source-cont
 
 **新增迁移场景时, 同步在契约文件补 ≥1 用例**(引擎端独立公式复算 + 渲染消费端源码契约), 否则回退自算无人拦截。
 
+> **机器守卫 (#61)**: 上述手工 grep 差集已固化为 `visualization/tests/accuracy/single-source-coverage.test.ts`
+> **差集守卫**(对称差 ≠ 7 项例外即失败, 例外清单以该测试内 `EXCEPTIONS` 常量登记, 与本节互链);
+> 同文件的**消费守卫**登记了 B-数值自算场景「draw 函数体未消费引擎结果」豁免表(首版 22 项, 待迁),
+> 供 #62–#66 迁移逐项销名、防回退自算。手工命令保留作备用口径。
+
 ---
 
 ## #55 步骤2: B 类场景常量/单位核对记录 (2026-10-01 · agent qoder-20261001T163330Z)

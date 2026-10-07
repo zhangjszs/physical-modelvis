@@ -61,7 +61,12 @@ const LAYERS = [
         ]
     },
     { id: 'L10', name: '人类可读输出 NaN 扫描', pkg: 'visualization', test: 'physics-correctness.l10.test.ts' },
-    { id: 'L11', name: '渲染层常量单一真源', pkg: 'visualization', test: 'rendering-constants-single-source.test.ts' }
+    {
+        id: 'L11',
+        name: '渲染层常量单一真源',
+        pkg: 'visualization',
+        test: ['rendering-constants-single-source.test.ts', 'single-source-coverage.test.ts']
+    }
 ];
 
 /**
