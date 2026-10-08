@@ -1,4 +1,5 @@
 import { PhysicsModelBase } from './base.js';
+import { PHYSICS_CONSTANTS } from '../units/constants.js';
 import type { PhysicsProblem } from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, ChartSeries } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
@@ -23,10 +24,12 @@ export class BlackBodyModel extends PhysicsModelBase {
         const c = problem.constraints?.blackBody;
         if (!c) throw new Error('black-body 需要 blackBody 约束');
         const T = c.temperature;
-        const h = 6.626e-34,
+        // h / σ 取 units/constants.js 单一真源 (#108 收敛原内联截断值);
+        // kB / cLight / bWien 维持原状 (kB 另见 #108 普查: 引擎另 1 处 + 渲染 1 处, 待 planner 立单; bWien 暂无真源条目)
+        const h = PHYSICS_CONSTANTS.h.value,
             kB = 1.381e-23,
             cLight = 3e8,
-            sigma = 5.67e-8,
+            sigma = PHYSICS_CONSTANTS.sigmaSB.value,
             bWien = 2.898e-3;
         const fMin = c.freqMin ?? 1e12;
         const fMax = c.freqMax ?? 5e15;

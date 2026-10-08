@@ -29,7 +29,8 @@ export class RadiationDeflectionModel extends PhysicsModelBase {
             E_MeV = c.particleEnergy,
             type = c.particleType;
         const e = PHYSICS_CONSTANTS.e.value,
-            MeV_to_J = 1.602e-13;
+            // 1 MeV = e×10⁶ J, 取 e 单一真源 (#108 收敛原内联值; α/β 质量维持原状, 待 planner 立单)
+            MeV_to_J = PHYSICS_CONSTANTS.e.value * 1e6;
 
         let m: number, q: number, label: string;
         if (type === 'alpha') {

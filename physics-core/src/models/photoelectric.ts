@@ -4,8 +4,8 @@ import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
 import { PHYSICS_CONSTANTS } from '../units/constants.js';
 
-// 普朗克常量 (J·s), 元电荷 (C), 1 eV (J)
-const h = 6.626e-34;
+// 普朗克常量 (J·s), 元电荷 (C), 1 eV (J) — 均引用 units/constants.js 单一真源 (#108 收敛原内联截断值)
+const h = PHYSICS_CONSTANTS.h.value;
 const e = PHYSICS_CONSTANTS.e.value;
 const eV = PHYSICS_CONSTANTS.e.value;
 
