@@ -1504,3 +1504,97 @@ describe('L1-migration: 渲染单一真源契约 (M3 批次 4: 气体分子/静�
         expect(fn, '云室径迹示意性质有注释记录').toContain('示意');
     });
 });
+
+describe('L1-migration: 渲染单一真源契约 (M3 批次 5: 电路 + 测量仪器 #66)', () => {
+    beforeAll(async () => {
+        await loadAllScenes();
+    });
+
+    function scene(id: string) {
+        const s = getSceneSync(id);
+        expect(s, `场景 ${id} 已注册`).toBeDefined();
+        return s!;
+    }
+
+    it('load-voltage: 工作点 I₀/U₀ 与独立复算一致 (R₀=√(1·10000)=100Ω, kΩ 换算在侧)', () => {
+        const sc = scene('load-voltage');
+        const params: Record<string, number> = {
+            emf: 12,
+            internalResistance: 2,
+            loadRMin: 1,
+            loadRMax: 10,
+            duration: 5
+        };
+        const { result, error } = runSceneSimulation(sc, params);
+        expect(error).toBeNull();
+        const mv = result!.diagnostics.maxValues as Record<string, number>;
+        // 独立复算: R0=√(Rmin·Rmax)=100, I0=E/(R0+r), U0=E·R0/(R0+r)
+        expect(mv.operatingCurrent).toBeCloseTo(12 / 102, 9);
+        expect(mv.operatingVoltage).toBeCloseTo((12 * 100) / 102, 9);
+        expect(mv.fittedEmf).toBeCloseTo(12, 3);
+        expect(mv.fittedInternalResistance).toBeCloseTo(2, 3);
+    });
+
+    it('load-voltage: 工作点 I/U 整组读引擎 maxValues, R 标牌=U₀/I₀, 回路示意保留 (源码契约)', () => {
+        const fn = renderFn('electricCircuitScenes.ts', 'drawLoadVoltageScene');
+        expect(fn, 'I 读引擎 operatingCurrent').toContain('mvLV?.operatingCurrent');
+        expect(fn, 'U 读引擎 operatingVoltage').toContain('mvLV?.operatingVoltage');
+        expect(fn, '回路示意性质有注释记录').toContain('示意');
+    });
+
+    it('resistance-law: 基准电阻与独立复算一致 (Cu, R₀=ρL/S≈0.021390Ω), R-L 在 L=1 处=R₀', () => {
+        const sc = scene('resistance-law');
+        const params: Record<string, number> = { length: 1, diameter: 1, material: 0, duration: 5 };
+        const { result, error } = runSceneSimulation(sc, params);
+        expect(error).toBeNull();
+        const mv = result!.diagnostics.maxValues as Record<string, number>;
+        expect(mv.resistivity).toBeCloseTo(1.68e-8, 14);
+        expect(mv.baseResistance).toBeCloseTo(0.0213904, 6);
+        const rSeries = chartsOf(result!, 'resistance-law')?.R_L;
+        expect(rSeries?.points.length).toBe(61);
+        expect(interpSeries(rSeries, 1)).toBeCloseTo(mv.baseResistance ?? 0, 5);
+    });
+
+    it('resistance-law: HUD 电阻读引擎 maxValues.baseResistance, 导线示意保留 (源码契约)', () => {
+        const fn = renderFn('electricCircuitScenes.ts', 'drawResistanceLawScene');
+        expect(fn, 'R 读引擎 baseResistance').toContain('mvRes?.baseResistance');
+        expect(fn, '导线示意性质有注释记录').toContain('示意');
+    });
+
+    it('vernier-caliper-tool: 主尺/K/量化读数与独立复算一致 (23.4mm@20 分度→23+8×0.05)', () => {
+        const sc = scene('vernier-caliper-tool');
+        const params: Record<string, number> = { objectSize: 23.4, nType: 1, duration: 3 };
+        const { result, error } = runSceneSimulation(sc, params);
+        expect(error).toBeNull();
+        const mv = result!.diagnostics.maxValues as Record<string, number>;
+        expect(mv.mainScaleMM).toBe(23);
+        expect(mv.K).toBe(8);
+        expect(mv.precision).toBeCloseTo(0.05, 9);
+        expect(mv.reading).toBeCloseTo(23.4, 9);
+    });
+
+    it('vernier-caliper-tool: 读数整组读引擎 maxValues, 刻度尺示意保留 (源码契约)', () => {
+        const fn = renderFn('electricCircuitScenes.ts', 'drawVernierCaliperScene');
+        expect(fn, '主尺读引擎 mainScaleMM').toContain('mvVernier?.mainScaleMM');
+        expect(fn, '读数读引擎 reading').toContain('mvVernier?.reading');
+        expect(fn, '刻度尺示意性质有注释记录').toContain('示意');
+    });
+
+    it('micrometer-tool: 固定/可动/读数与独立复算一致 (5.75mm→a=5.5+n=25)', () => {
+        const sc = scene('micrometer-tool');
+        const params: Record<string, number> = { thickness: 5.75, duration: 3 };
+        const { result, error } = runSceneSimulation(sc, params);
+        expect(error).toBeNull();
+        const mv = result!.diagnostics.maxValues as Record<string, number>;
+        expect(mv.a).toBeCloseTo(5.5, 9);
+        expect(mv.n).toBe(25);
+        expect(mv.reading).toBeCloseTo(5.75, 9);
+    });
+
+    it('micrometer-tool: 读数整组读引擎 maxValues, 千分尺示意保留 (源码契约)', () => {
+        const fn = renderFn('electricCircuitScenes.ts', 'drawMicrometerScene');
+        expect(fn, '固定刻度读引擎 a').toContain('mvMicro?.a');
+        expect(fn, '读数读引擎 reading').toContain('mvMicro?.reading');
+        expect(fn, '千分尺示意性质有注释记录').toContain('示意');
+    });
+});
