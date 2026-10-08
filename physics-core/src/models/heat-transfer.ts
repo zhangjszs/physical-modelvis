@@ -2,13 +2,14 @@ import type { PhysicsProblem } from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
+import { PHYSICS_CONSTANTS } from '../units/constants.js';
 
 /**
  * 三种热传递模式模型 — 热传导 / 热对流 / 热辐射
  *
  *   - 传导:  Q/t = k·A·ΔT/L   牛顿冷却法 Q=hA(T_env - T) 近似
  *   - 对流:  Q = h·A·ΔT,  h 取决于流体/几何
- *   - 辐射:  P = εσA (T^4 - T_env^4)    σ = 5.67e-8 W/(m²·K⁴)
+ *   - 辐射:  P = εσA (T^4 - T_env^4)    σ = 5.670374419e-8 W/(m²·K⁴) (真源见 units/constants.js sigmaSB)
  *
  * 本模型: 给定一个初始温度 T0 的物体, 在环境温度 Ten(Tenv>T0) 下通过三种
  * 方式吸热, 观察 T(t) 曲线以及三种传热流量对比。
@@ -17,7 +18,8 @@ import { PhysicsModelBase } from './base.js';
  *   - y_t = 传热流量 Qdot 随时间递减 (三种曲线的对比)
  */
 
-const SIGMA = 5.67e-8; // W/(m²·K⁴)
+// σ 取 units/constants.js 单一真源 (#108 收敛原内联截断值)
+const SIGMA = PHYSICS_CONSTANTS.sigmaSB.value; // W/(m²·K⁴)
 
 /* 典型材料热导率 k (W/(m·K)) */
 const K_TABLE: Record<string, number> = {

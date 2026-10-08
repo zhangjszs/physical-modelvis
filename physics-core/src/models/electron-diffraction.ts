@@ -25,7 +25,9 @@ export class ElectronDiffractionModel extends PhysicsModelBase {
         if (!c) throw new Error('electron-diffraction 需要 electronDiffraction 约束');
         const U = c.accVoltage;
         const d = (c.crystalLattice ?? 0.213) * 1e-9;
-        const h = 6.626e-34,
+        // h 取 units/constants.js 单一真源 (#108 收敛原内联截断值);
+        // m 维持原状 (#108 普查: m_e 引擎另 1 处 + 渲染 2 处, 待 planner 立单, 本单不扩渲染面)
+        const h = PHYSICS_CONSTANTS.h.value,
             m = 9.109e-31,
             e = PHYSICS_CONSTANTS.e.value;
         const lam = h / Math.sqrt(2 * m * e * U);

@@ -52,7 +52,7 @@ export class EMSpectrumModel extends PhysicsModelBase {
     readonly modelType = 'em-spectrum' as const;
     readonly assumptions = [
         '真空光速 c = 3.0 * 10^8 m/s',
-        '普朗克常数 h = 6.626e-34 J*s',
+        '普朗克常数 h = 6.62607015e-34 J*s',
         '频段边界采用教材常用近似值'
     ];
     readonly applicableRange = '频率 1 Hz ~ 1e22 Hz (宇宙最全电磁波谱)';
@@ -80,9 +80,9 @@ export class EMSpectrumModel extends PhysicsModelBase {
             throw new Error('freqMin 必须小于 freqMax');
         }
 
-        // 物理常数
+        // 物理常数 (均走 units/constants.js 单一真源; #108 前此处 PLANCK_H 内联全精度字面量, 与 assumptions 展示串的截断值并存, 现归一)
         const SPEED_OF_LIGHT = PHYSICS_CONSTANTS.c.value; // m/s
-        const PLANCK_H = 6.62607015e-34; // J*s
+        const PLANCK_H = PHYSICS_CONSTANTS.h.value; // J*s
 
         // ===== 标准波段表 =====
         const bands: SpectrumBand[] = [
