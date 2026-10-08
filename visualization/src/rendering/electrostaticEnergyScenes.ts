@@ -8,6 +8,7 @@
  * 设计原则：纯函数 + 屏幕坐标, 零依赖 React/Zustand/CoordinateTransformer
  */
 import type { SimulationResult } from 'physics-core';
+import { chartsOf } from 'physics-core';
 import {
     COLORS,
     roundRectPath,
@@ -22,7 +23,8 @@ import {
     drawBattery,
     drawResistor,
     drawCapacitorSymbol,
-    drawSineChart
+    drawSineChart,
+    interpSeries
 } from './renderingUtils';
 
 export interface ElectromagnetismSceneOptions {
@@ -77,17 +79,35 @@ export function drawParallelPlateCapacitorScene(opts: ElectromagnetismSceneOptio
 }
 
 export function drawCapacitorChargeScene(opts: ElectromagnetismSceneOptions): void {
-    const { ctx, width, height, isDark, params, currentTime } = opts;
+    const { ctx, width, height, isDark, params, simulationResult, currentTime } = opts;
     clearScene(ctx, width, height, isDark);
     drawTitle(ctx, 'RC 电容充放电', width, isDark, { size: 18, y: 28 });
     const r = params['resistance'] ?? 1000;
     const cMicro = params['capacitance'] ?? 100;
     const emf = params['emf'] ?? 10;
     const mode = params['mode'] ?? 0;
-    const tau = r * cMicro * 1e-6;
-    const ratio =
-        mode < 0.5 ? 1 - Math.exp(-currentTime / Math.max(tau, 1e-6)) : Math.exp(-currentTime / Math.max(tau, 1e-6));
-    const u = emf * ratio;
+    /**
+     * τ 与 Uc(t) 消费引擎 (#65 · B 局部): 引擎 capacitor-charge 模型产出
+     * Uc-t 指数曲线 (charts.Uc_t, 121 点@5τ) 与 maxValues.tau/tMax。
+     * 动画时间为演示 wall-clock (非引擎时间): 充/放电非周期, t 钳制到引擎域 [0, tMax]
+     * (充满后冻结在渐近值, 物理合理); ratio 由引擎 Uc/E 导出 (充/放电两式统一)。
+     * 无引擎结果回退旧自算 (τ=R·C, ratio=1−e^(−t/τ)/e^(−t/τ))。
+     * 电路符号 (导线/电池/电阻/电容) 与充电视觉映射为示意保留, 仅数值取自引擎。
+     */
+    const mvCap = simulationResult?.diagnostics?.maxValues as { tau?: number; tMax?: number } | undefined;
+    const tauEng = mvCap?.tau;
+    const tau = typeof tauEng === 'number' && Number.isFinite(tauEng) && tauEng > 0 ? tauEng : r * cMicro * 1e-6;
+    const tMaxEng = mvCap?.tMax;
+    const tMax = typeof tMaxEng === 'number' && Number.isFinite(tMaxEng) && tMaxEng > 0 ? tMaxEng : 5 * tau;
+    const engCap = simulationResult ? chartsOf(simulationResult, 'capacitor-charge') : undefined;
+    const ucSeries = engCap?.Uc_t ?? engCap?.x_t;
+    const tEng = clamp(Math.min(currentTime, tMax), 0, tMax);
+    const uEng = ucSeries && ucSeries.points.length >= 2 ? interpSeries(ucSeries, tEng) : NaN;
+    const uOld =
+        emf *
+        (mode < 0.5 ? 1 - Math.exp(-currentTime / Math.max(tau, 1e-6)) : Math.exp(-currentTime / Math.max(tau, 1e-6)));
+    const u = Number.isFinite(uEng) ? uEng : uOld;
+    const ratio = emf > 0 ? clamp(u / emf, 0, 1) : 0;
     const y = height * 0.52;
     drawWire(
         ctx,

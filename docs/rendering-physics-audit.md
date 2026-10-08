@@ -394,6 +394,28 @@ B-数值批次迁移第 3/5 批。逐场景逐量决策 (规则 A/B/C, 见 #62 +
 | adiabatic-compression | `gamma`=1.4、`T2_K`=300·9^0.4≈722.5; x_t 在 r=9 处=T2; 源码含 `mvAdia?.T2_K ??` + `示意` |
 | energy-transformation | `Eout_J`=85、`Eloss_J`=15、`eta`=0.85、Ein=Eout+Eloss; 源码含 `mvEnergy?.Eout_J ??` / `Eloss_J` + `示意` |
 
+## M3 批次 4 迁移进展 (2026-10-08): 气体分子 / 静能 / 核 (#65), 契约用例 +8
+
+B-数值批次迁移第 4/5 批。逐场景逐量决策 (规则 A/B/C, 见 #62 + 十八次滚动口径更新: charts 走 `chartsOf`/`getChart`, 禁 `as unknown as Record`)。
+本批共同点: 引擎侧确有逐时/序列数据, 渲染层却在自算, 属漂移风险较高的一批 — 4 景全部落 **B 局部** (无 C)。
+豁免表 10 → **6** (迁 B 销名 4 项)。**audit B 类计数口径未动** (B-静态 36 / B-数值 30 / 去重 60)。
+
+| 场景 | 决策 | 消费方式 | 备注 |
+|------|------|------|------|
+| `gas-law` | B 局部 | 过程曲线整条读 `charts.x_t` (等温/等压 x=V(L)/y=p(kPa) 与画布同单位; 等容 x=T(K), 取画布 T 窗内点、V 恒 V0 成垂直线); 动点 P 由曲线插值 (`interpSeries`); R 读 `maxValues.R` | **收敛 R 双源**: 旧渲染 `GAS_CONSTANT_R=8.314` 截断 vs 引擎全精度; 动画相位 sweep 为演示示意 (非引擎时间), 但曲线/动点/R 全部取自引擎; 无结果回退旧自算 |
+| `liquid-mixing` | B 局部 | HUD Vmix/ΔV 读 `maxValues.finalVolume/deltaV` (经 `readEngineLiquidMix` helper) | **修真漂移**: 旧渲染 `V−0.04·min(Vw,Va)` 与引擎摩尔分数加权模型不一致 (默认 50/50mL 下旧值 98.0 vs 引擎 97.71); 量杯/分子示意保留 |
+| `capacitor-charge` | B 局部 | τ 读 `maxValues.tau`; Uc(t) 由 `charts.Uc_t` 插值 (t 钳制到引擎域 [0, tMax], 充满后冻结渐近值); 充电视觉 ratio 由引擎 Uc/E 导出 | 充/放电非周期故用钳制 (非 mod); 电路符号为示意保留; 无结果回退旧自算 |
+| `radioactive` | B 局部 | N-t 曲线整条读 `charts.x_t` (201 点@duration=tEnd, 与画布时域一致); 动点/读数 N(t) 由插值给出 | tNow 周期 sweep 为演示 (mod 回绕); 云室径迹为装饰示意保留 (引擎 trajectories 为抽象坐标, 与云室像素映射不同); B-静态∩B-数值重复项 `decay-statistics`/`fission-chain` 豁免未动 |
+
+### 契约用例新增 (#65 × 8, 4 景各 2 例)
+
+| 场景 | 断言 |
+|------|------|
+| gas-law | `finalPressurePa`=202600、`finalVolumeM3`=0.0112、`finalTemperatureK`=273.15、`R`=CODATA; x_t 101 点、首点 (6.72L, nRT/V); 源码含 `chartsOf(simulationResult, 'gas-law')` + `interpSeries(engCurve` + `mvGas?.R` + `示意` |
+| liquid-mixing | `finalVolume`≈97.71 (独立摩尔分数复算)、`deltaV`、`contractionPercent` 自洽; 源码含 `readEngineLiquidMix(simulationResult)` + `finalVolume` + `示意` |
+| capacitor-charge | `tau`=0.1、`tMax`=0.5; Uc_t 121 点、t=τ 处≈6.3212、末点≈9.9326; 源码含 `chartsOf(simulationResult, 'capacitor-charge')` + `interpSeries(ucSeries` + `mvCap?.tau` + `示意` |
+| radioactive | `decayConstant`=ln2/10、t=10 处=500、t=0 处=1000、`finalAtoms`=31.25; 源码含 `chartsOf(simulationResult, 'radioactive-decay')` + `interpSeries(nSeries` + `示意` |
+
 ## 审计副产物:模型层方向 bug 修复 (2026-08-02)
 
 覆盖审计(1c)为最后 2 个零覆盖模型补测试时,新测试抓出 1 个**真实物理 bug**:

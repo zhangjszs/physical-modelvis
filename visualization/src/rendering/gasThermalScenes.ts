@@ -7,8 +7,9 @@
  * 设计原则：纯函数 + 屏幕坐标, 零依赖 React/Zustand/CoordinateTransformer
  */
 import type { SimulationResult } from 'physics-core';
+import { chartsOf } from 'physics-core';
 import { GAS_CONSTANT_R } from './constants';
-import { clearScene, drawTitle, drawHud, drawInfoBar } from './renderingUtils';
+import { clearScene, drawTitle, drawHud, drawInfoBar, interpSeries } from './renderingUtils';
 
 export interface ThermalSceneOptions {
     ctx: CanvasRenderingContext2D;
@@ -21,7 +22,7 @@ export interface ThermalSceneOptions {
 }
 
 export function drawGasLawScene(o: ThermalSceneOptions): void {
-    const { ctx, width: w, height: h, isDark, params, currentTime } = o;
+    const { ctx, width: w, height: h, isDark, params, simulationResult, currentTime } = o;
     clearScene(ctx, w, h, isDark);
     drawTitle(ctx, '理想气体状态方程  pV = nRT', w, isDark, { size: 18, y: 28 });
 
@@ -32,7 +33,15 @@ export function drawGasLawScene(o: ThermalSceneOptions): void {
     const p0 = params['p0'] ?? 101.3; // kPa
     const V0 = params['V0'] ?? 22.4; // L
     const T0 = params['T0'] ?? 273.15; // K
-    const R = GAS_CONSTANT_R;
+    const mvGas = simulationResult?.diagnostics?.maxValues as
+        { R?: number; finalPressurePa?: number; finalVolumeM3?: number; finalTemperatureK?: number } | undefined;
+    /**
+     * 气体常数 R: 优先读引擎 maxValues.R (PHYSICS_CONSTANTS.R 全精度真源);
+     * 旧渲染用 GAS_CONSTANT_R=8.314 截断值 (与引擎值差约 5e-5 相对, 本批收敛)。
+     * 无引擎结果回退截断值。
+     */
+    const engR = mvGas?.R;
+    const R = typeof engR === 'number' && Number.isFinite(engR) && engR > 0 ? engR : GAS_CONSTANT_R;
 
     const modeLabel = mode === 'isothermal' ? '等温过程' : mode === 'isobaric' ? '等压过程' : '等容过程';
     const modeColor = mode === 'isothermal' ? '#3b82f6' : mode === 'isobaric' ? '#f59e0b' : '#ef4444';
@@ -43,12 +52,39 @@ export function drawGasLawScene(o: ThermalSceneOptions): void {
     const Tmin = T0 * 0.5;
     const Tmax = T0 * 1.5;
 
-    // 动画相位 0..1
+    // 动画相位 0..1 (演示 sweep, 非引擎时间 — 相位本身为示意, 相位处的物理量取自引擎)
     const phase = Math.sin(currentTime * 1.2) * 0.5 + 0.5;
 
-    // 当前状态点 (V_m, P_m, T_m)
+    /**
+     * 过程曲线消费引擎 (#65 · B 局部): 引擎 gas-law 模型 x_t 即过程曲线
+     * (等温/等压: x=V(L)/y=p(kPa), 与本画布坐标同单位; 等容: x=T(K)/y=p(kPa))。
+     * 无引擎结果回退旧自算采样。
+     */
+    const engCharts = simulationResult ? chartsOf(simulationResult, 'gas-law') : undefined;
+    const engCurve = engCharts?.x_t;
+    const hasEngCurve = !!engCurve && engCurve.points.length >= 2;
+
+    // 当前状态点 (V_m, P_m, T_m): V/T 沿演示 sweep 窗取值, P 由引擎曲线插值;
+    // 等温 T 取输入回显 (读 param 即等价, D24), 等压/等容 T 由状态方程/相位给出。
     let Vm: number, Pm: number, Tm: number;
-    if (mode === 'isothermal') {
+    if (hasEngCurve && engCurve) {
+        if (mode === 'isothermal') {
+            Vm = Vmin + phase * (Vmax - Vmin);
+            const pEng = interpSeries(engCurve, Vm);
+            Pm = Number.isFinite(pEng) ? pEng : (p0 * V0) / Vm;
+            Tm = T0;
+        } else if (mode === 'isobaric') {
+            Vm = Vmin + phase * (Vmax - Vmin);
+            const pEng = interpSeries(engCurve, Vm);
+            Pm = Number.isFinite(pEng) ? pEng : p0;
+            Tm = (Pm * Vm) / (n * R);
+        } else {
+            Tm = Tmin + phase * (Tmax - Tmin);
+            Vm = V0;
+            const pEng = interpSeries(engCurve, Tm);
+            Pm = Number.isFinite(pEng) ? pEng : (p0 * Tm) / T0;
+        }
+    } else if (mode === 'isothermal') {
         Vm = Vmin + phase * (Vmax - Vmin);
         Pm = (p0 * V0) / Vm;
         Tm = (Pm * Vm) / (n * R);
@@ -64,18 +100,32 @@ export function drawGasLawScene(o: ThermalSceneOptions): void {
 
     // 采样过程曲线
     const curve: Array<{ V: number; P: number }> = [];
-    const N = 64;
-    for (let i = 0; i <= N; i++) {
-        const t = i / N;
-        if (mode === 'isothermal') {
-            const V = Vmin + t * (Vmax - Vmin);
-            curve.push({ V, P: (p0 * V0) / V });
-        } else if (mode === 'isobaric') {
-            const V = Vmin + t * (Vmax - Vmin);
-            curve.push({ V, P: p0 });
+    if (hasEngCurve && engCurve) {
+        if (mode === 'isochoric') {
+            // 引擎等容曲线 x=T(K): 取画布 T 窗内采样点, V 恒 V0 (P-V 图上为垂直线)
+            for (const pt of engCurve.points) {
+                if (pt.x >= Tmin && pt.x <= Tmax) curve.push({ V: V0, P: pt.y });
+            }
         } else {
-            const T = Tmin + t * (Tmax - Tmin);
-            curve.push({ V: V0, P: (p0 * T) / T0 });
+            // 等温/等压: 引擎点 x=V(L)/y=p(kPa) 与画布同单位, 整条采用
+            for (const pt of engCurve.points) curve.push({ V: pt.x, P: pt.y });
+        }
+    }
+    if (curve.length < 2) {
+        curve.length = 0;
+        const N = 64;
+        for (let i = 0; i <= N; i++) {
+            const t = i / N;
+            if (mode === 'isothermal') {
+                const V = Vmin + t * (Vmax - Vmin);
+                curve.push({ V, P: (p0 * V0) / V });
+            } else if (mode === 'isobaric') {
+                const V = Vmin + t * (Vmax - Vmin);
+                curve.push({ V, P: p0 });
+            } else {
+                const T = Tmin + t * (Tmax - Tmin);
+                curve.push({ V: V0, P: (p0 * T) / T0 });
+            }
         }
     }
 
