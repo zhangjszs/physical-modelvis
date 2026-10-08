@@ -17,7 +17,7 @@
   - `b0bd171` 清理失效/一次性脚本(verify-3d-coverage.mjs 因 SCENES 重构失效、fix-scene-names/split-scenes/rewrite-time-series 等迁移工具、.scratch 草稿)
   - README 补测试数行(core 923 / viz 1159 / 2082)
   - **audit 遗留低优先级清理完成**(liquid-crystal 透射率曲线迁引擎 x_t Tarasov + capillary 常量 ρ_汞 13534/θ 汞+石蜡 150° 对齐引擎,契约测试 21→23)
-- 测试数: core 1125 (127 files) + viz 1566 (53 files) = 2691 (2026-10-08 实测) <!-- test-count -->
+- 测试数: core 1125 (127 files) + viz 1574 (53 files) = 2699 (2026-10-08 实测) <!-- test-count -->
 - `WorkbenchScene 拆分` — ProjectileScene(430 行) 拆为 components/workbench/ 组件族 (WorkbenchScene/SceneStage/InspectorPanel/DataDrawer/TextbookDirectory + useSceneRig/useCompareSimulations/useSceneSimulation)；CompareEntry 支持失败变体显式报错 (result 可空 + error)；tests/workbench/ 新增 16 例
 - `课堂教学脚本系统 (Classroom Scripts)` — 扩充至 **24 个高中高频核心实验** 的 5 阶段结构化教学全流程（目标 → 启发演示 → 变量对比 → 预测提问与错因剖析 → 结论与公式）+ `ClassroomScriptPanel` 组件 + 7 例契约测试全绿通过
 - `教材目录精讲高亮与置顶` — 在 `TextbookDirectory` 中加入 **“🌟 高中核心精讲 (24 节)”** 置顶推荐组与 `[精讲]` 勋章 Badge，极大提升老师备课选课效率
@@ -61,13 +61,13 @@
 | security-alarm | ✅ 已迁 | 标志位读 maxValues(引擎滞回) |
 | reed-switch | ✅ 已迁 | H=K/d³ 读引擎(替代旧自算公式) |
 
-### B3. B 类仪器场景 — ✅ 核对完成 (#55 步骤2 + #59 清单修正)
-保留自算(静态绘图合理),仅核对常量与单位一致(游标卡尺、多用电表等 **60** 个场景：B-静态 36 ∪ B-数值 30 去重 6 = 60；#59 移除幻影 double-slit)。#55 已校正清单计数（原 47=34+13 系表头误计）；**步骤2 已逐场景核对完成**（方法：`buildProblem(defaults)` 探针 + 引擎 `ParameterSpec` 单位比对），60 个真实 sceneId **单位换算数值全部正确**，核对表见 `docs/rendering-physics-audit.md` 末节。发现 3 项非物理数值问题另立 issue #58/#59/#60：F1 `double-slit` 为幻影 sceneId（真实=interference，已在 B-数值）——**#59 已修**（移除后 B-静态 37→36、并集 61→60）；F2 引擎单位串 `'deg'`/`'°'`、`'um'`/`'μm'` 记号 split（待规划）；F3 surface-tension σ_水 三方取值不一致（0.0728 vs 0.072）+ 渲染 headline 值自算未消费引擎（待修）。
+### B3. B 类仪器场景 — ✅ 核对完成 (#55 步骤2 + #59 清单修正)；B-数值已逐量决策收口 (#66 M3 批次 5)
+B-数值 30 场景已按 M3 批次 1–5 逐量决策：迁移 20 个 / 豁免 2 个（heat-direction、perpetuum-mobile，带理由 C 保留）；B-静态 36 场景保留自算（静态绘图合理），仅核对常量与单位一致。清单口径：B-静态 36 ∪ B-数值 30，去重 6（其中 4 个已在本收口批唯一归属处理），并集 60（#59 移除幻影 double-slit 后）。#55 已校正清单计数（原 47=34+13 系表头误计）；**步骤2 已逐场景核对完成**（方法：`buildProblem(defaults)` 探针 + 引擎 `ParameterSpec` 单位比对），60 个真实 sceneId **单位换算数值全部正确**，核对表见 `docs/rendering-physics-audit.md` 末节。发现 3 项非物理数值问题另立 issue #58/#59/#60：F1 `double-slit` 为幻影 sceneId（真实=interference，已在 B-数值）——**#59 已修**（移除后 B-静态 37→36、并集 61→60）；F2 引擎单位串 `'deg'`/`'°'`、`'um'`/`'μm'` 记号 split（待规划）；F3 surface-tension σ_水 三方取值不一致（0.0728 vs 0.072）+ 渲染 headline 值自算未消费引擎（待修）。
 
 ### 迁移通用套路(已验证)
 - 位置/轨迹:`getFrame(simulationResult, currentTime, trajectoryIndex)`(第三参选多物体轨迹)
 - 标量:`charts[键].points` 二分查找 + 线性插值;注意 x 轴单位(秒/μs/ms)与取模范围
-- 引擎图表键名 ≠ 语义名(lc-oscillator 是 `x_t/y_t/ke_t/pe_t`),访问需 `as unknown as Record<string, ...>` 强转
+- 引擎图表键名以 `MODEL_CHART_KEYS` 登记表为准(含行内语义注释),读 charts 一律走 `chartsOf`/`getChart` 类型化访问层(#82,禁新添 `as unknown as Record` 强转)
 - 无引擎结果回退原公式;契约测试每个迁移场景 ≥1 用例
 
 ---

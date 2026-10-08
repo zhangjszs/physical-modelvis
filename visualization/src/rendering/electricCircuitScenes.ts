@@ -94,7 +94,7 @@ export function drawCircuitScene(opts: ElectromagnetismSceneOptions): void {
 }
 
 export function drawResistanceLawScene(opts: ElectromagnetismSceneOptions): void {
-    const { ctx, width, height, isDark, params } = opts;
+    const { ctx, width, height, isDark, params, simulationResult } = opts;
     clearScene(ctx, width, height, isDark);
     drawTitle(ctx, '电阻定律', width, isDark, { size: 18, y: 28 });
     const len = params['length'] ?? 1;
@@ -102,7 +102,16 @@ export function drawResistanceLawScene(opts: ElectromagnetismSceneOptions): void
     const material = params['material'] ?? 0;
     const rho = material < 0.5 ? 1.68e-8 : material < 1.5 ? 2.82e-8 : 1.1e-6;
     const area = Math.PI * ((diameterMm * 1e-3) / 2) ** 2;
-    const resistance = (rho * len) / Math.max(area, 1e-12);
+    /**
+     * 电阻值 R: 优先读引擎 maxValues.baseResistance (#66 · B 局部)。
+     * 旧渲染内联材料电阻率, 其中铁档用 2.82e-8 (实为铝值) 与引擎 RESISTIVITY.Fe=1.0e-7
+     * 不一致 (铁档下旧画面偏小约 3.5 倍, 真漂移), 现整量消费引擎; 导线粗细/颜色示意保留。
+     * 无结果回退旧自算。
+     */
+    const mvRes = simulationResult?.diagnostics?.maxValues as { baseResistance?: number } | undefined;
+    const engR0 = mvRes?.baseResistance;
+    const resistance =
+        typeof engR0 === 'number' && Number.isFinite(engR0) && engR0 >= 0 ? engR0 : (rho * len) / Math.max(area, 1e-12);
     const x1 = width * 0.18;
     const x2 = width * 0.82;
     const y = height * 0.52;
@@ -133,16 +142,40 @@ export function drawResistanceLawScene(opts: ElectromagnetismSceneOptions): void
 }
 
 export function drawLoadVoltageScene(opts: ElectromagnetismSceneOptions): void {
-    const { ctx, width, height, isDark, params } = opts;
+    const { ctx, width, height, isDark, params, simulationResult } = opts;
     clearScene(ctx, width, height, isDark);
     drawTitle(ctx, '路端电压与负载', width, isDark, { size: 18, y: 28 });
     const emf = params['emf'] ?? 12;
     const r = params['internalResistance'] ?? 2;
     const rMin = params['loadRMin'] ?? 1;
     const rMax = params['loadRMax'] ?? 10;
-    const load = (rMin + rMax) / 2;
-    const current = emf / (r + load);
-    const u = emf - current * r;
+    /**
+     * 工作点 I/U: 优先读引擎 maxValues.operatingCurrent/operatingVoltage (#66 · B 局部)。
+     * 旧渲染有两个真问题: (1) loadRMax 单位 kΩ 未换算 (10kΩ 当 10Ω 用, 中点标牌 5.5Ω);
+     * (2) 算术中点 vs 引擎几何平均工作点 R0=√(Rmin·Rmax) (=100Ω)。
+     * 现工作点整组取自引擎 (R 标牌显示 U0/I0=R0, 表针由引擎 U 驱动), 回路示意保留。
+     * 无结果回退旧自算。
+     */
+    const mvLV = simulationResult?.diagnostics?.maxValues as
+        { operatingCurrent?: number; operatingVoltage?: number } | undefined;
+    const engI0 = mvLV?.operatingCurrent;
+    const engU0 = mvLV?.operatingVoltage;
+    const loadOld = (rMin + rMax) / 2;
+    let load = loadOld;
+    let current = emf / (r + load);
+    let u = emf - current * r;
+    if (
+        typeof engI0 === 'number' &&
+        Number.isFinite(engI0) &&
+        engI0 > 0 &&
+        typeof engU0 === 'number' &&
+        Number.isFinite(engU0) &&
+        engU0 >= 0
+    ) {
+        load = engU0 / engI0;
+        current = engI0;
+        u = engU0;
+    }
     const y = height * 0.54;
     drawWire(
         ctx,
@@ -218,14 +251,39 @@ export function drawMultimeterScene(opts: ElectromagnetismSceneOptions): void {
 }
 
 export function drawVernierCaliperScene(opts: ElectromagnetismSceneOptions): void {
-    const { ctx, width, height, isDark, params } = opts;
+    const { ctx, width, height, isDark, params, simulationResult } = opts;
     clearScene(ctx, width, height, isDark);
     drawTitle(ctx, '游标卡尺读数', width, isDark, { size: 18, y: 28 });
     const size = params['objectSize'] ?? 23.4;
     const nType = params['nType'] ?? 1;
     const precision = nType < 0.5 ? 0.1 : nType < 1.5 ? 0.05 : 0.02;
-    const main = Math.floor(size);
-    const vernier = Math.round((size - main) / precision);
+    /**
+     * 读数三量: 优先读引擎 maxValues (#66 · B 局部)。引擎输出为真实计算
+     * (主尺/对齐线 K/分度量化读数, 非占位 —— #66 立单时的“C 猜想”被证伪);
+     * 旧渲染 L 直接显示未量化的输入 size (如 23.43mm 在 20 分度下引擎量化为 23.45mm),
+     * 现整组消费引擎; 刻度尺示意保留。无结果回退旧自算。
+     */
+    const mvVernier = simulationResult?.diagnostics?.maxValues as
+        { mainScaleMM?: number; K?: number; precision?: number; reading?: number } | undefined;
+    const engMain = mvVernier?.mainScaleMM;
+    const engK = mvVernier?.K;
+    const engPrec = mvVernier?.precision;
+    const engReading = mvVernier?.reading;
+    // 全组有效才采用引擎 (避免引擎/自算混搭); 否则整体回退旧自算
+    const hasEngV =
+        typeof engMain === 'number' &&
+        Number.isFinite(engMain) &&
+        typeof engK === 'number' &&
+        Number.isFinite(engK) &&
+        typeof engPrec === 'number' &&
+        Number.isFinite(engPrec) &&
+        engPrec > 0 &&
+        typeof engReading === 'number' &&
+        Number.isFinite(engReading);
+    const main = hasEngV && typeof engMain === 'number' ? engMain : Math.floor(size);
+    const vernier = hasEngV && typeof engK === 'number' ? engK : Math.round((size - main) / precision);
+    const showPrecision = hasEngV && typeof engPrec === 'number' ? engPrec : precision;
+    const reading = hasEngV && typeof engReading === 'number' ? engReading : size;
     const x0 = width * 0.16;
     const y = height * 0.48;
     const scale = 8;
@@ -258,8 +316,8 @@ export function drawVernierCaliperScene(opts: ElectromagnetismSceneOptions): voi
         isDark,
         [
             { label: 'main', value: `${main} mm` },
-            { label: 'vernier', value: `${vernier} * ${precision}` },
-            { label: 'L', value: `${size.toFixed(2)} mm` }
+            { label: 'vernier', value: `${vernier} * ${showPrecision}` },
+            { label: 'L', value: `${reading.toFixed(2)} mm` }
         ],
         { boxW: 214 }
     );
@@ -267,12 +325,30 @@ export function drawVernierCaliperScene(opts: ElectromagnetismSceneOptions): voi
 }
 
 export function drawMicrometerScene(opts: ElectromagnetismSceneOptions): void {
-    const { ctx, width, height, isDark, params } = opts;
+    const { ctx, width, height, isDark, params, simulationResult } = opts;
     clearScene(ctx, width, height, isDark);
     drawTitle(ctx, '螺旋测微器读数', width, isDark, { size: 18, y: 28 });
     const thickness = params['thickness'] ?? 5.75;
-    const main = Math.floor(thickness * 2) / 2;
-    const drum = Math.round((thickness - main) / 0.01);
+    /**
+     * 读数三量: 优先读引擎 maxValues (#66 · B 局部)。引擎输出为真实计算
+     * (固定刻度 a/半毫米 b/可动 n/量化读数, 非占位 —— #66 立单时的“C 猜想”被证伪);
+     * 现整组消费引擎; 千分尺示意保留。无结果回退旧自算。
+     */
+    const mvMicro = simulationResult?.diagnostics?.maxValues as
+        { a?: number; n?: number; reading?: number } | undefined;
+    const engA = mvMicro?.a;
+    const engN = mvMicro?.n;
+    const engReading = mvMicro?.reading;
+    // 全组有效才采用引擎 (避免引擎/自算混搭); 否则整体回退旧自算
+    const hasEngM =
+        typeof engA === 'number' &&
+        Number.isFinite(engA) &&
+        typeof engN === 'number' &&
+        Number.isFinite(engN) &&
+        typeof engReading === 'number' &&
+        Number.isFinite(engReading);
+    const main = hasEngM && typeof engA === 'number' ? engA : Math.floor(thickness * 2) / 2;
+    const drum = hasEngM && typeof engN === 'number' ? engN : Math.round((thickness - main) / 0.01);
     const cx = width * 0.5;
     const cy = height * 0.52;
     ctx.strokeStyle = textColor(isDark);
@@ -303,13 +379,14 @@ export function drawMicrometerScene(opts: ElectromagnetismSceneOptions): void {
     ctx.fillStyle = ORANGE;
     roundRectPath(ctx, cx - 104, cy - 14, clamp(thickness * 10, 18, 86), 28, 4);
     ctx.fill();
+    const showReading = hasEngM && typeof engReading === 'number' ? engReading : thickness;
     drawHud(
         ctx,
         isDark,
         [
             { label: 'main', value: `${main.toFixed(2)} mm` },
             { label: 'drum', value: `${drum} * 0.01` },
-            { label: 'L', value: `${thickness.toFixed(2)} mm` }
+            { label: 'L', value: `${showReading.toFixed(2)} mm` }
         ],
         { boxW: 214 }
     );

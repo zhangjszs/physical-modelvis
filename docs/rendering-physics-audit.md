@@ -225,7 +225,8 @@ core 测试数 923, viz 410 → 414。
 1. **力学优先**(simple-pendulum ✅ / vertical-circle ✅ / orbital ✅ / transmission-belt / projectile-collision / inertia)— 轨迹明确,直接用 `getFrame(simulationResult, currentTime)`
 2. **波形类**(sound-waveform / mechanical-wave / water-diffraction / lc-oscillator / em-wave-hertz)— 用引擎 waveform_t / A_f_drive 等 charts
 3. **电磁/传感**(em-induction / eddy-current / mutual-inductance / security-alarm / reed-switch)— 核对模型输出 charts 字段名后迁移
-4. **B 类仪器场景**保留自算,仅核对常量与单位一致
+4. **B 类仪器场景** (2026-10-08 #66 收口后已过时, 见「M3 批次 5」节): B-数值已按 M3 批次 1–5 逐量决策
+   (迁移 20 景 / 豁免 2 景 heat-direction + perpetuum-mobile), B-静态仍保留自算 + 常量/单位核对 (#55)
 
 ## 注意
 
@@ -415,6 +416,38 @@ B-数值批次迁移第 4/5 批。逐场景逐量决策 (规则 A/B/C, 见 #62 +
 | liquid-mixing | `finalVolume`≈97.71 (独立摩尔分数复算)、`deltaV`、`contractionPercent` 自洽; 源码含 `readEngineLiquidMix(simulationResult)` + `finalVolume` + `示意` |
 | capacitor-charge | `tau`=0.1、`tMax`=0.5; Uc_t 121 点、t=τ 处≈6.3212、末点≈9.9326; 源码含 `chartsOf(simulationResult, 'capacitor-charge')` + `interpSeries(ucSeries` + `mvCap?.tau` + `示意` |
 | radioactive | `decayConstant`=ln2/10、t=10 处=500、t=0 处=1000、`finalAtoms`=31.25; 源码含 `chartsOf(simulationResult, 'radioactive-decay')` + `interpSeries(nSeries` + `示意` |
+
+## M3 批次 5 迁移进展 (2026-10-08): 电路 + 测量仪器 (#66, 收口批), 契约用例 +8
+
+B-数值批次迁移第 5/5 批, **M3 收口**。逐场景逐量决策 (规则 A/B/C, 见 #62 + 十八次滚动口径更新)。
+本批 4 景全部落 **B 局部** (无 C) —— #66 立单时的“仪器类大概率落 C”猜想被证伪:
+vernier-caliper / micrometer 引擎输出为真实读数计算 (主尺/对齐线/量化读数), 非占位。
+豁免表 6 → **2** (迁 B 销名 4 项; 剩余 2 项为 heat-direction / perpetuum-mobile 两个带理由 C 保留,
+表中已无「待迁」)。**audit B 类计数口径未动** (B-静态 36 / B-数值 30 / 去重 60)。
+
+| 场景 | 决策 | 消费方式 | 备注 |
+|------|------|------|------|
+| `load-voltage` | B 局部 | 工作点 I/U 整组读 `maxValues.operatingCurrent/operatingVoltage`; R 标牌显示 U₀/I₀=R₀; 表针由引擎 U 驱动 | **修两真问题**: (1) 旧渲染 loadRMax 单位 kΩ 未换算 (10kΩ 当 10Ω 用); (2) 算术中点 vs 引擎几何平均 R₀=√(Rmin·Rmax)=100Ω; 回路示意保留 |
+| `resistance-law` | B 局部 | HUD 电阻读 `maxValues.baseResistance` | **修真漂移**: 旧渲染铁档用 2.82e-8 (实为铝值) vs 引擎 RESISTIVITY.Fe=1.0e-7 (铁档旧画面偏小约 3.5 倍); 导线示意保留 |
+| `vernier-caliper-tool` | B 局部 | 读数三量 (主尺/对齐线/读数) 整组读 `maxValues` (全组有效才采用, 否则整体回退) | 旧渲染 L 显示未量化的输入 size; 卡尺零位仍按物理输入定位 (读数为量化测量值); 刻度尺示意保留; 兼 B-静态∩B-数值重复项, 本批为唯一处理归属 |
+| `micrometer-tool` | B 局部 | 读数三量 (a/n/reading) 整组读 `maxValues` (全组有效才采用, 否则整体回退) | 引擎 b 恒 0 (半毫米已折入 a 的 0.5 取整); 千分尺示意保留; 兼 B-静态∩B-数值重复项, 本批为唯一处理归属 |
+
+### 契约用例新增 (#66 × 8, 4 景各 2 例)
+
+| 场景 | 断言 |
+|------|------|
+| load-voltage | `operatingCurrent`=12/102、`operatingVoltage`=1200/102、拟合 E/r≈12/2; 源码含 `mvLV?.operatingCurrent` / `operatingVoltage` + `示意` |
+| resistance-law | `resistivity`=1.68e-8、`baseResistance`≈0.021390、R-L 在 L=1 处=R₀; 源码含 `mvRes?.baseResistance` + `示意` |
+| vernier-caliper-tool | `mainScaleMM`=23、`K`=8、`precision`=0.05、`reading`=23.4; 源码含 `mvVernier?.mainScaleMM` / `reading` + `示意` |
+| micrometer-tool | `a`=5.5、`n`=25、`reading`=5.75; 源码含 `mvMicro?.a` / `reading` + `示意` |
+
+### M3 收口记 (2026-10-08, #66)
+
+- B-数值 30 场景逐量决策完成: 迁移 5 批共 **20 景** (批次 1: 5 / 批次 2: 4 / 批次 3: 3 / 批次 4: 4 / 批次 5: 4) +
+  豁免 **2 景** (heat-direction / perpetuum-mobile, 带理由 C 保留) + 其余 8 景早先批次已迁/已覆盖
+  (以「已迁场景 → 契约覆盖对照」差集守卫为准, 7 项例外不变)。
+- 豁免表 22 → **2**, 无「待迁」残留。B 类计数口径未动 (B-静态 36 / B-数值 30 / 去重 60)。
+- 本文件「迁移建议」第 4 条与 `docs/plan.md` B3 段的「B 类仪器场景保留自算」旧口径已按实况改写 (见下)。
 
 ## 审计副产物:模型层方向 bug 修复 (2026-08-02)
 
