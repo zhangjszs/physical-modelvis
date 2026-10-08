@@ -1401,3 +1401,106 @@ describe('L1-migration: 渲染单一真源契约 (M3 批次 3: 热学定律 #64)
         expect(fn, '能量柱/箭头示意性质有注释记录').toContain('示意');
     });
 });
+
+describe('L1-migration: 渲染单一真源契约 (M3 批次 4: 气体分子/静能/核 #65)', () => {
+    beforeAll(async () => {
+        await loadAllScenes();
+    });
+
+    function scene(id: string) {
+        const s = getSceneSync(id);
+        expect(s, `场景 ${id} 已注册`).toBeDefined();
+        return s!;
+    }
+
+    it('gas-law: 终态 p/V/T 与独立复算一致 (等温 V 减半→p 加倍), x_t 首点=(6.72L, p(V))', () => {
+        const sc = scene('gas-law');
+        const params: Record<string, number> = { n: 1, modeG: 0, p0: 101.3, V0: 22.4, T0: 273.15 };
+        const { result, error } = runSceneSimulation(sc, params);
+        expect(error).toBeNull();
+        const mv = result!.diagnostics.maxValues as Record<string, number>;
+        expect(mv.R).toBeCloseTo(PHYSICS_CONSTANTS.R.value, 9);
+        expect(mv.finalPressurePa).toBeCloseTo(202600, 0); // 101300×0.0224/0.0112
+        expect(mv.finalVolumeM3).toBeCloseTo(0.0112, 6);
+        expect(mv.finalTemperatureK).toBeCloseTo(273.15, 6);
+        const pts = chartsOf(result!, 'gas-law')?.x_t?.points ?? [];
+        expect(pts.length).toBe(101);
+        // 首点 V=0.0224×0.3 m³→6.72L, p=nRT/V (kPa)
+        expect(pts[0]!.x).toBeCloseTo(6.72, 2);
+        expect(pts[0]!.y).toBeCloseTo((PHYSICS_CONSTANTS.R.value * 273.15) / 0.00672 / 1e3, 0);
+    });
+
+    it('gas-law: 过程曲线/动点 P 读引擎 x_t 插值, R 读 maxValues.R, 相位 sweep 示意保留 (源码契约)', () => {
+        const fn = renderFn('gasThermalScenes.ts', 'drawGasLawScene');
+        expect(fn, '曲线走引擎 chartsOf').toContain("chartsOf(simulationResult, 'gas-law')");
+        expect(fn, '动点 P 走引擎插值').toContain('interpSeries(engCurve');
+        expect(fn, 'R 读引擎 maxValues.R').toContain('mvGas?.R');
+        expect(fn, '相位示意性质有注释记录').toContain('示意');
+    });
+
+    it('liquid-mixing: 终体积/收缩量与独立复算一致 (摩尔分数加权, 50/50mL→≈97.71mL)', () => {
+        const sc = scene('liquid-mixing');
+        const params: Record<string, number> = { volumeWater: 50, volumeAlcohol: 50, duration: 3 };
+        const { result, error } = runSceneSimulation(sc, params);
+        expect(error).toBeNull();
+        const mv = result!.diagnostics.maxValues as Record<string, number>;
+        // 独立复算: nW=50/18.015, nA=50×0.789/46.07, xW=nW/(nW+nA), Vf=50+50×(1−0.06·xW)
+        const nW = 50 / 18.015;
+        const nA = (50 * 0.789) / 46.07;
+        const xW = nW / (nW + nA);
+        const expectedFinal = 50 + 50 * (1 - 0.06 * xW);
+        expect(mv.finalVolume).toBeCloseTo(expectedFinal, 6);
+        expect(mv.deltaV).toBeCloseTo(expectedFinal - 100, 6);
+        expect(mv.contractionPercent).toBeCloseTo(Math.abs(expectedFinal - 100), 4);
+    });
+
+    it('liquid-mixing: HUD Vmix/ΔV 读引擎终体积, 量杯/分子示意保留 (源码契约)', () => {
+        const fn = renderFn('molecularKineticScenes.ts', 'drawLiquidMixingScene');
+        expect(fn, 'Vmix 读引擎 helper').toContain('readEngineLiquidMix(simulationResult)');
+        expect(fn, 'HUD 显示终体积').toContain('finalVolume');
+        expect(fn, '量杯/分子示意性质有注释记录').toContain('示意');
+    });
+
+    it('capacitor-charge: τ=RC、Uc(τ)=63.2%E、Uc(5τ)=99.3%E 与独立复算一致', () => {
+        const sc = scene('capacitor-charge');
+        const params: Record<string, number> = { resistance: 1000, capacitance: 100, emf: 10, mode: 0, duration: 5 };
+        const { result, error } = runSceneSimulation(sc, params);
+        expect(error).toBeNull();
+        const mv = result!.diagnostics.maxValues as Record<string, number>;
+        expect(mv.tau).toBeCloseTo(0.1, 9); // 1000×100e-6
+        expect(mv.tMax).toBeCloseTo(0.5, 9); // 5τ
+        const uc = chartsOf(result!, 'capacitor-charge')?.Uc_t;
+        expect(uc?.points.length).toBe(121);
+        expect(interpSeries(uc, 0.1)).toBeCloseTo(10 * (1 - Math.exp(-1)), 3); // ≈6.3212
+        expect(uc!.points[uc!.points.length - 1]!.y).toBeCloseTo(10 * (1 - Math.exp(-5)), 3); // ≈9.9326
+    });
+
+    it('capacitor-charge: τ/Uc(t) 读引擎 maxValues/Uc_t 插值, 电路符号示意保留 (源码契约)', () => {
+        const fn = renderFn('electrostaticEnergyScenes.ts', 'drawCapacitorChargeScene');
+        expect(fn, 'Uc 曲线走引擎 chartsOf').toContain("chartsOf(simulationResult, 'capacitor-charge')");
+        expect(fn, 'Uc(t) 走引擎插值').toContain('interpSeries(ucSeries');
+        expect(fn, 'τ 读引擎 maxValues.tau').toContain('mvCap?.tau');
+        expect(fn, '电路符号示意性质有注释记录').toContain('示意');
+    });
+
+    it('radioactive: λ=ln2/T½、N(T½)=N₀/2、终值 N₀/32 与独立复算一致', () => {
+        const sc = scene('radioactive');
+        const params: Record<string, number> = { N0: 1000, halfLife: 10, tEnd: 50, rayType: 0 };
+        const { result, error } = runSceneSimulation(sc, params);
+        expect(error).toBeNull();
+        const mv = result!.diagnostics.maxValues as Record<string, number>;
+        expect(mv.decayConstant).toBeCloseTo(Math.LN2 / 10, 9);
+        expect(mv.finalAtoms).toBeCloseTo(1000 * Math.pow(2, -5), 3); // 31.25
+        const nSeries = chartsOf(result!, 'radioactive-decay')?.x_t;
+        expect(nSeries?.points.length).toBe(201);
+        expect(interpSeries(nSeries, 10)).toBeCloseTo(500, 0); // 1 个半衰期后减半
+        expect(interpSeries(nSeries, 0)).toBeCloseTo(1000, 0);
+    });
+
+    it('radioactive: 衰变曲线/读数读引擎 N-t 插值, 云室径迹示意保留 (源码契约)', () => {
+        const fn = renderFn('nuclearRadiationScenes.ts', 'drawRadioactiveScene');
+        expect(fn, 'N-t 曲线走引擎 chartsOf').toContain("chartsOf(simulationResult, 'radioactive-decay')");
+        expect(fn, '读数走引擎插值').toContain('interpSeries(nSeries');
+        expect(fn, '云室径迹示意性质有注释记录').toContain('示意');
+    });
+});

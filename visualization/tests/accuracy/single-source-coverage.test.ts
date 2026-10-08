@@ -36,8 +36,8 @@ const AUDIT_DOC = join(VIZ_ROOT, '../docs/rendering-physics-audit.md');
 const CONSUME_RE = /simulationResult|charts|maxValues|getFrame|diagnostics/;
 
 /**
- * ① 豁免表 (首版 22 项 @ 2026-10-07; #62 批次 1 销名 5 项 + #63 批次 2 销名 4 项 + #64 批次 3 迁 3 项销名后现余 **10 项**): B-数值自算场景中
- * draw 函数体未消费引擎结果的登记名单（含 perpetuum-mobile / heat-direction 两个 C 保留项）。全部「待迁」—— #65–#66 分批迁移后逐项销名。
+ * ① 豁免表 (首版 22 项 @ 2026-10-07; #62 批次 1 销名 5 项 + #63 批次 2 销名 4 项 + #64 批次 3 迁 3 项 + #65 批次 4 迁 4 项销名后现余 **6 项**): B-数值自算场景中
+ * draw 函数体未消费引擎结果的登记名单（含 perpetuum-mobile / heat-direction 两个 C 保留项）。全部「待迁」—— #66 收口批迁移后逐项销名。
  * 来源: #61 issue 未消费清单 (2026-10-02 实测 @ 93b846f), 按渲染文件归组注释。
  */
 const EXEMPTION_TABLE: Array<{ sceneId: string; note: string }> = [
@@ -53,11 +53,8 @@ const EXEMPTION_TABLE: Array<{ sceneId: string; note: string }> = [
         sceneId: 'heat-direction',
         note: 'C 保留 (#64): 热流方向为动画示意; Qdot=k·ΔT 取 arb 单位速率, 引擎 x_t/y_t 是 T–t 演化序列本画面不绘, 无对应可消费标量 (引用 audit 第 5 批可保留清单)'
     },
-    // gasThermalScenes.ts / molecularKineticScenes.ts / electrostaticEnergyScenes.ts / nuclearRadiationScenes.ts (4) — 待迁 (#63–#66)
-    { sceneId: 'gas-law', note: '待迁: 气体定律自算' },
-    { sceneId: 'liquid-mixing', note: '待迁: 混合温度自算' },
-    { sceneId: 'capacitor-charge', note: '待迁: RC 充电曲线自算' },
-    { sceneId: 'radioactive', note: '待迁: 衰变曲线自算' },
+    // gasThermalScenes.ts / molecularKineticScenes.ts / electrostaticEnergyScenes.ts / nuclearRadiationScenes.ts — 已迁 (#65):
+    //   gas-law / liquid-mixing / capacitor-charge / radioactive 均改为消费引擎 charts/maxValues, 已从本表销名。
     // electricCircuitScenes.ts (4) — 待迁 (#63–#66)
     { sceneId: 'load-voltage', note: '待迁: 路端电压自算 (兼 B-静态)' },
     { sceneId: 'resistance-law', note: '待迁: 电阻定律自算 (兼 B-静态)' },

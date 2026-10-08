@@ -10,6 +10,7 @@
  * 设计原则：纯函数 + 屏幕坐标, 零依赖 React/Zustand/CoordinateTransformer
  */
 import type { SimulationResult } from 'physics-core';
+import { chartsOf } from 'physics-core';
 import {
     clamp,
     clearScene,
@@ -95,7 +96,7 @@ function drawCloudTracks(
 }
 
 export function drawRadioactiveScene(o: ModernSceneOptions): void {
-    const { ctx, width: w, height: h, isDark, params, currentTime } = o;
+    const { ctx, width: w, height: h, isDark, params, simulationResult, currentTime } = o;
     clearScene(ctx, w, h, isDark);
     drawTitle(ctx, '放射性衰变 — 云室径迹与指数衰减', w, isDark, { size: 18, y: 28 });
 
@@ -104,6 +105,17 @@ export function drawRadioactiveScene(o: ModernSceneOptions): void {
     const tEnd = params['tEnd'] ?? 50;
     const rayNum = params['rayType'] ?? 0;
     const rayType = rayNum === 1 ? 'β' : rayNum === 2 ? 'γ' : 'α';
+
+    /**
+     * 衰变曲线与读数消费引擎 (#65 · B 局部): 引擎 radioactive-decay 模型 x_t 即
+     * N-t 曲线 (201 点@duration, duration=tEnd 与本画布时域一致), 动点/读数由插值给出。
+     * tNow 周期 sweep 为演示 (mod 回绕, 同族盖革计数器钳制式之周期版); 云室径迹为装饰示意保留
+     * (引擎 trajectories 为抽象坐标径迹, 与本画布云室像素映射不同, 故不替换)。
+     * 无引擎结果回退旧自算 N₀·2^(−t/T)。
+     */
+    const engRad = simulationResult ? chartsOf(simulationResult, 'radioactive-decay') : undefined;
+    const nSeries = engRad?.x_t;
+    const hasEngN = !!nSeries && nSeries.points.length >= 2;
 
     // 左: 衰减曲线
     const plotX = 60,
@@ -120,17 +132,30 @@ export function drawRadioactiveScene(o: ModernSceneOptions): void {
     ctx.strokeStyle = COL.blue;
     ctx.lineWidth = 2.5;
     ctx.beginPath();
-    for (let i = 0; i <= 100; i++) {
-        const t = (i / 100) * tEnd;
-        const N = N0 * Math.pow(2, -t / T);
-        const x = plotX + (t / tEnd) * plotW;
-        const y = plotY + plotH - (N / N0) * plotH;
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
+    if (hasEngN && nSeries) {
+        // 整条读引擎 N-t 点列 (y 为绝对核数, 按 N0 归一到画布纵轴)
+        for (let i = 0; i < nSeries.points.length; i++) {
+            const pt = nSeries.points[i];
+            if (!pt) continue;
+            const x = plotX + (pt.x / tEnd) * plotW;
+            const y = plotY + plotH - (pt.y / N0) * plotH;
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        }
+    } else {
+        for (let i = 0; i <= 100; i++) {
+            const t = (i / 100) * tEnd;
+            const N = N0 * Math.pow(2, -t / T);
+            const x = plotX + (t / tEnd) * plotW;
+            const y = plotY + plotH - (N / N0) * plotH;
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        }
     }
     ctx.stroke();
     const tNow = (currentTime * 0.4) % tEnd;
-    const Nnow = N0 * Math.pow(2, -tNow / T);
+    const nEng = hasEngN && nSeries ? interpSeries(nSeries, tNow) : NaN;
+    const Nnow = Number.isFinite(nEng) ? nEng : N0 * Math.pow(2, -tNow / T);
     const cx = plotX + (tNow / tEnd) * plotW;
     const cy = plotY + plotH - (Nnow / N0) * plotH;
     ctx.fillStyle = COL.red;

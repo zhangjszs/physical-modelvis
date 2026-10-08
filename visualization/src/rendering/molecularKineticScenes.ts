@@ -498,14 +498,49 @@ export function drawOilFilmScene(o: ThermalSceneOptions): void {
     if (!simulationResult) drawEmptyState(ctx, w, h, isDark);
 }
 
+/**
+ * 从引擎读液体混合终体积 (mL)。
+ *
+ * 引擎 liquid-mixing 模型 maxValues.finalVolume 为真源
+ * (V_final = V_w + V_a·(1 − k·x_w), k=0.06 摩尔分数加权);
+ * 无引擎结果或数值非法时返回 null, 由调用方回退本地公式。
+ *
+ * 单一真源契约 (#65) 由 single-source-contract.test.ts 锁定。
+ */
+export function readEngineLiquidMix(result: SimulationResult | null): {
+    finalVolume: number;
+    deltaV: number;
+    contractionPercent: number;
+} | null {
+    const mv = result?.diagnostics?.maxValues as
+        { finalVolume?: number; deltaV?: number; contractionPercent?: number } | undefined;
+    const v = mv?.finalVolume;
+    if (typeof v !== 'number' || !Number.isFinite(v)) return null;
+    const d = mv?.deltaV;
+    const c = mv?.contractionPercent;
+    return {
+        finalVolume: v,
+        deltaV: typeof d === 'number' && Number.isFinite(d) ? d : 0,
+        contractionPercent: typeof c === 'number' && Number.isFinite(c) ? c : 0
+    };
+}
+
 export function drawLiquidMixingScene(o: ThermalSceneOptions): void {
     const { ctx, width: w, height: h, isDark, params, currentTime, simulationResult } = o;
     clearScene(ctx, w, h, isDark);
     drawTitle(ctx, '液体混合与扩散', w, isDark, { size: 18, y: 28 });
     const water = params['volumeWater'] ?? 50;
     const alcohol = params['volumeAlcohol'] ?? 50;
+    /**
+     * 混合后体积 Vmix: 优先读引擎 maxValues.finalVolume (#65 · B 局部)。
+     * 旧渲染自算 `water + alcohol − 0.04·min(water, alcohol)` 与引擎摩尔分数加权模型
+     * (V_w + V_a·(1−k·x_w)) 不一致 (默认 50/50mL 下旧值 98.0 vs 引擎 97.71, 真漂移),
+     * 现整量消费引擎; 量杯/分子示意保留。无结果回退旧式。
+     */
+    const engMix = readEngineLiquidMix(simulationResult);
     const contraction = 0.04 * Math.min(water, alcohol);
-    const finalVolume = water + alcohol - contraction;
+    const finalVolume = engMix?.finalVolume ?? water + alcohol - contraction;
+    const deltaV = engMix?.deltaV ?? -contraction;
     const beakerX = w * 0.36;
     const beakerY = h * 0.22;
     const beakerW = w * 0.28;
@@ -538,7 +573,8 @@ export function drawLiquidMixingScene(o: ThermalSceneOptions): void {
         [
             { label: 'Vw', value: `${water.toFixed(0)} mL` },
             { label: 'Va', value: `${alcohol.toFixed(0)} mL` },
-            { label: 'Vmix', value: `${finalVolume.toFixed(1)} mL` }
+            { label: 'Vmix', value: `${finalVolume.toFixed(1)} mL` },
+            { label: 'ΔV', value: `${deltaV.toFixed(2)} mL` }
         ],
         { boxW: 200, lineH: 16 }
     );
