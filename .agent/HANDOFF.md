@@ -2,49 +2,43 @@
 
 > 每轮结束**整体重写**（不追加）。给下一棒看：本轮做了什么、留了什么、下一步做什么。
 
-## 本轮（2026-10-08 · `executor-kerwin-20261008b` · 执行者·批次 5 棒）· #66 收口批电路+仪器迁移 · 完工转 in-review
+## 本轮（2026-10-08 · `executor-kerwin-20261008c` · 执行者·门禁棒）· #108 常量门禁补漏 · 完工转 in-review
 
-### 本轮一件事（已入 main 推送，`1530e02` + Merge `67c920a`，执行报告在 issue comment）
+### 本轮一件事（已入 main 推送，`496b2e4` + Merge `3c3a545`，普查 + 执行报告在 issue comment）
 
-**#66 M3 批次 5（收口）：4 场景全部判 B（无 C），M3 8/8 代码收官**：
+**#108 M1 门禁补漏：`LITERAL_PATTERNS` +3（h/σ/eV，均截断+全精度双覆盖 + 样例），引擎 8 处收敛**：
 
-1. **load-voltage**（B）：HUD I/U + R 标牌 + 表针读引擎 operating 点（R₀=U₀/I₀=100Ω）；**修两真问题**（loadRMax kΩ 未换算 + 算术中点 vs 几何平均）。回路示意保留。
-2. **resistance-law**（B）：HUD R 读 `maxValues.baseResistance`；**修铁档真漂移**（旧 2.82e-8 铝值 vs 引擎 1.0e-7，旧画面偏小约 3.5 倍）。导线示意保留。
-3. **vernier-caliper-tool**（B）：主尺/对齐线/读数整组读引擎（全组有效才采用）；卡尺零位仍按物理输入定位。刻度尺示意保留。
-4. **micrometer-tool**（B）：a/n/reading 整组读引擎；千分尺示意保留。
+1. **h**：photoelectric:8、black-body:26、electron-diffraction:28、em-spectrum:85（+ :55 展示串归一精确值）→ `PHYSICS_CONSTANTS.h`。
+2. **σ_SB**：black-body:29、heat-transfer:20 → `PHYSICS_CONSTANTS.sigmaSB`。
+3. **eV→J**：radiation-deflection:32 `MeV_to_J` → `e.value×10⁶`。
+4. 未改公式语义（纯取值替换，最大 0.011%）；未动渲染；models/ 下三字面量 grep 为空。
 
-立单时“仪器类大概率落 C”猜想被实测证伪（两引擎输出为真实读数计算，非占位），详见报告歧义处理。
-**收口动作**：audit 新增「M3 批次 5」节 + 收口记；「迁移建议」第 4 条与 plan.md B3 段旧口径改写（迁移 20/豁免 2）；
-顺带修正 plan.md 同页强转旧口径行（→chartsOf/getChart）。
-
-**豁免表 6→2**（仅 heat-direction/perpetuum-mobile 带理由 C，无「待迁」残留）；契约用例 **+8**（4 景各 2）；
-B 类计数 36/30/去重 60 未动；零强转；未改引擎。
+**纳入边界裁定**（详见 issue 普查评论）：m_e/G/kB 有渲染实例（共用门禁入列即红渲染，属本单明确不包含）→ 不纳入，留 planner 立打包单；
+bWien/α-u 无真源条目；N_A/m_p 无实例；3e8 无法安全成 pattern。
 
 ### 验证（全部真实命令，退出码在案）
 
-- 定向三件套 `single-source-contract / single-source-coverage / renderers` → **122 passed**（114+8）
-- `npm run count:sync` → core 1125 / viz **1574** / total **2699**（+8，回写 README + docs/plan.md）
-- `npm run precheck` → **exit 0**（typecheck / lint / format / test / count:check / build / bundle / 自检 11 层 11 PASS）
-- **CI @ `67c920a` → success · Deploy → success**
+- 门禁测试 `constants-single-source.test.ts` → **42 passed**（新增 3 模式初跑红点名 offenders → 收敛后绿；临时 RED_PROBE 红→绿二次验证）
+- 受影响 6 模型单测 15 passed；brownian-motion 回归 44 passed；全量 core 127 文件 1137 tests green
+- `npm run count:sync` → core 1137 / viz **1586** / total **2723**（+24 = 3 模式×4 用例×2 包，已回写）
+- `npm run precheck` → **exit 0**（11 层 11 PASS，L11 32→44 cases）
+- **CI @ `3c3a545` → success · Deploy → success**
 
 ### 给下一棒
 
-**第一优先 = 等 Planner 验收 #65 + #66**（in-review 积压 2；M3 进度待验收后 8/8）→ 其后队首 **#108**（常量门禁补漏 h 未入列）→ **#107**（发布 dry-run）→ M4 #93–#97。**勿领 #100–#104**（D19 parked）。
-#108 与已迁场景零重叠（D23），可直接按门禁单工作流执行（普查 LITERAL_PATTERNS 缺项 → 纳入名单 → 收敛内联 → 红→绿反向验证）。
+**第一优先 = 等 Planner 验收 #65 + #66 + #108**（in-review 积压 3）→ 其后队首 **#107**（发布 dry-run）→ M4 #93–#97。**勿领 #100–#104**（D19 parked）。
+插曲已闭环：红向验证时 `git checkout` 误删本轮 black-body 改动，已立即重做并复验（gate + black-body 44 passed）——以后临时探针改用独立小文件或 `git diff >` 备份后再 revert。
 
 ### 风险与注意事项
 
-- **本轮 3 处显示值变化**（向引擎对齐，属预期）：load-voltage 默认 R 标牌 5.5Ω→100.0Ω、I/U→0.12A/11.76V；resistance-law 铁档 R 变大 ~3.5 倍；vernier 非网格输入显示量化值。验收以引擎值为准（报告剩余风险已写）。
-- **自算期望常量教训**：本棒 resistance-law 测试曾因手算 R₀=0.0213876 写错期望而红（真值 0.02139042…，引擎正确）——独立复算的期望值务必用 node 实算，勿心算。
-- **charts 口径**：一律 `chartsOf`/`getChart`，禁 `as unknown as Record`；本批 4 景走 maxValues（无对应画布曲线元素，B-局部既定口径）。
-- **viz tsconfig `noUncheckedIndexedAccess: true`**：`?? 0` / `!` 守卫；本批用“全组有效才采用”避免引擎/自算混搭（勿引入 `as number` 新惯用法）。
-- **prettier + 源码契约耦合**：改完渲染先 `npx prettier --write` 再复跑契约测试。
-- **audit B 类计数勿动**（36/30/去重 60）；B-静态∩B-数值重复项只在其唯一归属批处理一次。
+- **#65 更正留言已发**：R“全精度差 5e-5”claim 作废（引擎 R=8.314 与渲染同值）；结构收敛成立。验收 #65 按修正口径。
+- **viz tsconfig `noUncheckedIndexedAccess: true`**；**prettier + 源码契约耦合**（改完先 prettier 再复跑）。
+- **audit B 类计数勿动**（36/30/去重 60）。
 - 端口 3000 被占（勿杀）；dev 用 5199 strictPort；冒烟脚本 `SMOKE_BROWSER_CHANNEL=''`。
-- 测试数真值 core 1125 / viz 1574 / total 2699（#66 后）。
+- 测试数真值 core 1137 / viz 1586 / total 2723（#108 后）。
 
 ### 给 Planner 的信号
 
-- **in-review 积压 2**：#65 + #66 待验收（报告 comment 均含逐条核对 + CI/Deploy 证据；两批皆全 B 无 C）。
-- M3 代码 8/8 收官（待验收关闭）； ready 队列：#108 → #107 → M4 #93–#97，继续执行即可。
-- 无新增决策事项、无 auto-discovered 立单。
+- **in-review 积压 3**：#65 + #66 + #108 待验收（报告均含逐条核对 + CI/Deploy 证据；#65 有一条执行者自发更正）。
+- 建议后续单（供定级）：m_e/G/kB“引擎+渲染打包”门禁扩展 1 单 + bWien 真源条目决策（详见 #108 普查评论）。
+- ready 队列：#107 → M4 #93–#97，继续执行即可；无 auto-discovered 立单（本轮 0/3）。
