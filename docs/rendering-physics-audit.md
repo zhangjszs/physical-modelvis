@@ -403,7 +403,7 @@ B-数值批次迁移第 4/5 批。逐场景逐量决策 (规则 A/B/C, 见 #62 +
 
 | 场景 | 决策 | 消费方式 | 备注 |
 |------|------|------|------|
-| `gas-law` | B 局部 | 过程曲线整条读 `charts.x_t` (等温/等压 x=V(L)/y=p(kPa) 与画布同单位; 等容 x=T(K), 取画布 T 窗内点、V 恒 V0 成垂直线); 动点 P 由曲线插值 (`interpSeries`); R 读 `maxValues.R` | **收敛 R 双源**: 旧渲染 `GAS_CONSTANT_R=8.314` 截断 vs 引擎全精度; 动画相位 sweep 为演示示意 (非引擎时间), 但曲线/动点/R 全部取自引擎; 无结果回退旧自算 |
+| `gas-law` | B 局部 | 过程曲线整条读 `charts.x_t` (等温/等压 x=V(L)/y=p(kPa) 与画布同单位; 等容 x=T(K), 取画布 T 窗内点、V 恒 V0 成垂直线); 动点 P 由曲线插值 (`interpSeries`); R 读 `maxValues.R` | **收敛 R 双源（结构性）**: 旧渲染 `GAS_CONSTANT_R=8.314` 与引擎 `PHYSICS_CONSTANTS.R=8.314` 为两处独立定义、**数值同值无差**，现归一为引擎 `maxValues.R` 单一来源; 动画相位 sweep 为演示示意 (非引擎时间), 但曲线/动点/R 全部取自引擎; 无结果回退旧自算 |
 | `liquid-mixing` | B 局部 | HUD Vmix/ΔV 读 `maxValues.finalVolume/deltaV` (经 `readEngineLiquidMix` helper) | **修真漂移**: 旧渲染 `V−0.04·min(Vw,Va)` 与引擎摩尔分数加权模型不一致 (默认 50/50mL 下旧值 98.0 vs 引擎 97.71); 量杯/分子示意保留 |
 | `capacitor-charge` | B 局部 | τ 读 `maxValues.tau`; Uc(t) 由 `charts.Uc_t` 插值 (t 钳制到引擎域 [0, tMax], 充满后冻结渐近值); 充电视觉 ratio 由引擎 Uc/E 导出 | 充/放电非周期故用钳制 (非 mod); 电路符号为示意保留; 无结果回退旧自算 |
 | `radioactive` | B 局部 | N-t 曲线整条读 `charts.x_t` (201 点@duration=tEnd, 与画布时域一致); 动点/读数 N(t) 由插值给出 | tNow 周期 sweep 为演示 (mod 回绕); 云室径迹为装饰示意保留 (引擎 trajectories 为抽象坐标, 与云室像素映射不同); B-静态∩B-数值重复项 `decay-statistics`/`fission-chain` 豁免未动 |
@@ -412,7 +412,7 @@ B-数值批次迁移第 4/5 批。逐场景逐量决策 (规则 A/B/C, 见 #62 +
 
 | 场景 | 断言 |
 |------|------|
-| gas-law | `finalPressurePa`=202600、`finalVolumeM3`=0.0112、`finalTemperatureK`=273.15、`R`=CODATA; x_t 101 点、首点 (6.72L, nRT/V); 源码含 `chartsOf(simulationResult, 'gas-law')` + `interpSeries(engCurve` + `mvGas?.R` + `示意` |
+| gas-law | `finalPressurePa`=202600、`finalVolumeM3`=0.0112、`finalTemperatureK`=273.15、`R`=引擎真源值（教材口径 8.314）; x_t 101 点、首点 (6.72L, nRT/V); 源码含 `chartsOf(simulationResult, 'gas-law')` + `interpSeries(engCurve` + `mvGas?.R` + `示意` |
 | liquid-mixing | `finalVolume`≈97.71 (独立摩尔分数复算)、`deltaV`、`contractionPercent` 自洽; 源码含 `readEngineLiquidMix(simulationResult)` + `finalVolume` + `示意` |
 | capacitor-charge | `tau`=0.1、`tMax`=0.5; Uc_t 121 点、t=τ 处≈6.3212、末点≈9.9326; 源码含 `chartsOf(simulationResult, 'capacitor-charge')` + `interpSeries(ucSeries` + `mvCap?.tau` + `示意` |
 | radioactive | `decayConstant`=ln2/10、t=10 处=500、t=0 处=1000、`finalAtoms`=31.25; 源码含 `chartsOf(simulationResult, 'radioactive-decay')` + `interpSeries(nSeries` + `示意` |
