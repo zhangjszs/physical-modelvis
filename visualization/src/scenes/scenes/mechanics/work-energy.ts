@@ -22,7 +22,7 @@ export const work_energyScene: SceneConfig = {
             label: '合外力 F',
             unit: 'N',
             value: 5,
-            min: 0.1,
+            min: 0,
             max: 50,
             step: 0.5,
             default: 5,

@@ -46,7 +46,7 @@ export const electric_fieldScene: SceneConfig = {
             value: 1.67,
             min: 0.01,
             max: 100,
-            step: 0.1,
+            step: 0.01,
             default: 1.67,
             description: '粒子质量'
         },
