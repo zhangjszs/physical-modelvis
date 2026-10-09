@@ -7,6 +7,7 @@ import { makeSourceMesh, updateSourceMesh } from './sourceMeshes';
 import { buildFieldLines, fieldArrowPlacements, effectiveFieldLineDensity } from './fieldLines';
 import type { FieldKind } from './fieldLineSeeds';
 import { makeArrow, makeLine, disposeObject } from '../simulation3d/primitives';
+import { applyShadowQuality } from '../simulation3d/shadowQuality';
 import { physicsToWorld, worldToPhysics, snapVector } from '../../utils/compositionCoords';
 
 /**
@@ -85,7 +86,9 @@ export function CompositionStage() {
         const key = new THREE.DirectionalLight(0xffffff, 2.4);
         key.position.set(-3, 6, 4);
         key.castShadow = true;
-        key.shadow.mapSize.set(1024, 1024);
+        // 阴影贴图自适应 (#95): 与 3D 舞台 (createEnvironment) 同策略 —— 设备能力分档,
+        // 缺省 medium = M2.6 基线 1024² + radius=2
+        applyShadowQuality(key);
         key.shadow.bias = -0.0005;
         scene.add(key);
 
