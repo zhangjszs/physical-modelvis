@@ -64,6 +64,9 @@ jobs:
       - name: 首屏包体积门禁 (≤70kB gzip)
         run: node scripts/check-bundle-size.mjs
 
+      - name: physics-core 发布 dry-run 门禁 (#107, 不发布/不触网/无 token)
+        run: node scripts/check-publish-dryrun.mjs
+
       - name: 上传构建产物
         uses: actions/upload-artifact@v7
         with:
