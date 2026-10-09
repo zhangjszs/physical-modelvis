@@ -36,9 +36,9 @@ export function drawGasLawScene(o: ThermalSceneOptions): void {
     const mvGas = simulationResult?.diagnostics?.maxValues as
         { R?: number; finalPressurePa?: number; finalVolumeM3?: number; finalTemperatureK?: number } | undefined;
     /**
-     * 气体常数 R: 优先读引擎 maxValues.R (PHYSICS_CONSTANTS.R 全精度真源);
-     * 旧渲染用 GAS_CONSTANT_R=8.314 截断值 (与引擎值差约 5e-5 相对, 本批收敛)。
-     * 无引擎结果回退截断值。
+     * 气体常数 R: 优先读引擎 maxValues.R (真源 PHYSICS_CONSTANTS.R, 教材口径 8.314);
+     * 旧渲染独用的 GAS_CONSTANT_R=8.314 为另一处独立定义、与引擎同值无差,
+     * 本批结构上归一到引擎单一来源; 无引擎结果回退旧定义。
      */
     const engR = mvGas?.R;
     const R = typeof engR === 'number' && Number.isFinite(engR) && engR > 0 ? engR : GAS_CONSTANT_R;
