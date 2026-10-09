@@ -4,7 +4,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import type { TrajectoryPoint3D } from 'physics-core';
 import { useCompositionStore } from '../../store/compositionStore';
 import { makeSourceMesh, updateSourceMesh } from './sourceMeshes';
-import { buildFieldLines } from './fieldLines';
+import { buildFieldLines, fieldArrowPlacements, effectiveFieldLineDensity } from './fieldLines';
 import type { FieldKind } from './fieldLineSeeds';
 import { makeArrow, makeLine, disposeObject } from '../simulation3d/primitives';
 import { physicsToWorld, worldToPhysics, snapVector } from '../../utils/compositionCoords';
@@ -16,7 +16,8 @@ import { physicsToWorld, worldToPhysics, snapVector } from '../../utils/composit
  * - 器材网格随 store 的 sources/selectedId 对账 (增/删/原位更新)
  * - 轨迹线随 result 重建, 粒子小球在 rAF 里沿引擎轨迹循环播放
  * - 场线只依赖 sources, 订阅 fieldLineRevision 后按 100ms 节流重建,
- *   拖拽中实时跟手 (E/B 色系区分, 每条线带方向箭头)
+ *   拖拽中实时跟手 (E/B 色系区分; 闭环 3 枚 / 开放线 1 枚方向箭头);
+ *   密度档位 #93: 拖拽中封顶 1× 保跟手, 松手恢复配置档 (2× 全量重追踪较贵)
  * - 指针交互: 点击选中, 按住拖拽 (水平面投影 + 0.05m 网格吸附),
  *   拖拽期间关闭 OrbitControls, 松手 commit 重仿真
  */
@@ -29,7 +30,6 @@ const FIELD_LINE_COLORS: Record<FieldKind, number> = {
 
 /** 场线重建节流间隔 — 拖拽中约 10Hz 刷新, 兼顾跟手与算力 */
 const FIELD_LINE_THROTTLE_MS = 100;
-
 /** 方向箭头长度与箭头头部尺寸 (世界坐标) */
 const FIELD_ARROW_LENGTH = 0.12;
 const FIELD_ARROW_HEAD_LENGTH = 0.07;
@@ -96,19 +96,27 @@ export function CompositionStage() {
         const fieldLinesGroup = new THREE.Group();
         scene.add(fieldLinesGroup);
 
+        // 拖拽状态提前声明 — rebuildFieldLines 需要它判断拖拽期密度封顶 (#93),
+        // 初始重建发生在下方赋值之前, 不可放到拖拽段再声明 (TDZ)
+        let drag: DragState | null = null;
+
         const rebuildFieldLines = () => {
             for (const child of [...fieldLinesGroup.children]) {
                 fieldLinesGroup.remove(child);
                 disposeObject(child);
             }
-            const { sources, showElectricFieldLines, showMagneticFieldLines } = useCompositionStore.getState();
+            const { sources, showElectricFieldLines, showMagneticFieldLines, fieldLineDensity } =
+                useCompositionStore.getState();
+            // 拖拽中封顶 1× (#93 性能护栏): 2× 重场景全量重追踪约 260ms (Node 实测),
+            // 连续指针事件会持续过载; 松手后 onPointerUp 恢复配置档位。
+            const density = effectiveFieldLineDensity(fieldLineDensity, drag !== null);
             const sourceList = sources.map(p => p.source);
             const kinds: FieldKind[] = [];
             if (showElectricFieldLines) kinds.push('electric');
             if (showMagneticFieldLines) kinds.push('magnetic');
             for (const kind of kinds) {
                 const color = FIELD_LINE_COLORS[kind];
-                for (const points of buildFieldLines(sourceList, kind)) {
+                for (const points of buildFieldLines(sourceList, kind, density)) {
                     fieldLinesGroup.add(
                         makeLine(
                             points.map(p => new THREE.Vector3(p.x, p.y, p.z)),
@@ -116,24 +124,18 @@ export function CompositionStage() {
                             0.8
                         )
                     );
-                    // 中线处一枚方向箭头 (沿折线前进方向 = 场方向)
-                    const at = Math.floor(points.length * 0.35);
-                    const from = points[at];
-                    const to = points[at + 1];
-                    if (from && to) {
-                        const dir = new THREE.Vector3(to.x - from.x, to.y - from.y, to.z - from.z);
-                        if (dir.lengthSq() > 0) {
-                            fieldLinesGroup.add(
-                                makeArrow(
-                                    dir,
-                                    new THREE.Vector3(from.x, from.y, from.z),
-                                    FIELD_ARROW_LENGTH,
-                                    color,
-                                    FIELD_ARROW_HEAD_LENGTH,
-                                    FIELD_ARROW_HEAD_WIDTH
-                                )
-                            );
-                        }
+                    // 箭头 (切向 = 场方向): 闭环 3 枚保持环绕方向一致, 开放线 1 枚 (#93)
+                    for (const placement of fieldArrowPlacements(points)) {
+                        fieldLinesGroup.add(
+                            makeArrow(
+                                new THREE.Vector3(placement.direction.x, placement.direction.y, placement.direction.z),
+                                new THREE.Vector3(placement.position.x, placement.position.y, placement.position.z),
+                                FIELD_ARROW_LENGTH,
+                                color,
+                                FIELD_ARROW_HEAD_LENGTH,
+                                FIELD_ARROW_HEAD_WIDTH
+                            )
+                        );
                     }
                 }
             }
@@ -236,7 +238,8 @@ export function CompositionStage() {
         const unsubscribeFieldLines = useCompositionStore.subscribe((state, prev) => {
             const toggled =
                 state.showElectricFieldLines !== prev.showElectricFieldLines ||
-                state.showMagneticFieldLines !== prev.showMagneticFieldLines;
+                state.showMagneticFieldLines !== prev.showMagneticFieldLines ||
+                state.fieldLineDensity !== prev.fieldLineDensity;
             const sourcesChanged = state.fieldLineRevision !== prev.fieldLineRevision;
             if (toggled) {
                 // 开关是用户显式操作 — 立即重画 (取消在途节流)
@@ -255,7 +258,7 @@ export function CompositionStage() {
         const raycaster = new THREE.Raycaster();
         const pointer = new THREE.Vector2();
         const dragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-        let drag: DragState | null = null;
+        // (drag 声明提前到 rebuildFieldLines 之前 — #93 拖拽期密度封顶需要)
 
         const setPointerNdc = (event: PointerEvent) => {
             const rect = renderer.domElement.getBoundingClientRect();
@@ -302,9 +305,19 @@ export function CompositionStage() {
         };
 
         const onPointerUp = (event: PointerEvent) => {
-            if (drag?.moved) useCompositionStore.getState().commit();
+            const wasMoved = drag?.moved ?? false;
             drag = null;
             controls.enabled = true;
+            if (wasMoved) useCompositionStore.getState().commit();
+            // 拖拽期间密度封顶 1× 时, 松手立即全量重建恢复配置档位 (#93)
+            if (useCompositionStore.getState().fieldLineDensity > 1) {
+                if (fieldLineTimer !== null) {
+                    window.clearTimeout(fieldLineTimer);
+                    fieldLineTimer = null;
+                }
+                rebuildFieldLines();
+                lastFieldLineBuild = performance.now();
+            }
             if (renderer.domElement.hasPointerCapture(event.pointerId)) {
                 renderer.domElement.releasePointerCapture(event.pointerId);
             }

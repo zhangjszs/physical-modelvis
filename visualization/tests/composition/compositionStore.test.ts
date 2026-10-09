@@ -121,4 +121,25 @@ describe('compositionStore 组合实验台状态', () => {
         useCompositionStore.getState().removeSource(id);
         expect(useCompositionStore.getState().fieldLineRevision).toBe(r1 + 2);
     });
+
+    it('场线密度 (#93): 默认 1, 夹取到 [0.5, 2], 非有限回落 1; 不触发 revision', () => {
+        const s0 = useCompositionStore.getState();
+        expect(s0.fieldLineDensity).toBe(1);
+        const revision0 = s0.fieldLineRevision;
+
+        s0.setFieldLineDensity(2);
+        expect(useCompositionStore.getState().fieldLineDensity).toBe(2);
+
+        useCompositionStore.getState().setFieldLineDensity(0);
+        expect(useCompositionStore.getState().fieldLineDensity).toBe(0.5); // 越界夹取到 min
+
+        useCompositionStore.getState().setFieldLineDensity(100);
+        expect(useCompositionStore.getState().fieldLineDensity).toBe(2); // 越界夹取到 max
+
+        useCompositionStore.getState().setFieldLineDensity(Number.NaN);
+        expect(useCompositionStore.getState().fieldLineDensity).toBe(1); // 非有限回落默认
+
+        // 密度由渲染层直接订阅 (与 E/B 开关同款即时重画), 不走 sources 版本号
+        expect(useCompositionStore.getState().fieldLineRevision).toBe(revision0);
+    });
 });

@@ -34,6 +34,13 @@ const KIND_LABEL: Record<SourceKind, string> = {
     'circular-coil': '圆形线圈'
 };
 
+/** 场线密度档位 (#93): 与 fieldLineSeeds 的 FIELD_LINE_DENSITY 区间一致 */
+const DENSITY_OPTIONS: Array<{ value: number; label: string; title: string }> = [
+    { value: 0.5, label: '疏', title: '0.5× 密度 — 线条少, 便于指认单根场线' },
+    { value: 1, label: '标准', title: '1× 密度 (默认)' },
+    { value: 2, label: '密', title: '2× 密度 — 演示电场线疏密对比' }
+];
+
 function NumberField(props: { label: string; value: number; step: number; onChange: (value: number) => void }) {
     return (
         <label className="composition-field">
@@ -67,6 +74,8 @@ export function CompositionLab({ onExit }: { onExit: () => void }) {
     const showMagneticFieldLines = useCompositionStore(s => s.showMagneticFieldLines);
     const toggleElectricFieldLines = useCompositionStore(s => s.toggleElectricFieldLines);
     const toggleMagneticFieldLines = useCompositionStore(s => s.toggleMagneticFieldLines);
+    const fieldLineDensity = useCompositionStore(s => s.fieldLineDensity);
+    const setFieldLineDensity = useCompositionStore(s => s.setFieldLineDensity);
     const resetLab = useCompositionStore(s => s.resetLab);
 
     const selected = sources.find(p => p.id === selectedId) ?? null;
@@ -142,8 +151,21 @@ export function CompositionLab({ onExit }: { onExit: () => void }) {
                         <input type="checkbox" checked={showMagneticFieldLines} onChange={toggleMagneticFieldLines} />
                         <span>显示磁场线 (B)</span>
                     </label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '4px 0' }}>
+                        <span style={{ fontSize: 13 }}>密度</span>
+                        {DENSITY_OPTIONS.map(opt => (
+                            <button
+                                key={opt.value}
+                                className={`btn btn-sm${fieldLineDensity === opt.value ? ' active' : ''}`}
+                                onClick={() => setFieldLineDensity(opt.value)}
+                                title={opt.title}
+                            >
+                                {opt.label}
+                            </button>
+                        ))}
+                    </div>
                     <p style={{ fontSize: 11, color: '#94a3b8', margin: '4px 0 0' }}>
-                        场线由场源实时追踪, 拖拽器材时跟手刷新; 线上箭头指示 E/B 方向。
+                        场线由场源实时追踪, 拖拽器材时跟手刷新; 线上箭头指示 E/B 方向, 密度档位演示场线疏密。
                     </p>
                 </div>
 

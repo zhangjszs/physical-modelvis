@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { FieldSource, Vector3D, CompositionParticle, CompositionSimResult, ValidationResult } from 'physics-core';
 import { simulateComposition, validateComposition } from 'physics-core';
 import { snapVector } from '../utils/compositionCoords';
+import { FIELD_LINE_DENSITY, clampFieldLineDensity } from '../components/composition/fieldLineSeeds';
 
 /**
  * 组合实验台状态 (L4) — 器材布置 + 粒子 + 自动重仿真。
@@ -74,6 +75,8 @@ interface CompositionState {
     showElectricFieldLines: boolean;
     /** 显示磁场线 (默认关, 避免默认画面过密) */
     showMagneticFieldLines: boolean;
+    /** 场线密度倍率 (#93): 0.5 疏 / 1 标准 / 2 密 (渲染层订阅后即时重建) */
+    fieldLineDensity: number;
     /** sources 发生变化即自增 — 渲染层据此节流重建场线 */
     fieldLineRevision: number;
 
@@ -89,6 +92,8 @@ interface CompositionState {
     setDuration: (duration: number) => void;
     toggleElectricFieldLines: () => void;
     toggleMagneticFieldLines: () => void;
+    /** 设置场线密度倍率 (夹取到档位区间, #93) */
+    setFieldLineDensity: (density: number) => void;
     resetLab: () => void;
 }
 
@@ -121,6 +126,7 @@ export const useCompositionStore = create<CompositionState>((set, get) => ({
     validationMessage: null,
     showElectricFieldLines: true,
     showMagneticFieldLines: false,
+    fieldLineDensity: FIELD_LINE_DENSITY.default,
     fieldLineRevision: 0,
 
     addSource: (kind, position) => {
@@ -191,6 +197,7 @@ export const useCompositionStore = create<CompositionState>((set, get) => ({
 
     toggleElectricFieldLines: () => set(s => ({ showElectricFieldLines: !s.showElectricFieldLines })),
     toggleMagneticFieldLines: () => set(s => ({ showMagneticFieldLines: !s.showMagneticFieldLines })),
+    setFieldLineDensity: density => set({ fieldLineDensity: clampFieldLineDensity(density) }),
 
     resetLab: () => {
         set(s => ({
