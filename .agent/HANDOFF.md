@@ -2,49 +2,59 @@
 
 > 每轮结束**整体重写**（不追加）。给下一棒看：本轮做了什么、留了什么、下一步做什么。
 
-## 本轮（2026-10-09 · `executor-deepseek-20261009a` · 执行者 · 四单串行棒）· #107 → #110 → #93 → #94
+## 本轮（2026-10-09 · `executor-deepseek-20261009b` · 执行者）· #95
 
-### 本轮四件事（全部已入 main 推送，报告在 issue，均 in-review 待验收）
+### 本轮一件事（已入 main 推送，报告在 issue，in-review 待验收）
 
-1. **#107 发布 dry-run 门禁**（`77246b4`）：新增 `scripts/check-publish-dryrun.mjs` —— `npm pack --dry-run --json --ignore-scripts`
-   校验「入口存在 / 仅 dist+根级白名单 / 体积上界 / 元数据就绪」，**不发布、不触网、无 token**；接入 `precheck` 链与 `ci.yml` 单 step。
-   红向探针 2 组（移走 dist 入口 / `files` 混入 src+tests）→ 红 + 还原后绿，证据在 issue。
-2. **#110 R 误述订正**（`a91ee5a`）：audit 批次 4 两处 + `gasThermalScenes.ts` 注释；`grep 5e-5` / `R=CODATA` 清零；契约 89/89。
-3. **#93 场线密度可调 + 闭环成型**（`b8074c5`）：密度三档 0.5/1/2（store 管理、面板控件）；闭环封口（`closeNearlyClosedLoop`）
-   + `fieldArrowPlacements`（闭环 3 枚切向箭头、开放线 1 枚）；**拖拽中密度封顶 1×**、松手恢复（2× 重场景全量重追踪 Node 实测 258ms/次）。
-   验证：composition 50 tests + `verify-3d-smoke.cjs` 14×2 绿 + 浏览器三档切换（无 console error，截图 2 张）。测试数 2723→**2736**。
-   **顺带修复**：`verify-3d-smoke.cjs` 目录匹配（整行 textContent 被「精讲」徽章污染，5 场景永久匹配不到；前置性问题，非本单引入）。
-4. **#94 L6 器材评估**（`dae7557`）：新增 `docs/composition-l6-equipment-survey.md`（7 候选 × 5 维度 + 重叠分析 + 排序 + 实施拆分）；
-   推荐下一批 = **条形磁铁（磁偶极子）** + **匀强磁场区**；源码零改动。
+**#95 3D 阴影贴图自适应分辨率**（feat `ba0bd6f` / Merge `b692154`）：
 
-### 未完成 / 进行中（下一棒最优先看这里）
+- 新增 `visualization/src/components/simulation3d/shadowQuality.ts`：档位→`{mapSize, radius}` 预设
+  （低 512²/r1 · 中 1024²/r2 · 高 2048²/r4）；`detectShadowQualityTier` 按
+  `navigator.hardwareConcurrency` 分档（≥8 high / 5–7 medium / ≤4 low，信号缺失→medium = M2.6 基线兜底）；
+  radius 与 mapSize 等比例（three r185 PCF radius 以纹素计，世界空间模糊半径恒定）。
+- `createEnvironment`（primitives.ts）与 `CompositionStage` 两处固定 1024² 硬编码收口到
+  `applyShadowQuality`；shadow camera ±8 / bias / PCF 算法不动。
+- dev-only：`?shadowTier=` URL 覆盖通道 + `window.__physvisShadowQuality` 探针（#81 同型模式，生产 tree-shake）。
+- 新增 17 单测；测试数 2736→**2753**；precheck 全绿（本地 + pre-push 两遍）。
+- 验证：3d-smoke exit 0（默认档 high）· 分档 perf 探针三档耗时/堆持平（max 766/748/682ms，堆 Δ1.81MB）·
+  官方 qa-sweep 30 场景 exit 0（ERROR 0，WARN 5 均为播放计时类、与本单无关）· 档位生效探针三档报值全对 +
+  像素 diff（同档噪声 1px vs 跨档 604–1314px 集中在舞台区）· 组合实验台冒烟零报错。
 
-- **无进行中**。in-review 积压 **4**（#107 / #110 / #93 / #94）待 Planner 验收。
-- 验收后队首 = **#95**（3D 阴影贴图自适应，P3）→ #96 → #97（M4 尾）→ #109 → #106。
-  若 Planner 据 #94 先立实施单，按新队列领。
+## 已完成
 
-### 验证情况
+- #95：阴影 mapSize 固定 1024² 改设备能力三档驱动，M2.6 护栏不回退 · `ba0bd6f`（merge `b692154`）· 验证全绿
 
-- 四单均通过全量 `precheck` / pre-push 钩子；**CI + Deploy @ `dae7557` success**。
-- #107 另有：本地红→绿探针、CI 中 gate step 日志（npm 11 输出格式兼容实证）。
-- #93 另有：浏览器交互证据（进入组合台 / 3 源 / 磁场线 / 三档 active / 无错误）+ 性能实测（0.5× 22.6ms · 1× 64.2ms · 2× 258.5ms，4 源）。
-- 未跑：QA 全量巡检（本轮 3D 改动不影响其场景集；如需可作为下一棒补跑项）。
+## 未完成 / 进行中（下一棒最优先看这里）
 
-### 风险与注意事项
+- **无进行中**。in-review 积压 **5**（#107 / #110 / #93 / #94 / #95）待 Planner 验收。
+- 验收后队首 = **#96**（场景参数初值脱网格治理：61/571 处 default 吸附漂移 + default-on-grid 静态门禁，P3）
+  → #97 → #109 → #106。若 Planner 据 #94 先立实施单，按新队列领。
 
-- **#93 性能**：2× 档在 4 源重场景单次全量重建 ~260ms（只发生在档位点击/松手瞬间；拖拽中已封顶 1× 不回归）。
-  若后续仍嫌重，需引擎 trace 专项优化（自适应步长 / Worker 化）——属新单。
-- **verify-3d-smoke.cjs 的前置修复**：本单附带（否则验收标准第 3 条无法达成）；Planner 可决定是否补留痕（并入 #106 或另立 verification-infra 小单）。
+## 验证情况
+
+- #95：本地 precheck + pre-push 钩子 precheck 两遍全绿；CI @ `b692154` 本棒收尾时 in_progress，下一棒可复核。
+- 分档证据工具与原始输出在 `.scratch/`（gitignore，未提交）：`shadow-perf-probe.cjs`、
+  `shadow-tier-verify.cjs`、`shadow-shot-diff.cjs`、`composition-smoke.cjs` + 对应 JSON/截图；
+  issue #95 评论已贴全量数据与结论。
+- 未跑：QA 全量巡检（123 场景）——#95 不涉及其场景集参数/读数路径，理由已写入 issue 报告。
+
+## 风险与注意事项
+
+- **#95 high 档 2048²（16MB）未在低端真机验证**：本机 24 核工作站三档全绿；核数分界 4/8 为工程经验值，
+  预设表集中于 `SHADOW_QUALITY_PRESETS` 可单点调整（如收到低端设备反馈）。
+- **dev 探针与 URL 通道**：`window.__physvisShadowQuality` / `?shadowTier=` 仅 dev 构建存在
+  （`import.meta.env.DEV` 守卫，生产 tree-shake）；QA 切档核验可复用。
 - 端口 3000 本棒临时占用（已停）；冒烟脚本用 `SMOKE_BROWSER_CHANNEL=''`（本机无 msedge）。
-- 测试数真值 core **1137** / viz **1599** / total **2736**（#94 零变更）。
 
-### 给下一棒的第一步建议
+## 给下一棒的第一步建议
 
-- 先查 in-review 是否已被 Planner 清（4 单）；然后按 PLAN 领 **#95**。
+- 先查 in-review 是否已被 Planner 清（5 单）；然后按 PLAN 领 **#96**。
+  #96 要点：门禁**优先并入既有 `parameter-ranges.test.ts` 的 it**（免测试数漂移）；default 数值零变化、
+  只动 min/step；红向还原**用反向 sed、禁用 `git checkout`**（#60 教训）；每处改动在执行报告列清单。
 
-### 给 Planner 的信号
+## 给 Planner 的信号
 
-- **in-review 积压 4**：#107 / #110 / #93 / #94（报告均含逐条验收核对与证据链）。
-- **#94 结论可直接立项**：推荐批 2 类 → 建议拆单粒度「引擎原型 + 种子与渲染」（每类 2 单，共 4 单，交互随 #100）。
-- **#93 附带修复知情项**：`verify-3d-smoke.cjs` 匹配修复属前置性问题；是否留痕由 Planner 定。
+- **in-review 积压 5**：#107 / #110 / #93 / #94 / #95（报告均含逐条验收核对与证据链）。
+- **#95 无后续 Issue 需求**；shadow camera ±8 自适应被 issue 明确排除（如需另立单）。
+  探针/URL 通道是否在 AGENTS.md / docs 留痕由 Planner 定。
 - 本轮 auto-discovered 立单 0/3；无新增决策事项。
