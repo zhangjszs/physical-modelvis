@@ -3,6 +3,7 @@
  * 从 Projectile3DStage 提取并扩展，供所有 3D 实验场景复用。
  */
 import * as THREE from 'three';
+import { applyShadowQuality, exposeShadowQualityProbe, type ShadowQualityTier } from './shadowQuality';
 
 // ---------------------------------------------------------------------------
 // 基础几何体
@@ -176,7 +177,7 @@ export interface Environment {
     lights: THREE.Light[];
 }
 
-export function createEnvironment(scene: THREE.Scene, bgColor = 0xf8fafc): Environment {
+export function createEnvironment(scene: THREE.Scene, bgColor = 0xf8fafc, shadowTier?: ShadowQualityTier): Environment {
     const ground = new THREE.Mesh(
         new THREE.PlaneGeometry(14, 8),
         new THREE.MeshStandardMaterial({ color: 0xeef6ff, roughness: 0.82, metalness: 0.02 })
@@ -206,9 +207,10 @@ export function createEnvironment(scene: THREE.Scene, bgColor = 0xf8fafc): Envir
     const key = new THREE.DirectionalLight(0xffffff, 2.8);
     key.position.set(-3, 7, 5);
     key.castShadow = true;
-    // 1024x1024 shadow map: PCFShadowMap 配合 radius=2 既能保证阴影柔和无明显硬锯齿, 又极大降低显存分配开销 (从 64MB 降到 4MB), 避免快速切换多场景时 GPU 上下文卡死
-    key.shadow.mapSize.set(1024, 1024);
-    key.shadow.radius = 2;
+    // 阴影贴图自适应 (#95): 档位由设备能力驱动 (shadowQuality.ts), 缺省 medium =
+    // M2.6 基线 1024² + radius=2 —— 保持阴影柔和无明显硬锯齿, 显存 4MB 量级,
+    // 避免快速切换多场景时 GPU 上下文卡死; 低端设备降 512²(1MB), 高分设备升 2048²(16MB)
+    exposeShadowQualityProbe(applyShadowQuality(key, shadowTier));
     key.shadow.bias = -0.0005;
     key.shadow.camera.left = -8;
     key.shadow.camera.right = 8;
