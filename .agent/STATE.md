@@ -1,9 +1,9 @@
 # STATE
 
-- 更新时间：2026-10-08T14:20Z
-- 当前 Issue：#108（in-review；常量门禁 h/σ/eV 入列 + 引擎 8 处收敛，main `3c3a545`，普查 + 报告 comment 在 issue，CI/Deploy success）
-- 分支：main（临时分支 `agent/issue-108-planck-gate` 已删；工作树干净）
-- 未完成工作：无（#108 已合回推送）
-- 最近提交：`3c3a545` Merge #108（前序 `496b2e4` test）
-- 已知环境限制：端口 3000 被本机其他项目占用（勿杀）；dev 用 5199 strictPort；冒烟脚本 `SMOKE_BROWSER_CHANNEL=''`
-- 测试数真值：core 1137 / viz 1586 / total 2723（#108 后，count:sync 已回写）
+- 更新时间：2026-10-09T14:26Z
+- 当前 Issue：#94（in-review；L6 器材评估文档 `docs/composition-l6-equipment-survey.md`，Merge `dae7557`）——同轮 in-review 积压 4：#107 / #110 / #93 / #94
+- 分支：main（临时分支均已删；工作树干净）
+- 未完成工作：无（四单均已合回推送）
+- 最近提交：`dae7557` Merge #94（前序 `b8074c5` Merge #93）
+- 已知环境限制：端口 3000 本棒临时占用（收尾已停）；冒烟脚本 `SMOKE_BROWSER_CHANNEL=''`（msedge 不在本机）；OCR 真实上游凭证不在本机（用 mock）
+- 测试数真值：core 1137 / viz 1599 / total 2736（#93 后 count:sync 已回写；#94 零测试变更）
