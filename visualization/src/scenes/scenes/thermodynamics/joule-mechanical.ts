@@ -55,7 +55,7 @@ export const joule_mechanicalScene: SceneConfig = {
             label: '比热容 c',
             unit: 'J/(kg·K)',
             value: 4184,
-            min: 1000,
+            min: 984,
             max: 5000,
             step: 50,
             default: 4184,

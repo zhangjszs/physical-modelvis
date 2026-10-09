@@ -22,7 +22,7 @@ export const thermistorScene: SceneConfig = {
             label: '基准电阻 R₀',
             unit: 'Ω',
             value: 1e4,
-            min: 1,
+            min: 100,
             max: 1e6,
             step: 100,
             default: 1e4,
@@ -35,7 +35,7 @@ export const thermistorScene: SceneConfig = {
             value: 3950,
             min: 1000,
             max: 6000,
-            step: 100,
+            step: 50,
             default: 3950,
             description: 'NTC B 常数'
         },

@@ -35,7 +35,7 @@ export const hologramScene: SceneConfig = {
             value: 632.8,
             min: 380,
             max: 780,
-            step: 5,
+            step: 3.2,
             default: 632.8,
             description: '激光波长 (He-Ne 激光器 632.8nm)'
         },

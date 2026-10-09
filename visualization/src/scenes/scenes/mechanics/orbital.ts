@@ -32,7 +32,7 @@ export const orbitalScene: SceneConfig = {
             label: '模拟时长',
             unit: 'min',
             value: 120,
-            min: 1,
+            min: 5,
             max: 1440,
             step: 5,
             default: 120,

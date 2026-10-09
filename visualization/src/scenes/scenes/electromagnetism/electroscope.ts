@@ -11,7 +11,7 @@ export const electroscopeScene: SceneConfig = {
             label: '带电量 q',
             unit: 'μC',
             value: 1,
-            min: 0.01,
+            min: 0.1,
             max: 50,
             step: 0.1,
             default: 1,
