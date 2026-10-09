@@ -50,7 +50,9 @@ const SCENES = [
         const ok = await page.$$eval(
             '.directory-scene',
             (els, t) => {
-                const el = els.find(e => e.textContent.trim() === t);
+                // 目录行首 span 是场景名; 行内还可能有 "精讲" 徽章 span — 只比较名字 span
+                // (与 verify-qa-sweep.cjs 的匹配口径一致; 全行 textContent 会被徽章污染)
+                const el = els.find(e => (e.querySelector('span')?.textContent || '').trim() === t);
                 if (el) {
                     el.click();
                     return true;

@@ -25,6 +25,9 @@ export interface FieldLineSeed {
 /**
  * 各类器材的种子布置参数 — 集中常量 (避免 magic number), 同时作为
  * 单测断言的几何基准 (半径 / 网格 / 偏移)。
+ * count / divisions / 数组长度均为 **1× 基准**; 实际数量按密度倍率缩放 (#93),
+ * 数组型参数 (wire.radii / wire.axialOffsets / coil.axialFactors) 在首末值
+ * 张成的区间内均分, 密度 1 时逐值还原基准。
  */
 export const FIELD_LINE_SEED_CONFIG = {
     /**
@@ -47,6 +50,26 @@ export const FIELD_LINE_TRACE = {
     maxSteps: 120,
     boundRadius: 3
 } as const;
+
+/** 场线密度档位 (#93): UI 提供 0.5×(疏) / 1×(标准) / 2×(密), 越界输入夹取到本区间 */
+export const FIELD_LINE_DENSITY = { min: 0.5, max: 2, default: 1 } as const;
+
+/** 密度夹取 — 非有限输入回落默认, 越界夹取到 [min, max] */
+export function clampFieldLineDensity(density: number | undefined): number {
+    if (density === undefined || !Number.isFinite(density)) return FIELD_LINE_DENSITY.default;
+    return Math.min(FIELD_LINE_DENSITY.max, Math.max(FIELD_LINE_DENSITY.min, density));
+}
+
+/** 按倍率缩放数量: 四舍五入、下限 1 (密度再低每类器材也至少留 1 条种子) */
+function scaleCount(base: number, density: number): number {
+    return Math.max(1, Math.round(base * density));
+}
+
+/** 在 [min, max] 上均分 count 个值; count=1 取中点 (保持几何跨度不塌缩) */
+function spanValues(min: number, max: number, count: number): number[] {
+    if (count <= 1) return [(min + max) / 2];
+    return Array.from({ length: count }, (_, i) => min + ((max - min) * i) / (count - 1));
+}
 
 function addScaled(base: Vector3D, dir: Vector3D, scale: number): Vector3D {
     return { x: base.x + dir.x * scale, y: base.y + dir.y * scale, z: base.z + dir.z * scale };
@@ -96,9 +119,9 @@ function fibonacciSphereDirections(count: number): Vector3D[] {
 }
 
 /** 点电荷: 以电荷为心、固定半径的球面种子 (双向追踪 → 正电荷外射/负电荷内聚) */
-function pointChargeSeeds(center: Vector3D): FieldLineSeed[] {
+function pointChargeSeeds(center: Vector3D, density: number): FieldLineSeed[] {
     const { radius, count, lineLength } = FIELD_LINE_SEED_CONFIG.pointCharge;
-    return fibonacciSphereDirections(count).map(dir => ({
+    return fibonacciSphereDirections(scaleCount(count, density)).map(dir => ({
         kind: 'electric' as const,
         start: addScaled(center, dir, radius),
         bidirectional: true,
@@ -107,11 +130,12 @@ function pointChargeSeeds(center: Vector3D): FieldLineSeed[] {
 }
 
 /** 极板: 板面网格 + 两侧离面偏移; 单向追踪, 避免在板面 (E=0) 反复折返 */
-function chargedPlateSeeds(center: Vector3D, normal: Vector3D): FieldLineSeed[] {
+function chargedPlateSeeds(center: Vector3D, normal: Vector3D, density: number): FieldLineSeed[] {
     const basis = orthonormalBasis(normal);
     const n = normalizeVector(normal);
     if (!basis || !n) return [];
-    const { divisions, halfU, halfV, sideOffset, lineLength } = FIELD_LINE_SEED_CONFIG.plate;
+    const { divisions: baseDivisions, halfU, halfV, sideOffset, lineLength } = FIELD_LINE_SEED_CONFIG.plate;
+    const divisions = scaleCount(baseDivisions, density);
     const seeds: FieldLineSeed[] = [];
     for (const side of [1, -1] as const) {
         for (let i = 0; i < divisions; i++) {
@@ -132,11 +156,18 @@ function chargedPlateSeeds(center: Vector3D, normal: Vector3D): FieldLineSeed[] 
 }
 
 /** 导线: 垂直平面内多个半径的圆周种子 (每向半周长, 双向拼成整圈) */
-function straightWireSeeds(point: Vector3D, direction: Vector3D): FieldLineSeed[] {
+function straightWireSeeds(point: Vector3D, direction: Vector3D, density: number): FieldLineSeed[] {
     const basis = orthonormalBasis(direction);
     const axis = normalizeVector(direction);
     if (!basis || !axis) return [];
-    const { radii, axialOffsets } = FIELD_LINE_SEED_CONFIG.wire;
+    const { radii: baseRadii, axialOffsets: baseAxial } = FIELD_LINE_SEED_CONFIG.wire;
+    // 密度缩放: 半径 / 轴向截面数按倍率增减, 均在基准首末值区间内均分 (#93)
+    const radii = spanValues(Math.min(...baseRadii), Math.max(...baseRadii), scaleCount(baseRadii.length, density));
+    const axialOffsets = spanValues(
+        Math.min(...baseAxial),
+        Math.max(...baseAxial),
+        scaleCount(baseAxial.length, density)
+    );
     const seeds: FieldLineSeed[] = [];
     for (const axial of axialOffsets) {
         const origin = addScaled(point, axis, axial);
@@ -153,11 +184,22 @@ function straightWireSeeds(point: Vector3D, direction: Vector3D): FieldLineSeed[
 }
 
 /** 线圈: 近轴面多个轴向 × 环向位置的种子 */
-function circularCoilSeeds(center: Vector3D, axis: Vector3D, radius: number): FieldLineSeed[] {
+function circularCoilSeeds(center: Vector3D, axis: Vector3D, radius: number, density: number): FieldLineSeed[] {
     const basis = orthonormalBasis(axis);
     const a = normalizeVector(axis);
     if (!basis || !a || !(radius > 0) || !Number.isFinite(radius)) return [];
-    const { radialFactor, axialFactors, azimuthCount, lineLength } = FIELD_LINE_SEED_CONFIG.coil;
+    const {
+        radialFactor,
+        axialFactors: baseAxial,
+        azimuthCount: baseAzimuth,
+        lineLength
+    } = FIELD_LINE_SEED_CONFIG.coil;
+    const axialFactors = spanValues(
+        Math.min(...baseAxial),
+        Math.max(...baseAxial),
+        scaleCount(baseAxial.length, density)
+    );
+    const azimuthCount = scaleCount(baseAzimuth, density);
     const radial = radialFactor * radius;
     const seeds: FieldLineSeed[] = [];
     for (const axialFactor of axialFactors) {
@@ -179,18 +221,23 @@ function circularCoilSeeds(center: Vector3D, axis: Vector3D, radius: number): Fi
 /**
  * 按场源集合生成全部场线种子。
  * 电场源只产 electric 种子、磁场源只产 magnetic 种子; 方向退化的源跳过 (校验层负责报错)。
+ * density 为密度倍率 (#93): 0.5 / 1 / 2 三档, 越界夹取, 非有限回落默认。
  */
-export function fieldLineSeeds(sources: readonly FieldSource[]): FieldLineSeed[] {
+export function fieldLineSeeds(
+    sources: readonly FieldSource[],
+    density: number = FIELD_LINE_DENSITY.default
+): FieldLineSeed[] {
+    const d = clampFieldLineDensity(density);
     const seeds: FieldLineSeed[] = [];
     for (const s of sources) {
         if (s.kind === 'point-charge') {
-            seeds.push(...pointChargeSeeds(s.position));
+            seeds.push(...pointChargeSeeds(s.position, d));
         } else if (s.kind === 'charged-plate') {
-            seeds.push(...chargedPlateSeeds(s.center, s.normal));
+            seeds.push(...chargedPlateSeeds(s.center, s.normal, d));
         } else if (s.kind === 'straight-wire') {
-            seeds.push(...straightWireSeeds(s.point, s.direction));
+            seeds.push(...straightWireSeeds(s.point, s.direction, d));
         } else {
-            seeds.push(...circularCoilSeeds(s.center, s.axis, s.radius));
+            seeds.push(...circularCoilSeeds(s.center, s.axis, s.radius, d));
         }
     }
     return seeds;

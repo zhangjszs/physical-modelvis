@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import type { FieldSource, Vector3D } from 'physics-core';
-import { buildFieldLines } from '../../src/components/composition/fieldLines';
+import {
+    buildFieldLines,
+    fieldArrowPlacements,
+    isClosedLine,
+    effectiveFieldLineDensity
+} from '../../src/components/composition/fieldLines';
 import { FIELD_LINE_SEED_CONFIG } from '../../src/components/composition/fieldLineSeeds';
 import { worldToPhysics } from '../../src/utils/compositionCoords';
 
@@ -114,5 +119,82 @@ describe('buildFieldLines 场线几何构建', () => {
         ];
         expect(buildFieldLines(sources, 'electric')).toEqual(buildFieldLines(sources, 'electric'));
         expect(buildFieldLines(sources, 'magnetic')).toEqual(buildFieldLines(sources, 'magnetic'));
+    });
+});
+
+describe('密度倍率与闭环箭头 (#93)', () => {
+    const pointCharge: FieldSource = { kind: 'point-charge', charge: 1e-6, position: ZERO3 };
+    const wire: FieldSource = { kind: 'straight-wire', current: 10, point: ZERO3, direction: { x: 0, y: 1, z: 0 } };
+
+    it('密度传导: 点电荷电场线 0.5/1/2 → 6/12/24 条, 默认与 1 相同', () => {
+        expect(buildFieldLines([pointCharge], 'electric')).toHaveLength(12);
+        expect(buildFieldLines([pointCharge], 'electric', 1)).toHaveLength(12);
+        expect(buildFieldLines([pointCharge], 'electric', 0.5)).toHaveLength(6);
+        expect(buildFieldLines([pointCharge], 'electric', 2)).toHaveLength(24);
+    });
+
+    it('导线磁力线首尾封口: 每条线闭环 (首尾同点, 无可辨断口)', () => {
+        const lines = buildFieldLines([wire], 'magnetic');
+        expect(lines.length).toBeGreaterThan(0);
+        for (const line of lines) {
+            expect(isClosedLine(line)).toBe(true);
+            const first = line[0]!;
+            const last = line[line.length - 1]!;
+            expect(Math.hypot(first.x - last.x, first.y - last.y, first.z - last.z)).toBe(0);
+        }
+        // 补首点后顶点数 = 原始追踪点数 + 1, 且首点被复制到末尾
+        const closed = lines[0]!;
+        expect(closed[closed.length - 1]).toEqual(closed[0]);
+    });
+
+    it('开放电场线不误封口 (点电荷线段首尾距离远大于阈值)', () => {
+        const lines = buildFieldLines([pointCharge], 'electric');
+        expect(lines).toHaveLength(12);
+        for (const line of lines) expect(isClosedLine(line)).toBe(false);
+    });
+
+    it('fieldArrowPlacements: 开放线 1 枚, 切向为线段前进方向 (单位向量)', () => {
+        const line = [
+            { x: 0, y: 0, z: 0 },
+            { x: 1, y: 0, z: 0 },
+            { x: 2, y: 0, z: 0 }
+        ];
+        const placements = fieldArrowPlacements(line);
+        expect(placements).toHaveLength(1);
+        expect(placements[0]!.position).toEqual({ x: 1, y: 0, z: 0 });
+        expect(placements[0]!.direction).toEqual({ x: 1, y: 0, z: 0 });
+    });
+
+    it('fieldArrowPlacements: 闭环 3 枚, 切向近似垂直半径且环绕方向一致', () => {
+        // xy 平面单位圆: 21 点 + 首点封口 (模拟 buildFieldLines 的闭环输出)
+        const segments = 20;
+        const circle: Array<{ x: number; y: number; z: number }> = [];
+        for (let i = 0; i <= segments; i++) {
+            const t = (2 * Math.PI * i) / segments;
+            circle.push({ x: Math.cos(t), y: Math.sin(t), z: 0 });
+        }
+        const placements = fieldArrowPlacements(circle);
+        expect(placements).toHaveLength(3);
+        for (const p of placements) {
+            // 切向 · 半径 ≈ 0 (弦切角 = 半段角 = 9° → 点积 ≤ sin(9°)≈0.16)
+            const dot = p.position.x * p.direction.x + p.position.y * p.direction.y;
+            expect(Math.abs(dot)).toBeLessThan(0.2);
+            // 环绕方向一致: 位置 × 切向 的 z 分量为正 (逆时针)
+            const crossZ = p.position.x * p.direction.y - p.position.y * p.direction.x;
+            expect(crossZ).toBeGreaterThan(0);
+        }
+    });
+
+    it('fieldArrowPlacements: 少于 2 点或无有效段时返回空', () => {
+        expect(fieldArrowPlacements([])).toEqual([]);
+        expect(fieldArrowPlacements([{ x: 0, y: 0, z: 0 }])).toEqual([]);
+    });
+
+    it('effectiveFieldLineDensity: 拖拽中封顶 1× (性能护栏), 松手按配置档位', () => {
+        expect(effectiveFieldLineDensity(2, true)).toBe(1); // 2× 拖拽封顶
+        expect(effectiveFieldLineDensity(0.5, true)).toBe(0.5); // 低于封顶不限
+        expect(effectiveFieldLineDensity(1, true)).toBe(1);
+        expect(effectiveFieldLineDensity(2, false)).toBe(2); // 非拖拽原样
+        expect(effectiveFieldLineDensity(0.5, false)).toBe(0.5);
     });
 });
