@@ -61,6 +61,12 @@ export default tseslint.config(
                 setInterval: 'readonly',
                 clearTimeout: 'readonly',
                 clearInterval: 'readonly',
+                // capture-screenshots.mjs 的 page.evaluate/waitForFunction 回调里内联浏览器代码
+                document: 'readonly',
+                window: 'readonly',
+                requestAnimationFrame: 'readonly',
+                innerWidth: 'readonly',
+                innerHeight: 'readonly',
             },
         },
     },

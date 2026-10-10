@@ -15,6 +15,7 @@
 | `verify-guidance-smoke.cjs` | Playwright | **课堂引导系统冒烟**：验证引导面板步进、回退、关闭及场景重定向 | 需本地 Dev Server 运行中 |
 | `verify-ocr-mount.cjs` | Playwright | **OCR 拍照解题挂载冒烟**：验证入口按钮、弹窗打开、识别状态流转与关闭 | 需本地 Dev Server 运行中 |
 | `verify-3d-scene-switching.js` | 浏览器控制台 | **全量场景切换测试**：零依赖脚本，在浏览器 DevTools 控制台直接执行，全自动化遍历 123 个场景 | 浏览器控制台直接执行 |
+| `capture-screenshots.mjs` | Playwright | **README 界面演示截图一键复采**：自构建生产产物 + 自起停 `vite preview`，采集 6 张关键界面到 `docs/screenshots/`（两遍复采逐字节一致） | 需 playwright 与系统中文字体 |
 
 ---
 
