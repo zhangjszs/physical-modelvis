@@ -24,5 +24,7 @@
 - **PATH**：本机 npm/node 由 mise 管理，不在默认 PATH。跑任何 npm/npx/node 前先
   `export PATH="$HOME/.local/share/mise/shims:$PATH"`（pre-push 钩子有兜底，手动跑脚本时需要）
 - **部署**：GitHub Pages `https://zhangjszs.github.io/physical-modelvis/`（deploy.yml，CI 成功后 workflow_run 触发）
+- **中文字体（2026-10-10 新增）**：用户级字体目录已装 Noto Sans CJK SC（Regular/Bold），`fc-list :lang=zh` 可见。
+  headless Chromium 截图（`scripts/capture-screenshots.mjs`，#97）依赖系统中文字体，缺失时中文渲染为方块（脚本启动会警告提示）
 
 探测于 2026-10-01T11:47:39Z，agent `qoder-20261001T114739Z`
