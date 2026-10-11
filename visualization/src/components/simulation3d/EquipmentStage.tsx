@@ -271,6 +271,11 @@ export function EquipmentStage({ rig, renderer, cameraPosition, cameraTarget, ca
             const h = Math.max(1, Math.floor(canvas.clientHeight));
             camera.aspect = w / h;
             camera.updateProjectionMatrix();
+            // #111 症状 B：setSize 无条件重置 canvas bitmap（清 buffer），暂停态 dirty
+            // 已消耗时画面空白且永不补帧。canvas 样式 100% 跟随舞台，任何触发布局变化
+            // 的 setSize 都会同时触发本回调 → 置脏，下一 tick 补一帧（仍保持 #79 按需语义，
+            // 无尺寸变化时 RO 不触发，不增加渲染）。
+            dirtyRef.current = true;
         };
         resize();
         const ro = new ResizeObserver(resize);

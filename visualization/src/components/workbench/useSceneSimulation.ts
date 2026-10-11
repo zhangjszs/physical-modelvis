@@ -51,9 +51,14 @@ export function useSceneSimulation(): { runSimulation: () => void } {
     }, [setSimulationResult, setErrorMessage]);
 
     // 首次加载自动运行
+    //
+    // #111 根因：首屏生产构建空白 — scenes 经领域 chunk 异步加载，首跑时 store.scenes
+    // 仍为空导致 runSimulation 静默返回（activeScene 未定义），且本 effect 原先不依赖
+    // scenes，到货后永不重试。把 scenes 纳入依赖：到货即补跑一次；scenes 只 set 一次，
+    // 身份稳定后不再重复触发。
     useEffect(() => {
         runSimulation();
-    }, [currentScene, sceneLoadVersion]);
+    }, [currentScene, sceneLoadVersion, scenes, runSimulation]);
 
     // 计算气垫导轨实验的光电门测量数据
     useEffect(() => {

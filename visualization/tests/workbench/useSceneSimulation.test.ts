@@ -147,4 +147,38 @@ describe('useSceneSimulation', () => {
         renderHook(() => useSceneSimulation());
         expect(useSimulationStore.getState().experimentData).toBeNull();
     });
+
+    // 回归 #111 症状 A（生产构建首屏 3D 空白）: scenes 经领域 chunk 异步到货，
+    // 首跑时 store.scenes 仍为空 → runSimulation 静默返回且永不重试，
+    // EquipmentStage 的 rAF 循环空转、暂停态永不补帧。修复 = 自动运行 effect 依赖
+    // scenes，到货即补跑一次。
+    it('回归 #111: scenes 异步到货后自动补跑一次仿真', () => {
+        mockRun.mockReturnValue({ result: okResult, error: null });
+        useSimulationStore.setState({ scenes: [], simulationResult: null });
+        renderHook(() => useSceneSimulation());
+        // 首跑时 scenes 为空：无 activeScene，不调用求解器、不写结果
+        expect(mockRun).not.toHaveBeenCalled();
+        expect(useSimulationStore.getState().simulationResult).toBeNull();
+        // scenes 到货 → 补跑一次，结果落盘
+        act(() => {
+            useSimulationStore.setState({ scenes: [scene('projectile')] });
+        });
+        expect(mockRun).toHaveBeenCalledTimes(1);
+        expect(useSimulationStore.getState().simulationResult).toBe(okResult);
+    });
+
+    it('回归 #111: scenes 到货补跑后不再重复触发', () => {
+        mockRun.mockReturnValue({ result: okResult, error: null });
+        useSimulationStore.setState({ scenes: [], simulationResult: null });
+        renderHook(() => useSceneSimulation());
+        act(() => {
+            useSimulationStore.setState({ scenes: [scene('projectile')] });
+        });
+        expect(mockRun).toHaveBeenCalledTimes(1);
+        // 无关 store 写入（如 currentTime）不引起重跑
+        act(() => {
+            useSimulationStore.setState({ currentTime: 0.5 });
+        });
+        expect(mockRun).toHaveBeenCalledTimes(1);
+    });
 });
