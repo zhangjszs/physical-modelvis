@@ -312,3 +312,72 @@ describe('暂停时按需渲染 (#79)', () => {
         expect(renderSpy.mock.calls.length).toBeGreaterThanOrEqual(5);
     });
 });
+
+// ---------------------------------------------------------------------------
+// 布局尺寸变化补帧 (#111 症状 B) — renderer.setSize 无条件重置 canvas bitmap;
+// 暂停态开数据抽屉挤压舞台时不清脏会永久空白。本回调模拟 StageRenderer.setSize
+// 之后同帧到达的 EquipmentStage 自身 RO 通知（canvas 样式 100% 跟随舞台）。
+// ---------------------------------------------------------------------------
+
+describe('布局尺寸变化补帧 (#111)', () => {
+    let roCallback: ResizeObserverCallback | null = null;
+
+    class ROControllable {
+        constructor(cb: ResizeObserverCallback) {
+            roCallback = cb;
+        }
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+    }
+
+    function fireResize() {
+        act(() => {
+            roCallback!([], ROControllable as unknown as ResizeObserver);
+        });
+    }
+
+    beforeEach(() => {
+        roCallback = null;
+        globalThis.ResizeObserver = ROControllable as unknown as typeof ResizeObserver;
+        rafQueue = [];
+        frameTime = 0;
+        vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
+            rafQueue.push(cb);
+            return rafQueue.length;
+        });
+        vi.stubGlobal('cancelAnimationFrame', () => {});
+    });
+
+    afterEach(() => {
+        vi.unstubAllGlobals();
+    });
+
+    function mountPausedStage() {
+        const rig = makeMockRig('resize-test');
+        const fakeRenderer = makeFakeRenderer();
+        const renderSpy = vi.spyOn(fakeRenderer, 'render');
+        render(<EquipmentStage rig={rig} renderer={fakeRenderer} />);
+        act(() => {
+            useSimulationStore.getState().setSimulationResult(minimalResult());
+        });
+        return renderSpy;
+    }
+
+    it('暂停时布局尺寸变化: 恰好补一帧, 之后不再持续渲染 (#79 语义保持)', () => {
+        const renderSpy = mountPausedStage();
+        flushFrames(1);
+        expect(renderSpy).toHaveBeenCalledTimes(1);
+        renderSpy.mockClear();
+        // 60 帧静默：无变化无渲染（#79 回归锚点）
+        flushFrames(60);
+        expect(renderSpy).not.toHaveBeenCalled();
+        // 抽屉开合式布局变化 → 补一帧
+        fireResize();
+        flushFrames(1);
+        expect(renderSpy).toHaveBeenCalledTimes(1);
+        // 之后恢复静默，不持续渲染
+        flushFrames(60);
+        expect(renderSpy).toHaveBeenCalledTimes(1);
+    });
+});
