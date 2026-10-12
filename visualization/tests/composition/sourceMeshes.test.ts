@@ -121,4 +121,30 @@ describe('sourceMeshes 组合实验台器材网格', () => {
         );
         expect(group.position.y).toBeCloseTo(0.4, 10);
     });
+
+    it('条形磁铁: 盒体含 N/S 双段子网格, 红蓝分色; 长度更新重建子几何', () => {
+        const p = placed('m1', {
+            kind: 'bar-magnet',
+            magneticMoment: 5,
+            center: { x: 0.2, y: 0.1, z: 0.15 },
+            direction: { x: 0, y: 1, z: 0 },
+            length: 0.2
+        });
+        const group = makeSourceMesh(p);
+        expect(group.userData.sourceId).toBe('m1');
+        expect(group.children).toHaveLength(2);
+
+        const nMesh = group.children[0] as THREE.Mesh;
+        const sMesh = group.children[1] as THREE.Mesh;
+        expect((nMesh.material as THREE.MeshStandardMaterial).color.getHex()).toBe(0xef4444); // 红色 N
+        expect((sMesh.material as THREE.MeshStandardMaterial).color.getHex()).toBe(0x3b82f6); // 蓝色 S
+
+        const beforeH = (nMesh.geometry as THREE.BoxGeometry).parameters.height;
+        expect(beforeH).toBeCloseTo(0.1, 10);
+
+        // 更新长度为 0.3
+        updateSourceMesh(group, placed('m1', { ...p.source, length: 0.3 } as FieldSource), false);
+        const afterH = ((group.children[0] as THREE.Mesh).geometry as THREE.BoxGeometry).parameters.height;
+        expect(afterH).toBeCloseTo(0.15, 10);
+    });
 });

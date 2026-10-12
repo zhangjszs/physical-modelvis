@@ -79,6 +79,51 @@ describe('composition 组合实验层', () => {
             expect(v1.valid).toBe(false);
             expect(v2.valid).toBe(false);
         });
+
+        it('条形磁铁校验: 合法通过; 磁矩 ≤ 0 / 长度 ≤ 0 / 零方向向量被拦截', () => {
+            const validExp: CompositionExperiment = {
+                sources: [
+                    {
+                        kind: 'bar-magnet',
+                        magneticMoment: 5,
+                        center: ZERO3,
+                        direction: Vec3.create(0, 1, 0),
+                        length: 0.2
+                    }
+                ],
+                particle: { charge: 1, mass: 1, position: ZERO3, velocity: ZERO3 },
+                duration: 1
+            };
+            expect(validateComposition(validExp).valid).toBe(true);
+
+            const vZeroM = validateComposition({
+                ...validExp,
+                sources: [{ kind: 'bar-magnet', magneticMoment: 0, center: ZERO3, direction: Vec3.create(0, 1, 0) }]
+            });
+            expect(vZeroM.valid).toBe(false);
+            expect(vZeroM.errors.some(e => e.param === 'sources[0].magneticMoment')).toBe(true);
+
+            const vBadLen = validateComposition({
+                ...validExp,
+                sources: [
+                    {
+                        kind: 'bar-magnet',
+                        magneticMoment: 5,
+                        center: ZERO3,
+                        direction: Vec3.create(0, 1, 0),
+                        length: -0.1
+                    }
+                ]
+            });
+            expect(vBadLen.valid).toBe(false);
+            expect(vBadLen.errors.some(e => e.param === 'sources[0].length')).toBe(true);
+
+            const vZeroDir = validateComposition({
+                ...validExp,
+                sources: [{ kind: 'bar-magnet', magneticMoment: 5, center: ZERO3, direction: ZERO3 }]
+            });
+            expect(vZeroDir.valid).toBe(false);
+        });
     });
 
     describe('compositionFieldAt 场求值器', () => {

@@ -4,6 +4,7 @@ import {
     chargedPlateElectricField,
     straightWireMagneticField,
     circularCoilMagneticField,
+    barMagnetMagneticField,
     totalElectricField,
     totalMagneticField,
     type FieldSource
@@ -161,6 +162,59 @@ describe('fields3d 可组合场源层', () => {
             expect(between.z).toBeCloseTo(-sigma / EPS0, 3);
             const outside = totalElectricField(sources, Vec3.create(0, 0, 1));
             expect(outside.z).toBeCloseTo(0, 6);
+        });
+    });
+
+    describe('barMagnetMagneticField 条形磁铁 (磁偶极子模型)', () => {
+        const m = 5;
+        const center = Vec3.zero();
+        const direction = Vec3.create(0, 1, 0); // 磁矩沿 +y
+
+        it('轴上解析解差分: 与 μ₀m/(2πz³) 相对偏差 < 1e-10', () => {
+            const z = 0.2;
+            const b = barMagnetMagneticField(m, center, direction, Vec3.create(0, z, 0));
+            const analytic = (MU0 * m) / (2 * Math.PI * Math.pow(z, 3));
+            expect(Math.abs(b.y - analytic) / analytic).toBeLessThan(1e-10);
+            expect(b.x).toBeCloseTo(0, 15);
+            expect(b.z).toBeCloseTo(0, 15);
+        });
+
+        it('赤道面解析解差分: 与 -μ₀m/(4πρ³) 相对偏差 < 1e-10', () => {
+            const rho = 0.2;
+            const b = barMagnetMagneticField(m, center, direction, Vec3.create(rho, 0, 0));
+            const analytic = -(MU0 * m) / (4 * Math.PI * Math.pow(rho, 3));
+            expect(Math.abs(b.y - analytic) / Math.abs(analytic)).toBeLessThan(1e-10);
+            expect(b.x).toBeCloseTo(0, 15);
+            expect(b.z).toBeCloseTo(0, 15);
+        });
+
+        it('遮蔽半径策略: 距中心 < shieldingRadius 返回零场 (有限值, 无奇点爆炸)', () => {
+            const bZero = barMagnetMagneticField(m, center, direction, Vec3.zero(), 0.02);
+            expect(bZero).toEqual(Vec3.zero());
+
+            const bNear = barMagnetMagneticField(m, center, direction, Vec3.create(0, 0.01, 0), 0.02);
+            expect(bNear).toEqual(Vec3.zero());
+            expect(Number.isFinite(bNear.x + bNear.y + bNear.z)).toBe(true);
+        });
+
+        it('非单位方向向量自动归一化', () => {
+            const bNormalized = barMagnetMagneticField(m, center, Vec3.create(0, 10, 0), Vec3.create(0, 0.2, 0));
+            const analytic = (MU0 * m) / (2 * Math.PI * Math.pow(0.2, 3));
+            expect(Math.abs(bNormalized.y - analytic) / analytic).toBeLessThan(1e-10);
+        });
+
+        it('totalMagneticField 包含条形磁铁的叠加', () => {
+            const sources: FieldSource[] = [
+                {
+                    kind: 'bar-magnet',
+                    magneticMoment: m,
+                    center,
+                    direction
+                }
+            ];
+            const b = totalMagneticField(sources, Vec3.create(0, 0.2, 0));
+            const analytic = (MU0 * m) / (2 * Math.PI * Math.pow(0.2, 3));
+            expect(Math.abs(b.y - analytic) / analytic).toBeLessThan(1e-10);
         });
     });
 });

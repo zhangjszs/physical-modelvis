@@ -4,7 +4,7 @@
 
 ## 测试状态
 
-- **测试数**: core 1149 / viz 1633 / 总计 2782 (全部通过) <!-- test-count -->
+- **测试数**: core 1155 / viz 1636 / 总计 2791 (全部通过) <!-- test-count -->
 - 质量门禁:`npm run precheck`(build:core → typecheck → lint → format:check → test → count:check → selfcheck)
 
 ## 项目简介
@@ -45,7 +45,8 @@
 
 ![实验导学](docs/screenshots/05-guidance-panel.png)
 
-**组合实验台** —— 自由组合点电荷 / 平板 / 导线 / 线圈，实时重算双色场线与带电粒子轨迹：
+**组合实验台** —— 自由组合点电荷 / 平板 / 导线 / 线圈 / 条形磁铁，实时重算双色场线与带电粒子轨迹：
+
 
 ![组合实验台](docs/screenshots/06-composition-bench.png)
 
@@ -300,9 +301,9 @@ cd visualization && npm run dev          # Vite dev server
 <!-- test-count -->
 
 ```
-physics-core:   1149 tests passed (127 files)
-visualization:  1633 tests passed (54 files)
-Total:          2782 tests passed
+physics-core:   1155 tests passed (127 files)
+visualization:  1636 tests passed (54 files)
+Total:          2791 tests passed
 ```
 
 准确性测试矩阵（`*/tests/accuracy/`）：
