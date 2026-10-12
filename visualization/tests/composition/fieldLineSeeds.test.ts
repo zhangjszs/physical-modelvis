@@ -137,6 +137,27 @@ describe('fieldLineSeeds 场线种子生成', () => {
         ).toEqual([]);
     });
 
+    it('条形磁铁种子: 赤道面环向分布, kind=magnetic, bidirectional=true', () => {
+        const magnet: FieldSource = {
+            kind: 'bar-magnet',
+            magneticMoment: 5,
+            center: ZERO3,
+            direction: { x: 0, y: 1, z: 0 }
+        };
+        const seeds = fieldLineSeeds([magnet]);
+        const expectedCount =
+            FIELD_LINE_SEED_CONFIG.barMagnet.radii.length * FIELD_LINE_SEED_CONFIG.barMagnet.azimuthCount;
+        expect(seeds).toHaveLength(expectedCount);
+        for (const s of seeds) {
+            expect(s.kind).toBe('magnetic');
+            expect(s.bidirectional).toBe(true);
+            // 磁矩沿 y 轴, 种子应位于赤道面 (y ≈ 0)
+            expect(Math.abs(s.start.y)).toBeLessThan(1e-9);
+            const r = Math.hypot(s.start.x, s.start.z);
+            expect(FIELD_LINE_SEED_CONFIG.barMagnet.radii.some(rad => Math.abs(rad - r) < 1e-4)).toBe(true);
+        }
+    });
+
     it('纯函数: 同输入两次调用结果相同且输入不被修改', () => {
         const sources: FieldSource[] = [{ kind: 'point-charge', charge: 1e-6, position: { x: 0.1, y: 0, z: 0.15 } }];
         const snapshot = JSON.parse(JSON.stringify(sources));

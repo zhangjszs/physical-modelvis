@@ -72,12 +72,13 @@ describe('compositionStore 组合实验台状态', () => {
         expect(selectedId).toBeNull();
     });
 
-    it('四类器材默认参数全部通过引擎校验 (可添加即可用)', () => {
-        for (const kind of Object.keys(SOURCE_DEFAULTS) as Array<keyof typeof SOURCE_DEFAULTS>) {
+    it('各类器材默认参数全部通过引擎校验 (可添加即可用)', () => {
+        const kinds = Object.keys(SOURCE_DEFAULTS) as Array<keyof typeof SOURCE_DEFAULTS>;
+        for (const kind of kinds) {
             useCompositionStore.getState().addSource(kind);
         }
         const { sources, validationMessage, result } = useCompositionStore.getState();
-        expect(sources).toHaveLength(4);
+        expect(sources).toHaveLength(kinds.length);
         expect(validationMessage).toBeNull();
         expect(result).not.toBeNull();
     });

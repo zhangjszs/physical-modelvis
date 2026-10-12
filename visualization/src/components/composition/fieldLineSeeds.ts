@@ -41,7 +41,9 @@ export const FIELD_LINE_SEED_CONFIG = {
     /** 导线: 垂直平面内多个半径的圆周种子, 沿轴向多个截面 */
     wire: { radii: [0.08, 0.18], axialOffsets: [-0.35, 0, 0.35] },
     /** 线圈: 近轴面多个轴向位置的环向种子 (捕捉穿过线圈的闭合磁力线) */
-    coil: { radialFactor: 0.6, axialFactors: [-0.5, 0, 0.5], azimuthCount: 4, lineLength: 2 }
+    coil: { radialFactor: 0.6, axialFactors: [-0.5, 0, 0.5], azimuthCount: 4, lineLength: 2 },
+    /** 条形磁铁: 赤道面对称面多个半径的环向种子 (双向追踪向两极汇聚成闭合环) */
+    barMagnet: { radii: [0.08, 0.18, 0.28], azimuthCount: 6, lineLength: 2.5 }
 } as const;
 
 /** 所有场线共用的追踪参数 (有界, 兼顾拖拽帧率与曲线平滑) */
@@ -218,6 +220,29 @@ function circularCoilSeeds(center: Vector3D, axis: Vector3D, radius: number, den
     return seeds;
 }
 
+/** 条形磁铁: 赤道面对称面多个半径 × 环向位置的种子 (双向追踪构成闭合环) */
+function barMagnetSeeds(center: Vector3D, direction: Vector3D, density: number): FieldLineSeed[] {
+    const basis = orthonormalBasis(direction);
+    if (!basis) return [];
+    const { radii: baseRadii, azimuthCount: baseAzimuth, lineLength } = FIELD_LINE_SEED_CONFIG.barMagnet;
+    const radii = spanValues(Math.min(...baseRadii), Math.max(...baseRadii), scaleCount(baseRadii.length, density));
+    const azimuthCount = scaleCount(baseAzimuth, density);
+    const seeds: FieldLineSeed[] = [];
+    for (const radius of radii) {
+        for (let k = 0; k < azimuthCount; k++) {
+            const theta = (2 * Math.PI * k) / azimuthCount;
+            const ringDir = addScaled(scaleVec(basis.u, Math.cos(theta)), basis.v, Math.sin(theta));
+            seeds.push({
+                kind: 'magnetic',
+                start: addScaled(center, ringDir, radius),
+                bidirectional: true,
+                maxArcLength: lineLength
+            });
+        }
+    }
+    return seeds;
+}
+
 /**
  * 按场源集合生成全部场线种子。
  * 电场源只产 electric 种子、磁场源只产 magnetic 种子; 方向退化的源跳过 (校验层负责报错)。
@@ -236,8 +261,10 @@ export function fieldLineSeeds(
             seeds.push(...chargedPlateSeeds(s.center, s.normal, d));
         } else if (s.kind === 'straight-wire') {
             seeds.push(...straightWireSeeds(s.point, s.direction, d));
-        } else {
+        } else if (s.kind === 'circular-coil') {
             seeds.push(...circularCoilSeeds(s.center, s.axis, s.radius, d));
+        } else if (s.kind === 'bar-magnet') {
+            seeds.push(...barMagnetSeeds(s.center, s.direction, d));
         }
     }
     return seeds;

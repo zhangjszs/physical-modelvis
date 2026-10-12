@@ -72,6 +72,24 @@ export type MagneticFieldSource =
           readonly axis: Vector3D;
           /** 圆环分段数 (毕奥-萨伐尔求和精度), 默认 96 */
           readonly segments?: number;
+      }
+    /**
+     * 条形磁铁 (磁偶极子模型): 3D 磁偶极闭式场
+     * B = (μ₀ / 4π) · [3(m·r̂)r̂ - m] / r³
+     * 遮蔽半径内无奇点爆炸 (返回零场)。
+     */
+    | {
+          readonly kind: 'bar-magnet';
+          /** 磁偶极矩大小 (A·m²), 正数 */
+          readonly magneticMoment: number;
+          /** 磁铁中心 */
+          readonly center: Vector3D;
+          /** 磁矩方向 / N极朝向 (内部归一化) */
+          readonly direction: Vector3D;
+          /** 特征长度 (m), 默认 0.2 */
+          readonly length?: number;
+          /** 遮蔽半径 (m), 默认 0.02 (小于此半径返回零场) */
+          readonly shieldingRadius?: number;
       };
 
 /** 任意场源 */
@@ -155,6 +173,32 @@ export function circularCoilMagneticField(
     return { x: bx, y: by, z: bz };
 }
 
+/**
+ * 条形磁铁 (磁偶极子) 磁场 (T)。
+ * B = (μ₀ / 4π) · [3(m⃗·r̂)r̂ - m⃗] / r³
+ * 场点在遮蔽半径内 (距中心 < shieldingRadius) 返回零场, 避免奇点发散。
+ */
+export function barMagnetMagneticField(
+    magneticMoment: number,
+    center: Vector3D,
+    direction: Vector3D,
+    at: Vector3D,
+    shieldingRadius = 0.02
+): Vector3D {
+    const d = Vec3.normalize(direction);
+    const rVec = Vec3.sub(at, center);
+    const r2 = Vec3.magnitudeSq(rVec);
+    const effShield = shieldingRadius > 0 ? shieldingRadius : FIELD_SOURCE_EPS;
+    if (r2 < effShield * effShield) return Vec3.zero();
+
+    const r = Math.sqrt(r2);
+    const mDotR = magneticMoment * Vec3.dot(d, rVec);
+    const factor = PHYSICS_CONSTANTS.mu0.value / (4 * Math.PI) / (r2 * r2 * r);
+    const term1 = Vec3.scale(rVec, 3 * mDotR);
+    const term2 = Vec3.scale(d, r2 * magneticMoment);
+    return Vec3.scale(Vec3.sub(term1, term2), factor);
+}
+
 /** 叠加全部场源的合电场 (N/C)。磁场源自动忽略。 */
 export function totalElectricField(sources: readonly FieldSource[], at: Vector3D): Vector3D {
     let ex = 0;
@@ -189,6 +233,11 @@ export function totalMagneticField(sources: readonly FieldSource[], at: Vector3D
             bz += b.z;
         } else if (s.kind === 'circular-coil') {
             const b = circularCoilMagneticField(s.current, s.turns, s.radius, s.center, s.axis, at, s.segments);
+            bx += b.x;
+            by += b.y;
+            bz += b.z;
+        } else if (s.kind === 'bar-magnet') {
+            const b = barMagnetMagneticField(s.magneticMoment, s.center, s.direction, at, s.shieldingRadius);
             bx += b.x;
             by += b.y;
             bz += b.z;

@@ -102,7 +102,7 @@ export function validateComposition(experiment: CompositionExperiment): Validati
                     errors.push({ code: 'INVALID_SOURCE', message: '导线电流必须是有限数', param: `${param}.current` });
                 }
                 Vec3.normalize(s.direction);
-            } else {
+            } else if (s.kind === 'circular-coil') {
                 if (!Number.isFinite(s.current) || !Number.isFinite(s.radius) || !Number.isFinite(s.turns)) {
                     errors.push({ code: 'INVALID_SOURCE', message: '线圈电流/半径/匝数必须是有限数', param });
                 } else if (!(s.radius > 0)) {
@@ -122,11 +122,27 @@ export function validateComposition(experiment: CompositionExperiment): Validati
                         param: `${param}.segments`
                     });
                 }
+            } else if (s.kind === 'bar-magnet') {
+                if (!Number.isFinite(s.magneticMoment) || s.magneticMoment <= 0) {
+                    errors.push({
+                        code: 'INVALID_SOURCE',
+                        message: '条形磁铁磁矩必须是大于 0 的有限数',
+                        param: `${param}.magneticMoment`
+                    });
+                }
+                if (s.length !== undefined && (!Number.isFinite(s.length) || s.length <= 0)) {
+                    errors.push({
+                        code: 'INVALID_SOURCE',
+                        message: '条形磁铁长度必须为正数',
+                        param: `${param}.length`
+                    });
+                }
+                Vec3.normalize(s.direction);
             }
         } catch {
             errors.push({
                 code: 'INVALID_SOURCE',
-                message: '场源的方向向量不能为零向量 (法线/导线方向/线圈轴)',
+                message: '场源的方向向量不能为零向量 (法线/导线方向/线圈轴/磁矩方向)',
                 param
             });
         }

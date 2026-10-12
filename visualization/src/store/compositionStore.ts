@@ -45,6 +45,16 @@ export const SOURCE_DEFAULTS: Record<SourceKind, { source: FieldSource; height: 
             axis: { x: 0, y: 1, z: 0 }
         },
         height: 0.15
+    },
+    'bar-magnet': {
+        source: {
+            kind: 'bar-magnet',
+            magneticMoment: 5,
+            center: { x: 0, y: 0, z: 0.15 },
+            direction: { x: 0, y: 1, z: 0 },
+            length: 0.2
+        },
+        height: 0.15
     }
 };
 
@@ -222,6 +232,8 @@ function applyPosition(source: FieldSource, position: Vector3D): FieldSource {
         case 'straight-wire':
             return { ...source, point: position };
         case 'circular-coil':
+            return { ...source, center: position };
+        case 'bar-magnet':
             return { ...source, center: position };
     }
 }

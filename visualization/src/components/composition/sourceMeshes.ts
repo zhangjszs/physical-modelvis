@@ -66,8 +66,19 @@ export function makeSourceMesh(placed: PlacedSource): THREE.Group {
         group.add(makeBox(1.0, 0.7, 0.02, COLOR_PLATE));
     } else if (s.kind === 'straight-wire') {
         group.add(makeCylinder(0.025, 1.6, COLOR_WIRE));
-    } else {
+    } else if (s.kind === 'circular-coil') {
         group.add(makeTorus(Math.max(0.05, s.radius), 0.018, COLOR_COIL));
+    } else if (s.kind === 'bar-magnet') {
+        const len = Math.max(0.08, s.length ?? 0.2);
+        const halfLen = len / 2;
+        const width = 0.05;
+        const depth = 0.04;
+        const nMesh = makeBox(width, halfLen, depth, COLOR_POSITIVE);
+        nMesh.position.set(0, halfLen / 2, 0);
+        const sMesh = makeBox(width, halfLen, depth, COLOR_NEGATIVE);
+        sMesh.position.set(0, -halfLen / 2, 0);
+        group.add(nMesh);
+        group.add(sMesh);
     }
 
     applyTransform(group, placed);
@@ -95,6 +106,28 @@ export function updateSourceMesh(group: THREE.Group, placed: PlacedSource, selec
             mesh.geometry = replacement.geometry;
         }
     }
+    // 条形磁铁长度变化 → 重建两半几何
+    if (s.kind === 'bar-magnet') {
+        const len = Math.max(0.08, s.length ?? 0.2);
+        const halfLen = len / 2;
+        const nMesh = group.children[0] as THREE.Mesh | undefined;
+        const sMesh = group.children[1] as THREE.Mesh | undefined;
+        if (nMesh && (nMesh.geometry as THREE.BoxGeometry).parameters?.height !== halfLen) {
+            const width = 0.05;
+            const depth = 0.04;
+            const newN = makeBox(width, halfLen, depth, COLOR_POSITIVE);
+            nMesh.geometry.dispose();
+            nMesh.geometry = newN.geometry;
+            nMesh.position.set(0, halfLen / 2, 0);
+
+            if (sMesh) {
+                const newS = makeBox(width, halfLen, depth, COLOR_NEGATIVE);
+                sMesh.geometry.dispose();
+                sMesh.geometry = newS.geometry;
+                sMesh.position.set(0, -halfLen / 2, 0);
+            }
+        }
+    }
 
     applyTransform(group, placed);
     setHighlight(group, selected);
@@ -115,6 +148,10 @@ function applyTransform(group: THREE.Group, placed: PlacedSource): void {
             const w = physicsToWorld(s.center);
             group.position.set(w.x, w.y, w.z);
             setAxisAlignment(group, new THREE.Vector3(0, 0, 1), toWorldDirection(s.axis));
+        } else if (s.kind === 'bar-magnet') {
+            const w = physicsToWorld(s.center);
+            group.position.set(w.x, w.y, w.z);
+            setAxisAlignment(group, new THREE.Vector3(0, 1, 0), toWorldDirection(s.direction));
         } else {
             const w = physicsToWorld(s.position);
             group.position.set(w.x, w.y, w.z);

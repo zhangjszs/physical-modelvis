@@ -12,7 +12,8 @@ const PALETTE: Array<{ kind: SourceKind; label: string }> = [
     { kind: 'point-charge', label: '＋ 点电荷' },
     { kind: 'charged-plate', label: '▬ 带电平板' },
     { kind: 'straight-wire', label: '│ 载流导线' },
-    { kind: 'circular-coil', label: '◯ 圆形线圈' }
+    { kind: 'circular-coil', label: '◯ 圆形线圈' },
+    { kind: 'bar-magnet', label: '🧲 条形磁铁' }
 ];
 
 /** 各类器材可在检查器编辑的数值字段 */
@@ -24,6 +25,10 @@ const EDITABLE_FIELDS: Record<SourceKind, Array<{ key: string; label: string; st
         { key: 'current', label: '电流 I (A)', step: 0.5 },
         { key: 'turns', label: '匝数 N', step: 1 },
         { key: 'radius', label: '半径 R (m)', step: 0.01 }
+    ],
+    'bar-magnet': [
+        { key: 'magneticMoment', label: '磁矩 m (A·m²)', step: 0.5 },
+        { key: 'length', label: '长度 L (m)', step: 0.02 }
     ]
 };
 
@@ -31,7 +36,8 @@ const KIND_LABEL: Record<SourceKind, string> = {
     'point-charge': '点电荷',
     'charged-plate': '带电平板',
     'straight-wire': '载流导线',
-    'circular-coil': '圆形线圈'
+    'circular-coil': '圆形线圈',
+    'bar-magnet': '条形磁铁'
 };
 
 /** 场线密度档位 (#93): 与 fieldLineSeeds 的 FIELD_LINE_DENSITY 区间一致 */

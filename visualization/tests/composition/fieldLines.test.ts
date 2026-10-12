@@ -92,6 +92,31 @@ describe('buildFieldLines 场线几何构建', () => {
         }
     });
 
+    it('条形磁铁磁场线: 生成外部闭合环拓扑且全部点坐标有限 (无奇点爆炸)', () => {
+        const lines = buildFieldLines(
+            [
+                {
+                    kind: 'bar-magnet',
+                    magneticMoment: 5,
+                    center: { x: 0, y: 0, z: 0.15 },
+                    direction: { x: 0, y: 1, z: 0 },
+                    length: 0.2
+                }
+            ],
+            'magnetic'
+        );
+        expect(lines.length).toBeGreaterThan(0);
+        let closedCount = 0;
+        for (const line of lines) {
+            expect(line.length).toBeGreaterThan(1);
+            for (const p of line) {
+                expect(Number.isFinite(p.x + p.y + p.z)).toBe(true);
+            }
+            if (isClosedLine(line)) closedCount++;
+        }
+        expect(closedCount).toBeGreaterThan(0);
+    });
+
     it('平行板电容器: 两板叠加的电场线有限且不越界', () => {
         const sigma = 2e-6;
         const lines = buildFieldLines(
