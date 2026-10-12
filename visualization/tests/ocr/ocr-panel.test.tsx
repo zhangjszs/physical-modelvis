@@ -96,6 +96,44 @@ describe('OCRPanel — 打开/关闭', () => {
         fireEvent.click(document.querySelector('.ocr-close')!);
         await waitFor(() => expect(document.querySelector('.ocr-overlay')).toBeNull());
     });
+
+    it('positive: 点遮罩 (ocr-overlay) 可关闭面板; 点 modal 内部不触发关闭 (#112)', async () => {
+        stubFetch(recognizeOk([]));
+        render(<OCRPanel />);
+
+        await openPanel();
+        const overlay = document.querySelector('.ocr-overlay');
+        const modal = document.querySelector('.ocr-modal');
+        expect(overlay).toBeTruthy();
+        expect(modal).toBeTruthy();
+
+        // 点击 modal 内部区域通过 stopPropagation 阻止冒泡，不触发关闭
+        fireEvent.click(modal!);
+        expect(document.querySelector('.ocr-overlay')).toBeTruthy();
+
+        // 点击遮罩本身触发关闭
+        fireEvent.click(overlay!);
+        await waitFor(() => expect(document.querySelector('.ocr-overlay')).toBeNull());
+    });
+
+    it('positive: modal overlay 经 createPortal 挂载至 document.body 而非组件父容器 (解除 top-bar 包含块限制, #112)', async () => {
+        stubFetch(recognizeOk([]));
+        const { container } = render(<OCRPanel />);
+
+        expect(document.querySelector('.ocr-overlay')).toBeNull();
+        await openPanel();
+
+        const overlay = document.querySelector('.ocr-overlay');
+        expect(overlay).toBeTruthy();
+        // 核心验证: overlay 挂载在 document.body 下，绝不在组件父容器 (如 top-bar) 内部
+        expect(container.contains(overlay)).toBe(false);
+        expect(document.body.contains(overlay)).toBe(true);
+        // 触发按钮依然保留在组件父容器内
+        expect(container.querySelector('button')).toBeTruthy();
+
+        fireEvent.click(document.querySelector('.ocr-close')!);
+        await waitFor(() => expect(document.querySelector('.ocr-overlay')).toBeNull());
+    });
 });
 
 describe('OCRPanel — 文件校验', () => {
