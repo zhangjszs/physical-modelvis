@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useSimulationStore } from '../../store/simulationStore';
 import { resolveScene, buildSceneParams, inferProblemTypeLabel } from './ocrUtils';
 import { analyzePhysicsProblem, type ProblemAnalysis } from '../../analysis/problemAnalyzer';
@@ -304,8 +305,8 @@ export function OCRPanel() {
         setIsOpen(false);
     }, [analysis, setScene, setParameter, setAppMode]);
 
-    if (!isOpen) {
-        return (
+    return (
+        <>
             <button
                 className="btn btn-sm"
                 onClick={() => setIsOpen(true)}
@@ -313,328 +314,348 @@ export function OCRPanel() {
             >
                 📷 拍照解题
             </button>
-        );
-    }
+            {isOpen &&
+                createPortal(
+                    <div className="ocr-overlay visible" onClick={() => setIsOpen(false)}>
+                        <div className="ocr-modal" onClick={e => e.stopPropagation()}>
+                            <button className="ocr-close" onClick={() => setIsOpen(false)}>
+                                &times;
+                            </button>
+                            <div className="ocr-title">AI 拍照解题</div>
 
-    return (
-        <div className="ocr-overlay visible" onClick={() => setIsOpen(false)}>
-            <div className="ocr-modal" onClick={e => e.stopPropagation()}>
-                <button className="ocr-close" onClick={() => setIsOpen(false)}>
-                    &times;
-                </button>
-                <div className="ocr-title">AI 拍照解题</div>
-
-                <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-                    <button
-                        className={`btn btn-sm ${entryMode === 'image' ? 'btn-primary' : ''}`}
-                        onClick={() => setEntryMode('image')}
-                        style={{ flex: 1 }}
-                    >
-                        📷 拍照识别
-                    </button>
-                    <button
-                        className={`btn btn-sm ${entryMode === 'text' ? 'btn-primary' : ''}`}
-                        onClick={() => setEntryMode('text')}
-                        style={{ flex: 1 }}
-                    >
-                        📝 粘贴题干
-                    </button>
-                </div>
-
-                {entryMode === 'image' && (
-                    <>
-                        {!preview ? (
-                            <div
-                                className="ocr-dropzone"
-                                onDragOver={e => e.preventDefault()}
-                                onDrop={handleDrop}
-                                onClick={() => fileRef.current?.click()}
-                            >
-                                <div style={{ fontSize: 36, opacity: 0.6 }}>📷</div>
-                                <div style={{ fontSize: 13, color: 'var(--text2)' }}>拖拽图片或点击选择</div>
-                                <input
-                                    ref={fileRef}
-                                    type="file"
-                                    accept="image/*"
-                                    style={{ display: 'none' }}
-                                    onChange={e => {
-                                        const f = e.target.files?.[0];
-                                        if (f) handleFile(f);
-                                    }}
-                                />
-                            </div>
-                        ) : (
-                            <div className="ocr-preview">
-                                <img
-                                    src={preview}
-                                    alt="预览"
-                                    style={{ maxWidth: '100%', maxHeight: 200, borderRadius: 8 }}
-                                />
+                            <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
                                 <button
-                                    className="btn btn-sm"
-                                    onClick={() => {
-                                        setPreview(null);
-                                        base64Ref.current = null;
-                                        setProblems(null);
-                                        setActiveIndex(0);
-                                        setVariants(null);
-                                        setVariantIndex(0);
-                                        setStatus(null);
-                                    }}
-                                    style={{ marginTop: 8, color: '#ef4444' }}
+                                    className={`btn btn-sm ${entryMode === 'image' ? 'btn-primary' : ''}`}
+                                    onClick={() => setEntryMode('image')}
+                                    style={{ flex: 1 }}
                                 >
-                                    移除
+                                    📷 拍照识别
+                                </button>
+                                <button
+                                    className={`btn btn-sm ${entryMode === 'text' ? 'btn-primary' : ''}`}
+                                    onClick={() => setEntryMode('text')}
+                                    style={{ flex: 1 }}
+                                >
+                                    📝 粘贴题干
                                 </button>
                             </div>
-                        )}
 
-                        <details className="ocr-config">
-                            <summary>设置</summary>
-                            <div className="ocr-field">
-                                <label>后端状态</label>
-                                <span
-                                    style={{
-                                        color: backendOk === null ? '#94a3b8' : backendOk ? '#22c55e' : '#ef4444',
-                                        fontSize: 13
-                                    }}
-                                >
-                                    {backendOk === null
-                                        ? '检测中...'
-                                        : backendOk
-                                          ? '已连接'
-                                          : '未连接 (请启动 ocr-proxy)'}
-                                </span>
-                            </div>
-                            {providerOptions.length > 0 && (
-                                <div className="ocr-field">
-                                    <label>提供方</label>
-                                    <select
-                                        value={provider}
-                                        onChange={e => {
-                                            setProvider(e.target.value);
-                                            saveProvider(e.target.value);
-                                        }}
-                                    >
-                                        <option value="">
-                                            默认{health?.defaultProvider ? ` (${health.defaultProvider})` : ''}
-                                        </option>
-                                        {providerOptions.map(p => (
-                                            <option key={p.id} value={p.id}>
-                                                {p.id}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                            )}
-                            <div className="ocr-field">
-                                <label>模型</label>
-                                <input
-                                    type="text"
-                                    value={model}
-                                    onChange={e => setModel(e.target.value)}
-                                    placeholder={selectedDefaultModel ? `${selectedDefaultModel} (默认)` : '默认模型'}
-                                />
-                            </div>
-                        </details>
-
-                        <button
-                            className="btn btn-primary"
-                            onClick={doRecognize}
-                            disabled={!preview || loading || generating || backendOk === false}
-                            style={{ width: '100%', marginTop: 12 }}
-                        >
-                            {loading ? '识别中...' : '识别题目'}
-                        </button>
-
-                        {status && <div className={`ocr-status ${status.type}`}>{status.msg}</div>}
-
-                        {problems && problems.length > 1 && (
-                            <div className="ocr-nav" role="tablist" aria-label="题目导航">
-                                {problems.map((_, i) => (
-                                    <button
-                                        key={i}
-                                        role="tab"
-                                        aria-selected={i === activeIndex}
-                                        className={`ocr-nav-btn ${i === activeIndex ? 'active' : ''}`}
-                                        onClick={() => switchProblemTab(i)}
-                                    >
-                                        {i + 1}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-
-                        {activeProblem && (
-                            <div className="ocr-result">
-                                <div className="ocr-result-head">
-                                    <span className="ocr-result-type">
-                                        {inferProblemTypeLabel(
-                                            activeProblem.type,
-                                            (activeProblem.options ?? []).length > 0
-                                        )}
-                                    </span>
-                                    <span className="ocr-result-title">
-                                        {activeProblem.index != null && problems!.length > 1
-                                            ? `第 ${activeProblem.index} 题: `
-                                            : ''}
-                                        {activeProblem.title ?? '未命名'}
-                                    </span>
-                                </div>
-                                <ProblemBody problem={activeProblem} />
-                                <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                                    <button
-                                        className="btn btn-primary"
-                                        onClick={loadIntoSimulation}
-                                        style={{ flex: 1 }}
-                                    >
-                                        加载仿真
-                                    </button>
-                                    <button
-                                        className="btn"
-                                        onClick={doGenerate}
-                                        disabled={generating || backendOk === false}
-                                        style={{
-                                            flex: 1,
-                                            background: 'rgba(251,191,36,0.15)',
-                                            borderColor: 'rgba(251,191,36,0.3)',
-                                            color: '#fbbf24'
-                                        }}
-                                    >
-                                        {generating ? '生成中...' : '✨ 举一反三'}
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-
-                        {variants && variants.length > 0 && (
-                            <div
-                                className="ocr-result"
-                                style={{ marginTop: 12, borderTop: '1px dashed rgba(148,163,184,0.4)', paddingTop: 12 }}
-                            >
-                                <div className="ocr-result-head">
-                                    <span className="ocr-result-type">举一反三</span>
-                                    <span className="ocr-result-title">变式题 (共 {variants.length} 道)</span>
-                                </div>
-                                {variants.length > 1 && (
-                                    <div className="ocr-nav" role="tablist" aria-label="变式题导航">
-                                        {variants.map((_, i) => (
+                            {entryMode === 'image' && (
+                                <>
+                                    {!preview ? (
+                                        <div
+                                            className="ocr-dropzone"
+                                            onDragOver={e => e.preventDefault()}
+                                            onDrop={handleDrop}
+                                            onClick={() => fileRef.current?.click()}
+                                        >
+                                            <div style={{ fontSize: 36, opacity: 0.6 }}>📷</div>
+                                            <div style={{ fontSize: 13, color: 'var(--text2)' }}>
+                                                拖拽图片或点击选择
+                                            </div>
+                                            <input
+                                                ref={fileRef}
+                                                type="file"
+                                                accept="image/*"
+                                                style={{ display: 'none' }}
+                                                onChange={e => {
+                                                    const f = e.target.files?.[0];
+                                                    if (f) handleFile(f);
+                                                }}
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className="ocr-preview">
+                                            <img
+                                                src={preview}
+                                                alt="预览"
+                                                style={{ maxWidth: '100%', maxHeight: 200, borderRadius: 8 }}
+                                            />
                                             <button
-                                                key={i}
-                                                role="tab"
-                                                aria-selected={i === variantIndex}
-                                                className={`ocr-nav-btn ${i === variantIndex ? 'active' : ''}`}
-                                                onClick={() => setVariantIndex(i)}
+                                                className="btn btn-sm"
+                                                onClick={() => {
+                                                    setPreview(null);
+                                                    base64Ref.current = null;
+                                                    setProblems(null);
+                                                    setActiveIndex(0);
+                                                    setVariants(null);
+                                                    setVariantIndex(0);
+                                                    setStatus(null);
+                                                }}
+                                                style={{ marginTop: 8, color: '#ef4444' }}
                                             >
-                                                {i + 1}
+                                                移除
                                             </button>
-                                        ))}
-                                    </div>
-                                )}
-                                {activeVariant && (
-                                    <>
-                                        <div className="ocr-result-head">
-                                            <span className="ocr-result-type">
-                                                {inferProblemTypeLabel(
-                                                    activeVariant.type,
-                                                    (activeVariant.options ?? []).length > 0
-                                                )}
-                                            </span>
-                                            <span className="ocr-result-title">
-                                                {variants.length > 1 ? `第 ${variantIndex + 1} 题: ` : ''}
-                                                {activeVariant.title ?? '未命名'}
+                                        </div>
+                                    )}
+
+                                    <details className="ocr-config">
+                                        <summary>设置</summary>
+                                        <div className="ocr-field">
+                                            <label>后端状态</label>
+                                            <span
+                                                style={{
+                                                    color:
+                                                        backendOk === null
+                                                            ? '#94a3b8'
+                                                            : backendOk
+                                                              ? '#22c55e'
+                                                              : '#ef4444',
+                                                    fontSize: 13
+                                                }}
+                                            >
+                                                {backendOk === null
+                                                    ? '检测中...'
+                                                    : backendOk
+                                                      ? '已连接'
+                                                      : '未连接 (请启动 ocr-proxy)'}
                                             </span>
                                         </div>
-                                        <ProblemBody problem={activeVariant} />
-                                        <button
-                                            className="btn btn-primary"
-                                            onClick={() => loadProblemIntoSimulation(activeVariant)}
-                                            style={{ width: '100%', marginTop: 12 }}
-                                        >
-                                            加载仿真
-                                        </button>
-                                    </>
-                                )}
-                            </div>
-                        )}
-                    </>
-                )}
-
-                {entryMode === 'text' && (
-                    <>
-                        <textarea
-                            value={problemText}
-                            onChange={e => setProblemText(e.target.value)}
-                            rows={5}
-                            placeholder="粘贴题目文字，如：从距地面20m高处以10m/s的速度水平抛出一小球，取g=9.8m/s²。"
-                            style={{
-                                width: '100%',
-                                background: 'rgba(15,23,42,0.6)',
-                                border: '1px solid rgba(148,163,184,0.3)',
-                                borderRadius: 8,
-                                padding: 10,
-                                color: 'var(--text1, #e2e8f0)',
-                                fontSize: 13,
-                                resize: 'vertical',
-                                boxSizing: 'border-box'
-                            }}
-                        />
-                        <button
-                            className="btn btn-primary"
-                            onClick={doAnalyze}
-                            disabled={!problemText.trim() || analyzing}
-                            style={{ width: '100%', marginTop: 8 }}
-                        >
-                            {analyzing ? '建模中...' : '自动建模 (本地关键词, 不调用 AI)'}
-                        </button>
-
-                        {status && <div className={`ocr-status ${status.type}`}>{status.msg}</div>}
-
-                        {analysis && (
-                            <div className="ocr-result">
-                                <div className="ocr-result-head">
-                                    <span className="ocr-result-type">自动建模</span>
-                                    <span className="ocr-result-title">
-                                        {analysis.sceneName} · 置信度 {Math.round(analysis.confidence * 100)}%
-                                    </span>
-                                </div>
-                                {analysis.confidence < ANALYZE_CONFIDENCE_THRESHOLD && (
-                                    <div className="ocr-status error">自动建模置信度较低，建议手动确认或切换场景</div>
-                                )}
-                                {analysis.warnings.length > 0 && (
-                                    <div className="ocr-result-desc" style={{ color: '#f59e0b' }}>
-                                        {analysis.warnings.map((w, i) => (
-                                            <div key={i}>{w}</div>
-                                        ))}
-                                    </div>
-                                )}
-                                {analysis.extracted.length > 0 && (
-                                    <div className="ocr-result-options">
-                                        {analysis.extracted.map((q, i) => (
-                                            <div key={i} className="ocr-result-opt">
-                                                <strong>{q.label}:</strong> {q.value} {q.unit}
+                                        {providerOptions.length > 0 && (
+                                            <div className="ocr-field">
+                                                <label>提供方</label>
+                                                <select
+                                                    value={provider}
+                                                    onChange={e => {
+                                                        setProvider(e.target.value);
+                                                        saveProvider(e.target.value);
+                                                    }}
+                                                >
+                                                    <option value="">
+                                                        默认
+                                                        {health?.defaultProvider ? ` (${health.defaultProvider})` : ''}
+                                                    </option>
+                                                    {providerOptions.map(p => (
+                                                        <option key={p.id} value={p.id}>
+                                                            {p.id}
+                                                        </option>
+                                                    ))}
+                                                </select>
                                             </div>
-                                        ))}
-                                    </div>
-                                )}
-                                {analysis.assumptions.length > 0 && (
-                                    <div className="ocr-result-desc" style={{ fontSize: 12, opacity: 0.7 }}>
-                                        {analysis.assumptions.map((a, i) => (
-                                            <div key={i}>{a}</div>
-                                        ))}
-                                    </div>
-                                )}
-                                <button
-                                    className="btn btn-primary"
-                                    onClick={loadAnalysisIntoSimulation}
-                                    style={{ width: '100%', marginTop: 12 }}
-                                >
-                                    加载仿真
-                                </button>
-                            </div>
-                        )}
-                    </>
+                                        )}
+                                        <div className="ocr-field">
+                                            <label>模型</label>
+                                            <input
+                                                type="text"
+                                                value={model}
+                                                onChange={e => setModel(e.target.value)}
+                                                placeholder={
+                                                    selectedDefaultModel ? `${selectedDefaultModel} (默认)` : '默认模型'
+                                                }
+                                            />
+                                        </div>
+                                    </details>
+
+                                    <button
+                                        className="btn btn-primary"
+                                        onClick={doRecognize}
+                                        disabled={!preview || loading || generating || backendOk === false}
+                                        style={{ width: '100%', marginTop: 12 }}
+                                    >
+                                        {loading ? '识别中...' : '识别题目'}
+                                    </button>
+
+                                    {status && <div className={`ocr-status ${status.type}`}>{status.msg}</div>}
+
+                                    {problems && problems.length > 1 && (
+                                        <div className="ocr-nav" role="tablist" aria-label="题目导航">
+                                            {problems.map((_, i) => (
+                                                <button
+                                                    key={i}
+                                                    role="tab"
+                                                    aria-selected={i === activeIndex}
+                                                    className={`ocr-nav-btn ${i === activeIndex ? 'active' : ''}`}
+                                                    onClick={() => switchProblemTab(i)}
+                                                >
+                                                    {i + 1}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {activeProblem && (
+                                        <div className="ocr-result">
+                                            <div className="ocr-result-head">
+                                                <span className="ocr-result-type">
+                                                    {inferProblemTypeLabel(
+                                                        activeProblem.type,
+                                                        (activeProblem.options ?? []).length > 0
+                                                    )}
+                                                </span>
+                                                <span className="ocr-result-title">
+                                                    {activeProblem.index != null && problems!.length > 1
+                                                        ? `第 ${activeProblem.index} 题: `
+                                                        : ''}
+                                                    {activeProblem.title ?? '未命名'}
+                                                </span>
+                                            </div>
+                                            <ProblemBody problem={activeProblem} />
+                                            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                                                <button
+                                                    className="btn btn-primary"
+                                                    onClick={loadIntoSimulation}
+                                                    style={{ flex: 1 }}
+                                                >
+                                                    加载仿真
+                                                </button>
+                                                <button
+                                                    className="btn"
+                                                    onClick={doGenerate}
+                                                    disabled={generating || backendOk === false}
+                                                    style={{
+                                                        flex: 1,
+                                                        background: 'rgba(251,191,36,0.15)',
+                                                        borderColor: 'rgba(251,191,36,0.3)',
+                                                        color: '#fbbf24'
+                                                    }}
+                                                >
+                                                    {generating ? '生成中...' : '✨ 举一反三'}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {variants && variants.length > 0 && (
+                                        <div
+                                            className="ocr-result"
+                                            style={{
+                                                marginTop: 12,
+                                                borderTop: '1px dashed rgba(148,163,184,0.4)',
+                                                paddingTop: 12
+                                            }}
+                                        >
+                                            <div className="ocr-result-head">
+                                                <span className="ocr-result-type">举一反三</span>
+                                                <span className="ocr-result-title">
+                                                    变式题 (共 {variants.length} 道)
+                                                </span>
+                                            </div>
+                                            {variants.length > 1 && (
+                                                <div className="ocr-nav" role="tablist" aria-label="变式题导航">
+                                                    {variants.map((_, i) => (
+                                                        <button
+                                                            key={i}
+                                                            role="tab"
+                                                            aria-selected={i === variantIndex}
+                                                            className={`ocr-nav-btn ${i === variantIndex ? 'active' : ''}`}
+                                                            onClick={() => setVariantIndex(i)}
+                                                        >
+                                                            {i + 1}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                            {activeVariant && (
+                                                <>
+                                                    <div className="ocr-result-head">
+                                                        <span className="ocr-result-type">
+                                                            {inferProblemTypeLabel(
+                                                                activeVariant.type,
+                                                                (activeVariant.options ?? []).length > 0
+                                                            )}
+                                                        </span>
+                                                        <span className="ocr-result-title">
+                                                            {variants.length > 1 ? `第 ${variantIndex + 1} 题: ` : ''}
+                                                            {activeVariant.title ?? '未命名'}
+                                                        </span>
+                                                    </div>
+                                                    <ProblemBody problem={activeVariant} />
+                                                    <button
+                                                        className="btn btn-primary"
+                                                        onClick={() => loadProblemIntoSimulation(activeVariant)}
+                                                        style={{ width: '100%', marginTop: 12 }}
+                                                    >
+                                                        加载仿真
+                                                    </button>
+                                                </>
+                                            )}
+                                        </div>
+                                    )}
+                                </>
+                            )}
+
+                            {entryMode === 'text' && (
+                                <>
+                                    <textarea
+                                        value={problemText}
+                                        onChange={e => setProblemText(e.target.value)}
+                                        rows={5}
+                                        placeholder="粘贴题目文字，如：从距地面20m高处以10m/s的速度水平抛出一小球，取g=9.8m/s²。"
+                                        style={{
+                                            width: '100%',
+                                            background: 'rgba(15,23,42,0.6)',
+                                            border: '1px solid rgba(148,163,184,0.3)',
+                                            borderRadius: 8,
+                                            padding: 10,
+                                            color: 'var(--text1, #e2e8f0)',
+                                            fontSize: 13,
+                                            resize: 'vertical',
+                                            boxSizing: 'border-box'
+                                        }}
+                                    />
+                                    <button
+                                        className="btn btn-primary"
+                                        onClick={doAnalyze}
+                                        disabled={!problemText.trim() || analyzing}
+                                        style={{ width: '100%', marginTop: 8 }}
+                                    >
+                                        {analyzing ? '建模中...' : '自动建模 (本地关键词, 不调用 AI)'}
+                                    </button>
+
+                                    {status && <div className={`ocr-status ${status.type}`}>{status.msg}</div>}
+
+                                    {analysis && (
+                                        <div className="ocr-result">
+                                            <div className="ocr-result-head">
+                                                <span className="ocr-result-type">自动建模</span>
+                                                <span className="ocr-result-title">
+                                                    {analysis.sceneName} · 置信度{' '}
+                                                    {Math.round(analysis.confidence * 100)}%
+                                                </span>
+                                            </div>
+                                            {analysis.confidence < ANALYZE_CONFIDENCE_THRESHOLD && (
+                                                <div className="ocr-status error">
+                                                    自动建模置信度较低，建议手动确认或切换场景
+                                                </div>
+                                            )}
+                                            {analysis.warnings.length > 0 && (
+                                                <div className="ocr-result-desc" style={{ color: '#f59e0b' }}>
+                                                    {analysis.warnings.map((w, i) => (
+                                                        <div key={i}>{w}</div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                            {analysis.extracted.length > 0 && (
+                                                <div className="ocr-result-options">
+                                                    {analysis.extracted.map((q, i) => (
+                                                        <div key={i} className="ocr-result-opt">
+                                                            <strong>{q.label}:</strong> {q.value} {q.unit}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                            {analysis.assumptions.length > 0 && (
+                                                <div className="ocr-result-desc" style={{ fontSize: 12, opacity: 0.7 }}>
+                                                    {analysis.assumptions.map((a, i) => (
+                                                        <div key={i}>{a}</div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                            <button
+                                                className="btn btn-primary"
+                                                onClick={loadAnalysisIntoSimulation}
+                                                style={{ width: '100%', marginTop: 12 }}
+                                            >
+                                                加载仿真
+                                            </button>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </div>
+                    </div>,
+                    document.body
                 )}
-            </div>
-        </div>
+        </>
     );
 }
