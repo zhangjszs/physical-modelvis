@@ -44,6 +44,12 @@ export const D_GAS_25C = 1e-5;
 /** 普朗克常数 h (J·s) — 光电效应/电子衍射 — 引用引擎单一真源 (#54) */
 export const PLANCK_H = PHYSICS_CONSTANTS.h.value;
 
+/** 电子质量 m_e (kg) — 引用引擎单一真源 (#109) */
+export const ELECTRON_MASS = PHYSICS_CONSTANTS.electronMass.value;
+
+/** 万有引力常量 G (N·m²/kg²) — 引用引擎单一真源 (#109) */
+export const GRAVITATIONAL_CONSTANT = PHYSICS_CONSTANTS.G.value;
+
 /**
  * 重力加速度 g (m/s²) — 教材口径 9.8 (与引擎 PHYSICS_CONSTANTS.g.value 同值)。
  * 渲染层场景回退默认 g 用此常量, 避免 20+ 处内联 9.8 漂移 (#52)。
@@ -172,9 +178,9 @@ export function stefanBoltzmannExitance(T: number): number {
 }
 
 /**
- * 维恩位移定律: λ_max = b / T (b ≈ 2.898×10⁻³ m·K)
+ * 维恩位移定律: λ_max = b / T — 引用引擎单一真源 (#109, 教材口径 2.898e-3)
  */
-export const WIEN_B = 2.897771955e-3;
+export const WIEN_B = PHYSICS_CONSTANTS.bWien.value;
 export function wienPeakWavelength(T: number): number {
     return WIEN_B / T;
 }

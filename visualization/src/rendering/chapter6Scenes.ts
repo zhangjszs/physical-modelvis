@@ -9,7 +9,7 @@
  * 设计原则：纯函数 + 屏幕坐标, 零依赖 React/Zustand/CoordinateTransformer
  */
 import type { SimulationResult } from 'physics-core';
-import { G_ACCELERATION } from './constants';
+import { G_ACCELERATION, GRAVITATIONAL_CONSTANT } from './constants';
 import {
     roundRectPath,
     textColor,
@@ -166,7 +166,7 @@ export function drawCavendishScene(opts: MechanicsSceneOptions): void {
     const torsionConst = params['torsionConst'] ?? 1e-4;
     const mirrorDist = params['mirrorDist'] ?? 5;
 
-    const G = 6.674e-11;
+    const G = GRAVITATIONAL_CONSTANT;
     const armLength = 1;
     const F = (G * m1 * m2) / (distance * distance);
     const tau = F * armLength;

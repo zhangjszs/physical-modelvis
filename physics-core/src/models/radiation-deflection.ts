@@ -38,7 +38,7 @@ export class RadiationDeflectionModel extends PhysicsModelBase {
             q = 2 * e;
             label = 'α';
         } else if (type === 'beta') {
-            m = 9.109e-31;
+            m = PHYSICS_CONSTANTS.electronMass.value;
             q = -e;
             label = 'β';
         } else {

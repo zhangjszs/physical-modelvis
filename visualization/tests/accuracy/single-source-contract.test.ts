@@ -944,8 +944,8 @@ describe('L1-migration: 渲染单一真源契约 (#20 收尾: 核/热/竖直圆/
         });
         expect(error).toBeNull();
         const mv = result!.diagnostics.maxValues as Record<string, number>;
-        // 独立复算: buildProblem 已换算 r=1e-6m, η=1e-3Pa·s; 引擎 kB=1.381e-23
-        const expected = (1.381e-23 * 300) / (6 * Math.PI * 1e-3 * 1e-6);
+        // 独立复算: buildProblem 已换算 r=1e-6m, η=1e-3Pa·s; 引擎 kB 取真源 (#109)
+        const expected = (PHYSICS_CONSTANTS.kB.value * 300) / (6 * Math.PI * 1e-3 * 1e-6);
         expect(mv.diffusionCoeff).toBeCloseTo(expected, 16);
     });
 

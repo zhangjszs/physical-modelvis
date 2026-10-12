@@ -3,6 +3,7 @@
  * 用于 black-body
  */
 import * as THREE from 'three';
+import { PHYSICS_CONSTANTS } from 'physics-core';
 import { SceneRig } from '../EquipmentStage';
 import { makeBox, makeCylinder, makeSphere, makeTextSprite } from '../primitives';
 import { num } from './params';
@@ -100,8 +101,8 @@ function updateBlackBody(h: BlackBodyHandles, params: Record<string, number>): v
     mat.emissive.copy(color);
     mat.emissiveIntensity = Math.min(1.7, 0.3 + T / 8000);
 
-    // 谱柱：峰值随 T 蓝移 (维恩); 整体亮度随 T
-    const lambdaPeakNm = (2.898e-3 / T) * 1e9;
+    // 谱柱：峰值随 T 蓝移 (维恩); 整体亮度随 T (单一真源 #109)
+    const lambdaPeakNm = (PHYSICS_CONSTANTS.bWien.value / T) * 1e9;
     h.bars.forEach((bar, i) => {
         const wl = 380 + (i / (h.bars.length - 1)) * 400; // 380-780nm
         const bmat = bar.material as THREE.MeshStandardMaterial;
