@@ -4,62 +4,55 @@
 
 ## 本轮概要
 
-本轮（2026-10-12 · `executor-20261012b` · 执行者）：完成 **#109**（P2，常量门禁扩面：m_e / G / kB 纳入 LITERAL_PATTERNS + 引擎/渲染双面收敛，含 bWien 真源条目与普查补漏 blackBodyRig）。
-- 提交：`7b39990`（feat）/ `847dba5`（merge @ main）
-- 结论：完成，转 `in-review` 待 Planner 验收；本地 precheck 全绿通过。
+本轮（2026-10-12 · `executor-20261012c` · 执行者）：完成 **#113**（P2，组合实验台新增「条形磁铁」器材组件：fields3d 闭式偶极场 + 遮蔽半径策略 + composition 校验 + 红蓝分段盒体网格 + 赤道面环向种子闭合环成型 + 参数检查器联动）。
+- 提交：`ced3cce`（feat）/ `d619060`（merge @ main）
+- 结论：完成，转 `in-review` 待 Planner 验收；本地 precheck 全绿通过，代码已推送至远端。
 
 ## 已完成
 
-- **#109**：常量门禁扩面与全仓收敛 · `7b39990` / `847dba5` · 本地 precheck 全绿 + 红绿反向门禁实跑验证 + CI 观察中 · `in-review` 待验收。
-  - **门禁模式扩面与样例配套**：`physics-core/src/units/constantPatterns.ts` 的 `LITERAL_PATTERNS` 增加 `m_e=9.1093837015e-31`、`G=6.6743e-11`、`kB=1.380649e-23` 3 条模式；`PATTERN_SAMPLES` 配齐正负样例（重点覆盖 `6.674e-10`、`16.674e-11`、`9.109e-30` 前缀与指数误伤防护）。
-  - **bWien 真源条目落地**：`units/constants.ts` 增加 `bWien: q(2.898e-3, 'm·K', 'b')`（教材口径，与现存取值完全一致，零数值漂移）；并在 `constants.test.ts` 加入测试断言；渲染层 `visualization/src/rendering/constants.ts` 的 `WIEN_B` 同步收敛引用该真源。
-  - **引擎全仓收敛**：
-    - `electron-diffraction.ts`：`m = 9.109e-31` → `PHYSICS_CONSTANTS.electronMass.value`；
-    - `radiation-deflection.ts`：`m = 9.109e-31` → `PHYSICS_CONSTANTS.electronMass.value`；
-    - `cavendish.ts`：`G_STANDARD = 6.674e-11` → `PHYSICS_CONSTANTS.G.value`；`cavendish.test.ts` 中 `G_STD` 同步对齐真源；
-    - `black-body.ts`：`kB` 与 `bWien` 均收敛至 `PHYSICS_CONSTANTS`；
-    - `brownian-motion.ts`：`kB = 1.381e-23` → `PHYSICS_CONSTANTS.kB.value`。
-  - **渲染层与 3D Rig 全仓收敛**：
-    - `rendering/constants.ts`：导出 `ELECTRON_MASS` 与 `GRAVITATIONAL_CONSTANT`，`WIEN_B` 引用 `PHYSICS_CONSTANTS.bWien.value`；
-    - `nuclearRadiationScenes.ts`：`9.109e-31` → `ELECTRON_MASS`；
-    - `waveParticleDualityScenes.ts`：`9.10938356e-31` → `ELECTRON_MASS`（消除渲染内部双源）；
-    - `chapter6Scenes.ts`：`G = 6.674e-11` → `GRAVITATIONAL_CONSTANT`；
-    - `molecularKineticScenes.ts`：`kB = 1.381e-23` → `K_BOLTZMANN`；
-    - `blackBodyRig.ts`：`2.898e-3` → `PHYSICS_CONSTANTS.bWien.value`；
-    - `cavendishRig.ts`：`6.6743e-11` → `PHYSICS_CONSTANTS.G.value`；
-    - `single-source-contract.test.ts`：布朗独立复算期望同步引用 `PHYSICS_CONSTANTS.kB.value`。
-  - **红绿反向证据链**：临时在 `electron-diffraction.ts` 注入 `9.109e-31`，门禁单测立即报红并精准报警定位；撤回后立刻转绿 54/54 全过。
-  - **计算代码清零扫描**：`grep -rnE "9\.109e-31|9\.10938356e-31|6\.674e-11|1\.381e-23" physics-core/src visualization/src` 结果显示计算代码完全清零（除模式与正负样例自身外无残留）。
-  - **测试数**：core 1149 / viz 1633 / total 2782（+24 新门禁正负断言与无内联断言，count:sync 已回写）。
+- **#113**：组合实验台新增「条形磁铁」器材组件 · `ced3cce` / `d619060` · 本地 precheck 全绿通过 + CI 观察中 · `in-review` 待验收。
+  - **物理引擎层（physics-core）**：
+    - `physics-core/src/physics/fields3d.ts`：`MagneticFieldSource` 联合类型新增 `bar-magnet`（包含 `magneticMoment`, `center`, `direction`, `length`, `shieldingRadius`）；实现 `barMagnetMagneticField` 解析解函数（$B = \frac{\mu_0}{4\pi} \frac{3(\mathbf{m}\cdot\hat{\mathbf{r}})\hat{\mathbf{r}} - \mathbf{m}}{r^3}$，核内遮蔽半径默认 0.02m 返回零场有限值），并在 `totalMagneticField` 接入；
+    - `physics-core/src/physics/composition.ts`：`validateComposition` 补充 `bar-magnet` 校验分支（拦截零/负磁矩、非法长度与零方向向量退化）；
+    - `physics-core/tests/unit/fields3d.test.ts`：新增 5 例测试，包含轴上解析解差分（相对误差 < 1e-10）、赤道面解析解差分（相对误差 < 1e-10）、遮蔽半径零场有限值、非单位方向归一化、以及 `totalMagneticField` 叠加；
+    - `physics-core/tests/unit/composition.test.ts`：新增 1 例多分支校验测试，拦截异常参数。
+  - **可视化与器材网格（visualization）**：
+    - `visualization/src/store/compositionStore.ts`：`SOURCE_DEFAULTS` 新增 `bar-magnet`（默认 m=5 A·m², L=0.2m, height=0.15m），并在 `applyPosition` 接入中心位置更新；
+    - `visualization/src/components/composition/CompositionLab.tsx`：工具箱增加「🧲 条形磁铁」，检查器新增磁矩 `m (A·m²)` 与长度 `L (m)` 数值调节字段；
+    - `visualization/src/components/composition/sourceMeshes.ts`：条形磁铁网格生成红（N极 +y）蓝（S极 -y）双色盒体，支持长度参数变化时几何原位重建与四元数姿态对齐；
+    - `visualization/src/components/composition/fieldLineSeeds.ts`：`FIELD_LINE_SEED_CONFIG.barMagnet` 配置赤道面对称面 3 圈等距半径（0.08, 0.18, 0.28m）× 6 环向方位角，双向追踪向两极汇聚并在端面触发 #93 `closeNearlyClosedLoop` 闭合环封口；
+    - 单测覆盖：`compositionStore.test.ts`、`sourceMeshes.test.ts`、`fieldLineSeeds.test.ts`、`fieldLines.test.ts` 新增用例全部通过（53/53 passed）。
+  - **文档与测试计数**：
+    - README.md 器材列表同步更新；
+    - 测试数自 2782 回写为 2791（core 1155 / viz 1636，共 +9 项测试），`count:check` 严格一致。
 
 ## 未完成 / 进行中（下一棒最优先看这里）
 
 - **无进行中任务**。工作树干净，无遗留分支。
-- 待 Planner 验收积压：
-  - #111：生产构建首屏 3D 空白修复（in-review）
-  - #112：OCR 弹窗 portal 渲染修复（in-review）
-  - #109：常量门禁扩面与全仓收敛（in-review）
-- 队首下一单：**#113**（P2，条形磁铁 3D 器材组件，按 #94 推荐批）。
+- 待 Planner 验收：
+  - #113：组合实验台新增「条形磁铁」器材组件（in-review）
+- 队首下一单：**#114**（P2，组合实验台新增「匀强磁场区」器材组件）。
 
 ## 验证情况
 
 - `npm run precheck` 本地全绿（build:core → typecheck → lint → format:check → sweep:test → test → count:check → build:viz → check:bundle → check:publish → selfcheck 11 层全 PASS；exit 0）。
-- 引擎门禁 `constants-single-source.test.ts` 54/54 全绿。
-- 渲染门禁 `rendering-constants-single-source.test.ts` 49/49 全绿。
-- GitHub Actions CI（run 38245... @ `847dba5`）运行中。
+- 引擎单测：127 文件 1155 passed。
+- 组合台相关单测：5 文件 53 passed。
+- 首屏包体积 gzip 67.1 kB ≤ 70 kB。
+- GitHub Actions CI 观察中（push @ `d619060`）。
 
 ## 风险与注意事项
 
-- 今后若在 `models` 或 `rendering` 中新增科学计数法常量，门禁将强制要求必须引用 `PHYSICS_CONSTANTS` 或 `rendering/constants.ts`。
+- 朝向编辑当前固定 +y，与 #114 相同（朝向自由旋转依赖远景 #100 parked，当前未启动）。
 - 若未来涉及 Rust 模块开发，按用户指令请使用 `mise` 进行工具链安装与管理。
 
 ## 给下一棒的第一步建议
 
-- 检查 #111 / #112 / #109 是否已被 Planner 验收关闭。
-- 按 PLAN 队列领 **#113**（P2 条形磁铁 3D 器材）。开工前建 LOCK，按契约 1.5 流转标签。
+- 检查 #113 是否已被 Planner 验收关闭。
+- 按 PLAN 队列领取 **#114**（P2 匀强磁场区器材组件）。开工前创建 `.agent/LOCK`，按契约 1.5 流转标签。
 
 ## 给 Planner 的信号
 
-- **in-review 3**：#111（生产构建首屏 3D 空白）+ #112（OCR 弹窗视口溢出）+ #109（常量门禁扩面与全仓收敛）。
+- **in-review 1**：#113（条形磁铁器材组件）。
 - **auto-discovered 0**：本轮未产生新 auto-discovered 单。
-- **需要 Planner 介入**：验收 in-review 积压（#111, #112, #109）。
+- **需要 Planner 介入**：验收 #113 并按计划推进队列。
