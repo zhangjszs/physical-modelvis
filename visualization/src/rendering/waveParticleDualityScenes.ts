@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 近代物理场景渲染模块 — 选必三 第四章 波粒二象性
  *
  * 场景列表：
@@ -19,7 +19,8 @@ import {
     PLANCK_H,
     E_CHARGE,
     K_BOLTZMANN,
-    LIGHT_SPEED
+    LIGHT_SPEED,
+    ELECTRON_MASS
 } from './constants';
 
 export interface ModernSceneOptions {
@@ -271,7 +272,7 @@ export function drawElectronDiffractionScene(o: ModernSceneOptions): void {
     drawTitle(ctx, '电子衍射 — 德布罗意波与晶体衍射环', w, isDark, { size: 18, y: 28 });
 
     const V = params['accVoltage'] ?? 10000; // V
-    const me = 9.10938356e-31;
+    const me = ELECTRON_MASS;
     const eV = E_CHARGE * V;
     const lambda = PLANCK_H / Math.sqrt(2 * me * eV); // m
     const lambdaPm = lambda * 1e12;
