@@ -2,56 +2,49 @@
 
 > 每轮结束**整体重写**（不追加）。给下一棒看：本轮做了什么、留了什么、下一步做什么。
 
-## 本轮（2026-10-11 · `executor-20261011a` · 执行者）· #111 生产构建首屏 3D 空白修复
+## 本轮概要
 
-### 本轮一件事（已合回 main 并推送，报告在 issue，转 in-review 待验收）
-
-1. **#111 生产构建首屏 3D 空白 + 暂停态抽屉补帧**（fix `0edfb65`，merge `3c744ac`）。要点：
-    - **根因（生产插桩实证，非推测）**：首跑 `runSimulation` 时 `store.scenes=[]`（领域 chunk 异步未到）静默返回，
-      且自动运行 effect 不依赖 `scenes`、到货永不重试 → `simulationResult` 首屏路径恒为 null →
-      EquipmentStage rAF 空转、暂停态永不渲染。DBG111 证据：`stage-init hasResult=false` 后**零 tick-render**；
-      线上/本地空白截图 md5 与 issue 基线逐字节一致（`3df0e2f55f`）。
-    - **证伪记录**：issue 建议方向（rig 就绪/首帧 dirty 时序）与「晚到 RO 清空首帧」假设均被探针证伪
-      （RO 全程只触发 1 次初始通知；首屏零 error/warning；去 StrictMode 的 dev 依然正常）。
-    - **修复两处（均 visualization，未动引擎）**：`useSceneSimulation.ts` 自动运行 effect 补 `scenes` 依赖
-      （到货补跑一次，scenes 只 set 一次）；`EquipmentStage.tsx` 自身 RO resize 回调内置脏
-      （setSize 无条件重置 canvas bitmap——three r185 源码确认；canvas 100% 跟随舞台，同帧置脏补一帧，#79 语义保持）。
-    - **回归测试 +3**：`useSceneSimulation.test.ts` ×2（到货补跑 / 不重复触发）、
-      `equipment-stage.test.tsx` ×1（尺寸变化恰补一帧且恢复静默）。红→绿闭环：stash 源码修复后恰好 3 失败/18 通过。
-    - **验证**：`precheck` 全绿；生产探针 A 首屏零点击有画面、B 抽屉后有画面、虚拟时钟两遍逐字节一致；
-      测试数 1137/1619/2756（count:sync 已回写）。
+本轮（2026-10-12 · `executor-20261012a` · 执行者）：完成 **#112**（P2，修复 OCR「拍照解题」弹窗溢出视口顶部）。
+- 提交：`ee4dea5`（fix）/ `38bc7e3`（merge @ main）
+- 结论：完成，转 `in-review` 待 Planner 验收；GitHub Actions CI 验证全绿通过。
 
 ## 已完成
 
-- #111：首屏空白根因修复 + 抽屉补帧 + 3 回归测试 · `0edfb65`/`3c744ac` · precheck 全绿 · 生产 A/B/时钟探针全过 · in-review 待验收
+- **#112**：OCR 弹窗 backdrop-filter 包含块溢出视口修复 · `ee4dea5` / `38bc7e3` · 本地 precheck 全绿 + Playwright 双视口实跑验证 + CI @ `38bc7e3` success · `in-review` 待验收。
+  - **根因确认**：`.ocr-overlay` 原作为顶栏 `.top-bar` 内部子节点渲染；由于 `.top-bar` 具备 `backdrop-filter: blur(...)`，根据 CSS 规范成为 fixed 后代的包含块（containing block），导致全屏居中弹窗退化为以 48px 顶栏为参照居中，modal 上半部分（标题与关闭按钮）溢出视口顶部（负 top）。
+  - **修复实现（对齐 GuidancePanel 模式）**：`visualization/src/components/ocr/OCRPanel.tsx` 引入 `createPortal(document.body)` 将弹窗 overlay 挂载至 `document.body`，彻底脱离顶栏包含块限制；顶栏触发按钮保留原地渲染；无新增 `as unknown as` 强转。
+  - **回归测试与实机验证**：
+    1. `visualization/tests/ocr/ocr-panel.test.tsx` 新增 2 例测试：遮罩点击关闭（含 modal 内部 stopPropagation 隔离）+ portal 挂载至 document.body 断言；
+    2. Playwright 实机测试 `.scratch/probe112-viewport.mjs`：1440×900 视口下 modal top=266px, title top=290px, closeBtn top=278px；1024×768 视口下 modal top=200px, title top=224px, closeBtn top=212px；遮罩与关闭按钮点击关闭均正常；「拍照识别 / 粘贴题干」双 tab 切换正常。
+  - **测试数**：core 1137 / viz 1621 / total 2758（+2 绿向测试，count:sync 已回写）。
 
 ## 未完成 / 进行中（下一棒最优先看这里）
 
-- **无进行中**。in-review 1（#111）待 Planner 验收；本轮 auto-discovered 0/3。
-- 验收后队首按 PLAN 取下一单（#112，P2 OCR 弹窗）。
+- **无进行中任务**。工作树干净，无遗留分支。
+- 待 Planner 验收积压：
+  - #111：生产构建首屏 3D 空白修复（上棒移交，in-review）
+  - #112：OCR 弹窗 portal 渲染修复（本单移交，in-review）
+- 队首下一单：**#109**（P2，常量门禁扩面：m_e / G / kB 纳入 LITERAL_PATTERNS + 引擎/渲染双面收敛，含 bWien 真源条目与普查补漏 blackBodyRig）。
 
 ## 验证情况
 
-- `npm run precheck` 全绿（build:core → typecheck → lint → format:check → sweep:test → test → count:check → build:viz → check:bundle → check:publish → selfcheck 11 层全 PASS；exit 0）。
-- 新回归红向：旧代码 3 失败 / 绿向：新代码 21/21（两文件）。
-- 生产探针：A（285829B 有画面 vs 241KB 空白基线）、B（330108B）、虚拟时钟两遍 md5 一致。
-- 未跑：#97 截图脚本全量重跑（点击绕行由探针 B 覆盖，脚本零改动）；QA 全量巡检（本单改 rendering+hook，无巡检口径变化；CI 观察中）。
-- 无残留进程：探针 preview 均自起停；4324 dev 服务器已杀；main.tsx 已恢复（git 干净确认）。
+- `npm run precheck` 本地全绿（build:core → typecheck → lint → format:check → sweep:test → test → count:check → build:viz → check:bundle → check:publish → selfcheck 11 层全 PASS；exit 0）。
+- GitHub Actions CI（run 38242111481 @ `38bc7e3`）全绿（`✓ ci in 2m14s`）。
+- Playwright 视口实机验证（`.scratch/probe112-viewport.mjs`）exit 0 全绿。
+- 无进程残留：探针 preview 进程组已正常释放，4325 端口已关闭。
 
 ## 风险与注意事项
 
-- `scenes` 依赖的是一次性 set 身份；若将来新增重置 scenes 的路径，需复核补跑语义。
-- 抽屉补帧依赖 canvas CSS 100% 跟随舞台（styles.css:1859-1862）；改舞台布局须保持，否则 RO 不触发。
-- `.scratch/probe111-*.mjs` + `probe111-devshot.mjs` 为本轮临时探针（gitignore，不提交）；`__physvisRenderer` 仍 dev-only，未动。
-- TEMP 插桩（DBG111）在最终提交前已全部删除（grep 确认零残留）。
+- `.ocr-overlay` 挂载至 `document.body` 后，如果未来有更高层级的 z-index 遮罩（如全屏通知），需注意层叠上下文（当前 `.ocr-overlay` 为 `z-index: 1000`）。
+- #97 截图脚本中的 `addStyleTag` 绕行按 Issue 规定保持未动，后续可选在物料治理轮自然清理。
 
 ## 给下一棒的第一步建议
 
-- 先查 #111 是否被 Planner 验收；然后按 PLAN 领 **#112**（OCR 弹窗 createPortal，对齐 GuidancePanel 模式）。
-- 若 #111 被 reopen，差距大概率在验收标准措辞层面（功能证据链已闭合），按 Planner 逐条差距补。
+- 检查 #111 / #112 是否已被 Planner 验收关闭。
+- 按 PLAN 队列领 **#109**（P2 常量门禁扩面）。开工前建 LOCK，按契约 1.5 流转标签。
 
 ## 给 Planner 的信号
 
-- **in-review 1**：#111（执行报告含根因证据链 + 红绿闭环 + 生产探针三证据；6 条验收标准逐条核对全过）。
-- **auto-discovered 0**：本轮限额 3/3 未用；过程中证伪的两个假设已记入报告，不另立单。
-- **需要 Planner 介入**：无（in-review 积压 1，待验收）。
+- **in-review 2**：#111（生产构建首屏 3D 空白）+ #112（OCR 弹窗视口溢出，执行报告已留，CI 绿）。
+- **auto-discovered 0**：本轮未产生新 auto-discovered 单。
+- **需要 Planner 介入**：验收 in-review 积压（#111, #112）。
