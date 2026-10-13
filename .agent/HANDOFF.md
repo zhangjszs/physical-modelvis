@@ -4,77 +4,64 @@
 
 ## 本轮概要
 
-本轮（2026-10-13 · `executor-20261013a` · 执行者）：完成 **#114**（P2，组合实验台新增「匀强磁场区」器材组件：fields3d 盒区常量场 + 硬边界语义 + composition 校验 + 半透明盒网格 + 场方向箭头 + 入流面平行种子 + 检查器场强/三轴尺寸联动）。
-- 提交：`2bcbfe2`（feat）/ `8d4996b`（merge @ main，已推送；pre-push 钩子全门禁复绿）
-- 结论：完成，转 `in-review` 待 Planner 验收；本地 precheck 全绿 + pre-push 全绿，代码已推送至远端。
-- 边界语义决策（issue 二选一，执行棒定）：**硬边界 + 追踪越界即停**（无过渡带；理由见执行报告歧义处理）。
+本轮（2026-10-13 · `executor-20261013a` · 执行者）：串行完成 **2 单**，均为完成转 `in-review`：
+
+1. **#114**（P2，组合实验台新增「匀强磁场区」器材组件：fields3d 盒区常量场 + 硬边界语义 +
+   composition 校验 + 半透明盒网格 + 场方向箭头 + 入流面平行种子 + 检查器场强/三轴尺寸联动）
+   - 提交：`2bcbfe2`（feat）/ `8d4996b`（merge）/ `a3fcb08`（chore-agent，均已推送）
+   - 边界语义决策：**硬边界 + 追踪越界即停**（无过渡带）
+2. **#106**（P3，冒烟脚本参数化收口：3 脚本 BASE_URL env 化 + 通道变量差异注释）
+   - 提交：`5d8d162`（chore）/ `bf09b04`（merge，均已推送）
+   - 通道变量二选一决策：**文档化差异、不改行为**（缺省 msedge 是 #98 刻意兼容约定）
 
 ## 已完成
 
-- **#114**：组合实验台新增「匀强磁场区」器材组件 · `2bcbfe2` / `8d4996b` · 本地 precheck 全绿 + pre-push 全绿 · `in-review` 待验收。
-  - **物理引擎层（physics-core）**：
-    - `physics-core/src/physics/fields3d.ts`：`MagneticFieldSource` 联合类型新增 `uniform-field-zone`
-     （`field` 恒定矢量 + `center` + `size` 三轴全尺寸）；实现 `uniformFieldZoneMagneticField`
-     （盒内恒等于 field、域外严格零场、边界上视为域内；非法尺寸/非有限输入返回零场不抛），并在
-      `totalMagneticField` 接入；文件头器材枚举注释同步 6 类；
-    - `physics-core/src/physics/composition.ts`：`validateComposition` 补充 `uniform-field-zone` 校验分支
-     （拦截非有限 field、任一轴非正 size）；
-    - `physics-core/tests/unit/fields3d.test.ts`：新增 4 例（域内恒值/域外零×6 面/边界视为域内/total 叠加双向）；
-    - `physics-core/tests/unit/composition.test.ts`：新增 1 例（合法通过 + 零尺寸 + NaN 场强拦截）。
-  - **可视化与器材网格（visualization）**：
-    - `visualization/src/store/compositionStore.ts`：`SOURCE_DEFAULTS` 新增 `uniform-field-zone`
-     （B=1mT 沿 +y，盒 0.4×0.3×0.3m，演示量级说明在注释）；`applyPosition` 接入 center；
-      新增 `updateSourceVector(id, key, patch)` 动作（向量型参数合并式更新 + 重仿真）；
-    - `visualization/src/components/composition/CompositionLab.tsx`：工具箱增加「▦ 匀强磁场区」；
-      新增 `UniformFieldZoneEditor`（场强 mT 保方向改大小 + 三轴尺寸 m + 朝向固定说明）；
-      底部器材枚举顺带补上条形磁铁（#113 遗漏）；
-    - `visualization/src/components/composition/sourceMeshes.ts`：半透明区域盒（opacity 0.18，
-      世界轴序 = 物理 x/z/y）+ 场方向 ArrowHelper（长度取场向盒内弦 70%）；尺寸/场强变化原位重建；
-      applyTransform 只平移不旋转（轴对齐盒约定）；
-    - `visualization/src/components/composition/fieldLineSeeds.ts`：`FIELD_LINE_SEED_CONFIG.uniformFieldZone`
-     （divisions 3 / 半宽 0.45×最小边 / inset 0.02）+ `uniformFieldZoneSeeds`（入流面 −y 端网格、
-      单向顺场追踪、弧长覆盖整盒弦长 + 出界余量；零场/退化尺寸不产种子）；
-    - 单测覆盖：composition 相关 5 文件 58 passed（含新增：seeds 2 / lines 1 / meshes 1 / store 1）。
-  - **文档与测试计数**：
-    - README.md 组合实验台器材行同步新 kind；
-    - 测试数自 2791 回写为 2801（core 1160 / viz 1641，共 +10 项测试），`count:check` 严格一致。
-  - **性能复核**：dist 实测 200 条场线追踪 zone 3.8ms vs 单线圈 84.3ms（约 1/22，O(1) 盒判定 vs 96 段求和），
-    不触 #93 成本约束。
+- **#114** · `2bcbfe2` / `8d4996b` · precheck 全绿 + pre-push 全绿 · `in-review`。
+  引擎（uniform-field-zone kind + 求值 + 校验分支 + 差分/校验 5 例）；
+  前端（store 默认 + updateSourceVector + 工具箱/检查器 + 半透明盒 + 箭头 + 入流面种子 + 5 例 viz 测试）；
+  README 器材行同步；测试数 2791→2801；性能复核 zone 约为 coil 1/22。
+  中途修复 1 处测试写法（ArrowHelper 无 getDirection，改四元数断言；实现无误）。
+- **#106** · `5d8d162` / `bf09b04` · precheck 全绿 + pre-push 全绿 · `in-review`。
+  三脚本 `BASE_URL ?? 'http://localhost:3000/'` + goto 走 BASE + 头注释（覆盖说明 + 通道差异）；
+  端到端实证 `BASE_URL=:3210 + SMOKE_BROWSER_CHANNEL=''` 跑 verify-ocr-mount exit 0；
+  判定逻辑/CI 零改动，无新增单测（issue 明确）。
 
 ## 未完成 / 进行中（下一棒最优先看这里）
 
-- **无进行中任务**。工作树干净（main @ `8d4996b`，与 origin/main 同步），无遗留分支。
-- 待 Planner 验收：
-  - #113：组合实验台新增「条形磁铁」器材组件（in-review，本棒未动）
-  - #114：组合实验台新增「匀强磁场区」器材组件（in-review）
-- 队首下一单：**#106**（P3，冒烟脚本参数化收口）→ **#115**（P3，截图确定性收尾）。
-- #100–#104 勿领（D19 parked）；#99/#105 维持 needs-info（D20/D21）。
+- **无进行中任务**。工作树干净（main @ `bf09b04`，与 origin/main 同步），无遗留分支。
+- 待 Planner 验收（in-review 积压 3）：
+  - #113：条形磁铁器材组件（上棒，本棒未动）
+  - #114：匀强磁场区器材组件（本棒）
+  - #106：冒烟脚本参数化收口（本棒）
+- 队首下一单：**#115**（P3，截图确定性收尾：#97 复采脚本 04/05 跨会话漂移定位 + README 确定性声明措辞校正）。
+  - #100–#104 勿领（D19 parked）；#99/#105 维持 needs-info（D20/D21）。
 
 ## 验证情况
 
-- `npm run precheck` 本地全绿 exit 0（build:core → typecheck → lint 0 错误/19 warnings 基线 →
-  format:check → sweep:test → test → count:check → build:viz → check:bundle → check:publish → selfcheck 11 层全 PASS）。
-- pre-push 钩子全门禁复绿后推送（`8d4996b`）。
-- 引擎单测：127 文件 1160 passed；组合台相关单测：5 文件 58 passed。
-- 首屏包体积 gzip 67.1 kB ≤ 70 kB（CompositionLab chunk 8.8 kB ≤ 60 kB 懒预算）。
-- GitHub Actions CI 观察中（push @ `8d4996b`）。
-- 中途修复 1 处测试写法：`ArrowHelper` 无 `getDirection` getter，改用四元数断言箭头方向（实现代码无问题）。
+- `npm run precheck` 本轮共跑通 4 次（含 2 次 pre-push 钩子复跑），全部 exit 0
+  （typecheck / lint 0 错误 19 warnings 基线 / format:check / test 1160+1641 /
+  count:check 2801 一致 / build:viz / bundle 首屏 67.1kB / check:publish / selfcheck 11 层全 PASS）。
+- #114 定向：引擎 33 passed + 组合台 58 passed；#106 定向：ocr-mount @3210 exit 0。
+- GitHub Actions CI 观察中（push @ `8d4996b`/`a3fcb08`/`bf09b04`）。
 
 ## 风险与注意事项
 
-- 朝向固定 +y、盒区轴对齐（与 #113 相同，朝向自由旋转依赖 #100 parked，当前未启动）；
-  引擎侧 field 为全向量（旋转解锁后种子/网格需重做入流面逻辑，已在注释标明）。
-- B=0（mT 输入 0）时校验通过但无场线/箭头（只留空盒）；属可理解的退化显示，未做输入夹取（与其他标量参数一致，无夹取惯例）。
-- 若未来涉及 Rust 模块开发，按用户指令请使用 `mise` 进行工具链安装与管理。
+- #114：朝向固定 +y、盒区轴对齐（旋转随 #100）；B=0 时只留空盒（未夹取，与其他参数一致）。
+- #106：零产品行为变更；DEVELOPMENT_GUIDE 无冒烟章节故只改脚本头（如下棒发现指南有新位置可补）。
+- 本轮 pkill 停 vite dev server 时曾因命令串自匹配把自己也 SIGTERM（server 与 shell 同死，无残留；
+  已验证 HTTP:000 + 无残留进程）。下棒如需停后台 server，用更窄的匹配串（如 `[v]ite --port 3210`）。
+- 若未来涉及 Rust 模块开发，按用户指示请使用 `mise` 进行工具链安装与管理。
 
 ## 给下一棒的第一步建议
 
-- 检查 #113/#114 是否已被 Planner 验收关闭（in-review 积压 2）。
-- 按 PLAN 队列领取 **#106**（P3 冒烟脚本参数化收口）。开工前创建 `.agent/LOCK`，按契约 1.5 流转标签
-  （`ready-for-agent` → `in-progress` → `in-review`，用 `gh issue edit` 换标签）。
+- 先读 #115 全文 + 其引用的 #97 验收证据（04/05 漂移的 md5/PIL 数据已在 issue 内），评估是否为“一次收尾能闭环”的量级；
+  再按契约 1.5 领取（`ready-for-agent` → `in-progress`）。开工前创建 `.agent/LOCK`。
+- 若 #115 需要多次复采（每次 headless 全量截图数分钟）且本轮预算紧张，宁可只做调查定位、结论写报告转 blocked/部分完成，
+  不要赶工声称完成。
 
 ## 给 Planner 的信号
 
-- **in-review 2**：#113（条形磁铁器材组件，上棒）＋ #114（匀强磁场区器材组件，本棒）。
-- **auto-discovered 0**：本轮未产生新 auto-discovered 单（CompositionLab 底部枚举顺带补 #113 遗漏，未达立单阈值）。
-- **需要 Planner 介入**：验收 #113/#114（队列下游 #106/#115 均为 P3，可在验收前并行执行）。
+- **in-review 3**：#113（上棒）＋ #114（本棒）＋ #106（本棒）。
+- **auto-discovered 0**：本轮未产生新 auto-discovered 单。
+- **ready 剩余 1**：#115（截图确定性收尾）。#100–#104 parked、#99/#105 needs-info 均未动。
+- **需要 Planner 介入**：验收 #113/#114/#106（#115 可在验收前并行执行）。
