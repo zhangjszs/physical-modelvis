@@ -4,64 +4,50 @@
 
 ## 本轮概要
 
-本轮（2026-10-13 · `executor-20261013a` · 执行者）：串行完成 **2 单**，均为完成转 `in-review`：
-
-1. **#114**（P2，组合实验台新增「匀强磁场区」器材组件：fields3d 盒区常量场 + 硬边界语义 +
-   composition 校验 + 半透明盒网格 + 场方向箭头 + 入流面平行种子 + 检查器场强/三轴尺寸联动）
-   - 提交：`2bcbfe2`（feat）/ `8d4996b`（merge）/ `a3fcb08`（chore-agent，均已推送）
-   - 边界语义决策：**硬边界 + 追踪越界即停**（无过渡带）
-2. **#106**（P3，冒烟脚本参数化收口：3 脚本 BASE_URL env 化 + 通道变量差异注释）
-   - 提交：`5d8d162`（chore）/ `bf09b04`（merge，均已推送）
-   - 通道变量二选一决策：**文档化差异、不改行为**（缺省 msedge 是 #98 刻意兼容约定）
+本轮（2026-10-13 · `executor-20261013b` · 执行者，用户指令继续）：完成 **#115**（P3，截图确定性收尾：
+两次全量复采 + PIL 像素定位 + 小球转角并排目检，根因坐实为 3D 主球自转相位，落 (b) 措辞校正）。
+- 提交：`284adbc`（docs）/ `c64cadc`（merge @ main，已推送；pre-push 钩子全门禁复绿）
+- 结论：完成，转 `in-review` 待 Planner 验收。
 
 ## 已完成
 
-- **#114** · `2bcbfe2` / `8d4996b` · precheck 全绿 + pre-push 全绿 · `in-review`。
-  引擎（uniform-field-zone kind + 求值 + 校验分支 + 差分/校验 5 例）；
-  前端（store 默认 + updateSourceVector + 工具箱/检查器 + 半透明盒 + 箭头 + 入流面种子 + 5 例 viz 测试）；
-  README 器材行同步；测试数 2791→2801；性能复核 zone 约为 coil 1/22。
-  中途修复 1 处测试写法（ArrowHelper 无 getDirection，改四元数断言；实现无误）。
-- **#106** · `5d8d162` / `bf09b04` · precheck 全绿 + pre-push 全绿 · `in-review`。
-  三脚本 `BASE_URL ?? 'http://localhost:3000/'` + goto 走 BASE + 头注释（覆盖说明 + 通道差异）；
-  端到端实证 `BASE_URL=:3210 + SMOKE_BROWSER_CHANNEL=''` 跑 verify-ocr-mount exit 0；
-  判定逻辑/CI 零改动，无新增单测（issue 明确）。
+- **#115** · `284adbc` / `c64cadc` · precheck 全绿 + pre-push 全绿 · `in-review`。
+  - 根因（实证，非推断）：`ball.rotation.y += delta * 2.4` 累积转角随虚拟时钟推进总量变化，
+    推进总量受 clockRunUntil 真实轮询次数（负载相关）影响 → 不同运行转角不同。
+    本轮 run1 vs run2：01/02 逐字节一致；03 差 231px / 04 差 120px / 05 差 123px / 06 差 40px，
+    全部定位舞台中央 ~30×30 区域，并排裁剪目检为同一小球高光/明暗差；run2 的 03 与在版逐字节一致，
+    反证转角抽奖。04 另有 6px/≤3/255 AA 抖动史。10-10 的 05 内容级 2.1% 为同类大量级表现。
+  - 决策：(a) 不可经济达成（需应用层钩子，本单禁改应用源码；AA 抖动配方无法消除）→ 落 (b)。
+  - 改动（2 文件 +13−6）：README 界面演示声明 + 脚本头「确定性」节改写为有界口径；
+    配方逻辑零改动，在版 6 图不动。10-10 11:33→16:26 零源码变更取证在报告。
+  - 附带确认：run1 的 01/02 与在版跨 3 会话一致；03/04/05/06 与在版差异全可归因已知应用变更
+    （04 的 18% 系 #112 修复生效；06 右侧 7.8% 系器材增多；03/05 小 blob 系转角）。
 
 ## 未完成 / 进行中（下一棒最优先看这里）
 
-- **无进行中任务**。工作树干净（main @ `bf09b04`，与 origin/main 同步），无遗留分支。
-- 待 Planner 验收（in-review 积压 3）：
-  - #113：条形磁铁器材组件（上棒，本棒未动）
-  - #114：匀强磁场区器材组件（本棒）
-  - #106：冒烟脚本参数化收口（本棒）
-- 队首下一单：**#115**（P3，截图确定性收尾：#97 复采脚本 04/05 跨会话漂移定位 + README 确定性声明措辞校正）。
-  - #100–#104 勿领（D19 parked）；#99/#105 维持 needs-info（D20/D21）。
+- **无进行中任务**。工作树干净（main @ `c64cadc`，与 origin/main 同步），无遗留分支。
+- 待 Planner 验收（in-review 积压 4）：#113 / #114 / #106（上棒）＋ #115（本棒）。
+- **ready 队列已空**：#100–#104 勿领（D19 parked）；#99/#105 维持 needs-info（D20/D21）。
+- 复采产物在 /tmp（cap1/cap2/md5-cap*.txt/cmp03/cmp05.png），机器重启即失；验收若需复核像素数据趁早。
 
 ## 验证情况
 
-- `npm run precheck` 本轮共跑通 4 次（含 2 次 pre-push 钩子复跑），全部 exit 0
-  （typecheck / lint 0 错误 19 warnings 基线 / format:check / test 1160+1641 /
-  count:check 2801 一致 / build:viz / bundle 首屏 67.1kB / check:publish / selfcheck 11 层全 PASS）。
-- #114 定向：引擎 33 passed + 组合台 58 passed；#106 定向：ocr-mount @3210 exit 0。
-- GitHub Actions CI 观察中（push @ `8d4996b`/`a3fcb08`/`bf09b04`）。
+- `npm run precheck` exit 0（2801 一致 / bundle 67.1kB / selfcheck 11 层全 PASS）+ pre-push 复跑全绿。
+- 两次全量复采（构建 + 6 图 + 自动停 server，无残留进程；preview/残留已确认无）。
+- GitHub Actions CI 观察中（push @ `c64cadc`）。
 
 ## 风险与注意事项
 
-- #114：朝向固定 +y、盒区轴对齐（旋转随 #100）；B=0 时只留空盒（未夹取，与其他参数一致）。
-- #106：零产品行为变更；DEVELOPMENT_GUIDE 无冒烟章节故只改脚本头（如下棒发现指南有新位置可补）。
-- 本轮 pkill 停 vite dev server 时曾因命令串自匹配把自己也 SIGTERM（server 与 shell 同死，无残留；
-  已验证 HTTP:000 + 无残留进程）。下棒如需停后台 server，用更窄的匹配串（如 `[v]ite --port 3210`）。
+- pkill 停后台 server 教训仍有效：用窄匹配串（如 `[v]ite --port`），避免自匹配 SIGTERM。
 - 若未来涉及 Rust 模块开发，按用户指示请使用 `mise` 进行工具链安装与管理。
 
 ## 给下一棒的第一步建议
 
-- 先读 #115 全文 + 其引用的 #97 验收证据（04/05 漂移的 md5/PIL 数据已在 issue 内），评估是否为“一次收尾能闭环”的量级；
-  再按契约 1.5 领取（`ready-for-agent` → `in-progress`）。开工前创建 `.agent/LOCK`。
-- 若 #115 需要多次复采（每次 headless 全量截图数分钟）且本轮预算紧张，宁可只做调查定位、结论写报告转 blocked/部分完成，
-  不要赶工声称完成。
+- 无 ready 可领：先查 4 个 in-review 是否已被 Planner 验收关闭；若 Planner 新补 ready 队列，按 PLAN 队首领取。
+- 若验收 #115 被问“为何不做 (a)”：执行报告 + 脚本头注释已有完整论证链（应用层钩子禁令 + AA 不可消除 + 实测数据）。
 
 ## 给 Planner 的信号
 
-- **in-review 3**：#113（上棒）＋ #114（本棒）＋ #106（本棒）。
-- **auto-discovered 0**：本轮未产生新 auto-discovered 单。
-- **ready 剩余 1**：#115（截图确定性收尾）。#100–#104 parked、#99/#105 needs-info 均未动。
-- **需要 Planner 介入**：验收 #113/#114/#106（#115 可在验收前并行执行）。
+- **in-review 4**：#113 / #114 / #106 / #115。
+- **auto-discovered 0**：本轮未产生新单。
+- **ready 队列空**：需要 Planner 补充（或验收关闭本轮 4 单后宣告阶段收口）。
