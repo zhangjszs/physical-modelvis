@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { makeBox, makeCylinder, makeSphere } from '../simulation3d/primitives';
+import { makeArrow, makeBox, makeCylinder, makeSphere } from '../simulation3d/primitives';
 import { physicsToWorld, type WorldPoint } from '../../utils/compositionCoords';
 import type { PlacedSource } from '../../store/compositionStore';
 
@@ -11,6 +11,43 @@ function makeTorus(radius: number, tube: number, color: number): THREE.Mesh {
     );
     mesh.castShadow = true;
     return mesh;
+}
+
+/**
+ * 匀强磁场区盒体 — 半透明区域盒 (物理轴对齐: 世界宽/高/深 = 物理 x/z/y)。
+ * 退化尺寸钳制到 0.05 (校验层负责红牌, 网格层不崩)。
+ */
+function makeZoneBox(sx: number, sy: number, sz: number): THREE.Mesh {
+    const mesh = makeBox(Math.max(0.05, sx), Math.max(0.05, sz), Math.max(0.05, sy), COLOR_ZONE);
+    const mat = mesh.material as THREE.MeshStandardMaterial;
+    mat.transparent = true;
+    mat.opacity = ZONE_OPACITY;
+    mat.depthWrite = false;
+    mesh.castShadow = false;
+    mesh.receiveShadow = false;
+    return mesh;
+}
+
+/** 场方向箭头摆位 (世界坐标): 沿 field 世界方向居中, 长度取场向盒内弦 70% */
+function zoneArrowProps(
+    field: { x: number; y: number; z: number },
+    size: { x: number; y: number; z: number }
+): { dir: THREE.Vector3; origin: THREE.Vector3; length: number; headLength: number; headWidth: number } {
+    const w = toWorldDirection(field); // 零向量抛错, 由调用方兜底
+    const mag = Math.hypot(field.x, field.y, field.z);
+    const chord = (Math.abs(field.x) * size.x + Math.abs(field.y) * size.y + Math.abs(field.z) * size.z) / mag;
+    const length = Math.max(0.05, chord * 0.7);
+    const dir = new THREE.Vector3(w.x, w.y, w.z);
+    const origin = dir.clone().multiplyScalar(-length / 2);
+    return { dir, origin, length, headLength: length * 0.25, headWidth: length * 0.12 };
+}
+
+function makeZoneArrow(
+    field: { x: number; y: number; z: number },
+    size: { x: number; y: number; z: number }
+): THREE.ArrowHelper {
+    const p = zoneArrowProps(field, size);
+    return makeArrow(p.dir, p.origin, p.length, COLOR_ZONE_ARROW, p.headLength, p.headWidth);
 }
 
 /**
@@ -28,6 +65,10 @@ const COLOR_NEGATIVE = 0x3b82f6;
 const COLOR_PLATE = 0x10b981;
 const COLOR_WIRE = 0xf59e0b;
 const COLOR_COIL = 0x8b5cf6;
+const COLOR_ZONE = 0x06b6d4;
+const COLOR_ZONE_ARROW = 0x0e7490;
+/** 区域盒不透明度: 看穿内部场线与粒子轨迹, 同时保持盒边界可辨 */
+const ZONE_OPACITY = 0.18;
 
 /** 单位向量 → 世界坐标 (自动归一化; 零向量抛错, 由调用方兜底) */
 function toWorldDirection(v: { x: number; y: number; z: number }): WorldPoint {
@@ -79,6 +120,13 @@ export function makeSourceMesh(placed: PlacedSource): THREE.Group {
         sMesh.position.set(0, -halfLen / 2, 0);
         group.add(nMesh);
         group.add(sMesh);
+    } else if (s.kind === 'uniform-field-zone') {
+        group.add(makeZoneBox(s.size.x, s.size.y, s.size.z));
+        try {
+            group.add(makeZoneArrow(s.field, s.size));
+        } catch {
+            // 零场强: 箭头无方向, 只留区域盒 (校验层会红牌提示)
+        }
     }
 
     applyTransform(group, placed);
@@ -129,6 +177,30 @@ export function updateSourceMesh(group: THREE.Group, placed: PlacedSource, selec
         }
     }
 
+    // 匀强磁场区尺寸变化 → 重建盒体几何 + 箭头摆位 (低频操作, 仅参数面板触发)
+    if (s.kind === 'uniform-field-zone') {
+        const box = group.children[0] as THREE.Mesh | undefined;
+        const wantW = Math.max(0.05, s.size.x);
+        const wantH = Math.max(0.05, s.size.z);
+        const wantD = Math.max(0.05, s.size.y);
+        const params = box ? (box.geometry as THREE.BoxGeometry).parameters : undefined;
+        if (box && params && (params.width !== wantW || params.height !== wantH || params.depth !== wantD)) {
+            box.geometry.dispose();
+            box.geometry = new THREE.BoxGeometry(wantW, wantH, wantD);
+        }
+        const arrow = group.children[1] as THREE.ArrowHelper | undefined;
+        if (arrow) {
+            try {
+                const p = zoneArrowProps(s.field, s.size);
+                arrow.setDirection(p.dir);
+                arrow.setLength(p.length, p.headLength, p.headWidth);
+                arrow.position.copy(p.origin);
+            } catch {
+                // 零场强: 保留旧箭头姿态 (校验层会红牌提示)
+            }
+        }
+    }
+
     applyTransform(group, placed);
     setHighlight(group, selected);
 }
@@ -152,6 +224,10 @@ function applyTransform(group: THREE.Group, placed: PlacedSource): void {
             const w = physicsToWorld(s.center);
             group.position.set(w.x, w.y, w.z);
             setAxisAlignment(group, new THREE.Vector3(0, 1, 0), toWorldDirection(s.direction));
+        } else if (s.kind === 'uniform-field-zone') {
+            // 轴对齐盒: 只平移不旋转 (旋转随 #100 解锁); 箭头自带世界方向
+            const w = physicsToWorld(s.center);
+            group.position.set(w.x, w.y, w.z);
         } else {
             const w = physicsToWorld(s.position);
             group.position.set(w.x, w.y, w.z);

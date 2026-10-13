@@ -55,6 +55,20 @@ export const SOURCE_DEFAULTS: Record<SourceKind, { source: FieldSource; height: 
             length: 0.2
         },
         height: 0.15
+    },
+    /**
+     * 匀强磁场区默认: B = 1mT 沿 +y (朝向固定, #114), 盒 0.4×0.3×0.3m。
+     * 1mT 为演示量级 — 显著大于导线/线圈在盒尺度上的杂散场 (μT 级),
+     * 粒子偏转与场线走向肉眼可辨, 又不至于让 Boris 步数爆炸。
+     */
+    'uniform-field-zone': {
+        source: {
+            kind: 'uniform-field-zone',
+            field: { x: 0, y: 1e-3, z: 0 },
+            center: { x: 0, y: 0, z: 0.15 },
+            size: { x: 0.4, y: 0.3, z: 0.3 }
+        },
+        height: 0.15
     }
 };
 
@@ -96,6 +110,8 @@ interface CompositionState {
     /** 拖拽结束/外部修改后重仿真 */
     commit: () => void;
     updateSourceParams: (id: string, patch: Record<string, number>) => void;
+    /** 更新器材的向量型参数 (匀强磁场区的 field/size; 合并式更新 + 重仿真) */
+    updateSourceVector: (id: string, key: 'size' | 'field', patch: Partial<Vector3D>) => void;
     removeSource: (id: string) => void;
     select: (id: string | null) => void;
     setParticle: (patch: Partial<CompositionParticle>) => void;
@@ -177,6 +193,19 @@ export const useCompositionStore = create<CompositionState>((set, get) => ({
         });
     },
 
+    updateSourceVector: (id, key, patch) => {
+        set(s => {
+            const next: Partial<CompositionState> = {
+                sources: s.sources.map(p => {
+                    if (p.id !== id || p.source.kind !== 'uniform-field-zone') return p;
+                    return { ...p, source: { ...p.source, [key]: { ...p.source[key], ...patch } } as FieldSource };
+                }),
+                fieldLineRevision: s.fieldLineRevision + 1
+            };
+            return { ...next, ...recompute({ ...get(), ...next } as CompositionState) };
+        });
+    },
+
     removeSource: id => {
         set(s => {
             const next: Partial<CompositionState> = {
@@ -234,6 +263,8 @@ function applyPosition(source: FieldSource, position: Vector3D): FieldSource {
         case 'circular-coil':
             return { ...source, center: position };
         case 'bar-magnet':
+            return { ...source, center: position };
+        case 'uniform-field-zone':
             return { ...source, center: position };
     }
 }

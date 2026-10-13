@@ -138,6 +138,21 @@ export function validateComposition(experiment: CompositionExperiment): Validati
                     });
                 }
                 Vec3.normalize(s.direction);
+            } else if (s.kind === 'uniform-field-zone') {
+                if (!isFiniteVector(s.field)) {
+                    errors.push({
+                        code: 'INVALID_SOURCE',
+                        message: '匀强磁场区场强矢量必须为有限值',
+                        param: `${param}.field`
+                    });
+                }
+                if (!isFiniteVector(s.size) || !(s.size.x > 0) || !(s.size.y > 0) || !(s.size.z > 0)) {
+                    errors.push({
+                        code: 'INVALID_SOURCE',
+                        message: '匀强磁场区三轴尺寸必须全为正数',
+                        param: `${param}.size`
+                    });
+                }
             }
         } catch {
             errors.push({

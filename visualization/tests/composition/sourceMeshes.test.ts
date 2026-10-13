@@ -147,4 +147,35 @@ describe('sourceMeshes 组合实验台器材网格', () => {
         const afterH = ((group.children[0] as THREE.Mesh).geometry as THREE.BoxGeometry).parameters.height;
         expect(afterH).toBeCloseTo(0.15, 10);
     });
+
+    it('匀强磁场区: 半透明盒 + 场方向箭头; 尺寸更新重建盒体几何', () => {
+        const p = placed('z1', {
+            kind: 'uniform-field-zone',
+            field: { x: 0, y: 1e-3, z: 0 },
+            center: { x: 0.2, y: 0.1, z: 0.15 },
+            size: { x: 0.4, y: 0.3, z: 0.3 }
+        });
+        const group = makeSourceMesh(p);
+        expect(group.userData.sourceId).toBe('z1');
+        expect(group.children).toHaveLength(2);
+
+        const box = group.children[0] as THREE.Mesh;
+        const mat = box.material as THREE.MeshStandardMaterial;
+        expect(mat.transparent).toBe(true);
+        expect(mat.opacity).toBeCloseTo(0.18, 10);
+        // 世界轴序 (宽/高/深) = 物理 (x/z/y)
+        const geo = box.geometry as THREE.BoxGeometry;
+        expect(geo.parameters.width).toBeCloseTo(0.4, 10);
+        expect(geo.parameters.height).toBeCloseTo(0.3, 10);
+        expect(geo.parameters.depth).toBeCloseTo(0.3, 10);
+
+        // 箭头沿场方向: 物理 +y → 世界 −z (ArrowHelper 以四元数表方向, 无 getter)
+        const arrow = group.children[1] as THREE.ArrowHelper;
+        const arrowDir = new THREE.Vector3(0, 1, 0).applyQuaternion(arrow.quaternion);
+        expect(arrowDir.z).toBeCloseTo(-1, 10);
+
+        // 更新尺寸 X 为 0.5 → 盒体几何重建
+        updateSourceMesh(group, placed('z1', { ...p.source, size: { x: 0.5, y: 0.3, z: 0.3 } } as FieldSource), false);
+        expect(((group.children[0] as THREE.Mesh).geometry as THREE.BoxGeometry).parameters.width).toBeCloseTo(0.5, 10);
+    });
 });

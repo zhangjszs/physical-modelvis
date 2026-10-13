@@ -1,5 +1,8 @@
 import { useCompositionStore, SOURCE_DEFAULTS, type SourceKind } from '../../store/compositionStore';
 import { CompositionStage } from './CompositionStage';
+import type { FieldSource } from 'physics-core';
+
+type UniformFieldZone = Extract<FieldSource, { kind: 'uniform-field-zone' }>;
 
 /**
  * CompositionLab — 自由组合实验台 (L4 页面壳)。
@@ -13,7 +16,8 @@ const PALETTE: Array<{ kind: SourceKind; label: string }> = [
     { kind: 'charged-plate', label: '▬ 带电平板' },
     { kind: 'straight-wire', label: '│ 载流导线' },
     { kind: 'circular-coil', label: '◯ 圆形线圈' },
-    { kind: 'bar-magnet', label: '🧲 条形磁铁' }
+    { kind: 'bar-magnet', label: '🧲 条形磁铁' },
+    { kind: 'uniform-field-zone', label: '▦ 匀强磁场区' }
 ];
 
 /** 各类器材可在检查器编辑的数值字段 */
@@ -29,7 +33,9 @@ const EDITABLE_FIELDS: Record<SourceKind, Array<{ key: string; label: string; st
     'bar-magnet': [
         { key: 'magneticMoment', label: '磁矩 m (A·m²)', step: 0.5 },
         { key: 'length', label: '长度 L (m)', step: 0.02 }
-    ]
+    ],
+    // 匀强磁场区: 向量型参数 (field/size) 走下方定制编辑区, 此处留空
+    'uniform-field-zone': []
 };
 
 const KIND_LABEL: Record<SourceKind, string> = {
@@ -37,7 +43,8 @@ const KIND_LABEL: Record<SourceKind, string> = {
     'charged-plate': '带电平板',
     'straight-wire': '载流导线',
     'circular-coil': '圆形线圈',
-    'bar-magnet': '条形磁铁'
+    'bar-magnet': '条形磁铁',
+    'uniform-field-zone': '匀强磁场区'
 };
 
 /** 场线密度档位 (#93): 与 fieldLineSeeds 的 FIELD_LINE_DENSITY 区间一致 */
@@ -61,6 +68,47 @@ function NumberField(props: { label: string; value: number; step: number; onChan
                 }}
             />
         </label>
+    );
+}
+
+/** 匀强磁场区定制编辑区: 场强 (mT, 保方向改大小) + 三轴尺寸 (m) */
+function UniformFieldZoneEditor(props: { id: string; source: UniformFieldZone }) {
+    const updateSourceVector = useCompositionStore(s => s.updateSourceVector);
+    const { id, source } = props;
+    const sizeDims = [
+        { key: 'x', label: '尺寸 X (m)' },
+        { key: 'y', label: '尺寸 Y (m)' },
+        { key: 'z', label: '尺寸 Z (m)' }
+    ] as const;
+    return (
+        <>
+            <NumberField
+                label="场强 B (mT)"
+                step={0.1}
+                value={Math.hypot(source.field.x, source.field.y, source.field.z) * 1000}
+                onChange={v => {
+                    const mag = Math.hypot(source.field.x, source.field.y, source.field.z);
+                    const dir =
+                        mag > 0
+                            ? { x: source.field.x / mag, y: source.field.y / mag, z: source.field.z / mag }
+                            : { x: 0, y: 1, z: 0 };
+                    const t = v / 1000;
+                    updateSourceVector(id, 'field', { x: dir.x * t, y: dir.y * t, z: dir.z * t });
+                }}
+            />
+            {sizeDims.map(dim => (
+                <NumberField
+                    key={dim.key}
+                    label={dim.label}
+                    step={0.05}
+                    value={source.size[dim.key]}
+                    onChange={v => updateSourceVector(id, 'size', { [dim.key]: v })}
+                />
+            ))}
+            <p style={{ fontSize: 11, color: '#94a3b8', margin: '4px 0 0' }}>
+                朝向固定 +y, 盒区轴对齐 (旋转编辑随 #100 解锁)。
+            </p>
+        </>
     );
 }
 
@@ -202,6 +250,9 @@ export function CompositionLab({ onExit }: { onExit: () => void }) {
                                     onChange={v => updateSourceParams(selected.id, { [field.key]: v })}
                                 />
                             ))}
+                            {selected.source.kind === 'uniform-field-zone' && (
+                                <UniformFieldZoneEditor id={selected.id} source={selected.source} />
+                            )}
                         </>
                     )}
                 </div>
@@ -226,7 +277,7 @@ export function CompositionLab({ onExit }: { onExit: () => void }) {
                     {sources.length === 0 && (
                         <p style={{ fontSize: 12, color: '#94a3b8' }}>
                             从上方器材面板添加场源 (默认 {Object.keys(SOURCE_DEFAULTS).length} 类: 点电荷 / 平板 / 导线
-                            / 线圈), 引擎将按叠加原理实时合成电磁场并积分粒子轨迹。
+                            / 线圈 / 条形磁铁 / 匀强磁场区), 引擎将按叠加原理实时合成电磁场并积分粒子轨迹。
                         </p>
                     )}
                 </div>

@@ -158,6 +158,37 @@ describe('fieldLineSeeds 场线种子生成', () => {
         }
     });
 
+    it('匀强磁场区种子: 入流面网格, kind=magnetic, 单向顺场追踪', () => {
+        const size: Vector3D = { x: 0.4, y: 0.3, z: 0.3 };
+        const seeds = fieldLineSeeds([
+            { kind: 'uniform-field-zone', field: { x: 0, y: 1e-3, z: 0 }, center: ZERO3, size }
+        ]);
+        const { divisions, inset } = FIELD_LINE_SEED_CONFIG.uniformFieldZone;
+        expect(seeds).toHaveLength(divisions * divisions);
+        for (const s of seeds) {
+            expect(s.kind).toBe('magnetic');
+            expect(s.bidirectional).toBe(false);
+            // 种子落在盒内 (边界上视为域内, 起追场非零)
+            expect(Math.abs(s.start.x)).toBeLessThanOrEqual(size.x / 2);
+            expect(Math.abs(s.start.z)).toBeLessThanOrEqual(size.z / 2);
+            // 入流面: y = −sy/2 + inset
+            expect(s.start.y).toBeCloseTo(-size.y / 2 + inset, 10);
+            // 弧长覆盖整盒弦长 + 出界余量
+            expect(s.maxArcLength).toBeGreaterThanOrEqual(size.y);
+        }
+    });
+
+    it('匀强磁场区种子: 零场 / 退化尺寸不产种子', () => {
+        const base = {
+            kind: 'uniform-field-zone',
+            field: { x: 0, y: 1e-3, z: 0 },
+            center: ZERO3,
+            size: { x: 0.4, y: 0.3, z: 0.3 }
+        } as const;
+        expect(fieldLineSeeds([{ ...base, field: ZERO3 }])).toEqual([]);
+        expect(fieldLineSeeds([{ ...base, size: { x: 0.4, y: 0, z: 0.3 } }])).toEqual([]);
+    });
+
     it('纯函数: 同输入两次调用结果相同且输入不被修改', () => {
         const sources: FieldSource[] = [{ kind: 'point-charge', charge: 1e-6, position: { x: 0.1, y: 0, z: 0.15 } }];
         const snapshot = JSON.parse(JSON.stringify(sources));
