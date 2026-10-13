@@ -126,6 +126,9 @@
 > **#117**（P3，依赖审计只报告不升级）；**队首 = #116 → #117**。另：本轮起建 `TASKS.md`（Issue 只读镜像，
 > 标签沿用 `ready-for-agent`≡ready 不另起新标签）；`.agent/DIARY/` 缺失（执行者未写，昨日工作已用
 > git log + comment + STATE 反推，见 D28）。**待用户决策 D29**：M 系全收官后路线方向。
+> 2026-10-13 二十七次滚动：**D29 用户定夺 B——重启 M5，先放行 #102–#104 调查类拿数据、实施另议**。
+> 三单正文已按 ready 门禁复核通过（均为调查不出实现，验收可判定），各单已留放行 comment；
+> 派生实施仍属红线，另立另议。**队首 = #103 → #116 → #102 → #104 → #117**（P 优先、同级按创建时间，5 个）。
 
 ## 当前方向
 
@@ -133,8 +136,9 @@
 **生产缺陷与门禁收口已闭环**（#111 生产首屏 3D 空白、#112 OCR 弹窗溢出、#109 常量门禁扩面全部 CLOSED，二十五次滚动验收）。
 **L6 器材扩展 2/2 收官**（#113 条形磁铁、#114 匀强磁场区，二十六次滚动验收）。
 **验证与物料收尾闭环**（#106 冒烟参数化、#115 确定性有界声明，二十六次滚动验收）。
-当前执行队列：**#116（P2 截图重采）→ #117（P3 依赖审计 triage）**。
-后续：待用户决策路线方向（D29：M5 重启 / 发布线 / 维持现状）；#99/#105 维持 needs-info（D20/D21）。
+当前执行队列：**#103（P2 渲染调查）→ #116（P2 截图重采）→ #102（P3 多线圈性能调查）→ #104（P3 引擎契约调查）→ #117（P3 依赖审计）**。
+**M5 调查线开工**（D29 用户定夺 B：先放行 #102–#104 拿数据；派生实施红线另议）。
+后续：#100/#101 维持 parked；#99/#105 维持 needs-info（D20/D21）。
 **M5（候选）· 组合实验台深化 + 架构治理**（#100–#104，D18 收编）——**用户 D19 已定：不立项、维持 parked**，
 不进当前执行队列；#99/#105 维持 needs-info（D20/D21）。
 
@@ -156,7 +160,7 @@
 → **验证与物料收尾：#106 → #115**（**全 CLOSED，二十六次滚动收官**）。
 
 **进度**：M2 3/3 + M2.5 4/4 + M3 8/8 + M4 5/5 + L6 2/2 全收官；#107/#110/#111/#112/#109/#106/#115 缺陷门禁物料全部验收 CLOSED。
-当前 = **日常收尾队列**：#116（截图重采）→ #117（依赖审计）。
+当前 = **M5 调查线**：#103 → #116 → #102 → #104 → #117（D29 放行调查，实施另议）。
 
 ### #67 背景备忘（原「候选 A 详细」收编记录）
 
@@ -358,21 +362,25 @@ T=25℃ 时二者等价，无正确性影响，属「面板公式与算法严格
 |---|---|---|---|---|
 | [#100](https://github.com/zhangjszs/physical-modelvis/issues/100) | 组合实验台交互增强：器材旋转编辑 + 轨迹回放控制（播/暂停/倍速） | ready（parked） | P2 | 属 D6 已确认愿景内，低风险 |
 | [#101](https://github.com/zhangjszs/physical-modelvis/issues/101) | 组合实验台预设实验模板：高频电磁场景一键布置 | ready（parked） | P3 | 同上 |
-| [#102](https://github.com/zhangjszs/physical-modelvis/issues/102) | **调查**：多线圈场求值性能（Biot-Savart × Worker 化评估） | ready（parked） | P3 | 调查单，不动代码 |
-| [#103](https://github.com/zhangjszs/physical-modelvis/issues/103) | **调查**：渲染层结构治理（按机制抽 primitives + 巨型文件拆分路线） | ready（parked） | P2 | 远景 C：调查安全；**实施重构属红线，需另请示** |
-| [#104](https://github.com/zhangjszs/physical-modelvis/issues/104) | **调查**：引擎契约上帝对象治理（ConstraintConfig 拆分 + charts 键名规范） | ready（parked） | P3 | 远景 B：同 #103，实施需另请示；与 #82 不重叠 |
+| [#102](https://github.com/zhangjszs/physical-modelvis/issues/102) | **调查**：多线圈场求值性能（Biot-Savart × Worker 化评估） | ready（**D29 已放行**） | P3 | 调查单，不动代码 |
+| [#103](https://github.com/zhangjszs/physical-modelvis/issues/103) | **调查**：渲染层结构治理（按机制抽 primitives + 巨型文件拆分路线） | ready（**D29 已放行**） | P2 | 远景 C：调查安全；**实施重构属红线，需另请示** |
+| [#104](https://github.com/zhangjszs/physical-modelvis/issues/104) | **调查**：引擎契约上帝对象治理（ConstraintConfig 拆分 + charts 键名规范） | ready（**D29 已放行**） | P3 | 远景 B：同 #103，实施需另请示；与 #82 不重叠 |
 | [#99](https://github.com/zhangjszs/physical-modelvis/issues/99) | physics-core 发布流水线：npm publish + provenance + 包名决策 | ⚠️ **needs-info**（真实发布部分；**D20 已定夺：暂缓**，dry-run 切片已拆出 #107 ready） | P2 | **契约 1.8 红线**（外部不可逆 + CI/CD）——真实发布重启前不入 ready |
 | [#105](https://github.com/zhangjszs/physical-modelvis/issues/105) | README 双语化 + CONTRIBUTING 外部贡献者视角补全 | ⚠️ **needs-info**（**D21 已定夺：英文物料随发布决策走**，发布暂缓故维持） | P3 | 触 D17「英文化明确不做」+ 硬依赖 #99 发布决策——维持 needs-info |
 
-**执行顺序**：均在 M4（#93–#97）之后，**D19 已定：长期 parked、不立项，执行棒不领**。#99/#105 维持 needs-info（红线/未决）。
-#103/#104 若将来重启，其派生的**实施重构**仍需据结论向用户请示后另立实施单（契约 1.8 红线）。
+**执行顺序**：**D29 已部分解禁 #102–#104（调查先行）**；#100/#101 维持 parked（D19）、#99/#105 维持 needs-info，
+执行棒不领。#103/#104 派生的**实施重构**仍需据结论向用户请示后另立实施单（契约 1.8 红线）。
 
 ## 给 Executor 的指令
 
-1. **队首 = #116**（P2，截图重采：跑 `capture-screenshots.mjs` 覆盖在版图；01/02 必须与旧版逐字节一致否则停手；
+1. **队首 = #103**（P2，渲染调查：重复度普查 + 分批拆分路线，每批 ≤400 行；与 M3 错峰结论已过时——M3 收官，照常执行）
+   → **#116**（P2，截图重采：跑 `capture-screenshots.mjs` 覆盖在版图；01/02 必须与旧版逐字节一致否则停手；
    04 确认弹窗归位、06 确认 6 器材；precheck 绿；仅 docs/screenshots 可变）
+   → **#102**（P3，多线圈 bench + Worker 化评估；bench 脚本放 /tmp 或 .scratch，不进仓库）
+   → **#104**（P3，引擎契约方案 + 成本核算；与 #82 边界：不重复 typed accessor）
    → **#117**（P3，依赖审计：只报告不升级，lockfile 零改动）。
-   **#100–#104 勿领**（D19 已定 parked）；#99/#105 维持 needs-info；#44 人类持有勿动；领前先查本队列与 `TASKS.md` 今日队列。
+   **调查三单红线**：只产数据/路线，**不动源码**（bench 临时脚本除外）；派生实施另立另议。
+   **#100/#101 勿领**（维持 parked）；#99/#105 维持 needs-info；#44 人类持有勿动；领前先查本队列与 `TASKS.md` 今日队列。
    ⚠️ **读 charts 只用 `chartsOf`/`getChart`，禁止新添 `as unknown as Record<…>` 强转**（AGENTS.md 硬口径）。
 2. **标签流转纪律 + LOCK**：继续规范执行 领取 `in-progress` → 完工 `in-review`；
    领取时先建 LOCK（JSON: owner/acquired_at/issue/heartbeat_at），每完成一单刷一次心跳，收尾（含异常收尾）删锁。
