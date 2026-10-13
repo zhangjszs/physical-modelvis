@@ -7,14 +7,26 @@
 
 - [ ] #103（P2 · type:chore/area:render · **in-review**）渲染层结构治理调查：重复度普查 + 分批拆分路线
   —— 验收要点：前 10 重复元素 + 省行数；每批 ≤400 行路线；只出路线不动代码（红线：实施另议）
-- [ ] #116（P2 · type:docs · ready-for-agent）README 演示截图重采：同步 #111/#112/器材增多后的 03/04/06 画面
+- [ ] #116（P2 · type:docs · **in-review**）README 演示截图重采：同步 #111/#112/器材增多后的 03/04/06 画面
   —— 验收要点：01/02 md5 与旧版一致；04 弹窗归位、06 含 6 器材；precheck 绿；仅 docs/screenshots 变化
-- [ ] #102（P3 · type:chore/area:engine · ready-for-agent）多线圈场求值性能调查：bench + Worker 化评估
+- [ ] #102（P3 · type:chore/area:engine · **in-review**）多线圈场求值性能调查：bench + Worker 化评估
   —— 验收要点：bench 数据落 comment；N≤? 无感结论；推荐方案或暂不动依据；bench 脚本不进仓库
-- [ ] #104（P3 · type:chore/area:engine · ready-for-agent）引擎契约治理调查：ConstraintConfig 拆分 + charts 键名规范
+- [ ] #104（P3 · type:chore/area:engine · **in-review**）引擎契约治理调查：ConstraintConfig 拆分 + charts 键名规范
   —— 验收要点：成本/收益对照表；与 #82 边界清晰；明确建议；不动代码（红线：实施另议）
-- [ ] #117（P3 · type:chore/area:ci · ready-for-agent）依赖安全审计 triage（只报告不升级）
+- [ ] #117（P3 · type:chore/area:ci · **in-review**）依赖安全审计 triage（只报告不升级）
   —— 验收要点：prod audit 原文摘录；high+ 逐条去向；lockfile 零改动
+
+## 本会话状态变更（2026-10-13 · executor-20261013c；Issue 为权威，本行仅同步）
+
+- 今日队列 5 单已全部由本会话完成并转 **in-review**，报告与数据 comment 在各 Issue：
+  #103（数据 6149579400 / 报告 6149588284）· #116（`67f5d0c` / 报告 6149733039）·
+  #102（数据 6149822291 / 报告 6149829167）· #104（数据 6149989944 / 报告 6149998774）·
+  #117（数据 6150352327 / 报告 6150358608）。
+- 新增 **#118**（auto-discovered，未定级无标签外无其他标签）：portal 浮层脱离 `.app` 设计令牌
+  作用域 → OCR 弹窗卡片外观全失效（#112 遗留样式回归）；`#116` 目检时发现，证据为 Playwright
+  computed-style 探针。**未定优先级、未进路线图**（Planner 职责）。
+- 执行者对 PLAN 的移交信号：① `PLAN.md` 指令 2（建 LOCK/刷心跳）与契约 1.2（不设锁）冲突，本轮按
+  PLAN 执行并已记录，请二者择一改齐；② #104 报告 §2 给出 PLAN 三处旧口径的更正证据（行号在案）。
 
 ## 本轮关闭（done，二十六次滚动验收通过）
 
