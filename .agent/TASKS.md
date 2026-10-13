@@ -5,7 +5,7 @@
 
 ## 今日队列（执行顺序，5 个：P 优先、同级按创建时间，D29 放行调查）
 
-- [ ] #103（P2 · type:chore/area:render · ready-for-agent）渲染层结构治理调查：重复度普查 + 分批拆分路线
+- [ ] #103（P2 · type:chore/area:render · **in-review**）渲染层结构治理调查：重复度普查 + 分批拆分路线
   —— 验收要点：前 10 重复元素 + 省行数；每批 ≤400 行路线；只出路线不动代码（红线：实施另议）
 - [ ] #116（P2 · type:docs · ready-for-agent）README 演示截图重采：同步 #111/#112/器材增多后的 03/04/06 画面
   —— 验收要点：01/02 md5 与旧版一致；04 弹窗归位、06 含 6 器材；precheck 绿；仅 docs/screenshots 变化
