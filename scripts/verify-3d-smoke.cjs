@@ -5,9 +5,11 @@
  * 与全量 verify-3d-scene-switching.js 的区别: 只跑代表性场景 (3D 共享 rig / 3D 独有 rig / 2D),
  * 重点覆盖场景切换竞态 (旧 rig handles + 新 rig updateEquipment 错配崩溃的历史 bug)。
  *
- * 运行: node scripts/verify-3d-smoke.cjs  (需 dev server 运行在 http://localhost:3000/)
+ * 运行: node scripts/verify-3d-smoke.cjs  (需 dev server, 默认 http://localhost:3000/, 可用 BASE_URL 覆盖)
  *   SMOKE_BROWSER_CHANNEL 浏览器渠道 (#98): 缺省 msedge (兼容现状); 置空 = Playwright 自带
  *   chromium (无 Edge 的 Linux/CI 可用); 其他值原样传给 Playwright
+ *   通道变量差异 (#106): 本脚本缺省 msedge (向后兼容), QA 巡检 QA_CHANNEL 缺省自带 chromium;
+ *   两者置空均走自带 chromium。
  *
  * 退出码: 0 = 全部通过; 1 = 存在 CRASH/ERROR
  */
@@ -15,6 +17,8 @@ const { chromium } = require('playwright');
 
 // #98: 通道参数化 — `??` 而非 `||`, 让显式置空能选自带 chromium
 const CHANNEL = process.env.SMOKE_BROWSER_CHANNEL ?? 'msedge';
+// #106: BASE_URL env 化 (与 verify-guidance-smoke 同构)
+const BASE = process.env.BASE_URL ?? 'http://localhost:3000/';
 
 // 代表性场景: 每类挑 1-2 个, 覆盖历史 bug 高发区 (共享 rig / 独有 rig / 2D 场景)
 const SCENES = [
@@ -43,7 +47,7 @@ const SCENES = [
         if (m.type() === 'error') pageErrors.push('CONSOLE: ' + m.text());
     });
 
-    await page.goto('http://localhost:3000/', { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await page.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 60000 });
     await page.waitForSelector('.directory-scene', { timeout: 30000 });
 
     const click = async name => {
