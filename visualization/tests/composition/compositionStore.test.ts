@@ -83,6 +83,19 @@ describe('compositionStore 组合实验台状态', () => {
         expect(result).not.toBeNull();
     });
 
+    it('updateSourceVector 合并式更新向量参数并重仿真 (匀强磁场区三轴尺寸)', () => {
+        useCompositionStore.getState().addSource('uniform-field-zone');
+        const id = useCompositionStore.getState().sources[0]!.id;
+        useCompositionStore.getState().updateSourceVector(id, 'size', { x: 0.5 });
+        const source = useCompositionStore.getState().sources[0]!.source;
+        expect(source.kind).toBe('uniform-field-zone');
+        if (source.kind === 'uniform-field-zone') {
+            expect(source.size).toMatchObject({ x: 0.5, y: 0.3, z: 0.3 });
+        }
+        expect(useCompositionStore.getState().validationMessage).toBeNull();
+        expect(useCompositionStore.getState().result).not.toBeNull();
+    });
+
     it('场线开关默认 E 开 / B 关, toggle 可翻转', () => {
         const initial = useCompositionStore.getState();
         expect(initial.showElectricFieldLines).toBe(true);

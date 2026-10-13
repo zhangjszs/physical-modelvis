@@ -5,7 +5,7 @@ import { PHYSICS_CONSTANTS } from '../units/constants.js';
 /**
  * 可组合场源层 — "拖拽自由组合电磁实验"的物理地基。
  *
- * 每种器材 (点电荷 / 极板 / 导线 / 线圈) 实现为一个场源描述,
+ * 每种器材 (点电荷 / 极板 / 导线 / 线圈 / 条形磁铁 / 匀强磁场区) 实现为一个场源描述,
  * 任意布置的场源集合通过 total*Field 在空间任意点解析求和 (叠加原理)。
  * 上层的组合实验只需维护"场景里放了哪些源", 不再为每种布置写专用模型。
  *
@@ -90,6 +90,23 @@ export type MagneticFieldSource =
           readonly length?: number;
           /** 遮蔽半径 (m), 默认 0.02 (小于此半径返回零场) */
           readonly shieldingRadius?: number;
+      }
+    /**
+     * 匀强磁场区 (有界区域常量场, #114): 盒区内 B 恒等于 field, 域外严格零场。
+     *
+     * 边界约定 (硬边界 + 追踪越界即停): 边界上 (|d| ≤ half) 视为域内;
+     * 域外场严格为零, 场线追踪 (traceFieldLine) 跨出边界后因零场自然终止
+     * (中性点停止分支), 无需过渡带 — "匀强"的教学演示点不被边界平滑模糊。
+     * 盒区轴对齐 (长方体边与物理坐标轴平行); 朝向固定 +y, 旋转随 #100 解锁。
+     */
+    | {
+          readonly kind: 'uniform-field-zone';
+          /** 盒区内恒定磁感应强度矢量 (T), 大小即场强 (默认 +y 方向) */
+          readonly field: Vector3D;
+          /** 盒区中心 */
+          readonly center: Vector3D;
+          /** 盒区三轴全尺寸 (m, x/y/z), 须全为正数 */
+          readonly size: Vector3D;
       };
 
 /** 任意场源 */
@@ -199,6 +216,35 @@ export function barMagnetMagneticField(
     return Vec3.scale(Vec3.sub(term1, term2), factor);
 }
 
+/**
+ * 匀强磁场区磁场 (T, #114): 盒区内恒等于 field, 域外零场 (硬边界语义)。
+ * 尺寸任一轴非正/非有限时返回零场 (非法描述由 validateComposition 拦截, 此处不抛)。
+ */
+export function uniformFieldZoneMagneticField(
+    field: Vector3D,
+    center: Vector3D,
+    size: Vector3D,
+    at: Vector3D
+): Vector3D {
+    if (
+        !(size.x > 0) ||
+        !(size.y > 0) ||
+        !(size.z > 0) ||
+        !Number.isFinite(size.x + size.y + size.z) ||
+        !Number.isFinite(field.x + field.y + field.z) ||
+        !Number.isFinite(center.x + center.y + center.z) ||
+        !Number.isFinite(at.x + at.y + at.z)
+    ) {
+        return Vec3.zero();
+    }
+    const inside =
+        Math.abs(at.x - center.x) <= size.x / 2 &&
+        Math.abs(at.y - center.y) <= size.y / 2 &&
+        Math.abs(at.z - center.z) <= size.z / 2;
+    if (!inside) return Vec3.zero();
+    return { x: field.x, y: field.y, z: field.z };
+}
+
 /** 叠加全部场源的合电场 (N/C)。磁场源自动忽略。 */
 export function totalElectricField(sources: readonly FieldSource[], at: Vector3D): Vector3D {
     let ex = 0;
@@ -238,6 +284,11 @@ export function totalMagneticField(sources: readonly FieldSource[], at: Vector3D
             bz += b.z;
         } else if (s.kind === 'bar-magnet') {
             const b = barMagnetMagneticField(s.magneticMoment, s.center, s.direction, at, s.shieldingRadius);
+            bx += b.x;
+            by += b.y;
+            bz += b.z;
+        } else if (s.kind === 'uniform-field-zone') {
+            const b = uniformFieldZoneMagneticField(s.field, s.center, s.size, at);
             bx += b.x;
             by += b.y;
             bz += b.z;

@@ -117,6 +117,37 @@ describe('buildFieldLines 场线几何构建', () => {
         expect(closedCount).toBeGreaterThan(0);
     });
 
+    it('匀强磁场区磁场线: 域内平行直线, 到达出流面后越界即停 (硬边界约定)', () => {
+        const size: Vector3D = { x: 0.4, y: 0.3, z: 0.3 };
+        const lines = buildFieldLines(
+            [{ kind: 'uniform-field-zone', field: { x: 0, y: 1e-3, z: 0 }, center: ZERO3, size }],
+            'magnetic'
+        );
+        const { divisions } = FIELD_LINE_SEED_CONFIG.uniformFieldZone;
+        expect(lines).toHaveLength(divisions * divisions);
+        for (const line of lines) {
+            expect(line.length).toBeGreaterThan(1);
+            const physics = toPhysics(line);
+            // 直线: x/z 恒定 (匀强场 RK2 无弯曲)
+            const xs = physics.map(p => p.x);
+            const zs = physics.map(p => p.z);
+            expect(Math.max(...xs) - Math.min(...xs)).toBeLessThan(1e-9);
+            expect(Math.max(...zs) - Math.min(...zs)).toBeLessThan(1e-9);
+            // 不出盒左右界
+            for (const p of physics) {
+                expect(Math.abs(p.x)).toBeLessThanOrEqual(size.x / 2 + 1e-9);
+                expect(Math.abs(p.z)).toBeLessThanOrEqual(size.z / 2 + 1e-9);
+            }
+            // 顺 +y 单调推进, 末点到达出流面 (非提前终止) 且出盒不超过一步
+            for (let i = 1; i < physics.length; i++) {
+                expect(physics[i]!.y).toBeGreaterThan(physics[i - 1]!.y);
+            }
+            const last = physics[physics.length - 1]!;
+            expect(last.y).toBeGreaterThan(size.y / 2 - 0.031);
+            expect(last.y).toBeLessThanOrEqual(size.y / 2 + 0.031);
+        }
+    });
+
     it('平行板电容器: 两板叠加的电场线有限且不越界', () => {
         const sigma = 2e-6;
         const lines = buildFieldLines(

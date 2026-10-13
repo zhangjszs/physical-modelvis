@@ -5,6 +5,7 @@ import {
     straightWireMagneticField,
     circularCoilMagneticField,
     barMagnetMagneticField,
+    uniformFieldZoneMagneticField,
     totalElectricField,
     totalMagneticField,
     type FieldSource
@@ -215,6 +216,42 @@ describe('fields3d 可组合场源层', () => {
             const b = totalMagneticField(sources, Vec3.create(0, 0.2, 0));
             const analytic = (MU0 * m) / (2 * Math.PI * Math.pow(0.2, 3));
             expect(Math.abs(b.y - analytic) / analytic).toBeLessThan(1e-10);
+        });
+    });
+
+    describe('uniformFieldZoneMagneticField 匀强磁场区 (有界区域常量场)', () => {
+        const field = Vec3.create(0, 1e-3, 0);
+        const center = Vec3.zero();
+        const size = Vec3.create(0.4, 0.3, 0.3);
+
+        it('域内场值恒定且等于设定 B (中心与偏心点一致)', () => {
+            for (const at of [Vec3.zero(), Vec3.create(0.1, 0.05, -0.1), Vec3.create(-0.19, 0.14, 0.14)]) {
+                expect(uniformFieldZoneMagneticField(field, center, size, at)).toEqual(field);
+            }
+        });
+
+        it('域外为零 (六个面外各一点)', () => {
+            for (const at of [
+                Vec3.create(0.21, 0, 0),
+                Vec3.create(-0.21, 0, 0),
+                Vec3.create(0, 0.16, 0),
+                Vec3.create(0, -0.16, 0),
+                Vec3.create(0, 0, 0.16),
+                Vec3.create(0, 0, -0.16)
+            ]) {
+                expect(uniformFieldZoneMagneticField(field, center, size, at)).toEqual(Vec3.zero());
+            }
+        });
+
+        it('边界约定: 边界上视为域内 (硬边界 + 追踪越界即停, #114)', () => {
+            expect(uniformFieldZoneMagneticField(field, center, size, Vec3.create(0.2, 0, 0))).toEqual(field);
+            expect(uniformFieldZoneMagneticField(field, center, size, Vec3.create(0, 0.15, 0))).toEqual(field);
+        });
+
+        it('totalMagneticField 包含匀强磁场区的叠加 (域内恒值 / 域外零)', () => {
+            const sources: FieldSource[] = [{ kind: 'uniform-field-zone', field, center, size }];
+            expect(totalMagneticField(sources, Vec3.zero())).toEqual(field);
+            expect(totalMagneticField(sources, Vec3.create(0, 1, 0))).toEqual(Vec3.zero());
         });
     });
 });

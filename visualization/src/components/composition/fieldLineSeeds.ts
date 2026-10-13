@@ -43,7 +43,13 @@ export const FIELD_LINE_SEED_CONFIG = {
     /** 线圈: 近轴面多个轴向位置的环向种子 (捕捉穿过线圈的闭合磁力线) */
     coil: { radialFactor: 0.6, axialFactors: [-0.5, 0, 0.5], azimuthCount: 4, lineLength: 2 },
     /** 条形磁铁: 赤道面对称面多个半径的环向种子 (双向追踪向两极汇聚成闭合环) */
-    barMagnet: { radii: [0.08, 0.18, 0.28], azimuthCount: 6, lineLength: 2.5 }
+    barMagnet: { radii: [0.08, 0.18, 0.28], azimuthCount: 6, lineLength: 2.5 },
+    /**
+     * 匀强磁场区: 入流面网格种子 (单向顺场追踪, 出流面越界即停)。
+     * 网格半宽取保守值 0.45×最小边 (保证种子落在轴对齐盒内, 与场向无关);
+     * 种子面内缩 inset (边界视为域内, 种子场非零可起追)。
+     */
+    uniformFieldZone: { divisions: 3, halfWidthFactor: 0.45, inset: 0.02 }
 } as const;
 
 /** 所有场线共用的追踪参数 (有界, 兼顾拖拽帧率与曲线平滑) */
@@ -244,6 +250,43 @@ function barMagnetSeeds(center: Vector3D, direction: Vector3D, density: number):
 }
 
 /**
+ * 匀强磁场区: 入流面均布平行种子 (单向顺场追踪, 出流面零场越界即停)。
+ * 盒区轴对齐 + 朝向固定 +y (#114 约定); 任意 field 方向仍可追踪,
+ * 但种子网格按 +y 入流面 (−y 端面内缩 inset) 布置 — 旋转随 #100 解锁后重做。
+ * 网格半宽保守取 0.45×最小边, 保证种子落在盒内 (边界上视为域内, 起追场非零)。
+ */
+function uniformFieldZoneSeeds(center: Vector3D, size: Vector3D, field: Vector3D, density: number): FieldLineSeed[] {
+    // 零场区无方向可追, 直接不产种子 (buildFieldLines 也会丢弃长度 1 的线, 此处提前短路更明确)
+    if (!normalizeVector(field)) return [];
+    if (!(size.x > 0) || !(size.y > 0) || !(size.z > 0)) return [];
+    if (![size.x, size.y, size.z, center.x, center.y, center.z].every(Number.isFinite)) return [];
+    const { divisions: baseDivisions, halfWidthFactor, inset } = FIELD_LINE_SEED_CONFIG.uniformFieldZone;
+    const divisions = scaleCount(baseDivisions, density);
+    const halfWidth = Math.min(size.x, size.y, size.z) * halfWidthFactor - inset;
+    if (!(halfWidth > 0)) return [];
+    // 沿场弦长: 入流面到出流面的盒内距离 + 出界一步余量 (追踪在零场区自然终止)
+    const chord = size.y + 2 * inset;
+    const seeds: FieldLineSeed[] = [];
+    for (let i = 0; i < divisions; i++) {
+        for (let j = 0; j < divisions; j++) {
+            const tu = divisions > 1 ? (i / (divisions - 1) - 0.5) * 2 : 0;
+            const tv = divisions > 1 ? (j / (divisions - 1) - 0.5) * 2 : 0;
+            seeds.push({
+                kind: 'magnetic',
+                start: {
+                    x: center.x + tu * halfWidth,
+                    y: center.y - size.y / 2 + inset,
+                    z: center.z + tv * halfWidth
+                },
+                bidirectional: false,
+                maxArcLength: chord
+            });
+        }
+    }
+    return seeds;
+}
+
+/**
  * 按场源集合生成全部场线种子。
  * 电场源只产 electric 种子、磁场源只产 magnetic 种子; 方向退化的源跳过 (校验层负责报错)。
  * density 为密度倍率 (#93): 0.5 / 1 / 2 三档, 越界夹取, 非有限回落默认。
@@ -265,6 +308,8 @@ export function fieldLineSeeds(
             seeds.push(...circularCoilSeeds(s.center, s.axis, s.radius, d));
         } else if (s.kind === 'bar-magnet') {
             seeds.push(...barMagnetSeeds(s.center, s.direction, d));
+        } else if (s.kind === 'uniform-field-zone') {
+            seeds.push(...uniformFieldZoneSeeds(s.center, s.size, s.field, d));
         }
     }
     return seeds;

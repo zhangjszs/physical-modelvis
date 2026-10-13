@@ -124,6 +124,50 @@ describe('composition 组合实验层', () => {
             });
             expect(vZeroDir.valid).toBe(false);
         });
+
+        it('匀强磁场区校验: 合法通过; 非正尺寸 / 非有限场强被拦截', () => {
+            const validExp: CompositionExperiment = {
+                sources: [
+                    {
+                        kind: 'uniform-field-zone',
+                        field: Vec3.create(0, 1e-3, 0),
+                        center: ZERO3,
+                        size: Vec3.create(0.4, 0.3, 0.3)
+                    }
+                ],
+                particle: { charge: 1, mass: 1, position: ZERO3, velocity: ZERO3 },
+                duration: 1
+            };
+            expect(validateComposition(validExp).valid).toBe(true);
+
+            const vBadSize = validateComposition({
+                ...validExp,
+                sources: [
+                    {
+                        kind: 'uniform-field-zone',
+                        field: Vec3.create(0, 1e-3, 0),
+                        center: ZERO3,
+                        size: Vec3.create(0.4, 0, 0.3)
+                    }
+                ]
+            });
+            expect(vBadSize.valid).toBe(false);
+            expect(vBadSize.errors.some(e => e.param === 'sources[0].size')).toBe(true);
+
+            const vBadField = validateComposition({
+                ...validExp,
+                sources: [
+                    {
+                        kind: 'uniform-field-zone',
+                        field: Vec3.create(0, Number.NaN, 0),
+                        center: ZERO3,
+                        size: Vec3.create(0.4, 0.3, 0.3)
+                    }
+                ]
+            });
+            expect(vBadField.valid).toBe(false);
+            expect(vBadField.errors.some(e => e.param === 'sources[0].field')).toBe(true);
+        });
     });
 
     describe('compositionFieldAt 场求值器', () => {
