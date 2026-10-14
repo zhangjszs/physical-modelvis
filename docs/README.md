@@ -59,6 +59,8 @@ docs/
 | [plan.md](./plan.md) | **项目进展与演进路线**：阶段 3 渲染迁移状态、近期里程碑、待办任务追踪。 |
 | [adr/](./adr/) | **架构决策记录 (ADR)**：记录重大技术选型、架构重构及其权衡。详见 [adr/README.md](./adr/README.md)。 |
 | [superpowers/](./superpowers/) | **专题架构方案**：重大架构重构专题方案（如 WorkbenchScene 拆分设计）。 |
+| [rendering-structure-survey.md](./rendering-structure-survey.md) | **渲染层结构治理调查**：重复度普查 + 巨型文件分批拆分路线（#103 数据落档；派生实施需用户放行，见 DECISIONS D31）。 |
+| [composition-l6-equipment-survey.md](./composition-l6-equipment-survey.md) | **组合实验台 L6 候选器材评估**：7 候选 × 5 维度，推荐批条形磁铁 + 匀强磁场区（#94；已落地 #113/#114）。 |
 
 ---
 
