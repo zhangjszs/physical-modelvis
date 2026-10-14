@@ -2,6 +2,10 @@
 # pre-push: 与 CI 等价的本地检查门禁
 # 任意步骤失败即阻止 push，避免远端 CI 红灯
 # (跳过: git push --no-verify)
+#
+# #122 观测机制: precheck 输出先落临时文件；失败时归档到 .scratch/
+# (gitignored) 保留第一手证据，成功时仅打印尾部 15 行。
+# 门禁语义不变：失败仍 exit 1 阻止 push；本脚本只用 POSIX sh 语法 (dash)。
 echo "pre-push: 运行与 CI 等价的本地检查 (build/typecheck/lint/format/test/count/selfcheck)" >&2
 echo "" >&2
 
@@ -16,12 +20,55 @@ if ! command -v npm >/dev/null 2>&1; then
     unset _shim
 fi
 
-npm run precheck || {
-  echo "" >&2
-  echo "pre-push 检查失败，已阻止本次 push" >&2
-  echo "修复后重试，或紧急情况使用: git push --no-verify" >&2
-  exit 1
-}
+_TMP_LOG="$(mktemp "${TMPDIR:-/tmp}/pre-push.XXXXXX.log" 2>/dev/null)"
+if [ -z "$_TMP_LOG" ] || [ ! -f "$_TMP_LOG" ]; then
+    # mktemp 不可用时退回原行为（直播输出，无归档），门禁语义不变
+    npm run precheck || {
+        echo "" >&2
+        echo "pre-push 检查失败，已阻止本次 push" >&2
+        echo "修复后重试，或紧急情况使用: git push --no-verify" >&2
+        exit 1
+    }
+    echo "" >&2
+    echo "pre-push 检查通过，继续 push" >&2
+    exit 0
+fi
 
+# 存活提示: precheck 常需数分钟，输出进文件期间每 60s 打印一行，避免被误判卡死
+( while :; do sleep 60; echo "pre-push: precheck 运行中…（完整日志暂存 $_TMP_LOG）" >&2; done ) &
+_TICK_PID=$!
+
+npm run precheck >"$_TMP_LOG" 2>&1
+_STATUS=$?
+kill "$_TICK_PID" 2>/dev/null
+wait "$_TICK_PID" 2>/dev/null
+
+if [ "$_STATUS" -ne 0 ]; then
+    _FAIL_DIR=".scratch"
+    mkdir -p "$_FAIL_DIR" 2>/dev/null
+    _BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo unknown)"
+    _SAFE_BRANCH="$(printf '%s' "$_BRANCH" | tr -c 'A-Za-z0-9._-' '_')"
+    _FAIL_LOG="$_FAIL_DIR/pre-push-failure-$(date +%Y%m%d-%H%M%S)-$_SAFE_BRANCH.log"
+    {
+        echo "=== pre-push failure capture (#122 观测) ==="
+        echo "time: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+        echo "branch: $_BRANCH"
+        echo "head: $(git rev-parse HEAD 2>/dev/null || echo unknown)"
+        echo "status: $_STATUS"
+        echo ""
+        cat "$_TMP_LOG"
+    } >"$_FAIL_LOG" 2>/dev/null
+    cat "$_TMP_LOG" >&2
+    rm -f "$_TMP_LOG"
+    echo "" >&2
+    echo "pre-push 检查失败，已阻止本次 push" >&2
+    echo "失败日志已归档: $_FAIL_LOG（请附到对应 Issue，便于定位抖动根因）" >&2
+    echo "修复后重试，或紧急情况使用: git push --no-verify" >&2
+    exit 1
+fi
+
+tail -n 15 "$_TMP_LOG" >&2
+rm -f "$_TMP_LOG"
 echo "" >&2
 echo "pre-push 检查通过，继续 push" >&2
+exit 0
