@@ -5,10 +5,12 @@
 
 ## 今日队列（执行顺序，2 个）
 
-- [ ] #122（P3 · type:chore/area:ci · **ready**）门禁稳定性：pre-push core vitest 首跑抖动（累计 4 次，达 L320 阈值）
+- [ ] #122（P3 · type:chore/area:ci · **in-review**）门禁稳定性：pre-push core vitest 首跑抖动（累计 4 次，达 L320 阈值）
   —— 验收要点：复现数据（≥10 次计数）+ 根因证据链 + 缓解落地后连续 10 次首跑绿（或转观测）；禁改 workflows/；禁 --no-verify；precheck 绿
-- [ ] #123（P3 · type:docs · **ready**）docs 索引补全：两份 survey 入 docs/README.md
+  —— 执行报告：12/12 全绿不可复现 → 转观测；`.husky/pre-push` 失败归档 + `sh -e` 兼容修复（`|| true`/或-list 取码，stub 双路径验证）；`43ebd72`+`21da420`+`7a5950c` 已推送（新钩子生产自验证）
+- [ ] #123（P3 · type:docs · **in-review**）docs 索引补全：两份 survey 入 docs/README.md
   —— 验收要点：两份 survey 条目在列；precheck 绿（docs-only）
+  —— 执行报告：§4 表 +2 行（62/63 行在位）；precheck exit 0；`2179185`+`2fd64c6` 已推送
 
 ## 本轮关闭（done，二十九次滚动验收通过 · 2026-10-14）
 
