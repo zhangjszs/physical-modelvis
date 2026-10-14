@@ -26,7 +26,10 @@ body {
 }
 
 /* ========== Theme & Design Tokens ========== */
-.app {
+/* 设计令牌定义在 :root 而非 .app：使 createPortal 到 document.body 的浮层
+   （OCR 弹窗 / 导学面板）同样继承令牌；亮色主题通过 <html class="light"> 镜像
+   （见 App.tsx useEffect），令 body 级 portal 在暗/亮双主题下均正确取色（#118）。 */
+:root {
     /* 布局变量 */
     --sidebar-w: 240px;
     --canvas-min-h: 380px;
@@ -83,7 +86,8 @@ body {
 
     /* 输入框 / 文本域玻璃底色（按主题切换） */
     --input-bg: rgba(15, 23, 42, 0.45);
-
+}
+.app {
     height: 100vh;
     max-height: 100vh;
     overflow: hidden;
@@ -92,7 +96,7 @@ body {
     background: var(--bg);
     color: var(--text);
 }
-.app.light {
+:root.light {
     --bg: #eef2fb;
     --bg2: #ffffff;
     --bg3: #f1f5f9;
