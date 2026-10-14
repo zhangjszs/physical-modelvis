@@ -1,4 +1,4 @@
-import type { PhysicsProblem, ModelType } from '../types/problem.js';
+import type { PhysicsProblem, ModelType, ConstraintFieldName } from '../types/problem.js';
 import type { SimulationResult } from '../types/result.js';
 import type { ParameterSpec, ValidationResult, PhysicalBody } from '../types/common.js';
 import { UnsupportedModelError, ParameterOutOfRangeError, PhysicsError } from '../errors/index.js';
@@ -22,7 +22,7 @@ declare const performance: { now(): number };
  * 约定不成立时返回 undefined，调用方**跳过**该参数 ——
  * 宁可漏检，也不可因解析不出值而误报非法。
  */
-function resolveParameterValue(problem: PhysicsProblem, name: string): number | undefined {
+function resolveParameterValue(problem: PhysicsProblem, name: ConstraintFieldName): number | undefined {
     // 1. constraints 的一层扁平字段 (模型自身参数, 最具体)
     for (const value of Object.values(problem.constraints ?? {})) {
         if (value === null || typeof value !== 'object') continue;
@@ -156,7 +156,7 @@ export abstract class PhysicsModelBase {
         }> = [];
         const enforce = this.enforcesParameterRanges();
         for (const spec of this.requiredParameters) {
-            const value = resolveParameterValue(problem, spec.name);
+            const value = resolveParameterValue(problem, spec.name as ConstraintFieldName);
             if (value === undefined) continue;
 
             // 非有限值守卫: 即使 min/max 声明遗漏, NaN/Inf 一律拒绝 (防静默污染下游公式)

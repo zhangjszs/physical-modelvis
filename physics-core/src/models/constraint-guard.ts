@@ -12,6 +12,7 @@
  */
 
 import { PhysicsError } from '../errors/index.js';
+import type { ConstraintFieldName } from '../types/problem.js';
 
 /**
  * 读取必需的数值约束字段。
@@ -24,7 +25,7 @@ import { PhysicsError } from '../errors/index.js';
  */
 export function requireConstraintNumber(
     constraints: Record<string, unknown> | undefined,
-    field: string,
+    field: ConstraintFieldName,
     context: string
 ): number {
     if (constraints === undefined || constraints === null) {
@@ -58,7 +59,7 @@ export function requireConstraintNumber(
  */
 export function optionalConstraintNumber(
     constraints: Record<string, unknown> | undefined,
-    field: string,
+    field: ConstraintFieldName,
     fallback: number
 ): number {
     const value = constraints?.[field];
