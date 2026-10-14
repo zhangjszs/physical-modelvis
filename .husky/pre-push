@@ -20,7 +20,9 @@ if ! command -v npm >/dev/null 2>&1; then
     unset _shim
 fi
 
-_TMP_LOG="$(mktemp "${TMPDIR:-/tmp}/pre-push.XXXXXX.log" 2>/dev/null)"
+# 注：husky 以 `sh -e` 执行本脚本，以下 fallible 命令一律 `|| true`，
+# 避免因存活提示/归档等辅助逻辑的非零退出码误杀门禁（#122 实测：wait 被 kill 的 ticker 返回 143）。
+_TMP_LOG="$(mktemp "${TMPDIR:-/tmp}/pre-push.XXXXXX.log" 2>/dev/null)" || true
 if [ -z "$_TMP_LOG" ] || [ ! -f "$_TMP_LOG" ]; then
     # mktemp 不可用时退回原行为（直播输出，无归档），门禁语义不变
     npm run precheck || {
@@ -38,16 +40,17 @@ fi
 ( while :; do sleep 60; echo "pre-push: precheck 运行中…（完整日志暂存 $_TMP_LOG）" >&2; done ) &
 _TICK_PID=$!
 
-npm run precheck >"$_TMP_LOG" 2>&1
-_STATUS=$?
-kill "$_TICK_PID" 2>/dev/null
-wait "$_TICK_PID" 2>/dev/null
+# _STATUS 预置 0：`cmd || _STATUS=$?` 结构下成功分支不改值（且整行在 sh -e 下豁免）。
+_STATUS=0
+npm run precheck >"$_TMP_LOG" 2>&1 || _STATUS=$?
+kill "$_TICK_PID" 2>/dev/null || true
+wait "$_TICK_PID" 2>/dev/null || true
 
 if [ "$_STATUS" -ne 0 ]; then
     _FAIL_DIR=".scratch"
-    mkdir -p "$_FAIL_DIR" 2>/dev/null
-    _BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo unknown)"
-    _SAFE_BRANCH="$(printf '%s' "$_BRANCH" | tr -c 'A-Za-z0-9._-' '_')"
+    mkdir -p "$_FAIL_DIR" 2>/dev/null || true
+    _BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo unknown)" || true
+    _SAFE_BRANCH="$(printf '%s' "$_BRANCH" | tr -c 'A-Za-z0-9._-' '_' 2>/dev/null || echo unknown)" || true
     _FAIL_LOG="$_FAIL_DIR/pre-push-failure-$(date +%Y%m%d-%H%M%S)-$_SAFE_BRANCH.log"
     {
         echo "=== pre-push failure capture (#122 观测) ==="
@@ -57,8 +60,8 @@ if [ "$_STATUS" -ne 0 ]; then
         echo "status: $_STATUS"
         echo ""
         cat "$_TMP_LOG"
-    } >"$_FAIL_LOG" 2>/dev/null
-    cat "$_TMP_LOG" >&2
+    } >"$_FAIL_LOG" 2>/dev/null || true
+    cat "$_TMP_LOG" >&2 || true
     rm -f "$_TMP_LOG"
     echo "" >&2
     echo "pre-push 检查失败，已阻止本次 push" >&2
@@ -67,7 +70,7 @@ if [ "$_STATUS" -ne 0 ]; then
     exit 1
 fi
 
-tail -n 15 "$_TMP_LOG" >&2
+tail -n 15 "$_TMP_LOG" >&2 || true
 rm -f "$_TMP_LOG"
 echo "" >&2
 echo "pre-push 检查通过，继续 push" >&2
