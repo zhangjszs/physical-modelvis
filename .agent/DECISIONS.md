@@ -650,3 +650,21 @@ eslint tests 目录 `no-explicit-any` 降 warn）与 `36aed93`（移除 scripts/
   8. **#121 立单**（#103 调查落档 docs/，零源码改动）——AGENTS.md「docs/ 为变更前必读入口」+ 未来实施单引用便利。
 - **影响范围**：PLAN 二十八次滚动；TASKS.md 重写；DECISIONS 新增 D30/D31；执行队列 = **#118 → #119 → #120 → #121**。
 
+---
+
+## D32 · 二十九次滚动：最小切片验收关闭 + L320 触发立单（门禁稳定性 #122 / docs 索引入 #123）
+
+- **日期**：2026-10-14（每日规划批次三；执行棒清空二十八次滚动队列后的验收轮）
+- **验收（规划者独立复核，非只信报告）**：in-review 积压 4 单 **全部 CLOSED**——
+  - **#118**：`styles.css:32` `:root` + `:root.light` 在位；`App.tsx:36` 主题镜像 `documentElement` 在位（正文「零 JS 变更」与亮/暗双主题硬条件的必要偏离，理由成立）；`bb4ab22 --stat` 仅 styles/App/探针/04/05 两图；探针 115 行已入库不入 CI；CI/Deploy @ `7b7ce7a` success。
+  - **#119**：`COIL_TRIG_CACHE`（fields3d.ts:157）在位；本轮独立复跑三文件 54 passed；查表 vs 递推取舍（误差 0 vs 8.6×+漂移）选位等价正确；CI/Deploy @ `bb67e59` success；测试数 1160→1167 已同步。
+  - **#120**：三幽灵全仓 grep 无残留（本轮实测）；`ConstraintFieldName` 在位 + 新测试文件；定向复跑 24 passed；CI/Deploy @ `8895727` success；测试数 1167→1169 已同步。
+  - **#121**：文档 168 行在位，头含来源 + 红线声明；`drawMiniChart` grep=3 与报告一致；32 vs 33 文件数差异已标注；CI/Deploy @ `7b7ce7a` success。
+- **口径修正收录**：#104 §4 C3「零迁移成本」漏计 tests/ 内守卫消费者（`em-guards.test.ts` 合成字段 `'a'` 已适配为 `'current'`）——记入本条，不 reopen #104。
+- **裁定（规划者自决，均低风险可回滚）**：
+  1. **L320 触发 → 立 #122**（P3 ready）：pre-push core vitest 首跑抖动累计第 4 次（#64 + #119/#120/#121），达「第 2 次即立单」阈值。范围禁改 `.github/workflows/`（1.10 红线）；全程禁 `--no-verify`。
+  2. **立 #123**（P3 ready，本仓无 P4 标签故以 P3 为最低）：docs/README.md 索引补两份 survey 条目（#121 执行报告建议 + #94 同类一并收口）。
+  3. **D31 维持 pending（第 1 天，同日）**：#103 派生重构批继续暂缓，不进 ready。
+- **影响范围**：PLAN 二十九次滚动；TASKS.md 重写；DECISIONS 新增 D32；执行队列 = **#122 → #123**。
+- **测试数快照**：core 1169 / viz 1641 / total 2810（`count:check` ✅，二十九次滚动验收时）。
+
