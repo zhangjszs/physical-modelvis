@@ -146,6 +146,31 @@ export function straightWireMagneticField(
     return Vec3.scale(Vec3.cross(d, rhoPerp), (PHYSICS_CONSTANTS.mu0.value * current) / (2 * Math.PI * rho2));
 }
 
+/**
+ * 线圈毕奥-萨伐尔分段的角度三角函数查找表 (#119)。
+ *
+ * 第 k 段边界角 θ_k = 2πk/segments 的 cos/sin 仅取决于 segments, 与电流/匝数/半径/
+ * 圆心/轴向/场点无关, 故按 segments 缓存复用。表值以 `Math.cos((2*Math.PI*k)/segments)`
+ * 计算, 与逐段内联调用位等价 (零漂移), 仅将热循环内的 4×segments 次三角调用降为一次性预计算。
+ * segments 为场景配置常量 (默认 96), 不同取值数量有限, 缓存规模可控。
+ */
+const COIL_TRIG_CACHE = new Map<number, { readonly cos: number[]; readonly sin: number[] }>();
+function coilTrigTable(segments: number): { readonly cos: number[]; readonly sin: number[] } {
+    let table = COIL_TRIG_CACHE.get(segments);
+    if (table === undefined) {
+        const cos = new Array<number>(segments + 1);
+        const sin = new Array<number>(segments + 1);
+        for (let k = 0; k <= segments; k++) {
+            const th = (2 * Math.PI * k) / segments;
+            cos[k] = Math.cos(th);
+            sin[k] = Math.sin(th);
+        }
+        table = { cos, sin };
+        COIL_TRIG_CACHE.set(segments, table);
+    }
+    return table;
+}
+
 /** 圆形线圈磁场 (T, 毕奥-萨伐尔分段求和)。场点恰在导线环上时跳过该段贡献。 */
 export function circularCoilMagneticField(
     current: number,
@@ -162,30 +187,57 @@ export function circularCoilMagneticField(
     const u = Vec3.normalize(Vec3.cross(a, helper));
     const v = Vec3.cross(a, u);
 
+    // 基向量与圆心/场点拆成标量分量, 使下方热循环零临时对象分配 (#119)。
+    // 运算顺序与旧 Vec3 版逐项对应, 数值等价 (对拍误差 ≤1e-12, 实测为 0), 行为无变更。
+    const ux = u.x;
+    const uy = u.y;
+    const uz = u.z;
+    const vx = v.x;
+    const vy = v.y;
+    const vz = v.z;
+    const cx = center.x;
+    const cy = center.y;
+    const cz = center.z;
+    const px = at.x;
+    const py = at.y;
+    const pz = at.z;
+
     let bx = 0;
     let by = 0;
     let bz = 0;
     const prefactor = (PHYSICS_CONSTANTS.mu0.value * current * turns) / (4 * Math.PI);
+    const eps2 = FIELD_SOURCE_EPS * FIELD_SOURCE_EPS;
+    // #119: 常规整数段数走角度三角函数缓存表 (位等价于逐段 Math.cos/sin, 消除热循环三角调用);
+    // 非常规段数 (非整数/≤0/超大) 回退逐段计算, 保证任意输入下数值行为不变。
+    const table = Number.isInteger(segments) && segments >= 1 && segments <= 1024 ? coilTrigTable(segments) : undefined;
+    const cosT = table?.cos;
+    const sinT = table?.sin;
     for (let k = 0; k < segments; k++) {
-        const th1 = (2 * Math.PI * k) / segments;
-        const th2 = (2 * Math.PI * (k + 1)) / segments;
-        const p1 = Vec3.add(
-            center,
-            Vec3.add(Vec3.scale(u, radius * Math.cos(th1)), Vec3.scale(v, radius * Math.sin(th1)))
-        );
-        const p2 = Vec3.add(
-            center,
-            Vec3.add(Vec3.scale(u, radius * Math.cos(th2)), Vec3.scale(v, radius * Math.sin(th2)))
-        );
-        const dl = Vec3.sub(p2, p1);
-        const r = Vec3.sub(at, p1);
-        const r2 = Vec3.magnitudeSq(r);
-        if (r2 < FIELD_SOURCE_EPS * FIELD_SOURCE_EPS) continue;
-        // dB = μ₀I·N/(4π) · dl⃗ × r⃗ / r³
-        const contrib = Vec3.scale(Vec3.cross(dl, r), prefactor / (r2 * Math.sqrt(r2)));
-        bx += contrib.x;
-        by += contrib.y;
-        bz += contrib.z;
+        // p = center + u·(radius·cosθ) + v·(radius·sinθ)  (与 Vec3.add/scale 同序)
+        const rc1 = radius * (cosT ? cosT[k] : Math.cos((2 * Math.PI * k) / segments));
+        const rs1 = radius * (sinT ? sinT[k] : Math.sin((2 * Math.PI * k) / segments));
+        const rc2 = radius * (cosT ? cosT[k + 1] : Math.cos((2 * Math.PI * (k + 1)) / segments));
+        const rs2 = radius * (sinT ? sinT[k + 1] : Math.sin((2 * Math.PI * (k + 1)) / segments));
+        const p1x = cx + (ux * rc1 + vx * rs1);
+        const p1y = cy + (uy * rc1 + vy * rs1);
+        const p1z = cz + (uz * rc1 + vz * rs1);
+        const p2x = cx + (ux * rc2 + vx * rs2);
+        const p2y = cy + (uy * rc2 + vy * rs2);
+        const p2z = cz + (uz * rc2 + vz * rs2);
+        // dl = p2 - p1;  r = at - p1
+        const dlx = p2x - p1x;
+        const dly = p2y - p1y;
+        const dlz = p2z - p1z;
+        const rx = px - p1x;
+        const ry = py - p1y;
+        const rz = pz - p1z;
+        const r2 = rx * rx + ry * ry + rz * rz;
+        if (r2 < eps2) continue;
+        // dB = μ₀I·N/(4π) · dl⃗ × r⃗ / r³  (叉积分量与 Vec3.cross 同序)
+        const inv = prefactor / (r2 * Math.sqrt(r2));
+        bx += (dly * rz - dlz * ry) * inv;
+        by += (dlz * rx - dlx * rz) * inv;
+        bz += (dlx * ry - dly * rx) * inv;
     }
     return { x: bx, y: by, z: bz };
 }
