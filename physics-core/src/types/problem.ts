@@ -4,13 +4,10 @@ import type { PhysicalBody, RenderHint, Vector2D } from './common.js';
 export type ModelType =
     | 'uniform-linear'
     | 'uniform-accelerated'
-    | 'projectile-horizontal'
-    | 'projectile-angular'
     | 'inclined-plane'
     | 'spring-oscillator'
     | 'collision-elastic'
     | 'collision-inelastic'
-    | 'point-charge-field'
     | 'uniform-electric-field'
     | 'uniform-magnetic-field'
     | 'em-combined-field'
@@ -1025,6 +1022,17 @@ export interface ConstraintConfig {
     readonly currentMagneticField?: CurrentMagneticFieldConstraint;
 }
 
+/**
+ * 约束字段名的派生联合 (#120 C3)。
+ *
+ * 取 `ConstraintConfig` 每个约束槽位类型的字段名并集, 用于约束读取守卫
+ * (`requireConstraintNumber` / `optionalConstraintNumber` / `resolveParameterValue`) 的字段参数。
+ * 字段名拼写错误 (如 `'curent'`) 从此在编译期报错; 纯类型层, 零运行时影响。
+ */
+export type ConstraintFieldName = {
+    [K in keyof ConstraintConfig]-?: keyof NonNullable<ConstraintConfig[K]>;
+}[keyof ConstraintConfig];
+
 /** 电流天平约束 — 选必二 (m*g = n*BIl) */
 export interface CurrentBalanceConstraint {
     readonly wireLen: number;
@@ -1437,7 +1445,7 @@ export interface PhysicsProblem {
 
 // ============================================================
 // F & G stage constraint interfaces
-// (minimal declarations — full implementations live in model files)
+// (完整的约束类型声明 —— 引擎模型经深路径 './types/problem.js' 导入, 全仓无第二份定义; #120 订正旧「minimal declarations」误述)
 // ============================================================
 
 export interface EMWaveCommConstraint {
@@ -1485,7 +1493,7 @@ export interface ReedSwitchConstraint {
     readonly pullInThreshold?: number;
     /** 释放阈值 (AT 安匝或 mT), 默认 30 mT (释放<吸合, 形成回差) */
     readonly releaseThreshold?: number;
-    sampleCount?: number;
+    readonly sampleCount?: number;
 }
 export interface PhotoresistorConstraint {
     /** 光照度 E (lx), 作为参考工作点 */
@@ -1499,69 +1507,69 @@ export interface PhotoresistorConstraint {
 }
 export interface ThermistorConstraint {
     /** 目标温度 (K), 默认 300 (约 27 C) */
-    temperature: number;
+    readonly temperature: number;
     /** 'NTC' 或 'PTC' */
-    mode: 'NTC' | 'PTC';
+    readonly mode: 'NTC' | 'PTC';
     /** 基准电阻 R0 (Ω) — NTC 时在 T0=298 K 下的阻值 */
-    R0: number;
+    readonly R0: number;
     /** B 常数 (K) — 典型 NTC 3000~5000 K */
-    BValue: number;
+    readonly BValue: number;
     /** PTC 模式: 居里温度 (K), 默认 380 K (约 107 C) */
-    curieTemp?: number;
+    readonly curieTemp?: number;
     /** PTC 模式: 居里点后的温度系数因子, 默认 15 */
-    ptcCoeff?: number;
+    readonly ptcCoeff?: number;
     /** 温度扫描范围下限 (K), 默认 250 */
-    tempMin?: number;
+    readonly tempMin?: number;
     /** 温度扫描范围上限 (K), 默认 400 */
-    tempMax?: number;
+    readonly tempMax?: number;
     /** 扫描采样点数, 默认 120 */
-    sampleCount?: number;
+    readonly sampleCount?: number;
 }
 export interface StrainGaugeConstraint {
     /** 当前应变 ε (单位 με 微应变, 1 με = 1e-6) */
-    strain: number;
+    readonly strain: number;
     /** 灵敏系数 K, 金属 K≈2, 半导体 K≈50~200 */
-    gaugeFactor: number;
+    readonly gaugeFactor: number;
     /** 桥路供电电压 (V) */
-    bridgeVoltage: number;
+    readonly bridgeVoltage: number;
     /** 应变扫描范围下限 (με), 默认 -2000 */
-    strainMin?: number;
+    readonly strainMin?: number;
     /** 应变扫描范围上限 (με), 默认 2000 */
-    strainMax?: number;
+    readonly strainMax?: number;
     /** 扫描采样点数, 默认 100 */
-    sampleCount?: number;
+    readonly sampleCount?: number;
 }
 export interface SecurityAlarmConstraint {
     /** 当前门状态: open / closed */
-    doorState: 'open' | 'closed';
+    readonly doorState: 'open' | 'closed';
     /** 磁铁到干簧管的距离 (mm), 默认: closed=5, open=100 */
-    magnetDistance?: number;
+    readonly magnetDistance?: number;
     /** 干簧管释放距离 (mm), 默认 25 */
-    releaseDistance?: number;
+    readonly releaseDistance?: number;
     /** 干簧管吸合距离 (mm), 默认 15 */
-    operateDistance?: number;
+    readonly operateDistance?: number;
     /** 扫描步数 (生成不同距离下的状态) */
-    sampleCount?: number;
+    readonly sampleCount?: number;
 }
 export interface LightControlSwitchConstraint {
     /** 当前光照强度 (lux) */
-    lightIntensity: number;
+    readonly lightIntensity: number;
     /** 触发阈值 (lux), 默认 10 */
-    threshold?: number;
+    readonly threshold?: number;
     /** 分压电阻 R_fix (Ω), 默认 10000 */
-    Rfix?: number;
+    readonly Rfix?: number;
     /** 电源电压 (V), 默认 12 */
-    Esupply?: number;
+    readonly Esupply?: number;
     /** 三极管导通阈值 Vbe (V), 默认 0.7 */
-    VbeOn?: number;
+    readonly VbeOn?: number;
     /** 光敏电阻暗电阻 (Ω), 默认 1e6 */
-    Rdark?: number;
+    readonly Rdark?: number;
     /** 光敏电阻亮电阻 (Ω), 默认 5e3 */
-    Rbright?: number;
+    readonly Rbright?: number;
     /** 时间扫描范围 (h), 默认 24 */
-    timeSpanH?: number;
+    readonly timeSpanH?: number;
     /** 采样点数, 默认 240 */
-    sampleCount?: number;
+    readonly sampleCount?: number;
 }
 
 export interface DiffusionConstraint {
@@ -1577,7 +1585,7 @@ export interface DiffusionConstraint {
     readonly gridSize?: number;
     /** 时间采样点数, 默认 100 */
     readonly timeSteps?: number;
-    sampleCount?: number;
+    readonly sampleCount?: number;
 }
 export interface BrownianMotionConstraint {
     /** 粒子半径 (m) */
@@ -1592,7 +1600,7 @@ export interface BrownianMotionConstraint {
     readonly dt?: number;
     /** 模拟粒子数, 默认 1 */
     readonly nParticles?: number;
-    sampleCount?: number;
+    readonly sampleCount?: number;
 }
 export interface MolecularForceConstraint {
     /** 势阱深度 (J) */
@@ -1621,7 +1629,7 @@ export interface OilFilmConstraint {
     readonly filmArea: number;
     /** 加入滴数, 默认 1 */
     readonly drops?: number;
-    sampleCount?: number;
+    readonly sampleCount?: number;
 }
 export interface MeltingCurveConstraint {
     /** 模式: 晶体或非晶体 */
@@ -1654,7 +1662,7 @@ export interface CapillaryConstraint {
     readonly liquidMode: 'water' | 'mercury';
     /** 管壁材料 */
     readonly materialMode: 'glass' | 'paraffin';
-    sampleCount?: number;
+    readonly sampleCount?: number;
 }
 export interface WettingConstraint {
     readonly liquidMode: 'water' | 'mercury';
@@ -1673,7 +1681,7 @@ export interface LiquidCrystalConstraint {
     readonly thresholdVoltage?: number;
     /** 螺距 P (um, 仅 cholesteric 模式) */
     readonly pitchUm?: number;
-    sampleCount?: number;
+    readonly sampleCount?: number;
 }
 export interface JouleMechanicalConstraint {
     /** 重物质量 (kg) */
@@ -1734,8 +1742,8 @@ export interface HeatTransferConstraint {
     readonly thickness?: number;
     /** 采样点数 */
     readonly sampleCount?: number;
-    temperatureDiff?: number;
-    length?: number;
+    readonly temperatureDiff?: number;
+    readonly length?: number;
 }
 export interface EnergyTransformationConstraint {
     /** 实验模式 */

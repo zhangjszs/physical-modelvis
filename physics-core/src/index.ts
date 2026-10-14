@@ -86,6 +86,10 @@ export type {
     CurrentMagneticFieldConstraint,
     FieldCharge
 } from './types/problem.js';
+// 注 (#120 C4): F&G 段约束类型 (ReedSwitch/Thermistor/StrainGauge/SecurityAlarm/LightControlSwitch/
+// Diffusion/BrownianMotion/OilFilm/Capillary/LiquidCrystal/HeatTransfer 等 34 个) 及 ConstraintConfig
+// **有意不入 barrel** —— 它们仅供引擎内部模型经深路径 (`./types/problem.js`) 消费, 无外部/可视化消费者
+// (已 grep 确认)。新增同类类型默认沿用此约定, 不入本 barrel。
 export { RESISTIVITY } from './types/problem.js';
 export type {
     SimulationResult,
