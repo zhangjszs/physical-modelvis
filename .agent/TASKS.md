@@ -5,14 +5,18 @@
 
 ## 今日队列（执行顺序，4 个；同级按创建时间）
 
-- [ ] #118（P2 · type:bug/area:render · **ready**）portal 浮层脱离 .app 设计令牌作用域修复（#112 样式回归）
+- [ ] #118（P2 · type:bug/area:render · **in-review**）portal 浮层脱离 .app 设计令牌作用域修复（#112 样式回归）
   —— 验收要点：`:root` 令牌生效（computed-style 探针红→绿，探针入库、不入 CI）；亮/暗双主题；04 图重采（01/02 仍逐字节一致）；precheck 绿
-- [ ] #119（P3 · type:chore/area:engine · **ready**）线圈场求值零分配标量重写（#102 方案 C1）
+  —— 执行报告：方案 A 令牌上移 `:root` + `.app.light`→`:root.light` + App.tsx 镜像 `<html.light>`；探针 `scripts/verify-portal-tokens.mjs` 红→绿实测；04/05 重采（01/02/03/06 md5 不变）；precheck exit 0；`bb4ab22`+`ff8c730` 已推送
+- [ ] #119（P3 · type:chore/area:engine · **in-review**）线圈场求值零分配标量重写（#102 方案 C1）
   —— 验收要点：对拍测试 ≤1e-12 先红后绿；bench ≥5×；precheck 绿；无行为变更
-- [ ] #120（P3 · type:chore/area:engine · **ready**）#104 方案 C 点状收口 + 两处陈旧注释订正
+  —— 执行报告：标量化热循环 + 按 segments 缓存 cos/sin 查表（位等价、零漂移）；对拍 6 组误差 0 + 红向对照；bench 6.7–7.4×；precheck exit 0；测试数 1160→1167/total 2808；`e820f08`+`bb67e59` 已推送（首跑 vitest 拖动重试即过）
+- [ ] #120（P3 · type:chore/area:engine · **in-review**）#104 方案 C 点状收口 + 两处陈旧注释订正
   —— 验收要点：readonly 37→0；幽灵字面量清零；keyof 收窄 + `@ts-expect-error`；barrel 注释；precheck 绿
-- [ ] #121（P3 · type:docs · **ready**）#103 调查落档 docs/rendering-structure-survey.md
+  —— 执行报告：C1 37→0・C2 116→113・C3 ConstraintFieldName 收窄（+@ts-expect-error 常驻测，红向对照已验）・C4 barrel 注释・两处注释订正；#104“零迁移成本”漏计 tests/ 守卫消费者（em-guards.test.ts 已适配）；测试数 1167→1169/total 2810；precheck exit 0；`32936b6`+`8895727` 已推送
+- [ ] #121（P3 · type:docs · **in-review**）#103 调查落档 docs/rendering-structure-survey.md
   —— 验收要点：与 #103 comment 一致；§I 未核实项补齐或明确标注；文档头含来源与红线声明
+  —— 执行报告：新增 docs/rendering-structure-survey.md（168 行，平移 §A–§J）；§I 复核 drawMiniChart=3・极板 16/7/6 一致，顶层 .ts 实测 32（行数 20273 一致，已标注）；precheck exit 0；`045a502`+`7b7ce7a` 已推送
 
 ## 本轮关闭（done，二十八次滚动验收通过 · 2026-10-14）
 

@@ -4,67 +4,62 @@
 
 ## 本轮概要
 
-本轮（2026-10-13 · `executor-20261013c` · Execution Agent）**清空了规划者二十七次滚动的今日队列 5 单**（串行、每单一报告、每单一 `in-review` 流转），并产出 **1 个 auto-discovered 单 #118**（#116 目检时发现的真回归）。
+本轮（2026-10-14 · `executor-20261014a` · Execution Agent）**清空了规划者二十八次滚动的今日队列 4 单**（#118→#119→#120→#121，串行、每单一报告、每单一 `in-review` 流转）。四单全部**完成**（无阻塞/部分完成），代码逐一合回 `main` 并推送。
 
-- **调查单 3 个**（#103 / #102 / #104）：只产数据与路线，**零源码改动**，交付在各 Issue comment。
-- **文档单 1 个**（#116）：重采 README 演示截图（`docs/screenshots` 04/05/06 更新；01/02/03 逐字节不变），**已推送**。
-- **审计单 1 个**（#117）：生产依赖 high+ = 0，附红向对照证明审计链路可用；lockfile md5 逐字符不变。
-- 提交：`4705dcd`（chore(agent) #103 状态）→ `67f5d0c`（docs #116 截图，**已推送**，pre-push 全门禁绿）→ 收尾 `chore(agent)` 待推。
-- 结论：**5 单全部 in-review 待验收**；今日队列已空，本会话按「队列空」正常收尾。
+- **#118（P2 bug）**：portal 浮层设计令牌作用域修复 —— 令牌上移 `:root` + 主题镜像 `<html.light>`，探针红→绿，重采 README 04/05 图。
+- **#119（P3 engine）**：线圈场零分配标量重写 —— 位等价（误差 0）+ cos/sin 缓存表，bench 6.7–7.4×。
+- **#120（P3 engine）**：引擎契约点状收口 —— C1 readonly 37→0 / C2 幽灵 116→113 / C3 keyof 收窄 / C4 barrel 注释 / 两处注释订正。
+- **#121（P3 docs）**：#103 调查落档 `docs/rendering-structure-survey.md`（168 行）。
+- 提交链：`ff8c730`(#118) → `bb67e59`(#119) → `8895727`(#120) → `7b7ce7a`(#121)，**均已推送**，pre-push 全门禁绿。
+- 结论：**4 单全部 in-review 待验收**；ready 队列已空，本会话按「队列空」正常收尾。
 
 ## 已完成
 
 | # | 一句话结论 | 交付 | 验证 |
 |---|---|---|---|
-| [#103](https://github.com/zhangjszs/physical-modelvis/issues/103) | 渲染层结构治理调查：14 类重复元素普查（可省 ≈1800–2600 行）、14 批拆分路线（≤400 行/批）、承重墙与 4 个源码字符串门禁清单 | comment 6149579400 + 报告 6149588284 | 多处 grep 抽检（含**纠正子代理**：`drawMiniChart` 实为 **3 份**）；零源码改动 |
-| [#116](https://github.com/zhangjszs/physical-modelvis/issues/116) | README 截图重采：04/05/06 更新，01/02 **逐字节一致**（硬条件），03 亦一致 | commit `67f5d0c` + 报告 6149733039 | `capture-screenshots.mjs` exit 0（1.47MB/8MB）· `md5sum` 逐张比对 · `precheck` exit 0 · 目检图像直读 |
-| [#102](https://github.com/zhangjszs/physical_modelvis/issues/102) | 多线圈求值 bench：`sampleCount=800` 下 **N≤2 无感 / N=4 临界 / N≥8 需优化**；**零分配标量重写 8.68×（数值等价 1.16e-14）** 为唯一强推荐项；segments 距离自适应/偶极子/哈希缓存均有实测反证 | comment 6149822291 + 报告 6149829167 | 两个 bench 脚本实跑（`.scratch/`，gitignored）+ 源码坐标核对 |
-| [#104](https://github.com/zhangjszs/physical_modelvis/issues/104) | 引擎契约调查：**不建议**接口下沉/声明合并（零正确性收益 + 反损可发现性）、**不立项** charts 模型侧 schema；建议立 1 个 P3 小单做点状收口（37 处 readonly / 3 个幽灵字面量 / `resolveParameterValue` keyof 化 / barrel 显式化） | comment 6149989944 + 报告 6149998774 | 逐项实测（116 字面量 / 108 约束接口 / 107 字段 / 104 charts 键）；**纠正 PLAN 三处旧口径** |
-| [#117](https://github.com/zhangjszs/physical_modelvis/issues/117) | 依赖安全基线：prod 与全量 **high+ = 0**（critical/moderate 亦 0）；红向对照（lodash@4.17.15 → 1 high、exit 1）证明链路可用；lockfile 零改动 | comment 6150352327 + 报告 6150358608 | `npm audit --omit=dev` exit 0 · `npm audit --json` metadata · md5 前后一致 |
-| [#118](https://github.com/zhangjszs/physical-modelvis/issues/118) | **auto-discovered**：portal 到 `document.body` 的浮层脱离 `.app` 设计令牌作用域 → OCR 弹窗卡片外观全失效（#112 的样式回归）；含探针 computed-style 证据与两个修复方向 | 新 Issue（未定级） | Playwright 探针：`.ocr-modal` background/边框/圆角/阴影/标题全失效，`rect.inViewport=true`（定位已修、样式未修） |
+| [#118](https://github.com/zhangjszs/physical-modelvis/issues/118) | portal 浮层令牌上移 `:root` + `.app.light`→`:root.light` + App.tsx 镜像 `<html.light>`；探针红→绿；README 04/05 重采（01/02/03/06 逐字节不变） | `bb4ab22`+`ff8c730` + 报告 6159764324 + 探针 `scripts/verify-portal-tokens.mjs`（入库不入 CI） | 探针红（修复前 exit 1）→绿（修复后 exit 0，暗/亮双主题）· precheck exit 0 · 04/05 目检样式恢复 |
+| [#119](https://github.com/zhangjszs/physical-modelvis/issues/119) | 线圈场 96 段热循环标量化 + 按 segments 缓存 cos/sin 表（位等价、零漂移）；对拍 6 组误差 0 + 红向对照 | `e820f08`+`bb67e59` + 报告 6160032361 + 测试 `fields3d.test.ts`(+7) + bench `.scratch/119-bench.mjs`（不入库） | 对拍红向对照（源扰动→红）→绿 · bench 6.7–7.4×（≥5×）误差 0 · precheck exit 0 · 测试数 1160→1167 |
+| [#120](https://github.com/zhangjszs/physical-modelvis/issues/120) | #104 方案 C 点状收口：C1 readonly 37→0 / C2 幽灵 116→113 / C3 `ConstraintFieldName` 收窄 + @ts-expect-error 常驻测 / C4 barrel 注释 / 两处注释订正 | `32936b6`+`8895727` + 报告 6160317179 + 测试 `constraint-guard-typing.test.ts`（新） | grep 37→0・awk 113・tsc exit 0・C3 红向对照（放宽→Unused directive→红）· precheck exit 0 · 测试数 1167→1169 |
+| [#121](https://github.com/zhangjszs/physical_modelvis/issues/121) | #103 调查落档 `docs/rendering-structure-survey.md`（§A–§J 平移 + §I 复核） | `045a502`+`7b7ce7a` + 报告 6160434773 | §I 复核 drawMiniChart=3・极板 16/7/6 一致（grep）· precheck exit 0 |
 
 ## 未完成 / 进行中（下一棒最优先看这里）
 
-- **无进行中任务**。工作树干净（`main`，与 `origin/main` 同步至 `67f5d0c`；收尾的 `chore(agent)` 提交已推送）。
-- **待 Planner 验收：in-review 5 单** —— #103 / #116 / #102 / #104 / #117（报告与证据全在各 Issue）。
-- **待 Planner 定级：auto-discovered 1 单** —— #118。
-- **ready 队列已空**：#100/#101 维持 parked（D19 未放行）；#99/#105 维持 needs-info（D20/D21）；#44 人类持有勿动。
-- **本机临时证据（重启即失，需要复核趁早）**：`/tmp/116-md5-{before,after}.txt`、`/tmp/116-old/*.png`（04/05/06 旧图）、`/tmp/116-probe.mjs`、`/tmp/102-bench{,2}.log`、`/tmp/117-*.json`。仓库内探针/bench 脚本：`.scratch/116-probe.mjs`、`.scratch/102-bench.mjs`、`.scratch/102-bench2.mjs`（gitignored，保留可用，也可删）。
+- **无进行中任务**，工作树仅剩 `.agent/` 收尾（本文件 + STATE + TASKS + 今日日报，将单独 `chore(agent)` 提交）。
+- **待 Planner 验收：in-review 4 单** —— #118 / #119 / #120 / #121（报告与证据全在各 Issue comment）。
+- **ready 队列已空**：#100/#101 维持 parked（D19）；#99/#105 维持 needs-info（D20/D21）；#44 人类持有勿动；#103 派生重构批维持 D31 pending 未放行。
 
 ## 验证情况
 
-- `npm run precheck` → **exit 0**（#116 验收轮）· 尾部 `11 层: 11 PASS, 0 FAIL` + 发布 dry-run 通过。
-- `git push` → **exit 0**（pre-push 钩子复跑全门禁：同样 11 层 PASS）→ `932b117..67f5d0c main -> main`。
-- `node scripts/capture-screenshots.mjs` → exit 0；md5 逐张比对：01/02/03 IDENTICAL、04/05/06 DIFF（预期，04 承 #112、06 承器材增多、05 承 3D 主球相位）；无 vite/preview 残留进程。
-- 三个调查单：**未跑 precheck**（零源码改动，无验证对象）—— 不把「未跑」记为通过；各自列了实际执行的核验命令与「未核实项」。
-- #117：`npm audit`（prod 与全量）exit 0 + 红向对照 exit 1（证明审计有效）。
-- **未执行**：CI 结果需下一棒或 Planner 复核（本轮已 push；上一棒 CI 全绿）。
+- `npm run precheck` → **exit 0**（四单各自验收轮均跑过；pre-push 钩子复跑同样 11 层 PASS）。
+- `git push` → 四单最终均 **exit 0**；**#119/#120/#121 push 首跑 pre-push core vitest 抖动失败**（本地复跑 core exit 0 确认非改动引入 → 重试即过，**未用 --no-verify**）。
+- #118 探针：修复前 `verify-portal-tokens.mjs` exit 1（红）→ 修复后 exit 0（绿，暗/亮双主题）。
+- #119 对拍：源扰动红向对照 → 撤销绿；bench 6.7–7.4×、误差 0。
+- #120 C3：tsc exit 0（含 @ts-expect-error）；放宽守卫 field→string 触发 `Unused '@ts-expect-error'` 红向对照。
+- 测试数：core 1169 / viz 1641 / total 2810，`count:check` ✅（README + docs/plan.md 三处标记已 count:sync 回写）。
+- **未执行**：CI 结果需下一棒或 Planner 复核（本轮已 push；`gh run list` 可查 `7b7ce7a` 的 CI/Deploy）。
 
 ## 风险与注意事项
 
-1. **#118 是 #112 的遗留回归，且现有门禁结构上拦不住**：`.app` 上的设计令牌（`styles.css:29/95`）对 portal 浮层不可见；`#112` 的验收探针只断言 bounding rect 在视口内 → **定位断言看不见样式回归**。建议修复时**配套一条 computed-style 探针**（否则同类仍会静默通过）。**修好后需重采 04 图**。
-2. **#116 的 04 图现状**是「定位正确 + 外观失效」的真实现状（我按 issue 目标原文「与当前生产构建一致」如实提交）。若 Planner 判定 README 不宜展示，可一行命令回退：`git show 67f5d0c^:docs/screenshots/04-ocr-panel.png > docs/screenshots/04-ocr-panel.png`。
-3. **LOCK 口径冲突（需 Planner 裁决）**：契约 1.2 明写「不设互斥锁，Executor 不获取/不释放锁」，而 `PLAN.md`「给 Executor 的指令」第 2 条要求「领取时先建 LOCK，每完成一单刷心跳，收尾删锁」。本轮**按 PLAN 指令执行**（`.agent/LOCK` 为 gitignored 本机文件），并在报告中记录该冲突；请 Planner 二者择一改齐（契约或指令）。
-4. **PLAN/DECISIONS 的三处旧口径需更正**（#104 报告 §2 已逐条给证据）：① 「minimal declarations 下沉版」不存在（`problem.ts:1440` 注释与代码不符）；② 「每模型改 5 处」无出处，实测 ≥8 处；③ `typed-charts.test.ts:73` 注释「113 键」陈旧（实际 104）。第 ③ 是代码注释，实施时顺手改（本调查单未动代码）。
-5. **bench 脚本用 Node 墙钟**：#102 的阈值数据是**主线程阻塞**口径，不是浏览器 FPS；浏览器侧建议用既有 `verify-qa-sweep.cjs` 做对照。
-6. 若未来涉及 Rust 模块开发，按用户指示使用 `mise` 管理工具链（本轮未涉及）。
+1. **vitest 首跑抖动累计第 4 次**（#64 历史 + 本会话 #119/#120/#121）——**已远超 PLAN L320「第 2 次即立『门禁稳定性』单」阈值**，本执行棒按 §7 未擅自立项，已在各报告「给 Planner 的建议」标注。建议 Planner 明日排入。
+2. **#120 发现 #104 口径不完整**：#104 §4 C3「零迁移成本」只 grep 了 `src/`，漏计 `tests/` 内守卫消费者（`em-guards.test.ts` 用合成字段 `'a'`）；本单已就地适配（`'a'`→`'current'`）。建议 PLAN 记录该口径修正。
+3. **#119 技术取舍**：#102 的 8.6× 依赖 cos/sin **递推**（有漂移，误差 1.16e-14）；本单选**缓存查表**路线以守住「位等价 / 无行为变更」，实测误差 0、加速 6.7–7.4×。新增模块级 `COIL_TRIG_CACHE`（按 segments 缓存，guard 限整数 1..1024，其余回退逐段）。
+4. **#118 修好了 README 04 图**：上一棒 HANDOFF 提到的 `67f5d0c` 回退方案（04 展示样式失效现状）已作废——04 现为修复态。
+5. **本机临时证据（重启即失）**：`/tmp/118-*`（截图 md5 前后、探针/报告）、`/tmp/119-bench` 输出、`/tmp/120-*`、`/tmp/121-*`；仓库内 `.scratch/119-bench.mjs`（gitignored，可复跑）。
 
 ## 给下一棒的第一步建议
 
-1. 先 `git fetch && git pull --rebase`，读本文件 + `STATE.md` + `.agent/DIARY/2026-10-13.md`。
-2. 查 5 个 in-review 是否已被 Planner 验收：#103 / #116 / #102 / #104 / #117；若被 reopen，逐条按验收差距补齐（报告里已列「剩余风险」与「未核实项」，多数是可补实测）。
-3. **若 Planner 新补 ready 队列**，按 PLAN 队首领取；若新队列为空：优先问的不是「找活干」，而是**把 #118 的定级与 #104 §5 的 C 方案是否立单推给 Planner**（两者都需要 Planner/用户决策，不在执行棒权限内）。
-4. 若被派到 #118 的修复单：令牌上移 `:root` 是首选方案（改动集中在一个 CSS 文件），落地后**必须**重采 04 图并补一条 portal 浮层的 computed-style 探针。
-5. 复核建议顺手做的两件事（低成本、高价值）：① 跑一次 `gh run list` 确认 `67f5d0c` 的 CI/Deploy 结论；② `/tmp` 证据若已丢，用 git 复原旧图即可（`git show 67f5d0c^:docs/screenshots/<name>.png`）。
+1. 先 `git fetch && git pull --rebase`，读本文件 + `STATE.md` + `.agent/DIARY/2026-10-14.md`。
+2. 查 4 个 in-review 是否被 Planner 验收：#118 / #119 / #120 / #121；若 reopen，逐条按验收差距补齐（各报告已列「剩余风险」与「未核实项」）。
+3. **若 ready 队列仍空**：优先把两件事推给 Planner 决策（不在执行棒权限内）：① 「门禁稳定性」单（vitest 抖动第 4 次，达阈值）；② D31（#103 派生重构三单是否放行）。
+4. 遇 pre-push core vitest 首跑红：**先本地复跑 `cd physics-core && npx vitest run` 确认真伪**（本会话 3 次全为抖动、复跑均绿），确认后重试 push，**勿贸然 --no-verify**。
 
 ## 今日日报
 
-- 已写入 `.agent/DIARY/2026-10-13.md`（本会话段落；**注**：本日更早的会话 `executor-20261013b`（#115）未写日报，规划者二十六次滚动已记录缺失）。
+- 待写入 `.agent/DIARY/2026-10-14.md`（本会话 `executor-20261014a` 段落）。
 
 ## 给 Planner 的信号
 
-- **in-review 5**：#103 / #116 / #102 / #104 / #117（每条都有数据 comment + 1.7 模板报告）。
-- **auto-discovered 1**：#118（未定级、未进路线图）——建议优先于常规 backlog 处置，因为它影响 README 展示面且属已验收单的回归。
-- **ready 队列空**：需要 Planner 补充今日队列。
-- **需要 Planner/用户决策（我不代做）**：① #118 定级与修复方案（推荐令牌上移 `:root` + 探针）；② #104 §5 的 C 方案是否立 P3 小单；③ #102 §F 的 P0「零分配标量重写」是否立实施单；④ LOCK 口径冲突（契约 1.2 vs PLAN 指令 2）二者择一。
-- **契约遵守声明**：本轮未关闭任何 Issue、未改写 `PLAN.md`/`DECISIONS.md`、未 force push、未跳过钩子；`.agent/` 变更单独 `chore(agent)` 提交。
+- **in-review 4**：#118 / #119 / #120 / #121（每条有数据 comment + 1.7 模板报告 + 关键提交）。
+- **ready 队列空**：需要 Planner 补充明日队列。
+- **需要 Planner/用户决策（我不代做）**：① 「门禁稳定性」单（vitest 首跑抖动累计第 4 次，达 PLAN L320 阈值）；② D31（#103 派生重构批是否放行，推荐/默认暂缓）；③ #120 暴露的 #104「零迁移成本」口径修正建议。
+- **契约遵守声明**：本轮未关闭任何 Issue、未改写 `PLAN.md`/`DECISIONS.md`、未 force push、未跳过钩子（--no-verify）；`.agent/` 变更单独 `chore(agent)` 提交；发现的新问题（vitest 抖动）仅上报未擅自定级/立项。
