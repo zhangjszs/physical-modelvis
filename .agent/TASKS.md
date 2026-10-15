@@ -1,6 +1,6 @@
 # TASKS（Issue 本地镜像 · 规划者每轮整体重写）
 
-> 权威来源 = GitHub Issues（gh 可用，本轮已同步 2026-10-15 · 三十次滚动）。标签映射：`ready-for-agent` ≡ ready；
+> 权威来源 = GitHub Issues（gh 可用，本轮已同步 2026-10-15 · 执行棒 executor-20261015a 改状态）。标签映射：`ready-for-agent` ≡ ready；
 > `closed` ≡ done。本文件只读镜像，执行者改状态时先改 Issue 再同步本行（冲突以 Issue 为准）。
 
 ## 今日队列（执行顺序，2 个）
@@ -10,8 +10,11 @@
   —— 验收口径说明：单内第 1 条字面为「visualization/src 零残留」，实测该目录共 229 处、extra/meta 类仅 4 处；
   4 处已全部消解（`src/rendering` 下 grep = 0），其余 225 处属 3D rig handles 通道（越范围），已立 auto-discovered **#126** 交 Planner 定级
   —— 验收要点核对：typecheck / 渲染契约测试 531 例 / precheck 均 exit 0；未用 --no-verify；无新添 any
-- [ ] #125（P3 · type:chore/area:render · open/ready）光敏电阻面板公式与计算式对齐（含引擎温度项）
-  —— 验收要点：450 行旧式子无残留（二选一：补全式 / 条件注）+ 系数与引擎同源 + precheck 绿；禁改计算逻辑与引擎系数
+- [x] #125（P3 · type:chore/area:render · **in-review**）光敏电阻面板公式与计算式对齐（含引擎温度项）
+  —— 执行报告 6195222143（2026-10-15 executor-20261015a）· 结论完成· 关键提交 `532f239` + merge `a67e6e5`
+  —— 路线：选 **A（公式补温度项）**；面板公式行/信息条均含 `0.02(T−25)`，旧式 grep 零残留；
+  参数回显行改标 `R_dark(25℃)=`；新增 4 例守卫（红/绿已验）+ 浏览器探针量化行宽余量 209.8 px
+  —— 验收要点核对：系数与引擎 TEMP_COEFF 同源（测试直读引擎源码对照）· precheck exit 0 · 未用 --no-verify
 
 ## 本轮关闭（done，三十次滚动验收通过 · 2026-10-15）
 
@@ -30,6 +33,8 @@
 - #44（P2）—— 人类持有，勿动
 - 候选（未立单）：新增模型触点收敛 / 自动注册调查（#104 §5.4）；#122 根因单（待下次抖动带 .scratch 日志出现时立）
 - **#126（auto-discovered · 待 Planner 定级）**：visualization/src 仍有 225 处 `as unknown as`（全在 3D rig handles 通道，非 #124 范围）—— #124 执行中发现，不定优先级
+- **#127（auto-discovered · 待 Planner 定级）**：pre-push 抖动复现 1 次且因沙箱 `TMPDIR` 只读时**未留下归档日志**（#122 观测机制静默降级）—— #125 push 时发现，不定优先级
+- **待 Planner 评估是否立单**（#125 报告已记）：`FormulaPanel.tsx:830` 光敏电阻条目用幂律 `R=R₀(E/E₀)^−α`，而引擎/画面用指数式 `R=R_dark·exp(−k·E)` —— 同场景两处面板模型口径不一致（L4 门禁不覆盖）
 
 ## 标签说明
 
