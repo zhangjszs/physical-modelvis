@@ -13,6 +13,10 @@ import { num, setLabel } from './params';
 const WORLD_SCALE = 0.16;
 const BALL_RADIUS = 0.18;
 const BENCH_Y = 0.1;
+const PULLEY_X = 2.1; // 定滑轮横坐标
+const CART_START_X = -1.8; // 小车起始横坐标
+const HANG_TOP_Y = BENCH_Y + BALL_RADIUS; // 水平段高度
+const WEIGHT_INIT_Y = -0.4; // 砝码初始悬挂高度
 
 interface NSLHandles {
     bench: THREE.Group;
@@ -41,9 +45,9 @@ export const newtonSecondLawRig: SceneRig = {
         // 3. 牵引细线 (从小车起点 → 滑轮 → 悬挂砝码)
         const string = new THREE.Line(
             new THREE.BufferGeometry().setFromPoints([
-                new THREE.Vector3(-1.8, BENCH_Y + BALL_RADIUS, 0),
-                new THREE.Vector3(2.1, BENCH_Y + BALL_RADIUS, 0),
-                new THREE.Vector3(2.1, -0.4, 0)
+                new THREE.Vector3(CART_START_X, HANG_TOP_Y, 0),
+                new THREE.Vector3(PULLEY_X, HANG_TOP_Y, 0),
+                new THREE.Vector3(PULLEY_X, WEIGHT_INIT_Y, 0)
             ]),
             new THREE.LineBasicMaterial({ color: 0x475569, linewidth: 2 })
         );
@@ -51,7 +55,7 @@ export const newtonSecondLawRig: SceneRig = {
 
         // 4. 悬挂砝码盘
         const { group: weightGroup } = createWeight(0.06, 0xd97706);
-        weightGroup.position.set(2.1, -0.4, 0);
+        weightGroup.position.set(PULLEY_X, WEIGHT_INIT_Y, 0);
         scene.add(weightGroup);
 
         // 5. 加速度与合外力标牌
@@ -89,10 +93,27 @@ export const newtonSecondLawRig: SceneRig = {
 
     getVisualPosition(pos, _params) {
         // 小车在木板上水平加速滑动
-        return new THREE.Vector3(-1.8 + pos.x * WORLD_SCALE, BENCH_Y + BALL_RADIUS, 0);
+        return new THREE.Vector3(CART_START_X + pos.x * WORLD_SCALE, HANG_TOP_Y, 0);
+    },
+
+    onAnimate(handles, ctx) {
+        const h = handles as unknown as NSLHandles;
+        // 小车前进时：细线小车端随主球 x 移动，水平段缩短，跨过滑轮后悬挂段等量变长 → 砝码下降。
+        // 复用 BufferAttribute 就地改顶点，杜绝每帧 GC 分配 (同 pendulumRig)。
+        const startX = THREE.MathUtils.clamp(ctx.ballPos.x, CART_START_X, PULLEY_X - 0.15);
+        const advance = Math.max(0, startX - CART_START_X);
+        const hangBottom = WEIGHT_INIT_Y - advance;
+        const attr = h.string.geometry.getAttribute('position') as THREE.BufferAttribute | undefined;
+        if (attr && attr.count >= 3) {
+            attr.setXYZ(0, startX, HANG_TOP_Y, 0);
+            attr.setXYZ(1, PULLEY_X, HANG_TOP_Y, 0);
+            attr.setXYZ(2, PULLEY_X, hangBottom, 0);
+            attr.needsUpdate = true;
+        }
+        h.weightGroup.position.set(PULLEY_X, hangBottom, 0);
     },
 
     getOrigin(_params) {
-        return new THREE.Vector3(-1.8, BENCH_Y + BALL_RADIUS, 0);
+        return new THREE.Vector3(CART_START_X, HANG_TOP_Y, 0);
     }
 };

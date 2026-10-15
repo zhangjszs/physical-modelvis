@@ -13,12 +13,18 @@ const BALL_RADIUS = 0.18;
 const OSCILLATOR_Y = 0.25;
 const WALL_X = -1.6;
 
+// 模块级 scratch vector，避免 onAnimate 每帧分配新对象 (#16)
+const _springAnchor = new THREE.Vector3(WALL_X, OSCILLATOR_Y, 0);
+const _springEnd = new THREE.Vector3();
+
 interface SpringHandles {
     wall: THREE.Mesh;
     springHandles: HelicalSpringHandles;
     floor: THREE.Mesh;
     equilibriumLine: THREE.Line;
     infoLabel: THREE.Sprite;
+    /** onAnimate 上一帧弹簧自由端 x；位移阈值内跳过几何重建以省开销 */
+    lastEndX: number;
 }
 
 export const springRig: SceneRig = {
@@ -93,7 +99,8 @@ export const springRig: SceneRig = {
             springHandles,
             floor,
             equilibriumLine,
-            infoLabel
+            infoLabel,
+            lastEndX: 0
         };
 
         return { group, handles: handles as unknown as Record<string, unknown> };
@@ -108,6 +115,17 @@ export const springRig: SceneRig = {
         const T = (2 * Math.PI) / omega;
 
         setLabel(h.infoLabel, `A=${A.toFixed(2)}m, T=${T.toFixed(2)}s (k=${k}N/m, m=${m}kg) | 简谐振动`, '#2563eb');
+    },
+
+    onAnimate(handles, ctx) {
+        const h = handles as unknown as SpringHandles;
+        // 水平弹簧振子：自由端每帧随动接到振子球心 X，使弹簧实时拉伸/压缩与小球贴合。
+        // 位移阈值内跳过 updateHelicalSpring (内部会重建 TubeGeometry)，避免静止/暂停时无谓开销。
+        const endX = Math.max(WALL_X + 0.2, ctx.ballPos.x);
+        if (Math.abs(endX - h.lastEndX) < 1e-4) return;
+        h.lastEndX = endX;
+        _springEnd.set(endX, OSCILLATOR_Y, 0);
+        updateHelicalSpring(h.springHandles, _springAnchor, _springEnd);
     },
 
     getVisualPosition(pos, _params) {
