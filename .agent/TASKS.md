@@ -5,8 +5,11 @@
 
 ## 今日队列（执行顺序，2 个）
 
-- [ ] #124（P3 · type:chore/area:render · open/ready）渲染层 extra/meta 四处 as unknown as 类型化收口（#82 未覆盖面）
-  —— 验收要点：全仓 `as unknown as` 零残留（4 站点逐一消解）+ typecheck 绿 + 契约/渲染测试绿 + precheck 绿；禁新添 any；实现路线二选一单内定
+- [x] #124（P3 · type:chore/area:render · **in-review**）渲染层 extra/meta 四处 as unknown as 类型化收口（#82 未覆盖面）
+  —— 执行报告 619475864（2026-10-15 executor-20261015a）· 结论完成· 关键提交 `3f44b7b` + merge `4346efe`
+  —— 验收口径说明：单内第 1 条字面为「visualization/src 零残留」，实测该目录共 229 处、extra/meta 类仅 4 处；
+  4 处已全部消解（`src/rendering` 下 grep = 0），其余 225 处属 3D rig handles 通道（越范围），已立 auto-discovered **#126** 交 Planner 定级
+  —— 验收要点核对：typecheck / 渲染契约测试 531 例 / precheck 均 exit 0；未用 --no-verify；无新添 any
 - [ ] #125（P3 · type:chore/area:render · open/ready）光敏电阻面板公式与计算式对齐（含引擎温度项）
   —— 验收要点：450 行旧式子无残留（二选一：补全式 / 条件注）+ 系数与引擎同源 + precheck 绿；禁改计算逻辑与引擎系数
 
@@ -26,6 +29,7 @@
 - #99（P2）/#105（P3）—— needs-info（D20/D21：真实发布暂缓、英文随发布走）
 - #44（P2）—— 人类持有，勿动
 - 候选（未立单）：新增模型触点收敛 / 自动注册调查（#104 §5.4）；#122 根因单（待下次抖动带 .scratch 日志出现时立）
+- **#126（auto-discovered · 待 Planner 定级）**：visualization/src 仍有 225 处 `as unknown as`（全在 3D rig handles 通道，非 #124 范围）—— #124 执行中发现，不定优先级
 
 ## 标签说明
 
