@@ -7,7 +7,8 @@
  *
  * 设计原则：纯函数 + 屏幕坐标, 零依赖 React/Zustand/CoordinateTransformer
  */
-import type { SimulationResult, Vector2D } from 'physics-core';
+import type { SimulationResult } from 'physics-core';
+import { readMagFieldExtra } from './engineExtraAccess';
 import {
     COLORS,
     clamp,
@@ -136,31 +137,16 @@ export function drawAmpereForceScene(opts: ElectromagnetismSceneOptions): void {
     drawInfoBar(ctx, width, height, `导线与磁场夹角 ${((angle * 180) / Math.PI).toFixed(0)}°, F = BIL sinθ`, isDark);
 }
 
-interface MagFieldLine {
-    points: Vector2D[];
-}
-interface MagFieldSample {
-    x: number;
-    y: number;
-    bx: number;
-    by: number;
-    magnitude: number;
-}
-interface MagFieldExtra {
-    fieldLines: MagFieldLine[];
-    samples: MagFieldSample[];
-    wire?: Vector2D;
-    poles?: { north: Vector2D; south: Vector2D };
-}
 export function drawCurrentMagneticFieldScene(o: ElectromagnetismSceneOptions): void {
     const { ctx, width, height, isDark, params, simulationResult } = o;
     clearScene(ctx, width, height, isDark);
     drawTitle(ctx, '电流的磁场', width, isDark, { size: 18, y: 28 });
-    if (!simulationResult || !simulationResult.extra) {
+    // 引擎 extra 须经类型谓词守卫读取 (#124: 旧写法将 extra 双重强转为 MagFieldExtra)
+    const extra = simulationResult ? readMagFieldExtra(simulationResult.extra) : null;
+    if (!extra) {
         placeholder(ctx, width, height, isDark);
         return;
     }
-    const extra = simulationResult.extra as unknown as MagFieldExtra;
     const cx = width / 2;
     const cy = height / 2;
     const scale = Math.min(width, height) * 0.4;

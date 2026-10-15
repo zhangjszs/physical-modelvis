@@ -102,6 +102,14 @@ export type {
 export type { ChartKey, RegisteredModel, ModelCharts } from './types/chart-registry.js';
 export { MODEL_CHART_KEYS, chartsOf, getChart } from './types/chart-registry.js';
 
+// === 模型 extra 通道结构类型 (#124) ===
+// SimulationResult.extra 是 Record<string, unknown> 自由格式通道, 渲染层须按具体结构读取;
+// 这两个类型此前只在模型文件内导出, 入 barrel 后渲染层可直接复用 (避免双源声明)。
+// 与 #120 C4「无外部消费者者不入 barrel」约定不冲突 —— 消费者:
+// visualization/src/rendering/engineExtraAccess.ts
+export type { ElectricFieldExtra } from './models/electric-field-lines.js';
+export type { MagFieldExtra } from './models/current-magnetic-field.js';
+
 // === 错误类导出 ===
 export {
     PhysicsError,
