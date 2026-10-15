@@ -670,3 +670,18 @@ grep -oE "scene\('[a-z0-9-]+'\)" visualization/tests/accuracy/single-source-cont
 - **F1 · `double-slit` 为幻影 sceneId（✅ #59 已修）**:B-静态清单登记的 `double-slit` 在 `visualization/src` 中**无对应 `id:'double-slit'` 场景**;真实「双缝干涉」场景 id 为 `interference`(已列于 B-数值)。故 B 类「61 个唯一场景」实际含 1 个不存在的 id(真实唯一 sceneId = 60),且 `doubleSlitIntensity` 仅是 `rendering/constants.ts` 的绘图辅助函数名。→ 建议修正 B-静态清单(以 `interference` 计/去重)与并集计数口径（→ issue #59）。**#59 已执行**：从 B-静态清单移除 `double-slit`，B-静态 37→36、并集 61→60，分类统计表与去重说明同步。
 - **F2 · 引擎 `ParameterSpec.unit` 记号 split(可自动化模式)**:引擎侧角度单位串存在 `'deg'`(13 处:polarization/doppler/hologram/wetting/single-slit/water-diffraction/double-pendulum/thin-film)与 `'°'`(17 处)并存;长度单位 `'um'`(diffraction-grating/hologram)与 `'μm'` 并存。场景侧统一用 `'°'`/`'μm'`。**纯 UI 记号差异,无数值/换算影响**(同为度 / 同为微米、buildProblem 不换算)。因属可正则检出的模式 → 记为潜在门禁候选,是否收口交规划者判定（→ issue #60）。
 - **F3 · surface-tension σ_水三方取值不一致 + headline 值自算(单源缺口)**:① `rendering/constants.ts` 单一真源 `SIGMA_WATER_20C=0.0728`(IAPWS,仅 `renderers.test.ts` L3 断言使用),② 引擎 `surface-tension.ts` 硬编码 `sigma0=0.072`,③ 渲染 `drawSurfaceTensionScene` 亦硬编码 `sigma0=0.072` **并自算 `F=2σ(L/100)` 展示 headline σ/F,未消费引擎 `forceCurve` charts**(仅底部 σ-T 曲线读 `charts.y_t`)。②=③(0.072)但≠①(0.0728),三者约 1% 偏差;温度模型亦不同(②加法 β=1.5e-4 vs ③①乘法 −0.002·σ₀)。`drawCapillaryScene` 亦硬编码 0.072 复现同模式。→ 属常量取值不一致 + 有引擎数据却自算,违单源约定（→ issue #58）。
+
+## 3D 风格统一复核 (2026-10-15): 外科式收口 — 123 场景
+
+一次性脚本 `.scratch/scan-3d-unified.mjs` 对 `SCENE_TO_MODULE` 全 123 sceneId 静态扫描 8 面红旗(R1–R8), 结论与本审计 **阶段 D 第 493-494 行**一致: **视觉统一到 projectile 基准在仓库口径中已基本达成**, 多数红旗为**有意为之且被测试锁死的场景差异**, 不追求字面"空集"。
+
+- **实际修复(2 处真正 R3 缺口, commit `1b28b29`)**: `springRig`(弹簧自由端每帧接振子球心 X) + `newtonSecondLawRig`(细线随小车缩短、砝码随悬挂段下降, 补 onAnimate)。clean 12→14。门禁全绿: rigs-build 137/137、accuracy+workbench 942/942、precheck exit 0(11 层 PASS)。
+- **R1/R6 豁免(归一化正确, 改动即回归)**: orbital/moon-earth(`2.0/rOrbit` 归一化, `rigs-build.test.ts` L115-125 硬断言 `|p.x|<10`)、vertical-circle(1 世界单位=1 米贴合圆环)、newton-tube(竖直管归一化)。
+- **R2 豁免(无地面接触语义)**: orbital/moon-earth、simple-pendulum(悬空, 已显式 false)、vertical-circle/centrifugal/circular-motion(环轨球在 pivot 高度)、三类测量工具(无落体球)。
+- **R3 豁免(静态/参数驱动, 无需每帧接 ballPos)**: 场向箭头(electric-field/efield-lines/current-magnetic/hall-effect)、hooke-law(F=kx 静态)、force-composition(结点固定)、uniform-accelerated(静态参考线)。
+- **R4 整体豁免(99)**: em/modern/optics/induction 抽象场景无 `equipment/` 实物对应物(场线/粒子/能级/波形/黑体谱/分子/传感器), 裸几何合理。
+- **R5**: resistance-law 缺标牌 → 可读性增强项(非硬约束), 后续可选。
+- **R7**: cavendish 软命中 — `onAnimate` 用 `ctx.time` 算悬丝扭转装饰包络(扭秤无 trajectory), 非引擎自算, 不违单源; 豁免。
+- **未执行**: 浏览器全量 `verify-3d-coverage.cjs`(仅 2 处低风险改动, headless+X 成本高, 暂缓); 未 push。
+
+> 完整例外论证见会话产物 `.scratch/unify-3d/FINAL.md`(gitignored, 不入库)。
