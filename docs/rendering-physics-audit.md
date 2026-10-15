@@ -682,6 +682,7 @@ grep -oE "scene\('[a-z0-9-]+'\)" visualization/tests/accuracy/single-source-cont
 - **R4 整体豁免(99)**: em/modern/optics/induction 抽象场景无 `equipment/` 实物对应物(场线/粒子/能级/波形/黑体谱/分子/传感器), 裸几何合理。
 - **R5**: resistance-law 缺标牌 → 可读性增强项(非硬约束), 后续可选。
 - **R7**: cavendish 软命中 — `onAnimate` 用 `ctx.time` 算悬丝扭转装饰包络(扭秤无 trajectory), 非引擎自算, 不违单源; 豁免。
-- **未执行**: 浏览器全量 `verify-3d-coverage.cjs`(仅 2 处低风险改动, headless+X 成本高, 暂缓); 未 push。
+- **浏览器实测覆盖(一次性 headless harness, 非门禁)**: 遍历教材目录去重 123 个 sceneId, 逐景判 `canvas.getContext('webgl2')` — **123/123 均为 3D 首帧, 0 CRASH / 0 ERROR**(主扫 107 + 折叠侧栏滚动不可达的 16 景补测)。产物 `.scratch/unify-3d/browser-coverage{,-rest}.json`(gitignored)。
+- **未 push 之前**: 本轮 2 处 rig 修复 + 本审计段已 push 至 main。
 
 > 完整例外论证见会话产物 `.scratch/unify-3d/FINAL.md`(gitignored, 不入库)。
