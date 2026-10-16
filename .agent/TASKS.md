@@ -1,43 +1,45 @@
 # TASKS（Issue 本地镜像 · 规划者每轮整体重写）
 
-> 权威来源 = GitHub Issues（gh 可用，本轮已同步 2026-10-16）。用户新增方向已记录 D37：优先统一外部界面风格与组件复用，为物理世界盒子铺路。标签映射：`ready-for-agent` ≡ ready；`closed` ≡ done。
+> 权威来源 = GitHub Issues（gh 可用，本轮已同步 **2026-10-17 三十二次滚动**）。昨日 5 单验收关闭；用户 2026-10-16 两轮拍板已落盘 D38/D39/D40；#100/#101 标签卫生已修复（新 `parked` 标签）。
 
 ## 今日队列（执行顺序，5 个）
 
-- [ ] #131（P2 · type:chore/area:render · **ready**）组件复用边界调查：为物理世界盒子划定可复用 UI/器材接口
-  —— 目标：盘点 FormulaPanel、InspectorPanel、DataDrawer、GuidancePanel、组合实验台器材/参数面板的重复结构与差异
-  —— 验收：至少 5 组候选及证据；至少 3 个 props/state/slot 接口草案；拆出不超过 3 个独立实施单；不触大规模重构红线
-- [ ] #130（P2 · type:chore/area:render · **ready**）统一外部界面风格：为物理世界盒子建立 UI 视觉规范
-  —— 目标：盘点 Workbench、参数面板、数据抽屉、指导/OCR/组合台/错误空态的视觉分歧
-  —— 验收：至少 6 类分歧有文件证据；形成颜色/间距/圆角/阴影/文字/控件状态 token 表；指定 2–3 个验证组件；不做全站重构
-- [ ] #127（P3 · type:chore/area:ci · **ready**）pre-push 归档路径改良：沙箱 `/tmp` 只读时不丢证据
-  —— 验收：仓库内归档、不可写时显式警告、非沙箱行为不变、precheck 全绿；不改 workflows
-- [ ] #128（P3 · type:chore/area:render · **ready**）FormulaPanel 光敏电阻条目对齐指数式与引擎/画布同源
-  —— 验收：幂律旧式零残留、新式在位、红绿守卫、typecheck/precheck/count:check 全绿；不做 FormulaPanel 架构外迁
-- [ ] #129（P3 · type:docs · **ready**）AGENTS.md 补充 extra/meta 类型化访问守卫口径
-  —— 验收：与 #82 charts 同层级，明确 `engineExtraAccess` 与 `typed-extra.test.ts`；纯文档，不改代码/CI
+- [ ] #99（P2 · type:chore/area:ci · **ready**）发布门禁切片：CI 补 `npm publish --dry-run` + files/类型入口/体积三类断言
+  —— 不真发布、不引 `@changesets/cli`、不改包名/版本（D38）；红向验证 ≥1 例；workflows diff 仅限新增 job/step
+- [ ] #105（P3 · type:docs · **ready**）外部入口齐备：README 英文摘要 + badge 行 + CONTRIBUTING first-contribution
+  —— 不整篇双语；剔除 `npm i physics-core` 小节；入门路径 = `.agent/TASKS.md`/维护者认领（D39，原「入门单 open 且 ready-for-agent」标准作废）
+- [ ] #132（P2 · type:chore/area:render · **ready**）实施单 α：抽取 PanelSection（≤60 行）+ LazyPanel（≤80 行）
+  —— 迁移 DataDrawer 4 处 + WorkbenchScene 1 处三明治；新增单测合计 ≥4 例；不触 token / 不动 rigs（#131 §5 产出）
+- [ ] #133（P3 · type:docs · **ready**）docs/README.md 索引补 #131/#130 两行（同 #123 先例；git diff 仅 +2 行）
+- [ ] #126（P3 · area:render · **ready**）`Rig<H>` 泛型化收口 84 文件 / 225 处 handles 双向强转（D36 授权已兑现）
+  —— 前置 #131 已解除；验收 5 条见 issue comment（2026-10-16）；体量大允许跨会话；开工先读 `docs/composition-reuse-boundary.md` 但不迁移其范围
 
-## 本轮关闭（done）
+## 本轮关闭（done · 三十二次滚动验收）
 
-- [x] #124（P3）渲染层 extra/meta 四处强转收口 —— 4 个目标站点消解，`src/rendering` 零命中；CI/Deploy success
-- [x] #125（P3）光敏电阻画布面板公式与计算式对齐 —— 三处展示式同步、TEMP_COEFF 同源、测试与浏览器探针通过
+- [x] #131（P2）组件复用边界调查 —— 330 行文档；7 组候选/6 接口草案/3 实施单；验收 comment 在案
+- [x] #130（P2）统一外部界面风格调查 —— 249 行文档；7 类分歧/token 六类全表/3 验证组件
+- [x] #127（P3）pre-push 归档路径改良 —— 三级回退在位；非沙箱 `6ce58ae` 现场「归档源: system」+ 11 层 PASS
+- [x] #128（P3）FormulaPanel 光敏电阻指数式 —— 幂律旧式 0 残留；4 例守卫本轮独立重跑 passed
+- [x] #129（P3）AGENTS.md 补 extra/meta 守卫口径 —— L45 单行追加，与 #82 charts 双柱并列
 
-## 已确认决策
+## 已确认决策（本轮新增 D38–D40）
 
-- **D31**：#103 派生三张大规模重构实施单暂缓，不进 ready；Executor 不得自取。
-- **D36**：#126 `Rig<H>` 一次性泛型化已获用户授权。
-- **D37**：优先统一外部界面风格与组件复用，为物理世界盒子铺路；先调查、后拆小实施单。
+- **D31**：#103 派生三张大规模重构实施单长期暂缓（默认转正，不建对应 issue）。
+- **D36**：#126 `Rig<H>` 泛型化用户放行 —— 前置 #131 已完成，本轮摘 `blocked` 转 ready。
+- **D37**：物理世界盒子方向：先统一界面风格 + 组件复用（α→β→γ 序）。
+- **D38**：#99 只加 CI dry-run 门禁，不真发布；包名保持 `physics-core`；版本 = 手动 bump+tag（本轮仅登记选型，不建流水线）。
+- **D39**：#105 英文摘要 + badge + first-contribution；不整篇双语；剔除 npm i 示例；入门 = TASKS.md/认领（取代 D21 旧口径）。
+- **D40**：#44 vendor-react 懒拆/预加载保 70kB 门禁；拆单验收必须含「生产构建 + headless 首帧探针」。
 
 ## 阻塞 / 待处理
 
-- #126（P3 · **blocked** · area:render · auto-discovered）——D36 授权仍有效，但实施前置 #131；不得在复用边界明确前抢跑 84 文件/225 处迁移
-- #100（P2）/#101（P3）——Issue 仍带 ready-for-agent，但维持 parked（D19/D29）
-- #99（P2）/#105（P3）——needs-info（真实发布暂缓、英文物料随发布走）
-- #44（P2）——人类持有，勿动
-- 观察：引擎 `photoresistor.ts` explanation 文案温度项未立单；#122 根因单待新的归档失败证据
+- #100（P2）/#101（P3）—— 维持 parked（D19）；本轮已建 `parked` 标签并摘 `ready-for-agent`，标签-排程背离消除
+- #44（P2）—— 决策已定（D40）但未拆单；下一轮拆「vendor-react 懒拆」实施单（验收含首帧探针）后排程
+- 派生 backlog（未建单，防撞车与范围蔓延）：#131 实施单 β（依赖 α 完成）/ γ（依赖 α）；#130 token 4 切片（补 `:root` token / 消 inline 硬编码 / 控件状态落地 / 遮罩统一）—— 待 α 落地或下一轮定夺
+- 观察：引擎 `photoresistor.ts` explanation 文案温度项（无渲染正确性影响，暂不立单）；FormulaPanel 同型错式已随 #128 收口清零（第三十一/三十二轮复核）
 
 ## 标签说明
 
-- 状态：ready-for-agent（可执行）· in-progress（执行中）· in-review（待验收）· blocked（外部/前置阻塞）· needs-info（需决策）；closed = done
-- 本仓库沿用 `ready-for-agent`，不引入新 `ready` 标签
+- 状态：parked（排程冻结，D19/D31 口径）· ready-for-agent（可执行）· in-progress（执行中）· in-review（待验收）· blocked（前置未就绪）· needs-info（需决策）；closed = done
+- 本仓沿用 `ready-for-agent`，不引入新 `ready` 标签；`parked` 为 2026-10-17 新建（原 ready-for-agent 与 D19 冻结排程长期背离，本轮修复）
 - 本仓无 `priority:P4` 标签（P3 即最低）
