@@ -11,20 +11,22 @@
 1. **补齐上一会话留下的验收缺口**：`executor-20261016a` 自报「未单独查 CI run 状态」。本轮查得 `main` HEAD `d99a6a6` 的 CI run `38896945352` 与 Deploy run `38897220072` 均 **success** —— 主干无红，Planner 验收不必再等流水线。
 2. **抽查五单交付物在位性**（只读，不构成验收结论）：两份调查文档、新增测试文件、AGENTS.md 条目、pre-push 降级逻辑、FormulaPanel 指数式全部命中，幂律旧式零残留。
 3. **记录契约 1.6 标签冲突**（#100/#101）并按 Planner 显式排程处理，未擅自领取。
-4. **会话后段获得用户对三张悬置单的决策**（用户当场拍板，见下一节），已按契约 1.1 经 Issue comment + 日报登记；**未实施任何一单**。
+4. **会话后段获得用户对三张悬置单的决策**（用户**两轮**拍板，第二轮更正了 #99 版本策略与 #105 入门方案；见下一节），已按契约 1.1 经 Issue comment + 日报登记；**未实施任何一单**。
 
 ## 用户决策（本轮新获得 · Planner 必读 · 尚未入 `DECISIONS.md`）
 
-Executor 无权写 `DECISIONS.md`，决策原文与工程反驳见 `.agent/DIARY/2026-10-16.md`「追加事件 3」及 Issue comment。
+用户经两轮拍板（第二轮更正了第一轮的 #99 版本策略与 #105 入门单方案）。**下表为最终口径**，决策沿革见 `.agent/DIARY/2026-10-16.md`「追加事件 3 / 4」与 Issue comment。
 
-| 单 | 用户选定 | 状态 |
+| 单 | 最终决策 | 状态 |
 |---|---|---|
-| **#99 发布** | **先建 CI dry-run 门禁，暂不真发布**；包名保持 `physics-core`（不 scoped，74 处 import 不动）；**用户建 npm token 这一人类前置动作已解除** | 仍 `needs-info`，待 Planner 拆单 |
-| **#99 版本** | **changesets（PR 驱动）** —— ⚠️ 与「不发版」有张力，需 Planner 定中间态或改选手动 bump+tag | 同上 |
-| **#44 React 19** | **vendor-react 懒拆 / 预加载**（保住 70 kB 门禁，不抬预算）—— ⚠️ 首屏回归面，须含生产构建首帧探针 | **人类持有，本会话未加 comment、未动标签** |
-| **#105 外部入口** | **README 英文摘要 + CONTRIBUTING first-contribution 全套**（不整篇翻译）—— ⚠️ 「使用引擎」小节应剔除（无可执行 `npm i`）；入门单前提当前为假（#100/#101 parked） | 仍 `needs-info`，待 Planner 拆单 |
+| **#99 发布** | 包名**保持 `physics-core`**（不 scoped，74 处 import 不动）；**不真发布**；范围收敛为 CI `npm publish --dry-run` 门禁 + `files` 内容/体积/类型入口断言；**用户建 npm granular token 这一人类前置动作不需要** | 仍 `needs-info`，待 Planner 拆单 |
+| **#99 版本** | **手动 bump + tag 触发**（**不是 changesets**）；且**本轮不建 publish workflow、不引入 `@changesets/cli`** —— 选型仅登记，将来真要发布时启用 | 同上 |
+| **#44 React 19** | **vendor-react 懒拆 / 预加载**，保住 70 kB 门禁（**不抬预算**）；⚠️ 实施验收必须含「生产构建 + headless 首帧探针」，只看 `check-bundle-size` 变绿不足以证明首屏没退化（参 #111） | **人类持有，未加 comment、未动标签** |
+| **#105 外部入口** | README 英文摘要 + badge + CONTRIBUTING「first contribution」全套（**不整篇双语**）；**剔除 `npm i physics-core`「使用引擎」小节**（因 #99 不发布）；入门路径改写为「读 `.agent/TASKS.md` / 找维护者认领」，**原验收标准「入门单确实 open 且 ready-for-agent」作废** | 仍 `needs-info`，待 Planner 拆单 |
 
-**触红线说明**：#99（新增 workflow / PR 纪律）与 #44（首屏架构调整）均属契约 1.10 类目。用户给了方向性授权，但**不等于 Executor 可自取** —— 需 Planner 拆成带验收标准的独立实施单并入 ready 后，下一棒才能开工。
+**未变动的前置**：#100/#101 **继续 parked**（D19 维持）；其 `ready-for-agent` 标签与排程背离的**标签卫生建议仍待 Planner 处理**。
+
+**触红线说明**：#99 的 dry-run 门禁（新增 CI 步骤）与 #44（首屏架构调整）均属契约 1.10 类目。用户给了方向性授权，但**不等于 Executor 可自取** —— 需 Planner 拆成带验收标准的独立实施单并入 ready 后，下一棒才能开工。
 
 ## 已完成
 
@@ -51,7 +53,7 @@ Executor 无权写 `DECISIONS.md`，决策原文与工程反驳见 `.agent/DIARY
 
 ## 冲突记录（契约 1.6）
 
-**#100 / #101 标签与排程长期背离**：GitHub 上仍带 `ready-for-agent`，但 `TASKS.md`、D19、`PLAN.md` 三十一次滚动第 3 条均明确要求「维持 parked，Executor 不得自取」。契约 1.6 说 Issue 权威，但这里 Planner 的**显式排程指令**比标签更新、更具体，本轮按指令处理（不领取）。建议 Planner 下次滚动给两单补 `parked` / 移除 `ready-for-agent` 以消除歧义——标签管理属 Planner 职权，本轮未动。
+**#100 / #101 标签与排程长期背离**：GitHub 上仍带 `ready-for-agent`，但 `TASKS.md`、D19、`PLAN.md` 三十一次滚动第 3 条均明确要求「维持 parked，Executor 不得自取」。契约 1.6 说 Issue 权威，但这里 Planner 的**显式排程指令**比标签更新、更具体，本轮按指令处理（不领取）。**用户 2026-10-16 已再次确认 #100/#101 继续 parked（不解除）**，因此该背离是纯标签问题：建议 Planner 给两单补 `parked` 或摘掉 `ready-for-agent`，消除歧义 —— 标签管理属 Planner 职权，本轮未动。
 
 ## 验证情况
 
@@ -77,16 +79,17 @@ Executor 无权写 `DECISIONS.md`，决策原文与工程反驳见 `.agent/DIARY
 2. **队列为空就安静收尾**（契约 2.1.3）：在日报追加"无任务"，不要制造工作。**特别注意**：#99/#105/#44 的用户决策已在手上，但那是给 Planner 定标用的，不是给执行棒的开工许可。
 3. 若 Planner 已把 #126 摘入 ready：先读 `docs/composition-reuse-boundary.md` 划定复用边界，再动 84 文件迁移；D36 硬边界仍生效——不改 physics-core 公共 API、不改 WebGL 生命周期/渲染行为、不改 `.github/workflows/`、不得使用 `--no-verify`；发现验收边界不足 → 转 `needs-info` 停手，**不自行改成方案 B**。
 4. 若 Planner 已把 **#44 拆成 vendor-react 懒拆实施单**并入队：开工前务必确认验收标准含「生产构建 + headless 首帧探针」，只有 `check-bundle-size` 变绿不足以证明首屏没退化（参 #111 教训）。
-5. 若 **#99 拆单入队**：先确认 Planner 如何处理了 changesets × 不发版的张力（见决策表警告），别自作主张发版或建 tag。
+5. 若 **#99 拆单入队**：范围是「只加 CI `npm publish --dry-run` 门禁」，**不要引入 `@changesets/cli`、不要建 publish workflow、不要真发布**（用户已两轮确认）。
 6. 若 #131/#130 的派生单已入队：#131 建议实施序为 α→β→γ（α 无前置可立即开工）。
 
 ## 今日日报
 
-- 已写入 `.agent/DIARY/2026-10-16.md` —— 本会话（`executor-20261016b`）为**追加**共三个块（现场核验 / push+CI 证据 / 用户决策登记），未改动第一个会话块任何一行（契约 1.8 不可变）。
+- 已写入 `.agent/DIARY/2026-10-16.md` —— 本会话（`executor-20261016b`）共**追加 5 个块**（现场核验 / push 证据 / CI 证据 / 决策登记 / 决策更正），未改动第一个会话块任何一行（契约 1.8 不可变）。
 
 ## 给 Planner 的信号
 
-- **需要 Planner 介入：队列不足 + 三张悬置单已获用户决策，请定标拆单**。ready 为空；#99（dry-run 门禁 / changesets）、#105（英文摘要 + first-contribution）、#44（vendor-react 懒拆）的方向已由用户当场拍板，详见本文件「用户决策」表与日报「追加事件 3」。**Planner 需要处理的三件事**：(a) 消解 changesets × 不发版的张力；(b) 决定 #105 入门单前提为假怎么办（或直接解除 #100/#101 parked）；(c) 给 #44 拆单时把生产构建首帧探针写进验收标准。
+- **需要 Planner 介入：队列不足 + 三张悬置单已获用户最终决策，请拆单定标**。ready 为空；#99（dry-run 门禁 / 手动 bump+tag 选型）、#105（英文摘要 + first-contribution + 入门路径改写）、#44（vendor-react 懒拆）的方向已由用户两轮拍板定稿，详见本文件「用户决策」表与日报「追加事件 3 / 4」。**Planner 需要处理的三件事**：(a) 把 #99 拆成「只加 CI dry-run 门禁」的独立单，并**明确不引入 changesets**；(b) 改写 #105 的入门路径与验收标准（原「入门单 ready-for-agent」条款作废）；(c) #44 拆单时把「生产构建 + headless 首帧探针」写进验收标准。
+- **仍待 Planner 的标签卫生**：#100/#101 继续 parked（用户明确不解除），但 GitHub 上仍挂 `ready-for-agent` —— 建议补 `parked` 或摘标签，否则人与 Agent 都会误读。
 - **#44 决策未落 Issue**：因「人类持有勿动」，本会话没给它加 comment，用户选定内容只在日报 + 本文件 —— 请 Planner 自行决定是否镜像到 #44 并安排排程。
 - **in-review 5 单可立即验收**，CI/Deploy 已在 HEAD `d99a6a6` success，无需等流水线。本会话自己的 `.agent/` 收尾提交 `aa58197` 亦经 CI run `38908750796` → **success**（8 道门禁全过，仅存量 lint warning）。
 - **#127 现场复跑证据已补**：本会话 `6ce58ae` 的 push 走改良后钩子，precheck 11 层 PASS、尾行输出「归档源: system」，直接对应其验收标准「非沙箱行为不变」——验收该单时可引用。
@@ -99,4 +102,4 @@ Executor 无权写 `DECISIONS.md`，决策原文与工程反驳见 `.agent/DIARY
 
 未关闭任何 Issue、未改任何状态标签（无领取动作）、未改写 `PLAN.md` / `DECISIONS.md`、未领取 parked/blocked/needs-info/人类持有单、**未实施任何 1.10 红线类目**（用户决策仅作登记，实施需 Planner 拆单）、零代码变更、未 force push、未用 `--no-verify`；`.agent/` 变更单独 `chore(agent)` 提交；日报全程追加不改写。
 
-跨 Agent 沟通留痕：#99 comment `#issuecomment-6217086166` · #105 comment `#issuecomment-6217091643`（契约 1.5）。#44 依「人类持有勿动」未加 comment。
+跨 Agent 沟通留痕（契约 1.5）：#99 comment `#issuecomment-6217086166`（决策登记）+ `#issuecomment-6217742492`（更正版）· #105 comment `#issuecomment-6217091643` + `#issuecomment-6217743168`。#44 依「人类持有勿动」未加 comment。
