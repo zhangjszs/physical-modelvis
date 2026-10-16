@@ -1,40 +1,37 @@
 # TASKS（Issue 本地镜像 · 规划者每轮整体重写）
 
-> 权威来源 = GitHub Issues（gh 可用，本轮已同步 2026-10-15 · 执行棒 executor-20261015a 改状态）。标签映射：`ready-for-agent` ≡ ready；
-> `closed` ≡ done。本文件只读镜像，执行者改状态时先改 Issue 再同步本行（冲突以 Issue 为准）。
+> 权威来源 = GitHub Issues（gh 可用，本轮已同步 2026-10-16）。标签映射：`ready-for-agent` ≡ ready；`closed` ≡ done。本文件只读镜像，执行者改状态时先改 Issue 再同步本行（冲突以 Issue 为准）。
 
-## 今日队列（执行顺序，2 个）
+## 今日队列（执行顺序，3 个）
 
-- [x] #124（P3 · type:chore/area:render · **in-review**）渲染层 extra/meta 四处 as unknown as 类型化收口（#82 未覆盖面）
-  —— 执行报告 619475864（2026-10-15 executor-20261015a）· 结论完成· 关键提交 `3f44b7b` + merge `4346efe`
-  —— 验收口径说明：单内第 1 条字面为「visualization/src 零残留」，实测该目录共 229 处、extra/meta 类仅 4 处；
-  4 处已全部消解（`src/rendering` 下 grep = 0），其余 225 处属 3D rig handles 通道（越范围），已立 auto-discovered **#126** 交 Planner 定级
-  —— 验收要点核对：typecheck / 渲染契约测试 531 例 / precheck 均 exit 0；未用 --no-verify；无新添 any
-- [x] #125（P3 · type:chore/area:render · **in-review**）光敏电阻面板公式与计算式对齐（含引擎温度项）
-  —— 执行报告 6195222143（2026-10-15 executor-20261015a）· 结论完成· 关键提交 `532f239` + merge `a67e6e5`
-  —— 路线：选 **A（公式补温度项）**；面板公式行/信息条均含 `0.02(T−25)`，旧式 grep 零残留；
-  参数回显行改标 `R_dark(25℃)=`；新增 4 例守卫（红/绿已验）+ 浏览器探针量化行宽余量 209.8 px
-  —— 验收要点核对：系数与引擎 TEMP_COEFF 同源（测试直读引擎源码对照）· precheck exit 0 · 未用 --no-verify
+- [ ] #127（P3 · type:chore/area:ci · **ready**）[auto-discovered] 修复 pre-push 失败归档在沙箱 `TMPDIR` 只读时静默降级
+  —— 范围：归档优先写仓库内路径；保持非沙箱行为不变；不得改 `.github/workflows/`；全程不得 `--no-verify`
+  —— 验收：失败时仓库内能留下可读证据；归档路径不可写时显式报告；正常 pre-push/precheck 全绿
+- [ ] #128（P3 · type:chore/area:render · **ready**）FormulaPanel 光敏电阻条目对齐指数式与引擎/画布同源
+  —— 范围：仅收口 `FormulaPanel.tsx` 的 photoresistor 公式、变量/提示相关口径；不扩展为架构重构
+  —— 验收：幂律旧式零残留、新指数式与引擎/画布一致；红绿守卫、typecheck、precheck、count:check 全绿
+- [ ] #129（P3 · type:docs · **ready**）AGENTS.md 补充 extra/meta 类型化访问守卫口径
+  —— 范围：补「读取 `SimulationResult.extra` 走 `engineExtraAccess` 守卫、禁新添双重强转」并链接现有实现；纯文档
+  —— 验收：关键陷阱可定位且与 #82 charts 口径并列；不改代码/测试/CI；format:check 与 count:check 全绿
 
-## 本轮关闭（done，三十次滚动验收通过 · 2026-10-15）
+## 本轮关闭（done，三十一次滚动验收通过 · 2026-10-16）
 
-- [x] #122（P3）门禁稳定性：vitest 首跑抖动转观测 —— 12/12 复现全绿不可复现，未硬造根因；`.husky/pre-push` 失败归档 + sh -e 兼容修复入库；CI/Deploy@2fd64c6/f946b0c success；L320 记观测中
-- [x] #123（P3）docs 索引补全：两份 survey 入 docs/README.md —— §4 表 62/63 行在位（直接读文件复核）；precheck 绿；CI/Deploy success
+- [x] #124（P3）渲染层 extra/meta 四处 `as unknown as` 类型化收口
+  —— 4 个目标站点全部消解；`visualization/src/rendering` 零命中；`typed-extra.test.ts` 14 例；CI/Deploy success；验收口径已在 Issue comment 修订，225 处 rig handles 残留转 #126
+- [x] #125（P3）光敏电阻画布面板公式与计算式对齐（含引擎温度项）
+  —— 选 A 补温度项；面板公式/信息条/参数回显行同步；4 例守卫、浏览器行宽探针、precheck 与 CI/Deploy success；FormulaPanel 幂律残留转 #128
 
 ## 待用户决策
 
-- **D31（pending，第 2 天）**：#103 派生三张重构实施单是否放行（原语抽取 / CanvasRenderer 切分 / FormulaPanel 数据外迁；触 1.10 红线）。
-  推荐 = 默认 = **暂缓**（不进 ready）。连续 3 天无答复则默认转正。
+- **D34（pending，第 1 天）**：#126 的 225 处 3D rig handles `as unknown as` 是否放行根治（A 泛型化一次性 / B 登记表分批 / C 维持现状）。推荐 = 默认 **C**；不进 ready。连续 3 天无答复且默认无异常时转正并关闭 #126（预计 2026-10-18）。
 
 ## 候选 / parked（不执行）
 
-- #100（P2）/#101（P3）—— ready-for-agent 但维持 parked（D19；D29 仅放行调查类，三单已 CLOSED）
-- #99（P2）/#105（P3）—— needs-info（D20/D21：真实发布暂缓、英文随发布走）
-- #44（P2）—— 人类持有，勿动
-- 候选（未立单）：新增模型触点收敛 / 自动注册调查（#104 §5.4）；#122 根因单（待下次抖动带 .scratch 日志出现时立）
-- **#126（auto-discovered · 待 Planner 定级）**：visualization/src 仍有 225 处 `as unknown as`（全在 3D rig handles 通道，非 #124 范围）—— #124 执行中发现，不定优先级
-- **#127（auto-discovered · 待 Planner 定级）**：pre-push 抖动复现 1 次且因沙箱 `TMPDIR` 只读时**未留下归档日志**（#122 观测机制静默降级）—— #125 push 时发现，不定优先级
-- **待 Planner 评估是否立单**（#125 报告已记）：`FormulaPanel.tsx:830` 光敏电阻条目用幂律 `R=R₀(E/E₀)^−α`，而引擎/画面用指数式 `R=R_dark·exp(−k·E)` —— 同场景两处面板模型口径不一致（L4 门禁不覆盖）
+- #126（P3 · **needs-info** · auto-discovered）——225 处 rig handles 强转，触契约 1.10 大规模重构红线，按 D34 暂缓
+- #100（P2）/#101（P3）——Issue 仍带 ready-for-agent，但维持 parked（D19/D29；不进今日队列）
+- #99（P2）/#105（P3）——needs-info（D20/D21：真实发布暂缓、英文物料随发布走）
+- #44（P2）——人类持有，勿动
+- D31——#103 派生三张大规模重构实施单已按默认 C 转正为长期暂缓，不建对应 Issue、不进 ready
 
 ## 标签说明
 

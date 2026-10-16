@@ -153,6 +153,22 @@
 > **治理**：ready 队列已空（#100/#101 维持 parked/D19，#99/#105 维持 needs-info/D20/D21，#44 人类持有，D31 仍 pending）；
 > 按 PLAN 遗留观察立 **#124**（P3，extra/meta 四处强转类型化，#82 未覆盖面）与 **#125**（P3，光敏电阻面板公式对齐温度项，
 > #63 遗留观察）——两单均为在册小单转化，无新方向；**D33 落盘**；**D31 维持 pending（第 2 天）**。今日队列 = **#124 → #125**。
+> 2026-10-16 三十一次滚动（每日规划）：**in-review 积压 2 单（#124/#125）全部验收 CLOSED**，in-review 清零——
+> 规划者独立复核：#124 4 目标站点全消解（本轮 grep 实测：`visualization/src/rendering` 下 `as unknown as` = **0**）；
+> 新守卫文件 `engineExtraAccess.ts` 125 行 + 新测试 `typed-extra.test.ts` 14 例均在位；
+> CI 38753146548 · Deploy 38756623425 · 后续 chore(agent) push 38757516722 · QA schedule 38811555624 全 success。
+> **验收口径修订**（Planner 单内自纠）：原验收标准第 1 条字面写 “visualization/src 零命中”与实际范围4站点相矛——
+> 本轮写入 comment 将口径修订为**「4 目标站点逐一消解 + `src/rendering` 子目录零命中」**（本轮实测达成）；
+> 余 225 处属 rig handles 非 #124 范围→已 auto-discovered **#126**，本轮定级 P3 needs-info，新建 D34 pending（默认 C 维持现状，同 D31 先例）。
+> #125 选 A 路线（面板公式补温度项），三处均在位（`sensorElementScenes.ts:446–457/480` 本轮直读源码复核）；
+> `TEMP_COEFF=0.02` 与引擎 `photoresistor.ts:72` 同源；新测试 4 例 + 红/绿自验 + 浏览器行宽探针 209.8 px；
+> CI 38756353803 · Deploy 38756623425 success。**FormulaPanel.tsx:830/835 同场景另一处幂律错式**→新立 **#128**（P3 ready · 今日队列次位）；
+> 引擎 `explanation.steps[].formula` 不含温度项属文案层，本轮不立，归遗留观察。
+> **治理**：#127（auto-discovered pre-push 沙箱 `/tmp` 只读时无归档）定级 P3 ready（今日队列首位）——
+> 不触 1.10（非 workflows 层），仅改 `.husky/pre-push` 归档优先仓库内；补充 4 条验收标准（沙箱能拿证据/非沙箱行为不变/precheck 全绿）。
+> #125 执行棒信号 ④（AGENTS.md 补 extra/meta 访问守卫）响应新立 **#129**（P3 ready · 今日队列末位，纯文档）。
+> **D31 默认转正**（连续 3 天无用户答复且默认无异常，方案 C 暂缓转已确认）；**D34 新建 pending（第 1 天，#126）**；**D35 落盘**。
+> 今日队列 = **#127 → #128 → #129**。
 
 ## 当前方向
 
@@ -160,10 +176,10 @@
 **生产缺陷与门禁收口已闭环**（#111 生产首屏 3D 空白、#112 OCR 弹窗溢出、#109 常量门禁扩面全部 CLOSED，二十五次滚动验收）。
 **L6 器材扩展 2/2 收官**（#113 条形磁铁、#114 匀强磁场区，二十六次滚动验收）。
 **验证与物料收尾闭环**（#106 冒烟参数化、#115 确定性有界声明，二十六次滚动验收）。
-当前执行队列（三十次滚动）：**#124（P3 extra/meta 强转类型化）→ #125（P3 面板公式对齐）**；#122/#123 已验收 CLOSED，L320 记观测中。
+当前执行队列（三十一次滚动）：**#127（P3 pre-push 归档证据）→ #128（P3 FormulaPanel 光敏电阻公式）→ #129（P3 extra/meta 访问守卫文档）**；#124/#125 已验收 CLOSED，L320 记观测中。
 **M5 调查线三单已收官**（#103/#102/#104 CLOSED，D29 放行调查 → 二十八次滚动验收；#116/#117 同步关闭）。
-**最小切片已落地验收**（#118/#119/#120/#121，二十九次滚动 CLOSED，D30 放行兑现）；**#103 派生重构未放行**（D31 pending 第 2 天，推荐/默认暂缓）。
-**门禁观测与索引收口已闭环**（#122 转观测 + #123 索引补全，三十次滚动 CLOSED，D32 落盘事项兑现；D33 立 #124/#125 接棒）。
+**最小切片已落地验收**（#118/#119/#120/#121，二十九次滚动 CLOSED，D30 放行兑现）；**#103 派生重构已按 D31 默认转正为长期暂缓**（不进 ready、不建对应 Issue）。
+**门禁观测与索引收口已闭环**（#122 转观测 + #123 索引补全，三十次滚动 CLOSED，D32 落盘事项兑现；#124/#125 验收与 #127–#129 新队列见三十一次滚动）。
 后续：#100/#101 维持 parked；#99/#105 维持 needs-info（D20/D21）。
 **M5（候选）· 组合实验台深化 + 架构治理**（#100–#104，D18 收编）——**用户 D19 已定：不立项、维持 parked**，
 不进当前执行队列；#99/#105 维持 needs-info（D20/D21）。
@@ -389,19 +405,18 @@ T=25℃ 时二者等价，无正确性影响，属「面板公式与算法严格
 | [#100](https://github.com/zhangjszs/physical-modelvis/issues/100) | 组合实验台交互增强：器材旋转编辑 + 轨迹回放控制（播/暂停/倍速） | ready（parked） | P2 | 属 D6 已确认愿景内，低风险 |
 | [#101](https://github.com/zhangjszs/physical-modelvis/issues/101) | 组合实验台预设实验模板：高频电磁场景一键布置 | ready（parked） | P3 | 同上 |
 | [#102](https://github.com/zhangjszs/physical-modelvis/issues/102) | **调查**：多线圈场求值性能（Biot-Savart × Worker 化评估） | ✅ **CLOSED**（二十八次滚动验收：复跑 bench exit 0，**8.60×** / 1.16e-14） | P3 | C1 → **#119**（最小切片放行）；Worker 化不立项 |
-| [#103](https://github.com/zhangjszs/physical-modelvis/issues/103) | **调查**：渲染层结构治理（按机制抽 primitives + 巨型文件拆分路线） | ✅ **CLOSED**（二十八次滚动验收：坐标抽查全吻合） | P2 | 落档 → **#121**；14 批实施**未放行**（D31 pending） |
+| [#103](https://github.com/zhangjszs/physical-modelvis/issues/103) | **调查**：渲染层结构治理（按机制抽 primitives + 巨型文件拆分路线） | ✅ **CLOSED**（二十八次滚动验收：坐标抽查全吻合） | P2 | 落档 → **#121**；14 批实施**已按 D31 暂缓** |
 | [#104](https://github.com/zhangjszs/physical-modelvis/issues/104) | **调查**：引擎契约上帝对象治理（ConstraintConfig 拆分 + charts 键名规范） | ✅ **CLOSED**（二十八次滚动验收：三处口径纠正属实） | P3 | A/B 不立项；C → **#120**（最小切片放行）；§5.4/§5.5 落 D30 |
 | [#99](https://github.com/zhangjszs/physical-modelvis/issues/99) | physics-core 发布流水线：npm publish + provenance + 包名决策 | ⚠️ **needs-info**（真实发布部分；**D20 已定夺：暂缓**，dry-run 切片已拆出 #107 ready） | P2 | **契约 1.8 红线**（外部不可逆 + CI/CD）——真实发布重启前不入 ready |
 | [#105](https://github.com/zhangjszs/physical-modelvis/issues/105) | README 双语化 + CONTRIBUTING 外部贡献者视角补全 | ⚠️ **needs-info**（**D21 已定夺：英文物料随发布决策走**，发布暂缓故维持） | P3 | 触 D17「英文化明确不做」+ 硬依赖 #99 发布决策——维持 needs-info |
 
-**执行顺序**：**#102–#104 调查三单已 CLOSED**（二十八次滚动）；#100/#101 维持 parked（D19）、#99/#105 维持 needs-info，
-执行棒不领。#103 派生的**重构实施单未放行**（D31 pending，推荐/默认暂缓）；#102-C1/#104-C 按最小切片放行（D30，可叫停）。
+**执行顺序**：**#102–#104 调查三单已 CLOSED**（二十八次滚动）；#100/#101 维持 parked（D19）、#99/#105 维持 needs-info，执行棒不领。#103 派生的**重构实施单已按 D31 默认转正暂缓**；#102-C1/#104-C 按最小切片放行（D30，可叫停）。
 
 ## 给 Executor 的指令
 
-1. **队首 = #124**（P3，extra/meta 强转类型化；实现路线二选一单内定并在报告注明；**禁新添 `any`，用 unknown + 收窄**）
-   → **#125**（P3，面板公式对齐；展示串二选一单内定，**禁改计算逻辑与引擎系数**，不动其他公式、不重采截图）。
-   **#103 派生重构批勿领**（D31 未放行）；**#100/#101 勿领**（维持 parked）；#99/#105 维持 needs-info；#44 人类持有勿动；
+1. **队首 = #127**（P3，pre-push 失败归档证据；只改 `.husky/pre-push` 归档路径与显式降级，不改 `.github/workflows/`，全程禁 `--no-verify`）
+   → **#128**（P3，FormulaPanel 光敏电阻公式与引擎/画布同源；只收口展示文案与相关变量/提示）→ **#129**（P3，AGENTS.md 补 extra/meta 类型化访问守卫口径，纯文档）。
+   **#126 按 D34 needs-info 勿领**；**#103 派生重构批按 D31 勿领**；**#100/#101 勿领**（维持 parked）；#99/#105 维持 needs-info；#44 人类持有勿动；
    领前先查本队列与 `TASKS.md` 今日队列。
    ⚠️ **读 charts 只用 `chartsOf`/`getChart`，禁止新添 `as unknown as Record<…>` 强转**（AGENTS.md 硬口径）。
 2. **标签流转纪律（LOCK 已裁决废止）**：继续规范执行 领取 `in-progress` → 完工 `in-review`；
