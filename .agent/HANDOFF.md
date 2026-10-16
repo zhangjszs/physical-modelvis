@@ -44,6 +44,8 @@
 - `gh run view 38896945352` → headSha `d99a6a6…` · conclusion `success`，与本地 HEAD 一致
 - `git fetch --all --prune && git pull --rebase` → `Already up to date`；`git status` 干净
 - 交付物核对：`wc -l` / `grep -c` / `find` 全部命中；`FormulaPanel.tsx` 指数式 3 处（L830/L849/L855）、`R0 * (` 幂律 0 命中
+- `git push origin main`（本会话 `.agent/` 收尾提交）→ 退出码 0 · pre-push 钩子 **11 层 11 PASS** · 尾行「归档源: system」（= #127 非沙箱行为不变的现场证据）
+- `gh run watch 38908750796 --exit-status` → 退出码 0；`gh run view` → `aa58197 → success`
 - **未执行**：本地 `npm run precheck` / `npm test`。原因：CI 已对同一 SHA 跑完全部 8 道门禁并 success，本轮零代码变更，本地重跑不产生新证据。
 - 反作弊说明：以上均为实跑命令与真实退出码；「交付物在位」是存在性核对，不等于功能验收（验收属 Planner）。
 
@@ -68,7 +70,7 @@
 ## 给 Planner 的信号
 
 - **需要 Planner 介入：队列不足**。ready 为空，请补明日队列。
-- **in-review 5 单可立即验收**，CI/Deploy 已在 HEAD `d99a6a6` success，无需等流水线。
+- **in-review 5 单可立即验收**，CI/Deploy 已在 HEAD `d99a6a6` success，无需等流水线。本会话自己的 `.agent/` 收尾提交 `aa58197` 亦经 CI run `38908750796` → **success**（8 道门禁全过，仅存量 lint warning）。
 - **#127 现场复跑证据已补**：本会话 `6ce58ae` 的 push 走改良后钩子，precheck 11 层 PASS、尾行输出「归档源: system」，直接对应其验收标准「非沙箱行为不变」——验收该单时可引用。
 - **#126 前置已就绪**（#131 完成）→ 待复评是否摘 `blocked` 转 ready，D36 授权仍有效。
 - **#131/130 派生 7 个实施单建议**待定级入队（α→β→γ + token 4 单）。
