@@ -3,7 +3,7 @@
 > 权威来源 = GitHub Issues（gh 可用，本轮已同步 2026-10-16 · 三十一次滚动 · 规划者整体重写）。标签映射：`ready-for-agent` ≡ ready；
 > `closed` ≡ done。本文件只读镜像，执行者改状态时先改 Issue 再同步本行（冲突以 Issue 为准）。
 
-## 今日队列（执行顺序，3 个 · 全部 ready-for-agent）
+## 今日队列（执行顺序，4 个 · 全部 ready-for-agent）
 
 - [ ] #127（P3 · type:chore/area:ci · **ready**）pre-push 归档路径改良：沙箱 `/tmp` 只读时不丢证据（承接 #122 观测机制）
   —— 来源 = #125 棒 executor-20261015a 报告 auto-discovered；本轮 31 次滚动定级 P3 ready 入队首
@@ -20,6 +20,12 @@
   —— 验收要点：AGENTS.md 新增一条 bullet 与 #82 同层级 + 明确「禁新添 as unknown as」/「走 engineExtraAccess 守卫」/「支点测试 = typed-extra.test.ts」三要素 + `precheck` exit 0 + commit 含 `Refs #129`
   —— 明确不包含：不动代码守卫；不改 #82 现有文字；不做「全量文档审计」
   —— 依赖：无（#124 CLOSED 三十一次滚动，`engineExtraAccess.ts` 与守卫测试已入库）
+- [ ] #126（P3 · area:render · **ready**）[auto-discovered] 一次性泛型化 `Rig<H>`，收口 3D rig handles 225 处双向强转
+  —— 来源 = #124 验收发现的 225 处 handles 残留；用户 2026-10-16 明确选择 D36 方案 A，授权触及契约 1.10 的大规模重构
+  —— 范围：84 个受影响文件；收口 `build` / `updateEquipment` / `applyHandles` 的具体 handle 类型；3 处调试挂载、材质取值、组合台参数取值不自动并入
+  —— 验收要点：rigs 目录 handles 双向 `as unknown as` 清零；错误 handle key 红向类型探针确实失败；build→updateEquipment 回归与 rigs 定向测试全绿；precheck/count:check 全绿
+  —— 明确不包含：不改 physics-core 公共 API、WebGL 生命周期、`.github/workflows/`；若边界不足转 `needs-info`，不得自行改成方案 B
+  —— 依赖：#127 → #128 → #129 完成后再领取
 
 ## 本轮关闭（done，三十一次滚动验收通过 · 2026-10-16）
 
@@ -31,16 +37,14 @@
   `TEMP_COEFF=0.02` 与引擎 `photoresistor.ts:72` 同源；新测试 4 例（红/绿已验）+ 浏览器探针 209.8 px；CI/Deploy @ `532f239`/`a67e6e5` success。
   FormulaPanel 同场景另一处幂律 → 新立 **#128**；引擎 explanation 文案 → 归遗留观察未立单
 
-## 待用户决策
+## 已确认决策
 
-- **D31（已确认 · 2026-10-16 default 转正）**：#103 派生三张重构实施单 = **暂缓**（原推荐/默认方案，连续 3 天无答复且默认无异常，本轮转正）。
-  影响：三张实施单不进 ready；Executor 不得自取；若未来用户主动开启同主题需新决策推翻。
-- **D34（pending · 第 1 天询问）**：#126 是否放行根治 225 处 3D rig handles `as unknown as`（泛型化 `Rig<H>` 84 文件 / handles 登记表分批 / **默认 C 维持现状**）。
-  触契约 1.10「大规模架构重构」红线，与 D31 同类；连续 3 天（至 2026-10-18）无答复即默认转正 → #126 CLOSED (wontfix)。
+- **D31（2026-10-16 default 转正）**：#103 派生三张大规模重构实施单暂缓，不进 ready；Executor 不得自取。
+- **D34/D36（2026-10-16，用户答复）**：#126 选择方案 A，一次性泛型化 `Rig<H>`；已解除 `needs-info` 并进入 ready，排在 #127 → #128 → #129 之后。
+- 当前无 pending 用户决策。
 
 ## 候选 / parked（不执行）
 
-- **#126（P3 · needs-info · D34 pending）**：`visualization/src` 余 225 处 `as unknown as`（3D rig handles 通道，84 文件）—— #124 执行中发现，本轮定级 needs-info 不入 ready，待用户裁决
 - #100（P2）/#101（P3）—— ready-for-agent 但维持 parked（D19；D29 仅放行调查类，三单已 CLOSED）
 - #99（P2）/#105（P3）—— needs-info（D20/D21：真实发布暂缓、英文随发布走）
 - #44（P2）—— 人类持有，勿动

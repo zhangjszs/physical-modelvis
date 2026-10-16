@@ -436,7 +436,7 @@ eslint tests 目录 `no-explicit-any` 降 warn）与 `36aed93`（移除 scripts/
 
 ## 待用户确认（pending，低风险部分已按默认方案先行）
 
-- D34 | 2026-10-16 | #126：`visualization/src` 余 225 处 `as unknown as`（3D rig handles 通道 / 84 文件）是否放行根治（泛型化 `Rig<H>` / handles 登记表分批迁 / 维持现状）—— 属契约 1.10「大规模架构重构」红线类；同 D31 先例 | A 泛型化一次性根治 / B handles 登记表分批 / C 维持现状 | 推荐 C | **默认 C（不进 ready；连续 3 天无答复即转正 wontfix 关闭 #126）** | pending（第 1 天询问）
+- 无。D34 已收到用户答复并转为已确认决策 D36。
 
 > **D31 已于 2026-10-16 三十一次滚动 default 转正**（详见「已确认」节 D31 条目）。
 
@@ -689,14 +689,14 @@ eslint tests 目录 `no-explicit-any` 降 warn）与 `36aed93`（移除 scripts/
 - **影响范围**：PLAN 中 #103 派生面保持 parked；Executor 不得自取同类重构单；D34 新 pending（#126 rig handles 泛型化）沿用同一默认口径。
 - **可推翻条件**：用户明确放行面令（新选项 A/B）或项目新事实（如新入 rig 均需双向强转造成实际缺陷）——目前均未触发。
 
-## D34（pending）· #126 rig handles 泛型化是否放行
+## D34（已答复，结论见 D36）· #126 rig handles 泛型化是否放行
 
-- **日期**：2026-10-16（三十一次滚动 · 新 pending，第 1 天询问）
+- **日期**：2026-10-16（三十一次滚动 · 用户答复前的 pending 记录）
 - **现象**：#124 验收发现 `visualization/src` 余 225 处 `as unknown as`，84 个文件。属 3D rig `handles` 双向强转（非引擎协议）；执行棒定名为 auto-discovered #126。
-- **选项**：A 泛型化 `Rig<H>` 一次性根治（84 文件 / 2–3 周，触 1.10） / B handles 登记表（照 chart-registry 思路分批） / **C 默认：维持现状**（零改动，契约测试已兜底）。
-- **推荐 = 默认 = C**：理由——不属于引擎协议，无 #82 同构的“新场景写错就无门禁拦”风险；与 D31 三张重构单同一机会成本比较。具体参 #126 定级评论。
-- **处置**：#126 贴 `needs-info` 不入 ready；若连续 3 天（至 2026-10-18）无答复且默认运行无异常 → 默认转正→ #126 转 **CLOSED (wontfix)**。
-- **可推翻条件**：用户优先选 A/B，或未来因 rig 无编译期防护造成实际可复现缺陷（未触发）。
+- **原选项**：A 泛型化 `Rig<H>` 一次性根治（84 文件 / 2–3 周，触 1.10） / B handles 登记表（照 chart-registry 思路分批） / C 默认维持现状（零改动，契约测试已兜底）。
+- **原推荐/默认**：C；当时依据为不属于引擎协议、无 #82 同构风险，且大规模重构需用户明确放行。该默认已被用户选择 A 覆盖，详见 D36。
+- **原处置**：先贴 `needs-info`，待用户裁决；不再按“连续 3 天无答复关闭”执行。
+- **可推翻条件**：用户明确放行面令或项目新事实；本轮用户已明确放行 A。
 
 ## D35 · 三十一次滚动：#124/#125 验收关闭 + 新立 #128/#129 + #127 入队 + #126 贴 needs-info + D31 default 转正
 
@@ -713,3 +713,13 @@ eslint tests 目录 `no-explicit-any` 降 warn）与 `36aed93`（移除 scripts/
 - **影响范围**：PLAN 三十一次滚动（验收 #124/#125 + 新立 #128/#129 + #127 入队）；TASKS.md 全量重写；DECISIONS 新增 D31/D34/D35；执行队列 = **#127 → #128 → #129**。
 - **测试数快照**：core 1169 / viz 1659 / total 2828（与 STATE/DIARY/README/docs/plan 四处一致；本轮验收未跑 precheck，执行棒以实跑 `count:check` 为准）。
 
+
+## D36 · 用户明确放行 #126 方案 A：Rig handles 泛型化一次性根治
+
+- **日期**：2026-10-16（三十一次滚动续；用户答复）
+- **问题**：#126 的 225 处 3D rig handles `as unknown as` 是否进入高风险重构；D34 原默认 C 为暂缓。
+- **用户决定**：选择 **A：一次性泛型化 `Rig<H>`**。用户明确授权触及契约 1.10 的大规模重构红线。
+- **执行范围**：覆盖 84 个受影响文件 / 225 处 handles 强转；以 `Rig<H extends object>` 或等价单一泛型契约收口 `build`、`updateEquipment`、`applyHandles`；3 处调试挂载、材质取值、组合台参数取值不自动并入。
+- **硬边界**：不改 physics-core 公共 API、WebGL 生命周期/渲染行为、`.github/workflows/`；不得用 `--no-verify`。若执行中发现验收边界不足，转 `needs-info` 停手，不自行改成方案 B。
+- **状态与排程**：#126 已移除 `needs-info`、加 `ready-for-agent`，并补充 5 条验收标准；排在当前 #127 → #128 → #129 之后。D34 默认 C 失效，由本条取代。
+- **风险**：84 文件迁移需保留现有 `rigs-build.test.ts` / `rig-contract.test.ts` 回归，并用错误 handle key 的红向类型探针证明编译期约束真实生效。
