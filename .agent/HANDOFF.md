@@ -20,7 +20,7 @@
 |---|---|---|---|
 | [#131](https://github.com/zhangjszs/physical-modelvis/issues/131) | in-review | `1d91367` · `docs/composition-reuse-boundary.md` 330 行 | run success @ `d99a6a6` |
 | [#130](https://github.com/zhangjszs/physical-modelvis/issues/130) | in-review | `855b2cf` · `docs/ui-visual-token-spec.md` 249 行 | run success @ `d99a6a6` |
-| [#127](https://github.com/zhangjszs/physical-modelvis/issues/127) | in-review | `0ceac80` · `.husky/pre-push` 降级 `.scratch/tmp/` | run success @ `d99a6a6` |
+| [#127](https://github.com/zhangjszs/physical-modelvis/issues/127) | in-review | `0ceac80` · `.husky/pre-push` 降级 `.scratch/tmp/` | run success @ `d99a6a6` + **本会话 `6ce58ae` push 钩子现场复跑：11 层 PASS，尾行「归档源: system」** |
 | [#128](https://github.com/zhangjszs/physical-modelvis/issues/128) | in-review | `f4b18d6` · FormulaPanel 指数式 + 4 例守卫测试 | run success @ `d99a6a6` |
 | [#129](https://github.com/zhangjszs/physical-modelvis/issues/129) | in-review | `fc82802` · AGENTS.md extra/meta 访问守卫条目 | run success @ `d99a6a6` |
 
@@ -69,6 +69,7 @@
 
 - **需要 Planner 介入：队列不足**。ready 为空，请补明日队列。
 - **in-review 5 单可立即验收**，CI/Deploy 已在 HEAD `d99a6a6` success，无需等流水线。
+- **#127 现场复跑证据已补**：本会话 `6ce58ae` 的 push 走改良后钩子，precheck 11 层 PASS、尾行输出「归档源: system」，直接对应其验收标准「非沙箱行为不变」——验收该单时可引用。
 - **#126 前置已就绪**（#131 完成）→ 待复评是否摘 `blocked` 转 ready，D36 授权仍有效。
 - **#131/130 派生 7 个实施单建议**待定级入队（α→β→γ + token 4 单）。
 - **标签卫生**：#100/#101 的 `ready-for-agent` 与 D19 parked 排程背离，建议改标签（本轮未动，属 Planner 职权）。
