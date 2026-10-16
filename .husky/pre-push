@@ -22,9 +22,38 @@ fi
 
 # 注：husky 以 `sh -e` 执行本脚本，以下 fallible 命令一律 `|| true`，
 # 避免因存活提示/归档等辅助逻辑的非零退出码误杀门禁（#122 实测：wait 被 kill 的 ticker 返回 143）。
+#
+# #127 改良：/tmp 只读（bwrap 沙箱）时自动降级到仓库内 .scratch/tmp/，
+# 仍失败则显式警告"归档不可用"——保持门禁语义不变但不再静默丢证据。
+_TMP_LOG=""
+_TMP_SOURCE=""
+
+# 尝试 1: 系统 TMPDIR (非沙箱环境通常可用)
 _TMP_LOG="$(mktemp "${TMPDIR:-/tmp}/pre-push.XXXXXX.log" 2>/dev/null)" || true
-if [ -z "$_TMP_LOG" ] || [ ! -f "$_TMP_LOG" ]; then
-    # mktemp 不可用时退回原行为（直播输出，无归档），门禁语义不变
+if [ -n "$_TMP_LOG" ] && [ -f "$_TMP_LOG" ]; then
+    _TMP_SOURCE="system"
+else
+    _TMP_LOG=""
+fi
+
+# 尝试 2: 仓库内 .scratch/tmp/（沙箱允许写入项目目录）
+if [ -z "$_TMP_LOG" ]; then
+    _REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || true
+    if [ -n "$_REPO_ROOT" ]; then
+        _LOCAL_TMP="$_REPO_ROOT/.scratch/tmp"
+        mkdir -p "$_LOCAL_TMP" 2>/dev/null || true
+        _TMP_LOG="$(mktemp "$_LOCAL_TMP/pre-push.XXXXXX.log" 2>/dev/null)" || true
+        if [ -n "$_TMP_LOG" ] && [ -f "$_TMP_LOG" ]; then
+            _TMP_SOURCE="repo-local"
+        else
+            _TMP_LOG=""
+        fi
+    fi
+fi
+
+if [ -z "$_TMP_LOG" ]; then
+    # 两种归档路径均不可用——显式警告后退回直播模式
+    echo "⚠ pre-push: 临时目录不可用 (/tmp 和 .scratch/tmp 均不可写)，本次不保留归档日志" >&2
     npm run precheck || {
         echo "" >&2
         echo "pre-push 检查失败，已阻止本次 push" >&2
@@ -73,5 +102,5 @@ fi
 tail -n 15 "$_TMP_LOG" >&2 || true
 rm -f "$_TMP_LOG"
 echo "" >&2
-echo "pre-push 检查通过，继续 push" >&2
+echo "pre-push 检查通过，继续 push（归档源: $_TMP_SOURCE）" >&2
 exit 0
