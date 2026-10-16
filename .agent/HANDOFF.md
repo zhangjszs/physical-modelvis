@@ -4,63 +4,66 @@
 
 ## 本轮概要
 
-本轮（2026-10-15 · `executor-20261015a` · Execution Agent）**清空了规划者三十次滚动的今日队列 2 单**（#124→#125，串行、每单一报告、单一 `in-review` 流转）。两单全部**完成**（无阻塞/部分完成），代码逐一合回 `main` 并推送，CI + Deploy 全绿。
+本轮（2026-10-16 · `executor-20261016a` · Execution Agent）**清空了规划者三十一次滚动（含续）的今日队列 5 单**（#131→#130→#127→#128→#129，串行、每单一报告、逐一 in-review 流转）。全部**完成**（无阻塞/部分完成），代码合回 `main` 并推送。
 
-- **#124（P3 render）**：渲染层 4 处 `extra`/`meta` 双重强转收口。新增 `visualization/src/rendering/engineExtraAccess.ts`（运行时守卫类型谓词 + `readElectricFieldExtra`/`readMagFieldExtra`），两个场景文件删除本地重复接口改复用引擎 barrel 导出的 `ElectricFieldExtra`/`MagFieldExtra`；`SimulationResult.meta.duration` 在引擎类型层声明为可选（引擎当前不产出），`emEquipmentScenes` 两处回退改类型化直读。新增 14 例测试（真实 solve 探针 + 正反用例）。
-- **#125（P3 render）**：光敏电阻面板公式补温度项（选 A 路线），与 #63 迁移后的计算式逐字对齐；信息条与参数回显行一并跟齐；新增 4 例展示式↔引擎系数真值对照测试；浏览器探针核验行宽。
-- 提交链：`3f44b7b`(#124) → `4346efe`(merge) → `beac4b5`(chore agent) → `532f239`(#125) → `a67e6e5`(merge)，**均已推送**。
-- 结论：**2 单全部 in-review 待验收**；ready 队列已空，本会话按「队列空」正常收尾。
+- **#131（P2 调查）**：组件复用边界调查 → 产出 `docs/composition-reuse-boundary.md`（330 行），含 7 组重复候选、6 个 props 接口草案、3 个首批实施单（α→β→γ）。
+- **#130（P2 调查）**：统一外部界面风格 → 产出 `docs/ui-visual-token-spec.md`（249 行），含 7 类 UI 分歧证据、完整 token 规范表（颜色/间距/圆角/阴影/文字层级/控件状态）、3 个验证组件、4 个后续实施单。
+- **#127（P3 代码）**：pre-push 归档改良 → `.husky/pre-push` 新增"尝试 2"降级到 `.scratch/tmp/`，两者均不可用时显式警告。
+- **#128（P3 代码+测试）**：FormulaPanel 光敏电阻幂律→指数式 + 新增 4 例回归守卫测试。
+- **#129（P3 纯文档）**：AGENTS.md 关键陷阱节新增 extra/meta 守卫式访问层 bullet（与 #82 并列）。
+
+提交链：`1d91367`(#131) → `855b2cf`(#130) → `0ceac80`(#127) → `f4b18d6`(#128) → `fc82802`(#129)，**均已推送**。
+结论：**5 单全部 in-review 待验收**；ready 队列已空，本会话按「队列空」正常收尾。
 
 ## 已完成
 
 | # | 一句话结论 | 交付 | 验证 |
 |---|---|---|---|
-| [#124](https://github.com/zhangjszs/physical-modelvis/issues/124) | 4 处 extra/meta 强转清零：守卫式访问层 + 引擎类型层声明 `meta.duration`，运行时行为仅"脏数据→placeholder"这一防御差异 | `3f44b7b`+`4346efe`+报告 619475864 | `src/rendering` 下 `as unknown as` grep = 0 · typecheck exit 0 · 定向 531 例绿 · precheck exit 0（11 层 PASS）· CI run 38753146548 success |
-| [#125](https://github.com/zhangjszs/physical_modelvis/issues/125) | 面板公式 → `R(E,T)=R_dark·exp(−k·E−0.02(T−25))`，与计算式同源（系数内插自 TEMP_COEFF）；旧式零残留 | `532f239`+`a67e6e5`+报告 6195222143 | 旧式 grep = 0 · 新测试 4 例（红/绿已验：改回旧式即 2 例转红）· T=60 画面读数 406.6 kΩ 与公式手算吻合 · 行宽余量 209.8 px · precheck exit 0 · CI run 38756353803 success |
-
-新立 auto-discovered（不定级、不入路线图）：**#126**（`visualization/src` 余 225 处 `as unknown as`，全在 3D rig handles 通道）、**#127**（pre-push 抖动复现 1 次且沙箱 `/tmp` 只读时未留归档日志）。
+| [#131](https://github.com/zhangjszs/physical-modelvis/issues/131) | 7 组重复候选 + 6 个 props 接口 + 3 实施单；不触 1.10 | `1d91367` · typecheck 0 | 验收标准 4/4 达成 |
+| [#130](https://github.com/zhangjszs/physical-modelvis/issues/130) | 7 类分歧 + token 表 + 3 验证组件 | `855b2cf` · typecheck 0 | 验收标准 5/5 达成 |
+| [#127](https://github.com/zhangjszs/physical-modelvis/issues/127) | 沙箱降级 `.scratch/tmp/` + 显式警告 | `0ceac80` · `sh -n` OK · precheck 11 PASS | 验收标准 5/5 达成 |
+| [#128](https://github.com/zhangjszs/physical_modelvis/issues/128) | 幂律→指数式对齐引擎/画布 + 4 例守卫 | `f4b18d6` · 4 例绿 · grep 零残留 · precheck 0 | 验收标准 5/5 达成 |
+| [#129](https://github.com/zhangjszs/physical-modelvis/issues/129) | AGENTS.md 新增 extra/meta 访问守卫条目 | `fc82802` · precheck push 绿 | 验收标准 3/3 达成 |
 
 ## 未完成 / 进行中（下一棒最优先看这里）
 
-- **无进行中任务**，工作树只有 `.agent/` 收尾文件（本文件 + STATE + TASKS + 今日日报），随本轮 `chore(agent)` 提交。
-- **待 Planner 验收：in-review 2 单** —— #124 / #125（1.7 模板报告与证据全在各 Issue comment）。
-- **ready 队列已空**：#100/#101 维持 parked（D19）；#99/#105 维持 needs-info（D20/D21）；#44 人类持有勿动；D31 pending（重构批暂缓）；#126/#127 等新单待 Planner 定级。
+- **无进行中任务**，工作树只有 `.agent/` 收尾文件。
+- **待 Planner 验收：in-review 5 单** —— #131 / #130 / #127 / #128 / #129。
+- **ready 队列已空**：#126 blocked 前置 #131 已完成，**待 Planner 复评是否摘 blocked 转 ready**；#100/#101 维持 parked（D19）；#99/#105 维持 needs-info（D20/D21）；#44 人类持有勿动。
 
 ## 验证情况
 
-- `npm run precheck` → **exit 0** ×4（#124 两次含一次中途 typecheck 红灯修复、#125 两次），11 层 11 PASS；首屏体积通过。
-- `npm run count:sync` → exit 0；测试数 core 1169 / viz 1641 → **1659**（#124 +14、#125 +4）/ total **2828**；`count:check` 绿。
-- `npm run typecheck` / `npm run lint` → exit 0（lint 0 errors / 19 warnings，全为存量测试文件 `any`，新增文件 0 告警）。
-- 定向测试：`tests/accuracy/{single-source-contract,renderers,renderer-routing,typed-extra,formula-drift}` + `tests/rendering/` 全绿（531 例 / 121 例两批）。
-- 浏览器实证（#125）：`vite dev` + Playwright 进 2D 板书模式，`measureText` 量化行宽 + 两张截图（默认态 / T=60℃）。
-- 微基准（#124）：`npx tsx .scratch/124-guard-perf.mts` → 守卫稳态 0.043 ms/帧（真实 16 线/3157 顶点/49 采样），据此**不加记忆化**（保持最小改动）。
-- push：`git push origin main` 4 次，其中 1 次被 pre-push 钩子拦（沙箱 `/tmp` 只读，钩子无归档降级 + precheck 在该环境失败）→ 复跑同一 HEAD exit 0；**全程未用 `--no-verify`**。
-- CI/Deploy：#124 / #125 / chore(agent) 三次 push 的 CI run 与 workflow_run Deploy **全部 success**（`gh run list` 实测）。
+- `npm run precheck` → **exit 0** ×3（#127 首次、#128 二次、#129 三次），11 层全 PASS。
+- `npm run typecheck` → exit 0 ×2。
+- `npm run count:sync` → exit 0；测试数 viz 1659 → **1663**（#128 +4）/ total **2832**。
+- 定向测试 `tests/rendering/formula-panel-photoresistor.test.ts` → 4 passed。
+- `sh -n .husky/pre-push` → exit 0（POSIX 语法检查通过）。
+- push：`git push origin main` ×2 成功（第一次 #128 被拦后 prettier 修复 + count:sync 后通过；#129 一次通过）。
+- 未单独查 CI run 状态（本轮 5 单中 3 单为纯文档，CI 仅跑 lint/test，已本地等价验证）。
 
 ## 风险与注意事项
 
-1. **#124 验收标准的字面口径**：单内第 1 条写「`visualization/src` 零命中」，但该目录实际 229 处、extra/meta 类仅 4 处。按标题与范围判定为「4 站点清零」并已达成（`src/rendering` = 0），余 225 处属 rig handles 通道 → 已立 #126。**Planner 验收时请按此口径核对，勿按字面要求全仓清零**（那需改 84 个文件，触 1.10）。
-2. **#124 引入的守卫只校验渲染层真正消费的字段**（`FieldLine.sign`、`Extra.profile` 透传不判定）。若将来画面开始消费这些字段，须同步扩 `engineExtraAccess.ts`，否则类型谓词过度承诺。
-3. **`meta.duration` 是"引擎不产出"的可选声明**（`result.ts` 注释已写明义务）：若将来真要产出整体时长，应在 `base.makeMeta` 统一回填，届时 `emEquipmentScenes` 两处 `?? 5` / `?? 0.5` 默认分支才会被覆盖。
-4. **改 physics-core 源码必须重建 dist**：本轮 `result.ts`/`index.ts` 改完后 `cd physics-core && npm run build`，否则可视化侧 tsc 报「属性 duration 不存在 / 找不到 ElectricFieldExtra」（本轮实测踩过一次，IDE 诊断也会滞后误报，以 `npx tsc --noEmit` 为准）。
-5. **沙箱 `/tmp` 只读**：跑 `npx tsx` / Playwright 探针需 `TMPDIR=$PWD/.scratch/tmp`；否则 tsx 直接 `EROFS` 起不来。pre-push 在该环境下也不会留归档（见 #127）。
-6. **本机临时证据（重启即失）**：`/tmp/124-precheck*.log`、`/tmp/125-precheck*.log`、`/tmp/125-vite.log`；仓库内 `.scratch/` 有 `124-guard-perf.mts`、`125-formula-probe*.mjs`、`125-photoresistor-2d.png`、`125-photoresistor-T60.png`、`125-push.log`（均 gitignored，未入库）。
+1. **#127 修改了 pre-push 钩子**：本轮 push 两次都走了新版钩子（带 `_TMP_SOURCE` 变量），验证正常；但 `.scratch/tmp/` 目录由钩子自行 `mkdir -p` 创建（首次使用时），已 gitignored 不入库。
+2. **#131 调查单建议的 3 个实施单**：Planner 定级后需按依赖序 α→β→γ 领取，α 无前置可立即开工。
+3. **#130 调查单建议的 4 个实施单**：可在 α 之后穿插（token 补全属纯 CSS 与组件抽取正交）。
+4. **#128 新增 4 例测试文件**：读源码字面量做断言；如果将来重构 FormulaPanel 数据结构（拆文件），需同步迁移测试路径。
 
 ## 给下一棒的第一步建议
 
-1. 先 `git fetch --all --prune && git pull --rebase`（本轮收尾已提交 `.agent/`，应干净），读本文件 + `STATE.md` + `.agent/DIARY/2026-10-15.md`。
-2. 查 2 个 in-review 是否被 Planner 验收：#124 / #125；若 reopen，逐条按验收差距补齐（注意上面风险 1 的口径说明）。
-3. **ready 队列大概率仍空**：等 Planner 补队列；勿碰 parked / needs-info / 人类持有单与 D31 重构批；#126/#127 未经定级不得自取执行。
-4. 若 push 再被钩子拦：先确认是否沙箱 `/tmp` 只读（终端有无 bwrap 回显 / 有无"失败日志已归档"行），复跑一次验证真伪再动，**勿贸然 `--no-verify`**。
+1. `git fetch --all --prune && git pull --rebase`（本轮收尾应干净），读本文件 + `STATE.md` + `.agent/DIARY/2026-10-16.md`。
+2. **ready 队列大概率仍空**：等 Planner 补队列。#126（Rig<H> 泛型化）的前置 #131 已完成，Planner 可能摘 blocked 入 ready，届时注意 D36 授权有效。
+3. 勿碰 parked / needs-info / 人类持有单。
+4. 若 push 被钩子拦：先复跑确认真伪（#127 改良后钩子会显示归档源）。
 
 ## 今日日报
 
-- 已写入 `.agent/DIARY/2026-10-15.md`（本会话 `executor-20261015a` 段落）。
+- 待写入 `.agent/DIARY/2026-10-16.md`（本文件之后紧接写入）。
 
 ## 给 Planner 的信号
 
-- **in-review 2**：#124 / #125（每条含 1.7 模板报告 + 关键提交 + 验收标准逐条核对）。
-- **ready 队列空**：需要 Planner 补充明日队列；另有 #126 / #127 两条 auto-discovered 待定级。
-- **需要你裁决/知悉（非阻塞）**：① #124 验收口径按「4 站点」而非全仓字面（详见报告「歧义处理」）；② `FormulaPanel.tsx:830` 光敏电阻条目用幂律而引擎/画面用指数式，同场景模型口径不一致，是否立单请定级（#125 报告末节已记）；③ 引擎 `photoresistor.ts` 的 `explanation.steps[].formula` 仍不含温度项（属引擎文案，#125 按单内约束未动）；④ 是否把「读 `SimulationResult.extra` 须走 `engineExtraAccess` 守卫」补进 AGENTS.md 关键陷阱（与 #82 那条并列）—— 执行棒按最小改动未改文档。
-- **counts**：测试数 2810 → 2828（viz +18），三处标记已 `count:sync` 回写。
-- **契约遵守声明**：本轮未关闭任何 Issue、未改写 `PLAN.md`/`DECISIONS.md`、未 force push、未跳过钩子；`.agent/` 变更单独 `chore(agent)` 提交；auto-discovered 新立 2 条（≤ 每轮 3 条、≤ 每任务 1 条）；未处置他人修改（工作树开工时即干净）。
+- **in-review 5**：#131 / #130 / #127 / #128 / #129（每条含 1.7 模板报告 + 验收标准逐条核对）。
+- **ready 队列空**：需要 Planner 补充明日队列。
+- **#126 前置已就绪**：#131 调查完成 → 复用边界已划定 → 可考虑摘 blocked 转 ready（D36 授权有效）。
+- **#131/130 派生 7 个实施单建议**：Planner 按需定级入队。
+- **counts**：测试数 2828 → 2832（viz +4），三处标记已 `count:sync` 回写。
+- **契约遵守声明**：本轮未关闭任何 Issue、未改写 `PLAN.md`/`DECISIONS.md`、未 force push、未跳过钩子；`.agent/` 变更单独 `chore(agent)` 提交；无 auto-discovered 新立（≤ 每轮 3 条限额未用）。
