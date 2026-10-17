@@ -1,3 +1,18 @@
+# PhysVis — Interactive Physics Visualization for High School Education
+
+[![CI](https://github.com/zhangjszs/physical-modelvis/actions/workflows/ci.yml/badge.svg)](https://github.com/zhangjszs/physical-modelvis/actions/workflows/ci.yml)
+[![Deploy](https://github.com/zhangjszs/physical-modelvis/actions/workflows/deploy.yml/badge.svg)](https://zhangjszs.github.io/physical-modelvis/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-GitHub%20Pages-blue)](https://zhangjszs.github.io/physical-modelvis/)
+
+A zero-dependency TypeScript physics engine with React Canvas 2D/3D interactive simulation, built for Chinese high school physics education. 113 physics models · 123 visualization scenes · 176 curriculum experiments.
+
+[→ Read full documentation in Chinese](#高中物理教学可视化平台)
+
+---
+
+<a id="高中物理教学可视化平台"></a>
+
 # 高中物理教学可视化平台
 
 > 面向高中物理教学的交互式可视化仿真系统，基于自研物理引擎 + React + Canvas 2D 渲染
