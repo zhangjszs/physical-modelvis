@@ -1,5 +1,5 @@
-import { lazy, Suspense } from 'react';
-import { ErrorBoundary } from '../common/ErrorBoundary';
+import { lazy } from 'react';
+import { LazyPanel } from '../common/LazyPanel';
 import { StateInspector } from '../simulation/StateInspector';
 import { useSimulationStore } from '../../store/simulationStore';
 
@@ -29,69 +29,19 @@ export function DataDrawer({ onClose }: DataDrawerProps) {
                 )}
             </div>
             <div className="classroom-data-drawer">
-                <ErrorBoundary
-                    label="数据图表"
-                    fallback={
-                        <div className="panel-section">
-                            <div className="panel-title">数据图表</div>
-                            <div style={{ padding: 12, color: '#94a3b8', fontSize: 12 }}>图表加载失败</div>
-                        </div>
-                    }
-                >
-                    <Suspense
-                        fallback={
-                            <div className="panel-section" style={{ padding: 12, color: '#94a3b8', fontSize: 12 }}>
-                                加载中...
-                            </div>
-                        }
-                    >
-                        <GraphPanel />
-                    </Suspense>
-                </ErrorBoundary>
+                <LazyPanel label="数据图表" errorText="图表加载失败">
+                    <GraphPanel />
+                </LazyPanel>
                 <div className="classroom-data-side">
                     {currentScene === 'air-track' && (
-                        <ErrorBoundary
-                            label="数字毫秒计"
-                            fallback={
-                                <div className="panel-section">
-                                    <div className="panel-title">数字毫秒计</div>
-                                    <div style={{ padding: 12, color: '#94a3b8', fontSize: 12 }}>加载失败</div>
-                                </div>
-                            }
-                        >
-                            <Suspense
-                                fallback={
-                                    <div className="panel-section">
-                                        <div className="panel-title">数字毫秒计</div>
-                                        <div style={{ padding: 12, color: '#94a3b8', fontSize: 12 }}>加载中...</div>
-                                    </div>
-                                }
-                            >
-                                <PhotogateTimer />
-                            </Suspense>
-                        </ErrorBoundary>
+                        <LazyPanel label="数字毫秒计">
+                            <PhotogateTimer />
+                        </LazyPanel>
                     )}
                     <StateInspector />
-                    <ErrorBoundary
-                        label="诊断报告"
-                        fallback={
-                            <div className="panel-section">
-                                <div className="panel-title">诊断报告</div>
-                                <div style={{ padding: 12, color: '#94a3b8', fontSize: 12 }}>加载失败</div>
-                            </div>
-                        }
-                    >
-                        <Suspense
-                            fallback={
-                                <div className="panel-section">
-                                    <div className="panel-title">诊断报告</div>
-                                    <div style={{ padding: 12, color: '#94a3b8', fontSize: 12 }}>加载中...</div>
-                                </div>
-                            }
-                        >
-                            <DiagnosticsPanel />
-                        </Suspense>
-                    </ErrorBoundary>
+                    <LazyPanel label="诊断报告">
+                        <DiagnosticsPanel />
+                    </LazyPanel>
                 </div>
             </div>
         </div>
