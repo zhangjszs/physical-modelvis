@@ -85,11 +85,11 @@ export const verticalMotionRig: SceneRig = {
 
         updateVertical(handles, v0y, g);
 
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        const h = handles as unknown as VerticalHandles;
+        const h = handles as VerticalHandles;
         const v0y = num(params['v0y'], 20);
         const g = num(params['g'], 9.8);
         updateVertical(h, v0y, g);

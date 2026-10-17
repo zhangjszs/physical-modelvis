@@ -79,7 +79,7 @@ export const newtonSecondLawRig: SceneRig = {
     },
 
     updateEquipment(handles, params) {
-        const h = handles as unknown as NSLHandles;
+        const h = handles as NSLHandles;
         const force = num(params['force'], 10);
         const mass = num(params['mass'], 2);
         const a = mass > 0 ? force / mass : 0;
@@ -97,7 +97,7 @@ export const newtonSecondLawRig: SceneRig = {
     },
 
     onAnimate(handles, ctx) {
-        const h = handles as unknown as NSLHandles;
+        const h = handles as NSLHandles;
         // 小车前进时：细线小车端随主球 x 移动，水平段缩短，跨过滑轮后悬挂段等量变长 → 砝码下降。
         // 复用 BufferAttribute 就地改顶点，杜绝每帧 GC 分配 (同 pendulumRig)。
         const startX = THREE.MathUtils.clamp(ctx.ballPos.x, CART_START_X, PULLEY_X - 0.15);

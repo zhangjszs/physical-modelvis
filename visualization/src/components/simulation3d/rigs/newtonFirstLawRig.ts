@@ -192,12 +192,12 @@ export const newtonFirstLawRig: SceneRig = {
             mass: 0.5
         };
 
-        this.updateEquipment(handles as unknown as Record<string, unknown>, params);
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        this.updateEquipment(handles, params);
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        const h = handles as unknown as NewtonFirstLawHandles;
+        const h = handles as NewtonFirstLawHandles;
         const v0 = num(params['v0'], 2);
         const mass = num(params['mass'], 0.5);
 
@@ -215,7 +215,7 @@ export const newtonFirstLawRig: SceneRig = {
     },
 
     onAnimate(handles, ctx) {
-        const h = handles as unknown as NewtonFirstLawHandles;
+        const h = handles as NewtonFirstLawHandles;
         if (!h.gliderGroup) return;
 
         // 滑块跟随质点 X 坐标

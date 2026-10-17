@@ -209,12 +209,12 @@ export const slidingFrictionRig: SceneRig = {
             f: 2.94
         };
 
-        this.updateEquipment(handles as unknown as Record<string, unknown>, params);
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        this.updateEquipment(handles, params);
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        const h = handles as unknown as FrictionHandles;
+        const h = handles as FrictionHandles;
         const mu = num(params['mu'], 0.3);
         const mass = num(params['mass'], 1);
         const g = num(params['g'], 9.8);
@@ -289,7 +289,7 @@ export const slidingFrictionRig: SceneRig = {
     },
 
     onAnimate(handles, ctx) {
-        const h = handles as unknown as FrictionHandles;
+        const h = handles as FrictionHandles;
         if (!h.blockGroup) return;
 
         // 滑块跟随物理仿真 X 坐标

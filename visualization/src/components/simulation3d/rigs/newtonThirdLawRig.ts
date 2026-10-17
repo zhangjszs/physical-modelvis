@@ -165,12 +165,12 @@ export const newtonThirdLawRig: SceneRig = {
             allowMotion: false
         };
 
-        this.updateEquipment(handles as unknown as Record<string, unknown>, params);
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        this.updateEquipment(handles, params);
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        const h = handles as unknown as NewtonThirdLawHandles;
+        const h = handles as NewtonThirdLawHandles;
         const forceAB = num(params['forceAB'], 5);
         const massA = num(params['massA'], 1);
         const massB = num(params['massB'], 2);
@@ -209,7 +209,7 @@ export const newtonThirdLawRig: SceneRig = {
     },
 
     onAnimate(handles, ctx) {
-        const h = handles as unknown as NewtonThirdLawHandles;
+        const h = handles as NewtonThirdLawHandles;
         if (!h.sensorA || !h.sensorB) return;
 
         const { time } = ctx;

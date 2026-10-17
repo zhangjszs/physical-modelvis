@@ -102,17 +102,17 @@ export const magneticFieldRig: SceneRig = {
             infoLabel
         };
 
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        const h = handles as unknown as MFieldHandles;
+        const h = handles as MFieldHandles;
         const B = num(params['B'] ?? params['Bz'], 0.1);
         setLabel(h.infoLabel, `磁感应强度 B = ${B.toFixed(2)} T | 洛伦兹力 f = qvB ⊥ v`, '#047857');
     },
 
     onAnimate(handles, ctx) {
-        const h = handles as unknown as MFieldHandles;
+        const h = handles as MFieldHandles;
         // 洛伦兹力指向圆心 (复用模块级临时向量，零内存分配)
         _lorentzDir.subVectors(_fieldCenter, ctx.ballPos).normalize();
         h.lorentzArrow.position.copy(ctx.ballPos);

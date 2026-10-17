@@ -89,11 +89,11 @@ export const pendulumRig: SceneRig = {
             infoLabel
         };
 
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        const h = handles as unknown as PendulumHandles;
+        const h = handles as PendulumHandles;
         const lengthM = num(params.length, num(params.L, 1.5));
         const L = lengthM * WORLD_SCALE;
         const g = num(params.g, 9.8);
@@ -108,7 +108,7 @@ export const pendulumRig: SceneRig = {
     },
 
     onAnimate(handles, ctx) {
-        const h = handles as unknown as PendulumHandles;
+        const h = handles as PendulumHandles;
         // 细绳每帧动态连线：从悬点直达摆球实时三维球心 (就地更新顶点数组，避免反复分配与释放 Geometry)
         const posAttr = h.string.geometry.attributes['position'] as THREE.BufferAttribute | undefined;
         if (posAttr && posAttr.array) {

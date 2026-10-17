@@ -39,7 +39,7 @@ describe('3D rig 契约: buildEquipment 默认参数不抛错', () => {
             expect(rig, `rig 已注册 (${sceneId})`).toBeDefined();
             const scene = new THREE.Scene();
             const params = defaultParams(sceneId);
-            let built: { group: THREE.Group; handles: Record<string, unknown> } | null = null;
+            let built: { group: THREE.Group; handles: unknown } | null = null;
             expect(() => {
                 built = rig!.buildEquipment(scene, params);
             }).not.toThrow();
@@ -98,7 +98,7 @@ describe('3D rig 契约: buildEquipment 默认参数不抛错', () => {
             const rig = await loadSceneRig(sceneId);
             for (const params of [{}, extreme]) {
                 const scene = new THREE.Scene();
-                let built: { group: THREE.Group; handles: Record<string, unknown> } | null = null;
+                let built: { group: THREE.Group; handles: unknown } | null = null;
                 expect(
                     () => {
                         built = rig!.buildEquipment(scene, params);

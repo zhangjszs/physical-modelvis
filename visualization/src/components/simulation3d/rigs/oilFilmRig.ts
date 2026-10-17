@@ -176,15 +176,15 @@ export const oilFilmRig: SceneRig = {
         };
         updateOil(handles, params);
 
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        updateOil(handles as unknown as OilHandles, params);
+        updateOil(handles as OilHandles, params);
     },
 
     onAnimate(handles, ctx) {
-        const h = handles as unknown as OilHandles;
+        const h = handles as OilHandles;
         if (!h.fallingDrop || !h.filmMesh) return;
 
         const cycle = (ctx.time % 4.5) / 4.5; // 4.5s 一个下落-扩散周期

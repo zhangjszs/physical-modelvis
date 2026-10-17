@@ -168,12 +168,12 @@ export const ballXtRig: SceneRig = {
             amplitude: 0.25
         };
 
-        this.updateEquipment(handles as unknown as Record<string, unknown>, params);
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        this.updateEquipment(handles, params);
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        const h = handles as unknown as BallXtHandles;
+        const h = handles as BallXtHandles;
         const length = num(params['length'], 1.0);
         const angleDeg = num(params['angle'], 15);
         const g = num(params['g'], 9.8);
@@ -216,7 +216,7 @@ export const ballXtRig: SceneRig = {
     },
 
     onAnimate(handles, ctx) {
-        const h = handles as unknown as BallXtHandles;
+        const h = handles as BallXtHandles;
         if (!h.pendulumGroup) return;
 
         const { time } = ctx;

@@ -136,15 +136,15 @@ export const molecularForceRig: SceneRig = {
         };
         updateMol(handles, params);
 
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        updateMol(handles as unknown as MolHandles, params);
+        updateMol(handles as MolHandles, params);
     },
 
     onAnimate(handles, ctx) {
-        const h = handles as unknown as MolHandles;
+        const h = handles as MolHandles;
         if (!h.molRight || !h.fArrow) return;
 
         // 分子间距往复扫描 (周期 4.0s)

@@ -66,7 +66,7 @@ export const neutronDiscoveryRig: SceneRig = {
     },
 
     updateEquipment(handles, params) {
-        updateNeutron(handles as unknown as NeutronHandles, params);
+        updateNeutron(handles as NeutronHandles, params);
     },
 
     getVisualPosition(pos) {

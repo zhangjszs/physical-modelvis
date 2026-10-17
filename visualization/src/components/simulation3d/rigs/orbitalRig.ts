@@ -99,11 +99,11 @@ export const orbitalRig: SceneRig = {
             infoLabel
         };
 
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        const h = handles as unknown as OrbitalHandles;
+        const h = handles as OrbitalHandles;
         const hKm = num(params.altitude, 400);
         const vf = num(params.velocityFactor, 1.0);
         const rOrbit = R_EARTH + hKm;
@@ -123,7 +123,7 @@ export const orbitalRig: SceneRig = {
     },
 
     onAnimate(handles, ctx) {
-        const h = handles as unknown as OrbitalHandles;
+        const h = handles as OrbitalHandles;
 
         // 万有引力矢量指向地心 (零分配)
         _rDir.subVectors(_planetCenter, ctx.ballPos).normalize();

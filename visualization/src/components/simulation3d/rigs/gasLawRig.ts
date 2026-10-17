@@ -201,15 +201,15 @@ export const gasLawRig: SceneRig = {
         };
         updateGas(handles, params);
 
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        updateGas(handles as unknown as GasHandles, params);
+        updateGas(handles as GasHandles, params);
     },
 
     onAnimate(handles, ctx) {
-        const h = handles as unknown as GasHandles;
+        const h = handles as GasHandles;
         if (!h.particles) return;
         const T0 = num(ctx.params['T0'], 273.15);
         const speedScale = Math.sqrt(Math.max(10, T0) / 273.15) * 0.015;

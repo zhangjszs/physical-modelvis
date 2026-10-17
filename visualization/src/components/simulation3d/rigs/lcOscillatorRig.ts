@@ -111,11 +111,11 @@ export const lcOscillatorRig: SceneRig = {
             infoLabel
         };
 
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        const h = handles as unknown as LCHandles;
+        const h = handles as LCHandles;
         const LVal = num(params['L'] ?? params['inductance'], 0.1);
         const CVal = num(params['C'] ?? params['capacitance'], 10e-6);
         const T = 2 * Math.PI * Math.sqrt(LVal * CVal);

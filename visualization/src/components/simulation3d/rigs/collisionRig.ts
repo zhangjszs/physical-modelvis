@@ -51,7 +51,7 @@ export const collisionRig: SceneRig = {
     },
 
     updateEquipment(handles, params) {
-        const h = handles as unknown as CollisionHandles;
+        const h = handles as CollisionHandles;
         const m1 = num(params['m1'], 1);
         const m2 = num(params['m2'], 1);
         const v1 = num(params['v1'], 2);

@@ -65,11 +65,11 @@ export const galileoInclineRig: SceneRig = {
             infoLabel
         };
 
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        const h = handles as unknown as GalileoHandles;
+        const h = handles as GalileoHandles;
         const angle = num(params['angleDeg'] ?? params['theta'], 30);
         const rad = (angle * Math.PI) / 180;
         const h0 = Math.sin(rad) * INCLINE_SPAN;

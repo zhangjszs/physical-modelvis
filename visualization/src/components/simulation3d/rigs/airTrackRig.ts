@@ -67,7 +67,7 @@ export const airTrackRig: SceneRig = {
     },
 
     updateEquipment(handles, params) {
-        const h = handles as unknown as AirTrackHandles;
+        const h = handles as AirTrackHandles;
         const x1 = num(params['x1'], 0.3);
         const x2 = num(params['x2'], 0.8);
         const v0 = num(params['v0'], 0.5);

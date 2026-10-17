@@ -69,7 +69,7 @@ export const strainGaugeRig: SceneRig = {
     },
 
     updateEquipment(handles, params) {
-        applyStrain(handles as unknown as StrainHandles, num(params['strain'], 1000), num(params['bridgeVoltage'], 5));
+        applyStrain(handles as StrainHandles, num(params['strain'], 1000), num(params['bridgeVoltage'], 5));
     },
 
     getVisualPosition(pos) {

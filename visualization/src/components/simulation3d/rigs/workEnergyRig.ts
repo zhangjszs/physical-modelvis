@@ -202,12 +202,12 @@ export const workEnergyRig: SceneRig = {
             v0: 0
         };
 
-        this.updateEquipment(handles as unknown as Record<string, unknown>, params);
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        this.updateEquipment(handles, params);
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        const h = handles as unknown as WorkEnergyHandles;
+        const h = handles as WorkEnergyHandles;
         const mass = num(params['mass'], 1);
         const force = num(params['force'], 5);
         const v0 = num(params['v0'], 0);
@@ -231,7 +231,7 @@ export const workEnergyRig: SceneRig = {
     },
 
     onAnimate(handles, ctx) {
-        const h = handles as unknown as WorkEnergyHandles;
+        const h = handles as WorkEnergyHandles;
         if (!h.cartGroup) return;
 
         const { time } = ctx;

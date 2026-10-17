@@ -65,7 +65,7 @@ export const thermistorRig: SceneRig = {
     },
 
     updateEquipment(handles, params) {
-        applyTemperature(handles as unknown as ThermistorHandles, num(params['temperature'], 300));
+        applyTemperature(handles as ThermistorHandles, num(params['temperature'], 300));
     },
 
     getVisualPosition(pos) {

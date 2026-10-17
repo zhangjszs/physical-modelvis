@@ -183,12 +183,12 @@ export const microDeformationRig: SceneRig = {
             tiltAngle: 0
         };
 
-        this.updateEquipment(handles as unknown as Record<string, unknown>, params);
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        this.updateEquipment(handles, params);
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        const h = handles as unknown as MicroDeformationHandles;
+        const h = handles as MicroDeformationHandles;
         const pressure = num(params['pressure'], 100);
         const youngGPa = num(params['youngModulus'], 10);
         const D = num(params['mirrorDist'], 5);
@@ -249,7 +249,7 @@ export const microDeformationRig: SceneRig = {
     },
 
     onAnimate(handles, ctx) {
-        const h = handles as unknown as MicroDeformationHandles;
+        const h = handles as MicroDeformationHandles;
         if (!h.loadWeight) return;
 
         const { time } = ctx;

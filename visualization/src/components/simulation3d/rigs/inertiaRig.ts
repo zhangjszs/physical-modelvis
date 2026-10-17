@@ -220,12 +220,12 @@ export const inertiaRig: SceneRig = {
             initialSpeed: 2
         };
 
-        this.updateEquipment(handles as unknown as Record<string, unknown>, params);
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        this.updateEquipment(handles, params);
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        const h = handles as unknown as InertiaHandles;
+        const h = handles as InertiaHandles;
         const mode = Math.round(num(params['mode'], 0));
         const initialSpeed = num(params['initialSpeed'], 2);
 
@@ -253,7 +253,7 @@ export const inertiaRig: SceneRig = {
     },
 
     onAnimate(handles, ctx) {
-        const h = handles as unknown as InertiaHandles;
+        const h = handles as InertiaHandles;
         if (!h.rootGroup) return;
 
         const { time } = ctx;

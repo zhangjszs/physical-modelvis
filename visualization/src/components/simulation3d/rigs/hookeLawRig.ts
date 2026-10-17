@@ -84,11 +84,11 @@ export const hookeLawRig: SceneRig = {
         // 初始更新几何形变
         updateHooke(handles, m, k);
 
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        const h = handles as unknown as HookeHandles;
+        const h = handles as HookeHandles;
         const m = num(params['m'], 0.5);
         const k = num(params['k'], 20);
         updateHooke(h, m, k);

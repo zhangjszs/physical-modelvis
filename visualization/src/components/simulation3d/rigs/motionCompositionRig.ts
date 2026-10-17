@@ -115,12 +115,12 @@ export const motionCompositionRig: SceneRig = {
             statusLabel
         };
 
-        this.updateEquipment(handles as unknown as Record<string, unknown>, params);
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        this.updateEquipment(handles, params);
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        const h = handles as unknown as MotionCompositionHandles;
+        const h = handles as MotionCompositionHandles;
         const vx = num(params['vxConst'], 2);
         const ay = num(params['vyAccel'], 2);
         if (h.statusLabel) {
@@ -129,7 +129,7 @@ export const motionCompositionRig: SceneRig = {
     },
 
     onAnimate(handles, ctx) {
-        const h = handles as unknown as MotionCompositionHandles;
+        const h = handles as MotionCompositionHandles;
         if (!h.carriage || !h.wax) return;
 
         const ballPos = ctx.ballPos; // 3D 世界坐标

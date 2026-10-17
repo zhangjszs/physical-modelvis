@@ -277,12 +277,12 @@ export const cavendishRig: SceneRig = {
             thetaEq: 0
         };
 
-        this.updateEquipment(handles as unknown as Record<string, unknown>, params);
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        this.updateEquipment(handles, params);
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        const h = handles as unknown as CavendishHandles;
+        const h = handles as CavendishHandles;
         const m1 = num(params['m1'], 10);
         const m2 = num(params['m2'], 0.5);
         const r = num(params['distance'], 0.1);
@@ -347,7 +347,7 @@ export const cavendishRig: SceneRig = {
     },
 
     onAnimate(handles, ctx) {
-        const h = handles as unknown as CavendishHandles;
+        const h = handles as CavendishHandles;
         if (!h || !h.suspensionGroup) return;
 
         const currentTime = ctx.time;

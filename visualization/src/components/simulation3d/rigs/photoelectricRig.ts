@@ -43,7 +43,7 @@ export const photoelectricRig: SceneRig = {
     },
 
     updateEquipment(handles, params) {
-        const h = handles as unknown as PhotoHandles;
+        const h = handles as PhotoHandles;
         const W0 = num(params['W0'], 2.3);
         const nuMin = num(params['nuMin'], 300);
         const hNuEv = H_PLANCK_EV * (nuMin * 1e12);

@@ -66,7 +66,7 @@ export const cosmicRayRig: SceneRig = {
     },
 
     updateEquipment(handles, params) {
-        updateCosmic(handles as unknown as CosmicHandles, params);
+        updateCosmic(handles as CosmicHandles, params);
     },
 
     getVisualPosition(pos) {

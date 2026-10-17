@@ -103,11 +103,11 @@ export const springRig: SceneRig = {
             lastEndX: 0
         };
 
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        const h = handles as unknown as SpringHandles;
+        const h = handles as SpringHandles;
         const m = num(params.m, 1);
         const k = num(params.k, 20);
         const A = num(params.A, 0.5);
@@ -118,7 +118,7 @@ export const springRig: SceneRig = {
     },
 
     onAnimate(handles, ctx) {
-        const h = handles as unknown as SpringHandles;
+        const h = handles as SpringHandles;
         // 水平弹簧振子：自由端每帧随动接到振子球心 X，使弹簧实时拉伸/压缩与小球贴合。
         // 位移阈值内跳过 updateHelicalSpring (内部会重建 TubeGeometry)，避免静止/暂停时无谓开销。
         const endX = Math.max(WALL_X + 0.2, ctx.ballPos.x);

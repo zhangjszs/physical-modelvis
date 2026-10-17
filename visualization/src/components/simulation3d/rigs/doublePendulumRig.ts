@@ -130,12 +130,12 @@ export const doublePendulumRig: SceneRig = {
             g: 9.8
         };
 
-        this.updateEquipment(handles as unknown as Record<string, unknown>, params);
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        this.updateEquipment(handles, params);
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        const h = handles as unknown as DoublePendulumHandles;
+        const h = handles as DoublePendulumHandles;
         const length1 = num(params['length1'], 1.0);
         const length2 = num(params['length2'], 0.5);
         const angle1 = num(params['angle1'], 10);
@@ -191,7 +191,7 @@ export const doublePendulumRig: SceneRig = {
     },
 
     onAnimate(handles, ctx) {
-        const h = handles as unknown as DoublePendulumHandles;
+        const h = handles as DoublePendulumHandles;
         if (!h.pendGroup1 || !h.pendGroup2) return;
 
         const { time } = ctx;

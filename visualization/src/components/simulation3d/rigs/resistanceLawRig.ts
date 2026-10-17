@@ -37,12 +37,12 @@ export const resistanceLawRig: SceneRig = {
 
         return {
             group,
-            handles: handles as unknown as Record<string, unknown>
+            handles
         };
     },
 
     updateEquipment(handles, params) {
-        const h = handles as unknown as ResistanceBoardHandles;
+        const h = handles as ResistanceBoardHandles;
         const L = num(params['length'], 1);
         const dMm = num(params['diameter'], 1);
         const matIdx = Math.round(num(params['material'], 0));

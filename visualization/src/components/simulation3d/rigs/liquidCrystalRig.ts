@@ -112,15 +112,15 @@ export const liquidCrystalRig: SceneRig = {
         };
         updateLC(handles, params);
 
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        updateLC(handles as unknown as LcHandles, params);
+        updateLC(handles as LcHandles, params);
     },
 
     onAnimate(handles, ctx) {
-        const h = handles as unknown as LcHandles;
+        const h = handles as LcHandles;
         if (!h.molecules) return;
 
         const V = num(ctx.params['voltage'], 3.0);

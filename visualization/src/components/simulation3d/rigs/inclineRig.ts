@@ -56,7 +56,7 @@ export const inclineRig: SceneRig = {
     },
 
     updateEquipment(handles, params) {
-        const h = handles as unknown as InclineRigHandles;
+        const h = handles as InclineRigHandles;
         const theta = num(params['theta'] ?? params['angle'], 30);
         const mu = num(params['mu'] ?? params['friction'], 0.1);
         updateInclinedPlane(h.planeHandles, theta);

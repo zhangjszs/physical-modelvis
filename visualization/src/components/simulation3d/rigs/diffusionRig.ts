@@ -175,15 +175,15 @@ export const diffusionRig: SceneRig = {
         };
         updateDiffusion(handles, params);
 
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        updateDiffusion(handles as unknown as DiffusionHandles, params);
+        updateDiffusion(handles as DiffusionHandles, params);
     },
 
     onAnimate(handles, ctx) {
-        const h = handles as unknown as DiffusionHandles;
+        const h = handles as DiffusionHandles;
         if (!h.particlePoints) return;
 
         const cy = 1.35;
