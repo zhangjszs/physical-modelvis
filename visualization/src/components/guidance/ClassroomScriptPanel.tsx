@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useSimulationStore } from '../../store/simulationStore';
 import { getClassroomScript } from '../../scenes/classroomScripts';
+import { StepWizard } from '../common/StepWizard';
 
 const STEPS = [
     { id: 'goal', label: '1. 教学目标' },
@@ -65,18 +66,22 @@ export function ClassroomScriptPanel() {
                 <div className="script-subtitle">{script.subtitle}</div>
             </div>
 
-            {/* 5 阶段步进导航 */}
-            <div className="script-stepper">
-                {STEPS.map(step => (
-                    <button
-                        key={step.id}
-                        className={`stepper-btn ${currentStep === step.id ? 'active' : ''}`}
-                        onClick={() => setCurrentStep(step.id)}
-                    >
-                        {step.label}
-                    </button>
-                ))}
-            </div>
+            {/* 5 阶段步进导航（#136 γ：改用 StepWizard stepper 模式，class 保持 script-stepper/stepper-btn） */}
+            <StepWizard
+                mode="stepper"
+                steps={STEPS.map(s => ({ id: s.id, label: s.label }))}
+                activeIndex={Math.max(
+                    0,
+                    STEPS.findIndex(s => s.id === currentStep)
+                )}
+                onStepChange={i => {
+                    const st = STEPS[i];
+                    if (st) setCurrentStep(st.id);
+                }}
+                containerClassName="script-stepper"
+                buttonClassName="stepper-btn"
+                activeClassName="active"
+            />
 
             {/* 内容区域 */}
             <div className="script-body">

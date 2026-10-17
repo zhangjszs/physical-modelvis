@@ -1,6 +1,7 @@
 import { lazy, useState } from 'react';
 import { useSimulationStore } from '../../store/simulationStore';
 import { LazyPanel } from '../common/LazyPanel';
+import { OverlayDrawer } from '../common/OverlayDrawer';
 import { ExportDataButton } from '../export/ExportDataButton';
 import { PlaybackControls } from '../controls/PlaybackControls';
 import { TextbookDirectory } from './TextbookDirectory';
@@ -81,24 +82,21 @@ export function WorkbenchScene() {
 
             <InspectorPanel onRunSimulation={runSimulation} />
 
-            {formulaOpen && (
-                <div className="formula-drawer-overlay" onClick={() => setFormulaOpen(false)}>
-                    <aside className="formula-drawer" onClick={e => e.stopPropagation()} aria-label="公式推导">
-                        <div className="formula-drawer-head">
-                            <div>
-                                <span>按需讲解</span>
-                                <h3>公式推导</h3>
-                            </div>
-                            <button className="btn btn-sm" onClick={() => setFormulaOpen(false)}>
-                                关闭
-                            </button>
-                        </div>
-                        <LazyPanel label="公式推导" title="公式说明">
-                            <FormulaPanel />
-                        </LazyPanel>
-                    </aside>
-                </div>
-            )}
+            <OverlayDrawer
+                open={formulaOpen}
+                onClose={() => setFormulaOpen(false)}
+                title="公式推导"
+                headerBadge={<span>按需讲解</span>}
+                overlayClassName="formula-drawer-overlay"
+                panelClassName="formula-drawer"
+                headerClassName="formula-drawer-head"
+                closeClassName="btn btn-sm"
+                closeText="关闭"
+            >
+                <LazyPanel label="公式推导" title="公式说明">
+                    <FormulaPanel />
+                </LazyPanel>
+            </OverlayDrawer>
         </div>
     );
 }
