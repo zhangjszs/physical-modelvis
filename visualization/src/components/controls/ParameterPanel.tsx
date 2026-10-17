@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useSimulationStore } from '../../store/simulationStore';
+import { NumberField } from '../common/NumberField';
 import type { SceneParameter } from '../../types/visualization';
 
 interface ParameterPanelProps {
@@ -75,35 +76,18 @@ export function ParameterPanel({ onRunSimulation }: ParameterPanelProps) {
                 </div>
             )}
             {scene.parameters.map(param => (
-                <div key={param.name} className="param-item">
-                    <div className="param-header">
-                        <span className="param-label">{param.label}</span>
-                        <span className="param-unit">{param.unit}</span>
-                    </div>
-                    <div className="param-control">
-                        <input
-                            type="range"
-                            min={param.min}
-                            max={param.max}
-                            step={param.step}
-                            value={parameters[param.name] ?? param.default}
-                            onChange={e => handleChange(param, parseFloat(e.target.value))}
-                            className="param-slider"
-                            aria-label={param.label}
-                        />
-                        <input
-                            type="number"
-                            min={param.min}
-                            max={param.max}
-                            step={param.step}
-                            value={parameters[param.name] ?? param.default}
-                            onChange={e => handleChange(param, parseFloat(e.target.value) || 0)}
-                            className="param-input"
-                            aria-label={`${param.label} 数值输入`}
-                        />
-                    </div>
-                    <div className="param-desc">{param.description}</div>
-                </div>
+                <NumberField
+                    key={param.name}
+                    label={param.label}
+                    unit={param.unit}
+                    description={param.description}
+                    value={parameters[param.name] ?? param.default}
+                    min={param.min}
+                    max={param.max}
+                    step={param.step}
+                    liveUpdate={liveUpdate}
+                    onChange={v => handleChange(param, v)}
+                />
             ))}
             <div className="param-actions">
                 <button onClick={handleReset} className="btn btn-secondary">
