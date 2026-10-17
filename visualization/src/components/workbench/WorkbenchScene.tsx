@@ -1,7 +1,6 @@
-import { useState } from 'react';
-import { lazy, Suspense } from 'react';
+import { lazy, useState } from 'react';
 import { useSimulationStore } from '../../store/simulationStore';
-import { ErrorBoundary } from '../common/ErrorBoundary';
+import { LazyPanel } from '../common/LazyPanel';
 import { ExportDataButton } from '../export/ExportDataButton';
 import { PlaybackControls } from '../controls/PlaybackControls';
 import { TextbookDirectory } from './TextbookDirectory';
@@ -94,26 +93,9 @@ export function WorkbenchScene() {
                                 关闭
                             </button>
                         </div>
-                        <ErrorBoundary
-                            label="公式推导"
-                            fallback={
-                                <div className="panel-section">
-                                    <div className="panel-title">公式说明</div>
-                                    <div style={{ padding: 12, color: '#94a3b8', fontSize: 12 }}>加载失败</div>
-                                </div>
-                            }
-                        >
-                            <Suspense
-                                fallback={
-                                    <div className="panel-section">
-                                        <div className="panel-title">公式说明</div>
-                                        <div style={{ padding: 12, color: '#94a3b8', fontSize: 12 }}>加载中...</div>
-                                    </div>
-                                }
-                            >
-                                <FormulaPanel />
-                            </Suspense>
-                        </ErrorBoundary>
+                        <LazyPanel label="公式推导" title="公式说明">
+                            <FormulaPanel />
+                        </LazyPanel>
                     </aside>
                 </div>
             )}
