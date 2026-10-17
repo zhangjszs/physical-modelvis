@@ -1,5 +1,6 @@
 import { useCompositionStore, SOURCE_DEFAULTS, type SourceKind } from '../../store/compositionStore';
 import { CompositionStage } from './CompositionStage';
+import { NumberField } from '../common/NumberField';
 import type { FieldSource } from 'physics-core';
 
 type UniformFieldZone = Extract<FieldSource, { kind: 'uniform-field-zone' }>;
@@ -53,23 +54,6 @@ const DENSITY_OPTIONS: Array<{ value: number; label: string; title: string }> = 
     { value: 1, label: '标准', title: '1× 密度 (默认)' },
     { value: 2, label: '密', title: '2× 密度 — 演示电场线疏密对比' }
 ];
-
-function NumberField(props: { label: string; value: number; step: number; onChange: (value: number) => void }) {
-    return (
-        <label className="composition-field">
-            <span>{props.label}</span>
-            <input
-                type="number"
-                value={props.value}
-                step={props.step}
-                onChange={e => {
-                    const parsed = Number(e.target.value);
-                    if (Number.isFinite(parsed)) props.onChange(parsed);
-                }}
-            />
-        </label>
-    );
-}
 
 /** 匀强磁场区定制编辑区: 场强 (mT, 保方向改大小) + 三轴尺寸 (m) */
 function UniformFieldZoneEditor(props: { id: string; source: UniformFieldZone }) {
