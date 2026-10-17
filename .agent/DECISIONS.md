@@ -768,3 +768,13 @@ eslint tests 目录 `no-explicit-any` 降 warn）与 `36aed93`（移除 scripts/
 - **裁定二（#126 unknown 方案）**：接受 `handles: unknown` + 单次 `as XxxHandles`（非字面泛型 `Rig<H>`）作为 D36「`Rig<H>` **或等价单一泛型契约**」的等价实现。依据：验收标准第 1 条「handles 双向 `as unknown as` 清零」实测达成（rigs/ 220→1，余 1 为范围外 THREE.Mesh）；执行棒 TypeScript 方差论证成立（`strictFunctionTypes` 下异构 rig 集合严格泛型反增逆变强转）；单次 `as` 后仍保编译期 key 检查。**要求 #134 合入时补红向证据**：访问不存在 handle key → `tsc` 报 TS2339。
 - **纪律偏差登记（延续既往「Git discipline deviation」教训，不另立整改单）**：#133 push 用 `--no-verify` 跳门禁（纯 md，CI 兜底）+ 本会话收尾 chore 提交 `12edbe6` push main 后 `amend`+`--force-with-lease`（现 main 等价提交 `64fa099`，违反契约 1.9 禁 force-push，已成历史无法回退）。执行棒两处均如实自陈，**不判报告失实**；#134 合入触发完整 CI 覆盖 `--no-verify` 缺口；PLAN 给 Executor 指令重申红线。
 - **影响范围**：新增 #134（P1 队首）；#99 CLOSED；#105/#132/#133/#126 延后关闭；PLAN/TASKS 三十三次滚动刷新；pending 区维持为空（本条为规划者自决的流程裁定，非用户决策项）。
+
+## D42 · 三十四次滚动：#134 验收通过 + 4 延后单关闭 + 确立「--no-ff 保 SHA 成祖先」集成口径 + 排 β/γ
+
+- **日期**：2026-10-17（三十四次滚动 · `executor-20261017b` 完成 #134 集成后规划者验收）
+- **验收（独立核对 main HEAD `b0fa7de`，非只信报告）**：**#134 通过**——4 交付 commit（`c7e20ed`/`6d5868a`/`202417f`/`83da967`）经 `git merge-base --is-ancestor` 均为 main 祖先；README 第 22 行 `core 1169 / viz 1671 / total 2840` 与 docs/plan.md 同值且 CI count:check 绿；rigs/ `as unknown as`=1；docs/README #131/#130 两行在位；**CI+Deploy @ `916ec05`+`b0fa7de` success**；#126 红向探针 springRig 不存在 key → TS2339（工作树已还原干净）——编译期 key 约束实测成立，为 D41「等价泛型」裁定补上证据。
+- **裁定（确立集成口径）**：本棒执行者选 **`--no-ff` merge**（非 rebase）保**原始交付 SHA** 成为 main 祖先——正确满足 #134 验收标准第 1 条字面意图（rebase 重写哈希会破该条）。**后续所有实施单（含 β/γ）的合入均沿用此口径**：交付 commit 必须以「成 main 祖先」方式入 main，验收以 `git merge-base --is-ancestor` + CI 绿双证为准。
+- **关单**：据 D41 约定关闭 **#105 / #132 / #133 / #126**（commit 现已在 main，内容三十三次滚动已验收）+ 关闭 **#134**。in-review 清零。
+- **排单（β/γ 解锁）**：α=#132 落 main 后，据 `docs/composition-reuse-boundary.md` §β/§γ 建 **#135（P2 · NumberField 统一 + CompositionLab/ParameterPanel 迁移）** 与 **#136（P2 · StepWizard+OverlayDrawer 抽离，中风险需 Playwright 双视口）**——两单相互独立（不同文件），均过 4.2 门禁。#130 token「消 inline 硬编码」切片撞 #132 改动面（现已入 main，冲突消除）但收进 backlog 待 β/γ 后定。
+- **待下一轮（规划者自决排期，非用户决策）**：#44 vendor-react 懒拆实施单（D40 已定方向、验收含生产构建 + headless 首帧探针）本轮未拆——优先复用线 β/γ；#130 token 切片同理。pending 区维持为空。
+- **影响范围**：#134/#105/#132/#133/#126 CLOSED；#135/#136 入 ready 队列（今日队列 = **#135 → #136**）；PLAN/TASKS 三十四次滚动刷新；集成「成 main 祖先」口径正式确立。

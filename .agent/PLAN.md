@@ -193,6 +193,9 @@
 > **#126 `handles: unknown` 方案裁定接受**（等价 D36「`Rig<H>` 或等价单一泛型契约」；#134 合入时补红向探针：不存在 handle key → tsc TS2339）。
 > **纪律偏差登记**（D41）：#133 `--no-verify` 跳门禁 + 收尾 chore 提交 `12edbe6` force-push（现 `64fa099`）——执行棒均如实自陈，不判失实、不另立整改单，PLAN 指令重申红线。
 > **β/γ/#130 token 切片均依赖 α 落 main（=#134）故不入今日 ready**；今日队列实际唯一可开工关键路径项 = **#134**（队列 1 项，宁缺毋滥，β/γ 待下轮 α 落地后建单）。
+> 2026-10-17 三十四次滚动（`executor-20261017b` 完成 #134 后追加规划）：**#134 验收 CLOSED**——规划者独立核对 main HEAD `b0fa7de`：4 交付 commit（`c7e20ed`/`6d5868a`/`202417f`/`83da967`）经 `git merge-base --is-ancestor` 均为 main 祖先；README L22 `1169/1671/2840` 与 docs/plan 同值且 CI count:check 绿；rigs/ 强转=1；docs 索引两行在位；**CI+Deploy @ `916ec05`+`b0fa7de` success**；#126 红向探针 TS2339 已实测。**据 D41 关闭 #105/#132/#133/#126**（commit 已入 main、内容前轮已验收）——in-review 清零。
+> **集成口径确立（D42）**：本棒执行者选 `--no-ff` 保原 SHA 成祖先（非 rebase——重写哈希会破验收标准第 1 条）；后续 β/γ 合入均沿用「成 main 祖先 + CI 绿」双证。
+> **α 落 main 解锁 β/γ**：据 `docs/composition-reuse-boundary.md` §β/§γ 建 **#135（P2 · NumberField 统一 + CompositionLab/ParameterPanel 迁移）** 与 **#136（P2 · StepWizard+OverlayDrawer 抽离，中风险需 Playwright 双视口）**——两单相互独立。#44 vendor-react 拆单 + #130 token 切片本轮未拆（优先复用线 β/γ）。今日队列 = **#135 → #136**。
 
 ## 当前方向
 
@@ -200,7 +203,7 @@
 **生产缺陷与门禁收口已闭环**（#111 生产首屏 3D 空白、#112 OCR 弹窗溢出、#109 常量门禁扩面全部 CLOSED，二十五次滚动验收）。
 **L6 器材扩展 2/2 收官**（#113 条形磁铁、#114 匀强磁场区，二十六次滚动验收）。
 **验证与物料收尾闭环**（#106 冒烟参数化、#115 确定性有界声明，二十六次滚动验收）。
-当前执行队列（三十三次滚动）：**#134（P1 集成收尾 · 将已验收的 #105/#132/#133/#126 四分支合入 main）**；#99 已验收 CLOSED（三十三次滚动）；#105/#132/#133/#126 **内容验收通过但延后关闭**（等 #134 合入后下轮关）；#131/#130/#127/#128/#129 已验收 CLOSED（三十二次滚动）。
+当前执行队列（三十四次滚动）：**#135（P2 实施单 β · NumberField 统一）→ #136（P2 实施单 γ · StepWizard+OverlayDrawer）**；#134 集成收尾已验收 CLOSED、**#105/#132/#133/#126 已据 D41 关闭**（commit 已入 main）；#99 已 CLOSED（三十三次）；#131/#130/#127/#128/#129 已 CLOSED（三十二次）。
 **M5 调查线三单已收官**（#103/#102/#104 CLOSED，D29 放行调查 → 二十八次滚动验收；#116/#117 同步关闭）。
 **最小切片已落地验收**（#118/#119/#120/#121，二十九次滚动 CLOSED，D30 放行兑现）；**#103 派生重构已按 D31 默认转正为长期暂缓**（不进 ready、不建对应 Issue）。
 **门禁观测与索引收口已闭环**（#122 转观测 + #123 索引补全，三十次滚动 CLOSED，D32 落盘事项兑现；#124/#125 验收与 #127–#129 新队列见三十一次滚动）。
@@ -447,9 +450,10 @@ T=25℃ 时二者等价，无正确性影响，属「面板公式与算法严格
 
 ## 给 Executor 的指令
 
-1. **队首 = #134**（P1，集成收尾：将已验收的 #105(`c7e20ed`)/#132(`202417f`)/#133(`6d5868a`)/#126(`83da967`) 四个分支协调合入 main。按序 **#105→#133→#132→#126**；人工核对 README.md 交叉改动（#105 顶部英文块 vs #132 第 7 行测试数）；实跑 `count:sync` 回写三处标记（预期 viz 1671 / total 2840）；`precheck` 全绿；push 触发完整 CI（覆盖 #133 当时 `--no-verify` 缺口）；补 #126 红向探针（不存在 handle key → tsc TS2339）；CI 绿后删 4 个临时分支。**全程禁 `--no-verify` / 禁 force-push**（三十三次滚动纪律红线，见 D41）。合入后规划者下轮关闭 #105/#132/#133/#126。
-   → **β（NumberField）/ γ（StepWizard+OverlayDrawer）待 α=#132 合入 main 后由规划者建单**（现依赖未满足，不入 ready）；#130 token 切片中「消 inline 硬编码」撞 #132 改动面，亦待 #134 落地后排。
-   #100/#101 维持 parked（已挂 `parked` 标签）；#44 决策已定（D40）但不拆单不排程；领前查 `TASKS.md`。
+1. **队首 = #135**（P2，实施单 β：新建 `common/NumberField.tsx`（≤100 行）统一数值控件，迁移 `composition/CompositionLab.tsx`（删本地 NumberField L57）+ `controls/ParameterPanel.tsx`（slider+input 改调 NumberField，**store/handleChange 不变**））
+   → **#136**（P2，实施单 γ：新建 `common/StepWizard.tsx`（≤120 行）+ `OverlayDrawer.tsx`（≤80 行），迁移 GuidancePanel / ClassroomScriptPanel stepper / WorkbenchScene 公式抽屉 L85-87；**中风险：modal/portal 需 Playwright 双视口回归**，OverlayDrawer 走 portal 挂 body避免重踏 #112 包含块坑）。
+   **两单均沿 D42 集成口径**：交付 commit 以 `--no-ff`（或 trunk 直推）使 SHA 成 main 祖先，验收 = `git merge-base --is-ancestor` + CI 绿；新增测试后 `count:sync` 回写。**全程禁 `--no-verify` / 禁 force-push**。
+   → #44 vendor-react 拆单（验收含生产构建 + headless 首帧探针）/#130 token 切片：本轮未拆，待 β/γ 后另排。#100/#101 维持 parked（D19）；领前查 `TASKS.md`。
 2. **标签流转纪律（LOCK 已裁决废止）**：继续规范执行 领取 `in-progress` → 完工 `in-review`；
    **不设锁**——契约 1.2 串行口径为准（2026-10-14 二十八次滚动裁决，见 D30；`.agent/LOCK` 现无残留，若再见直接删除）。
 3. **无凭证环境注意**（继承 #75 轮）：OCR demo 链路的端到端验证用 mock 上游（参照 tests/ocr/
