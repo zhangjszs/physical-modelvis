@@ -2,17 +2,18 @@
 
 > 权威来源 = GitHub Issues（gh 可用，本轮已同步 **2026-10-17 三十二次滚动**）。昨日 5 单验收关闭；用户 2026-10-16 两轮拍板已落盘 D38/D39/D40；#100/#101 标签卫生已修复（新 `parked` 标签）。
 
-## 今日队列（执行顺序，5 个）
+## 今日队列（执行顺序，5 个）—— 全部 in-review
 
-- [ ] #99（P2 · type:chore/area:ci · **ready**）发布门禁切片：CI 补 `npm publish --dry-run` + files/类型入口/体积三类断言
-  —— 不真发布、不引 `@changesets/cli`、不改包名/版本（D38）；红向验证 ≥1 例；workflows diff 仅限新增 job/step
-- [ ] #105（P3 · type:docs · **ready**）外部入口齐备：README 英文摘要 + badge 行 + CONTRIBUTING first-contribution
-  —— 不整篇双语；剔除 `npm i physics-core` 小节；入门路径 = `.agent/TASKS.md`/维护者认领（D39，原「入门单 open 且 ready-for-agent」标准作废）
-- [ ] #132（P2 · type:chore/area:render · **ready**）实施单 α：抽取 PanelSection（≤60 行）+ LazyPanel（≤80 行）
-  —— 迁移 DataDrawer 4 处 + WorkbenchScene 1 处三明治；新增单测合计 ≥4 例；不触 token / 不动 rigs（#131 §5 产出）
-- [ ] #133（P3 · type:docs · **ready**）docs/README.md 索引补 #131/#130 两行（同 #123 先例；git diff 仅 +2 行）
-- [ ] #126（P3 · area:render · **ready**）`Rig<H>` 泛型化收口 84 文件 / 225 处 handles 双向强转（D36 授权已兑现）
-  —— 前置 #131 已解除；验收 5 条见 issue comment（2026-10-16）；体量大允许跨会话；开工先读 `docs/composition-reuse-boundary.md` 但不迁移其范围
+- [x] #99（P2 · type:chore/area:ci · **in-review**）发布门禁切片：CI 补 `npm publish --dry-run` + files/类型入口/体积三类断言
+  —— 零代码变更（#107 已覆盖）；红向验证完成；报告见 Issue comment
+- [x] #105（P3 · type:docs · **in-review**）外部入口齐备：README 英文摘要 + badge 行 + CONTRIBUTING first-contribution
+  —— commit `c7e20ed` @ `agent/issue-105-external-entry`
+- [x] #132（P2 · type:chore/area:render · **in-review**）实施单 α：抽取 PanelSection（≤60 行）+ LazyPanel（≤80 行）
+  —— commit `202417f` @ `agent/issue-132-panel-alpha`；测试数 +8
+- [x] #133（P3 · type:docs · **in-review**）docs/README.md 索引补 #131/#130 两行
+  —— commit `6d5868a` @ `agent/issue-133-docs-index`
+- [x] #126（P3 · area:render · **in-review**）`Rig<H>` 泛型化收口 84 文件 / 225 处 handles 双向强转（D36）
+  —— commit `83da967` @ `agent/issue-126-rig-generic`；216 处消除 + 1 处非范围
 
 ## 本轮关闭（done · 三十二次滚动验收）
 
