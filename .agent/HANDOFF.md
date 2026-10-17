@@ -4,69 +4,73 @@
 
 ## 本轮概要
 
-本轮（2026-10-17 · `executor-20261017b` · Execution Agent）执行 Planner 三十三次滚动的唯一 ready 任务 **#134（P1 集成收尾）**，结论**完成**：
+本轮（2026-10-17 · `executor-20261017c` · Execution Agent）串行执行 Planner 三十四次滚动今日队列（#135 → #136）。完成队首 **#135（β · P2）→ 结论完成并合入 main**；**#136（γ）经范围评估判定本会话不轻启**（中风险 + Playwright 双视口硬门槛），安静收尾留待下棒。
 
 | # | 主题 | 结论 | 提交 |
 |---|---|---|---|
-| #134 | 将 #105/#133/#132/#126 四分支协调合入 main | 完成 | merge `916ec05`（含 `7816077`/`378ea02`/`5252f4e`/`916ec05` 四个 merge commit） |
+| #135 | 抽取 `common/NumberField` 统一数值控件 + 迁移 CompositionLab/ParameterPanel | 完成（已入 main） | 交付 `4244b32` · merge `a8dc71f` |
+| #136 | 抽取 `common/StepWizard` + `OverlayDrawer` 并迁移三处抽屉 | **未领取**（ready · 交下棒） | — |
 
 ## 已完成
 
-- **#134**：按 issue 指定顺序 `--no-ff` 合入 **#105 → #133 → #132 → #126**（保留原始交付 SHA，使 `c7e20ed/6d5868a/202417f/83da967` 均成为 main 祖先，满足验收第 1 条；rebase 会生成新哈希无法满足）。
-  - README.md 交叉改动（#105 顶部英文块 vs #132 第 22 行测试数）由 ort 策略**自动合并**，人工核对两处共存、无冲突标记。
-  - `count:sync` 实跑 = core 1169 / viz 1671 / total 2840；README + docs/plan 标记「无需修改」（#132 分支已写对）。
-  - #126 红向探针：springRig.ts 临时访问不存在 handle key → `tsc` 报 **TS2339**，验证后已还原。
-  - `npm run precheck` exit 0（11 层自检全 PASS）。
-  - `git push origin main` exit 0，**走完整 pre-push 钩子、未用 `--no-verify`**。
-  - CI `39039555596` + Deploy `39039667251`（均 @ headSha `916ec05`）**success**。
-  - 4 临时分支（`agent/issue-105/133/132/126-*`）删除前确认均已合并，已删远程 + 本地 prune。
+- **#135**：按 §3.2 新建 `visualization/src/components/common/NumberField.tsx`（**99 行 ≤100**，无 `as unknown as`/`any`），双分支渲染复刻两套现状 DOM/class：
+  - 无 min/max → 纯 number input（`.composition-field`，CompositionLab 现行为，非有限值不回传守卫）；
+  - 提供 min+max → slider+input 对（`.param-*`，ParameterPanel 现行为，`[min,max]` 截断 + 空态回退 0，与 handleChange 既有截断幂等）。
+  - `CompositionLab.tsx`：删本地 `function NumberField`、改 import；6 处调用点行为不变。
+  - `ParameterPanel.tsx`：slider+input JSX → `<NumberField min max step>`；`handleChange`/`handleReset`/`handleApplyPreset`/store 读写**逐字未改**。
+  - 新单测 `tests/rendering/number-field.test.tsx` **10 例**（联动/纯 input/disabled/边界截断/空态 NaN/NaN 受控值安全渲染）。
+  - `count:sync` 回写：viz 1671→**1681** / total 2840→**2850**（README + docs/plan 三处标记）。
+  - `--no-ff` merge `a8dc71f`（交付 SHA `4244b32` 成 main 祖先，验收第 1 条达成）；push 走完整 pre-push 钩子（11 层 PASS，**未 --no-verify/未 force-push**）；CI `39043881529` + Deploy `39044065412` @ `a8dc71f` **双 success**；临时分支已删（本地 -d）。
 
 ## 未完成 / 进行中（下一棒最优先看这里）
 
-- **无进行中任务，无半成品。** #134 已完整交付并转 in-review。
-- ready 队列已空（三十三次滚动队列 1/1 清空）。
+- **#136（γ）未开始，无任何半成品/分支。** 队列次位，`ready-for-agent`。
+- **⚠️ 下棒开工 #136 前必读的两处设计张力（本轮源码评估发现，非 auto-discovered，属 #136 已知范围内的实施要点）**：
+  1. **`WorkbenchScene.tsx:84-101` 公式抽屉当前是 INLINE 渲染**（`formulaOpen && <div className="formula-drawer-overlay">`，**未走 portal**）——正是 #112 backdrop-filter 包含块隐患场景。迁移到 `OverlayDrawer`（portal 挂 `document.body`）是**修复性变更**，视口溢出行为可能因此改变 → **Playwright 双视口（1440×900 / 1024×768）冒烟必须实测，不能只靠 jsdom**。
+  2. **`ClassroomScriptPanel.tsx` 的 stepper 与 §3.4 `StepWizard` 接口不同构**：现用 **5 按钮组 + `currentStep: StepId`（字符串 id）**，且每步 body 内嵌「下一步」按钮直接 `setCurrentStep('demo')`（绕过顶部 stepper）。§3.4 StepWizard 是 **index 驱动 + renderStep + prev/next/reset + progress bar**（更贴合 GuidancePanel）。→ 建议 StepWizard 接口需同时支持「按钮组 stepper 模式（无 prev/next）」与「progress+prev/next 模式」，或 ClassroomScriptPanel 只替换顶部 stepper 条并保留 body 内嵌动作；**别硬套单一形态导致行为回归**。
+  - `GuidancePanel.tsx` 已 portal 化（`createPortal` 挂 body）+ 已是 progress+prev/next/restart 结构 → 与 §3.4/§3.5 最契合，可作为 StepWizard/OverlayDrawer 的首个落地样板；OverlayDrawer 会给 GuidancePanel 带来「点遮罩关闭」这一**新增交互**（当前不点遮罩关闭），属预期统一，报告里记为歧义处理即可。
 
-## 验证情况
+## 验证情况（#135）
 
-- `git merge-base --is-ancestor {4 SHA} main` → 4× exit 0（均为祖先）
-- `npm run count:sync` → exit 0 · 1671 viz passed（58 files）· core 1169 / total 2840
-- `npx tsc --noEmit`（#126 探针注入态）→ 报 TS2339（探针），还原后 exit 0
-- `npm run precheck`（main 合并态）→ exit 0 · selfcheck 11 层 PASS
-- `git push` + pre-push 钩子 → exit 0 · 归档源 system
-- CI/Deploy run（`gh run view`）→ headSha `916ec05` 双 success
-- 未跑项目：无（全量门禁已覆盖）
+- `npx vitest run number-field/common-components/parameter-ranges` → exit 0 · 25 passed（10+8+7）
+- `npx vitest run tests/composition/` → exit 0 · 58 passed（CompositionLab 迁移零回归）
+- `npm run typecheck` → exit 0（strict 无 any）· `npm run lint` → 0 errors（19 既有 tests any 基线 warning）· `npm run format:check` → exit 0
+- `npm run count:sync` → exit 0 · 全量 viz 1681 passed（59 files）· `npm run count:check` → exit 0（13 数字 / 3 标记一致）
+- `npm run precheck` → exit 0 · 11 层自检全 PASS（L1=46 / L9=694 等真实用例）
+- `git merge-base --is-ancestor 4244b32 main` → exit 0 · `git push` pre-push → exit 0（归档源 system）
+- CI/Deploy run（`gh run view`）→ headSha `a8dc71f` 双 success
+- 未跑项目：无（#135 全量门禁已覆盖；Playwright 冒烟属 #136 范围，本会话未触发）
 
 ## 风险与注意事项
 
-1. **main HEAD 现为 `916ec05`**：#105/#132/#133/#126 内容已入 main，其 commit 是 main 祖先 → Planner 下轮据 D41 关闭四单（其交付验收在上一轮已内容通过，本轮只是合入动作）。
-2. **README 测试数已一致**：main 第 22 行 viz 1671 / total 2840，count:check 实测匹配，无漂移。
-3. **α=#132 已落 main**：解锁实施单 β（`common/NumberField` 统一 + CompositionLab/ParameterPanel 迁移）、γ（`common/StepWizard` + `OverlayDrawer`）与 #130 token「消 inline 硬编码」切片的排程（此前均因依赖 α 未合入 main 而不入 ready）。
-4. eslint 在 CI 报 tests/ 内 `Unexpected any` warning（既有基线，非本次引入、非阻塞）。
+1. **main HEAD = `a8dc71f`**：#135 内容已入 main 且交付 SHA 为祖先 → Planner 下轮验收关闭 #135。
+2. **测试数已推进**：total 2840 → **2850**（#135 +10 viz），count:check 实测匹配。
+3. **#136 勿仓促合 main**：中风险 modal/portal + Playwright 硬门槛；半验证状态推 main 有回归线上部署风险。
+4. eslint `Unexpected any` warnings（tests/ 既有基线，非本次引入、非阻塞）。
 
 ## 给下一棒的第一步建议
 
-1. `git fetch --all --prune && git pull --rebase` → 读本文件 + STATE.md + 今日日报（`executor-20261017b` 段）。
-2. **队列为空**（除非 Planner 已新增）——安静收尾即可。
-3. 若 Planner 已建 β/γ 或 #130 token 切片单：参考 #132 的 `common/` 组件抽取模式（PanelSection/LazyPanel 为其先例）；β 的 NumberField 迁移面含 CompositionLab/ParameterPanel。
-4. 合入类任务（本单同款）优先用 `--no-ff` 保原始 SHA，除非验收明确要求线性历史。
+1. `git fetch --all --prune && git pull --rebase` → 读本文件 + STATE.md + 今日日报（`executor-20261017c` 段）。
+2. 领取 **#136**（队首，ready-for-agent）：`gh issue edit 136 --remove-label ready-for-agent --add-label in-progress` + 建分支 `agent/issue-136-step-wizard-overlay-drawer`。
+3. 先按上文「两处设计张力」定 StepWizard 接口形态，落 GuidancePanel（最契合）为样板，再 ClassroomScriptPanel / WorkbenchScene；OverlayDrawer 一律 portal 挂 body。
+4. 交付前务必跑 Playwright 双视口冒烟（参考 #112 的 OCR portal 探针与 `scripts/` 既有 playwright 脚本模式），再 precheck + `--no-ff` 合 main（D42）。
 
 ## 今日日报
 
-- 已写入 `.agent/DIARY/2026-10-17.md`（追加 `executor-20261017b` 段，未覆盖 `executor-20261017a` 历史）
+- 已写入 `.agent/DIARY/2026-10-17.md`（追加 `executor-20261017c` 段，未覆盖 a/b 历史）
 
 ## 给 Planner 的信号
 
-- **#134 可立即验收**：4 交付 commit 已成为 main 祖先，CI/Deploy 双绿。
-- **建议下轮关闭 #105 / #132 / #133 / #126**（其 commit 现已在 main，内容验收上轮已过）。
-- α 已落 main，可据 `docs/composition-reuse-boundary.md` §β 建 β 单、排 γ 与 #130 token 切片。
-- 本轮无 auto-discovered 新单，无阻塞，无需求矛盾。
+- **#135 可立即验收关闭**：交付 SHA `4244b32` 已成 main 祖先，CI/Deploy 双绿，验收 7 条全达成（见 Issue comment）。
+- **#136 仍 ready 未动**：本会话按 §2.4「宁可少做一个任务 + 保守预算估计」对中风险 Playwright 单做了范围评估后选择安静收尾，未勉强开半成品。建议下轮保留 #136 队首（可另配更充裕的执行棒）。
+- 本轮无 auto-discovered 新单、无阻塞、无需求矛盾。
 
 ## 契约遵守声明（本轮）
 
-- 未关闭任何 Issue（#134 转 in-review 等 Planner 验收；#105/#132/#133/#126 保持 in-review 由 Planner 关闭）
+- 未关闭任何 Issue（#135 转 in-review 等 Planner；#136 保持 ready 未领）
 - 未改写 PLAN.md / DECISIONS.md
-- 未领取 parked / blocked / needs-info / 人类持有单；仅执行 ready 队首 #134
-- 未实施 1.10 红线类目（纯合入动作，无新增功能/无 API/CI 变更）
-- push 全程走 pre-push 钩子（**未 `--no-verify`**、**未 force-push**）——满足 D41 红线
-- 删除的 4 分支均为本任务交付分支且删前确认已合并（非「删他人分支」；#134 明确要求收尾）
-- 日报追加写、不改历史；`.agent/` 变更单独 `chore(agent)` 提交，与代码 merge commit 分属不同 commit
+- 未领取 parked/blocked/needs-info/人类持有单；仅执行 ready 队首 #135
+- 未实施 1.10 红线（纯 UI 组件抽取 + 迁移，无 API/CI/架构/认证变更）
+- push 全程走 pre-push 钩子（**未 --no-verify、未 force-push**）
+- 删除的临时分支为本任务交付分支且删前 `--merged main` 确认（非删他人分支）
+- 日报追加写、不改历史；`.agent/` 变更单独 `chore(agent)` 提交，与代码 commit 分属不同 commit
