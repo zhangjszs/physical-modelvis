@@ -197,19 +197,62 @@
 > **集成口径确立（D42）**：本棒执行者选 `--no-ff` 保原 SHA 成祖先（非 rebase——重写哈希会破验收标准第 1 条）；后续 β/γ 合入均沿用「成 main 祖先 + CI 绿」双证。
 > **α 落 main 解锁 β/γ**：据 `docs/composition-reuse-boundary.md` §β/§γ 建 **#135（P2 · NumberField 统一 + CompositionLab/ParameterPanel 迁移）** 与 **#136（P2 · StepWizard+OverlayDrawer 抽离，中风险需 Playwright 双视口）**——两单相互独立。#44 vendor-react 拆单 + #130 token 切片本轮未拆（优先复用线 β/γ）。今日队列 = **#135 → #136**。
 
+> 2026-10-18 三十五次滚动（每日规划）：**in-review 积压 2 单（#135/#136）全部验收 CLOSED**，in-review 清零——
+> Planner 独立复核（不只信报告）：#135 `4244b32` 已成 main 祖先；NumberField 99 行 / 强转 0；CompositionLab 本地定义已删、ParameterPanel 仅换 JSX；
+> 定向重跑 21 passed + composition/guidance/parameter-ranges 80 passed；count:check 2861；CI `39043881529` + Deploy `39044065412` @ `a8dc71f` 双绿。
+> #136 `829f990` 已成 main 祖先；StepWizard 120 / OverlayDrawer 78 行、强转 0；三处迁移在位；wizard-overlay 11 passed；
+> **本轮独立重跑 Playwright 双视口冒烟 exit 0**（guidance+formula × 1440×900/1024×768：portal/不溢出/遮罩关闭/零 console error）；
+> CI `39048587934` + Deploy `39048748078` @ `10dbba9` 双绿。两单验收标准均逐条满足。
+> **附带发现（非 #136 差距）**：1024×768 下 `.classroom-inspector` 覆盖 `.stage-actions` 的「公式推导」按钮，Planner 复测 `elementFromPoint` 命中 ASIDE、真实点击不可达（#136 用程序化 DOM click 绕过，已在报告如实登记）→ 新立 **#137**（P2）修复。
+> **新立**：**#138**（P2，#130 token 切片 1：补 `:root` 语义 token + 修 `--surface` 未定义；Planner 静态审计 33 个自定义属性中 `--surface` 被用 6 处但从未定义，亮色 guidance/export 回退深色、4 处面板背景透明）、
+> **#139**（P3，PanelSection 壳迁移 7 文件 14 处）、**#140**（P2，D40 vendor-react 懒拆/预加载 + 生产构建 headless 首帧探针，解锁 #44）。
+> **治理**：#44 正文按现状重写（vite 8.3.1 / express 5.2.1 / TS 7.0.0 / vitest 5.0.3 已在大版本线；剩余 React 19 + recharts 3 / three 0.186 / jsdom 30 / jest-dom 7 / eslint 10 / @types/node 26 逐项另议），加 `blocked`（依赖 #140）。
+> **M6 立**：物理世界盒子 UI 统一与组件复用收口（进度 0/6；今日队列 #137→#138→#139）。**D43 落盘**；pending 区维持为空。
+> 今日队列 = **#137 → #138 → #139**；#140 为下一批首项（不领今日队列）。
+
 ## 当前方向
 
-**M2 / M2.5 / M3 / M4 四条线全部收官**（#67/#60/#68、#74–#77、#61/#92/#82/#62–#66、#93–#97）。
-**生产缺陷与门禁收口已闭环**（#111 生产首屏 3D 空白、#112 OCR 弹窗溢出、#109 常量门禁扩面全部 CLOSED，二十五次滚动验收）。
-**L6 器材扩展 2/2 收官**（#113 条形磁铁、#114 匀强磁场区，二十六次滚动验收）。
-**验证与物料收尾闭环**（#106 冒烟参数化、#115 确定性有界声明，二十六次滚动验收）。
-当前执行队列（三十四次滚动）：**#135（P2 实施单 β · NumberField 统一）→ #136（P2 实施单 γ · StepWizard+OverlayDrawer）**；#134 集成收尾已验收 CLOSED、**#105/#132/#133/#126 已据 D41 关闭**（commit 已入 main）；#99 已 CLOSED（三十三次）；#131/#130/#127/#128/#129 已 CLOSED（三十二次）。
-**M5 调查线三单已收官**（#103/#102/#104 CLOSED，D29 放行调查 → 二十八次滚动验收；#116/#117 同步关闭）。
-**最小切片已落地验收**（#118/#119/#120/#121，二十九次滚动 CLOSED，D30 放行兑现）；**#103 派生重构已按 D31 默认转正为长期暂缓**（不进 ready、不建对应 Issue）。
-**门禁观测与索引收口已闭环**（#122 转观测 + #123 索引补全，三十次滚动 CLOSED，D32 落盘事项兑现；#124/#125 验收与 #127–#129 新队列见三十一次滚动）。
-后续：#100/#101 维持 parked（本轮已建 `parked` 标签，标签-排程背离消除）；#99/#105 已按 D38/D39 转 ready（见三十二次滚动）；**#126 D36 授权兑现，前置 #131 已验收，本轮摘 blocked 转 ready**。
-**M5（候选）· 组合实验台深化 + 架构治理**（#100–#104，D18 收编）——**用户 D19 已定：不立项、维持 parked**，
-#100–#104 不进当前执行队列；#99/#105 已按 D38/D39 从本候选节转入执行队列（状态见下表）。
+**三十五次滚动（2026-10-18）**：UI 复用线 α/β/γ 已全部落 main（#132/#135/#136 均已验收关闭）；当前唯一主线 = **D37 物理世界盒子 UI 统一**（#130 token 规范 + #131 组件复用边界的收口）。M2/M2.5/M3/M4 全部收官，M5 调查线三单已收官且 D19 维持 parked；#100/#101 不进执行队列。#44 React 19 由 D40 转入「先 #140 vendor-react 懒拆」的前置线，未入今日队列。
+
+## 今日目标（2026-10-18）
+
+- 验收并关闭 #135/#136（已完成，见三十五次滚动日志）。
+- 修复 1024×768 窄视口 inspector 遮挡「公式推导」触发按钮（#137）。
+- 落地 #130 token 切片 1：补全 `:root` 语义 token + 修 `--surface` 未定义（#138）。
+- 收口 PanelSection 壳迁移 7 文件 14 处（#139）。
+
+## 当前 Milestone：M6 · 物理世界盒子 UI 统一与组件复用收口（进度：0 / 6）
+
+### 目标与验收
+- Token 基础：`:root` 补齐 `--surface` / `--overlay-bg` / `--shadow-drawer` / `--space-*` / `--text-*` / `--radius-xs`；所有 `var(--x)` 均有定义（#138）。
+- 组件复用：剩余 14 处 `PanelSection` 壳迁移完成，7 个目标文件无直接 `className="panel-section"`（#139）。
+- 布局：1024×768 下 `.stage-actions` 真实可点，双视口无水平滚动（#137）。
+- 后续切片（待 #138 落地后拆单）：消 inline 硬编码色 / 控件状态规范 / 浮层遮罩统一（#130 §5 切片 2–4）。
+
+### 完成信号（Success signal）
+- `npm run count:check` 与 `precheck` 全绿；token 契约静态测试通过；`grep 'className="panel-section'` 在 7 个目标文件为 0；Playwright 1024×768 真实点击「公式推导」成功；CI + Deploy 双绿。
+
+### 明确非目标（Non-goals）
+- 不换 React/Vite/Canvas 核心框架；不升 React 19（#44/#140 另线）。
+- 不拆 FormulaPanel（#103/D31 暂缓）；不动 3D EquipmentStage/rig 生命周期与引擎 API。
+- 不做 #100/#101（D19 parked）；不做全站 CSS 重写。
+
+### 执行队列（给 Executor 的建议顺序，3 个 ready）
+1. #137 窄视口侧栏遮挡修复（P2）
+2. #138 Design Token 切片 1（P2）
+3. #139 PanelSection 壳迁移（P3）
+
+## 已知阻塞与依赖
+- **#44**：React 19 专项，blocked by **#140**（vendor-react 懒拆/预加载 + 生产构建首帧探针）；#140 已拆单，未入今日队列。
+- **#100/#101**：parked（D19），勿领。
+- #130 §5 切片 2–4：未建单，待 #138 落地后由 Planner 拆。
+
+## 下一阶段
+- #140 完成 → 解锁 #44 React 19 迁移；随后按 #130 §5 切片 2–4 继续 UI token 收口。
+
+## 已放弃的方向
+- M5 立项（D19 用户已定不立项；#100–#104 维持 parked）。
+- #103 派生三张重构实施单（D31 默认转正：长期暂缓）。
 
 | # | 主题 | 状态 | 优先级 | 验收标准（摘要） | 依赖 |
 |---|---|---|---|---|---|
@@ -229,7 +272,7 @@
 → **验证与物料收尾：#106 → #115**（**全 CLOSED，二十六次滚动收官**）。
 
 **进度**：M2 3/3 + M2.5 4/4 + M3 8/8 + M4 5/5 + L6 2/2 全收官；#107/#110/#111/#112/#109/#106/#115 缺陷门禁物料全部验收 CLOSED。
-当前 = **遗留观察小单已接棒四轮**：#122/#123（三十次滚动）→ #124/#125（三十一次滚动 CLOSED）→ #127–#129（三十一滚队列，三十二次滚动全部 CLOSED）→ **#132/#133 新单 + 门禁切片**；D38/D39/D40 三项用户决策落盘（目录见 DECISIONS.md），pending 面清零。
+当前 = **M6 · 物理世界盒子 UI 统一与组件复用收口**（2026-10-18 立，进度 0/6）：#132/#135/#136 已验收关闭，今日队列 #137→#138→#139；#140 下一批首项；D38/D39/D40/D42/D43 已落盘，pending 面清零。
 
 ### #67 背景备忘（原「候选 A 详细」收编记录）
 
@@ -338,9 +381,9 @@ liquid-mixing 摩尔分数 / resistance-law 铁档铝值 / load-voltage kΩ 与�
 **M3 开放 P1 = 0**（#61/#82 均已 CLOSED，十五次滚动），剩余批次全 P2。
 发现漂移时规划者负责降级并在 issue 留言。
 
-**blocked 现状一览**：**无 blocked**（M3/M4 主链闭合；#99/#105 为 needs-info 非 blocked）。
-**#99 / #105 → needs-info**（D20/D21 既定：真实发布暂缓、英文物料随发布走——两单维持不领，真实发布重启前不动）。
-当前可执行队列以最新滚动为准（此行为三十二次滚动口径）：**#99 → #105 → #132 → #133 → #126**（#131/#130/#127/#128/#129 已 CLOSED；#126 前置 #131 已解除）。
+**blocked 现状一览**：**#44 blocked**（React 19 专项，依赖 #140）；#100/#101 parked（D19）；#130 §5 切片 2–4 未建单（待 #138 后拆）。
+**#99 / #105 → 已 CLOSED**（D38 dry-run 切片 / D39 英文物料先行；真实 npm 发布仍未放行）。
+当前可执行队列以最新滚动为准（2026-10-18 三十五次滚动）：**#137 → #138 → #139**；**#140** 下一批首项；**#44** blocked by #140；#100/#101 parked（D19）；#130 §5 切片 2–4 待 #138 后拆单。
 历史上二十八次滚动队列 = **#118 → #119 → #120 → #121**（已全 CLOSED，二十九次滚动验收）。
 （**#111** 生产构建首屏 3D 空白（P1，规划者 probe4 实跑复验在案：线上/本地空白截图 md5 逐字节一致）；
 **#112** OCR 弹窗 backdrop-filter 包含块溢出视口（#97 移交信号立单，源码坐标规划者复核）；
@@ -446,14 +489,15 @@ T=25℃ 时二者等价，无正确性影响，属「面板公式与算法严格
 | [#99](https://github.com/zhangjszs/physical-modelvis/issues/99) | 发布门禁切片：CI `npm publish --dry-run` + files/类型入口/体积断言（真实发布暂缓） | **ready**（三十二次滚动：D38 用户两轮拍板——包名保持 / 不真发布 / 版本手动 bump+tag 仅登记；单已改写定标） | P2 | real publish 仍属 **1.10 红线**，不经用户放行不动；已授权切片仅新增 dry-run job |
 | [#105](https://github.com/zhangjszs/physical-modelvis/issues/105) | 外部入口齐备：README 英文摘要 + badge 行 + CONTRIBUTING first-contribution（不整篇双语） | **ready**（三十二次滚动：D39 拍板——英文物料先行取代 D21「随发布走」；剔除 npm i 示例；入门 = TASKS.md/维护者认领） | P3 | 原「硬依赖 #99 发布决策」解除；#100/#101 继续 parked（D19） |
 
-**执行顺序**：**#102–#104 调查三单已 CLOSED**（二十八次滚动）；#100/#101 维持 parked（D19）、#99/#105 维持 needs-info，执行棒不领。#103 派生的**重构实施单已按 D31 默认转正暂缓**；#102-C1/#104-C 按最小切片放行（D30，可叫停）。
+**执行顺序**：**#102–#104 调查三单已 CLOSED**（二十八次滚动）；#100/#101 维持 parked（D19）、#99/#105 已按 D38/D39 落地并 CLOSED，执行棒不领。#103 派生的**重构实施单已按 D31 默认转正暂缓**；#102-C1/#104-C 按最小切片放行（D30，已兑现）。
 
 ## 给 Executor 的指令
 
-1. **队首 = #135**（P2，实施单 β：新建 `common/NumberField.tsx`（≤100 行）统一数值控件，迁移 `composition/CompositionLab.tsx`（删本地 NumberField L57）+ `controls/ParameterPanel.tsx`（slider+input 改调 NumberField，**store/handleChange 不变**））
-   → **#136**（P2，实施单 γ：新建 `common/StepWizard.tsx`（≤120 行）+ `OverlayDrawer.tsx`（≤80 行），迁移 GuidancePanel / ClassroomScriptPanel stepper / WorkbenchScene 公式抽屉 L85-87；**中风险：modal/portal 需 Playwright 双视口回归**，OverlayDrawer 走 portal 挂 body避免重踏 #112 包含块坑）。
-   **两单均沿 D42 集成口径**：交付 commit 以 `--no-ff`（或 trunk 直推）使 SHA 成 main 祖先，验收 = `git merge-base --is-ancestor` + CI 绿；新增测试后 `count:sync` 回写。**全程禁 `--no-verify` / 禁 force-push**。
-   → #44 vendor-react 拆单（验收含生产构建 + headless 首帧探针）/#130 token 切片：本轮未拆，待 β/γ 后另排。#100/#101 维持 parked（D19）；领前查 `TASKS.md`。
+1. **队首 = #137**（P2，窄视口修复：1024×768 下 `.classroom-inspector` 覆盖 `.stage-actions` 的「公式推导」；必须用 Playwright 真实 `locator.click()` 验收，禁再用程序化 DOM click 绕过；方案自定，保 inspector 可操作）
+   → **#138**（P2，#130 token 切片 1：补 `:root` 语义 token + 修 `--surface` 未定义；新增 token 契约静态测试并做红/绿验证；不改 inline 硬编码/遮罩实际引用）
+   → **#139**（P3，PanelSection 壳迁移 7 文件 14 处；保持 DOM/class/文案不变；FormulaPanel 除外）。
+   **三单均沿 D42 集成口径**：交付 commit 以 `--no-ff`（或 trunk 直推）使 SHA 成 main 祖先，验收 = `git merge-base --is-ancestor` + CI 绿；新增测试后 `count:sync` 回写。**全程禁 `--no-verify` / 禁 force-push**。
+   → **#140**（P2，vendor-react 懒拆/预加载 + 生产构建 headless 首帧探针）为下一批首项，今日队列清空后再领；完成后解锁 **#44** React 19。#100/#101 维持 parked（D19）；领前查 `TASKS.md`。
 2. **标签流转纪律（LOCK 已裁决废止）**：继续规范执行 领取 `in-progress` → 完工 `in-review`；
    **不设锁**——契约 1.2 串行口径为准（2026-10-14 二十八次滚动裁决，见 D30；`.agent/LOCK` 现无残留，若再见直接删除）。
 3. **无凭证环境注意**（继承 #75 轮）：OCR demo 链路的端到端验证用 mock 上游（参照 tests/ocr/
@@ -476,9 +520,9 @@ M2 主线为 L5 场线渲染（#67）。原候选「场线交互深化 / L6 器�
 - **开源化技术债三候选**（架构评审口径，用户 2026-10-02 未选、未放弃，D6）——**已于 2026-10-06 带外建单、十四次滚动收编为 M5 候选（D18）**：
   - **B. 引擎契约类型化**（charts schema 化 / problem.ts 1883 行上帝对象 / units 层）→ **调查单 #104**（实施重构属红线，需据结论另请示）。
   - **C. 渲染 primitives 重组**（27 个按章节巨型文件）→ **调查单 #103**（同上红线约束）。
-  - **D. 开源发布面**（npm publish / private:true / README 英文化）→ **#99（needs-info/D20）** + **#105（needs-info/D21）**；截图物料已入 M4 #97。
-  - **裁定状态**：D6『未选未放弃』维持——调查（#103/#104）低风险可先做以拿数据；发布/英文化/重构均为红线或未决，**用户定前不入 ready**。
-- **#44 React 19 专项**（决策已定，D40，2026-10-16 用户拍板）：**vendor-react 懒拆/预加载，保住 70kB 门禁不抬预算**；实施拆单验收必须含「生产构建 + headless 首帧探针」（#111 教训）。维持非 ready——下一轮拆单后再排程；vite 8 / express 5 / TS 7 候选面不自动放行。
+  - **D. 开源发布面**（npm publish / private:true / README 英文化）→ **#99**（已 CLOSED，D38 dry-run 切片）+ **#105**（已 CLOSED，D39 英文物料先行）；截图物料已入 M4 #97。
+  - **裁定状态**：D6『未选未放弃』维持——调查（#103/#104）已收官；#99/#105 已按 D38/D39 落地；#103/#104 派生重构按 D31 暂缓；真实发布/全量重构仍须用户另定。
+- **#44 React 19 专项**（决策已定，D40，2026-10-16 用户拍板）：**vendor-react 懒拆/预加载，保住 70kB 门禁不抬预算**；前置 **#140** 已于 2026-10-18 拆单（P2 ready，下一批首项），#44 转 `blocked`；验收必须含「生产构建 + headless 首帧探针」（#111 教训）。vite 8 / express 5 / TS 7 已落地，其余大版本逐项另议。
 - **B3 深化与契约差集守卫**：已由 **M3 承接并收官**（#61 ✅ 守卫固化 `grep | comm` 为 `single-source-coverage.test.ts`；
   #62–#66 五批 ✅ 完成「B 类渲染公式与引擎 charts 一致性」逐量决策，迁移 20 / 豁免 2）——此项闭环，不再作为远景模糊项。
 - **测试数门禁盲区**：`npm run count:check` 在脏树（存在未跟踪测试文件）下不可信。

@@ -1,40 +1,42 @@
 # TASKS（Issue 本地镜像 · 规划者每轮整体重写）
 
-> 权威来源 = GitHub Issues（gh 可用，本轮已同步 **2026-10-17 三十四次滚动**）。
-> #134 集成收尾验收 CLOSED；#105/#132/#133/#126 据 D41 关闭（commit 已入 main，in-review 清零）；α 落 main 解锁 β/γ 入 ready。
+> 权威来源 = GitHub Issues（gh 可用，本轮已同步 **2026-10-18 三十五次滚动**）。
+> 昨日 #135/#136 验收通过并 CLOSED（in-review 清零）；今日队列 3 单；#140 已拆单但今日不领；#44 转 blocked（依赖 #140）。
 
-## 今日队列（执行顺序，2 个）—— 已全部完成入 main
+## 今日队列（2026-10-18 · 执行顺序，3 个）
 
-- [x] **#135（P2 · type:chore/area:render · in-review）实施单 β：抽取 `common/NumberField` 统一数值控件并迁移 CompositionLab/ParameterPanel**
-  - ✅ executor-20261017c 完成：交付 `4244b32` 经 `--no-ff` merge `a8dc71f` 入 main（SHA 成祖先）；NumberField.tsx 99 行 · 6 调用点无回归 · handleChange/store 零改动 · 新单测 10 例 · 测试数 total 2850 · CI `39043881529`+Deploy `39044065412` @ `a8dc71f` success · 全程无 --no-verify/force-push。**待 Planner 验收**。
-- [x] **#136（P2 · type:chore/area:render · in-review）实施单 γ：抽取 `common/StepWizard` + `OverlayDrawer` 并迁移 GuidancePanel/ClassroomScriptPanel/WorkbenchScene 抽屉**
-  - ✅ executor-20261017d 完成：交付 `829f990` 经 `--no-ff` merge `10dbba9` 入 main（SHA 成祖先）；OverlayDrawer 78 行（portal body·避 #112）+ StepWizard 120 行（wizard/stepper 双模式）· 迁移三处（guidance-* / script-stepper / formula-drawer class 全保留）· 新单测 11 例 + **Playwright 双视口冒烟 `verify-overlay-drawer-smoke.cjs` exit 0**（1440×900/1024×768 portal/不溢出/遮罩关闭）· `verify-guidance-smoke` 回归绿 · total 2861 · CI `39048587934`+Deploy @ `10dbba9` success。**待 Planner 验收**。
+- [ ] **#137（P2 · type:bug/area:render · ready-for-agent）窄视口工作台侧栏遮挡「公式推导」触发按钮（1024×768 下真实点击被 classroom-inspector 拦截）**
+  - 证据：Planner 2026-10-18 复测 button rect `x=926 y=79 w=82 h=40`；inspector rect `x=688 y=84 w=320 h≈399`；`elementFromPoint` 命中 `ASIDE.classroom-inspector`，真实点击不可达；1440×900 正常。
+  - 验收：真实 `locator.click()` 开抽屉（禁 DOM click 绕过）；双视口无水平滚动；inspector 可操作；扩展 `verify-overlay-drawer-smoke.cjs`；precheck/count/CI/Deploy 全绿。
+- [ ] **#138（P2 · type:chore/area:render · ready-for-agent）Design Token 切片 1：补全 `:root` 语义 token 并修复 `--surface` 未定义**
+  - 证据：`--surface` 被用 6 处但从未定义；亮色 guidance/export 回退深色 `#1e293b`；4 处面板背景透明；`--overlay-bg` / `--shadow-drawer` / `--space-*` / `--text-*` / `--radius-xs` 均缺。
+  - 验收：补 token（暗/亮覆盖）；静态 token 契约测试红→绿；亮/暗 guidance + export 实际背景探针；不改 inline 硬编码/遮罩实际引用；precheck/count/CI/Deploy 全绿。
+- [ ] **#139（P3 · type:chore/area:render · ready-for-agent）组件复用收口：PanelSection 壳迁移 7 文件 14 处**
+  - 范围：CompositionLab 5 / StateInspector 2 / DiagnosticsPanel 2 / ParameterPanel 1 / GraphPanel 1 / App 1 / PhotogateTimer 2；FormulaPanel 除外（D31）。
+  - 验收：7 文件无直接 `className="panel-section"`；DOM/class/文案不变；≥2 回归测试（StateInspector 空态 + PhotogateTimer 附加 class）；precheck/count/CI/Deploy 全绿。
 
-## 本轮关闭（done · 三十四次滚动验收）
+## 昨日验收（done · 三十五次滚动）
 
-- [x] #134（P1）集成收尾 —— 4 分支 `--no-ff` 合入 main（`c7e20ed`/`6d5868a`/`202417f`/`83da967` 均为祖先）；README `1169/1671/2840` 一致；rigs/ 强转=1；**CI+Deploy @ `916ec05`+`b0fa7de` success**；#126 红向探针 TS2339 在案；4 临时分支已删。规划者独立复核逐条达成，D41 闭环。
-- [x] #105（P3）README 英文摘要 + badge + CONTRIBUTING first-contribution —— commit `c7e20ed` 已入 main，内容三十三次滚动已验收（D39 一致）。
-- [x] #132（P2）实施单 α：PanelSection + LazyPanel 抽取 —— commit `202417f` 已入 main，内容前轮已验收；α 落地解锁 β/γ。
-- [x] #133（P3）docs/README 索引补 #131/#130 —— commit `6d5868a` 已入 main；`--no-verify`+force-push 纪律偏差已于 D41 登记（不另立单）。
-- [x] #126（P3）Rig handles `as unknown as` 清零（D36）—— commit `83da967` 已入 main；`handles: unknown` 等价泛型方案经 D41 裁定 + #134 红向探针实测支持。
+- [x] **#135（P2）实施单 β：NumberField 统一 + CompositionLab/ParameterPanel 迁移** —— 通过，CLOSED。
+  - 证据：`4244b32` 为 main 祖先；NumberField 99 行/强转 0；CompositionLab 本地定义已删；ParameterPanel 仅换 JSX；重跑 21 + 80 passed；count:check 2861；CI `39043881529` + Deploy `39044065412` @ `a8dc71f` 双绿。验收评论在 Issue。
+- [x] **#136（P2）实施单 γ：StepWizard + OverlayDrawer + 三处迁移** —— 通过，CLOSED。
+  - 证据：`829f990` 为 main 祖先；StepWizard 120 / OverlayDrawer 78 行、强转 0；三处迁移在位；wizard-overlay 11 passed；**Planner 独立重跑 Playwright 双视口 exit 0**；count:check 2861；CI `39048587934` + Deploy `39048748078` @ `10dbba9` 双绿。验收评论在 Issue。
+  - 附带发现：1024×768 inspector 遮挡「公式推导」→ 已转 #137（不 reopen #136）。
 
-## 已确认决策（本轮新增 D42）
+## 下一批 ready（未入今日队列，今日不领）
 
-- **D42**：三十四次滚动 —— #134 通过；据 D41 关闭 4 延后单；**确立「交付 commit 以 `--no-ff`/trunk 使 SHA 成 main 祖先 + CI 绿」为后续实施单集成的既定口径**；排 β(#135)/γ(#136) 入 ready。
-- **D41**（三十三次滚动）：合入 main 属执行动作、规划者不 merge（#134 承载）；#126 `unknown` 方案接受；#133 纪律偏差登记。
-- **D38/D39/D40**：#99 只加 dry-run 门禁 · #105 英文物料先行 · #44 vendor-react 懒拆保 70kB（拆单验收含首帧探针）。
+- [ ] **#140（P2 · type:chore/area:ci · ready-for-agent）vendor-react 懒拆 / 预加载：React 19 前置，保 70kB 首屏门禁 + 生产构建 headless 首帧探针**
+  - D40 用户已定；验收含生产构建 + headless 首帧探针（#111 教训）、`LAZY_BUDGETS` 增加 `vendor-react-`、CI/Deploy 双绿。完成后解锁 #44。
 
 ## 阻塞 / 待处理
 
-- **#100（P2）/#101（P3）**—— 维持 parked（D19）；`parked` 标签与排程一致，执行者勿领。
-- **#44（P2）**—— 决策已定（D40）但未拆单；下一批由规划者拆「vendor-react 懒拆」实施单（验收含**生产构建 + headless 首帧探针**，#111 教训）后排程；本轮优先复用线 β/γ。
-- **派生 backlog（未建单，防撞车/范围蔓延）**：
-  - #130 token 4 切片（补 `--surface` 等 :root token / 消 inline 硬编码 / 控件状态落地 / 遮罩统一）——「消 inline 硬编码」原撞 #132 改动面，现 #132 已入 main 冲突消除，可待 β/γ 后定级入队。
-  - β 之后的其余 panel-section 壳迁移（CompositionStage 等，~19 处）——按模块逐步，α/β/γ 先立范式。
-- 观察：引擎 `photoresistor.ts` explanation 文案温度项（无渲染正确性影响，暂不立单）。
+- **#44（P2 · type:chore/area:ci · blocked）React 19 专项迁移** —— 正文已按 2026-10-18 实况重写：vite 8.3.1 / express 5.2.1 / TS 7.0.0 / vitest 5.0.3 已在大版本线；剩余 React 19（blocked by #140）+ recharts 3 / three 0.186 / jsdom 30 / jest-dom 7 / eslint 10 / @types/node 26 逐项另议。**勿领**，待 #140 完成。
+- **#100（P2）/#101（P3）** —— parked（D19），勿领。
+- **#130 §5 切片 2–4（未建单）** —— 消 inline 硬编码色 / 控件状态规范 / 浮层遮罩统一；待 #138 落地后由 Planner 拆单，避免与 #138 同窗冲突。
+- 观察：`.classroom-script-panel` / `.quiz-option` / active tab 的 `var(--surface)` 透明问题归 #138（已纳入），不另立单。
 
 ## 标签说明
 
-- 状态：parked（排程冻结 D19/D31）· ready-for-agent（可执行）· in-progress（执行中）· in-review（待验收/内容已验收待合入）· blocked（前置未就绪）· needs-info（需决策）；closed = done
+- 状态：ready-for-agent（可执行）· in-progress（执行中）· in-review（待验收）· blocked（前置未就绪）· parked（排程冻结 D19/D31）· needs-info（需决策）；closed = done
 - 本仓沿用 `ready-for-agent`，不引入新 `ready` 标签；`parked` 为 2026-10-17 新建
-- 本仓无 `priority:P4` 标签（P3 即最低）
+- 优先级：P0 最多 2 个；P1 与今日容量匹配；本仓无 `priority:P4` 标签（P3 即最低）

@@ -436,7 +436,7 @@ eslint tests 目录 `no-explicit-any` 降 warn）与 `36aed93`（移除 scripts/
 
 ## 待用户确认（pending，低风险部分已按默认方案先行）
 
-- 无。D34 已收到用户答复并转为已确认决策 D36。
+- 无。D34 已收到用户答复并转为已确认决策 D36；D43（三十五次滚动）后仍无 pending，今日无需用户拍板。
 
 > **D31 已于 2026-10-16 三十一次滚动 default 转正**（详见「已确认」节 D31 条目）。
 
@@ -778,3 +778,20 @@ eslint tests 目录 `no-explicit-any` 降 warn）与 `36aed93`（移除 scripts/
 - **排单（β/γ 解锁）**：α=#132 落 main 后，据 `docs/composition-reuse-boundary.md` §β/§γ 建 **#135（P2 · NumberField 统一 + CompositionLab/ParameterPanel 迁移）** 与 **#136（P2 · StepWizard+OverlayDrawer 抽离，中风险需 Playwright 双视口）**——两单相互独立（不同文件），均过 4.2 门禁。#130 token「消 inline 硬编码」切片撞 #132 改动面（现已入 main，冲突消除）但收进 backlog 待 β/γ 后定。
 - **待下一轮（规划者自决排期，非用户决策）**：#44 vendor-react 懒拆实施单（D40 已定方向、验收含生产构建 + headless 首帧探针）本轮未拆——优先复用线 β/γ；#130 token 切片同理。pending 区维持为空。
 - **影响范围**：#134/#105/#132/#133/#126 CLOSED；#135/#136 入 ready 队列（今日队列 = **#135 → #136**）；PLAN/TASKS 三十四次滚动刷新；集成「成 main 祖先」口径正式确立。
+
+## D43 · 三十五次滚动：#135/#136 验收关闭 + #137–#140 新立 + #44 现状重写 + M6 立
+
+- **日期**：2026-10-18（三十五次滚动 · Planner 验收 `executor-20261017c/d` 交付）
+- **验收（独立核对 main HEAD `2e56736`，非只信报告）**：
+  - **#135 通过**：`4244b32` 为 main 祖先；NumberField 99 行、强转 0；CompositionLab 本地 `function NumberField` 已删、ParameterPanel 仅换 JSX；定向重跑 21 passed + composition/guidance/parameter-ranges 80 passed；count:check 2861；CI `39043881529` + Deploy `39044065412` @ `a8dc71f` 双绿。
+  - **#136 通过**：`829f990` 为 main 祖先；StepWizard 120 / OverlayDrawer 78 行、强转 0；三处迁移在位；wizard-overlay 11 passed；**Planner 本轮独立重跑 Playwright 双视口冒烟 exit 0**（1440×900 / 1024×768，portal/不溢出/遮罩关闭/零 console error）；count:check 2861；CI `39048587934` + Deploy `39048748078` @ `10dbba9` 双绿。
+  - **#135/#136 均 CLOSED**，in-review 清零；验收评论已留在各自 Issue。
+- **附带发现（Planner 独立复测，非报告失实）**：1024×768 下 `.classroom-inspector`（`@media max-width:1180px` fixed right:16 top:84 z-index:80）覆盖 `.stage-actions` 的「公式推导」按钮；`document.elementFromPoint(按钮中心)` 命中 `ASIDE.classroom-inspector`，真实点击不可达；1440×900 正常。#136 已用程序化 DOM click 绕过并在报告如实登记，不构成 #136 差距；**新立 #137（P2 · type:bug）**修复。
+- **新立/治理**：
+  - **#138（P2 · token 切片 1）**：Planner 静态审计 `styles.css` 33 个自定义属性，`--surface` 被使用 6 处但 `:root`/`:root.light` 均未定义；亮色 guidance/export 回退深色 `#1e293b`，4 处面板背景透明。要求补 `--surface` / `--overlay-bg` / `--shadow-drawer` / `--space-*` / `--text-*` / `--radius-xs` + token 契约静态测试红→绿。
+  - **#139（P3 · PanelSection 迁移）**：剩余 7 文件 14 处直接 `panel-section` 壳；FormulaPanel 按 D31 除外。
+  - **#140（P2 · vendor-react 懒拆）**：兑现 D40「下一轮拆单」；验收含生产构建 + headless 首帧探针；完成后解锁 #44。
+  - **#44 正文重写**：原「react 18/vite 6/express 4/TS 5」前提已过时；vite 8.3.1 / express 5.2.1 / TS 7.0.0 / vitest 5.0.3 已在大版本线；剩余 React 19（blocked by #140）+ recharts 3 / three 0.186 / jsdom 30 / jest-dom 7 / eslint 10 / @types/node 26 逐项另议。加 `blocked`。
+- **M6 立**：物理世界盒子 UI 统一与组件复用收口（0/6；#137/#138/#139 今日入队；#130 §5 切片 2–4 待 #138 后拆）。今日队列 = **#137 → #138 → #139**；#140 下一批首项、今日不领。
+- **pending**：无。今日无需用户拍板；#44/#140 均在 D40 授权范围内，不触 1.10 新红线。
+- **影响范围**：#135/#136 CLOSED；#137–#140 新建；#44 标题/正文/标签更新（blocked）；PLAN/TASKS 三十五次滚动刷新；M6 成为当前里程碑。
