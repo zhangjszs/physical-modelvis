@@ -3,12 +3,12 @@
 > 权威来源 = GitHub Issues（gh 可用，本轮已同步 **2026-10-17 三十四次滚动**）。
 > #134 集成收尾验收 CLOSED；#105/#132/#133/#126 据 D41 关闭（commit 已入 main，in-review 清零）；α 落 main 解锁 β/γ 入 ready。
 
-## 今日队列（执行顺序，2 个）
+## 今日队列（执行顺序，2 个）—— 已全部完成入 main
 
 - [x] **#135（P2 · type:chore/area:render · in-review）实施单 β：抽取 `common/NumberField` 统一数值控件并迁移 CompositionLab/ParameterPanel**
   - ✅ executor-20261017c 完成：交付 `4244b32` 经 `--no-ff` merge `a8dc71f` 入 main（SHA 成祖先）；NumberField.tsx 99 行 · 6 调用点无回归 · handleChange/store 零改动 · 新单测 10 例 · 测试数 total 2850 · CI `39043881529`+Deploy `39044065412` @ `a8dc71f` success · 全程无 --no-verify/force-push。**待 Planner 验收**。
-- [ ] **#136（P2 · type:chore/area:render · ready-for-agent）实施单 γ：抽取 `common/StepWizard` + `OverlayDrawer` 并迁移 GuidancePanel/ClassroomScriptPanel/WorkbenchScene 抽屉**
-  - 队首（现）。与 β 相互独立。新建 StepWizard（≤120）+ OverlayDrawer（≤80）；迁移三处；**中风险：modal/portal 需 Playwright 双视口回归**，OverlayDrawer 走 portal 挂 body（避免重踏 #112 包含块坑）；#130 token 不阻塞（先 inline 过渡）。
+- [x] **#136（P2 · type:chore/area:render · in-review）实施单 γ：抽取 `common/StepWizard` + `OverlayDrawer` 并迁移 GuidancePanel/ClassroomScriptPanel/WorkbenchScene 抽屉**
+  - ✅ executor-20261017d 完成：交付 `829f990` 经 `--no-ff` merge `10dbba9` 入 main（SHA 成祖先）；OverlayDrawer 78 行（portal body·避 #112）+ StepWizard 120 行（wizard/stepper 双模式）· 迁移三处（guidance-* / script-stepper / formula-drawer class 全保留）· 新单测 11 例 + **Playwright 双视口冒烟 `verify-overlay-drawer-smoke.cjs` exit 0**（1440×900/1024×768 portal/不溢出/遮罩关闭）· `verify-guidance-smoke` 回归绿 · total 2861 · CI `39048587934`+Deploy @ `10dbba9` success。**待 Planner 验收**。
 
 ## 本轮关闭（done · 三十四次滚动验收）
 
