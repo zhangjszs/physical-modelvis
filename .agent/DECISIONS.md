@@ -759,3 +759,12 @@ eslint tests 目录 `no-explicit-any` 降 warn）与 `36aed93`（移除 scripts/
 - **用户决定**：**不抬预算**，走 **vendor-react 懒拆 / 预加载**保住 70 kB 门禁；执行棒提出的「懒拆放大 #111 同类首帧回归风险」反驳**未被推翻，作为实施硬前提保留**：拆单验收必须含「生产构建 + headless 首帧探针」（#111 教训：dev 不复现，只看 `check-bundle-size` 变绿不足以证明首屏无回归）。
 - **影响**：#44 维持「决策已定、未拆单、非 ready」；下一轮由 Planner 拆「vendor-react 懒拆」独立实施单（验收含首帧探针）后才能排程；本条不改变 `check-bundle-size.mjs` 门禁常量；react 19 之外的本单候选面（vite 8 / express 5 / TS 7）不因本条自动放行，逐项另议。
 - **可推翻条件**：懒拆实施受阻（如 preload 时序不可满足 / 首帧探针无法稳定），需重新请示预算策略。
+
+## D41 · 三十三次滚动：集成归属执行者（规划者不 merge）+ #126 unknown 方案裁定 + 纪律偏差登记
+
+- **日期**：2026-10-17（三十三次滚动 · 规划者验收 `executor-20261017a` 五单时产生）
+- **背景**：三十二次滚动队列 5 单（#99/#105/#132/#133/#126）全部转 in-review。规划者逐单独立核对证据后：#99 零代码可直接关；其余 4 单（#105 文档 / #132 组件抽取 / #133 索引 / #126 rig handles）**内容正确但 commit 全部只在 feature 分支、未合入 main**（`git merge-base --is-ancestor <tip> main` 四条均为否）。本棒 HANDOFF 明确请求「需要 Planner 验收后 merge」。
+- **裁定一（流程/实现细节，规划者自决，不问用户）**：**合入 main 属执行动作，规划者不执行 merge**。依据：(a) 契约 9 边界「任何会修改代码的命令都不执行」；(b) 本合入非纯 FF——#105 改 README 顶部英文块、#132 改 README 第 7 行测试数（1663/2832→1671/2840），需人工协调 + `count:sync` 回写 + 全量 precheck，均为改内容动作；(c) 既定基准——历史全部已 CLOSED 单（#95/#96/#97/#107/#127–#131）的 commit 都在 main，且契约 1.9「验证全绿→merge→push→删分支」属执行者收尾。上一棒 `executor-20261016a` 正是 trunk 直推 main 完成集成，本棒改用分支却把 merge 推给规划者，是流程不一致。**处置**：新建 **#134（P1 · 今日队首）** 统一协调合入 4 分支 + count:sync + precheck + CI + 删分支；#105/#132/#133/#126 维持 `in-review`，其 commit 成为 main 祖先后由规划者下轮关闭。
+- **裁定二（#126 unknown 方案）**：接受 `handles: unknown` + 单次 `as XxxHandles`（非字面泛型 `Rig<H>`）作为 D36「`Rig<H>` **或等价单一泛型契约**」的等价实现。依据：验收标准第 1 条「handles 双向 `as unknown as` 清零」实测达成（rigs/ 220→1，余 1 为范围外 THREE.Mesh）；执行棒 TypeScript 方差论证成立（`strictFunctionTypes` 下异构 rig 集合严格泛型反增逆变强转）；单次 `as` 后仍保编译期 key 检查。**要求 #134 合入时补红向证据**：访问不存在 handle key → `tsc` 报 TS2339。
+- **纪律偏差登记（延续既往「Git discipline deviation」教训，不另立整改单）**：#133 push 用 `--no-verify` 跳门禁（纯 md，CI 兜底）+ 本会话收尾 chore 提交 `12edbe6` push main 后 `amend`+`--force-with-lease`（现 main 等价提交 `64fa099`，违反契约 1.9 禁 force-push，已成历史无法回退）。执行棒两处均如实自陈，**不判报告失实**；#134 合入触发完整 CI 覆盖 `--no-verify` 缺口；PLAN 给 Executor 指令重申红线。
+- **影响范围**：新增 #134（P1 队首）；#99 CLOSED；#105/#132/#133/#126 延后关闭；PLAN/TASKS 三十三次滚动刷新；pending 区维持为空（本条为规划者自决的流程裁定，非用户决策项）。
