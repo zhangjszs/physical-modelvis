@@ -209,12 +209,12 @@ export const overweightRig: SceneRig = {
             N: 11.8
         };
 
-        this.updateEquipment(handles as unknown as Record<string, unknown>, params);
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        this.updateEquipment(handles, params);
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        const h = handles as unknown as OverweightHandles;
+        const h = handles as OverweightHandles;
         const mode = Math.round(num(params['mode'], 0));
         const mass = num(params['mass'], 1);
         const a = num(params['accMagnitude'], 2);
@@ -279,7 +279,7 @@ export const overweightRig: SceneRig = {
     },
 
     onAnimate(handles, ctx) {
-        const h = handles as unknown as OverweightHandles;
+        const h = handles as OverweightHandles;
         if (!h.elevatorCabin) return;
 
         const { time } = ctx;

@@ -155,12 +155,12 @@ export const curveConditionRig: SceneRig = {
             ruleLabel
         };
 
-        this.updateEquipment(handles as unknown as Record<string, unknown>, params);
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        this.updateEquipment(handles, params);
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        const h = handles as unknown as CurveConditionHandles;
+        const h = handles as CurveConditionHandles;
         const angleDeg = num(params['forceAngle'], 45);
         const v0 = num(params['initialSpeed'], 5);
         const m = num(params['mass'], 1);
@@ -196,7 +196,7 @@ export const curveConditionRig: SceneRig = {
     },
 
     onAnimate(handles, ctx) {
-        const h = handles as unknown as CurveConditionHandles;
+        const h = handles as CurveConditionHandles;
         if (!h.arrowVelocity || !h.arrowForce) return;
 
         const ballPos = ctx.ballPos; // 3D 世界坐标 (x, y, z)

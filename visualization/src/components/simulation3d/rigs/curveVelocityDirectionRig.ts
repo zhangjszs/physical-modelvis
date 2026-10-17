@@ -199,12 +199,12 @@ export const curveVelocityDirectionRig: SceneRig = {
             tangentDir
         };
 
-        this.updateEquipment(handles as unknown as Record<string, unknown>, params);
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        this.updateEquipment(handles, params);
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        const h = handles as unknown as CurveVelocityDirectionHandles;
+        const h = handles as CurveVelocityDirectionHandles;
         const shapeIdx = Math.round(num(params['trackShape'], 0));
         const omega = num(params['angularSpeed'], 1);
 
@@ -235,7 +235,7 @@ export const curveVelocityDirectionRig: SceneRig = {
     },
 
     onAnimate(handles, ctx) {
-        const h = handles as unknown as CurveVelocityDirectionHandles;
+        const h = handles as CurveVelocityDirectionHandles;
         if (!h.wheelMesh || !h.sparkSystem) return;
 
         const omega = num(ctx.params['angularSpeed'], 1);

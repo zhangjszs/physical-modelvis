@@ -78,7 +78,7 @@ export const radiationDeflectionRig: SceneRig = {
     },
 
     updateEquipment(handles, params) {
-        updateRadiation(handles as unknown as RadiationHandles, params);
+        updateRadiation(handles as RadiationHandles, params);
     },
 
     getVisualPosition(pos) {

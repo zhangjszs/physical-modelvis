@@ -88,11 +88,11 @@ export const waveRig: SceneRig = {
             infoLabel
         };
 
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        const h = handles as unknown as WaveHandles;
+        const h = handles as WaveHandles;
         const A = num(params.amplitude, 0.2);
         const lambda = num(params.wavelength, 1.5);
         const f = num(params.frequency, 1.0);
@@ -106,7 +106,7 @@ export const waveRig: SceneRig = {
     },
 
     onAnimate(handles, ctx) {
-        const h = handles as unknown as WaveHandles;
+        const h = handles as WaveHandles;
         const A = num(ctx.params.amplitude, 0.25);
         const lambda = num(ctx.params.wavelength, 1.5);
         const f = num(ctx.params.frequency, 1.0);

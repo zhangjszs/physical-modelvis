@@ -193,15 +193,15 @@ export const meltingCurveRig: SceneRig = {
         };
         updateMelt(handles, params);
 
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        updateMelt(handles as unknown as MeltHandles, params);
+        updateMelt(handles as MeltHandles, params);
     },
 
     onAnimate(handles, ctx) {
-        const h = handles as unknown as MeltHandles;
+        const h = handles as MeltHandles;
         if (!h.flame) return;
 
         // 火焰抖动微动画

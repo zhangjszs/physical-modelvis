@@ -49,19 +49,16 @@ export interface SceneRig {
         params: Record<string, number>
     ): {
         group: THREE.Group;
-        handles: Record<string, unknown>;
+        handles: unknown;
     };
     /** 参数变化时更新器材状态 */
-    updateEquipment(handles: Record<string, unknown>, params: Record<string, number>): void;
+    updateEquipment(handles: unknown, params: Record<string, number>): void;
     /** 物理坐标 (米) → 3D 世界坐标 */
     getVisualPosition(pos: { x: number; y: number }, params: Record<string, number>): THREE.Vector3;
     /** 轨迹起点在 3D 空间的位置（发射口 / 释放点） */
     getOrigin(params: Record<string, number>): THREE.Vector3;
     /** 动画每帧回调 (用于悬绳、弹簧等器材部件实时连接到小球当前位置) */
-    onAnimate?(
-        handles: Record<string, unknown>,
-        ctx: { time: number; ballPos: THREE.Vector3; params: Record<string, number> }
-    ): void;
+    onAnimate?(handles: unknown, ctx: { time: number; ballPos: THREE.Vector3; params: Record<string, number> }): void;
     /**
      * rig 缓存淘汰清理钩子 (useSceneRig LRU 上限, #79)。
      * 现有 rig 均为无状态单例, 不实现即 no-op；根治单 (#81) 引入在单例上捕获
@@ -111,7 +108,7 @@ interface StageHandles {
     shadowPlate: THREE.Mesh;
     projectionLine: THREE.Line;
     equipmentGroup: THREE.Group;
-    equipmentHandles: Record<string, unknown>;
+    equipmentHandles: unknown;
 }
 
 /** 多体球/轨迹线配色 (引擎 trajectories[0] 主球保持原蓝色) */
@@ -217,7 +214,7 @@ export function EquipmentStage({ rig, renderer, cameraPosition, cameraTarget, ca
 
         // 器材 — try-catch 防御：rig.buildEquipment 抛错时用空 group 兜底，避免白屏
         let equipmentGroup: THREE.Group;
-        let equipmentHandles: Record<string, unknown>;
+        let equipmentHandles: unknown;
         try {
             const built = rig.buildEquipment(scene, parameters);
             equipmentGroup = built.group;

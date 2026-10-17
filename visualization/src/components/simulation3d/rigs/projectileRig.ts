@@ -67,7 +67,7 @@ export const projectileRig: SceneRig = {
     },
 
     updateEquipment(handles, params) {
-        const h = handles as unknown as ProjectileHandles;
+        const h = handles as ProjectileHandles;
         const angle = num(params['angle'], 45);
         const h0 = num(params['h0'], 2);
         const v0 = num(params['v0'], 20);

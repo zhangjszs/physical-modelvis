@@ -104,15 +104,15 @@ export const heatDirectionRig: SceneRig = {
         };
         updateHeatDirection(handles, params);
 
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        updateHeatDirection(handles as unknown as HeatDirectionHandles, params);
+        updateHeatDirection(handles as HeatDirectionHandles, params);
     },
 
     onAnimate(handles, ctx) {
-        const h = handles as unknown as HeatDirectionHandles;
+        const h = handles as HeatDirectionHandles;
         if (!h.particles) return;
 
         // 热流箭头动态脉动波

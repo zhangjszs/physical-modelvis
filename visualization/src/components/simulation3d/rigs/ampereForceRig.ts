@@ -176,12 +176,12 @@ export const ampereForceRig: SceneRig = {
             equilibriumSwingAngle: 0.2
         };
 
-        this.updateEquipment(handles as unknown as Record<string, unknown>, params);
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        this.updateEquipment(handles, params);
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        const h = handles as unknown as AmpereForceHandles;
+        const h = handles as AmpereForceHandles;
         const B = num(params['B'] ?? params['bField'] ?? 0.5, 0.5); // T
         const I = num(params['I'] ?? params['current'] ?? 2.0, 2.0); // A
         const L = num(params['L'] ?? params['length'] ?? 0.5, 0.5); // m
@@ -238,7 +238,7 @@ export const ampereForceRig: SceneRig = {
     },
 
     onAnimate(handles, ctx) {
-        const h = handles as unknown as AmpereForceHandles;
+        const h = handles as AmpereForceHandles;
         if (!h.conductorGroup) return;
 
         const { time } = ctx;

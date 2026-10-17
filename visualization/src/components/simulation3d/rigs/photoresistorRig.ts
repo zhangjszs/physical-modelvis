@@ -63,7 +63,7 @@ export const photoresistorRig: SceneRig = {
     },
 
     updateEquipment(handles, params) {
-        applyLight(handles as unknown as PhotoHandles, num(params['lightIntensity'], 100));
+        applyLight(handles as PhotoHandles, num(params['lightIntensity'], 100));
     },
 
     getVisualPosition(pos) {

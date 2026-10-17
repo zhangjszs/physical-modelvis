@@ -144,12 +144,12 @@ export const forceCompositionRig: SceneRig = {
 
         return {
             group: new THREE.Group(),
-            handles: handles as unknown as Record<string, unknown>
+            handles
         };
     },
 
     updateEquipment(handles, params) {
-        updateForceComp(handles as unknown as ForceCompHandles, params);
+        updateForceComp(handles as ForceCompHandles, params);
     },
 
     getVisualPosition(pos, _params) {

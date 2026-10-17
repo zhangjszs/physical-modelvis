@@ -88,11 +88,11 @@ export const circularMotionRig: SceneRig = {
             infoLabel
         };
 
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        const h = handles as unknown as CircularHandles;
+        const h = handles as CircularHandles;
         const rPhys = num(params.radius, 1.0);
         const r = rPhys * WORLD_SCALE;
         const pts = Array.from({ length: N }, (_, i) => {
@@ -116,7 +116,7 @@ export const circularMotionRig: SceneRig = {
     },
 
     onAnimate(handles, ctx) {
-        const h = handles as unknown as CircularHandles;
+        const h = handles as CircularHandles;
 
         // 径向连线就地更新顶点数组，避免反复分配 BufferGeometry
         const posAttr = h.radialArm.geometry.attributes['position'] as THREE.BufferAttribute | undefined;

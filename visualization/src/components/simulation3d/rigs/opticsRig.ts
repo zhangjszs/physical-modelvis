@@ -44,7 +44,7 @@ export const opticsRig: SceneRig = {
     },
 
     updateEquipment(handles, params) {
-        const h = handles as unknown as OpticsHandles;
+        const h = handles as OpticsHandles;
         const theta1 = num(params['angle'] ?? params['theta1'], 30);
         const n1 = num(params['n1'], 1.0);
         const n2 = num(params['n2'], 1.5);

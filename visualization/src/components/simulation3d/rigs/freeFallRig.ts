@@ -90,7 +90,7 @@ export const freeFallRig: SceneRig = {
     },
 
     updateEquipment(handles, params) {
-        const h = handles as unknown as FreeFallHandles;
+        const h = handles as FreeFallHandles;
         const h0 = num(params['h0'] ?? params['height'], 10);
         const visualH = Math.max(0.6, h0 * WORLD_SCALE);
         const targetStandH = visualH + 0.8;

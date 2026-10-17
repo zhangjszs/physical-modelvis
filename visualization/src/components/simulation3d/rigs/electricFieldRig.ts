@@ -60,7 +60,7 @@ export const electricFieldRig: SceneRig = {
     },
 
     updateEquipment(handles, params) {
-        const h = handles as unknown as EFieldHandles;
+        const h = handles as EFieldHandles;
         const U = num(params['U'] ?? params['voltage'], 100);
         const v0 = num(params['v0'], 20);
 

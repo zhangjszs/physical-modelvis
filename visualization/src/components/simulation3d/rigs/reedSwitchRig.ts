@@ -79,7 +79,7 @@ export const reedSwitchRig: SceneRig = {
     },
 
     updateEquipment(handles, params) {
-        applyMagnet(handles as unknown as ReedHandles, num(params['magnetDistance'], 5));
+        applyMagnet(handles as ReedHandles, num(params['magnetDistance'], 5));
     },
 
     getVisualPosition(pos) {

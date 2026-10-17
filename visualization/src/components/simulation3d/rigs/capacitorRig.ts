@@ -179,12 +179,12 @@ export const capacitorRig: SceneRig = {
             voltage: 100
         };
 
-        this.updateEquipment(handles as unknown as Record<string, unknown>, params);
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        this.updateEquipment(handles, params);
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        const h = handles as unknown as CapacitorHandles;
+        const h = handles as CapacitorHandles;
         // 支持两种场景参数格式：
         // parallel-plate-capacitor: distance (mm), area (cm²), dielectric / eps
         // capacitor-charge: emf (V), capacitance (μF)
@@ -247,7 +247,7 @@ export const capacitorRig: SceneRig = {
     },
 
     onAnimate(handles, ctx) {
-        const h = handles as unknown as CapacitorHandles;
+        const h = handles as CapacitorHandles;
         if (!h.fieldArrows) return;
 
         const { time } = ctx;

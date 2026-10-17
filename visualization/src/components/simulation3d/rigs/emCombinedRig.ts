@@ -68,11 +68,11 @@ export const emCombinedRig: SceneRig = {
             infoLabel
         };
 
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        const h = handles as unknown as CombinedHandles;
+        const h = handles as CombinedHandles;
         const E = num(params['Ey'] ?? params['E'], 1e4);
         const B = num(params['Bz'] ?? params['B'], 0.1);
         const vSelect = B > 0 ? E / B : 0;

@@ -81,7 +81,7 @@ export const blackBodyRig: SceneRig = {
     },
 
     updateEquipment(handles, params) {
-        updateBlackBody(handles as unknown as BlackBodyHandles, params);
+        updateBlackBody(handles as BlackBodyHandles, params);
     },
 
     getVisualPosition(pos) {

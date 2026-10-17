@@ -131,11 +131,11 @@ export const capillaryRig: SceneRig = {
         };
         updateCapillary(handles, params);
 
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        updateCapillary(handles as unknown as CapillaryHandles, params);
+        updateCapillary(handles as CapillaryHandles, params);
     },
 
     getVisualPosition(pos) {
