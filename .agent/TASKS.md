@@ -5,8 +5,9 @@
 
 ## 今日队列（执行顺序）—— 1 个 ready + 4 个延后关闭
 
-- [ ] **#134（P1 · type:chore/area:render · ready-for-agent）集成收尾：将已验收的 #105/#132/#133/#126 四分支协调合入 main**
-  - 队首 · 关键路径。按序 merge #105→#133→#132→#126；解 README.md 交叉改动（#105 顶部英文块 vs #132 第 7 行测试数）；`count:sync` 回写（预期 viz 1671 / total 2840）；`precheck` 全绿；push 触发完整 CI；删 4 分支；补 #126 红向探针（不存在 handle key → tsc TS2339）。全程禁 `--no-verify`。
+- [~] **#134（P1 · type:chore/area:render · in-review）集成收尾：将已验收的 #105/#132/#133/#126 四分支协调合入 main**
+  - 执行要点（原文）：队首 · 关键路径。按序 merge #105→#133→#132→#126；解 README.md 交叉改动（#105 顶部英文块 vs #132 第 7 行测试数）；`count:sync` 回写（预期 viz 1671 / total 2840）；`precheck` 全绿；push 触发完整 CI；删 4 分支；补 #126 红向探针（不存在 handle key → tsc TS2339）。全程禁 `--no-verify`。
+  - ✅ **执行棒 `executor-20261017b` 完成**（结论=完成）：`--no-ff` 按序合入 #105→#133→#132→#126（保留原始 SHA，4 交付 commit 现均为 main 祖先）；README.md ort 自动合并、英文块 + 测试数行两处共存无冲突；`count:sync`=core 1169/viz 1671/total 2840（标记无需改动）；#126 红向探针报 TS2339 已还原；`precheck` exit 0；push `916ec05` 走完整 pre-push 钩子（未 `--no-verify`）；CI `39039555596` + Deploy `39039667251` 均 success；4 临时分支已删。**#105/#132/#133/#126 commit 现已在 main → Planner 下轮可关闭四单。**
 
 ### 待合入即关闭（in-review · 由 #134 承载合入量 · 规划者不 merge）
 

@@ -4,73 +4,69 @@
 
 ## 本轮概要
 
-本轮（2026-10-17 · `executor-20261017a` · Execution Agent）串行完成 Planner 三十二次滚动准备的今日队列全部 5 个任务，结论均为**完成**：
+本轮（2026-10-17 · `executor-20261017b` · Execution Agent）执行 Planner 三十三次滚动的唯一 ready 任务 **#134（P1 集成收尾）**，结论**完成**：
 
 | # | 主题 | 结论 | 提交 |
 |---|---|---|---|
-| #99 | 发布门禁切片（D38） | 完成（零代码变更，#107 已覆盖） | 无 |
-| #105 | README 英文摘要 + badge + CONTRIBUTING（D39） | 完成 | `c7e20ed` |
-| #132 | 实施单 α：PanelSection + LazyPanel 抽取 | 完成 | `202417f` |
-| #133 | docs/README 索引补 #131/#130 | 完成 | `6d5868a` |
-| #126 | Rig handles 泛型化收口 84 文件（D36） | 完成 | `83da967` |
+| #134 | 将 #105/#133/#132/#126 四分支协调合入 main | 完成 | merge `916ec05`（含 `7816077`/`378ea02`/`5252f4e`/`916ec05` 四个 merge commit） |
 
 ## 已完成
 
-- **#99**：`check-publish-dryrun.mjs`（157 行）+ CI L67-68 步骤已在位（#107 交付）；红向验证 `.d.ts` 缺失→exit 1；验收 6/6 全过。
-- **#105**：README 顶部英文摘要 + 4 枚 badge（CI/Deploy/License/Demo）+ 锚点链接；CONTRIBUTING 新增"第一次贡献"5 步路径；`npm i physics-core` 零命中。
-- **#132**：新建 `common/PanelSection.tsx`(45行) + `common/LazyPanel.tsx`(49行)；DataDrawer 3 处 + WorkbenchScene 1 处迁移；新增 8 例测试。
-- **#133**：docs/README.md §4 索引表 +2 行指向两份调查文档。
-- **#126**：SceneRig 接口 `handles: unknown` 替代 `Record<string, unknown>`；79 个 rig 文件 216 处 `as unknown as` 清零；typecheck/test 全绿。
+- **#134**：按 issue 指定顺序 `--no-ff` 合入 **#105 → #133 → #132 → #126**（保留原始交付 SHA，使 `c7e20ed/6d5868a/202417f/83da967` 均成为 main 祖先，满足验收第 1 条；rebase 会生成新哈希无法满足）。
+  - README.md 交叉改动（#105 顶部英文块 vs #132 第 22 行测试数）由 ort 策略**自动合并**，人工核对两处共存、无冲突标记。
+  - `count:sync` 实跑 = core 1169 / viz 1671 / total 2840；README + docs/plan 标记「无需修改」（#132 分支已写对）。
+  - #126 红向探针：springRig.ts 临时访问不存在 handle key → `tsc` 报 **TS2339**，验证后已还原。
+  - `npm run precheck` exit 0（11 层自检全 PASS）。
+  - `git push origin main` exit 0，**走完整 pre-push 钩子、未用 `--no-verify`**。
+  - CI `39039555596` + Deploy `39039667251`（均 @ headSha `916ec05`）**success**。
+  - 4 临时分支（`agent/issue-105/133/132/126-*`）删除前确认均已合并，已删远程 + 本地 prune。
 
 ## 未完成 / 进行中（下一棒最优先看这里）
 
-- **无进行中任务，无半成品。**
-- ready 队列已空（三十二次滚动队列 5/5 清空）。
+- **无进行中任务，无半成品。** #134 已完整交付并转 in-review。
+- ready 队列已空（三十三次滚动队列 1/1 清空）。
 
 ## 验证情况
 
-- 全量 test（main）：1663 passed / 57 files（不含 #132 分支的 +8）
-- #126 推送：pre-push 11 层 PASS
-- #132 推送：pre-push 11 层 PASS
-- #105 推送：pre-push 11 层 PASS
-- #133：push 使用 `--no-verify`（纯 markdown，纪律偏差已如实报告）
-- CI 状态：main HEAD `c23e5b9` 全绿（CI/Deploy/QA 三 workflow success）
+- `git merge-base --is-ancestor {4 SHA} main` → 4× exit 0（均为祖先）
+- `npm run count:sync` → exit 0 · 1671 viz passed（58 files）· core 1169 / total 2840
+- `npx tsc --noEmit`（#126 探针注入态）→ 报 TS2339（探针），还原后 exit 0
+- `npm run precheck`（main 合并态）→ exit 0 · selfcheck 11 层 PASS
+- `git push` + pre-push 钩子 → exit 0 · 归档源 system
+- CI/Deploy run（`gh run view`）→ headSha `916ec05` 双 success
+- 未跑项目：无（全量门禁已覆盖）
 
 ## 风险与注意事项
 
-1. **#132 + #126 尚未合入 main**：它们在各分支上，需要 Planner 验收后 merge。合入 main 后测试数从 1663→1671（+8），`count:sync` 在 #132 分支已回写 README 但 main 仍是 1663——合并时注意冲突解决。
-2. **#105 + #132 共享 README 改动**：#105 在顶部加英文摘要，#132 的 `count:sync` 改了测试数行（L22）——合并顺序先 #105 后 #132 可避免冲突（或 squash merge 手动解）。
-3. **#126 的 `unknown` 方案**：不是字面泛型 `Rig<H>` 但效果等价（消除双向强转 + key 约束）。Planner 验收时如需严格泛型需讨论 TypeScript 方差限制。
-4. **#133 --no-verify 偏差**：markdown 变更不影响质量，CI 兜底；记录供未来参考。
+1. **main HEAD 现为 `916ec05`**：#105/#132/#133/#126 内容已入 main，其 commit 是 main 祖先 → Planner 下轮据 D41 关闭四单（其交付验收在上一轮已内容通过，本轮只是合入动作）。
+2. **README 测试数已一致**：main 第 22 行 viz 1671 / total 2840，count:check 实测匹配，无漂移。
+3. **α=#132 已落 main**：解锁实施单 β（`common/NumberField` 统一 + CompositionLab/ParameterPanel 迁移）、γ（`common/StepWizard` + `OverlayDrawer`）与 #130 token「消 inline 硬编码」切片的排程（此前均因依赖 α 未合入 main 而不入 ready）。
+4. eslint 在 CI 报 tests/ 内 `Unexpected any` warning（既有基线，非本次引入、非阻塞）。
 
 ## 给下一棒的第一步建议
 
-1. `git fetch --all --prune && git pull --rebase` → 读本文件 + STATE.md + 今日日报。
+1. `git fetch --all --prune && git pull --rebase` → 读本文件 + STATE.md + 今日日报（`executor-20261017b` 段）。
 2. **队列为空**（除非 Planner 已新增）——安静收尾即可。
-3. 如果 Planner 已合入本会话的 4 个分支，则 main 测试数为 2840（#132 的 +8 已入）。
-4. 若后续 #130 token 切片或 #131 β/γ 实施单入队，可参考 #132 的 `common/` 组件模式。
+3. 若 Planner 已建 β/γ 或 #130 token 切片单：参考 #132 的 `common/` 组件抽取模式（PanelSection/LazyPanel 为其先例）；β 的 NumberField 迁移面含 CompositionLab/ParameterPanel。
+4. 合入类任务（本单同款）优先用 `--no-ff` 保原始 SHA，除非验收明确要求线性历史。
 
 ## 今日日报
 
-- 已写入 `.agent/DIARY/2026-10-17.md`
+- 已写入 `.agent/DIARY/2026-10-17.md`（追加 `executor-20261017b` 段，未覆盖 `executor-20261017a` 历史）
 
 ## 给 Planner 的信号
 
-- **5 单全部 in-review 可立即验收**。
-- 合并顺序建议：#105 → #133 → #132 → #126（README 冲突可控）。
-- #132 引入新测试数 +8（2832→2840），`count:sync` 已在分支执行并回写。
-- #126 的"歧义处理"需要 Planner 确认：`handles: unknown` + 单次 `as` 是否满足"泛型 Rig<H>"要求（Issue 验收标准字面只要求 `as unknown as` 清零，本实现达成此标准且无方差问题）。
-- #133 的 `--no-verify` 偏差如实登记，不影响代码质量。
-- 本轮无 auto-discovered 新单。
-- 下一轮建议关注：#131 β/γ 实施单（NumberField / StepWizard）可入队；#130 token 切片待定夺。
+- **#134 可立即验收**：4 交付 commit 已成为 main 祖先，CI/Deploy 双绿。
+- **建议下轮关闭 #105 / #132 / #133 / #126**（其 commit 现已在 main，内容验收上轮已过）。
+- α 已落 main，可据 `docs/composition-reuse-boundary.md` §β 建 β 单、排 γ 与 #130 token 切片。
+- 本轮无 auto-discovered 新单，无阻塞，无需求矛盾。
 
 ## 契约遵守声明（本轮）
 
-- 未关闭任何 Issue（全部转 in-review 等 Planner 验收）
+- 未关闭任何 Issue（#134 转 in-review 等 Planner 验收；#105/#132/#133/#126 保持 in-review 由 Planner 关闭）
 - 未改写 PLAN.md / DECISIONS.md
-- 未领取 parked / blocked / needs-info / 人类持有单
-- 未实施 1.10 红线类目（#99 仅验证不实施新内容；#126 有 D36 用户授权）
-- #105/#132/#126 push 走 pre-push 钩子（全量门禁）
-- #133 push 用 --no-verify（纪律偏差，如实报告）
-- 日报追加写，不改历史
-- `.agent/` 变更单独 `chore(agent)` 提交
+- 未领取 parked / blocked / needs-info / 人类持有单；仅执行 ready 队首 #134
+- 未实施 1.10 红线类目（纯合入动作，无新增功能/无 API/CI 变更）
+- push 全程走 pre-push 钩子（**未 `--no-verify`**、**未 force-push**）——满足 D41 红线
+- 删除的 4 分支均为本任务交付分支且删前确认已合并（非「删他人分支」；#134 明确要求收尾）
+- 日报追加写、不改历史；`.agent/` 变更单独 `chore(agent)` 提交，与代码 merge commit 分属不同 commit
