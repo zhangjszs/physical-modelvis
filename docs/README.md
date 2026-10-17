@@ -61,6 +61,8 @@ docs/
 | [superpowers/](./superpowers/) | **专题架构方案**：重大架构重构专题方案（如 WorkbenchScene 拆分设计）。 |
 | [rendering-structure-survey.md](./rendering-structure-survey.md) | **渲染层结构治理调查**：重复度普查 + 巨型文件分批拆分路线（#103 数据落档；派生实施需用户放行，见 DECISIONS D31）。 |
 | [composition-l6-equipment-survey.md](./composition-l6-equipment-survey.md) | **组合实验台 L6 候选器材评估**：7 候选 × 5 维度，推荐批条形磁铁 + 匀强磁场区（#94；已落地 #113/#114）。 |
+| [composition-reuse-boundary.md](./composition-reuse-boundary.md) | **组件复用边界调查**：7 组候选 / 6 接口草案 / 3 实施单 α→β→γ（#131）。 |
+| [ui-visual-token-spec.md](./ui-visual-token-spec.md) | **UI 视觉规范调查**：7 类分歧 + token 六类全表 + 3 验证组件（#130）。 |
 
 ---
 
