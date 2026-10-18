@@ -1,6 +1,7 @@
 import { useSimulationStore } from '../../store/simulationStore';
 import { findFrameIndex, interpolateFrame } from '../../utils/frameUtils';
 import { formatQuantity } from '../../utils/unitFormat';
+import { PanelSection } from '../common/PanelSection';
 
 export function StateInspector() {
     const simulationResult = useSimulationStore(s => s.simulationResult);
@@ -8,10 +9,9 @@ export function StateInspector() {
 
     if (!simulationResult) {
         return (
-            <div className="panel-section">
-                <div className="panel-title">实时状态</div>
+            <PanelSection title="实时状态">
                 <div className="empty-state">等待仿真运行...</div>
-            </div>
+            </PanelSection>
         );
     }
 
@@ -35,8 +35,7 @@ export function StateInspector() {
     const NOT_APPLICABLE = '—';
 
     return (
-        <div className="panel-section">
-            <div className="panel-title">实时状态</div>
+        <PanelSection title="实时状态">
             <div className="state-grid">
                 <StateRow label="时间 t" value={formatQuantity(frame.t, 's')} />
                 <StateRow label="位置 x" value={formatQuantity(frame.position.x, 'm')} />
@@ -52,7 +51,7 @@ export function StateInspector() {
                 <StateRow label="势能 Ep" value={pe === null ? NOT_APPLICABLE : formatQuantity(pe, 'J')} />
                 <StateRow label="机械能 E" value={totalE === null ? NOT_APPLICABLE : formatQuantity(totalE, 'J')} />
             </div>
-        </div>
+        </PanelSection>
     );
 }
 

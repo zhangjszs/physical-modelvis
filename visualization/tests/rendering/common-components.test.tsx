@@ -8,6 +8,9 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { lazy } from 'react';
 import { PanelSection } from '../../src/components/common/PanelSection';
 import { LazyPanel } from '../../src/components/common/LazyPanel';
+import { StateInspector } from '../../src/components/simulation/StateInspector';
+import { PhotogateTimer } from '../../src/components/simulation/PhotogateTimer';
+import { useSimulationStore } from '../../src/store/simulationStore';
 
 // ─────────────── PanelSection ───────────────
 
@@ -111,5 +114,27 @@ describe('LazyPanel', () => {
             </LazyPanel>
         );
         expect(screen.getByText('请稍候...')).toBeDefined();
+    });
+});
+
+// ─────────────── #139 迁移站点回归 ───────────────
+
+describe('#139 PanelSection 迁移站点回归', () => {
+    it('StateInspector 空态正确渲染 PanelSection 标题与等待文案', () => {
+        useSimulationStore.setState({ simulationResult: null });
+        const { container } = render(<StateInspector />);
+        const section = container.querySelector('.panel-section');
+        expect(section).not.toBeNull();
+        expect(screen.getByText('实时状态')).toBeDefined();
+        expect(screen.getByText('等待仿真运行...')).toBeDefined();
+    });
+
+    it('PhotogateTimer 空态保留 photogate-timer-panel 附加 class 并渲染标题', () => {
+        useSimulationStore.setState({ experimentData: null });
+        const { container } = render(<PhotogateTimer />);
+        const section = container.querySelector('.panel-section.photogate-timer-panel');
+        expect(section).not.toBeNull();
+        expect(screen.getByText('数字毫秒计')).toBeDefined();
+        expect(screen.getByText('无测量数据')).toBeDefined();
     });
 });
