@@ -1,9 +1,11 @@
 /*
- * #136 γ — OverlayDrawer 浮层抽屉双视口冒烟 (Playwright)
+ * #136 γ + #137 — OverlayDrawer 浮层抽屉与工作台双视口冒烟 (Playwright)
  *
  * 验证 GuidancePanel（居中 modal）与 WorkbenchScene 公式抽屉（右滑 drawer）经 OverlayDrawer
  * 迁移后：① portal 挂 document.body（呼应 #112 backdrop-filter 包含块教训）；② 遮罩/浮层在
- * 1440×900 与 1024×768 双视口下不溢出视口；③ 点遮罩可关；④ 零 console error。
+ * 1440×900 与 1024×768 双视口下不溢出视口；③ 点遮罩可关；④ 零 console error；
+ * ⑤ #137 验收：1024×768 下真实 Playwright locator.click() 点击打开公式推导，elementFromPoint
+ * 命中按钮本身，.stage-actions 无 inspector 矩形重叠，无水平滚动，inspector 保持可操作。
  *
  * 运行: 需先起 dev server  `cd visualization && npm run dev` (默认 :3000)
  *   BASE_URL=http://localhost:3000/ node scripts/verify-overlay-drawer-smoke.cjs
@@ -39,12 +41,9 @@ const isWithinViewport = async (page, sel, vp) => {
 };
 
 async function runGuidance(page, vp) {
-    // 程序化点击触发按钮（避开 #136 无关的窄视口侧栏遮挡；真实遮罩点击仍用 mouse）
-    await page.$$eval('.top-bar-right button', els => {
-        const b = els.find(e => e.textContent.includes('导学'));
-        if (!b) throw new Error('未找到导学按钮');
-        b.click();
-    });
+    // #137: 真实 locator.click() 点击触发按钮（禁止 DOM click 绕过）
+    const guidanceBtn = page.locator('.top-bar-right button', { hasText: '导学' });
+    await guidanceBtn.click();
     await page.waitForSelector('.guidance-overlay', { state: 'visible', timeout: 8000 });
     if (!(await isPortalToBody(page, '.guidance-overlay')))
         throw new Error(`[${vp.width}] guidance-overlay 未 portal 到 body`);
@@ -53,15 +52,47 @@ async function runGuidance(page, vp) {
     await page.mouse.click(4, 4); // 遮罩左上角空白 → 点遮罩关闭
     await page.waitForTimeout(250);
     if ((await page.$('.guidance-overlay')) !== null) throw new Error(`[${vp.width}] guidance 遮罩点击未关闭`);
-    console.log(`  [guidance @${vp.width}×${vp.height}] portal=body ✓ 未溢出 ✓ 遮罩关闭 ✓`);
+    console.log(`  [guidance @${vp.width}×${vp.height}] portal=body ✓ 未溢出 ✓ 遮罩关闭 ✓ (真实 click)`);
 }
 
 async function runFormula(page, vp) {
-    await page.$$eval('.stage-actions button', els => {
-        const b = els.find(e => e.textContent.trim() === '公式推导');
-        if (!b) throw new Error('未找到公式推导按钮');
-        b.click();
+    const formulaBtn = page.locator('.stage-actions button', { hasText: '公式推导' });
+    const btnBox = await formulaBtn.boundingBox();
+    if (!btnBox) throw new Error(`[${vp.width}] 未找到公式推导按钮`);
+
+    // #137 验收标准: 真实 elementFromPoint 命中按钮本身
+    const hitEl = await page.evaluate(box => {
+        const el = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+        return el ? el.tagName : null;
+    }, btnBox);
+    if (hitEl !== 'BUTTON') {
+        throw new Error(`[${vp.width}] 公式推导按钮被遮挡, elementFromPoint 命中: ${hitEl}`);
+    }
+
+    // #137 验收标准: .stage-actions 所有可见按钮均不被 .classroom-inspector 矩形覆盖
+    const overlap = await page.evaluate(() => {
+        const inspector = document.querySelector('.classroom-inspector');
+        if (!inspector) return null;
+        const inspRect = inspector.getBoundingClientRect();
+        const actionBtns = Array.from(document.querySelectorAll('.stage-actions button'));
+        for (const btn of actionBtns) {
+            const r = btn.getBoundingClientRect();
+            const intersects = !(
+                r.right <= inspRect.left ||
+                r.left >= inspRect.right ||
+                r.bottom <= inspRect.top ||
+                r.top >= inspRect.bottom
+            );
+            if (intersects) return { text: btn.textContent.trim(), btnRect: r, inspRect };
+        }
+        return null;
     });
+    if (overlap) {
+        throw new Error(`[${vp.width}] 按钮 '${overlap.text}' 与 classroom-inspector 发生矩形重叠`);
+    }
+
+    // #137 验收标准: 真实 locator.click() 打开抽屉 (禁止 force: true, 禁止 DOM click 绕过)
+    await formulaBtn.click();
     await page.waitForSelector('.formula-drawer-overlay', { state: 'visible', timeout: 8000 });
     // 关键: 迁移前公式抽屉是 inline 渲染（#112 隐患），迁移后必须 portal 到 body
     if (!(await isPortalToBody(page, '.formula-drawer-overlay')))
@@ -73,7 +104,50 @@ async function runFormula(page, vp) {
     await page.mouse.click(4, Math.floor(vp.height / 2)); // 抽屉在右、左侧为遮罩 → 点遮罩关闭
     await page.waitForTimeout(250);
     if ((await page.$('.formula-drawer-overlay')) !== null) throw new Error(`[${vp.width}] formula 遮罩点击未关闭`);
-    console.log(`  [formula @${vp.width}×${vp.height}] portal=body ✓ 未溢出 ✓ 遮罩关闭 ✓`);
+    console.log(
+        `  [formula @${vp.width}×${vp.height}] 真实 click ✓ elementFromPoint 命中 ✓ 无重叠 ✓ portal=body ✓ 未溢出 ✓ 遮罩关闭 ✓`
+    );
+}
+
+async function runInspectorCheck(page, vp) {
+    // #137 验收标准: 页面无水平滚动
+    const scrollInfo = await page.evaluate(() => ({
+        scrollWidth: document.documentElement.scrollWidth,
+        innerWidth: document.defaultView ? document.defaultView.innerWidth : document.documentElement.clientWidth
+    }));
+    if (scrollInfo.scrollWidth > scrollInfo.innerWidth) {
+        throw new Error(
+            `[${vp.width}] 页面出现水平滚动: scrollWidth=${scrollInfo.scrollWidth} > innerWidth=${scrollInfo.innerWidth}`
+        );
+    }
+
+    // #137 验收标准: inspector 仍可见且可操作 (切换 tab + 滚动)
+    const inspector = page.locator('.classroom-inspector');
+    if (!(await inspector.isVisible())) {
+        throw new Error(`[${vp.width}] classroom-inspector 不可见`);
+    }
+
+    // 检查参数调试 tab 是否可点击并切换
+    const paramTab = page.locator('.inspector-tab-btn', { hasText: '参数调试' });
+    if (await paramTab.isVisible()) {
+        await paramTab.click();
+        const active = await paramTab.evaluate(el => el.classList.contains('active'));
+        if (!active) throw new Error(`[${vp.width}] 点击参数调试 tab 未生效`);
+    }
+
+    // 检查 inspector 是否可滚动
+    const scrollable = await inspector.evaluate(el => {
+        const prev = el.scrollTop;
+        el.scrollTop = 50;
+        const changed = el.scrollTop !== prev;
+        el.scrollTop = prev;
+        return changed || el.scrollHeight <= el.clientHeight;
+    });
+    if (!scrollable) {
+        throw new Error(`[${vp.width}] classroom-inspector 无法滚动`);
+    }
+
+    console.log(`  [inspector @${vp.width}×${vp.height}] 无水平滚动 ✓ inspector 可见 ✓ tab 可切 ✓ 可滚动 ✓`);
 }
 
 (async () => {
@@ -91,6 +165,16 @@ async function runFormula(page, vp) {
         await page.waitForSelector('.stage-actions', { timeout: 30000 });
         await runGuidance(page, vp);
         await runFormula(page, vp);
+        await runInspectorCheck(page, vp);
+        // 切换亮色主题回归验证
+        const themeBtn = page.locator('.top-bar-right button', { hasText: '浅色' });
+        if (await themeBtn.isVisible()) {
+            await themeBtn.click();
+            await runFormula(page, vp);
+            // 切回暗色
+            await page.locator('.top-bar-right button', { hasText: '深色' }).click();
+        }
+        console.log(`  [theme @${vp.width}×${vp.height}] 浅色/深色主题均无遮挡 ✓`);
         await page.close();
     }
 

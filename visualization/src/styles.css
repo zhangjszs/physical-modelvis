@@ -2074,10 +2074,12 @@ body {
     .classroom-inspector {
         position: fixed;
         right: 16px;
-        top: 84px;
+        /* #137: 窄视口避开顶部工具栏 (.stage-toolbar bottom ≈ 122px)，保证 .stage-actions 按钮真实可点击 */
+        top: 136px;
         z-index: 80;
         width: min(320px, calc(100vw - 32px));
-        max-height: calc(100vh - 110px);
+        /* top(136px) + max-height 留出底部 16px 安全距离，与 right: 16px 对齐 */
+        max-height: calc(100vh - 152px);
         border: 1px solid var(--border);
         border-radius: 14px;
         box-shadow: var(--shadow-lg);
