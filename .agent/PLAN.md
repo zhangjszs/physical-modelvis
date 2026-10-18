@@ -213,45 +213,73 @@
 > 2026-10-18 三十六次滚动（队列巡检与就绪复核）：**无新增 in-review 待验收**（自三十五次滚动验收关闭 #135/#136 后 Executor 尚未开工；CI 及定时 QA 场景巡检在 main @ `aa471c9` 全绿）。
 > 权威 GitHub Issues 与 TASKS.md 镜像一致无漂移。
 > **今日队列确认**：维持 **#137 → #138 → #139**（3 单均通过 4.2 ready 门禁，清晰自包含；Executor 可直接自队首 #137 领取开工）。#140 维持下一批首项（今日不领）；pending 决策维持为 0。
+
+> 2026-10-18 三十七次滚动（每日规划 · 验收轮）：**in-review 积压 4 单（#137/#138/#139/#140）全部验收 CLOSED**，in-review 清零——
+> Planner 逐单独立取证（不只信报告）：四个交付 commit（`e99f056`/`76ec878`/`5fab11f`/`c7717f8`）经 `git merge-base --is-ancestor` 均为 main 祖先；
+> **本轮在生产构建（`vite preview` :4173）亲自复跑浏览器探针**——`verify-overlay-drawer-smoke.cjs` ×3 exit 0（#137 双视口真实 click / elementFromPoint / 零重叠 / 无水平滚动 / 双主题）、
+> `verify-first-frame-smoke.cjs` ×3 exit 0（#140 首帧 1096/951/1043 ms ≤3000 ms，WebGL 826×690 + 2D 板书非空，0 console error）、`verify-portal-tokens.mjs` exit 0（#138 消费者实际背景）；
+> `vitest run token-contract common-components` → 14 passed；`check:bundle` → 9.7 kB/70 kB · vendor-react 43.7/55；`count:check` → 2867 一致；CI+Deploy 四单 @ 各 merge SHA 双绿。
+> **#139 逐文件复核**：`grep -c 'className="panel-section'` 7 目标文件全 0，`<PanelSection` 计数 1+1+5+1+2+2+2 = **14** 与正文表格一一对应；DOM 等价性抽查（标题文案逐字不变、PhotogateTimer 附加 class 保留）。
+> **验收纠正项（登记，不 reopen）**：#140 报告与 HANDOFF 称「首屏包体积从 67.9 kB 锐减至 9.7 kB = 大幅优化 / 已清除 React 19 瓶颈」——**实测否决**：
+> 挂载前必需下载 ≈ **68.8 kB gzip**（index.html 0.6 + 入口 js 1.1 + css 8.1 + bootstrap 14.1 + vendor-react 43.7 + 3 个 <1 kB runtime），而 #140 前门禁值即 **68.0 kB**（CI run `39125798785` 明细可查）。
+> 用户侧成本基本没变（68.0 → 68.8 kB），变的是**计量范围**：`check-bundle-size.mjs` 只解析 `index.html` 的 `src|href`，#140 前 Vite 注入的 vendor-react `modulepreload` link 使其一直计入判定，改动态 `import()` 后 link 消失 → React 与 App 双双退出判定。**D40 的 70 kB 首屏保护自此被架空**。
+> **#138 两处口径修正**（Planner 立案不严谨，非执行差距）：① 标准「`.app.dark ... #1e293b` 等价重复 = 0」字面未清零，实测仍有 3 处（L1703 `.badge-script` / L2207 `.script-badge` / L2479 `.tool-btn:hover`），契约测试只守了实现范围点名的 2 处；② `--text-*` 实现为 size-only，规范 §2.5 定义为 size+weight 一体，且五族新 token **消费者数为 0**。
+> **新立**：**#141**（P2 · ready，挂载前必需资源度量 + 门禁注释/AGENTS.md 现状数字纠偏，**只观测不改判定**，#44 的前置度量件）、
+> **#142**（P3 · ready，token 首批等值消费 + 3 处 `.app.dark` 同值硬编码收口 + 规范 §5 盘点按实测修正）、
+> **#143**（P2 · **needs-info**，4 个 headless 探针是否接入 CI —— 契约 1.10「主要 CI/CD 流程变化」红线，推荐 A/默认 C，待用户拍板）。
+> **治理**：**#44 摘 `blocked` 转 `needs-info`**——技术前置（#140）确已达成，但其验收标准第 1 条「首屏 `check:bundle` ≤70 kB」在 #140 后已不构成约束，React 19 的 +23 kB 将落在不被门禁统计的懒 chunk；按现状盲做会得出「门禁绿 + 真实首屏 +34%」的实质反 D40 结果 → **D44 pending** 前不排。
+> 规范 §5 切片 3/4 **暂不建单**：`docs/ui-visual-token-spec.md` 的「~30 处」盘点已失真（CompositionLab 10 / DataDrawer 0 / WorkbenchScene 0；SimulationCanvas 37、PhotogateTimer 17 多数是 canvas 绘制色 / SVG presentation attribute / JS 主题三元，**不可用 `var()` 替换`**）→ 由 #142 先产出实测盘点，再据此拆单。
+> **M6 进度 3 / 6**（#137/#138/#139 CLOSED；#142 = 切片 2 首批落地；切片 3/4 待实测盘点）。**D44（pending）+ D45（Planner 自决：`--text-*` 维持 size-only）落盘**。
+> 今日队列 = **#141 → #142**（2 单，均过 4.2 门禁；#44/#143 待 D44/探针决策，今日不排）。
+
 ## 当前方向
 
-**三十六次滚动（2026-10-18）**：UI 复用线 α/β/γ 已全部落 main（#132/#135/#136 均已验收关闭）；当前唯一主线 = **D37 物理世界盒子 UI 统一**（#130 token 规范 + #131 组件复用边界的收口）。M2/M2.5/M3/M4 全部收官，M5 调查线三单已收官且 D19 维持 parked；#100/#101 不进执行队列。#44 React 19 由 D40 转入「先 #140 vendor-react 懒拆」的前置线，未入今日队列。
+**三十七次滚动（2026-10-18）**：M6 UI 统一线前三单（#137 遮挡修复 / #138 token 切片 1 / #139 PanelSection 14 处收口）已验收关闭；D40 前置单 #140 也已交付，但**验收实测暴露「门禁计量范围收缩使 70 kB 首屏保护被架空」**——这是当前项目最需要修的事实，因为它同时挡住了 React 19（#44）的排程：没有可信的挂载前体积度量，就无法判断升级的真实代价。
+故今日两件事：① **#141** 补上可复核的体积度量与文档纠偏（只观测、不改判定权）；② **#142** 让 #138 定义的 token 真正落地消费并收口遗留同值硬编码，继续 M6。
+用户侧积压两问：**D44（首屏预算口径与 React 19 是否放行）**、**#143（浏览器探针是否接入 CI）**——均触契约 1.10 红线，答复前不入 ready。M2/M2.5/M3/M4 全部收官，M5 维持 parked（D19），#100/#101 不进执行队列。
 
-## 今日目标（2026-10-18）
+## 今日目标（2026-10-18 · 三十七次滚动）
 
-- 验收并关闭 #135/#136（已完成，见三十五次滚动日志）。
-- 修复 1024×768 窄视口 inspector 遮挡「公式推导」触发按钮（#137）。
-- 落地 #130 token 切片 1：补全 `:root` 语义 token + 修 `--surface` 未定义（#138）。
-- 收口 PanelSection 壳迁移 7 文件 14 处（#139）。
+- ~~验收并关闭 #135/#136（三十五次滚动）~~、**验收并关闭 #137/#138/#139/#140（本轮，四单全部 CLOSED，浏览器探针由 Planner 在生产构建上独立复现）**。
+- **把首屏体积的真实代价变成可复核的数字**：#141 在现有首帧探针内补「挂载前必需资源」度量 + 修正 `check-bundle-size.mjs` 注释与 `AGENTS.md`/`docs/plan.md` 的过期「现状约 63kB」表述。
+- **让 #138 的 token 真正被消费**：#142 首批等值替换 + 收口 3 处 `.app.dark` 同值硬编码 + 按实测修正规范 §5 盘点。
+- 就 D44（首屏预算口径 × React 19）与 #143（探针接入 CI）向用户提出本轮唯一一批问题。
 
-## 当前 Milestone：M6 · 物理世界盒子 UI 统一与组件复用收口（进度：0 / 6）
+## 当前 Milestone：M6 · 物理世界盒子 UI 统一与组件复用收口（进度：3 / 6）
 
 ### 目标与验收
-- Token 基础：`:root` 补齐 `--surface` / `--overlay-bg` / `--shadow-drawer` / `--space-*` / `--text-*` / `--radius-xs`；所有 `var(--x)` 均有定义（#138）。
-- 组件复用：剩余 14 处 `PanelSection` 壳迁移完成，7 个目标文件无直接 `className="panel-section"`（#139）。
-- 布局：1024×768 下 `.stage-actions` 真实可点，双视口无水平滚动（#137）。
-- 后续切片（待 #138 落地后拆单）：消 inline 硬编码色 / 控件状态规范 / 浮层遮罩统一（#130 §5 切片 2–4）。
+- ~~布局：1024×768 下 `.stage-actions` 真实可点，双视口无水平滚动（#137）~~ ✅ CLOSED（交付 `e99f056`，Planner 生产构建复跑 ×3）。
+- ~~Token 基础：`:root` 补齐 `--surface` / `--overlay-bg` / `--shadow-drawer` / `--space-*` / `--text-*` / `--radius-xs`；所有 `var(--x)` 均有定义（#138）~~ ✅ CLOSED（交付 `76ec878`；遗留「0 消费者」与「3 处 `.app.dark` 同值硬编码」结转 #142）。
+- ~~组件复用：剩余 14 处 `PanelSection` 壳迁移完成，7 个目标文件无直接 `className="panel-section"`（#139）~~ ✅ CLOSED（交付 `5fab11f`，14/14 实测）。
+- 切片 2 首批落地：**#142**（P3）——等值消费 token + 收口 `.app.dark` 同值硬编码 + 规范 §5 实测盘点（含切片 3/4 站点清单产出）。
+- 切片 3 控件状态规范：**待建单**（须先由 #142 的实测盘点确认可改面）。
+- 切片 4 浮层遮罩统一：**待建单**（`--overlay-bg` 现 0 消费者；`.classroom-inspector` 的 `--shadow-drawer` 不等值，须先定站点与取舍）。
 
 ### 完成信号（Success signal）
-- `npm run count:check` 与 `precheck` 全绿；token 契约静态测试通过；`grep 'className="panel-section'` 在 7 个目标文件为 0；Playwright 1024×768 真实点击「公式推导」成功；CI + Deploy 双绿。
+- #142 落地后：五族新 token 在 `styles.css` 的 `var()` 消费数各 ≥1；`.app.dark` 内 `background: #1e293b` grep 命中 0 且有红向守卫；规范 §5 切片 2 条目按四类（DOM / canvas / SVG / JS 三元）带实测计数重写。
+- 切片 3/4 各自有单、有可判定的验收标准并关闭。
+- 全程 `npm run count:check` + `precheck` 绿、Playwright 双主题无视觉回归、CI + Deploy 双绿。
 
 ### 明确非目标（Non-goals）
-- 不换 React/Vite/Canvas 核心框架；不升 React 19（#44/#140 另线）。
+- 不换 React/Vite/Canvas 核心框架；**不升 React 19（#44 待 D44）**。
 - 不拆 FormulaPanel（#103/D31 暂缓）；不动 3D EquipmentStage/rig 生命周期与引擎 API。
-- 不做 #100/#101（D19 parked）；不做全站 CSS 重写。
+- 不做 #100/#101（D19 parked）；不做全站 CSS 重写、不做视觉重设计（禁止为「对齐尺度」改既有非尺度数值）。
+- 不改任何门禁判定阈值与 `.github/workflows/*`（判定权与 CI 接入待 D44/#143 用户答复）。
 
-### 执行队列（给 Executor 的建议顺序，3 个 ready）
-1. #137 窄视口侧栏遮挡修复（P2）
-2. #138 Design Token 切片 1（P2）
-3. #139 PanelSection 壳迁移（P3）
+### 执行队列（给 Executor 的建议顺序，2 个 ready）
+1. **#141** 挂载前必需资源度量 + 门禁口径文档纠偏（P2 · area:ci）——先做，因为它是 #44 能否排程的前提，且改动面小（1 个探针脚本 + 注释 + 2 处文档）。
+2. **#142** token 首批落地消费 + `.app.dark` 同值硬编码收口 + 规范 §5 实测盘点（P3 · area:render）。
 
 ## 已知阻塞与依赖
-- **#44**：React 19 专项，blocked by **#140**（vendor-react 懒拆/预加载 + 生产构建首帧探针）；#140 已拆单，未入今日队列。
+- **#44（React 19 专项）**：`needs-info`——技术前置 #140 已达成并 CLOSED，但其「首屏 `check:bundle` ≤70 kB」判据在 #140 后不再构成约束（门禁 9.7 kB vs 真实挂载前 68.8 kB）。React 19 的 +23 kB 落点与 D40「不抬预算」的实质冲突须由用户裁定（**D44**）；#141 的度量件是任何一侧决策的事实基础。**勿领**。
+- **#143（浏览器探针接入 CI）**：`needs-info`——契约 1.10「主要 CI/CD 流程变化」红线，推荐 A（新增独立 CI job）/ 默认 C（维持手动 + 纪律），待用户拍板。**勿领**。
 - **#100/#101**：parked（D19），勿领。
-- #130 §5 切片 2–4：未建单，待 #138 落地后由 Planner 拆。
+- **#130 §5 切片 3/4**：暂不建单——规范文档的站点盘点已实测失真（~30 处 → CompositionLab 10 / DataDrawer 0 / WorkbenchScene 0，且 canvas 绘制色与 SVG presentation attribute 不可用 `var()`），待 #142 产出四类分列的实测清单后再拆。
 
 ## 下一阶段
-- #140 完成 → 解锁 #44 React 19 迁移；随后按 #130 §5 切片 2–4 继续 UI token 收口。
+- M6 剩余（#142 + 切片 3/4 两单）收口 UI token 线。
+- D44 若放行 React 19 → #44 转 ready 排程（首帧探针 + 挂载前体积度量作为验收证据）；若选择保住 70 kB 实质上限 → React 19 暂缓，改立「首屏必需资源瘦身」单（起点是挂载后场景链 `vendor-physics` 153.8 kB，而非入口）。
+- #143 若放行 → 探针接入 CI，此后浏览器类回归由机制而非人工复测拦截。
 
 ## 已放弃的方向
 - M5 立项（D19 用户已定不立项；#100–#104 维持 parked）。
@@ -496,11 +524,11 @@ T=25℃ 时二者等价，无正确性影响，属「面板公式与算法严格
 
 ## 给 Executor 的指令
 
-1. **队首 = #137**（P2，窄视口修复：1024×768 下 `.classroom-inspector` 覆盖 `.stage-actions` 的「公式推导」；必须用 Playwright 真实 `locator.click()` 验收，禁再用程序化 DOM click 绕过；方案自定，保 inspector 可操作）
-   → **#138**（P2，#130 token 切片 1：补 `:root` 语义 token + 修 `--surface` 未定义；新增 token 契约静态测试并做红/绿验证；不改 inline 硬编码/遮罩实际引用）
-   → **#139**（P3，PanelSection 壳迁移 7 文件 14 处；保持 DOM/class/文案不变；FormulaPanel 除外）。
-   **三单均沿 D42 集成口径**：交付 commit 以 `--no-ff`（或 trunk 直推）使 SHA 成 main 祖先，验收 = `git merge-base --is-ancestor` + CI 绿；新增测试后 `count:sync` 回写。**全程禁 `--no-verify` / 禁 force-push**。
-   → **#140**（P2，vendor-react 懒拆/预加载 + 生产构建 headless 首帧探针）为下一批首项，今日队列清空后再领；完成后解锁 **#44** React 19。#100/#101 维持 parked（D19）；领前查 `TASKS.md`。
+1. **队首 = #141**（P2，在现有 `scripts/verify-first-frame-smoke.cjs` 内补「挂载前必需资源」gzip 度量 + 修正 `check-bundle-size.mjs` 注释与 `AGENTS.md`/`docs/plan.md` 的「现状约 63kB」过期表述）
+   → **#142**（P3，token 首批**等值**消费 + 收口 3 处 `.app.dark background: #1e293b` + 按实测重写规范 §5 切片 2 盘点并产出切片 3/4 站点清单）。
+   **两单硬边界**：#141 **不得**改 `BUDGET_KB` / `LAZY_BUDGETS` 任何数值、不得新增判定项、不得动 `.github/workflows/*`（判定权与 CI 接入待用户答复 D44/#143）；#142 **不得**改任何 `.tsx` 里的颜色（canvas/SVG/JS 三元三类需另一套机制）、不得改 token 定义值、不得为非尺度值（如 `.panel-title` 的 `margin-bottom: 10px`）「对齐尺度」而改数值。
+   **#44 与 #143 均 `needs-info`，今日勿领**；沿 D42 集成口径（`--no-ff` 使交付 SHA 成 main 祖先 + CI 绿双证），新增测试后 `count:sync` 回写；**全程禁 `--no-verify` / 禁 force-push**。#100/#101 维持 parked（D19）；领前查 `TASKS.md`。
+   **报告口径提醒（本轮验收教训）**：不要把「门禁值下降」写成「首屏体积优化」——两者在 #140 后已不是同一件事；凡体积结论，须同时给门禁值与真实挂载前/首帧实测值。
 2. **标签流转纪律（LOCK 已裁决废止）**：继续规范执行 领取 `in-progress` → 完工 `in-review`；
    **不设锁**——契约 1.2 串行口径为准（2026-10-14 二十八次滚动裁决，见 D30；`.agent/LOCK` 现无残留，若再见直接删除）。
 3. **无凭证环境注意**（继承 #75 轮）：OCR demo 链路的端到端验证用 mock 上游（参照 tests/ocr/

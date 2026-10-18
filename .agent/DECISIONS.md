@@ -436,7 +436,12 @@ eslint tests 目录 `no-explicit-any` 降 warn）与 `36aed93`（移除 scripts/
 
 ## 待用户确认（pending，低风险部分已按默认方案先行）
 
-- 无。D34 已收到用户答复并转为已确认决策 D36；D43（三十五次滚动）与三十六次滚动巡检后均无 pending，今日无需用户拍板。
+- **D44 | 2026-10-18 | #140 后首屏 70 kB 门禁已被架空，React 19（#44）是否放行 | 三案 A/B/C（详见 D44 节）| 推荐 B（先补度量、暂不升 React 19）| 默认 B | pending（第 1 天询问）**
+  - 已按默认方案先行的低风险部分：**#141（P2 · ready）** 补「挂载前必需资源」度量件 + 文档纠偏，**不改任何判定阈值**——两案都需要这个数，先看清再决策。
+  - 受红线约束未放行的部分：#44 转 `needs-info`（今日不排）；`BUDGET_KB`/`LAZY_BUDGETS` 任何数值变更；#143（CI 流程变化）。
+- **D46 | 2026-10-18 | 4 个 headless 浏览器探针（首帧 / 双视口遮挡 / token 消费 / 导学）是否接入 CI 门禁 | A 新增独立 CI job（+2~4 min，推荐）/ B 仅首帧探针接入 deploy 前置 / C 维持手动 + 纪律（默认） | 推荐 A | 默认 C | pending（第 1 天询问）**
+  - 已按默认方案先行：维持现状（手动探针 + 验收轮由 Planner 复跑），**#143 建单即 `needs-info`**，不放入 ready。
+  - 触契约 1.10「主要 CI/CD 流程变化」红线，Executor 勿领。
 
 > **D31 已于 2026-10-16 三十一次滚动 default 转正**（详见「已确认」节 D31 条目）。
 
@@ -795,3 +800,41 @@ eslint tests 目录 `no-explicit-any` 降 warn）与 `36aed93`（移除 scripts/
 - **M6 立**：物理世界盒子 UI 统一与组件复用收口（0/6；#137/#138/#139 今日入队；#130 §5 切片 2–4 待 #138 后拆）。今日队列 = **#137 → #138 → #139**；#140 下一批首项、今日不领。
 - **pending**：无。今日无需用户拍板；#44/#140 均在 D40 授权范围内，不触 1.10 新红线。
 - **影响范围**：#135/#136 CLOSED；#137–#140 新建；#44 标题/正文/标签更新（blocked）；PLAN/TASKS 三十五次滚动刷新；M6 成为当前里程碑。
+
+---
+
+## D44 · 三十七次滚动：#140 后 70 kB 首屏门禁被架空 → React 19（#44）排程冻结，待用户拍板
+
+- **日期**：2026-10-18（三十七次滚动 · Planner 验收 `executor-20261018a` 四单时产生）
+- **问题**：#140（CLOSED，交付 `c7717f8`）把 React 生态从入口静态依赖改为 `import('./bootstrap')` 动态加载后，`check-bundle-size.mjs` 的首屏判定值由 **68.0 kB** 降为 **9.7 kB**。执行报告与 HANDOFF 据此结论「首屏体积大幅优化 / React 19 的 +23 kB 已不影响首屏门禁」，并请求 Planner「摘 #44 `blocked` 转 ready」。Planner 独立实测否决该推论：
+  - 门禁取数 = 解析 `visualization/dist/index.html` 的 `src|href`（脚本 L63–70）。**#140 前 vendor-react 一直在判定内**，因为 Vite 会为入口 chunk 的静态依赖注入 `modulepreload` link（CI run `39125798785` 明细：`index.css` 8.1 + `index-D14KqplQ.js` 14.9 + `vendor-react-Bbzhmq4v.js` 43.7 = 合计 68.0）；#140 后该 link 不再注入 → React(43.7) 与 bootstrap/App(14.1) **双双退出判定**。
+  - Planner 用 Playwright 在生产构建上记录「挂载完成前」请求集并按 dist 文件 gzip 求和 ≈ **68.8 kB**（index.html 0.6 + 入口 js 1.1 + css 8.1 + bootstrap 14.1 + vendor-react 43.7 + `vendor-state`/`rolldown-runtime`/`scenes` 各 0.4）。
+  - 即**用户侧挂载前成本基本没变（68.0 → 68.8 kB）**，D40 想守住的「70 kB 首屏上限」在 #140 落地后已无门禁实体；React 19 的 +23 kB 只会撞 `vendor-react-` 懒 chunk 预算 55 kB（43.7 → ~66.7），而抬那条预算是 D40 未覆盖的新决策。
+- **为何必须由用户定**：① 与已确认用户决策 **D40「不抬预算」**的实质意图冲突（字面可容、相反）——契约 6.1「已确认决策与新事实冲突时可再确认一次」；② 属「明显影响长期成本的技术选择」（契约 1.10）；③ 影响产品体验（首屏下载 +34%）。
+- **三案与影响**：
+  - **A. 承认现实、放行 React 19**：`vendor-react-` 懒预算 55 → 70 kB，#141 的挂载前度量**只观测不判定**。代价 = 真实首屏 68.8 → ~92 kB（gzip，约 +34%），换来 React 19 生态与后续依赖线（#44 其余项）。
+  - **B. 先补度量、暂不升 React 19**（Planner 推荐）：#141 落地度量件并把 68.8 kB 作为基线写进文档；#44 维持 `needs-info` 直至确有升级收益（当前 React 19 对本项目无已验证的功能收益，只有维护周期收益；而首屏代价可量化）。零风险、可回滚，代价是依赖线继续落后。
+  - **C. 恢复实质口径、把体积真正降下来**：新增「挂载前必需合计」判定预算（基线 68.8 × 1.1 ≈ 75 kB），React 19 在该口径下必然破线 → 先做首屏瘦身（起点是**挂载后**场景链 `vendor-physics` 153.8 kB / `WorkbenchScene` 28.8 kB 与入口 CSS 8.1 kB，而非入口 JS），再谈 React 19。工作量最大，但对课堂弱网用户最有利。
+- **推荐 / 默认**：**推荐 B**；**默认 B**（用户不回复时：#141 照做（度量、不改判定），#44 继续 `needs-info`，不抬任何预算）。
+- **连续 3 天无答复且默认无异常** → 按 §6.3 默认 B 转正（届时 #44 维持 needs-info 即为转正后的状态，不视为放行）。
+- **可推翻条件**：用户明确要求「先升 React 19，体积代价可接受」→ 转 A 并把 #141 的度量设为观测项；或用户要求「首屏必须压到 X kB」→ 转 C 并另立瘦身单。
+- **影响范围**：#44 标签 `blocked → needs-info`（评论 6250880976）；#141 新建并入今日队列（低风险先行部分）；#140 验收评论登记表述纠正；PLAN「已知阻塞与依赖」与「下一阶段」同步；**不动任何门禁数值**。
+
+## D45 · 三十七次滚动（Planner 自决 · 实现细节，不问用户）：`--text-*` token 形态定为 size-only；canvas/SVG 颜色禁用 `var()`
+
+- **日期**：2026-10-18
+- **问题**：#138 把 `--text-h1` 实现为 `18px`（仅 size），而 `docs/ui-visual-token-spec.md` §2.5 定义为「18px / 700」（size+weight 一体）；切片 2 的「~30 处 inline 硬编码色改 token」也混淆了 DOM style / canvas 绘制色 / SVG presentation attribute / JS 主题三元四类站点。不定形就会让切片 2/3 各写一套。
+- **裁定（低风险、可回滚，属契约 6.1「实现细节 / 命名 / 内部 API」自决列）**：
+  1. **`--text-*` 维持 size-only**，weight 由 class 显式声明。理由：CSS 自定义属性无法同时喂给 `font-size` 与 `font-weight` 两个属性；若改为 `font:` 简写形态（`font: 700 18px Inter`）则必须绑定 family，与现有分写的 40+ 条字号规则冲突且会破坏 `line-height` 语义。规范 §2.5 表下补「实现注记」（列入 #142 验收）。
+  2. **canvas 绘制色与 SVG presentation attribute 禁用 `var()`**：`ctx.fillStyle`/`draw3DBox(..., '#3b82f6')` 与 `stroke="#f59e0b"` 均不经 CSS 级联，替换等于写坏代码。这类站点的单一真源须走「JS 主题色表」机制（另单设计，不在 M6 切片 2 内）。
+  3. **切片 2 按四类重盘**：实测 CompositionLab **10** / DataDrawer **0** / WorkbenchScene **0**（与文档「共 ~30 处」不符）；`SimulationCanvas` 37 / `PhotogateTimer` 17 / `GraphPanel` 12 / `OCRPanel` 8 / `MeasurementToolbox` 5 多数属第 ②③④ 类。清单产出列入 #142 验收标准，切片 3/4 **在其产出前不建单**。
+- **影响范围**：#142 正文与验收标准；`docs/ui-visual-token-spec.md` §2.5/§5 修订；#138 验收评论口径修正项 2 的处置去向。不触红线、不需用户决策。
+
+## D46 · 三十七次滚动：4 个 headless 探针是否接入 CI —— 触 1.10 红线，建 #143 为 needs-info（默认维持手动）
+
+- **日期**：2026-10-18
+- **事实**：`verify-first-frame-smoke.cjs`（#140）/ `verify-overlay-drawer-smoke.cjs`（#136/#137）/ `verify-portal-tokens.mjs`（#138）/ `verify-guidance-smoke.cjs` 全部**手动**，CI 7 道门禁无浏览器项。既往两次同类回归均靠人工补测才发现：#111 首帧回归（dev 不复现、`check:bundle` 绿也照送）、#136 的 1024×768 遮挡（Planner 手工复测 → #137）。
+- **红线判定**：新增 CI job / 改 deploy 前置 = 契约 1.10「主要 CI/CD 流程变化」→ **不放 ready**，Executor 即使看到也不得实施；据 §6.3 按默认方案继续（维持手动 + 每轮验收由 Planner 复跑取证，本轮已实做）。
+- **三案**：A 新增独立 CI job 跑 4 探针（一次 build + preview；`playwright install --with-deps chromium` 冷装 30–60s，CI +2~4 min；失败拦 PR）；B 仅把首帧探针接入 `deploy.yml` 前置（最小面，只防白屏级事故）；C 维持现状 + 在 `AGENTS.md` 写明「每棒收尾必跑 4 探针」。**推荐 A**（探针已写好且各自做过红向验证，边际成本低，而浏览器回归是本项目最大不可见风险类）；**默认 C**（不改 CI 行为）。
+- **待用户答复后**：若 A/B → #143 补全验收标准（须含「故意注入回归 → CI 报红」证据）；若 C → 关闭 #143 并立一个 P3 文档单写纪律条目。
+- **影响范围**：#143 新建（`needs-info`）；pending 区新增 D46；不动 `.github/workflows/*`。
