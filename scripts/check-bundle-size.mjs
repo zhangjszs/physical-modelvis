@@ -37,6 +37,8 @@ const LAZY_BUDGETS = [
     { prefix: 'vendor-three-', kb: 175 },
     { prefix: 'GraphPanel-', kb: 120 },
     { prefix: 'SimulationCanvas-', kb: 115 },
+    // #140: vendor-react 懒拆预算 (实测 gzip 43.7kB × 1.2 向上取整至 55kB)
+    { prefix: 'vendor-react-', kb: 55 },
     { prefix: 'FormulaPanel-', kb: 42 }
 ];
 /** 未列入预算表的懒 chunk 单文件通用预算 (当前最大未列入者 WorkbenchScene 28kB) */
