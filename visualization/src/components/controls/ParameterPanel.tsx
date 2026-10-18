@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useSimulationStore } from '../../store/simulationStore';
 import { NumberField } from '../common/NumberField';
+import { PanelSection } from '../common/PanelSection';
 import type { SceneParameter } from '../../types/visualization';
 
 interface ParameterPanelProps {
@@ -56,8 +57,7 @@ export function ParameterPanel({ onRunSimulation }: ParameterPanelProps) {
     };
 
     return (
-        <div className="panel-section">
-            <div className="panel-title">实验参数</div>
+        <PanelSection title="实验参数">
             {scene.presets && scene.presets.length > 0 && (
                 <div className="preset-bar">
                     <div className="preset-label">预设</div>
@@ -99,6 +99,6 @@ export function ParameterPanel({ onRunSimulation }: ParameterPanelProps) {
                     </button>
                 )}
             </div>
-        </div>
+        </PanelSection>
     );
 }

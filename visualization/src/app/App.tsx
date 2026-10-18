@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useState } from 'react';
 import { useSimulationStore } from '../store/simulationStore';
 import { OCRPanel } from '../components/ocr/OCRPanel';
 import { GuidancePanel } from '../components/guidance/GuidancePanel';
+import { PanelSection } from '../components/common/PanelSection';
 
 // WorkbenchScene 静态导入会把整条 2D 渲染链 + physics-core 求解器拖进首屏
 // (SimulationCanvas / rendering / runSceneSimulation ≈ 300+ kB), 用 lazy 隔离;
@@ -73,12 +74,11 @@ export function App() {
                 <Suspense
                     fallback={
                         <div className="classroom-scene">
-                            <div className="panel-section">
-                                <div className="panel-title">加载实验场景…</div>
+                            <PanelSection title="加载实验场景…">
                                 <div style={{ padding: 12, color: '#94a3b8', fontSize: 12 }}>
                                     首次打开需加载场景与渲染模块
                                 </div>
-                            </div>
+                            </PanelSection>
                         </div>
                     }
                 >

@@ -1,6 +1,7 @@
 import { useCompositionStore, SOURCE_DEFAULTS, type SourceKind } from '../../store/compositionStore';
 import { CompositionStage } from './CompositionStage';
 import { NumberField } from '../common/NumberField';
+import { PanelSection } from '../common/PanelSection';
 import type { FieldSource } from 'physics-core';
 
 type UniformFieldZone = Extract<FieldSource, { kind: 'uniform-field-zone' }>;
@@ -140,8 +141,7 @@ export function CompositionLab({ onExit }: { onExit: () => void }) {
             </div>
 
             <aside className="inspector-panel" style={{ width: 300, flexShrink: 0, overflowY: 'auto' }}>
-                <div className="panel-section">
-                    <div className="panel-title">🧪 自由组合实验台</div>
+                <PanelSection title="🧪 自由组合实验台">
                     <button className="btn btn-sm" style={{ width: '100%' }} onClick={onExit}>
                         ← 返回教材实验目录
                     </button>
@@ -157,10 +157,9 @@ export function CompositionLab({ onExit }: { onExit: () => void }) {
                             </button>
                         ))}
                     </div>
-                </div>
+                </PanelSection>
 
-                <div className="panel-section">
-                    <div className="panel-title">带电粒子</div>
+                <PanelSection title="带电粒子">
                     <NumberField
                         label="电荷量 q (C)"
                         value={particle.charge}
@@ -177,10 +176,9 @@ export function CompositionLab({ onExit }: { onExit: () => void }) {
                     <button className="btn btn-sm" style={{ width: '100%', marginTop: 6 }} onClick={resetLab}>
                         清空实验台
                     </button>
-                </div>
+                </PanelSection>
 
-                <div className="panel-section">
-                    <div className="panel-title">场线显示</div>
+                <PanelSection title="场线显示">
                     <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, margin: '4px 0' }}>
                         <input type="checkbox" checked={showElectricFieldLines} onChange={toggleElectricFieldLines} />
                         <span>显示电场线 (E)</span>
@@ -205,10 +203,9 @@ export function CompositionLab({ onExit }: { onExit: () => void }) {
                     <p style={{ fontSize: 11, color: '#94a3b8', margin: '4px 0 0' }}>
                         场线由场源实时追踪, 拖拽器材时跟手刷新; 线上箭头指示 E/B 方向, 密度档位演示场线疏密。
                     </p>
-                </div>
+                </PanelSection>
 
-                <div className="panel-section">
-                    <div className="panel-title">选中器材检查器</div>
+                <PanelSection title="选中器材检查器">
                     {!selected && <p style={{ fontSize: 12, color: '#94a3b8' }}>点击场景中的器材进行编辑</p>}
                     {selected && (
                         <>
@@ -239,10 +236,9 @@ export function CompositionLab({ onExit }: { onExit: () => void }) {
                             )}
                         </>
                     )}
-                </div>
+                </PanelSection>
 
-                <div className="panel-section">
-                    <div className="panel-title">状态</div>
+                <PanelSection title="状态">
                     {validationMessage && <p style={{ fontSize: 12, color: '#dc2626' }}>⚠ {validationMessage}</p>}
                     {!validationMessage && result && (
                         <p style={{ fontSize: 12, color: '#16a34a' }}>
@@ -264,7 +260,7 @@ export function CompositionLab({ onExit }: { onExit: () => void }) {
                             / 线圈 / 条形磁铁 / 匀强磁场区), 引擎将按叠加原理实时合成电磁场并积分粒子轨迹。
                         </p>
                     )}
-                </div>
+                </PanelSection>
             </aside>
         </div>
     );

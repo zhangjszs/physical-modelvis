@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useSimulationStore } from '../../store/simulationStore';
 import { getTimerDisplayValue, getTimerDisplayVelocity, type PhotogateMeasurement } from '../../utils/photogate';
+import { PanelSection } from '../common/PanelSection';
 
 /**
  * 数字毫秒计 React 面板。
@@ -51,17 +52,14 @@ export function PhotogateTimer() {
 
     if (channels.length === 0) {
         return (
-            <div className="panel-section photogate-timer-panel">
-                <div className="panel-title">数字毫秒计</div>
+            <PanelSection title="数字毫秒计" className="photogate-timer-panel">
                 <div style={{ padding: '12px', color: subColor, fontSize: 12 }}>无测量数据</div>
-            </div>
+            </PanelSection>
         );
     }
 
     return (
-        <div className="panel-section photogate-timer-panel">
-            <div className="panel-title">数字毫秒计</div>
-
+        <PanelSection title="数字毫秒计" className="photogate-timer-panel">
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '4px 0' }}>
                 {channels.map(ch => (
                     <ChannelCard
@@ -126,7 +124,7 @@ export function PhotogateTimer() {
                     </div>
                 )}
             </div>
-        </div>
+        </PanelSection>
     );
 }
 

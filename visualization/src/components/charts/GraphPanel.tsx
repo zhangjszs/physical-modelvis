@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useSimulationStore } from '../../store/simulationStore';
 import { extractGraphSeries } from '../../adapters/simulationResultAdapter';
 import type { GraphType } from '../../types/visualization';
+import { PanelSection } from '../common/PanelSection';
 import {
     LineChart,
     Line,
@@ -166,10 +167,9 @@ export function GraphPanel() {
     // ↓↓↓ 空态与早退统一放在全部 hook 之后 (见上方 series 处的说明) ↓↓↓
     if (!simulationResult && !inCompareMode) {
         return (
-            <div className="panel-section">
-                <div className="panel-title">曲线图</div>
+            <PanelSection title="曲线图">
                 <div className="empty-state">等待仿真运行...</div>
-            </div>
+            </PanelSection>
         );
     }
 
