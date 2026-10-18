@@ -5,13 +5,13 @@
 
 ## 今日队列（2026-10-18 · 执行顺序，3 个）
 
-- [ ] **#137（P2 · type:bug/area:render · ready-for-agent）窄视口工作台侧栏遮挡「公式推导」触发按钮（1024×768 下真实点击被 classroom-inspector 拦截）**
+- [ ] **#137（P2 · type:bug/area:render · in-review）窄视口工作台侧栏遮挡「公式推导」触发按钮（1024×768 下真实点击被 classroom-inspector 拦截）**
   - 证据：Planner 2026-10-18 复测 button rect `x=926 y=79 w=82 h=40`；inspector rect `x=688 y=84 w=320 h≈399`；`elementFromPoint` 命中 `ASIDE.classroom-inspector`，真实点击不可达；1440×900 正常。
   - 验收：真实 `locator.click()` 开抽屉（禁 DOM click 绕过）；双视口无水平滚动；inspector 可操作；扩展 `verify-overlay-drawer-smoke.cjs`；precheck/count/CI/Deploy 全绿。
-- [ ] **#138（P2 · type:chore/area:render · ready-for-agent）Design Token 切片 1：补全 `:root` 语义 token 并修复 `--surface` 未定义**
+- [ ] **#138（P2 · type:chore/area:render · in-review）Design Token 切片 1：补全 :root 语义 token 并修复 --surface 未定义**
   - 证据：`--surface` 被用 6 处但从未定义；亮色 guidance/export 回退深色 `#1e293b`；4 处面板背景透明；`--overlay-bg` / `--shadow-drawer` / `--space-*` / `--text-*` / `--radius-xs` 均缺。
   - 验收：补 token（暗/亮覆盖）；静态 token 契约测试红→绿；亮/暗 guidance + export 实际背景探针；不改 inline 硬编码/遮罩实际引用；precheck/count/CI/Deploy 全绿。
-- [ ] **#139（P3 · type:chore/area:render · ready-for-agent）组件复用收口：PanelSection 壳迁移 7 文件 14 处**
+- [ ] **#139（P3 · type:chore/area:render · in-review）组件复用收口：PanelSection 壳迁移 7 文件 14 处**
   - 范围：CompositionLab 5 / StateInspector 2 / DiagnosticsPanel 2 / ParameterPanel 1 / GraphPanel 1 / App 1 / PhotogateTimer 2；FormulaPanel 除外（D31）。
   - 验收：7 文件无直接 `className="panel-section"`；DOM/class/文案不变；≥2 回归测试（StateInspector 空态 + PhotogateTimer 附加 class）；precheck/count/CI/Deploy 全绿。
 
