@@ -14,6 +14,8 @@
 - [ ] **#139（P3 · type:chore/area:render · in-review）组件复用收口：PanelSection 壳迁移 7 文件 14 处**
   - 范围：CompositionLab 5 / StateInspector 2 / DiagnosticsPanel 2 / ParameterPanel 1 / GraphPanel 1 / App 1 / PhotogateTimer 2；FormulaPanel 除外（D31）。
   - 验收：7 文件无直接 `className="panel-section"`；DOM/class/文案不变；≥2 回归测试（StateInspector 空态 + PhotogateTimer 附加 class）；precheck/count/CI/Deploy 全绿。
+- [ ] **#140（P2 · type:chore/area:ci · in-review）vendor-react 懒拆 / 预加载：React 19 前置，保 70kB 首屏门禁 + 生产构建 headless 首帧探针**
+  - D40 用户已定；验收含生产构建 + headless 首帧探针（#111 教训）、`LAZY_BUDGETS` 增加 `vendor-react-`、CI/Deploy 双绿。完成后解锁 #44。
 
 ## 昨日验收（done · 三十五次滚动）
 
@@ -25,9 +27,7 @@
 
 ## 下一批 ready（未入今日队列，今日不领）
 
-- [ ] **#140（P2 · type:chore/area:ci · ready-for-agent）vendor-react 懒拆 / 预加载：React 19 前置，保 70kB 首屏门禁 + 生产构建 headless 首帧探针**
-  - D40 用户已定；验收含生产构建 + headless 首帧探针（#111 教训）、`LAZY_BUDGETS` 增加 `vendor-react-`、CI/Deploy 双绿。完成后解锁 #44。
-
+- （今日队列清空后响应用户指令「继续下一个issue」已领取 #140）
 ## 阻塞 / 待处理
 
 - **#44（P2 · type:chore/area:ci · blocked）React 19 专项迁移** —— 正文已按 2026-10-18 实况重写：vite 8.3.1 / express 5.2.1 / TS 7.0.0 / vitest 5.0.3 已在大版本线；剩余 React 19（blocked by #140）+ recharts 3 / three 0.186 / jsdom 30 / jest-dom 7 / eslint 10 / @types/node 26 逐项另议。**勿领**，待 #140 完成。
