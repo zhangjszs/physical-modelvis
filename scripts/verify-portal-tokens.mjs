@@ -1,17 +1,14 @@
 /*
- * portal 浮层设计令牌作用域探针 (#118) — Playwright，**手动运行，不接入 CI/precheck**。
+ * portal 浮层与 Design Token 作用域探针 (#118 + #138) — Playwright，**手动运行，不接入 CI/precheck**。
  *
- * 目的: 锁定 #112 遗留的「定位修好但样式失效」回归 —— createPortal 到 document.body 的
- *       浮层（OCR「拍照解题」弹窗）此前脱离 .app 设计令牌作用域，背景/边框/圆角/阴影/标题
- *       渐变全部失效。#118 将令牌上移 :root、并把主题镜像到 <html class="light"> 后，
- *       body 级 portal 应在**暗/亮双主题**下均正确继承令牌。
+ * 目的: ① 锁定 #112 遗留的「定位修好但样式失效」回归 —— createPortal 到 document.body 的
+ *       浮层（OCR「拍照解题」弹窗）在暗/亮双主题下均正确继承令牌；
+ *       ② #138 Design Token 切片 1 验证：验证暗/亮主题下 .guidance-panel 与 .export-menu
+ *       的实际 computed backgroundColor 分别为 rgb(30, 41, 59) 与 rgb(255, 255, 255)。
  *
  * 运行: 需先起 dev server  `cd visualization && npm run dev` (默认 :3000)
  *   BASE_URL=http://localhost:3000/ node scripts/verify-portal-tokens.mjs
  *   SMOKE_BROWSER_CHANNEL 浏览器渠道 (#98/#106): 置空 = Playwright 自带 chromium（Linux/CI 可用）
- *
- * 判据: 每项关键 computed style 非 none / 非空即通过；任一失效 → exit 1（红）。
- *       修复前（令牌仅在 .app）对 body portal 即为红，修复后转绿 —— 这是「红→绿」双向可验的探针。
  */
 import { chromium } from 'playwright';
 
@@ -31,7 +28,10 @@ const openModal = async page => {
 /** 关闭 OCR 弹窗 */
 const closeModal = async page => {
     const close = await page.$('.ocr-close');
-    if (close) await close.click();
+    if (close) {
+        await close.click();
+        await page.waitForSelector('.ocr-overlay', { state: 'hidden', timeout: 8000 });
+    }
     await page.waitForTimeout(200);
 };
 /** 切换暗/亮主题（顶栏按钮文案随当前主题变化） */
@@ -66,6 +66,31 @@ const probeTheme = page =>
         };
     });
 
+/** #138: 采集 guidance-panel 与 export-menu 的实际 computed backgroundColor */
+const probeSurfaceConsumers = async page => {
+    // 1. 导学面板
+    await page.locator('.top-bar-right button', { hasText: '导学' }).click();
+    await page.waitForSelector('.guidance-panel', { state: 'visible', timeout: 8000 });
+    const guidanceBg = await page.evaluate(
+        () => window.getComputedStyle(document.querySelector('.guidance-panel')).backgroundColor
+    );
+    await page.mouse.click(4, 4); // 点遮罩关闭
+    await page.waitForTimeout(200);
+
+    // 2. 导出菜单
+    const exportBtn = page.locator('.stage-actions button', { hasText: '导出数据' });
+    let exportBg = null;
+    if (await exportBtn.isVisible()) {
+        await exportBtn.click();
+        await page.waitForSelector('.export-menu', { state: 'visible', timeout: 8000 });
+        exportBg = await page.evaluate(
+            () => window.getComputedStyle(document.querySelector('.export-menu')).backgroundColor
+        );
+        await exportBtn.click(); // 关闭
+        await page.waitForTimeout(200);
+    }
+    return { guidanceBg, exportBg };
+};
 /** 对单主题采集结果逐项判定，返回失败原因数组 */
 const check = r => {
     const fails = [];
@@ -91,12 +116,23 @@ const check = r => {
     const dark = await probeTheme(page);
     allFails.push(...check(dark).map(f => `[暗] ${f}`));
     await closeModal(page);
+    const darkConsumers = await probeSurfaceConsumers(page);
+    if (darkConsumers.guidanceBg !== 'rgb(30, 41, 59)')
+        allFails.push(`[暗] guidance-panel 背景色应为 rgb(30, 41, 59)，实测: ${darkConsumers.guidanceBg}`);
+    if (darkConsumers.exportBg && darkConsumers.exportBg !== 'rgb(30, 41, 59)')
+        allFails.push(`[暗] export-menu 背景色应为 rgb(30, 41, 59)，实测: ${darkConsumers.exportBg}`);
 
     // ── 亮色 ──
     await toggleTheme(page);
     await openModal(page);
     const light = await probeTheme(page);
     allFails.push(...check(light).map(f => `[亮] ${f}`));
+    await closeModal(page);
+    const lightConsumers = await probeSurfaceConsumers(page);
+    if (lightConsumers.guidanceBg !== 'rgb(255, 255, 255)')
+        allFails.push(`[亮] guidance-panel 背景色应为 rgb(255, 255, 255)，实测: ${lightConsumers.guidanceBg}`);
+    if (lightConsumers.exportBg && lightConsumers.exportBg !== 'rgb(255, 255, 255)')
+        allFails.push(`[亮] export-menu 背景色应为 rgb(255, 255, 255)，实测: ${lightConsumers.exportBg}`);
     if (!light.htmlLight) allFails.push('[亮] <html> 未带 light 类（主题未镜像到根，portal 取不到亮色令牌）');
     if (dark.htmlLight) allFails.push('[暗] <html> 不应带 light 类');
 

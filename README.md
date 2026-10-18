@@ -19,7 +19,7 @@ A zero-dependency TypeScript physics engine with React Canvas 2D/3D interactive 
 
 ## 测试状态
 
-- **测试数**: core 1169 / viz 1692 / 总计 2861 (全部通过) <!-- test-count -->
+- **测试数**: core 1169 / viz 1696 / 总计 2865 (全部通过) <!-- test-count -->
 - 质量门禁:`npm run precheck`(build:core → typecheck → lint → format:check → test → count:check → selfcheck)
 
 ## 项目简介
@@ -317,8 +317,8 @@ cd visualization && npm run dev          # Vite dev server
 
 ```
 physics-core:   1169 tests passed (128 files)
-visualization:  1692 tests passed (60 files)
-Total:          2861 tests passed
+visualization:  1696 tests passed (61 files)
+Total:          2865 tests passed
 ```
 
 准确性测试矩阵（`*/tests/accuracy/`）：

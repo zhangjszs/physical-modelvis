@@ -57,16 +57,37 @@ body {
     --err: #ef4444;
     --info: var(--brand);
 
-    /* 圆角尺度（柔和现代化） */
+    /* 语义底色与遮罩（#130 规范 §2.1） */
+    --surface: #1e293b;
+    --overlay-bg: rgba(0, 0, 0, 0.5);
+
+    /* 间距尺度（#130 规范 §2.2） */
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 12px;
+    --space-lg: 16px;
+    --space-xl: 24px;
+
+    /* 圆角尺度（柔和现代化，#130 规范 §2.3） */
+    --radius-xs: 4px;
     --radius-sm: 8px;
     --radius-md: 12px;
     --radius-lg: 18px;
     --radius-pill: 999px;
 
-    /* 阴影尺度（深底友好） */
+    /* 阴影尺度（深底友好，#130 规范 §2.4） */
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
     --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.28);
     --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.38);
+    --shadow-drawer: -20px 0 60px rgba(0, 0, 0, 0.3);
+
+    /* 文字层级（#130 规范 §2.5） */
+    --text-h1: 18px;
+    --text-h2: 15px;
+    --text-h3: 12px;
+    --text-body: 13px;
+    --text-small: 11px;
+    --text-mono: 12px;
 
     /* 焦点环 */
     --ring: rgba(59, 130, 246, 0.4);
@@ -122,6 +143,13 @@ body {
     --glass-border-hover: rgba(30, 41, 59, 0.22);
     --glow-brand: 0 8px 26px rgba(37, 99, 235, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.6);
     --input-bg: rgba(255, 255, 255, 0.72);
+
+    /* 语义底色与遮罩覆盖（浅色，#130 规范 §2.1） */
+    --surface: #ffffff;
+    --overlay-bg: rgba(15, 23, 42, 0.3);
+    --ok: #16a34a;
+    --warn: #b45309;
+    --err: #dc2626;
 }
 
 /* ========== 玻璃拟态工具类 ========== */
@@ -951,7 +979,7 @@ body {
     max-width: 92vw;
     max-height: 80vh;
     overflow-y: auto;
-    background: var(--surface, #1e293b);
+    background: var(--surface);
     border: 1px solid rgba(123, 47, 255, 0.35);
     border-radius: 12px;
     padding: 18px 20px;
@@ -1085,7 +1113,7 @@ body {
     top: calc(100% + 6px);
     right: 0;
     min-width: 160px;
-    background: var(--surface, #1e293b);
+    background: var(--surface);
     border: 1px solid rgba(123, 47, 255, 0.3);
     border-radius: 8px;
     padding: 6px;
@@ -1613,7 +1641,7 @@ body {
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 .app.dark .inspector-tab-btn.active {
-    background: #1e293b;
+    background: var(--surface);
     color: #60a5fa;
 }
 .stage-mode-badge {
@@ -2222,7 +2250,7 @@ body {
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 .app.dark .stepper-btn.active {
-    background: #1e293b;
+    background: var(--surface);
     color: #60a5fa;
 }
 .step-content {
