@@ -113,7 +113,7 @@ describe('#138 Design Token 静态契约测试', () => {
     it(':root.light 覆盖浅色语义 token', () => {
         const lightTokens = extractBlockTokens(cssContent, ':root.light');
 
-        const requiredLightTokens = ['--surface', '--overlay-bg', '--ok', '--warn', '--err'];
+        const requiredLightTokens = ['--surface', '--overlay-bg', '--shadow-drawer', '--ok', '--warn', '--err'];
 
         const missing: string[] = [];
         for (const token of requiredLightTokens) {
@@ -158,5 +158,42 @@ describe('#138 Design Token 静态契约测试', () => {
             const count = (cssContent.match(new RegExp(`var\\(\\s*${token}\\s*\\)`, 'g')) ?? []).length;
             expect(count, `Token ${token} 在 styles.css 中无消费者`).toBeGreaterThanOrEqual(1);
         }
+    });
+
+    it('浮层遮罩与抽屉阴影使用 Design Token (#145)', () => {
+        const overlayBgCount = (cssContent.match(/var\(\s*--overlay-bg\s*\)/g) ?? []).length;
+        expect(overlayBgCount, 'styles.css 中 var(--overlay-bg) 消费数应至少为 4').toBeGreaterThanOrEqual(4);
+
+        const shadowDrawerCount = (cssContent.match(/var\(\s*--shadow-drawer\s*\)/g) ?? []).length;
+        expect(shadowDrawerCount, 'styles.css 中 var(--shadow-drawer) 消费数应至少为 1').toBeGreaterThanOrEqual(1);
+
+        // 验证 4 处 overlay 类均使用 var(--overlay-bg)
+        const overlayClasses = ['.ocr-overlay', '.guidance-overlay', '.problem-overlay', '.formula-drawer-overlay'];
+        for (const cls of overlayClasses) {
+            const escaped = cls.replace('.', '\\.');
+            const regex = new RegExp(`${escaped}\\s*\\{[^}]*background:\\s*var\\(--overlay-bg\\)`, 'i');
+            expect(regex.test(cssContent), `${cls} 必须使用 background: var(--overlay-bg)`).toBe(true);
+        }
+
+        // 验证 .formula-drawer 使用 var(--shadow-drawer)
+        expect(
+            /\.formula-drawer\s*\{[^}]*box-shadow:\s*var\(--shadow-drawer\)/i.test(cssContent),
+            '.formula-drawer 必须使用 box-shadow: var(--shadow-drawer)'
+        ).toBe(true);
+
+        // 验证 z-index 梯队
+        expect(/\.ocr-overlay\s*\{[^}]*z-index:\s*1000/i.test(cssContent), '.ocr-overlay z-index 应为 1000').toBe(true);
+        expect(
+            /\.problem-overlay\s*\{[^}]*z-index:\s*1000/i.test(cssContent),
+            '.problem-overlay z-index 应为 1000'
+        ).toBe(true);
+        expect(
+            /\.guidance-overlay\s*\{[^}]*z-index:\s*1000/i.test(cssContent),
+            '.guidance-overlay z-index 应提升至 1000'
+        ).toBe(true);
+        expect(
+            /\.formula-drawer-overlay\s*\{[^}]*z-index:\s*900/i.test(cssContent),
+            '.formula-drawer-overlay z-index 应保持 900'
+        ).toBe(true);
     });
 });
