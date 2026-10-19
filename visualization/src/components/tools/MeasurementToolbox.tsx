@@ -486,34 +486,30 @@ export function MeasurementToolbox() {
                 <div className="photogate-interactive-wrapper">
                     {/* 光电门 A 探头 */}
                     <div
-                        className={`interactive-photogate ${gateA.isBlocked ? 'blocked' : ''}`}
+                        className={`interactive-photogate gate-a ${gateA.isBlocked ? 'blocked' : ''}`}
                         style={{ left: gateA.pos.x, top: gateA.pos.y }}
                         onPointerDown={e => handlePointerDownGate('A', e)}
                         title="按住鼠标拖拽光电门 1 到任意测量位置"
                     >
-                        <div className="gate-u-shape" style={{ borderColor: gateA.color }}>
+                        <div className="gate-u-shape">
                             <div className="gate-laser-beam" />
                             <div className={`gate-status-led ${gateA.isBlocked ? 'active' : ''}`} />
                         </div>
-                        <div className="gate-badge" style={{ background: gateA.color }}>
-                            门 1
-                        </div>
+                        <div className="gate-badge">门 1</div>
                     </div>
 
                     {/* 光电门 B 探头 */}
                     <div
-                        className={`interactive-photogate ${gateB.isBlocked ? 'blocked' : ''}`}
+                        className={`interactive-photogate gate-b ${gateB.isBlocked ? 'blocked' : ''}`}
                         style={{ left: gateB.pos.x, top: gateB.pos.y }}
                         onPointerDown={e => handlePointerDownGate('B', e)}
                         title="按住鼠标拖拽光电门 2 到任意测量位置"
                     >
-                        <div className="gate-u-shape" style={{ borderColor: gateB.color }}>
+                        <div className="gate-u-shape">
                             <div className="gate-laser-beam" />
                             <div className={`gate-status-led ${gateB.isBlocked ? 'active' : ''}`} />
                         </div>
-                        <div className="gate-badge" style={{ background: gateB.color }}>
-                            门 2
-                        </div>
+                        <div className="gate-badge">门 2</div>
                     </div>
 
                     {/* 光电门数显毫秒计时 HUD 窗口 */}
@@ -541,9 +537,7 @@ export function MeasurementToolbox() {
                         <div className="hud-body">
                             {/* 门 1 读数 */}
                             <div className="gate-metric-card">
-                                <div className="card-header" style={{ color: gateA.color }}>
-                                    ● 光电门 1
-                                </div>
+                                <div className="card-header gate-card-a">● 光电门 1</div>
                                 <div className="metric-row">
                                     <span>遮光时间 Δt₁</span>
                                     <strong>{gateA.dtMs ? `${gateA.dtMs.toFixed(1)} ms` : '--'}</strong>
@@ -562,9 +556,7 @@ export function MeasurementToolbox() {
 
                             {/* 门 2 读数 */}
                             <div className="gate-metric-card">
-                                <div className="card-header" style={{ color: gateB.color }}>
-                                    ● 光电门 2
-                                </div>
+                                <div className="card-header gate-card-b">● 光电门 2</div>
                                 <div className="metric-row">
                                     <span>遮光时间 Δt₂</span>
                                     <strong>{gateB.dtMs ? `${gateB.dtMs.toFixed(1)} ms` : '--'}</strong>
