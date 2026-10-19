@@ -50,7 +50,7 @@
 
 - **#150（P3 · blocked）**：依赖 #149；Planner 在 #149 验收通过后解除，不得提前领取。
 - **#44（P2 · type:chore/area:ci · parked）React 19 专项迁移** —— D44 = **B**（用户 2026-10-18 拍板）：**暂不升**；解除条件三条（用户改选 A/C、React 19 出现已验证功能收益、react 18 遇安全/兼容硬约束）。**勿领**。
-- **#100（P2）/#101（P3）** —— parked（D19），勿领；是否解冻见 D51（默认不解冻）。
+- **#100（P2）/#101（P3）** —— parked（D19），**M7 期间勿领**；D51 已答复：**M7 三切片（#148/#149/#150）全部 CLOSED 后解冻**，转产品功能线，顺序 **#100 → #101**（届时由 Planner 摘 `parked`、加 `ready-for-agent` 并重写验收项）。
 - **观察（不建单，需用户点头才做）**：`origin/agent/issue-95-shadow-adaptive`(`ba0bd6f`) 与 `origin/agent/issue-96-default-on-grid`(`f73f21a`) 两个远程分支已是 main 祖先且对应 Issue 已 CLOSED，属 §1.9 未执行的清理。删除远程分支影响共享状态且契约 1.9 禁止 agent 删他人分支，本轮**只上报、不代删**。
 
 ## 标签说明
@@ -59,4 +59,4 @@
 - 优先级：P0 最多 2 个（现 0）；P1 与今日容量匹配（现 0）；P2 为当前核心质量收口，P3 为次级迁移切片
 - 契约 1.6 一致性：本轮 Issue ↔ TASKS.md 无漂移（Issue 为权威，本文件由 `gh issue list/view` 实拉整体重写）；当前 open 共 6 单 = ready 2 + blocked 1 + parked 3，in-review 0
 - 契约 1.2：本轮未发现 `.agent/LOCK` 残留
-- **pending 决策**：D51（M7 后是否解冻 #100/#101，默认不解冻）；其余 pending 清零
+- **pending 决策**：清零（D51 已获用户答复：先完成 M7，收官后解冻 #100/#101 转产品功能线）
