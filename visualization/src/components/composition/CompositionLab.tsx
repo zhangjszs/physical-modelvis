@@ -90,9 +90,7 @@ function UniformFieldZoneEditor(props: { id: string; source: UniformFieldZone })
                     onChange={v => updateSourceVector(id, 'size', { [dim.key]: v })}
                 />
             ))}
-            <p style={{ fontSize: 11, color: '#94a3b8', margin: '4px 0 0' }}>
-                朝向固定 +y, 盒区轴对齐 (旋转编辑随 #100 解锁)。
-            </p>
+            <p className="composition-desc">朝向固定 +y, 盒区轴对齐 (旋转编辑随 #100 解锁)。</p>
         </>
     );
 }
@@ -120,32 +118,20 @@ export function CompositionLab({ onExit }: { onExit: () => void }) {
     const selected = sources.find(p => p.id === selectedId) ?? null;
 
     return (
-        <div className="classroom-scene" style={{ display: 'flex', gap: 12, height: '100%' }}>
-            <div style={{ flex: 1, minWidth: 0, position: 'relative' }}>
+        <div className="classroom-scene composition-layout">
+            <div className="composition-stage-wrap">
                 <CompositionStage />
-                <div
-                    style={{
-                        position: 'absolute',
-                        left: 12,
-                        top: 12,
-                        fontSize: 12,
-                        color: '#64748b',
-                        background: 'rgba(255,255,255,0.72)',
-                        borderRadius: 8,
-                        padding: '4px 10px',
-                        pointerEvents: 'none'
-                    }}
-                >
+                <div className="composition-tip">
                     点击选中 · 按住拖拽布点 (0.05 m 吸附) · 松手自动重算 · 右键旋转视角
                 </div>
             </div>
 
-            <aside className="inspector-panel" style={{ width: 300, flexShrink: 0, overflowY: 'auto' }}>
+            <aside className="inspector-panel composition-inspector">
                 <PanelSection title="🧪 自由组合实验台">
-                    <button className="btn btn-sm" style={{ width: '100%' }} onClick={onExit}>
+                    <button className="btn btn-sm btn-block" onClick={onExit}>
                         ← 返回教材实验目录
                     </button>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginTop: 8 }}>
+                    <div className="composition-palette-grid">
                         {PALETTE.map(item => (
                             <button
                                 key={item.kind}
@@ -173,22 +159,22 @@ export function CompositionLab({ onExit }: { onExit: () => void }) {
                         onChange={v => setParticle({ mass: v })}
                     />
                     <NumberField label="仿真时长 (s)" value={duration} step={0.5} onChange={v => setDuration(v)} />
-                    <button className="btn btn-sm" style={{ width: '100%', marginTop: 6 }} onClick={resetLab}>
+                    <button className="btn btn-sm btn-block composition-reset-btn" onClick={resetLab}>
                         清空实验台
                     </button>
                 </PanelSection>
 
                 <PanelSection title="场线显示">
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, margin: '4px 0' }}>
+                    <label className="composition-field-label">
                         <input type="checkbox" checked={showElectricFieldLines} onChange={toggleElectricFieldLines} />
                         <span>显示电场线 (E)</span>
                     </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, margin: '4px 0' }}>
+                    <label className="composition-field-label">
                         <input type="checkbox" checked={showMagneticFieldLines} onChange={toggleMagneticFieldLines} />
                         <span>显示磁场线 (B)</span>
                     </label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '4px 0' }}>
-                        <span style={{ fontSize: 13 }}>密度</span>
+                    <div className="composition-density-row">
+                        <span className="composition-density-title">密度</span>
                         {DENSITY_OPTIONS.map(opt => (
                             <button
                                 key={opt.value}
@@ -200,20 +186,19 @@ export function CompositionLab({ onExit }: { onExit: () => void }) {
                             </button>
                         ))}
                     </div>
-                    <p style={{ fontSize: 11, color: '#94a3b8', margin: '4px 0 0' }}>
+                    <p className="composition-desc">
                         场线由场源实时追踪, 拖拽器材时跟手刷新; 线上箭头指示 E/B 方向, 密度档位演示场线疏密。
                     </p>
                 </PanelSection>
 
                 <PanelSection title="选中器材检查器">
-                    {!selected && <p style={{ fontSize: 12, color: '#94a3b8' }}>点击场景中的器材进行编辑</p>}
+                    {!selected && <p className="composition-empty-hint">点击场景中的器材进行编辑</p>}
                     {selected && (
                         <>
-                            <p style={{ fontSize: 12, color: '#475569', margin: '4px 0 8px' }}>
+                            <p className="composition-selected-tag">
                                 {KIND_LABEL[selected.source.kind]} · {selected.id}
                                 <button
-                                    className="btn btn-sm"
-                                    style={{ float: 'right', color: '#dc2626' }}
+                                    className="btn btn-sm btn-danger-text"
                                     onClick={() => removeSource(selected.id)}
                                 >
                                     删除
@@ -239,23 +224,23 @@ export function CompositionLab({ onExit }: { onExit: () => void }) {
                 </PanelSection>
 
                 <PanelSection title="状态">
-                    {validationMessage && <p style={{ fontSize: 12, color: '#dc2626' }}>⚠ {validationMessage}</p>}
+                    {validationMessage && <p className="composition-status-err">⚠ {validationMessage}</p>}
                     {!validationMessage && result && (
-                        <p style={{ fontSize: 12, color: '#16a34a' }}>
+                        <p className="composition-status-ok">
                             {result.completed
                                 ? `✓ 轨迹求解完成 (${result.trajectory.length} 帧, ${result.stepCount} 步)`
                                 : '⚠ 数值发散, 轨迹提前终止'}
                         </p>
                     )}
                     {!validationMessage && result && result.warnings.length > 0 && (
-                        <ul style={{ fontSize: 11, color: '#b45309', paddingLeft: 16 }}>
+                        <ul className="composition-warn-list">
                             {result.warnings.map((w, i) => (
                                 <li key={i}>{w}</li>
                             ))}
                         </ul>
                     )}
                     {sources.length === 0 && (
-                        <p style={{ fontSize: 12, color: '#94a3b8' }}>
+                        <p className="composition-empty-hint">
                             从上方器材面板添加场源 (默认 {Object.keys(SOURCE_DEFAULTS).length} 类: 点电荷 / 平板 / 导线
                             / 线圈 / 条形磁铁 / 匀强磁场区), 引擎将按叠加原理实时合成电磁场并积分粒子轨迹。
                         </p>

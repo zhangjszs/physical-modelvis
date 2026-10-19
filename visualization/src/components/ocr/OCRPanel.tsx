@@ -307,11 +307,7 @@ export function OCRPanel() {
 
     return (
         <>
-            <button
-                className="btn btn-sm"
-                onClick={() => setIsOpen(true)}
-                style={{ background: 'rgba(251,191,36,0.15)', borderColor: 'rgba(251,191,36,0.3)', color: '#fbbf24' }}
-            >
+            <button className="btn btn-sm ocr-trigger-btn" onClick={() => setIsOpen(true)}>
                 📷 拍照解题
             </button>
             {isOpen &&
@@ -323,18 +319,16 @@ export function OCRPanel() {
                             </button>
                             <div className="ocr-title">AI 拍照解题</div>
 
-                            <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                            <div className="ocr-tab-row">
                                 <button
-                                    className={`btn btn-sm ${entryMode === 'image' ? 'btn-primary' : ''}`}
+                                    className={`btn btn-sm btn-flex ${entryMode === 'image' ? 'btn-primary' : ''}`}
                                     onClick={() => setEntryMode('image')}
-                                    style={{ flex: 1 }}
                                 >
                                     📷 拍照识别
                                 </button>
                                 <button
-                                    className={`btn btn-sm ${entryMode === 'text' ? 'btn-primary' : ''}`}
+                                    className={`btn btn-sm btn-flex ${entryMode === 'text' ? 'btn-primary' : ''}`}
                                     onClick={() => setEntryMode('text')}
-                                    style={{ flex: 1 }}
                                 >
                                     📝 粘贴题干
                                 </button>
@@ -349,10 +343,8 @@ export function OCRPanel() {
                                             onDrop={handleDrop}
                                             onClick={() => fileRef.current?.click()}
                                         >
-                                            <div style={{ fontSize: 36, opacity: 0.6 }}>📷</div>
-                                            <div style={{ fontSize: 13, color: 'var(--text2)' }}>
-                                                拖拽图片或点击选择
-                                            </div>
+                                            <div className="ocr-dropzone-icon">📷</div>
+                                            <div className="ocr-dropzone-text">拖拽图片或点击选择</div>
                                             <input
                                                 ref={fileRef}
                                                 type="file"
@@ -366,13 +358,8 @@ export function OCRPanel() {
                                         </div>
                                     ) : (
                                         <div className="ocr-preview">
-                                            <img
-                                                src={preview}
-                                                alt="预览"
-                                                style={{ maxWidth: '100%', maxHeight: 200, borderRadius: 8 }}
-                                            />
+                                            <img src={preview} alt="预览" className="ocr-preview-img" />
                                             <button
-                                                className="btn btn-sm"
                                                 onClick={() => {
                                                     setPreview(null);
                                                     base64Ref.current = null;
@@ -382,7 +369,7 @@ export function OCRPanel() {
                                                     setVariantIndex(0);
                                                     setStatus(null);
                                                 }}
-                                                style={{ marginTop: 8, color: '#ef4444' }}
+                                                className="btn btn-sm btn-remove-preview"
                                             >
                                                 移除
                                             </button>
@@ -394,15 +381,13 @@ export function OCRPanel() {
                                         <div className="ocr-field">
                                             <label>后端状态</label>
                                             <span
-                                                style={{
-                                                    color:
-                                                        backendOk === null
-                                                            ? '#94a3b8'
-                                                            : backendOk
-                                                              ? '#22c55e'
-                                                              : '#ef4444',
-                                                    fontSize: 13
-                                                }}
+                                                className={`ocr-backend-status ${
+                                                    backendOk === null
+                                                        ? 'status-checking'
+                                                        : backendOk
+                                                          ? 'status-connected'
+                                                          : 'status-disconnected'
+                                                }`}
                                             >
                                                 {backendOk === null
                                                     ? '检测中...'
@@ -447,10 +432,9 @@ export function OCRPanel() {
                                     </details>
 
                                     <button
-                                        className="btn btn-primary"
                                         onClick={doRecognize}
                                         disabled={!preview || loading || generating || backendOk === false}
-                                        style={{ width: '100%', marginTop: 12 }}
+                                        className="btn btn-primary ocr-action-btn"
                                     >
                                         {loading ? '识别中...' : '识别题目'}
                                     </button>
@@ -490,24 +474,17 @@ export function OCRPanel() {
                                                 </span>
                                             </div>
                                             <ProblemBody problem={activeProblem} />
-                                            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                                            <div className="ocr-btn-row">
                                                 <button
-                                                    className="btn btn-primary"
+                                                    className="btn btn-primary btn-flex"
                                                     onClick={loadIntoSimulation}
-                                                    style={{ flex: 1 }}
                                                 >
                                                     加载仿真
                                                 </button>
                                                 <button
-                                                    className="btn"
+                                                    className="btn ocr-trigger-btn btn-flex"
                                                     onClick={doGenerate}
                                                     disabled={generating || backendOk === false}
-                                                    style={{
-                                                        flex: 1,
-                                                        background: 'rgba(251,191,36,0.15)',
-                                                        borderColor: 'rgba(251,191,36,0.3)',
-                                                        color: '#fbbf24'
-                                                    }}
                                                 >
                                                     {generating ? '生成中...' : '✨ 举一反三'}
                                                 </button>
@@ -516,14 +493,7 @@ export function OCRPanel() {
                                     )}
 
                                     {variants && variants.length > 0 && (
-                                        <div
-                                            className="ocr-result"
-                                            style={{
-                                                marginTop: 12,
-                                                borderTop: '1px dashed rgba(148,163,184,0.4)',
-                                                paddingTop: 12
-                                            }}
-                                        >
+                                        <div className="ocr-result ocr-variant-section">
                                             <div className="ocr-result-head">
                                                 <span className="ocr-result-type">举一反三</span>
                                                 <span className="ocr-result-title">
@@ -561,9 +531,8 @@ export function OCRPanel() {
                                                     </div>
                                                     <ProblemBody problem={activeVariant} />
                                                     <button
-                                                        className="btn btn-primary"
+                                                        className="btn btn-primary ocr-action-btn"
                                                         onClick={() => loadProblemIntoSimulation(activeVariant)}
-                                                        style={{ width: '100%', marginTop: 12 }}
                                                     >
                                                         加载仿真
                                                     </button>
@@ -581,23 +550,12 @@ export function OCRPanel() {
                                         onChange={e => setProblemText(e.target.value)}
                                         rows={5}
                                         placeholder="粘贴题目文字，如：从距地面20m高处以10m/s的速度水平抛出一小球，取g=9.8m/s²。"
-                                        style={{
-                                            width: '100%',
-                                            background: 'rgba(15,23,42,0.6)',
-                                            border: '1px solid rgba(148,163,184,0.3)',
-                                            borderRadius: 8,
-                                            padding: 10,
-                                            color: 'var(--text1, #e2e8f0)',
-                                            fontSize: 13,
-                                            resize: 'vertical',
-                                            boxSizing: 'border-box'
-                                        }}
+                                        className="ocr-textarea"
                                     />
                                     <button
-                                        className="btn btn-primary"
                                         onClick={doAnalyze}
                                         disabled={!problemText.trim() || analyzing}
-                                        style={{ width: '100%', marginTop: 8 }}
+                                        className="btn btn-primary ocr-analyze-btn"
                                     >
                                         {analyzing ? '建模中...' : '自动建模 (本地关键词, 不调用 AI)'}
                                     </button>
@@ -619,7 +577,7 @@ export function OCRPanel() {
                                                 </div>
                                             )}
                                             {analysis.warnings.length > 0 && (
-                                                <div className="ocr-result-desc" style={{ color: '#f59e0b' }}>
+                                                <div className="ocr-result-desc ocr-warning-desc">
                                                     {analysis.warnings.map((w, i) => (
                                                         <div key={i}>{w}</div>
                                                     ))}
@@ -635,16 +593,15 @@ export function OCRPanel() {
                                                 </div>
                                             )}
                                             {analysis.assumptions.length > 0 && (
-                                                <div className="ocr-result-desc" style={{ fontSize: 12, opacity: 0.7 }}>
+                                                <div className="ocr-result-desc ocr-assumption-desc">
                                                     {analysis.assumptions.map((a, i) => (
                                                         <div key={i}>{a}</div>
                                                     ))}
                                                 </div>
                                             )}
                                             <button
-                                                className="btn btn-primary"
                                                 onClick={loadAnalysisIntoSimulation}
-                                                style={{ width: '100%', marginTop: 12 }}
+                                                className="btn btn-primary ocr-action-btn"
                                             >
                                                 加载仿真
                                             </button>
