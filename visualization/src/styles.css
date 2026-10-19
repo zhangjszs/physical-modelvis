@@ -296,10 +296,10 @@ body {
 
 /* ========== Panel Section ========== */
 .panel-section {
-    margin-bottom: 16px;
+    margin-bottom: var(--space-lg);
 }
 .panel-title {
-    font-size: 12px;
+    font-size: var(--text-h3);
     font-weight: 600;
     color: var(--accent);
     text-transform: uppercase;
@@ -331,7 +331,7 @@ body {
     margin-bottom: 4px;
 }
 .param-label {
-    font-size: 13px;
+    font-size: var(--text-body);
     font-weight: 600;
     color: var(--text);
 }
@@ -369,7 +369,7 @@ body {
     box-shadow: 0 0 0 3px var(--ring);
 }
 .param-desc {
-    font-size: 11px;
+    font-size: var(--text-small);
     color: var(--text3);
     margin-top: 2px;
     line-height: 1.4;
@@ -1694,13 +1694,13 @@ body {
     color: #2563eb;
     background: #eff6ff;
     border: 1px solid #bfdbfe;
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
     margin-left: 6px;
     flex-shrink: 0;
 }
 .app.dark .badge-script {
     color: #93c5fd;
-    background: #1e293b;
+    background: var(--surface);
     border-color: #1e3a8a;
 }
 .directory-header {
@@ -2198,13 +2198,13 @@ body {
     font-weight: 700;
     color: #2563eb;
     background: #eff6ff;
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
     margin-bottom: 4px;
     letter-spacing: 0.5px;
 }
 .app.dark .script-badge {
     color: #60a5fa;
-    background: #1e293b;
+    background: var(--surface);
 }
 .script-title {
     margin: 0;
@@ -2476,7 +2476,7 @@ body {
 }
 
 .app.dark .tool-btn:hover {
-    background: #1e293b;
+    background: var(--surface);
     border-color: #60a5fa;
     box-shadow: 0 6px 18px rgba(96, 165, 250, 0.25);
 }

@@ -143,4 +143,20 @@ describe('#138 Design Token 静态契约测试', () => {
         expect(hardcodedTabActive, '.app.dark .inspector-tab-btn.active 仍硬编码 background: #1e293b').toBe(false);
         expect(hardcodedStepperActive, '.app.dark .stepper-btn.active 仍硬编码 background: #1e293b').toBe(false);
     });
+
+    it('styles.css 中不再存在 background: #1e293b 硬编码 (#142)', () => {
+        const matches = cssContent.match(/background:\s*#1e293b/gi) ?? [];
+        expect(
+            matches.length,
+            `styles.css 仍存在 ${matches.length} 处 background: #1e293b 硬编码，应使用 var(--surface)`
+        ).toBe(0);
+    });
+
+    it('首批 Design Token 在 styles.css 中已有实际消费 (#142)', () => {
+        const consumedTokens = ['--text-h3', '--text-body', '--text-small', '--space-lg', '--radius-xs'];
+        for (const token of consumedTokens) {
+            const count = (cssContent.match(new RegExp(`var\\(\\s*${token}\\s*\\)`, 'g')) ?? []).length;
+            expect(count, `Token ${token} 在 styles.css 中无消费者`).toBeGreaterThanOrEqual(1);
+        }
+    });
 });
