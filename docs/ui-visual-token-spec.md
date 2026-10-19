@@ -165,6 +165,9 @@
 | `--text-small` | 11px / 400 / 辅助说明 / desc |
 | `--text-mono` | 12px / monospace / 数值输入 / 公式 |
 
+> **实现注记（D45 裁定 · size-only）**：
+> CSS 自定义属性无法把复合简写（如 `18px / 700`）同时拆解至 `font-size` 与 `font-weight`，且 `font:` 简写要求必须提供 `font-family`，直接使用会破坏既有字系规则。因此 `--text-*` 在实现中定形为**仅承载 `font-size` 尺度**，`font-weight` 由具体组件 class（如 `font-weight: 600/700`）显式声明。
+
 ### 2.6 控件状态规范
 
 | 控件类型 | 默认态 | hover | focus-visible | active/selected | disabled |
@@ -225,12 +228,34 @@
 
 ## 5. 后续实施拆分建议
 
-本文档产出后可拆为以下独立小单：
+根据 2026-10-18 实测盘点，各切片实施建议更新如下：
 
-1. **补全 `:root` token**：新增 `--surface` / `--overlay-bg` / `--shadow-drawer` / `--space-*` / `--text-*` 变量（纯 CSS，~30 行）
-2. **消除 inline style 硬编码色**：CompositionLab / DataDrawer / WorkbenchScene 共 ~30 处改 token 引用
-3. **控件状态规范落地**：补全 NumberField / ComparePanel select 的 hover/focus/disabled 态
-4. **浮层遮罩统一**：三处 overlay 改用 `--overlay-bg` + `--surface` + 统一 z-index 层级
+1. **补全 `:root` token（已完成 · #138）**：已新增 `--surface` / `--overlay-bg` / `--shadow-drawer` / `--space-*` / `--text-*` 变量。
+2. **消除 inline style 硬编码色（实测四类分列）**：
+   原计划「~30 处改 token 引用」经实测需细分为四类不同性质的站点，不可一刀切：
+   - **① DOM inline style（可换 token）**：
+     - `CompositionLab.tsx`（10 处）：L93/L123/L124/L148/L182/L186/L190/L191/L203/L212，可逐步迁移至 class 或 `--space-*`/`--text-*` token 引用。
+     - `DataDrawer.tsx`（0 处）/ `WorkbenchScene.tsx`（0 处）：已在 #139 完成 PanelSection 壳迁移，无残留。
+     - `MeasurementToolbox.tsx`（5 处）/ `OCRPanel.tsx`（8 处）：弹窗与工具箱外层内联样式。
+     - *处置*：由切片 2 逐步替换为 token。
+   - **② Canvas 绘制色（不可直接换 `var()`）**：
+     - `SimulationCanvas.tsx`（37 处）：`draw3DBox`、`drawArrow2`、`metalTexture`、`woodTexture`、`wallGrad`、`springGrad` 等，Canvas 2D API 无法解析 CSS 变量。
+     - 各领域 Canvas 渲染器（`mechanicsRenderer.ts` 等）。
+     - *处置*：禁止直接使用 `var()`，维持集中调色板常量或由专用主题辅助函数注入。
+   - **③ SVG presentation attribute（不可直接换 `var()`）**：
+     - `PhotogateTimer.tsx`（17 处）/ `FormulaPanel.tsx`（6 处）：SVG attribute（`stroke` / `fill`）在部分浏览器与 React SVG 中不原生解析 CSS 变量。
+     - *处置*：保留当前属性或转由 CSS 类选择器接管。
+   - **④ JS 主题三元表达式（需主题真源机制）**：
+     - `GraphPanel.tsx`（12 处）/ `SimulationCanvas.tsx`（多处）：`isDark ? '#e2e8f0' : '#1e293b'` 等。
+     - *处置*：另立专项单，需先确立前端主题单一真源机制（Zustand store 或上下文监听器读取令牌计算值），禁止直接填入 `var()` 字符串。
+3. **控件状态规范落地**：补全 NumberField / ComparePanel select 的 hover/focus/disabled 态。
+4. **浮层遮罩统一（实测站点清单与行号）**：
+   现状：`--overlay-bg` 已定义于 `styles.css` L62（暗色 `rgba(0, 0, 0, 0.5)`）与 L149（亮色 `rgba(15, 23, 42, 0.3)`），但全仓 **0 消费者**。实际遮罩色散落在各独立规则：
+   - `.ocr-overlay`（L748，背景 `rgba(0, 0, 0, 0.6)` 在 L757，z-index: 1000 在 L756）
+   - `.guidance-overlay`（L968，背景 `rgba(0, 0, 0, 0.45)` 在 L971，z-index: 200 在 L973）
+   - `.problem-overlay`（L1150，背景 `rgba(0, 0, 0, 0.6)` 在 L1155，z-index: 1000 在 L1153）
+   - `.formula-drawer-overlay`（L2068，背景 `rgba(15, 23, 42, 0.18)` 在 L2073，backdrop-filter: `blur(4px)` 在 L2074，z-index: 900 在 L2071）
+   *处置*：在切片 4 中统一切换为 `background: var(--overlay-bg)`，并对齐 z-index 层级梯队。
 
 ## 6. 明确排除（不触红线）
 
