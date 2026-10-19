@@ -1,22 +1,27 @@
 /**
- * #140 — 生产构建 Headless 首帧探针 (Playwright)
+ * #140 / #141 — 生产构建 Headless 首帧探针与挂载前必需资源度量 (Playwright)
  *
- * 验证 vendor-react 懒拆后：
+ * 验证与度量：
  * 1. 生产构建（vite preview）下应用能正常挂载渲染，无「白屏/卡死」回归；
  * 2. 默认场景首屏舞台与画布在预算时间内就绪（首帧时间 ≤ 3000ms，包含 CI 冷启动余量）；
  * 3. 画布非空（检查 WebGL 3D 渲染器与 2D 板书画布像素状态）；
- * 4. 全流程零 console error。
+ * 4. 全流程零 console error；
+ * 5. #141: 度量挂载前必需资源体积（以 `#root` 有子节点且 `#app-loading` 骨架移除为精准判定边界，
+ *    仅记录该瞬间前已完成加载的静态资源；不含 `vendor-physics-*` / `WorkbenchScene-*` 等挂载后场景链；
+ *    只打印度量结果、不改变退出码语义；红向验证可通过 MEASURE_BOUNDARY=networkidle 临时放宽边界）。
  *
  * 运行:
  *   node scripts/verify-first-frame-smoke.cjs
  *   BASE_URL=http://localhost:4173/ node scripts/verify-first-frame-smoke.cjs
  *   SMOKE_BROWSER_CHANNEL 浏览器渠道 (#98/#106): 置空 = Playwright 自带 chromium
+ *   MEASURE_BOUNDARY=networkidle 临时放宽度量边界至全量网络空闲（红向验证用）
  */
+/* global window, location, performance, MutationObserver, URL */
 const { chromium } = require('playwright');
 const { spawn } = require('node:child_process');
-const { existsSync } = require('node:fs');
-const { resolve } = require('node:path');
-
+const { existsSync, readFileSync } = require('node:fs');
+const { resolve, basename } = require('node:path');
+const { gzipSync } = require('node:zlib');
 const BASE = process.env.BASE_URL ?? 'http://localhost:4173/';
 const CHANNEL = process.env.SMOKE_BROWSER_CHANNEL ?? '';
 const BUDGET_MS = Number(process.env.FIRST_FRAME_BUDGET_MS ?? '3000');
@@ -126,6 +131,57 @@ async function probeCanvas(page) {
     });
 }
 
+/**
+ * #141 — 度量挂载前必需资源集合的 gzip 体积。
+ * 仅统计 dist 本地资源（index.html + assets/*），根据实际文件内容计算真实 gzip 字节数。
+ */
+function measurePreMountResources(urls) {
+    const distDir = resolve('visualization/dist');
+    const seen = new Set();
+    const rows = [];
+    let totalBytes = 0;
+
+    for (const urlStr of urls) {
+        try {
+            const u = new URL(urlStr, BASE);
+            let localPath = null;
+            let displayPath = null;
+
+            if (
+                u.pathname === '/' ||
+                u.pathname.endsWith('/index.html') ||
+                u.pathname === '/physical-modelvis/' ||
+                u.pathname.endsWith('/')
+            ) {
+                localPath = resolve(distDir, 'index.html');
+                displayPath = 'index.html';
+            } else if (u.pathname.includes('/assets/')) {
+                const file = basename(u.pathname);
+                localPath = resolve(distDir, 'assets', file);
+                displayPath = 'assets/' + file;
+            }
+
+            if (localPath && existsSync(localPath) && !seen.has(displayPath)) {
+                seen.add(displayPath);
+                const gz = gzipSync(readFileSync(localPath)).length;
+                rows.push({ file: displayPath, bytes: gz, kb: (gz / 1024).toFixed(1) });
+                totalBytes += gz;
+            }
+        } catch {
+            // 忽略外部字体或非法 URL
+        }
+    }
+
+    rows.sort((a, b) => {
+        if (a.file === 'index.html') return -1;
+        if (b.file === 'index.html') return 1;
+        return a.file.localeCompare(b.file);
+    });
+
+    const totalKb = (totalBytes / 1024).toFixed(1);
+    return { rows, totalKb, totalBytes };
+}
+
 async function runSinglePass(browser, passNumber) {
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
     const errors = [];
@@ -133,10 +189,51 @@ async function runSinglePass(browser, passNumber) {
     page.on('console', m => {
         if (m.type() === 'error') errors.push('CONSOLE: ' + m.text());
     });
+    // #141: 在等待「应用挂载完成」（#root 有子节点且 #app-loading 移除）期间捕获挂载前必需资源
+    const isNetworkIdleBoundary = process.env.MEASURE_BOUNDARY === 'networkidle';
+    await page.addInitScript(() => {
+        window.__premountResources = null;
+        const observer = new MutationObserver(() => {
+            const root = document.getElementById('root');
+            const loading = document.getElementById('app-loading');
+            if (root && root.children.length > 0 && !loading && !window.__premountResources) {
+                window.__premountResources = [
+                    location.href,
+                    ...performance.getEntriesByType('resource').map(r => r.name)
+                ];
+            }
+        });
+        document.addEventListener('DOMContentLoaded', () => {
+            const root = document.getElementById('root');
+            if (root) observer.observe(root, { childList: true, subtree: true });
+        });
+    });
 
     const t0 = Date.now();
-    await page.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.goto(BASE, {
+        waitUntil: isNetworkIdleBoundary ? 'networkidle' : 'domcontentloaded',
+        timeout: 30000
+    });
 
+    let premountMetric = null;
+    if (passNumber === 1) {
+        if (isNetworkIdleBoundary) {
+            const urls = await page.evaluate(() => [
+                location.href,
+                ...performance.getEntriesByType('resource').map(r => r.name)
+            ]);
+            premountMetric = measurePreMountResources(urls);
+        } else {
+            await page.waitForFunction(() => window.__premountResources !== null, { timeout: 10000 });
+            const urls = await page.evaluate(() => window.__premountResources);
+            premountMetric = measurePreMountResources(urls);
+        }
+        console.log(`=== 挂载前必需资源 (gzip${isNetworkIdleBoundary ? ' · 放宽至 networkidle' : ''}) ===`);
+        for (const r of premountMetric.rows) {
+            console.log(`  ${r.file}: ${r.kb} kB`);
+        }
+        console.log(`合计: ${premountMetric.totalKb} kB\n`);
+    }
     // 等待舞台与 canvas 渲染可见
     await page.waitForSelector('.stage-viewport canvas', { state: 'visible', timeout: 10000 });
     const stageVisibleMs = Date.now() - t0;
@@ -175,7 +272,7 @@ async function runSinglePass(browser, passNumber) {
     console.log(
         `  [Pass ${passNumber}] 首屏舞台可见时间: ${stageVisibleMs}ms (<= ${BUDGET_MS}ms) | 3D: ${c3d.type} (${c3d.width}x${c3d.height}) ✓ | 2D 板书 ✓ | 0 errors`
     );
-    return { stageVisibleMs, errorsCount: realErrors.length };
+    return { stageVisibleMs, errorsCount: realErrors.length, premountKb: premountMetric?.totalKb };
 }
 
 (async () => {
@@ -192,8 +289,9 @@ async function runSinglePass(browser, passNumber) {
 
         await browser.close();
         const avgMs = Math.round(results.reduce((s, r) => s + r.stageVisibleMs, 0) / results.length);
+        const premountKb = results[0]?.premountKb ?? '未知';
         console.log(
-            `\nFIRST FRAME SMOKE OK: 连续 3 次通过 (平均首帧时间 ${avgMs}ms, 3D/2D 画布均非空, 零 console error)`
+            `\nFIRST FRAME SMOKE OK: 连续 3 次通过 (平均首帧时间 ${avgMs}ms, 3D/2D 画布均非空, 零 console error, 挂载前必需体积 ${premountKb} kB gzip)`
         );
         process.exit(0);
     } finally {
