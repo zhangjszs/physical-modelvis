@@ -2103,7 +2103,7 @@ body {
         position: fixed;
         right: 16px;
         /* #137: 窄视口避开顶部工具栏 (.stage-toolbar bottom ≈ 122px)，保证 .stage-actions 按钮真实可点击 */
-        top: 84px;
+        top: 136px;
         z-index: 80;
         width: min(320px, calc(100vw - 32px));
         /* top(136px) + max-height 留出底部 16px 安全距离，与 right: 16px 对齐 */
