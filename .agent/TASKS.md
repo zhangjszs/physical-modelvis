@@ -6,12 +6,12 @@
 
 ## 今日队列（2026-10-19 · 三十八次滚动 · 执行顺序，3 个）
 
-- [ ] **#141（P2 · type:chore/area:ci · ready-for-agent）重建首屏体积门禁口径：挂载前必需资源度量 + 脚本注释与 AGENTS.md 现状数字修正**
+- [x] **#141（P2 · type:chore/area:ci · in-review）重建首屏体积门禁口径：挂载前必需资源度量 + 脚本注释与 AGENTS.md 现状数字修正**
   - **本轮独立复核（通过）**：不依赖浏览器，对 `visualization/dist/assets` 逐文件 `gzipSync` 求和 = **68.82 kB**（index.html 0.60 + 入口 js 1.09 + css 8.08 + bootstrap 14.1 + vendor-react 43.7 + vendor-state 0.42 + rolldown-runtime 0.42 + scenes 0.41）→ 参照值坐实，**验收容差由 ±3 kB 收紧为 ±1 kB**。
   - 事实校正：门禁取数在 `check-bundle-size.mjs` **L65–74**（`matchAll` 循环，首稿误记 L63–70）；过期表述「现状约 63kB」在头注释 **L10–12**（首稿误记 L12–16）。
   - 锚点核实：`visualization/index.html` L12–13 确有 `#root` + `#app-loading`（度量边界钩子真实存在）；该探针 L40 `ensureServer()` 是**唯一**自启 preview 者。
   - 硬边界不变：`BUDGET_KB` 70 kB / `LAZY_BUDGETS`（含 `vendor-react-` 55 kB）**数值零改动**；只打印不判定（D44=B）；不改 `.github/workflows/*`。
-- [ ] **#143（P2 · type:chore/area:ci · ready-for-agent）4 个 headless 浏览器探针接入 CI 门禁（D46=A 已批：现有 `ci` job 内追加步骤）**
+- [x] **#143（P2 · type:chore/area:ci · in-review）4 个 headless 浏览器探针接入 CI 门禁（D46=A 已批：现有 `ci` job 内追加步骤）
   - **本轮补上的两条硬前提（原正文缺失，不补则大概率四单全红）**：
     ① **4 探针里只有 `verify-first-frame-smoke.cjs` 会自启服务**（L40 `ensureServer()`，`BASE_URL` 缺省 :4173）；`verify-overlay-drawer-smoke.cjs:16` / `verify-portal-tokens.mjs:15` / `verify-guidance-smoke.cjs:11` **均不自启且缺省指向 dev 端口 :3000** → CI 必须显式后台起 `vite preview --port 4173` + 就绪轮询，`BASE_URL` 喂给全部 4 个。
     ② `verify-guidance-smoke.cjs:13` 是 `SMOKE_BROWSER_CHANNEL ?? 'msedge'`（另三个 `?? ''`），而 `playwright install --with-deps chromium` **只装 chromium** → 4 步骤必须共用 `SMOKE_BROWSER_CHANNEL: ""`，否则 `Executable doesn't exist`。
@@ -20,7 +20,7 @@
   - **红向触发方式已核准**：`ci.yml` 只在 `push: [main]` / `pull_request: [main]` 触发 → **临时分支 push 不会跑 CI**，必须 `gh pr create --draft` 开 PR 触发、报红后关闭且不合并；注入点 `visualization/src/styles.css:2106`（`.classroom-inspector top:136px → 84px`）。
   - WebGL 若在 ubuntu runner 失败 → **停单转 `blocked` 并附 CI 原始输出，禁止放宽断言/跳过探针**；**`qa-sweep` nightly 全绿不构成 WebGL 证据**（`verify-qa-sweep.cjs` L129/L145 明确跳过 WebGL 画布，3D 像素在 CI 里从未被断言）→ 本单是第一次真检验；headless 的 **WebGL 上下文数量上限**（同文件 L80 既往规避手段）⇒ 4 探针**保持各自独立 `chromium.launch()`**，禁止共享 browser/page 省时间。
   - `package.json`/`package-lock.json`/`BUDGET_KB`/`LAZY_BUDGETS` 零改动；`.agent/ENV.md` 自行更新。
-- [ ] **#142（P3 · type:chore/area:render · ready-for-agent）让 #138 的 Design Token 首批落地：收口 3 处 `.app.dark` 同值硬编码 + 等值消费 + 规范 §5 盘点修正**
+- [x] **#142（P3 · type:chore/area:render · in-review）让 #138 的 Design Token 首批落地：收口 3 处 .app.dark 同值硬编码 + 等值消费 + 规范 §5 盘点修正
   - **本轮实测坐实**：`background: #1e293b` 在 `visualization/src` **恰好 3 处** = L1703 / L2207 / L2479（无第四处）；五族新 token `var()` 消费**全为 0**（`--surface` 已有 src 8 + tests 4，属 #138 成果）；等值关系核到行号——`--space-lg`(L68)=16px↔`.panel-section`(L298)、`--text-h3`(L87)=12px↔`.panel-title`(L301)、`--text-body`(L88)=13px↔`.param-label`(L333)、`--text-small`(L89)=11px↔`.param-desc`(L371)、`--radius-xs`(L72)=4px↔`.badge-script`(L1689→**L1697**)/`.script-badge`(L2194→**L2201**)。
   - **本轮校正 2 处误记**：① L2086 的 `box-shadow …rgba(15,23,42,0.2)` 属 **`.formula-drawer`**（L2077），**不是** `.classroom-inspector`（后者在 L1596/L1606/L2102，其 shadow 走 `var(--shadow-lg)`）；`--shadow-drawer`(L82) 全仓 0 消费者、与 `.formula-drawer` 值**不等值** → 禁替换。② badge 圆角在**基规则**里，不在 `.app.dark` 覆盖块内（dark 块只改 color/background/border-color）。
   - **本轮新增裁定（消除自行发明点）**：`.panel-title`/`.param-label` 另有 4 处 `@media` 覆盖（L1413 12px / L1416 11px / L1463 13px / **L1466 14px**）——**14px 无等值 token**，按「顺手替换该选择器全部字号」施工必然改数值 → **本单只改 4 条基线规则，断点覆盖一律不动**（待切片 3/4）。

@@ -18,6 +18,8 @@
   = build:core → typecheck → lint → format:check → test → count:check → build:viz → check:bundle → selfcheck
 - **物理自检**：`npm run selfcheck`（scripts/self-check.mjs，L0–L6 + L8–L11，共 11 层，无 L7）
 - **首屏体积门禁**：`npm run check:bundle`（入口 chunks gzip ≤70kB）
+- **CI 浏览器探针门禁（#143 新增）**：`ci.yml` 包含 4 个 headless 浏览器探针（各 1 次自动重试，生产 preview 端口 :4173，失败阻断 Deploy）。
+  本地等价复跑：`npm run build:viz && (cd visualization && nohup npx vite preview --port 4173 &)` 后运行各脚本（设 `BASE_URL=http://localhost:4173/` 与 `SMOKE_BROWSER_CHANNEL=""`）
 - **测试数单一真源**：`npm run count:sync` 实跑并回写三处 `<!-- test-count -->` 标记
   （README 顶部行 + README 测试覆盖块 + docs/plan.md）；`npm run count:check` 校验漂移
 - **gh CLI**：可用（账号 zhangjszs；token scopes: gist, read:org, repo, workflow）→ issue 操作走线上，无需草稿降级
