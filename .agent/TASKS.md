@@ -6,7 +6,7 @@
 
 ## 今日队列（2026-10-19 · 三十九次滚动 · 执行顺序，3 个）
 
-- [ ] **#145（P2 · type:chore/area:render · ready-for-agent）Design Token 切片 4：浮层遮罩与侧栏抽屉统一（--overlay-bg 与 --shadow-drawer 落地消费 + z-index 梯队对齐）**
+- [x] **#145（P2 · type:chore/area:render · in-review）Design Token 切片 4：浮层遮罩与侧栏抽屉统一（--overlay-bg 与 --shadow-drawer 落地消费 + z-index 梯队对齐）**
   - **背景**：`--overlay-bg` 与 `--shadow-drawer` 在全仓消费者数均为 0；4 处遮罩背景仍硬编码各自独立的 `rgba()`，且 z-index 未规范对齐；`.formula-drawer` 未使用 `--shadow-drawer` 且 `:root.light` 缺少浅色定义。
   - **范围**：
     1. `visualization/src/styles.css`：
@@ -25,7 +25,7 @@
     - [ ] `npm run typecheck` / `lint` / `format:check` / `test` / `count:check` / `precheck` exit 0。
     - [ ] 交付 commit 以 `--no-ff` 入 main 成祖先；CI + Deploy 双绿。
 
-- [ ] **#146（P2 · type:chore/area:render · ready-for-agent）Design Token 切片 3：控件交互状态规范落地（NumberField / param-input / slider / button 状态对齐）**
+- [x] **#146（P2 · type:chore/area:render · in-review）Design Token 切片 3：控件交互状态规范落地（NumberField / param-input / slider / button 状态对齐）**
   - **背景**：`docs/ui-visual-token-spec.md` §2.6 制定了统一的控件状态规范。当前 `common/NumberField.tsx` 的纯 input 模式（`.composition-field`）未配置统一样式类，input 呈现原生样式；`.param-input` 缺少 `:hover` 与 `:disabled`；`.param-slider` 缺少 `:disabled`；按钮缺少 `:focus-visible` 与统一 `:disabled`。
   - **范围**：
     1. `visualization/src/styles.css`：
@@ -43,7 +43,7 @@
     - [ ] 4 个 headless 浏览器探针在生产 preview 下全绿。
     - [ ] 交付 commit 以 `--no-ff` 入 main 成祖先；CI + Deploy 双绿。
 
-- [ ] **#147（P3 · type:chore/area:render · ready-for-agent）Design Token 切片 2 延伸：消除 DOM inline style 硬编码色（CompositionLab 与弹窗外层样式迁移至 Token）**
+- [x] **#147（P3 · type:chore/area:render · in-review）Design Token 切片 2 延伸：消除 DOM inline style 硬编码色（CompositionLab 与弹窗外层样式迁移至 Token）**
   - **背景**：`docs/ui-visual-token-spec.md` §5 切片 2 实测盘点分类 ① 中，指出 `CompositionLab.tsx`（10 处）及 `MeasurementToolbox.tsx` / `OCRPanel.tsx` 存在多处包含硬编码颜色与字号的 DOM inline style（如 `#94a3b8`、`#64748b`、`fontSize: 11/12`、`rgba(255,255,255,0.72)` 等）。
   - **范围**：
     1. `visualization/src/components/composition/CompositionLab.tsx`：
