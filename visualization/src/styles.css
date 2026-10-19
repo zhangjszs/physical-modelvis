@@ -352,6 +352,14 @@ body {
     height: 4px;
     cursor: pointer;
 }
+.param-slider:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--ring);
+}
+.param-slider:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
 .param-input {
     width: 64px;
     padding: 4px 6px;
@@ -364,16 +372,64 @@ body {
     text-align: center;
     transition: all 0.15s;
 }
-.param-input:focus {
+.param-input:hover {
+    border-color: var(--glass-border-hover);
+}
+.param-input:focus,
+.param-input:focus-visible {
     outline: none;
     border-color: var(--accent);
     box-shadow: 0 0 0 3px var(--ring);
+}
+.param-input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 .param-desc {
     font-size: var(--text-small);
     color: var(--text3);
     margin-top: 2px;
     line-height: 1.4;
+}
+
+/* ========== Composition Field (组合实验台输入) ========== */
+.composition-field {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: var(--space-sm);
+    font-size: var(--text-body);
+    color: var(--text2);
+}
+.composition-field span {
+    font-size: var(--text-body);
+    color: var(--text2);
+}
+.composition-field input {
+    width: 80px;
+    padding: 4px 6px;
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    background: var(--input-bg);
+    color: var(--text);
+    font-size: 12px;
+    font-family: monospace;
+    text-align: right;
+    transition: all 0.15s;
+}
+.composition-field input:hover {
+    border-color: var(--glass-border-hover);
+}
+.composition-field input:focus,
+.composition-field input:focus-visible {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--ring);
+}
+.composition-field input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 .param-actions {
     display: flex;
@@ -405,6 +461,8 @@ body {
     border-color: var(--glass-border);
     color: var(--text2);
     border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.15s;
 }
 .btn-preset:hover {
     background: var(--accent);
@@ -412,6 +470,17 @@ body {
     border-color: var(--accent);
     transform: none;
     box-shadow: none;
+}
+.btn-preset:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--ring);
+}
+.btn-preset:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+    pointer-events: none;
 }
 
 /* ========== Buttons ========== */
@@ -433,11 +502,16 @@ body {
     transform: translateY(-1px);
     box-shadow: var(--shadow-md);
 }
+.btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--ring);
+}
 .btn:disabled {
     opacity: 0.4;
     cursor: not-allowed;
     transform: none;
     box-shadow: none;
+    pointer-events: none;
 }
 .btn-primary {
     background: var(--brand-gradient);
@@ -2297,6 +2371,89 @@ body {
     border-radius: 8px;
     font-size: 11px;
     color: var(--text2);
+}
+
+/* ========== Compare Panel Controls (参数对比控件) ========== */
+.compare-row {
+    margin-bottom: var(--space-sm);
+}
+.compare-label {
+    display: block;
+    font-size: var(--text-small);
+    color: var(--text2);
+    margin-bottom: 4px;
+}
+.compare-select {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    background: var(--input-bg);
+    color: var(--text);
+    font-size: 12px;
+    outline: none;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.compare-select:hover {
+    border-color: var(--glass-border-hover);
+}
+.compare-select:focus,
+.compare-select:focus-visible {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--ring);
+}
+.compare-select:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+.compare-range-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.compare-number {
+    flex: 1;
+    padding: 4px 6px;
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    background: var(--input-bg);
+    color: var(--text);
+    font-size: 12px;
+    font-family: monospace;
+    text-align: center;
+    transition: all 0.15s;
+}
+.compare-number:hover {
+    border-color: var(--glass-border-hover);
+}
+.compare-number:focus,
+.compare-number:focus-visible {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--ring);
+}
+.compare-number:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+.compare-range-sep {
+    color: var(--text3);
+    font-size: 12px;
+}
+.compare-slider {
+    width: 100%;
+    accent-color: var(--accent);
+    height: 4px;
+    cursor: pointer;
+}
+.compare-slider:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--ring);
+}
+.compare-slider:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
 }
 .step-actions {
     display: flex;
