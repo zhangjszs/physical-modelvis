@@ -58,7 +58,7 @@ GitHub Actions 流水线，配置文件位于 `.github/workflows/`。
 4. **单元测试** — physics-core + visualization 各自 `vitest run`
 5. **11 层物理自检** — `node scripts/self-check.mjs`（LAYERS 数组 = L0-L6 + L8 Boris 数值积分 + L9 跨场景数值鲁棒性 + L10 输出 NaN 扫描 + L11 渲染层常量单一真源；无 L7）
 6. **构建** — physics-core → visualization（带 `VITE_BASE_PATH` 子路径）
-7. **首屏包体积门禁** — `node scripts/check-bundle-size.mjs`（入口 chunks gzip ≤70kB，现状约 63kB）
+7. **首屏包体积门禁** — `node scripts/check-bundle-size.mjs`（入口 chunks gzip ≤70kB；现状门禁入口 9.7kB，挂载前必需资源约 68.8kB，口径差异见脚本注释与 verify-first-frame-smoke.cjs）
 
 ### 部署流水线 (`deploy.yml`)
 触发：CI 在 main 分支成功完成后自动触发（`workflow_run`）。

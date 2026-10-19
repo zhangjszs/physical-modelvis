@@ -7,9 +7,13 @@
  * 超过预算即失败。重 chunk (three/charts/physics) 均为懒加载，
  * 不计入首屏 (见 visualization/vite.config.ts manualChunks)。
  *
- * 阈值依据: 2026-09-29 实测首屏约 63kB (相对 plan.md 历史快照 57kB
- * 的增长来自 08-02 之后落地的 workbench/课堂脚本/测量工具箱等首屏功能);
- * 预算取 70kB (现状 + ~10% 裕量)，只防回归，不锁历史快照。
+ * 阈值依据与口径变迁:
+ *   - 2026-09-29: 实测首屏约 63kB (含 React/App 静态依赖)，预算取 70kB (现状 + ~10% 裕量)；
+ *   - 2026-10-18 (#140 前): CI run 39125798785 实测 68.0 kB (css 8.1 + entry 14.9 + vendor-react 43.7)；
+ *   - 2026-10-18 (#140 后): React 与 App 懒拆至 bootstrap，index.html 仅静态引用入口 js/css，
+ *     本门禁值降为 9.7 kB（70kB 预算值保持不改以防静态引入回归）；
+ *   - 用户侧挂载前必需下载约 68.8 kB gzip（含 bootstrap/vendor-react 等），
+ *     实际体积度量由 scripts/verify-first-frame-smoke.cjs 负责（只观测不判定）。
  *
  * 懒 chunk (#80): 入口未引用的 assets/*.js 逐个对照预算表 ——
  * 重 chunk 按 2026-10-03 构建实测值 +20% 裕量锁定，其余单文件走通用预算；
@@ -150,4 +154,5 @@ if (breaches.length > 0) {
     process.exit(1);
 }
 console.log('懒 chunk 体积检查通过');
+console.log('注: 挂载前必需资源真实体积另见 node scripts/verify-first-frame-smoke.cjs (基线 ~68.8 kB gzip)');
 if (entryFailed) process.exit(1);
