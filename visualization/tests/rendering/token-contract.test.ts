@@ -199,9 +199,7 @@ describe('#138 Design Token 静态契约测试', () => {
 
     it('输入与按钮控件交互状态遵循设计规范 (#146)', () => {
         // param-input 状态规范
-        expect(/\.param-input:hover\s*\{[^}]*border-color:\s*var\(--glass-border-hover\)/i.test(cssContent)).toBe(
-            true
-        );
+        expect(/\.param-input:hover\s*\{[^}]*border-color:\s*var\(--glass-border-hover\)/i.test(cssContent)).toBe(true);
         expect(
             /\.param-input:(focus-visible|focus)\s*\{[^}]*box-shadow:\s*0 0 0 3px var\(--ring\)/i.test(cssContent)
         ).toBe(true);

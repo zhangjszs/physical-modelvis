@@ -154,9 +154,7 @@ describe('#146 NumberField 控件状态规范', () => {
     });
 
     it('纯 input 模式渲染 .composition-field 且 disabled 属性生效', () => {
-        const { container } = render(
-            <NumberField label="电荷量" value={1e-6} disabled={true} onChange={() => {}} />
-        );
+        const { container } = render(<NumberField label="电荷量" value={1e-6} disabled={true} onChange={() => {}} />);
         const field = container.querySelector('.composition-field');
         expect(field).not.toBeNull();
         const numberInput = container.querySelector('input[type="number"]') as HTMLInputElement;
