@@ -51,7 +51,7 @@ cd visualization && npm run dev
 GitHub Actions 流水线，配置文件位于 `.github/workflows/`。
 
 ### CI 流水线 (`ci.yml`)
-触发：push 到 main、PR 到 main。顺序执行 7 道质量门禁：
+触发：push 到 main、PR 到 main。顺序执行 9 道质量门禁（约 4–6 分钟）：
 1. **TypeScript 类型检查** — `tsc --noEmit`（physics-core + visualization，含 OCR server）
 2. **ESLint 静态分析** — typescript-eslint recommended 规则集
 3. **Prettier 格式检查** — `format:check`
@@ -59,6 +59,13 @@ GitHub Actions 流水线，配置文件位于 `.github/workflows/`。
 5. **11 层物理自检** — `node scripts/self-check.mjs`（LAYERS 数组 = L0-L6 + L8 Boris 数值积分 + L9 跨场景数值鲁棒性 + L10 输出 NaN 扫描 + L11 渲染层常量单一真源；无 L7）
 6. **构建** — physics-core → visualization（带 `VITE_BASE_PATH` 子路径）
 7. **首屏包体积门禁** — `node scripts/check-bundle-size.mjs`（入口 chunks gzip ≤70kB；现状门禁入口 9.7kB，挂载前必需资源约 68.8kB，口径差异见脚本注释与 verify-first-frame-smoke.cjs）
+8. **physics-core 发布 dry-run 门禁** — `node scripts/check-publish-dryrun.mjs`（#107）
+9. **4 个 headless 浏览器探针** — 生产构建 preview（`:4173`，含子路径），各带 1 次自动重试；阻断 Deploy：
+   - 首帧与体积度量 (`scripts/verify-first-frame-smoke.cjs`)
+   - 双视口抽屉遮挡 (`scripts/verify-overlay-drawer-smoke.cjs`)
+   - Portal 令牌继承 (`scripts/verify-portal-tokens.mjs`)
+   - 导学全流程 (`scripts/verify-guidance-smoke.cjs`)
+   - 本地等价运行：`npm run build:viz && cd visualization && nohup npx vite preview --port 4173 &` 后执行各探针（设 `BASE_URL=http://localhost:4173/` 与 `SMOKE_BROWSER_CHANNEL=""`）
 
 ### 部署流水线 (`deploy.yml`)
 触发：CI 在 main 分支成功完成后自动触发（`workflow_run`）。
