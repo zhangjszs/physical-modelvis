@@ -257,60 +257,63 @@
 > **#147**（P3 · 切片 2 延伸：消除 DOM inline style 硬编码色，CompositionLab 10 处及弹窗外层内联样式迁移至 Token）。
 > 今日队列 = **#145 → #146 → #147**（3 单，全部过 4.2 ready 门禁）。
 
+> 2026-10-20 四十次滚动（每日规划 · 验收与排程轮）：**M6 收官 7/7**——in-review 3 单（#145/#146/#147）全部独立复核 CLOSED，
+> 4 处 overlay 消费 `var(--overlay-bg)`、`.formula-drawer` 消费 `var(--shadow-drawer)`、z-index 梯队 1000/900、控件状态选择器齐全、
+> CompositionLab 内联 style 清零、OCRPanel 颜色字面量清零均实测坐实；定向测试 20 passed，count:check 2873 一致；CI `39289347764` + Deploy `39289820909` 双绿。
+> **M7 立**（Planner 自决，低风险 UI 基础收口，见 D50）：浮层可访问性 #148 · 主题色 JS 单一真源切片 1 #149（今日队列）；
+> 切片 2 #150 依赖 #149，标 `blocked` 不进今日队列。open 共 6 单 = ready 2 + blocked 1 + parked 3，Issue ↔ TASKS.md 零漂移。
+> 分支清理观察继续（两个已合并远程分支只上报不代删）；pending 新增 D51（M7 后是否解冻 #100/#101，默认不解冻）。
+
 ## 当前方向
 
-**三十九次滚动（2026-10-19 · 验收与排程轮）**：昨日本地与 CI 成果（#141/#143/#142）已全部独立复核并通过验收关闭。4 个 headless 浏览器探针已在 GitHub Actions CI 中自动化常驻，此后任何视觉、遮挡或探针回归将被 CI 实时拦截。
-**今天最重要的事**：全面收口 **M6（物理世界盒子 UI 统一与组件复用收口）**。依据 #142 交付的 `docs/ui-visual-token-spec.md` §5 实测盘点，将全仓剩余的设计令牌消费、状态规范与内联样式消除落盘：
-1. **#145**（切片 4 · P2）：浮层遮罩（4 处 overlay）接入 `var(--overlay-bg)`，侧栏抽屉接入 `var(--shadow-drawer)`，规范化 z-index 梯队（Modal 1000 / Drawer 900）。
-2. **#146**（切片 3 · P2）：控件交互状态对齐（`<NumberField>` 纯 input 模式美化并对齐 `.param-input`，补齐 hover/focus-visible/disabled 规范）。
-3. **#147**（切片 2 延伸 · P3）：消除 `CompositionLab.tsx`（10 处）及外层弹窗的 DOM inline style 硬编码色与字号。
-**待清理的事实**：首屏真实挂载前成本（≈68.4 kB gzip）已纳入探针度量（D44=B 维持观测，门禁入口 9.8 kB）；#44 维持 `parked`；#100/#101 维持 `parked`（D19）。
+**四十次滚动（2026-10-20 · 验收与排程轮）**：M6 已 7/7 收官，UI Token / 状态规范 / 内联样式收口全部闭环。
+**今天最重要的事**：启动 **M7 · UI 基础质量收口**，只做两件有实测证据、低风险且不触 1.10 红线的事：
+1. **#148（P2）浮层可访问性**：OverlayDrawer 与 OCR 弹窗补齐 Esc 关闭、初始焦点、焦点归还、Tab 约束与 dialog 语义——当前键盘用户无法关闭弹窗，读屏无法识别 OCR 对话框。
+2. **#149（P2）主题色 JS 单一真源切片 1**：建立 `themeTokens.ts` 语义表 + CSS↔JS 契约测试，迁移 GraphPanel / PhotogateTimer，收口 D45 第 ④ 类遗留的 `isDark ? '#...'` 双源漂移。
+**明确不在今天**：#150（切片 2，依赖 #149，已标 `blocked`）；场景 Canvas 调色板（D45 第 ② 类）；#44/#100/#101（parked）。
 
-## 今日目标（2026-10-19 · 三十九次滚动）
+## 今日目标（2026-10-20 · 四十次滚动）
 
-- 验收并关闭 #141/#143/#142（已完成，GitHub Issues 与 TASKS.md 同步）。
-- **#145**：4 处 overlay 类的 `background` 统一使用 `var(--overlay-bg)`，`.formula-drawer` 消费 `var(--shadow-drawer)`，`:root.light` 补充浅色阴影定义，z-index 梯队规范化，契约测试与 4 个浏览器探针全绿。
-- **#146**：`.composition-field` input 样式对齐 `.param-input`，控件补齐 `:hover`、`:focus-visible`、`:disabled` 规范，单测与全量门禁全绿。
-- **#147**：`CompositionLab.tsx` 10 处 DOM inline style 硬编码及弹窗外层样式迁移至 Token，双主题视觉无倒退。
-- 远程分支清理（`agent/issue-95-shadow-adaptive` / `agent/issue-96-default-on-grid`）：继续维持观察上报（默认不代删）。
+- 验收并关闭 #145/#146/#147（已完成，GitHub Issues 与 TASKS.md 同步，M6 7/7）。
+- **#148**：OverlayDrawer 与 OCRPanel 具备 Esc 关闭、初始焦点、焦点归还、Tab 焦点约束；OCR 弹窗具备 dialog 语义与可访问名；新增键盘路径测试。
+- **#149**：`themeTokens.ts` 落地，CSS token 与 JS 表逐项契约对齐（含红向验证）；GraphPanel / PhotogateTimer 主题色全部改走 `getThemeTokens`；双主题浏览器探针通过。
+- 继续维持远程分支清理观察（默认不代删）；#150 保持 blocked 直至 #149 交付。
 
-## 当前 Milestone：M6 · 物理世界盒子 UI 统一与组件复用收口（进度：4 / 7）
+## 已完成 Milestone：M6 · 物理世界盒子 UI 统一与组件复用收口（7 / 7 · 2026-10-20 收官）
+- #137 / #138 / #139 / #142 / #145 / #146 / #147 全部 CLOSED；验收证据见各 Issue 的 Planner 验收 comment。
+
+## 当前 Milestone：M7 · UI 基础质量收口：浮层可访问性与主题色单一真源（进度：0 / 3）
 
 ### 目标与验收
-- ~~布局：1024×768 下 `.stage-actions` 真实可点，双视口无水平滚动（#137）~~ ✅ CLOSED。
-- ~~Token 基础：`:root` 补齐 `--surface` / `--overlay-bg` / `--shadow-drawer` / `--space-*` / `--text-*` / `--radius-xs`（#138）~~ ✅ CLOSED。
-- ~~组件复用：剩余 14 处 `PanelSection` 壳迁移完成，7 个目标文件无直接 `className="panel-section"`（#139）~~ ✅ CLOSED。
-- ~~切片 2 首批落地：Token 首批等值消费 + 3 处硬编码收口 + 规范 §5 实测盘点（#142）~~ ✅ CLOSED。
-- 切片 4 浮层遮罩统一：**#145**（P2 · ready · 队首）——4 处 overlay 消费 `--overlay-bg` + 抽屉消费 `--shadow-drawer` + z-index 对齐。
-- 切片 3 控件状态规范：**#146**（P2 · ready）——NumberField / param-input / slider / button hover/focus-visible/disabled 状态对齐。
-- 切片 2 延伸 DOM 内联消除：**#147**（P3 · ready）——CompositionLab 10 处及弹窗外层内联样式迁移至 Token。
+- **#148**（P2 · ready · 队首）：OverlayDrawer + OCRPanel 的 Esc / 焦点 / dialog 语义闭环，键盘路径测试覆盖。
+- **#149**（P2 · ready）：`themeTokens.ts` + CSS↔JS 契约测试 + GraphPanel / PhotogateTimer 迁移，双主题探针通过。
+- **#150**（P3 · blocked by #149）：SimulationCanvas / EquipmentStage 主题分支迁移；待 #149 交付后由 Planner 转 ready。
 
 ### 完成信号（Success signal）
-- `--overlay-bg` 消费数 ≥ 4，`--shadow-drawer` 消费数 ≥ 1，`token-contract.test.ts` 契约全绿且有红向守护。
-- `NumberField` 纯 input 模式外观与 `.param-input` 规范一致；输入控件均具备完整的 hover/focus/disabled 表现。
-- `CompositionLab.tsx` 内联硬编码颜色清零，双主题自适应正常。
-- 4 个 CI 浏览器探针全部 exit 0，`npm run precheck` 全绿，CI + Deploy 双绿。
+- 键盘可完成「打开弹窗 → 操作 → Esc 关闭」全流程，焦点不逃出 dialog 且关闭后回到触发按钮；OCR 弹窗被读屏识别为对话框。
+- `theme-tokens.test.ts` 逐项对齐 `styles.css`，红向改值必报红；GraphPanel / PhotogateTimer 无 `isDark ? '#` 颜色三元与颜色字面量。
+- #150 完成后，SimulationCanvas / EquipmentStage 主题分支同样走单一真源。
+- `npm run precheck` 全绿，4 个浏览器探针 exit 0，CI + Deploy 双绿。
 
 ### 明确非目标（Non-goals）
-- 不换 React/Vite/Canvas 核心框架；**不升 React 19（#44 维持 parked）**。
-- 不拆 FormulaPanel（#103/D31 暂缓）；不动 3D EquipmentStage/rig 生命周期与引擎 API。
-- 不做 #100/#101（D19 parked）；不做全站 CSS 重写、不做视觉重设计。
-- 不动 Canvas 绘制色（分类 ②）与 SVG presentation attributes（分类 ③）及 JS 主题三元（分类 ④）。
+- 不迁移场景 Canvas 调色板（`rendering/*Scenes.ts` / `CanvasRenderer.ts`，D45 第 ② 类）。
+- 不做视觉重设计、不改已有 token 值、不引入第三方主题/a11y 库。
+- 不升 React 19（#44 parked）、不做 #100/#101（D19 parked）、不拆 FormulaPanel（D31 暂缓）。
+- 不处理 `.problem-overlay` 死样式（无组件使用，另案）。
 
-### 执行队列（给 Executor 的建议顺序，3 个 ready）
-1. **#145** Design Token 切片 4：浮层遮罩与侧栏抽屉统一（P2 · area:render，M6 收尾关键路径）——先做：收口 `--overlay-bg` 与 `--shadow-drawer` 0 消费者问题，对齐 z-index。
-2. **#146** Design Token 切片 3：控件交互状态规范落地（P2 · area:render，M6 控件规范）——完善 NumberField 与基础输入/按钮状态。
-3. **#147** Design Token 切片 2 延伸：消除 DOM inline style 硬编码色（P3 · area:render，M6 样式收口）——清理 CompositionLab 10 处内联硬编码。
+### 执行队列（给 Executor 的建议顺序，2 个 ready）
+1. **#148** 浮层可访问性统一（P2 · area:render）——先做：键盘与读屏缺口明确，独立无依赖。
+2. **#149** 主题色 JS 单一真源切片 1（P2 · area:render）——建立 `themeTokens.ts` 与契约测试，迁移 GraphPanel / PhotogateTimer。
+3. **#150** 主题色切片 2（P3 · **blocked**）——**本轮不得领取**；待 #149 交付、Planner 解除 blocked 后再排。
 
 ## 已知阻塞与依赖
-- **执行顺序**：#145 → #146 → #147（3 单均无代码交叠阻塞，按由深至浅顺序执行）。
-- **#44（React 19 专项）**：**parked**（D44 = B 用户已定）。技术前置已达，解除条件未触发，**勿领**。
-- **#100/#101**：**parked**（D19），勿领。
-- **分支清理（需用户点头，默认不做）**：`origin/agent/issue-95-shadow-adaptive` / `origin/agent/issue-96-default-on-grid` 均为 main 祖先且 Issue 已 CLOSED，Planner 默认不删。
+- **#150 blocked by #149**：需 `themeTokens.ts`、`THEME_TOKEN_SOURCES` 与 `theme-tokens.test.ts` 先落地；#149 验收通过后由 Planner 摘除 `blocked`。
+- **#44（React 19）**：parked（D44=B）勿领；**#100/#101**：parked（D19）勿领；是否解冻见 D51（默认不解冻）。
+- **分支清理（需用户点头，默认不做）**：`origin/agent/issue-95-shadow-adaptive` / `origin/agent/issue-96-default-on-grid` 均为 main 祖先且 Issue CLOSED，继续只上报不代删。
 
 ## 下一阶段
-- M6 收官后，物理世界盒子 UI 视觉规范与组件复用收口全部完成，外部界面具备稳固的 Token 与组件底座。
-- 后续阶段衔接：根据项目愿景，推进 3D 组合实验台器材组件深化（条形磁铁/匀强磁场区交互增强）或由用户定夺新方向。
+- M7 三个切片完成后，Canvas/SVG/JS 主题色与浮层键盘可访问性完成基础收口。
+- 之后的方向二选一：继续技术收口（性能/可访问性/测试覆盖），或经用户点头解冻 #100/#101（组合实验台交互增强 / 预设模板）；D51 默认维持前者。
 ## 已放弃的方向
 - M5 立项（D19 用户已定不立项；#100–#104 维持 parked）。
 - #103 派生三张重构实施单（D31 默认转正：长期暂缓）。
@@ -333,7 +336,7 @@
 → **验证与物料收尾：#106 → #115**（**全 CLOSED，二十六次滚动收官**）。
 
 **进度**：M2 3/3 + M2.5 4/4 + M3 8/8 + M4 5/5 + L6 2/2 全收官；#107/#110/#111/#112/#109/#106/#115 缺陷门禁物料全部验收 CLOSED。
-当前 = **M6 · 物理世界盒子 UI 统一与组件复用收口**（2026-10-18 立，进度 0/6）：#132/#135/#136 已验收关闭，今日队列 #137→#138→#139；#140 下一批首项；D38/D39/D40/D42/D43 已落盘，pending 面清零。
+当前 = **M7 · UI 基础质量收口：浮层可访问性与主题色单一真源**（2026-10-20 立，进度 0/3）：M6 已 7/7 收官（#137/#138/#139/#142/#145/#146/#147 全 CLOSED）；今日队列 #148 → #149；#150 blocked by #149；D50 已落盘，D51 pending。
 
 ### #67 背景备忘（原「候选 A 详细」收编记录）
 
@@ -442,7 +445,7 @@ liquid-mixing 摩尔分数 / resistance-law 铁档铝值 / load-voltage kΩ 与�
 **M3 开放 P1 = 0**（#61/#82 均已 CLOSED，十五次滚动），剩余批次全 P2。
 发现漂移时规划者负责降级并在 issue 留言。
 
-> **以下为历史快照，非当前状态**（三十八次滚动标注；当前队列见本文件「执行队列」节：#141 → #143 → #142；#44 现状为 **parked**（D44=B），#140 已 CLOSED）。
+> **以下为历史快照，非当前状态**（三十八次滚动标注；当前队列见本文件「执行队列」节：#148 → #149；#150 blocked by #149；#44 现状为 **parked**（D44=B），#140 已 CLOSED）。
 **blocked 现状一览**：**#44 blocked**（React 19 专项，依赖 #140）；#100/#101 parked（D19）；#130 §5 切片 2–4 未建单（待 #138 后拆）。
 **#99 / #105 → 已 CLOSED**（D38 dry-run 切片 / D39 英文物料先行；真实 npm 发布仍未放行）。
 当前可执行队列以最新滚动为准（2026-10-18 三十五次滚动）：**#137 → #138 → #139**；**#140** 下一批首项；**#44** blocked by #140；#100/#101 parked（D19）；#130 §5 切片 2–4 待 #138 后拆单。
@@ -555,12 +558,12 @@ T=25℃ 时二者等价，无正确性影响，属「面板公式与算法严格
 
 ## 给 Executor 的指令
 
-1. **队首 = #141**（P2，在现有 `scripts/verify-first-frame-smoke.cjs` 内补「挂载前必需资源」gzip 度量 + 修正 `check-bundle-size.mjs` 注释与 `AGENTS.md`/`docs/plan.md` 的「现状约 63kB」过期表述）
-   → **#143**（P2，把 4 个 headless 探针接入 `ci.yml` 的单个 `ci` job 内追加步骤：`npx playwright install --with-deps chromium` + `vite preview` + bash 循环重试，**不新建 job、不引入新 npm 依赖/第三方 Action**）
-   → **#142**（P3，token 首批**等值**消费 + 收口 3 处 `.app.dark background: #1e293b` + 按实测重写规范 §5 切片 2 盘点并产出切片 3/4 站点清单）。
-   **硬边界**：#141/#143 **不得**改 `BUDGET_KB` / `LAZY_BUDGETS` 任何数值、不得新增判定项、不得改 `deploy.yml` 触发条件（D44=B：体积只观测不判定；D46=A 的放行**仅覆盖把 4 个既有探针接入现有 `ci` job + `timeout-minutes: 20`**，不预支其它 CI/CD 变更授权，**也不含并入 `qa-sweep.yml`**）；#143 若 ubuntu runner 上 WebGL 断言失败，**停单转 `blocked`，禁止放宽断言或跳过该探针**；`BASE_URL` 必须带 `/physical-modelvis/` 子路径（CI 构建带 `VITE_BASE_PATH`）；**服务与通道两条新前提必须显式处理**——只有首帧探针自启 preview，其余三个探针要由 CI 步骤后台起的 `vite preview --port 4173` 供给，且 4 个步骤共用 `SMOKE_BROWSER_CHANNEL: ""`（`verify-guidance-smoke.cjs:13` 缺省是 `msedge`，chromium 安装不含它）；**红向验证要用 draft PR 触发**（临时分支 push 不跑 `ci.yml`），报红后关闭 PR、严禁合并。#142 **不得**改任何 `.tsx` 里的颜色（canvas/SVG/JS 三元三类需另一套机制）、不得改 token 定义值、不得为非尺度值（如 `.panel-title` 的 `margin-bottom: 10px`）「对齐尺度」而改数值、**不得动 4 处 `@media` 断点覆盖**（L1413/L1416/L1463/L1466，其中 14px 无等值 token）。
-   **#44 已转 `parked`（D44=B），与 #100/#101 一同勿领**；沿 D42 集成口径（`--no-ff` 使交付 SHA 成 main 祖先 + CI 绿双证），新增测试后 `count:sync` 回写；**全程禁 `--no-verify` / 禁 force-push**。
-   **报告口径提醒（本轮验收教训，#143 尤其相关）**：不要把「门禁值下降」写成「首屏体积优化」——两者在 #140 后已不是同一件事；凡体积结论，须同时给门禁值与真实挂载前/首帧实测值。
+1. **队首 = #148**（P2，浮层可访问性：OverlayDrawer + OCRPanel 的 Esc / 初始焦点 / 焦点归还 / Tab 约束 + dialog 语义）
+   → **#149**（P2，建立 `themeTokens.ts` + CSS↔JS 契约测试 + GraphPanel / PhotogateTimer 迁移）。
+   **硬边界**：#148 不引入第三方 focus-trap / a11y 依赖，不改 `styles.css`，不改 OCR 业务逻辑；焦点陷阱只在 dialog 内循环，关闭后必须回到触发元素。#149 以 `styles.css` 为唯一真源：允许新增 token，**不得改已有 token 值**；暗色实际渲染值必须保持不变（状态色亮色语义化除外，须在报告逐条列出）；Canvas/SVG 不得写 `var()` 字符串；场景 Canvas 调色板（`rendering/*Scenes.ts` / `CanvasRenderer.ts`）不迁。
+   **#150（P3）标 `blocked`，依赖 #149，本轮不得领取**；#44/#100/#101 维持 parked 勿领。
+   沿 D42 集成口径（`--no-ff` 使交付 SHA 成 main 祖先 + CI 绿双证），新增测试后 `count:sync` 回写；**全程禁 `--no-verify` / 禁 force-push**。
+   **报告口径提醒**：主题 token 迁移必须区分「值保持」与「亮色语义化调整」，后者逐条列出并附双主题截图/探针证据；不要把「静态契约测试绿」写成「双主题视觉已实测」，两者须分别给证据。
 2. **标签流转纪律（LOCK 已裁决废止）**：继续规范执行 领取 `in-progress` → 完工 `in-review`；
    **不设锁**——契约 1.2 串行口径为准（2026-10-14 二十八次滚动裁决，见 D30；`.agent/LOCK` 现无残留，若再见直接删除）。
 3. **无凭证环境注意**（继承 #75 轮）：OCR demo 链路的端到端验证用 mock 上游（参照 tests/ocr/
