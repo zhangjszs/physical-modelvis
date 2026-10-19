@@ -8,6 +8,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { lazy } from 'react';
 import { PanelSection } from '../../src/components/common/PanelSection';
 import { LazyPanel } from '../../src/components/common/LazyPanel';
+import { NumberField } from '../../src/components/common/NumberField';
 import { StateInspector } from '../../src/components/simulation/StateInspector';
 import { PhotogateTimer } from '../../src/components/simulation/PhotogateTimer';
 import { useSimulationStore } from '../../src/store/simulationStore';
@@ -136,5 +137,29 @@ describe('#139 PanelSection 迁移站点回归', () => {
         expect(section).not.toBeNull();
         expect(screen.getByText('数字毫秒计')).toBeDefined();
         expect(screen.getByText('无测量数据')).toBeDefined();
+    });
+});
+
+// ─────────────── #146 NumberField 控件状态测试 ───────────────
+
+describe('#146 NumberField 控件状态规范', () => {
+    it('slider 模式在 disabled 时 range 与 input 均具备 disabled 属性', () => {
+        const { container } = render(
+            <NumberField label="质量" min={1} max={10} value={5} disabled={true} onChange={() => {}} />
+        );
+        const slider = container.querySelector('input[type="range"]') as HTMLInputElement;
+        const numberInput = container.querySelector('input[type="number"]') as HTMLInputElement;
+        expect(slider.disabled).toBe(true);
+        expect(numberInput.disabled).toBe(true);
+    });
+
+    it('纯 input 模式渲染 .composition-field 且 disabled 属性生效', () => {
+        const { container } = render(
+            <NumberField label="电荷量" value={1e-6} disabled={true} onChange={() => {}} />
+        );
+        const field = container.querySelector('.composition-field');
+        expect(field).not.toBeNull();
+        const numberInput = container.querySelector('input[type="number"]') as HTMLInputElement;
+        expect(numberInput.disabled).toBe(true);
     });
 });

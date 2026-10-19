@@ -196,4 +196,40 @@ describe('#138 Design Token 静态契约测试', () => {
             '.formula-drawer-overlay z-index 应保持 900'
         ).toBe(true);
     });
+
+    it('输入与按钮控件交互状态遵循设计规范 (#146)', () => {
+        // param-input 状态规范
+        expect(/\.param-input:hover\s*\{[^}]*border-color:\s*var\(--glass-border-hover\)/i.test(cssContent)).toBe(
+            true
+        );
+        expect(
+            /\.param-input:(focus-visible|focus)\s*\{[^}]*box-shadow:\s*0 0 0 3px var\(--ring\)/i.test(cssContent)
+        ).toBe(true);
+        expect(/\.param-input:disabled\s*\{[^}]*opacity:\s*0\.5/i.test(cssContent)).toBe(true);
+
+        // param-slider 状态规范
+        expect(/\.param-slider:focus-visible\s*\{[^}]*box-shadow:\s*0 0 0 3px var\(--ring\)/i.test(cssContent)).toBe(
+            true
+        );
+        expect(/\.param-slider:disabled\s*\{[^}]*opacity:\s*0\.4/i.test(cssContent)).toBe(true);
+
+        // composition-field 规范
+        expect(
+            /\.composition-field\s*input:hover\s*\{[^}]*border-color:\s*var\(--glass-border-hover\)/i.test(cssContent)
+        ).toBe(true);
+        expect(
+            /\.composition-field\s*input:(focus-visible|focus)\s*\{[^}]*box-shadow:\s*0 0 0 3px var\(--ring\)/i.test(
+                cssContent
+            )
+        ).toBe(true);
+        expect(/\.composition-field\s*input:disabled\s*\{[^}]*opacity:\s*0\.5/i.test(cssContent)).toBe(true);
+
+        // btn 与 btn-preset 状态规范
+        expect(/\.btn:focus-visible\s*\{[^}]*box-shadow:\s*0 0 0 3px var\(--ring\)/i.test(cssContent)).toBe(true);
+        expect(/\.btn:disabled\s*\{[^}]*opacity:\s*0\.4/i.test(cssContent)).toBe(true);
+        expect(/\.btn-preset:focus-visible\s*\{[^}]*box-shadow:\s*0 0 0 3px var\(--ring\)/i.test(cssContent)).toBe(
+            true
+        );
+        expect(/\.btn-preset:disabled\s*\{[^}]*opacity:\s*0\.4/i.test(cssContent)).toBe(true);
+    });
 });
