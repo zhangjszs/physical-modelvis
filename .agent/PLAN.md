@@ -239,20 +239,26 @@
 > **门禁数值一律未动**（`BUDGET_KB` 70 kB / `vendor-react-` 55 kB），首帧步骤按 B 案**只判时间/画布/console error，挂载前体积合计只打印不判定**。
 > 今日队列扩容为 **#141 → #143 → #142**（3 单；#143 依赖 #141 先改 `verify-first-frame-smoke.cjs`，顺序即依赖序）。
 
+> 2026-10-19 三十八次滚动（**治理轮 · 无 in-review**）：昨日 22:33 落盘后 **main HEAD 未变（`cefe669`）、四单已 CLOSED、in-review = 0**，本轮不产验收结论，改为把今日队列三单**逐条重过契约 4.2**并独立实测其事实前提（只读命令，未动代码）。基线三线全绿：CI `39136649170` · Deploy `39136800308` · QA 巡检 `39165693099`。
+> **#141 前提坐实**：不依赖浏览器、直接对 `visualization/dist/assets` 逐文件 `gzipSync` 求和 = **68.82 kB**（0.60 入口 html + 1.09 入口 js + 8.08 css + 14.1 bootstrap + 43.7 vendor-react + 0.42/0.42/0.41 三个小 chunk）→ 昨日「≈68.8 kB」结论成立，验收容差 **±3 kB 收紧为 ±1 kB**；度量锚点 `#root` + `#app-loading` 已核实在 `visualization/index.html` L12–13。两处行号误记已改（取数逻辑 L65–74 非 L63–70；头注释过期表述 L10–12 非 L12–16）。
+> **#143 补两条「不补就大概率四单全红」的硬前提**：① **4 个探针里只有首帧探针会自启服务**（`ensureServer()` L40），其余三个（`verify-overlay-drawer-smoke.cjs:16` / `verify-portal-tokens.mjs:15` / `verify-guidance-smoke.cjs:11`）只读 `BASE_URL` 且缺省指向 dev 端口 `:3000` → CI 必须显式后台起 `vite preview --port 4173` + 就绪轮询；② `verify-guidance-smoke.cjs:13` 缺省是 **`msedge` 渠道**（另三个为 `''`），而 `playwright install --with-deps chromium` 只装 chromium → 四步骤须共用 `SMOKE_BROWSER_CHANNEL: ""`。另附一条误诊预防：首帧探针 `isServerRunning()` 把 **404 也判为「已就绪」**（`res.status < 500`），BASE_URL 少子路径时不会自启补救、只会把错报成「画布为空/超时」。
+> **#143 的两条实况补充（不扩范围）**：本仓**已有浏览器 CI 先例** `qa-sweep.yml`（L53–54 装 chromium / L56–58 后台起服务 / L60–71 curl 轮询）→ 安装与后台服务照抄，但本单必须跑**生产 preview**、且**不并入 qa-sweep、不新建 workflow**（那超出 D46=A 放行范围）；实测现有 `ci` job ≈**2 分钟**（run `39136649170`，20 步）→ 加浏览器步骤后预期 4–6 分钟，本单补 `timeout-minutes: 20`（现无 timeout，默认 6 小时）。**红向触发方式核准**：`ci.yml` 只在 `push:[main]` / `pull_request:[main]` 触发，**临时分支 push 不跑 CI** → 须开 draft PR 触发、报红后关闭不合并。**一处误读已自我否决**：原想把 nightly 巡检全绿当作 WebGL 在 runner 可用的旁证，读码发现 `verify-qa-sweep.cjs` L129/L145 **明确跳过 WebGL 画布** → WebGL 仍是真未知（本单为第一次真检验）；该文件 L80 另记 headless **WebGL 上下文数量上限**的既往假红源 → 裁定 4 探针保持各自独立 `chromium.launch()`，禁止为省时间共享实例。
+> **#142 坐实 + 两处误记校正 + 一条新裁定**：`background: #1e293b` 在 `visualization/src` **恰好 3 处**（L1703/L2207/L2479），五族 token `var()` 消费**全为 0**（`--surface` 已有 8+4 消费者），等值关系逐条核到行号（`--space-lg` L68 / `--text-h3` L87 / `--text-body` L88 / `--text-small` L89 / `--radius-xs` L72 ↔ `.panel-section` L298 / `.panel-title` L301 / `.param-label` L333 / `.param-desc` L371 / badge 圆角 **L1697·L2201 在基规则、不在 `.app.dark` 块内**）。校正：L2086 的 `rgba(15,23,42,0.2)` 属 **`.formula-drawer`**（L2077），首稿误写 `.classroom-inspector`；验收判据换成单行可跑的 `grep -rn "background: #1e293b" visualization/src`（原跨行正则恒返回 0，会被误读为「本来就干净」）。**新裁定**：`.panel-title`/`.param-label` 的 4 处 `@media` 覆盖（L1413/L1416/L1463/**L1466=14px**）**本轮不动**——14px 无等值 token，顺手替换必然改数值、直接撞非目标。
+> **治理附带**：`origin/agent/issue-95-shadow-adaptive` / `origin/agent/issue-96-default-on-grid` 两分支已是 main 祖先且 Issue CLOSED，属 §1.9 未执行的分支清理——删远程分支影响共享状态且契约禁止 agent 删他人分支，**只上报不删**。**M6 进度维持 3 / 6**；**pending 区维持清零**；队列与优先级**未变**（#141 → #143 → #142），D48 登记本轮裁定。
+
 ## 当前方向
 
-**三十七次滚动·续（2026-10-18）**：M6 UI 统一线前三单（#137 遮挡修复 / #138 token 切片 1 / #139 PanelSection 14 处收口）已验收关闭；D40 前置单 #140 也已交付，但**验收实测暴露「门禁计量范围收缩使 70 kB 首屏保护被架空」**（门禁 9.7 kB vs 真实挂载前 68.8 kB）——该事实同时挡住了 React 19（#44）的排程。
-**用户已同日拍板（D47）**：D44 = **B**（先补度量、暂不升 React 19，门禁数值一律不动）、D46 = **A**（4 个 headless 探针接入 CI）。故今日三件事：
-① **#141** 补上可复核的挂载前体积度量与文档纠偏（只观测、不改判定权）；② **#143** 把首帧 / 双视口遮挡 / token 消费 / 导学四个浏览器探针接入现有 `ci` job（此后浏览器类回归由机制拦截，不再依赖人工复测）；③ **#142** 让 #138 定义的 token 真正落地消费并收口遗留同值硬编码，继续 M6。
-待清理的事实：**首屏真实成本（≈68.8 kB）目前仍无门禁约束**——B 案是「先看清、暂不动」，不是已解决；#44 转 `parked`（三条解除条件在案）。M2/M2.5/M3/M4 全部收官，M5 维持 parked（D19），#100/#101 不进执行队列。
+**三十八次滚动（2026-10-19 · 治理轮）**：昨日队列 #141 → #143 → #142 已落盘但**尚未有执行棒运行**（main HEAD 仍为 `cefe669`，只有 `.agent/` 提交），故今天的方向不是「换一批任务」，而是**让这三单真的能一次跑通**：本轮用只读命令把三单的事实前提全部实测复核（#141 的 68.82 kB 静态复算坐实、#142 的 3 处硬编码与 0 消费者坐实），并补掉 #143 的两条会直接导致「四单全红」的执行前提（三探针不自启服务、导学探针缺省 msedge 渠道）。
+**今天最重要的事**：Executor 把 **#141 → #143 → #142** 按序做完。其中 **#143 是今天唯一带未验证前提的一单**——`verify-first-frame-smoke.cjs` 的 WebGL 断言从未在 GitHub ubuntu runner 上跑过（qa-sweep 跑的是 dev server 且只看 canvas 非空，不能替它背书）；若失败，**停单转 `blocked` 并附 CI 原始输出**，这是 D46=A 落地路径上 Planner 与用户都事先认领过的风险，不算执行失败。
+**待清理的事实**：首屏真实成本（≈68.8 kB）**目前仍无门禁约束**——D44=B 是「先看清、暂不动」，不是已解决；#44 维持 `parked`（三条解除条件在案）。M2/M2.5/M3/M4 全部收官，M5 维持 parked（D19），#100/#101 不进执行队列。
 
-## 今日目标（2026-10-18 · 三十七次滚动·续）
+## 今日目标（2026-10-19 · 三十八次滚动）
 
-- ~~验收并关闭 #135/#136（三十五次滚动）~~、**验收并关闭 #137/#138/#139/#140（本轮，四单全部 CLOSED，浏览器探针由 Planner 在生产构建上独立复现）**。
-- **把首屏体积的真实代价变成可复核的数字**：#141 在现有首帧探针内补「挂载前必需资源」度量 + 修正 `check-bundle-size.mjs` 注释与 `AGENTS.md`/`docs/plan.md` 的过期「现状约 63kB」表述。
-- **让浏览器回归进入 CI**：#143 在 `ci` job 内追加 4 探针步骤（生产构建 `vite preview`，注意 `VITE_BASE_PATH` 子路径），并完成一次真实 CI 红向验证。
-- **让 #138 的 token 真正被消费**：#142 首批等值替换 + 收口 3 处 `.app.dark` 同值硬编码 + 按实测修正规范 §5 盘点。
-- ~~就 D44 / #143 向用户提问~~（已答复，见 D47；pending 清零）。
+- ~~验收并关闭 #137/#138/#139/#140~~（已于昨日三十七次滚动完成，评论 6250820245/6250824765/6250826009/6250880574）；本轮**无 in-review**，目标改为「队列可执行性复核」。
+- **#141**：把挂载前体积变成探针里的可复核数字（参照 **68.8 kB，±1 kB**）+ 修正 `check-bundle-size.mjs` 注释与 `AGENTS.md`/`docs/plan.md` 的过期「现状约 63kB」。
+- **#143**：4 个浏览器探针进入 `ci.yml` 的现有 `ci` job（后台 `vite preview` + `SMOKE_BROWSER_CHANNEL=""` + 子路径 `BASE_URL` + `timeout-minutes: 20` + draft PR 红向验证），此后浏览器类回归由机制拦截。
+- **#142**：token 首批**等值**消费 + 3 处 `.app.dark` 硬编码收口 + 规范 §5 按四类重写（断点覆盖本轮不动）。
+- 待用户点头才可做的事：删除两个已合并的远程分支（`agent/issue-95-shadow-adaptive` / `agent/issue-96-default-on-grid`）——**默认不删**，无功能影响。
 
 ## 当前 Milestone：M6 · 物理世界盒子 UI 统一与组件复用收口（进度：3 / 6）
 
@@ -284,7 +290,9 @@
 - **执行顺序即依赖序**：#141 → #143 → #142。#143 与 #141 同改 `scripts/verify-first-frame-smoke.cjs`，**必须串行**，否则同窗冲突。
 - **#44（React 19 专项）**：**parked**（D44 = B 用户已定，落实记录 D47）。技术前置 #140 已达成，但按 B 案暂不升；解除条件三条：用户改选 A/C、React 19 出现**已验证的功能收益**、react 18 遇安全/兼容硬约束。**勿领**；其余大版本候选面继续逐项另议、不自动放行。
 - **B 案未解决的部分（诚实记账）**：真实挂载前成本 ≈68.8 kB **当前无门禁约束**；`BUDGET_KB` 70 kB 与 `LAZY_BUDGETS`（含 `vendor-react-` 55 kB）按用户决定不动。#141 只把该数字变成可复核观测项。
-- **#143 的两个硬前提**（写入验收，违规则停单）：WebGL 若在 ubuntu runner 不可用 → **不得放宽断言**，转 `blocked` 回报；CI 构建带 `VITE_BASE_PATH: /physical-modelvis/` → 探针 `BASE_URL` 必须含子路径。
+- **#143 的四个硬前提**（三十八次滚动补齐，写入验收，违规则停单）：① WebGL 若在 ubuntu runner 不可用 → **不得放宽断言**，转 `blocked` 回报；**注意 `qa-sweep` nightly 全绿不构成 WebGL 证据**（`verify-qa-sweep.cjs` L129/L145 明确跳过 WebGL 画布，3D 舞台像素在 CI 里从未被断言），本单是第一次真检验；且 headless 有 **WebGL 上下文数量上限**（同文件 L80 的既往规避手段）→ 4 个探针**保持各自 `chromium.launch()` 独立实例**，禁止为省时间共享 browser/page；② CI 构建带 `VITE_BASE_PATH: /physical-modelvis/` → 探针 `BASE_URL` 必须含子路径（首帧探针 `isServerRunning()` 把 404 也判存活，配错不会自启补救、只会误报为「画布为空/超时」）；③ **只有首帧探针自启服务**，其余三个须由外部 `vite preview --port 4173` + 就绪轮询供给（`verify-overlay-drawer-smoke.cjs:16` / `verify-portal-tokens.mjs:15` / `verify-guidance-smoke.cjs:11` 缺省还指向 `:3000`）；④ **导学探针缺省 msedge 渠道**（`verify-guidance-smoke.cjs:13`）→ 四步骤共用 `SMOKE_BROWSER_CHANNEL: ""`。
+- **#143 的授权边界**：D46=A 只放行「4 个既有探针接入现有 `ci` job + `timeout-minutes: 20`」。**不含**并入 `qa-sweep.yml`、改 `deploy.yml` 触发条件、抬任何阈值、引入第三方 Action——若跑通需要动这些，**停单回报**，不要扩权解释。
+- **分支清理（需用户点头，默认不做）**：`origin/agent/issue-95-shadow-adaptive` / `origin/agent/issue-96-default-on-grid` 均为 main 祖先且 Issue 已 CLOSED，属 §1.9 未执行的清理；删远程分支影响共享状态，Planner 不代删。
 - **#100/#101**：parked（D19），勿领。
 - **#130 §5 切片 3/4**：暂不建单——规范文档的站点盘点已实测失真（~30 处 → CompositionLab 10 / DataDrawer 0 / WorkbenchScene 0，且 canvas 绘制色与 SVG presentation attribute 不可用 `var()`），待 #142 产出四类分列的实测清单后再拆。
 
@@ -424,6 +432,7 @@ liquid-mixing 摩尔分数 / resistance-law 铁档铝值 / load-voltage kΩ 与�
 **M3 开放 P1 = 0**（#61/#82 均已 CLOSED，十五次滚动），剩余批次全 P2。
 发现漂移时规划者负责降级并在 issue 留言。
 
+> **以下为历史快照，非当前状态**（三十八次滚动标注；当前队列见本文件「执行队列」节：#141 → #143 → #142；#44 现状为 **parked**（D44=B），#140 已 CLOSED）。
 **blocked 现状一览**：**#44 blocked**（React 19 专项，依赖 #140）；#100/#101 parked（D19）；#130 §5 切片 2–4 未建单（待 #138 后拆）。
 **#99 / #105 → 已 CLOSED**（D38 dry-run 切片 / D39 英文物料先行；真实 npm 发布仍未放行）。
 当前可执行队列以最新滚动为准（2026-10-18 三十五次滚动）：**#137 → #138 → #139**；**#140** 下一批首项；**#44** blocked by #140；#100/#101 parked（D19）；#130 §5 切片 2–4 待 #138 后拆单。
@@ -539,7 +548,7 @@ T=25℃ 时二者等价，无正确性影响，属「面板公式与算法严格
 1. **队首 = #141**（P2，在现有 `scripts/verify-first-frame-smoke.cjs` 内补「挂载前必需资源」gzip 度量 + 修正 `check-bundle-size.mjs` 注释与 `AGENTS.md`/`docs/plan.md` 的「现状约 63kB」过期表述）
    → **#143**（P2，把 4 个 headless 探针接入 `ci.yml` 的单个 `ci` job 内追加步骤：`npx playwright install --with-deps chromium` + `vite preview` + bash 循环重试，**不新建 job、不引入新 npm 依赖/第三方 Action**）
    → **#142**（P3，token 首批**等值**消费 + 收口 3 处 `.app.dark background: #1e293b` + 按实测重写规范 §5 切片 2 盘点并产出切片 3/4 站点清单）。
-   **硬边界**：#141/#143 **不得**改 `BUDGET_KB` / `LAZY_BUDGETS` 任何数值、不得新增判定项、不得改 `deploy.yml` 触发条件（D44=B：体积只观测不判定；D46=A 的放行**仅覆盖把 4 个既有探针接入 CI**，不预支其它 CI/CD 变更授权）；#143 若 ubuntu runner 上 WebGL 断言失败，**停单转 `blocked`，禁止放宽断言或跳过该探针**；`BASE_URL` 必须带 `/physical-modelvis/` 子路径（CI 构建带 `VITE_BASE_PATH`）。#142 **不得**改任何 `.tsx` 里的颜色（canvas/SVG/JS 三元三类需另一套机制）、不得改 token 定义值、不得为非尺度值（如 `.panel-title` 的 `margin-bottom: 10px`）「对齐尺度」而改数值。
+   **硬边界**：#141/#143 **不得**改 `BUDGET_KB` / `LAZY_BUDGETS` 任何数值、不得新增判定项、不得改 `deploy.yml` 触发条件（D44=B：体积只观测不判定；D46=A 的放行**仅覆盖把 4 个既有探针接入现有 `ci` job + `timeout-minutes: 20`**，不预支其它 CI/CD 变更授权，**也不含并入 `qa-sweep.yml`**）；#143 若 ubuntu runner 上 WebGL 断言失败，**停单转 `blocked`，禁止放宽断言或跳过该探针**；`BASE_URL` 必须带 `/physical-modelvis/` 子路径（CI 构建带 `VITE_BASE_PATH`）；**服务与通道两条新前提必须显式处理**——只有首帧探针自启 preview，其余三个探针要由 CI 步骤后台起的 `vite preview --port 4173` 供给，且 4 个步骤共用 `SMOKE_BROWSER_CHANNEL: ""`（`verify-guidance-smoke.cjs:13` 缺省是 `msedge`，chromium 安装不含它）；**红向验证要用 draft PR 触发**（临时分支 push 不跑 `ci.yml`），报红后关闭 PR、严禁合并。#142 **不得**改任何 `.tsx` 里的颜色（canvas/SVG/JS 三元三类需另一套机制）、不得改 token 定义值、不得为非尺度值（如 `.panel-title` 的 `margin-bottom: 10px`）「对齐尺度」而改数值、**不得动 4 处 `@media` 断点覆盖**（L1413/L1416/L1463/L1466，其中 14px 无等值 token）。
    **#44 已转 `parked`（D44=B），与 #100/#101 一同勿领**；沿 D42 集成口径（`--no-ff` 使交付 SHA 成 main 祖先 + CI 绿双证），新增测试后 `count:sync` 回写；**全程禁 `--no-verify` / 禁 force-push**。
    **报告口径提醒（本轮验收教训，#143 尤其相关）**：不要把「门禁值下降」写成「首屏体积优化」——两者在 #140 后已不是同一件事；凡体积结论，须同时给门禁值与真实挂载前/首帧实测值。
 2. **标签流转纪律（LOCK 已裁决废止）**：继续规范执行 领取 `in-progress` → 完工 `in-review`；

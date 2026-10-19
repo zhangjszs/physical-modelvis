@@ -439,6 +439,7 @@ eslint tests 目录 `no-explicit-any` 降 warn）与 `36aed93`（移除 scripts/
 - **无 pending。** D44 / D46 已于**同一天（2026-10-18 三十七次滚动·续）**获用户答复「按照推荐的来吧」→ 分别按推荐项生效：**D44 = B**、**D46 = A**（落实记录见 D47，两节的「用户答复」条目在案）。
 - 由此产生的排程变化：#44 `needs-info → parked`（B 案：暂不升 React 19，解除条件三条已写入 #44 comment）；#143 `needs-info → ready-for-agent` 并按实况重写正文（A 案已批，属 1.10 红线获用户明确放行）。
 - 未采纳项的后果如实登记：**方案 A（抬 `vendor-react-` 预算放行 React 19）与方案 C（把挂载前合计做成硬门禁）均未获采纳**；`BUDGET_KB` / `LAZY_BUDGETS` 数值维持不变，首屏真实成本仍**无门禁约束**（由 #141 转为可观测项，#143 使浏览器回归由机制拦截）。
+- **三十八次滚动（2026-10-19）复核：仍无 pending**——本轮 D48 六条裁定全属契约 6.1「实现细节 / 测试策略 / 文档结构 / 低风险方案选择」自决列，且第 3 条是把 1.10 红线授权**收窄**而非扩大，不需用户拍板。唯一留给用户的是**远程分支清理**（`origin/agent/issue-95-shadow-adaptive` / `origin/agent/issue-96-default-on-grid` 均为 main 祖先、Issue 已 CLOSED）：删远程分支影响共享状态且契约 1.9 禁止 agent 删他人分支 → **默认不删，仅上报，不列 pending**。
 
 > **D31 已于 2026-10-16 三十一次滚动 default 转正**（详见「已确认」节 D31 条目）。
 
@@ -854,3 +855,20 @@ eslint tests 目录 `no-explicit-any` 降 warn）与 `36aed93`（移除 scripts/
   5. pending 区**清零**。
 - **本轮遗留的诚实记账**（供明日验收对照）：D44=B 意味着**首屏真实成本（≈68.8 kB）目前仍无门禁约束**——这不是被解决的问题，而是被选择「先看清、暂不动」的问题。#141 交付后，该数字进入可复核状态；若后续出现首屏明显变慢的事实证据，应重开 D44 而非默认抬预算。
 - **影响范围**：PLAN（今日队列 / 已知阻塞 / 下一阶段 / 给 Executor 指令）、TASKS.md 整体重写、#44 与 #143 标签与正文、D44/D46 两节补「用户答复」条目。
+
+## D48 · 三十八次滚动：ready 门禁复核裁定 —— #143 补两条执行前提、#142 断点覆盖排除、#141 容差收紧（均属规划者自决，不问用户）
+
+- **日期**：2026-10-19（三十八次滚动 · **治理轮**：main HEAD 未变 `cefe669`、in-review = 0，故本轮不产验收结论，改为把昨日队列三单逐条重过契约 4.2）
+- **问题**：昨日（三十七次滚动·续）在用户同日答复后**当天连续两次落盘**，队列三单的正文是在有时间压力的情形下写成的。本轮以只读命令独立复核后发现：#141/#142 的事实前提全部坐实，但**三单正文各有一处会让不了解历史的资深工程师凭空发明决策或直接把跑通判为跑不通**的缺口——若不补，#143 第一次 CI 就会四单全红，而报错信息（「画布为空」「Executable doesn't exist」）与真实原因不一致，Executor 极可能误判为「探针本身有问题」而去放宽断言（正是本单明令禁止的行为）。
+- **裁定（六条，全部可回滚、不改门禁数值、不改产品方向）**：
+  1. **#143 服务前提（新写进正文与验收）**：4 个探针里**只有 `verify-first-frame-smoke.cjs` 自启 preview**（L20 `BASE_URL`、L40 `ensureServer()`、L50 `spawn npx vite preview --port 4173`）；`verify-overlay-drawer-smoke.cjs:16` / `verify-portal-tokens.mjs:15` / `verify-guidance-smoke.cjs:11` 只读 `BASE_URL` 且**缺省指向 dev 端口 `:3000`、不自启**。→ CI 必须显式后台起一个 `vite preview`（生产构建）+ 就绪轮询，并把带子路径的 `BASE_URL` 喂给全部 4 个。
+  2. **#143 浏览器通道前提（新写进正文与验收）**：`verify-guidance-smoke.cjs:13` 为 `SMOKE_BROWSER_CHANNEL ?? 'msedge'`，与另三个（`?? ''`）**不一致**；`npx playwright install --with-deps chromium` 不装 Edge → 不显式置空即 `Executable doesn't exist`。→ 四个步骤共用 job 级 `SMOKE_BROWSER_CHANNEL: ""`（`??` 语义保证空串生效，属 #98/#106 既有约定，**不改脚本**）。
+  3. **#143 与既有浏览器 CI 的关系（授权边界重申）**：实测本仓 `qa-sweep.yml` **已经是**浏览器 job（PR 12 场景 / nightly 123 场景），其 L53–54 就是 `playwright install --with-deps chromium`、L56–58 后台起服务、L60–71 curl 就绪轮询。故 D46 建单时「CI 无浏览器项」的表述**只对 `ci.yml` 成立**。裁定：安装/后台/轮询三段**照抄既有写法**降低不确定性，但 ① 本单仍跑**生产 preview**（qa-sweep 是 dev server，#111 教训不可破），② **不把探针并入 `qa-sweep.yml`、不新建 workflow**——那属新的 CI/CD 结构变化，**超出用户 D46=A 的放行范围**，需重新请示；③ 如实登记代价：两条 workflow 各装一次 chromium，PR 侧浏览器成本约翻倍。
+     - **同轮追加的一处「差点误读」**：复核时一度想把「nightly 巡检全绿」当作 WebGL 在 runner 上可用的间接证据，读码后否决——`scripts/verify-qa-sweep.cjs` L129 / L145 明确**跳过 WebGL 画布**（`getContext('2d')` 返回 null 即 `return`），3D 舞台像素在 CI 里**从未被断言过**。故 #143 的「WebGL 未在 CI 验证过」依旧成立，本单是第一次真检验。另把该文件 L80 记的既往现象转成硬约束：headless Chromium 存在 **WebGL 上下文数量上限**（巡检靠每 N 个场景重载页面规避假红）→ 本单**保持 4 个探针各自 `chromium.launch()` 独立实例**（first-frame L184 / overlay-drawer L154 / portal-tokens L107 / guidance L18），**禁止**为省 CI 时间改为共享 browser/page（那会把已知假红源引进门禁）。
+  4. **#143 两项可执行性补强**：`ci` job 现**无 `timeout-minutes`**（GitHub 默认 6 小时），一旦 preview 挂死会长期占 runner → 本单补 **`timeout-minutes: 20`**（实测基线：现有 `ci` job ≈**2 分钟**，run `39136649170`，20 步；加浏览器步骤预期 4–6 分钟，20 分钟为 3× 余量，参照 `qa-sweep` 的 45）。**红向验证的触发方式核准**：`ci.yml` 的 `on` 只有 `push: branches [main]` 与 `pull_request: branches [main]`，**向临时分支 push 不会跑 CI** → 必须 `gh pr create --draft` 触发，报红后关闭 PR、严禁合并（否则该条验收标准字面上无法执行）。
+  5. **#141 参照值坐实 + 容差收紧**：本轮不依赖浏览器，直接对 `visualization/dist/assets` 逐文件 `gzipSync` 求和 = **68.82 kB**（index.html 0.60 + 入口 js 1.09 + css 8.08 + bootstrap 14.1 + vendor-react 43.7 + vendor-state 0.42 + rolldown-runtime 0.42 + scenes 0.41），与昨日「≈68.8 kB」一致 → 把验收容差从 ±3 kB **收紧为 ±1 kB**（防止「测到 65/72 kB 也算过」这种把度量做废的情形）；同时校正两处行号误记（取数逻辑 L65–74 非 L63–70；头注释过期表述 L10–12 非 L12–16），并核实度量边界所依赖的 `#root` / `#app-loading` 确在 `visualization/index.html` L12–13。
+  6. **#142 断点覆盖排除 + 选择器误记校正 + 判据可跑化**：`.panel-title` / `.param-label` 除基线外还有 **4 处 `@media` 覆盖**（L1413 12px / L1416 11px / L1463 13px / **L1466 14px**）。其中 **14px 不属于任何 token 档位** → 若按「把该选择器所有字号都换成 token」的字面施工，必然要改数值，直接撞本单非目标「禁止为对齐尺度改数值」。裁定**只替换 4 条基线规则，断点覆盖本轮一律不动**，响应式档位是否纳入 token 体系归切片 3/4（与 #142 产出的 §5 实测盘点一起定）。另校正：L2086 的 `box-shadow: -20px 0 60px rgba(15,23,42,0.2)` 属 **`.formula-drawer`**（L2077），首稿误记为 `.classroom-inspector`（后者在 L1596/L1606/L2102，shadow 走 `var(--shadow-lg)`）；badge 圆角在**基规则**（L1697/L2201）不在 `.app.dark` 覆盖块内；验收判据从跨行正则（单行 `grep -E` 恒返回 0，会把「没跑对」读成「本来就干净」）改为可跑的 `grep -rn "background: #1e293b" visualization/src`（实测基线**恰好 3 处**），并写明 `#1e293b` 在 `GraphPanel.tsx` / `SimulationCanvas.tsx` 的 JS 主题三元里另有若干处，属 D45 第 ④ 类、**不是残留项**。
+- **不重复提问的理由（契约 6.1）**：以上六条分别是「实现细节 / 文件组织 / 测试策略 / 文档结构 / 低风险修复方案选择」，且**未改动任何门禁阈值、未改产品方向、未触 1.10 红线**（第 3 条恰恰是把红线授权**收窄**而非扩大）→ 按分界表属规划者自决列。唯一留给用户的是**远程分支清理**：`origin/agent/issue-95-shadow-adaptive`(`ba0bd6f`) 与 `origin/agent/issue-96-default-on-grid`(`f73f21a`) 均已是 main 祖先且 Issue CLOSED（§1.9 未执行的清理），但删远程分支影响共享状态、且契约 1.9 禁止 agent 删他人分支 → **默认不删，仅上报**。
+- **pending 状态**：维持**清零**。本轮无需用户拍板事项。
+- **可推翻条件**：若 #143 在 CI 上证实「探针必须并入 qa-sweep 才能跑通」（例如 preview 与 CI 构建产物不可共存），则本单第 3 条的收窄裁定失效 → 停单转 `blocked`，作为新的 1.10 事项重新问用户。
+- **影响范围**：#141 / #142 / #143 三单正文（`gh issue edit --body-file`）各一条复核 comment 在案；PLAN.md 三十八次滚动记录 + 当前方向 + 今日目标 + 已知阻塞（四前提 + 授权边界 + 分支观察）+ 给 Executor 指令硬边界；TASKS.md 整体重写。**代码零改动、门禁数值零改动、队列与优先级零变动**。
