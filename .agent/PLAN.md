@@ -246,61 +246,71 @@
 > **#142 坐实 + 两处误记校正 + 一条新裁定**：`background: #1e293b` 在 `visualization/src` **恰好 3 处**（L1703/L2207/L2479），五族 token `var()` 消费**全为 0**（`--surface` 已有 8+4 消费者），等值关系逐条核到行号（`--space-lg` L68 / `--text-h3` L87 / `--text-body` L88 / `--text-small` L89 / `--radius-xs` L72 ↔ `.panel-section` L298 / `.panel-title` L301 / `.param-label` L333 / `.param-desc` L371 / badge 圆角 **L1697·L2201 在基规则、不在 `.app.dark` 块内**）。校正：L2086 的 `rgba(15,23,42,0.2)` 属 **`.formula-drawer`**（L2077），首稿误写 `.classroom-inspector`；验收判据换成单行可跑的 `grep -rn "background: #1e293b" visualization/src`（原跨行正则恒返回 0，会被误读为「本来就干净」）。**新裁定**：`.panel-title`/`.param-label` 的 4 处 `@media` 覆盖（L1413/L1416/L1463/**L1466=14px**）**本轮不动**——14px 无等值 token，顺手替换必然改数值、直接撞非目标。
 > **治理附带**：`origin/agent/issue-95-shadow-adaptive` / `origin/agent/issue-96-default-on-grid` 两分支已是 main 祖先且 Issue CLOSED，属 §1.9 未执行的分支清理——删远程分支影响共享状态且契约禁止 agent 删他人分支，**只上报不删**。**M6 进度维持 3 / 6**；**pending 区维持清零**；队列与优先级**未变**（#141 → #143 → #142），D48 登记本轮裁定。
 
+> 2026-10-19 三十九次滚动（每日规划 · 验收与排程轮）：**in-review 积压 3 单（#141/#143/#142）全部验收 CLOSED**，in-review 清零——
+> Planner 独立实测复核真实证据：
+> #141（首屏必需资源度量）：`verify-first-frame-smoke.cjs` 连续 3 次通过（793~1360ms），挂载前必需资源实测 68.4 kB gzip（与参照值 68.8 kB 仅差 0.4 kB，在 ±1 kB 容差内）；红向验证 `MEASURE_BOUNDARY=networkidle` 显著上升至 458.2 kB 并超时报错；`check-bundle-size.mjs` 门禁与 `BUDGET_KB`/`LAZY_BUDGETS` 零改动、入口 9.8 kB；注释与 `AGENTS.md` 对齐实测双数；CI `39195735459` + Deploy `39195904480` 双绿。
+> #143（4 个 headless 浏览器探针接入 CI）：`ci.yml` 单个 `ci` job 内成功追加 preview 服务启动、就绪探测与 4 探针执行；子路径 `/${{ github.event.repository.name }}/` 与 `SMOKE_BROWSER_CHANNEL: ""` 全探针生效；Ubuntu runner 上 WebGL 画布（826x690）首次真检验通过；Draft PR #144 红绿闭环证实拦截能力有效（注入 `top: 84px` 报错阻断 Deploy，revert 后转绿并按契约关闭未合并）；CI `39198883919` + Deploy `39199156200` 双绿。
+> #142（Token 首批等值消费与硬编码收口）：`grep -rn "background: #1e293b" visualization/src` 0 命中；`token-contract.test.ts` 6 passed 且改回 #1e293b 报红有效；五族 token 消费数各 ≥1；响应式断点与 `--shadow-drawer` 维持字面量不变，未越界发明 token；`docs/ui-visual-token-spec.md` §2.5 追加 size-only 说明，§5 按四类实测重写并盘点切片 4 遮罩清单；测试数真值 2869，`count:check` exit 0；CI `39200369677` + Deploy `39200610064` 双绿。
+> **M6 进度推进至 4 / 7**。基于 #142 产出的实测盘点，**立单推进 M6 收尾**：
+> **#145**（P2 · 切片 4：浮层遮罩与侧栏抽屉统一，4 处 overlay 换 `var(--overlay-bg)`，抽屉换 `var(--shadow-drawer)`，z-index 对齐）；
+> **#146**（P2 · 切片 3：控件交互状态规范落地，NumberField / param-input / slider / button 对齐 hover/focus-visible/disabled）；
+> **#147**（P3 · 切片 2 延伸：消除 DOM inline style 硬编码色，CompositionLab 10 处及弹窗外层内联样式迁移至 Token）。
+> 今日队列 = **#145 → #146 → #147**（3 单，全部过 4.2 ready 门禁）。
+
 ## 当前方向
 
-**三十八次滚动（2026-10-19 · 治理轮）**：昨日队列 #141 → #143 → #142 已落盘但**尚未有执行棒运行**（main HEAD 仍为 `cefe669`，只有 `.agent/` 提交），故今天的方向不是「换一批任务」，而是**让这三单真的能一次跑通**：本轮用只读命令把三单的事实前提全部实测复核（#141 的 68.82 kB 静态复算坐实、#142 的 3 处硬编码与 0 消费者坐实），并补掉 #143 的两条会直接导致「四单全红」的执行前提（三探针不自启服务、导学探针缺省 msedge 渠道）。
-**今天最重要的事**：Executor 把 **#141 → #143 → #142** 按序做完。其中 **#143 是今天唯一带未验证前提的一单**——`verify-first-frame-smoke.cjs` 的 WebGL 断言从未在 GitHub ubuntu runner 上跑过（qa-sweep 跑的是 dev server 且只看 canvas 非空，不能替它背书）；若失败，**停单转 `blocked` 并附 CI 原始输出**，这是 D46=A 落地路径上 Planner 与用户都事先认领过的风险，不算执行失败。
-**待清理的事实**：首屏真实成本（≈68.8 kB）**目前仍无门禁约束**——D44=B 是「先看清、暂不动」，不是已解决；#44 维持 `parked`（三条解除条件在案）。M2/M2.5/M3/M4 全部收官，M5 维持 parked（D19），#100/#101 不进执行队列。
+**三十九次滚动（2026-10-19 · 验收与排程轮）**：昨日本地与 CI 成果（#141/#143/#142）已全部独立复核并通过验收关闭。4 个 headless 浏览器探针已在 GitHub Actions CI 中自动化常驻，此后任何视觉、遮挡或探针回归将被 CI 实时拦截。
+**今天最重要的事**：全面收口 **M6（物理世界盒子 UI 统一与组件复用收口）**。依据 #142 交付的 `docs/ui-visual-token-spec.md` §5 实测盘点，将全仓剩余的设计令牌消费、状态规范与内联样式消除落盘：
+1. **#145**（切片 4 · P2）：浮层遮罩（4 处 overlay）接入 `var(--overlay-bg)`，侧栏抽屉接入 `var(--shadow-drawer)`，规范化 z-index 梯队（Modal 1000 / Drawer 900）。
+2. **#146**（切片 3 · P2）：控件交互状态对齐（`<NumberField>` 纯 input 模式美化并对齐 `.param-input`，补齐 hover/focus-visible/disabled 规范）。
+3. **#147**（切片 2 延伸 · P3）：消除 `CompositionLab.tsx`（10 处）及外层弹窗的 DOM inline style 硬编码色与字号。
+**待清理的事实**：首屏真实挂载前成本（≈68.4 kB gzip）已纳入探针度量（D44=B 维持观测，门禁入口 9.8 kB）；#44 维持 `parked`；#100/#101 维持 `parked`（D19）。
 
-## 今日目标（2026-10-19 · 三十八次滚动）
+## 今日目标（2026-10-19 · 三十九次滚动）
 
-- ~~验收并关闭 #137/#138/#139/#140~~（已于昨日三十七次滚动完成，评论 6250820245/6250824765/6250826009/6250880574）；本轮**无 in-review**，目标改为「队列可执行性复核」。
-- **#141**：把挂载前体积变成探针里的可复核数字（参照 **68.8 kB，±1 kB**）+ 修正 `check-bundle-size.mjs` 注释与 `AGENTS.md`/`docs/plan.md` 的过期「现状约 63kB」。
-- **#143**：4 个浏览器探针进入 `ci.yml` 的现有 `ci` job（后台 `vite preview` + `SMOKE_BROWSER_CHANNEL=""` + 子路径 `BASE_URL` + `timeout-minutes: 20` + draft PR 红向验证），此后浏览器类回归由机制拦截。
-- **#142**：token 首批**等值**消费 + 3 处 `.app.dark` 硬编码收口 + 规范 §5 按四类重写（断点覆盖本轮不动）。
-- 待用户点头才可做的事：删除两个已合并的远程分支（`agent/issue-95-shadow-adaptive` / `agent/issue-96-default-on-grid`）——**默认不删**，无功能影响。
+- 验收并关闭 #141/#143/#142（已完成，GitHub Issues 与 TASKS.md 同步）。
+- **#145**：4 处 overlay 类的 `background` 统一使用 `var(--overlay-bg)`，`.formula-drawer` 消费 `var(--shadow-drawer)`，`:root.light` 补充浅色阴影定义，z-index 梯队规范化，契约测试与 4 个浏览器探针全绿。
+- **#146**：`.composition-field` input 样式对齐 `.param-input`，控件补齐 `:hover`、`:focus-visible`、`:disabled` 规范，单测与全量门禁全绿。
+- **#147**：`CompositionLab.tsx` 10 处 DOM inline style 硬编码及弹窗外层样式迁移至 Token，双主题视觉无倒退。
+- 远程分支清理（`agent/issue-95-shadow-adaptive` / `agent/issue-96-default-on-grid`）：继续维持观察上报（默认不代删）。
 
-## 当前 Milestone：M6 · 物理世界盒子 UI 统一与组件复用收口（进度：3 / 6）
+## 当前 Milestone：M6 · 物理世界盒子 UI 统一与组件复用收口（进度：4 / 7）
 
 ### 目标与验收
-- ~~布局：1024×768 下 `.stage-actions` 真实可点，双视口无水平滚动（#137）~~ ✅ CLOSED（交付 `e99f056`，Planner 生产构建复跑 ×3）。
-- ~~Token 基础：`:root` 补齐 `--surface` / `--overlay-bg` / `--shadow-drawer` / `--space-*` / `--text-*` / `--radius-xs`；所有 `var(--x)` 均有定义（#138）~~ ✅ CLOSED（交付 `76ec878`；遗留「0 消费者」与「3 处 `.app.dark` 同值硬编码」结转 #142）。
-- ~~组件复用：剩余 14 处 `PanelSection` 壳迁移完成，7 个目标文件无直接 `className="panel-section"`（#139）~~ ✅ CLOSED（交付 `5fab11f`，14/14 实测）。
-- 切片 2 首批落地：**#142**（P3）——等值消费 token + 收口 `.app.dark` 同值硬编码 + 规范 §5 实测盘点（含切片 3/4 站点清单产出）。
-- 切片 3 控件状态规范：**待建单**（须先由 #142 的实测盘点确认可改面）。
-- 切片 4 浮层遮罩统一：**待建单**（`--overlay-bg` 现 0 消费者；`.classroom-inspector` 的 `--shadow-drawer` 不等值，须先定站点与取舍）。
+- ~~布局：1024×768 下 `.stage-actions` 真实可点，双视口无水平滚动（#137）~~ ✅ CLOSED。
+- ~~Token 基础：`:root` 补齐 `--surface` / `--overlay-bg` / `--shadow-drawer` / `--space-*` / `--text-*` / `--radius-xs`（#138）~~ ✅ CLOSED。
+- ~~组件复用：剩余 14 处 `PanelSection` 壳迁移完成，7 个目标文件无直接 `className="panel-section"`（#139）~~ ✅ CLOSED。
+- ~~切片 2 首批落地：Token 首批等值消费 + 3 处硬编码收口 + 规范 §5 实测盘点（#142）~~ ✅ CLOSED。
+- 切片 4 浮层遮罩统一：**#145**（P2 · ready · 队首）——4 处 overlay 消费 `--overlay-bg` + 抽屉消费 `--shadow-drawer` + z-index 对齐。
+- 切片 3 控件状态规范：**#146**（P2 · ready）——NumberField / param-input / slider / button hover/focus-visible/disabled 状态对齐。
+- 切片 2 延伸 DOM 内联消除：**#147**（P3 · ready）——CompositionLab 10 处及弹窗外层内联样式迁移至 Token。
 
 ### 完成信号（Success signal）
-- #142 落地后：五族新 token 在 `styles.css` 的 `var()` 消费数各 ≥1；`.app.dark` 内 `background: #1e293b` grep 命中 0 且有红向守卫；规范 §5 切片 2 条目按四类（DOM / canvas / SVG / JS 三元）带实测计数重写。
-- 切片 3/4 各自有单、有可判定的验收标准并关闭。
-- 全程 `npm run count:check` + `precheck` 绿、Playwright 双主题无视觉回归、CI + Deploy 双绿。
+- `--overlay-bg` 消费数 ≥ 4，`--shadow-drawer` 消费数 ≥ 1，`token-contract.test.ts` 契约全绿且有红向守护。
+- `NumberField` 纯 input 模式外观与 `.param-input` 规范一致；输入控件均具备完整的 hover/focus/disabled 表现。
+- `CompositionLab.tsx` 内联硬编码颜色清零，双主题自适应正常。
+- 4 个 CI 浏览器探针全部 exit 0，`npm run precheck` 全绿，CI + Deploy 双绿。
 
 ### 明确非目标（Non-goals）
-- 不换 React/Vite/Canvas 核心框架；**不升 React 19（#44 待 D44）**。
+- 不换 React/Vite/Canvas 核心框架；**不升 React 19（#44 维持 parked）**。
 - 不拆 FormulaPanel（#103/D31 暂缓）；不动 3D EquipmentStage/rig 生命周期与引擎 API。
-- 不做 #100/#101（D19 parked）；不做全站 CSS 重写、不做视觉重设计（禁止为「对齐尺度」改既有非尺度数值）。
-- 不改任何门禁判定阈值与 `.github/workflows/*`（判定权与 CI 接入待 D44/#143 用户答复）。
+- 不做 #100/#101（D19 parked）；不做全站 CSS 重写、不做视觉重设计。
+- 不动 Canvas 绘制色（分类 ②）与 SVG presentation attributes（分类 ③）及 JS 主题三元（分类 ④）。
 
 ### 执行队列（给 Executor 的建议顺序，3 个 ready）
-1. **#141** 挂载前必需资源度量 + 门禁口径文档纠偏（P2 · area:ci，**非 M6**，属体积度量线）——先做：它是 #143 的前置（同一探针文件），也是 #44 日后重议的事实基础。
-2. **#143** 4 个 headless 浏览器探针接入 `ci` job（P2 · area:ci，**非 M6**；D46=A 已获用户放行）——依赖 #141 先改 `verify-first-frame-smoke.cjs`。
-3. **#142** token 首批落地消费 + `.app.dark` 同值硬编码收口 + 规范 §5 实测盘点（P3 · area:render，M6 切片 2）。
+1. **#145** Design Token 切片 4：浮层遮罩与侧栏抽屉统一（P2 · area:render，M6 收尾关键路径）——先做：收口 `--overlay-bg` 与 `--shadow-drawer` 0 消费者问题，对齐 z-index。
+2. **#146** Design Token 切片 3：控件交互状态规范落地（P2 · area:render，M6 控件规范）——完善 NumberField 与基础输入/按钮状态。
+3. **#147** Design Token 切片 2 延伸：消除 DOM inline style 硬编码色（P3 · area:render，M6 样式收口）——清理 CompositionLab 10 处内联硬编码。
 
 ## 已知阻塞与依赖
-- **执行顺序即依赖序**：#141 → #143 → #142。#143 与 #141 同改 `scripts/verify-first-frame-smoke.cjs`，**必须串行**，否则同窗冲突。
-- **#44（React 19 专项）**：**parked**（D44 = B 用户已定，落实记录 D47）。技术前置 #140 已达成，但按 B 案暂不升；解除条件三条：用户改选 A/C、React 19 出现**已验证的功能收益**、react 18 遇安全/兼容硬约束。**勿领**；其余大版本候选面继续逐项另议、不自动放行。
-- **B 案未解决的部分（诚实记账）**：真实挂载前成本 ≈68.8 kB **当前无门禁约束**；`BUDGET_KB` 70 kB 与 `LAZY_BUDGETS`（含 `vendor-react-` 55 kB）按用户决定不动。#141 只把该数字变成可复核观测项。
-- **#143 的四个硬前提**（三十八次滚动补齐，写入验收，违规则停单）：① WebGL 若在 ubuntu runner 不可用 → **不得放宽断言**，转 `blocked` 回报；**注意 `qa-sweep` nightly 全绿不构成 WebGL 证据**（`verify-qa-sweep.cjs` L129/L145 明确跳过 WebGL 画布，3D 舞台像素在 CI 里从未被断言），本单是第一次真检验；且 headless 有 **WebGL 上下文数量上限**（同文件 L80 的既往规避手段）→ 4 个探针**保持各自 `chromium.launch()` 独立实例**，禁止为省时间共享 browser/page；② CI 构建带 `VITE_BASE_PATH: /physical-modelvis/` → 探针 `BASE_URL` 必须含子路径（首帧探针 `isServerRunning()` 把 404 也判存活，配错不会自启补救、只会误报为「画布为空/超时」）；③ **只有首帧探针自启服务**，其余三个须由外部 `vite preview --port 4173` + 就绪轮询供给（`verify-overlay-drawer-smoke.cjs:16` / `verify-portal-tokens.mjs:15` / `verify-guidance-smoke.cjs:11` 缺省还指向 `:3000`）；④ **导学探针缺省 msedge 渠道**（`verify-guidance-smoke.cjs:13`）→ 四步骤共用 `SMOKE_BROWSER_CHANNEL: ""`。
-- **#143 的授权边界**：D46=A 只放行「4 个既有探针接入现有 `ci` job + `timeout-minutes: 20`」。**不含**并入 `qa-sweep.yml`、改 `deploy.yml` 触发条件、抬任何阈值、引入第三方 Action——若跑通需要动这些，**停单回报**，不要扩权解释。
-- **分支清理（需用户点头，默认不做）**：`origin/agent/issue-95-shadow-adaptive` / `origin/agent/issue-96-default-on-grid` 均为 main 祖先且 Issue 已 CLOSED，属 §1.9 未执行的清理；删远程分支影响共享状态，Planner 不代删。
-- **#100/#101**：parked（D19），勿领。
-- **#130 §5 切片 3/4**：暂不建单——规范文档的站点盘点已实测失真（~30 处 → CompositionLab 10 / DataDrawer 0 / WorkbenchScene 0，且 canvas 绘制色与 SVG presentation attribute 不可用 `var()`），待 #142 产出四类分列的实测清单后再拆。
+- **执行顺序**：#145 → #146 → #147（3 单均无代码交叠阻塞，按由深至浅顺序执行）。
+- **#44（React 19 专项）**：**parked**（D44 = B 用户已定）。技术前置已达，解除条件未触发，**勿领**。
+- **#100/#101**：**parked**（D19），勿领。
+- **分支清理（需用户点头，默认不做）**：`origin/agent/issue-95-shadow-adaptive` / `origin/agent/issue-96-default-on-grid` 均为 main 祖先且 Issue 已 CLOSED，Planner 默认不删。
 
 ## 下一阶段
-- M6 剩余（#142 + 切片 3/4 两单）收口 UI token 线。
-- #143 落地后：浏览器回归由 CI 拦截，验收轮不再依赖 Planner 手工复跑取证（本轮四单里三单的证据是我手工复现的，这个模式不可持续）。
-- React 19（#44）在 D44=B 下不排程；若 #141 的度量或线上首帧耗时出现恶化证据，**重开 D44**（而非默认抬预算）。
-
+- M6 收官后，物理世界盒子 UI 视觉规范与组件复用收口全部完成，外部界面具备稳固的 Token 与组件底座。
+- 后续阶段衔接：根据项目愿景，推进 3D 组合实验台器材组件深化（条形磁铁/匀强磁场区交互增强）或由用户定夺新方向。
 ## 已放弃的方向
 - M5 立项（D19 用户已定不立项；#100–#104 维持 parked）。
 - #103 派生三张重构实施单（D31 默认转正：长期暂缓）。

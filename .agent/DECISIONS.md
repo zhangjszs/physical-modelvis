@@ -872,3 +872,22 @@ eslint tests 目录 `no-explicit-any` 降 warn）与 `36aed93`（移除 scripts/
 - **pending 状态**：维持**清零**。本轮无需用户拍板事项。
 - **可推翻条件**：若 #143 在 CI 上证实「探针必须并入 qa-sweep 才能跑通」（例如 preview 与 CI 构建产物不可共存），则本单第 3 条的收窄裁定失效 → 停单转 `blocked`，作为新的 1.10 事项重新问用户。
 - **影响范围**：#141 / #142 / #143 三单正文（`gh issue edit --body-file`）各一条复核 comment 在案；PLAN.md 三十八次滚动记录 + 当前方向 + 今日目标 + 已知阻塞（四前提 + 授权边界 + 分支观察）+ 给 Executor 指令硬边界；TASKS.md 整体重写。**代码零改动、门禁数值零改动、队列与优先级零变动**。
+
+---
+
+## D49 · 三十九次滚动：#141/#143/#142 验收关闭 + M6 收口三单（切片 4 #145 / 切片 3 #146 / 切片 2 延伸 #147）立单
+
+- **日期**：2026-10-19（三十九次滚动 · 每日规划）
+- **事实与验收**：
+  1. **#141** 挂载前必需资源度量（实测 68.4 kB gzip）与注释/文档修正验收关闭（交付 `cfa56d0` @ `--no-ff` merge `fedd6b5`，CI `39195735459` + Deploy `39195904480` 绿）。
+  2. **#143** 4 个 headless 浏览器探针接入 `ci.yml` 验收关闭（交付 `fcb96c9` @ `--no-ff` merge `b982aa0`，CI `39198883919` + Deploy `39199156200` 绿，Draft PR #144 红绿闭环确证拦截能力有效）。
+  3. **#142** Token 首批等值消费与 3 处硬编码收口验收关闭（交付 `6c418da` @ `--no-ff` merge `9e33a2a`，CI `39200369677` + Deploy `39200610064` 绿，测试数真值 2869）。
+- **裁定与排程**：
+  - 基于 #142 在 `docs/ui-visual-token-spec.md` §5 的实测盘点，M6 剩余工作完全收敛在 Token 消费与状态规范层，无产品歧义，规划者自决立单：
+    1. **#145**（P2 · area:render · 切片 4）：浮层遮罩与侧栏抽屉统一（4 处 overlay 换 `var(--overlay-bg)`，抽屉换 `var(--shadow-drawer)`，对齐 z-index 梯队）。
+    2. **#146**（P2 · area:render · 切片 3）：控件交互状态规范落地（NumberField / param-input / slider / button hover/focus-visible/disabled 对齐）。
+    3. **#147**（P3 · area:render · 切片 2 延伸）：消除 DOM inline style 硬编码色（CompositionLab 10 处及弹窗外层内联样式迁移至 Token）。
+  - **今日执行顺序**：#145 → #146 → #147（3 单均过 4.2 ready 门禁，互不冲突，顺序由深及浅）。
+- **契约 6.1 分界**：样式细节与 CSS 变量消费属低风险内部设计与规范对齐，不涉及核心框架或外部接口，不触 1.10 红线。
+- **pending 状态**：维持**清零**。
+- **影响范围**：GitHub Issues #141/#143/#142 CLOSED；#145/#146/#147 建立入队；PLAN.md / TASKS.md 滚动更新。
