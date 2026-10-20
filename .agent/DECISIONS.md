@@ -945,3 +945,26 @@ eslint tests 目录 `no-explicit-any` 降 warn）与 `36aed93`（移除 scripts/
 - **契约 6.1 分界**：依赖解锁与主题色切片排程属内部实现与测试策略，规划者自决，不触及 1.10 红线。
 - **pending 状态**：维持**清零**。
 - **影响范围**：#148/#149 CLOSED；#150 摘 blocked 转 ready；PLAN.md / TASKS.md 刷新。
+
+---
+
+## D53 · 四十二次滚动：无 in-review 积压 + #150 单骑收官 M7 + Issue 卫生治理
+
+- **日期**：2026-10-21（四十二次滚动 · 每日规划）
+- **验收（独立抽查，不只信报告）**：
+  - 本轮**无 in-review 积压**：#148/#149 已于四十一次滚动（2026-10-20）独立复核后 CLOSED，本轮无 Executor 新产出（2026-10-21 无执行会话）。
+  - 抽查证据：`cd visualization && npx vitest run tests/rendering/theme-tokens.test.tsx tests/rendering/wizard-overlay.test.tsx tests/ocr/ocr-panel.test.tsx` → **42 passed**；`useDialogAccessibility` 在 OverlayDrawer / OCRPanel 双接入在位；`themeTokens.ts` 双主题表在位；`EquipmentStage.tsx` 的 `0x0b1020`/`0xf8fafc` 仅剩 L167/L186 两处（与 #150 描述一致）；`SimulationCanvas.tsx` 当前 `isDark ?` 47 处。
+  - CI/Deploy：HEAD `4fc7cab` 的 CI 与 Deploy 均 success；此前 #148/#149 交付 merge 链均绿。
+  - **结论**：不 reopen、不新增返工；M7 维持 2/3，仅剩 #150。
+- **Issue 卫生治理（规划者权限内，低风险）**：
+  1. 清理已关闭 #148/#149 残留的 `in-review` 标签（状态标签只应存在于活动单）。
+  2. 更正 #150 正文测试文件名：`theme-tokens.test.ts` → `theme-tokens.test.tsx`（实际文件为 `.tsx`，避免 Executor 找错文件）。
+  3. 在 #150 留基线 comment（`6296452544`）：记录 47 处 `isDark ?`、L167/L186 写死色、契约文件真实名，并重申硬边界（已有 token 值零改动、Canvas 禁 `var()`、报告区分值保持 vs 亮色语义化、4 探针 + CI/Deploy）。
+- **裁定与排程**：
+  - 今日队列 = **#150（P3 · ready）唯一单**，完成即 M7 3/3 收官。
+  - **ready 仅 1 单系有意不凑数**：按 D51，解冻时点为 M7 三切片全部 CLOSED 后的下一轮规划；#150 未关闭前 #100/#101 不得进入 ready。不拆分 #150（切片本身内聚，拆单只增加交接成本）。
+  - #44 维持 parked（D44=B），本轮不解冻。
+- **契约 6.1 分界**：Issue 标签/正文卫生、队列排序与依赖解锁均属规划者自决范围；未触 1.10 红线，未改任何门禁阈值与代码。
+- **pending 状态**：维持**清零**；本轮无需用户拍板事项。
+- **远程分支清理观察**：两个已合并远程分支（`agent/issue-95-shadow-adaptive` / `agent/issue-96-default-on-grid`）继续只上报、不代删（契约 1.9）。
+- **影响范围**：#148/#149 标签清理、#150 正文更正 + comment；PLAN.md / TASKS.md 四十二次滚动刷新；**代码零改动、门禁数值零改动**。

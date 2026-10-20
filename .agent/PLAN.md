@@ -272,19 +272,26 @@
 > open 共 **4 单** = ready 1（#150）+ parked 3（#44/#100/#101），Issue ↔ TASKS.md 零漂移。
 > 远程分支清理观察继续；D51 约定维持：M7 收官后立即解冻 #100/#101 转产品功能线，pending 维持清零。
 
+> 2026-10-21 四十二次滚动（每日规划 · 验收与排程轮）：**无 in-review 积压，M7 终局 #150 单骑收官**——上一轮 in-review 2 单（#148/#149）已于四十一次滚动关闭；
+> 本轮独立抽查：定向 42 例（theme-tokens 7 + wizard-overlay 15 + ocr-panel 20）全绿，`useDialogAccessibility` 双组件接入在位，`themeTokens.ts` 双主题表在位；
+> HEAD `4fc7cab` 的 CI 与 Deploy 均 success；#148/#149 残留 `in-review` 标签已清理。
+> **今日队列仅 #150（P3 · ready）**：实测基线 `SimulationCanvas.tsx` `isDark ?` 47 处、`EquipmentStage.tsx` L167/L186 写死 `0x0b1020`/`0xf8fafc`；#150 正文测试文件名 `.test.ts` 已更正为 `.test.tsx`，并留基线 comment（6296452544）。
+> open 共 **4 单** = ready 1（#150）+ parked 3（#44/#100/#101），Issue ↔ TASKS.md 零漂移；ready 仅 1 单**系有意不凑数**：M7 收官前 #100/#101 按 D51 不得解冻。
+> 验收 #150 后 M7 3/3 收官；**下一轮规划**按 D51 解冻 #100 → #101 转产品功能线。远程分支清理观察继续（只上报不代删）；pending 维持清零。
+
 ## 当前方向
 
-**四十一次滚动（2026-10-20 · 验收与排程轮）**：M7 已推进 2/3（#148/#149 全 CLOSED），浮层可访问性与首批主题色单一真源闭环。
+**四十二次滚动（2026-10-21 · 验收与排程轮）**：M7 已推进 2/3（#148/#149 全 CLOSED），仅剩收官切片 #150。
 **今天最重要的事**：收官 **M7 · UI 基础质量收口** 最后一单：
-- **#150（P3 · ready）主题色 JS 单一真源切片 2**：迁移 `SimulationCanvas.tsx` 中 `isDark ?` 主题分支与 `EquipmentStage.tsx` 3D 背景色到 `themeTokens.ts`，扩展契约测试与双主题探针。
-**明确不在今天**：场景 Canvas 调色板（`rendering/*Scenes.ts` / `CanvasRenderer.ts`，D45 第 ② 类，保持集中常量）；#44/#100/#101（parked）。
-**下一轮展望**：#150 交付并收官 M7 后，按 D51 拍板立即解冻 #100/#101 转产品功能线（顺序 #100 → #101）。
+- **#150（P3 · ready · 唯一队首）主题色 JS 单一真源切片 2**：迁移 `SimulationCanvas.tsx` 47 处 `isDark ?` 主题分支与 `EquipmentStage.tsx` 3D 背景色（L167/L186）到 `themeTokens.ts`，扩展契约测试与双主题探针。
+**明确不在今天**：场景 Canvas 调色板（`rendering/*Scenes.ts` / `CanvasRenderer.ts`，D45 第 ② 类，保持集中常量）；#44/#100/#101（parked；#100/#101 待 #150 验收关闭后按 D51 解冻）。
+**下一轮展望**：#150 验收关闭 → M7 3/3 收官 → 下一轮规划解冻 #100/#101（顺序 #100 → #101）并重写产品交互验收项。
 
-## 今日目标（2026-10-20 · 四十一次滚动）
+## 今日目标（2026-10-21 · 四十二次滚动）
 
-- 验收并关闭 #148/#149（已完成，GitHub Issues 与 TASKS.md 同步，M7 进度 2/3）。
-- **#150（切片 2）**：`SimulationCanvas.tsx` 中 `isDark ?` 颜色分支清零，取自 `getThemeTokens`；`EquipmentStage.tsx` 3D 背景色由 token 派生，消除写死十六进制；扩展 `theme-tokens.test.tsx` 保持双向契约对齐与红向拦截；双主题探针实测通过。
-- 交付 commit 以 `--no-ff` 入 main 成祖先，CI+Deploy 双绿，全量门禁与物理自检 pass，收官 M7。
+- **#150（切片 2）**：`SimulationCanvas.tsx` 中 47 处 `isDark ?` 颜色分支清零并取自 `getThemeTokens`；`EquipmentStage.tsx` L167/L186 的 3D 背景色由 token 派生；扩展 `theme-tokens.test.tsx` 双向契约与红向拦截；双主题探针实测通过。
+- 交付 commit 以 `--no-ff` 入 main 成祖先，CI+Deploy 双绿，全量门禁与物理自检 pass，收官 M7（3/3）。
+- 无其他 ready；不为凑队列放行 parked 单（D51 解冻时点在 #150 CLOSED 之后）。
 
 ## 已完成 Milestone：M6 · 物理世界盒子 UI 统一与组件复用收口（7 / 7 · 2026-10-20 收官）
 - #137 / #138 / #139 / #142 / #145 / #146 / #147 全部 CLOSED；验收证据见各 Issue 的 Planner 验收 comment。
@@ -298,7 +305,7 @@
 
 ### 完成信号（Success signal）
 - 键盘可完成「打开弹窗 → 操作 → Esc 关闭」全流程，焦点不逃出 dialog 且关闭后回到触发按钮；OCR 弹窗被读屏识别为对话框（已达成）。
-- `theme-tokens.test.tsx` 逐项对齐 `styles.css`，红向改值必报红；GraphPanel / PhotogateTimer / SimulationCanvas / EquipmentStage 无散落颜色三元与硬编码 hex（#149 已达成，#150 推进中）。
+- `theme-tokens.test.tsx` 逐项对齐 `styles.css`，红向改值必报红；GraphPanel / PhotogateTimer / SimulationCanvas / EquipmentStage 无散落颜色三元与硬编码 hex（#149 已达成；#150 待执行）。
 - `npm run precheck` 全绿，4 个浏览器探针 exit 0，CI + Deploy 双绿。
 
 ### 明确非目标（Non-goals）
@@ -308,15 +315,16 @@
 - 不处理 `.problem-overlay` 死样式（无组件使用，另案）。
 
 ### 执行队列（给 Executor 的建议顺序，1 个 ready）
-1. **#150** 主题色 JS 单一真源切片 2（P3 · area:render · ready-for-agent）——迁移 SimulationCanvas 与 EquipmentStage，补齐 token 与契约测试，完成 M7 收官。
+1. **#150** 主题色 JS 单一真源切片 2（P3 · area:render · ready-for-agent）——唯一 ready，完成即 M7 3/3 收官。
+   > 队列低于 2–5 区间系有意为之：M7 未收官前 #100/#101 按 D51 不得解冻；不拆分 #150、不凑数放行 parked 单。
 
 ## 已知阻塞与依赖
-- **#150**：前置 #149 已 CLOSED，本单已摘除 `blocked` 转入 `ready-for-agent`，无剩余阻塞。
-- **#44（React 19）**：parked（D44=B）勿领；**#100/#101**：parked（D19），M7 期间勿领；**M7 收官后按 D51 解冻**（用户已定：先技术加固，随后转产品功能线，顺序 #100 → #101）。
+- **#150**：无阻塞（前置 #149 已 CLOSED）。
+- **#44（React 19）**：parked（D44=B）勿领；**#100/#101**：parked（D19/D51），M7 收官前勿领；**#150 CLOSED 后的下一轮规划**由 Planner 摘 `parked`、重写验收项并按 #100 → #101 放行。
 - **分支清理（需用户点头，默认不做）**：`origin/agent/issue-95-shadow-adaptive` / `origin/agent/issue-96-default-on-grid` 均为 main 祖先且 Issue CLOSED，继续只上报不代删。
 ## 下一阶段
 - M7 三个切片完成后，Canvas/SVG/JS 主题色与浮层键盘可访问性完成基础收口。
-- **M8（用户已定，D51）**：M7 收官后解冻 #100/#101 转产品功能线——先 #100（P2，器材旋转编辑 + 轨迹回放控制），后 #101（P3，预设实验模板）；解冻轮由 Planner 摘 `parked`、加 `ready-for-agent` 并重写验收项（含产品交互验收）。
+- **M8（用户已定，D51）**：M7 收官后的下一轮规划解冻 #100/#101 转产品功能线——先 #100（P2，器材旋转编辑 + 轨迹回放控制），后 #101（P3，预设实验模板）；解冻轮由 Planner 摘 `parked`、加 `ready-for-agent` 并重写验收项（含产品交互验收）。
 ## 已放弃的方向
 - M5 立项（D19 用户已定不立项；#100–#104 维持 parked）。
 - #103 派生三张重构实施单（D31 默认转正：长期暂缓）。
@@ -339,7 +347,7 @@
 → **验证与物料收尾：#106 → #115**（**全 CLOSED，二十六次滚动收官**）。
 
 **进度**：M2 3/3 + M2.5 4/4 + M3 8/8 + M4 5/5 + L6 2/2 全收官；#107/#110/#111/#112/#109/#106/#115 缺陷门禁物料全部验收 CLOSED。
-当前 = **M7 · UI 基础质量收口：浮层可访问性与主题色单一真源**（2026-10-20 立，进度 0/3）：M6 已 7/7 收官（#137/#138/#139/#142/#145/#146/#147 全 CLOSED）；今日队列 #148 → #149；#150 blocked by #149；D50 已落盘，D51 已答复（M7 后转 #100 → #101 产品线），pending 清零。
+当前 = **M7 · UI 基础质量收口：浮层可访问性与主题色单一真源**（2026-10-20 立，进度 2/3）：M6 已 7/7 收官（#137/#138/#139/#142/#145/#146/#147 全 CLOSED）；#148/#149 已 CLOSED；今日队列仅 #150（ready）；D50/D52 已落盘，D51 已答复（M7 后转 #100 → #101 产品线），pending 清零。
 
 ### #67 背景备忘（原「候选 A 详细」收编记录）
 
@@ -561,10 +569,9 @@ T=25℃ 时二者等价，无正确性影响，属「面板公式与算法严格
 
 ## 给 Executor 的指令
 
-1. **队首 = #148**（P2，浮层可访问性：OverlayDrawer + OCRPanel 的 Esc / 初始焦点 / 焦点归还 / Tab 约束 + dialog 语义）
-   → **#149**（P2，建立 `themeTokens.ts` + CSS↔JS 契约测试 + GraphPanel / PhotogateTimer 迁移）。
-   **硬边界**：#148 不引入第三方 focus-trap / a11y 依赖，不改 `styles.css`，不改 OCR 业务逻辑；焦点陷阱只在 dialog 内循环，关闭后必须回到触发元素。#149 以 `styles.css` 为唯一真源：允许新增 token，**不得改已有 token 值**；暗色实际渲染值必须保持不变（状态色亮色语义化除外，须在报告逐条列出）；Canvas/SVG 不得写 `var()` 字符串；场景 Canvas 调色板（`rendering/*Scenes.ts` / `CanvasRenderer.ts`）不迁。
-   **#150（P3）标 `blocked`，依赖 #149，本轮不得领取**；#44/#100/#101 维持 parked 勿领。
+1. **队首 = #150**（P3，主题色 JS 单一真源切片 2：`SimulationCanvas.tsx` 47 处 `isDark ?` + `EquipmentStage.tsx` L167/L186 3D 背景色迁移到 `getThemeTokens`）。
+   **硬边界**：以 `styles.css` 为唯一真源：允许新增 token，**不得改已有 token 值**；暗色实际渲染值必须保持不变（状态色亮色语义化除外，须在报告逐条列出）；Canvas/SVG 不得写 `var()` 字符串；场景 Canvas 调色板（`rendering/*Scenes.ts` / `CanvasRenderer.ts`）不迁；不做 3D 材质/光照重设计，不动物理与 rig 生命周期。
+   **#44/#100/#101 维持 parked 勿领**（#100/#101 待 #150 验收关闭后的下一轮规划解冻）。
    沿 D42 集成口径（`--no-ff` 使交付 SHA 成 main 祖先 + CI 绿双证），新增测试后 `count:sync` 回写；**全程禁 `--no-verify` / 禁 force-push**。
    **报告口径提醒**：主题 token 迁移必须区分「值保持」与「亮色语义化调整」，后者逐条列出并附双主题截图/探针证据；不要把「静态契约测试绿」写成「双主题视觉已实测」，两者须分别给证据。
 2. **标签流转纪律（LOCK 已裁决废止）**：继续规范执行 领取 `in-progress` → 完工 `in-review`；
