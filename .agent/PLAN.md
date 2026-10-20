@@ -264,53 +264,56 @@
 > 切片 2 #150 依赖 #149，标 `blocked` 不进今日队列。open 共 6 单 = ready 2 + blocked 1 + parked 3，Issue ↔ TASKS.md 零漂移。
 > 分支清理观察继续（两个已合并远程分支只上报不代删）；D51 同轮获用户答复：**先完成 M7，收官后解冻 #100/#101 转产品功能线（#100 → #101）**，pending 清零。
 
+> 2026-10-20 四十一次滚动（每日规划 · 验收与排程轮）：**M7 推进 2/3 + #150 解锁入队**——in-review 2 单（#148/#149）全部独立复核 CLOSED：
+> #148 浮层可访问性（Esc 关闭 + 初始焦点 + 焦点归还 + Tab 约束 + OCR dialog 语义）交付 `01c03fa`/merge `fc029e7` 入 main；定向单测 35 passed；
+> #149 主题色 JS 单一真源切片 1（`themeTokens.ts` 25 键 + 19 个新 CSS 变量 + GraphPanel/PhotogateTimer 颜色三元与 hex 清零）交付 `dfb68d3`/merge `4c07f43` 入 main；
+> 契约测试 7 passed，红向反例 exit 1 拦截；测试数真值 2888（+15 viz）；CI `39416415976` + Deploy `39416691193` 双绿。
+> **前置就绪，解除 #150 的 `blocked` 标签转入 `ready-for-agent`**，作为今日队列唯一核心单，收尾 M7。
+> open 共 **4 单** = ready 1（#150）+ parked 3（#44/#100/#101），Issue ↔ TASKS.md 零漂移。
+> 远程分支清理观察继续；D51 约定维持：M7 收官后立即解冻 #100/#101 转产品功能线，pending 维持清零。
+
 ## 当前方向
 
-**四十次滚动（2026-10-20 · 验收与排程轮）**：M6 已 7/7 收官，UI Token / 状态规范 / 内联样式收口全部闭环。
-**今天最重要的事**：启动 **M7 · UI 基础质量收口**，只做两件有实测证据、低风险且不触 1.10 红线的事：
-1. **#148（P2）浮层可访问性**：OverlayDrawer 与 OCR 弹窗补齐 Esc 关闭、初始焦点、焦点归还、Tab 约束与 dialog 语义——当前键盘用户无法关闭弹窗，读屏无法识别 OCR 对话框。
-2. **#149（P2）主题色 JS 单一真源切片 1**：建立 `themeTokens.ts` 语义表 + CSS↔JS 契约测试，迁移 GraphPanel / PhotogateTimer，收口 D45 第 ④ 类遗留的 `isDark ? '#...'` 双源漂移。
-**明确不在今天**：#150（切片 2，依赖 #149，已标 `blocked`）；场景 Canvas 调色板（D45 第 ② 类）；#44/#100/#101（parked）。
+**四十一次滚动（2026-10-20 · 验收与排程轮）**：M7 已推进 2/3（#148/#149 全 CLOSED），浮层可访问性与首批主题色单一真源闭环。
+**今天最重要的事**：收官 **M7 · UI 基础质量收口** 最后一单：
+- **#150（P3 · ready）主题色 JS 单一真源切片 2**：迁移 `SimulationCanvas.tsx` 中 `isDark ?` 主题分支与 `EquipmentStage.tsx` 3D 背景色到 `themeTokens.ts`，扩展契约测试与双主题探针。
+**明确不在今天**：场景 Canvas 调色板（`rendering/*Scenes.ts` / `CanvasRenderer.ts`，D45 第 ② 类，保持集中常量）；#44/#100/#101（parked）。
+**下一轮展望**：#150 交付并收官 M7 后，按 D51 拍板立即解冻 #100/#101 转产品功能线（顺序 #100 → #101）。
 
-## 今日目标（2026-10-20 · 四十次滚动）
+## 今日目标（2026-10-20 · 四十一次滚动）
 
-- 验收并关闭 #145/#146/#147（已完成，GitHub Issues 与 TASKS.md 同步，M6 7/7）。
-- **#148**：OverlayDrawer 与 OCRPanel 具备 Esc 关闭、初始焦点、焦点归还、Tab 焦点约束；OCR 弹窗具备 dialog 语义与可访问名；新增键盘路径测试。
-- **#149**：`themeTokens.ts` 落地，CSS token 与 JS 表逐项契约对齐（含红向验证）；GraphPanel / PhotogateTimer 主题色全部改走 `getThemeTokens`；双主题浏览器探针通过。
-- 继续维持远程分支清理观察（默认不代删）；#150 保持 blocked 直至 #149 交付。
+- 验收并关闭 #148/#149（已完成，GitHub Issues 与 TASKS.md 同步，M7 进度 2/3）。
+- **#150（切片 2）**：`SimulationCanvas.tsx` 中 `isDark ?` 颜色分支清零，取自 `getThemeTokens`；`EquipmentStage.tsx` 3D 背景色由 token 派生，消除写死十六进制；扩展 `theme-tokens.test.tsx` 保持双向契约对齐与红向拦截；双主题探针实测通过。
+- 交付 commit 以 `--no-ff` 入 main 成祖先，CI+Deploy 双绿，全量门禁与物理自检 pass，收官 M7。
 
 ## 已完成 Milestone：M6 · 物理世界盒子 UI 统一与组件复用收口（7 / 7 · 2026-10-20 收官）
 - #137 / #138 / #139 / #142 / #145 / #146 / #147 全部 CLOSED；验收证据见各 Issue 的 Planner 验收 comment。
 
-## 当前 Milestone：M7 · UI 基础质量收口：浮层可访问性与主题色单一真源（进度：0 / 3）
+## 当前 Milestone：M7 · UI 基础质量收口：浮层可访问性与主题色单一真源（进度：2 / 3）
 
 ### 目标与验收
-- **#148**（P2 · ready · 队首）：OverlayDrawer + OCRPanel 的 Esc / 焦点 / dialog 语义闭环，键盘路径测试覆盖。
-- **#149**（P2 · ready）：`themeTokens.ts` + CSS↔JS 契约测试 + GraphPanel / PhotogateTimer 迁移，双主题探针通过。
-- **#150**（P3 · blocked by #149）：SimulationCanvas / EquipmentStage 主题分支迁移；待 #149 交付后由 Planner 转 ready。
+- [x] **#148**（P2 · CLOSED）：OverlayDrawer + OCRPanel 的 Esc / 焦点 / dialog 语义闭环，键盘路径测试覆盖。
+- [x] **#149**（P2 · CLOSED）：`themeTokens.ts` + CSS↔JS 契约测试 + GraphPanel / PhotogateTimer 迁移，双主题探针通过。
+- [ ] **#150**（P3 · ready · 队首）：SimulationCanvas / EquipmentStage 主题分支迁移；双向契约测试扩展，收官 M7。
 
 ### 完成信号（Success signal）
-- 键盘可完成「打开弹窗 → 操作 → Esc 关闭」全流程，焦点不逃出 dialog 且关闭后回到触发按钮；OCR 弹窗被读屏识别为对话框。
-- `theme-tokens.test.ts` 逐项对齐 `styles.css`，红向改值必报红；GraphPanel / PhotogateTimer 无 `isDark ? '#` 颜色三元与颜色字面量。
-- #150 完成后，SimulationCanvas / EquipmentStage 主题分支同样走单一真源。
+- 键盘可完成「打开弹窗 → 操作 → Esc 关闭」全流程，焦点不逃出 dialog 且关闭后回到触发按钮；OCR 弹窗被读屏识别为对话框（已达成）。
+- `theme-tokens.test.tsx` 逐项对齐 `styles.css`，红向改值必报红；GraphPanel / PhotogateTimer / SimulationCanvas / EquipmentStage 无散落颜色三元与硬编码 hex（#149 已达成，#150 推进中）。
 - `npm run precheck` 全绿，4 个浏览器探针 exit 0，CI + Deploy 双绿。
 
 ### 明确非目标（Non-goals）
 - 不迁移场景 Canvas 调色板（`rendering/*Scenes.ts` / `CanvasRenderer.ts`，D45 第 ② 类）。
-- 不做视觉重设计、不改已有 token 值、不引入第三方主题/a11y 库。
-- 不升 React 19（#44 parked）、不做 #100/#101（D19 parked）、不拆 FormulaPanel（D31 暂缓）。
+- 不做 3D 材质/光照重设计，不动物理与 rig 生命周期。
+- 不升 React 19（#44 parked）、暂不做 #100/#101（D19/D51 parked，M7 后解冻）、不拆 FormulaPanel（D31 暂缓）。
 - 不处理 `.problem-overlay` 死样式（无组件使用，另案）。
 
-### 执行队列（给 Executor 的建议顺序，2 个 ready）
-1. **#148** 浮层可访问性统一（P2 · area:render）——先做：键盘与读屏缺口明确，独立无依赖。
-2. **#149** 主题色 JS 单一真源切片 1（P2 · area:render）——建立 `themeTokens.ts` 与契约测试，迁移 GraphPanel / PhotogateTimer。
-3. **#150** 主题色切片 2（P3 · **blocked**）——**本轮不得领取**；待 #149 交付、Planner 解除 blocked 后再排。
+### 执行队列（给 Executor 的建议顺序，1 个 ready）
+1. **#150** 主题色 JS 单一真源切片 2（P3 · area:render · ready-for-agent）——迁移 SimulationCanvas 与 EquipmentStage，补齐 token 与契约测试，完成 M7 收官。
 
 ## 已知阻塞与依赖
-- **#150 blocked by #149**：需 `themeTokens.ts`、`THEME_TOKEN_SOURCES` 与 `theme-tokens.test.ts` 先落地；#149 验收通过后由 Planner 摘除 `blocked`。
+- **#150**：前置 #149 已 CLOSED，本单已摘除 `blocked` 转入 `ready-for-agent`，无剩余阻塞。
 - **#44（React 19）**：parked（D44=B）勿领；**#100/#101**：parked（D19），M7 期间勿领；**M7 收官后按 D51 解冻**（用户已定：先技术加固，随后转产品功能线，顺序 #100 → #101）。
 - **分支清理（需用户点头，默认不做）**：`origin/agent/issue-95-shadow-adaptive` / `origin/agent/issue-96-default-on-grid` 均为 main 祖先且 Issue CLOSED，继续只上报不代删。
-
 ## 下一阶段
 - M7 三个切片完成后，Canvas/SVG/JS 主题色与浮层键盘可访问性完成基础收口。
 - **M8（用户已定，D51）**：M7 收官后解冻 #100/#101 转产品功能线——先 #100（P2，器材旋转编辑 + 轨迹回放控制），后 #101（P3，预设实验模板）；解冻轮由 Planner 摘 `parked`、加 `ready-for-agent` 并重写验收项（含产品交互验收）。

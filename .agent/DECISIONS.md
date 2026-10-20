@@ -929,3 +929,19 @@ eslint tests 目录 `no-explicit-any` 降 warn）与 `36aed93`（移除 scripts/
 - **用户答复（2026-10-20 同轮）**：「A. 继续技术加固，解冻产品功能，转做 #100/#101」——采纳**复合口径**：**先按 A 完成 M7**（今日队列 #148 → #149 不变，#150 仍 blocked），**M7 收官后立即解冻 #100/#101 转产品功能线**（B 的后置执行），顺序 **#100（P2）→ #101（P3）**。
   - **落实规则**：解冻时点为 M7 三切片（#148/#149/#150）全部 CLOSED 后的下一轮规划；届时由 Planner 给 #100/#101 摘 `parked`、加 `ready-for-agent` 并重写正文验收项（含产品交互验收），Executor 在 M7 期间**仍不得领取**。
   - **pending 状态**：D51 **已答复，pending 区清零**。
+
+---
+
+## D52 · 四十一次滚动：#148/#149 验收关闭 + 解锁 #150（M7 收官切片）
+
+- **日期**：2026-10-20（四十一次滚动 · 每日规划）
+- **验收（独立复核，不只信报告）**：
+  1. **#148** 通过：OverlayDrawer 与 OCRPanel 接入 `useDialogAccessibility`；Esc 关闭、初始焦点、焦点归还、Tab/Shift+Tab 面板内回绕全覆盖；`.ocr-overlay` 补 `role="dialog"`、`aria-modal="true"`、`aria-label="AI 拍照解题"`，关闭按钮补可访问名；定向单测 35 passed，红向反例拦截有效；交付 `01c03fa` / merge `fc029e7` 为 main 祖先；CI `39416415976` + Deploy `39416691193` 双绿。
+  2. **#149** 通过：`styles.css` 对称声明 19 个新 CSS 变量；`themeTokens.ts` 提供 25 键暗/浅解析表；GraphPanel 与 PhotogateTimer 全部迁移至 `getThemeTokens`，颜色三元与十六进制字面量清零（grep 0 命中）；契约测试 7 passed，红向反例 exit 1 拦截；扩展 `verify-portal-tokens.mjs` 覆盖双主题 token 计算值；测试数真值 2888（+15 viz）；交付 `dfb68d3` / merge `4c07f43` 为 main 祖先；CI + Deploy 双绿。
+- **裁定与排程**：
+  - 前置依赖 #149 已闭环，规划者自决对 **#150（P3 · 切片 2）** 摘除 `blocked` 标签，转入 `ready-for-agent`，作为今日执行队列唯一核心任务。
+  - #150 为 M7 的收尾切片（SimulationCanvas 与 EquipmentStage 主题分支迁移）。
+  - 根据 D51 约定，M7 三切片全部 CLOSED 后，于下一轮规划解冻 #100/#101 转产品功能线；故本轮 #100/#101 维持 parked，不提前进入 ready。
+- **契约 6.1 分界**：依赖解锁与主题色切片排程属内部实现与测试策略，规划者自决，不触及 1.10 红线。
+- **pending 状态**：维持**清零**。
+- **影响范围**：#148/#149 CLOSED；#150 摘 blocked 转 ready；PLAN.md / TASKS.md 刷新。
