@@ -232,6 +232,15 @@ describe('消费方主题分支清零守卫 (#150)', () => {
         expect(source).not.toMatch(/isDarkRef\.current\s*\?/);
         expect(source).toMatch(/getThemeTokens\(isDark\)/);
     });
+
+    it('EquipmentStage 3D 背景由 token 派生，无写死 0x0b1020 / 0xf8fafc', () => {
+        const source = fs.readFileSync(
+            path.resolve(__dirname, '../../src/components/simulation3d/EquipmentStage.tsx'),
+            'utf-8'
+        );
+        expect(source).not.toMatch(/0x0b1020|0xf8fafc/);
+        expect(source).toMatch(/resolveStage3DBackground\(theme\)/);
+    });
 });
 
 describe('组件主题色消费集成测试 (GraphPanel & PhotogateTimer)', () => {

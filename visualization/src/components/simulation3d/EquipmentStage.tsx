@@ -16,6 +16,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { useSimulationStore } from '../../store/simulationStore';
 import { findFrameIndex, getTotalDuration, interpolateFrame } from '../../utils/frameUtils';
+import { resolveStage3DBackground } from '../../utils/themeTokens';
 import {
     createEnvironment,
     makeTrajectoryLine,
@@ -159,12 +160,11 @@ export function EquipmentStage({ rig, renderer, cameraPosition, cameraTarget, ca
         });
     }, []);
 
-    // 动态主题联动：背景色与雾效跟随深/浅色切换
+    // 动态主题联动：背景色与雾效跟随深/浅色切换（色值单一真源 = styles.css 令牌）
     useEffect(() => {
         const handles = handlesRef.current;
         if (!handles) return;
-        const isDark = theme === 'dark';
-        const bgColor = isDark ? 0x0b1020 : 0xf8fafc;
+        const bgColor = resolveStage3DBackground(theme);
         handles.scene.background = new THREE.Color(bgColor);
         handles.scene.fog = new THREE.Fog(bgColor, 24, 72);
     }, [theme]);
@@ -182,8 +182,7 @@ export function EquipmentStage({ rig, renderer, cameraPosition, cameraTarget, ca
         const canvas = renderer.domElement;
         if (!canvas) return;
 
-        const isDark = theme === 'dark';
-        const bgColor = isDark ? 0x0b1020 : 0xf8fafc;
+        const bgColor = resolveStage3DBackground(theme);
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(bgColor);
         scene.fog = new THREE.Fog(bgColor, 24, 72);
