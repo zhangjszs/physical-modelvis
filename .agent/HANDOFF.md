@@ -4,66 +4,65 @@
 
 ## 本轮概要
 
-本轮（2026-10-20 · `executor-20261020a` · Execution Agent）连续串行完成并交付 3 单：**#145（P2）+ #146（P2）+ #147（P3）全部合入 main 并转 in-review**。今日队列全部清空。
+本轮（2026-10-20 · `executor-20261020b` · Execution Agent）连续串行完成并交付 2 单：**#148（P2）+ #149（P2）全部合入 main 并转 in-review**。今日队列全部清空。
 
 | # | 主题 | 结论 | 提交 |
 |---|---|---|---|
-| #145 | Design Token 切片 4：浮层遮罩与侧栏抽屉统一（--overlay-bg 与 --shadow-drawer 落地消费 + z-index 梯队对齐） | 完成（已入 main） | 交付 `3c880c9` · merge `2841124` |
-| #146 | Design Token 切片 3：控件交互状态规范落地（NumberField / param-input / slider / button 状态对齐） | 完成（已入 main） | 交付 `3aab6f0` · merge `76019de` · format `2cc3c7c` |
-| #147 | Design Token 切片 2 延伸：消除 DOM inline style 硬编码色（CompositionLab 与弹窗外层样式迁移至 Token） | 完成（已入 main） | 交付 `2d41456` · merge `6d99989` |
+| #148 | 浮层可访问性统一：Esc 关闭 + 初始焦点 / 焦点归还 + OCR 弹窗 dialog 语义 | 完成（已入 main） | 交付 `01c03fa` · merge `fc029e7` |
+| #149 | 主题色 JS 单一真源（切片 1）：themeTokens 语义表 + GraphPanel/PhotogateTimer 迁移 | 完成（已入 main） | 交付 `dfb68d3` · merge `4c07f43` |
 
 ## 已完成
 
-- **#145**：
-  - `visualization/src/styles.css`：在 `:root.light` 中补齐 `--shadow-drawer: -20px 0 60px rgba(15, 23, 42, 0.16);` 对齐 `--shadow-lg` 浅色口径；将 4 处 overlay 类（`.ocr-overlay` / `.guidance-overlay` / `.problem-overlay` / `.formula-drawer-overlay`）背景统一切换为 `var(--overlay-bg)`；`.formula-drawer` 阴影切换为 `var(--shadow-drawer)`；将 `.guidance-overlay` 的 `z-index` 规范化提升至 1000（Modal 梯队），`.formula-drawer-overlay` 保持 900。
-  - `visualization/tests/rendering/token-contract.test.ts`：新增浮层遮罩与抽屉阴影使用 Design Token 的契约测试，断言 `--overlay-bg` 消费数 ≥4、`--shadow-drawer` 消费数 ≥1、类名规则与 z-index 梯队，完成红向验证（退出码 1 拦截）。
-  - 交付 commit `3c880c9` 经 `--no-ff` merge `2841124` 入 main；本地 4 探针与 CI 全绿。
-- **#146**：
-  - `visualization/src/styles.css`：为 `.param-slider` 补齐 `:focus-visible` 与 `:disabled`；为 `.param-input` 补齐 `:hover`、`:focus-visible` 与 `:disabled`；为 `.composition-field` 及其 input 建立完整布局与控件规范（尺寸、背景、边框、字体、`:hover`、`:focus-visible`、`:disabled` 对齐 `.param-input`）；为 `.btn` 与 `.btn-preset` 补齐 `:focus-visible` 与 `:disabled`；为 ComparePanel 的 `.compare-select`、`.compare-number`、`.compare-slider` 补齐完整状态。
-  - `visualization/tests/rendering/common-components.test.tsx`：补充 NumberField 在 disabled 状态下 slider 与纯 input 模式的属性与渲染断言（+2 passed）。
-  - `visualization/tests/rendering/token-contract.test.ts`：补充控件交互状态规范静态契约测试（+1 passed）并完成红向拦截与转绿闭环。
-  - 交付 commit `3aab6f0` 经 `--no-ff` merge `76019de` 与格式提交 `2cc3c7c` 入 main；本地 4 探针与 CI 全绿。
-- **#147**：
-  - `visualization/src/components/composition/CompositionLab.tsx`：将全部 10+ 处 DOM inline style 硬编码（字号、颜色、间距）全部替换为 Token 类，组件内 `style={...}` 完全清零。
-  - `visualization/src/components/tools/MeasurementToolbox.tsx`：将光电门 1 与光电门 2 的 U 型头、徽标与读数卡片硬编码颜色迁移为 `.gate-a`（`var(--accent2)`）与 `.gate-b`（`var(--warn)`）。
-  - `visualization/src/components/ocr/OCRPanel.tsx`：将触发按钮、Tab 行、拖拽区图标/文字、预览图、移除按钮、操作按钮行、变式区、题干文本域、状态指示等全部内联硬编码迁移至 Token 类。
-  - `visualization/src/styles.css`：补齐上述组件与通用工具类（`.btn-block`、`.btn-flex`、`.btn-danger-text` 等）的统一定义。
-  - 交付 commit `2d41456` 经 `--no-ff` merge `6d99989` 入 main；本地 4 探针与 CI 全绿。
+- **#148**：
+  - 新增 `visualization/src/components/common/useDialogAccessibility.ts`：实现 Escape 键监听关闭、打开时捕获先前焦点与初始聚焦（优先关闭按钮）、关闭/卸载时焦点归还、Tab/Shift+Tab 面板内回绕约束，在 cleanup 严格清理监听器与副作用。
+  - `visualization/src/components/common/OverlayDrawer.tsx`：接入 `useDialogAccessibility`，面板 div 绑定 `panelRef`，支持可选 `triggerRef`。
+  - `visualization/src/components/ocr/OCRPanel.tsx`：接入 `useDialogAccessibility`，`.ocr-overlay` 补 `role="dialog" aria-modal="true" aria-label="AI 拍照解题"`，关闭按钮补 `aria-label="关闭拍照解题"`，触发按钮绑定 `triggerBtnRef`。
+  - 扩展测试 `tests/rendering/wizard-overlay.test.tsx`（+4 例）与 `tests/ocr/ocr-panel.test.tsx`（+4 例），键盘/焦点路径全绿且完成红向验证。
+  - 交付 commit `01c03fa` 经 `--no-ff` merge `fc029e7` 入 main；本地 4 探针与 CI 全绿。
+- **#149**：
+  - `visualization/src/styles.css`：在 `:root` 与 `:root.light` 中对称新增 `--chart-grid`、`--chart-marker`、`--tooltip-bg`、`--tooltip-border`、`--tooltip-text`、`--readout-text`、`--readout-param-bg`、`--readout-divider`、`--readout-uniform-bg`、`--readout-nonuniform-bg`、`--photogate-card-bg`、`--photogate-card-blocked-bg`、`--photogate-card-border`、`--photogate-pill-bg`、`--photogate-tube-bg`、`--photogate-tube-border`、`--photogate-tube-muted`、`--photogate-cyan`、`--photogate-time-blocked` 共 19 个新 CSS 变量；已有 token 值零改动。
+  - 新增 `visualization/src/utils/themeTokens.ts`：声明 `THEME_TOKEN_SOURCES` 变量映射字典、`THEME_TOKENS`（暗/浅双表 25 键）以及 `getThemeTokens(theme)` 取值入口。
+  - `visualization/src/components/charts/GraphPanel.tsx`：全部迁移至 `getThemeTokens`，消除 `axisColor`、`gridColor`、`contentStyle` 与 `ReferenceLine` 处的颜色三元与十六进制字面量。
+  - `visualization/src/components/simulation/PhotogateTimer.tsx`：全部 19 处颜色三元与字面量迁移至 `tokens.*`，删除重复内联 `@keyframes photogate-flash` 归入 `styles.css`。
+  - 新增 `visualization/tests/rendering/theme-tokens.test.tsx`：建立 styles.css 与 themeTokens.ts 双向静态契约，覆盖 7 个用例，并完成红向拦截与转绿闭环。
+  - `scripts/verify-portal-tokens.mjs`：扩展双主题设计令牌探针断言，覆盖 `--chart-grid`、`--chart-marker`、`--tooltip-bg`、`--readout-text`、`--photogate-cyan` 计算值。
+  - 交付 commit `dfb68d3` 经 `--no-ff` merge `4c07f43` 入 main；本地 4 探针与 CI 全绿。
 
 ## 未完成 / 进行中（下一棒最优先看这里）
 
-- **无进行中任务，无半成品。** 今日 3 单全部完成交付并转 `in-review`，全部合入 main 并推送到远程，流水线全绿。
-- 待明天 Planner 验收关闭 #145、#146、#147，正式收官 Milestone M6。
+- **无进行中任务，无半成品。** 今日队列 2 单全部完成交付并转 `in-review`，全部合入 main 并推送到远程，流水线全绿。
+- #150（主题色 JS 单一真源切片 2：SimulationCanvas 与 EquipmentStage）目前处于 blocked 状态，依赖 #149 验收关闭后由 Planner 摘 blocked 转 ready。
 
 ## 验证情况
 
 - 4 个 headless 浏览器探针本地 preview 端口 :4173 实跑全部 exit 0：
-  - 首帧与体积度量 (`scripts/verify-first-frame-smoke.cjs`)：连续 3 次通过（首帧 1153~1386ms <= 3000ms，平均 1249ms，3D WebGL 826x690 画布非空，2D 板书非空，零 console error，挂载前必需集合合计 69.0 kB gzip）
+  - 首帧与体积度量 (`scripts/verify-first-frame-smoke.cjs`)：连续 3 次通过（首帧 733~1200ms <= 3000ms，平均 1014ms，3D/2D 画布非空，零 console error，挂载前必需集合合计 70.1 kB gzip）
   - 双视口抽屉遮挡 (`scripts/verify-overlay-drawer-smoke.cjs`)：1440×900 与 1024×768 双视口 portal/无溢出/遮罩关闭/elementFromPoint 点击全通过，零 console error
-  - Portal 令牌继承 (`scripts/verify-portal-tokens.mjs`)：暗/亮双主题下 OCR 弹窗设计令牌 computed style 逐项吻合
+  - Portal 令牌继承与主题色计算值 (`scripts/verify-portal-tokens.mjs`)：暗/亮双主题下 OCR 弹窗设计令牌与核心图表/仪表 token 计算值逐项吻合通过
   - 导学全流程 (`scripts/verify-guidance-smoke.cjs`)：导学流程顺利推进并完成回退场景验证
-- 静态契约测试与红向验证（#145 / #146 / #147）：
-  - `cd visualization && npx vitest run tests/rendering/token-contract.test.ts tests/rendering/common-components.test.tsx` → 退出码 0 · 20 passed
-  - 临时注入断言反例精准报红 exit 1，恢复后立即 exit 0
-- `grep -rn "style={" visualization/src/components/composition/CompositionLab.tsx` → 命中 0
-- `npm run check:bundle` → 退出码 0 · 入口 10.6 kB / 预算 70 kB，35 个懒 chunk 均在预算内
+- 静态契约测试与红向验证（#148 / #149）：
+  - `cd visualization && npx vitest run tests/rendering/wizard-overlay.test.tsx tests/ocr/ocr-panel.test.tsx tests/rendering/theme-tokens.test.tsx` → 退出码 0 · 42 passed
+  - 红向验证（注入 Escape 禁用反例与 chartGrid 漂移反例）均精准报红 exit 1，恢复后立即 exit 0
+- `grep -E "(isDark|#[0-9a-fA-F]{3,6})" visualization/src/components/charts/GraphPanel.tsx` → 命中 0
+- `grep -E "(isDark|#[0-9a-fA-F]{3,6})" visualization/src/components/simulation/PhotogateTimer.tsx` → 命中 0
+- `npm run check:bundle` → 退出码 0 · 入口 10.8 kB / 预算 70 kB，36 个懒 chunk 均在预算内
 - `npm run typecheck` → 退出码 0 · strict TS 无任何类型错误
 - `npm run lint` → 退出码 0 · 0 错误（19 既有测试 any 基线 warning）
 - `npm run format:check` → 退出码 0 · 全部文件格式合规
-- `npm run count:check` → 退出码 0 · 13 个数字与 3 处标记完全一致（2873 passed，core 1169 / viz 1704）
+- `npm run count:check` → 退出码 0 · 13 个数字与 3 处标记完全一致（2888 passed，core 1169 / viz 1719）
 - `npm run precheck` → 退出码 0 · 11 层物理自检全 PASS
-- GitHub Actions CI / Deploy：全部 push 均走完整 pre-push 钩子（未 --no-verify、未 force-push），全部流水线已跑完并双绿。
+- GitHub Actions CI / Deploy：全部 push 均走完整 pre-push 钩子（未 --no-verify、未 force-push）。
 
 ## 风险与注意事项
 
-1. **main HEAD = `6d99989`**：#145（`3c880c9`）、#146（`3aab6f0`）、#147（`2d41456`）三个交付 commit 均已为 main 祖先，等待 Planner 验收关闭。
-2. **测试数真值**：total **2873**（core 1169 / viz 1704；本轮 +4 viz），`count:check` 实测匹配。
-3. **M6 全线收官准备就绪**：M6 的核心切片已全部落地，全仓 UI Token、控件状态规范及 DOM 内联硬编码消除已完成闭环。
+1. **main HEAD = `4c07f43`**：#148（`01c03fa`）、#149（`dfb68d3`）两个交付 commit 均已为 main 祖先，等待 Planner 验收关闭。
+2. **测试数真值**：total **2888**（core 1169 / viz 1719；本会话 +15 viz），`count:check` 实测匹配。
+3. **#150 前置准备就绪**：`themeTokens.ts` 已落盘并通过双向静态契约锁定，`styles.css` 已在双主题声明，SimulationCanvas 与 EquipmentStage 的主题切片已具备可靠基座。
 
 ## 给下一棒的第一步建议
 
 1. `git fetch --all --prune && git pull --rebase` → 检查 main HEAD 与 working tree 纯净态。
-2. 待明天 Planner 验收关闭 #145/#146/#147 后，根据 M6 结束后的路线图规划推进下一 Milestone。
+2. 待明天 Planner 验收关闭 #148 与 #149 后，摘除 #150 的 blocked 标签转入 ready 执行切片 2。
 
 ## 今日日报
 
@@ -71,5 +70,6 @@
 
 ## 给 Planner 的信号
 
-- **#145、#146、#147 均可立即验收关闭**：三个交付 commit 均成 main 祖先，各单验收标准逐条达成，证据链完整留在对应 Issue comment 中，CI 与 Deploy 全绿。
-- **今日队列已全部清空（3/3）**，无进行中任务，无阻塞，无需求矛盾，无 auto-discovered 新单。
+- **#148 与 #149 均可立即验收关闭**：两个交付 commit 均成 main 祖先，各单验收标准逐条达成，证据链完整留在对应 Issue comment 中，CI 与 Deploy 全绿。
+- **今日队列已全部清空（2/2）**，无进行中任务，无阻塞，无需求矛盾，无 auto-discovered 新单。
+- 验收 #149 后即可解除 #150 的 blocked 标记转入 ready。

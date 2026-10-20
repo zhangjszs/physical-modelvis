@@ -4,9 +4,9 @@
 > 本轮验收：昨日 in-review 3 单（#145/#146/#147）已全部通过独立实测复核并 CLOSED，**M6 7/7 收官**。
 > open 共 **6 单** = ready 2（#148/#149）+ blocked 1（#150）+ parked 3（#44/#100/#101）；Issue ↔ 本文件**零漂移**。
 
-## 今日队列（2026-10-20 · 四十次滚动 · 执行顺序，2 个 ready）
+## 今日队列（2026-10-20 · 四十次滚动 · 执行完成，2 个 in-review）
 
-- [ ] **#148（P2 · type:chore/area:render · ready）浮层可访问性统一：Esc 关闭 + 初始焦点 / 焦点归还 + OCR 弹窗 dialog 语义**
+- [ ] **#148（P2 · type:chore/area:render · in-review）浮层可访问性统一：Esc 关闭 + 初始焦点 / 焦点归还 + OCR 弹窗 dialog 语义**
   - **背景**：`OverlayDrawer.tsx:43-77`（导学 / 公式抽屉共用）只有点击关闭与 aria，无 Escape、无初始焦点、无焦点归还、无 Tab 约束；`OCRPanel.tsx:314-318` 自建 portal 遮罩无 `role=dialog` / `aria-modal` / 可访问名、无 Escape、无焦点管理；现有测试只覆盖鼠标路径。
   - **范围**：新增 `useDialogAccessibility.ts`（Escape 关闭、初始焦点、焦点归还、Tab 循环、清理）；OverlayDrawer 与 OCRPanel 接入；OCR 遮罩补 dialog 语义，关闭按钮补可访问名；扩展 `tests/rendering/wizard-overlay.test.tsx` 与 `tests/ocr/ocr-panel.test.tsx`。
   - **明确不包含**：不改 CSS/视觉/动画/z-index；不引入第三方 focus-trap/a11y 依赖；不改 OCR 业务逻辑；不处理 `.problem-overlay`（无组件使用）。
@@ -18,7 +18,7 @@
     - [ ] `npm run typecheck` / `lint` / `format:check` / `test` / `count:check` / `precheck` exit 0。
     - [ ] 4 个 headless 探针 exit 0；CI + Deploy 双绿；交付 commit `--no-ff` 入 main 成祖先。
 
-- [ ] **#149（P2 · type:chore/area:render · ready）主题色 JS 单一真源（切片 1）：themeTokens 语义表 + GraphPanel/PhotogateTimer 迁移**
+- [ ] **#149（P2 · type:chore/area:render · in-review）主题色 JS 单一真源（切片 1）：themeTokens 语义表 + GraphPanel/PhotogateTimer 迁移**
   - **背景**：D45 第 ④ 类要求先建立主题单一真源。GraphPanel（L137-138 / L221-224 / L284-287 / L237-240 / L300-303）与 PhotogateTimer（19 处）用 `isDark ? '#...' : '#...'` 复制颜色；`utils/colorMap.ts` 的 `gridLight: '#f1f5f9'` 与 GraphPanel 亮色网格 `#e2e8f0` 已漂移；无主题色契约测试。
   - **范围**：`styles.css` 的 `:root` / `:root.light` 补齐无等值语义 token 的颜色（现有 token 值不改；有精确等值的直接复用；状态色亮色允许语义化）；新增 `utils/themeTokens.ts`（dark/light 表 + `THEME_TOKEN_SOURCES` + `getThemeTokens`）；迁移 GraphPanel / PhotogateTimer；新增 `tests/rendering/theme-tokens.test.ts` 做 CSS↔JS 逐项契约（含红向验证）；新增/扩展双主题浏览器探针。
   - **明确不包含**：不迁移 SimulationCanvas / EquipmentStage（#150）；不迁移场景 Canvas 调色板（`rendering/*Scenes.ts` / `CanvasRenderer.ts`，D45 第 ② 类）；不改 `colorMap.ts` 现有消费者；不改已有 token 值；不引入第三方主题库。
