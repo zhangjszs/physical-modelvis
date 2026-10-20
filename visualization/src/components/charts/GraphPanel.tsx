@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useSimulationStore } from '../../store/simulationStore';
 import { extractGraphSeries } from '../../adapters/simulationResultAdapter';
 import type { GraphType } from '../../types/visualization';
+import { getThemeTokens } from '../../utils/themeTokens';
 import { PanelSection } from '../common/PanelSection';
 import {
     LineChart,
@@ -61,7 +62,7 @@ export function GraphPanel() {
     // 参数对比实验
     const compareMode = useSimulationStore(s => s.compareMode);
     const compareResults = useSimulationStore(s => s.compareResults);
-    const isDark = theme === 'dark';
+    const tokens = getThemeTokens(theme);
 
     // 对比模式: 从 compareResults 提取所有序列
     const compareSeries = useMemo(() => {
@@ -134,8 +135,8 @@ export function GraphPanel() {
         return { compareData: rows, compareDataKeys: dataKeys };
     }, [inCompareMode, compareSeries]);
 
-    const axisColor = isDark ? '#94a3b8' : '#64748b';
-    const gridColor = isDark ? '#1e293b' : '#e2e8f0';
+    const axisColor = tokens.chartAxis;
+    const gridColor = tokens.chartGrid;
     const xAxisCfg = X_AXIS_CONFIG[selectedGraph];
     const showTimeRefLine = isTimeBasedChart(selectedGraph);
 
@@ -218,10 +219,10 @@ export function GraphPanel() {
                             />
                             <Tooltip
                                 contentStyle={{
-                                    background: isDark ? '#1e293b' : '#fff',
-                                    border: `1px solid ${isDark ? '#334155' : '#e2e8f0'}`,
+                                    background: tokens.tooltipBg,
+                                    border: `1px solid ${tokens.tooltipBorder}`,
                                     borderRadius: 8,
-                                    color: isDark ? '#e2e8f0' : '#1e293b',
+                                    color: tokens.tooltipText,
                                     fontSize: 12
                                 }}
                                 formatter={(value: number, name: string) => [
@@ -234,10 +235,10 @@ export function GraphPanel() {
                             {showTimeRefLine && (
                                 <ReferenceLine
                                     x={parseFloat(currentTime.toFixed(4))}
-                                    stroke="#f59e0b"
+                                    stroke={tokens.chartMarker}
                                     strokeWidth={2}
                                     strokeDasharray="4 4"
-                                    label={{ value: '当前', fill: '#f59e0b', fontSize: 11 }}
+                                    label={{ value: '当前', fill: tokens.chartMarker, fontSize: 11 }}
                                 />
                             )}
                             {compareSeries.map((s, i) => (
@@ -281,10 +282,10 @@ export function GraphPanel() {
                             />
                             <Tooltip
                                 contentStyle={{
-                                    background: isDark ? '#1e293b' : '#fff',
-                                    border: `1px solid ${isDark ? '#334155' : '#e2e8f0'}`,
+                                    background: tokens.tooltipBg,
+                                    border: `1px solid ${tokens.tooltipBorder}`,
                                     borderRadius: 8,
-                                    color: isDark ? '#e2e8f0' : '#1e293b',
+                                    color: tokens.tooltipText,
                                     fontSize: 12
                                 }}
                                 formatter={(value: number) => [
@@ -297,10 +298,10 @@ export function GraphPanel() {
                             {showTimeRefLine && (
                                 <ReferenceLine
                                     x={parseFloat(currentTime.toFixed(4))}
-                                    stroke="#f59e0b"
+                                    stroke={tokens.chartMarker}
                                     strokeWidth={2}
                                     strokeDasharray="4 4"
-                                    label={{ value: '当前', fill: '#f59e0b', fontSize: 11 }}
+                                    label={{ value: '当前', fill: tokens.chartMarker, fontSize: 11 }}
                                 />
                             )}
                             <Line
