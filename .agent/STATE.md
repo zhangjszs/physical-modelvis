@@ -1,17 +1,21 @@
 # STATE
 
-- 更新时间：2026-10-20T01:45:00Z
-- 当前任务：无（今日 2 单 #148 / #149 全部完成交付入 main 并转 in-review，所有 ready 队列清空）
-- 本会话：`executor-20261020b`
-- 分支：main（代码已全部 push，仅 .agent/ 状态待单独提交）
-- 未完成工作：无（今日队列 2/2 全部完成交付入 main 并转 in-review；#150 仍为 blocked 等待 #149 验收）
+- 更新时间：2026-10-21T07:56:00Z
+- 当前任务：#150 已交付入 main 并转 in-review（M7 收官切片；等待 Planner 验收关闭）
+- 本会话：`executor-20261021a`
+- 分支：main（代码已 push）
+- 未完成工作：无代码半成品；#150 待验收；#100/#101 维持 parked（D51：M7 收官后的下一轮规划解冻）
 - 本会话提交链：
-  - #148 交付 commit `01c03fa` → `--no-ff` merge `fc029e7` 入 main
-  - #149 交付 commit `dfb68d3` → `--no-ff` merge `4c07f43` 入 main
-  - main HEAD = `4c07f43`（全部 push 走完整 pre-push 钩子、**未 --no-verify、未 force-push**）
-- 待 Planner 验收：in-review ×2（#148 · #149）；两个交付 commit 均已为 main 祖先
-- 今日日报：已写 `.agent/DIARY/2026-10-20.md`（两轮会话已追加完成）
-- 测试数真值：core 1169 / viz 1719 / total 2888（本会话 +15 viz 单测；count:sync 实跑 + count:check exit 0 确认一致）
-- 首屏包体积：门禁入口 10.8 kB gzip / 预算 70 kB；挂载前必需资源实测 70.1 kB gzip（探针度量）
-- 已知环境限制：PATH 需 mise shims；改 physics-core 源码后须 build；preview 服务端口 :4173，dev server 端口 :3000
+  - 批次A `3163e89` 主题令牌表扩展 + 颜色纯函数
+  - 批次B `1f20d19` SimulationCanvas 47 处主题分支迁移
+  - 批次C `3becce0` EquipmentStage 3D 背景 token 化 + 双主题探针
+  - `--no-ff` merge `1bdf60e` 入 main（三个交付 commit 均已成 main 祖先）
+  - 全程走完整 pre-push precheck，**未 --no-verify、未 force-push**
+- 验证结果：
+  - `npm run precheck` exit 0（11 层物理自检 11 PASS / 0 FAIL）
+  - 4 个 headless 探针生产 preview 全部 exit 0（首帧 / 双视口抽屉 / Portal 令牌+画布 / 导学）
+  - CI `39517693080` success；Deploy `39517995535` success
+- 测试数真值：core 1169 / viz 1759 / total **2928**（`count:check` exit 0，13 数字 + 3 标记一致）
+- 首屏包体积：`check:bundle` 入口 11.3 kB / 预算 70 kB，36 个懒 chunk 全过；探针挂载前必需资源观测 70.5 kB gzip
+- 已知环境限制：PATH 需 mise shims；改 physics-core 源码后须 build；preview 端口 :4173，dev 端口 :3000
 - 契约 1.2 提示：本轮未发现 `.agent/LOCK` 残留
