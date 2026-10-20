@@ -1,5 +1,6 @@
 import { createPortal } from 'react-dom';
-import { type ReactNode } from 'react';
+import { type ReactNode, useRef, type RefObject } from 'react';
+import { useDialogAccessibility } from './useDialogAccessibility';
 
 /**
  * 浮层抽屉统一容器（#136 γ · docs/composition-reuse-boundary.md §3.5）。createPortal 挂 document.body 避 #112 包含块陷阱；
@@ -29,6 +30,8 @@ export interface OverlayDrawerProps {
     closeText?: string;
     /** 关闭按钮可访问名（省略则取按钮文案） */
     closeAriaLabel?: string;
+    /** 触发元素 ref（用于关闭后归还焦点，可选） */
+    triggerRef?: RefObject<HTMLElement | null>;
 }
 
 export function OverlayDrawer(props: OverlayDrawerProps) {
@@ -44,14 +47,24 @@ export function OverlayDrawer(props: OverlayDrawerProps) {
         titleClassName,
         closeClassName,
         closeText = '关闭',
-        closeAriaLabel
+        closeAriaLabel,
+        triggerRef
     } = props;
+
+    const panelRef = useRef<HTMLDivElement>(null);
+
+    useDialogAccessibility({
+        open,
+        onClose,
+        panelRef,
+        triggerRef
+    });
 
     if (!open) return null;
 
     return createPortal(
         <div className={overlayClassName} role="dialog" aria-modal="true" aria-label={title} onClick={onClose}>
-            <div className={panelClassName} onClick={e => e.stopPropagation()}>
+            <div ref={panelRef} className={panelClassName} onClick={e => e.stopPropagation()}>
                 <div className={headerClassName}>
                     {headerBadge ? (
                         <div>
