@@ -134,6 +134,62 @@ describe('OCRPanel — 打开/关闭', () => {
         fireEvent.click(document.querySelector('.ocr-close')!);
         await waitFor(() => expect(document.querySelector('.ocr-overlay')).toBeNull());
     });
+
+    it('positive: .ocr-overlay 具备 role=dialog、aria-modal=true 与非空可访问名 "AI 拍照解题"', async () => {
+        stubFetch(recognizeOk([]));
+        render(<OCRPanel />);
+
+        await openPanel();
+        const dialog = screen.getByRole('dialog', { name: 'AI 拍照解题' });
+        expect(dialog).toBeTruthy();
+        expect(dialog.getAttribute('aria-modal')).toBe('true');
+        expect(dialog.classList.contains('ocr-overlay')).toBe(true);
+
+        fireEvent.click(document.querySelector('.ocr-close')!);
+        await waitFor(() => expect(document.querySelector('.ocr-overlay')).toBeNull());
+    });
+
+    it('positive: 关闭按钮具备可访问名「关闭拍照解题」', async () => {
+        stubFetch(recognizeOk([]));
+        render(<OCRPanel />);
+
+        await openPanel();
+        const closeBtn = screen.getByRole('button', { name: '关闭拍照解题' });
+        expect(closeBtn).toBeTruthy();
+        expect(closeBtn.classList.contains('ocr-close')).toBe(true);
+
+        fireEvent.click(closeBtn);
+        await waitFor(() => expect(document.querySelector('.ocr-overlay')).toBeNull());
+    });
+
+    it('positive: 按下 Escape 键关闭面板', async () => {
+        stubFetch(recognizeOk([]));
+        render(<OCRPanel />);
+
+        await openPanel();
+        expect(document.querySelector('.ocr-overlay')).toBeTruthy();
+
+        fireEvent.keyDown(document, { key: 'Escape' });
+        await waitFor(() => expect(document.querySelector('.ocr-overlay')).toBeNull());
+    });
+
+    it('positive: 面板关闭后焦点可靠归还至「📷 拍照解题」触发按钮', async () => {
+        stubFetch(recognizeOk([]));
+        render(<OCRPanel />);
+
+        const triggerBtn = screen.getByRole('button', { name: /拍照解题/ });
+        triggerBtn.focus();
+        expect(document.activeElement).toBe(triggerBtn);
+
+        await openPanel();
+        expect(document.querySelector('.ocr-overlay')).toBeTruthy();
+        // 打开后焦点已移入弹窗内（关闭按钮）
+        expect(document.activeElement).not.toBe(triggerBtn);
+
+        fireEvent.keyDown(document, { key: 'Escape' });
+        await waitFor(() => expect(document.querySelector('.ocr-overlay')).toBeNull());
+        expect(document.activeElement).toBe(triggerBtn);
+    });
 });
 
 describe('OCRPanel — 文件校验', () => {

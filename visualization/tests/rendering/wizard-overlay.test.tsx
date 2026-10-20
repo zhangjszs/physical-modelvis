@@ -4,6 +4,7 @@
  * 覆盖：StepWizard stepper 跳步/active + wizard 进度文案/边界禁用/推进；
  * OverlayDrawer portal 挂 body、open=false 不渲染、遮罩点击关闭、面板 stopPropagation、aria/dialog。
  */
+import { useState } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { StepWizard } from '../../src/components/common/StepWizard';
@@ -164,5 +165,93 @@ describe('OverlayDrawer', () => {
         const head = document.querySelector('.formula-drawer-head');
         expect(head?.querySelector('span')?.textContent).toBe('按需讲解');
         expect(head?.querySelector('h3')?.textContent).toBe('公式推导');
+    });
+
+    it('按下 Escape 键 → 调用 onClose 并阻止冒泡', () => {
+        const onClose = vi.fn();
+        render(
+            <OverlayDrawer open onClose={onClose} title="Esc测试">
+                <p>内容</p>
+            </OverlayDrawer>
+        );
+        fireEvent.keyDown(document, { key: 'Escape' });
+        expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    it('打开后初始焦点置于面板内（优先关闭按钮）', () => {
+        render(
+            <OverlayDrawer
+                open
+                onClose={() => {}}
+                title="实验导学"
+                closeClassName="guidance-close"
+                closeText="x"
+                closeAriaLabel="关闭导学"
+            >
+                <p>内容</p>
+            </OverlayDrawer>
+        );
+        const closeBtn = screen.getByRole('button', { name: '关闭导学' });
+        expect(document.activeElement).toBe(closeBtn);
+    });
+
+    it('关闭后将焦点可靠归还给先前触发元素', () => {
+        function DrawerTriggerHarness() {
+            const [open, setOpen] = useState(false);
+            return (
+                <div>
+                    <button id="trigger-btn" onClick={() => setOpen(true)}>
+                        打开抽屉
+                    </button>
+                    <OverlayDrawer open={open} onClose={() => setOpen(false)} title="抽屉归还测试">
+                        <p>抽屉内部</p>
+                    </OverlayDrawer>
+                </div>
+            );
+        }
+
+        render(<DrawerTriggerHarness />);
+        const triggerBtn = screen.getByRole('button', { name: '打开抽屉' });
+        triggerBtn.focus();
+        expect(document.activeElement).toBe(triggerBtn);
+
+        fireEvent.click(triggerBtn);
+        expect(screen.getByRole('dialog', { name: '抽屉归还测试' })).toBeDefined();
+        expect(document.activeElement).not.toBe(triggerBtn);
+
+        fireEvent.keyDown(document, { key: 'Escape' });
+        expect(screen.queryByRole('dialog')).toBeNull();
+        expect(document.activeElement).toBe(triggerBtn);
+    });
+
+    it('Tab / Shift+Tab 在面板内循环约束（两端首尾回绕，不逃出 dialog）', () => {
+        render(
+            <OverlayDrawer open onClose={() => {}} title="约束测试" closeAriaLabel="关闭面板">
+                <input data-testid="field-1" />
+                <button data-testid="field-2">提交</button>
+            </OverlayDrawer>
+        );
+        const closeBtn = screen.getByRole('button', { name: '关闭面板' });
+        const inputField = screen.getByTestId('field-1');
+        const submitBtn = screen.getByTestId('field-2');
+
+        // 初始聚焦在首项关闭按钮
+        expect(document.activeElement).toBe(closeBtn);
+
+        // 在首项按 Shift+Tab → 回绕至末项
+        fireEvent.keyDown(document, { key: 'Tab', shiftKey: true });
+        expect(document.activeElement).toBe(submitBtn);
+
+        // 在末项按 Tab → 回绕至首项
+        fireEvent.keyDown(document, { key: 'Tab' });
+        expect(document.activeElement).toBe(closeBtn);
+
+        // 焦点脱出至外部时按 Tab → 抓回首项
+        inputField.focus();
+        expect(document.activeElement).toBe(inputField);
+        inputField.blur();
+        expect(document.activeElement).toBe(document.body);
+        fireEvent.keyDown(document, { key: 'Tab' });
+        expect(document.activeElement).toBe(closeBtn);
     });
 });

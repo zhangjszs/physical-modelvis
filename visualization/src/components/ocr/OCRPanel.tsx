@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { useDialogAccessibility } from '../common/useDialogAccessibility';
 import { useSimulationStore } from '../../store/simulationStore';
 import { resolveScene, buildSceneParams, inferProblemTypeLabel } from './ocrUtils';
 import { analyzePhysicsProblem, type ProblemAnalysis } from '../../analysis/problemAnalyzer';
@@ -134,6 +135,15 @@ export function OCRPanel() {
     const [backendOk, setBackendOk] = useState<boolean | null>(null);
     const fileRef = useRef<HTMLInputElement>(null);
     const base64Ref = useRef<string | null>(null);
+    const modalRef = useRef<HTMLDivElement>(null);
+    const triggerBtnRef = useRef<HTMLButtonElement>(null);
+
+    useDialogAccessibility({
+        open: isOpen,
+        onClose: () => setIsOpen(false),
+        panelRef: modalRef,
+        triggerRef: triggerBtnRef
+    });
 
     const [model, setModel] = useState(loadModel);
     const [provider, setProvider] = useState(loadProvider);
@@ -307,14 +317,20 @@ export function OCRPanel() {
 
     return (
         <>
-            <button className="btn btn-sm ocr-trigger-btn" onClick={() => setIsOpen(true)}>
+            <button ref={triggerBtnRef} className="btn btn-sm ocr-trigger-btn" onClick={() => setIsOpen(true)}>
                 📷 拍照解题
             </button>
             {isOpen &&
                 createPortal(
-                    <div className="ocr-overlay visible" onClick={() => setIsOpen(false)}>
-                        <div className="ocr-modal" onClick={e => e.stopPropagation()}>
-                            <button className="ocr-close" onClick={() => setIsOpen(false)}>
+                    <div
+                        className="ocr-overlay visible"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label="AI 拍照解题"
+                        onClick={() => setIsOpen(false)}
+                    >
+                        <div ref={modalRef} className="ocr-modal" onClick={e => e.stopPropagation()}>
+                            <button className="ocr-close" aria-label="关闭拍照解题" onClick={() => setIsOpen(false)}>
                                 &times;
                             </button>
                             <div className="ocr-title">AI 拍照解题</div>
