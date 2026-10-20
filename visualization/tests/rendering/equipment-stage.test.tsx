@@ -33,8 +33,17 @@ function minimalResult(): SimulationResult {
 
 vi.mock('three', async importOriginal => {
     const actual = await importOriginal<typeof import('three')>();
+    /** 记录场景实例，供背景/雾效令牌断言 */
+    class SceneMock extends actual.Scene {
+        static readonly instances: InstanceType<typeof actual.Scene>[] = [];
+        constructor() {
+            super();
+            SceneMock.instances.push(this);
+        }
+    }
     return {
         ...actual,
+        Scene: SceneMock,
         WebGLRenderer: class {
             domElement = document.createElement('canvas');
             shadowMap = { enabled: false, type: 0 };
@@ -130,6 +139,7 @@ class ResizeObserverStub {
 
 beforeEach(() => {
     globalThis.ResizeObserver = ResizeObserverStub as unknown as typeof ResizeObserver;
+    (THREE.Scene as unknown as { instances: THREE.Scene[] }).instances.length = 0;
 });
 
 afterEach(() => {
@@ -152,6 +162,26 @@ describe('EquipmentStage 行为', () => {
         expect(rig.updateEquipment).toHaveBeenCalledTimes(1);
         const received = rig.updateEquipment.mock.calls[0]![0] as Record<string, unknown>;
         expect(received).toBe(rig.builtHandles[0]);
+    });
+
+    it('3D 场景背景与雾效由主题令牌派生（暗/亮切换不重建 Scene）', () => {
+        useSimulationStore.setState({ theme: 'dark' });
+        render(<EquipmentStage rig={makeMockRig('theme')} renderer={makeFakeRenderer()} />);
+
+        const scenes = (THREE.Scene as unknown as { instances: THREE.Scene[] }).instances;
+        const scene = scenes[scenes.length - 1]!;
+        expect(scene.background).toBeInstanceOf(THREE.Color);
+        expect((scene.background as THREE.Color).getHex()).toBe(0x0b1020);
+        expect(scene.fog).toBeInstanceOf(THREE.Fog);
+        expect((scene.fog as THREE.Fog).color.getHex()).toBe(0x0b1020);
+
+        act(() => {
+            useSimulationStore.setState({ theme: 'light' });
+        });
+        // 主题切换只改既有 Scene，不重建
+        expect(scenes[scenes.length - 1]).toBe(scene);
+        expect((scene.background as THREE.Color).getHex()).toBe(0xf8fafc);
+        expect((scene.fog as THREE.Fog).color.getHex()).toBe(0xf8fafc);
     });
 
     it('参数变化时 updateEquipment 收到最新参数', () => {

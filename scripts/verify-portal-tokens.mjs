@@ -111,6 +111,103 @@ const normColor = c => {
     if (s === '#fff') return '#ffffff';
     return s;
 };
+
+/**
+ * '#rrggbb' → [r,g,b] 归一化 sRGB。
+ *
+ * 实测（three r185 + 默认 outputColorSpace）：scene.background 为 Color 时
+ * WebGLBackground 走 `getRGB(_rgb, getUnlitUniformColorSpace(renderer))`，
+ * 即 clear color 上报的是归一化 sRGB（而非 Color 内部的线性工作空间）。
+ */
+const hexToNormalizedRgb = hex => {
+    const n = hex.replace('#', '');
+    return [0, 2, 4].map(i => parseInt(n.slice(i, i + 2), 16) / 255);
+};
+/** 断言 WebGL clear color 与主题令牌一致（容差容忍 GPU 精度） */
+const checkClearColor = (actual, hex, label, fails) => {
+    const expected = hexToNormalizedRgb(hex);
+    if (!Array.isArray(actual) || actual.length < 3) {
+        fails.push(`${label} 未读到 clear color: ${JSON.stringify(actual)}`);
+        return;
+    }
+    const ok = actual.slice(0, 3).every((v, i) => Math.abs(v - expected[i]) <= 0.02);
+    if (!ok) {
+        fails.push(
+            `${label} clear color 应为 ${hex} (linear ${expected.map(v => v.toFixed(4)).join(',')})，` +
+                `实测 ${actual
+                    .slice(0, 3)
+                    .map(v => v.toFixed(4))
+                    .join(',')}`
+        );
+    }
+};
+
+/** 采集舞台 canvas：WebGL 读 clear color，2D 采样非空 */
+const probeStageCanvas = page =>
+    page.evaluate(() => {
+        const canvas =
+            document.querySelector('.stage-canvas-host canvas') || document.querySelector('.stage-viewport canvas');
+        if (!canvas) return { ok: false, reason: '未找到舞台 canvas' };
+        if (!canvas.width || !canvas.height) {
+            return { ok: false, reason: `canvas 尺寸为 0 (${canvas.width}x${canvas.height})` };
+        }
+        const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+        if (gl) {
+            return {
+                ok: true,
+                type: 'webgl',
+                clear: Array.from(gl.getParameter(gl.COLOR_CLEAR_VALUE)),
+                width: gl.drawingBufferWidth,
+                height: gl.drawingBufferHeight
+            };
+        }
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+            try {
+                const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const seen = new Set();
+                const step = Math.max(4, Math.floor((img.data.length / 4 / 2000) * 4));
+                for (let i = 0; i < img.data.length; i += step) {
+                    if (img.data[i + 3] === 0) {
+                        seen.add('transparent');
+                        continue;
+                    }
+                    seen.add(`${img.data[i]},${img.data[i + 1]},${img.data[i + 2]}`);
+                    if (seen.size > 2) break;
+                }
+                return {
+                    ok: seen.size > 1,
+                    type: '2d',
+                    colors: seen.size,
+                    width: canvas.width,
+                    height: canvas.height
+                };
+            } catch (e) {
+                return { ok: false, reason: `读取 2D 像素失败: ${e.message}` };
+            }
+        }
+        return { ok: false, reason: '未能识别 canvas context 类型' };
+    });
+
+/** 通过目录搜索切换场景（用于 2D 自定义绘制场景） */
+const openScene = async (page, name) => {
+    await page.fill('.directory-search-input', name);
+    await page.waitForTimeout(200);
+    const clicked = await page.$$eval(
+        '.directory-scene',
+        (els, target) => {
+            const el = [...els].find(e => (e.querySelector('span')?.textContent || '').trim() === target);
+            if (el) {
+                el.click();
+                return true;
+            }
+            return false;
+        },
+        name
+    );
+    if (!clicked) throw new Error(`目录里找不到场景: ${name}`);
+    await page.waitForTimeout(600);
+};
 /** 对单主题采集结果逐项判定，返回失败原因数组 */
 const check = r => {
     const fails = [];
@@ -126,6 +223,11 @@ const check = r => {
 (async () => {
     const browser = await chromium.launch({ headless: true, ...(CHANNEL ? { channel: CHANNEL } : {}) });
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    const consoleErrors = [];
+    page.on('pageerror', e => consoleErrors.push('PAGEERROR: ' + e.message));
+    page.on('console', m => {
+        if (m.type() === 'error') consoleErrors.push('CONSOLE: ' + m.text());
+    });
     await page.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 60000 });
     await page.waitForSelector('.top-bar-right', { timeout: 30000 });
 
@@ -155,6 +257,12 @@ const check = r => {
     if (darkTokens.photogateCyan !== '#22d3ee')
         allFails.push(`[暗] --photogate-cyan 应为 #22d3ee，实测: ${darkTokens.photogateCyan}`);
 
+    // #150: 3D 舞台背景 clear color = --stage3d-bg（跨过 Three.js 色彩空间转换）
+    const darkStage = await probeStageCanvas(page);
+    if (!darkStage.ok) allFails.push(`[暗] 3D 舞台画布不可用: ${darkStage.reason}`);
+    else if (darkStage.type !== 'webgl') allFails.push(`[暗] 首屏应为 3D WebGL 画布，实测: ${darkStage.type}`);
+    else checkClearColor(darkStage.clear, '#0b1020', '[暗] 3D 舞台', allFails);
+
     // ── 亮色 ──
     await toggleTheme(page);
     await openModal(page);
@@ -181,14 +289,50 @@ const check = r => {
     if (lightTokens.photogateCyan !== '#22d3ee')
         allFails.push(`[亮] --photogate-cyan 应为 #22d3ee，实测: ${lightTokens.photogateCyan}`);
 
+    // #150: 亮色 3D 背景 clear color = --stage3d-bg
+    const lightStage = await probeStageCanvas(page);
+    if (!lightStage.ok) allFails.push(`[亮] 3D 舞台画布不可用: ${lightStage.reason}`);
+    else if (lightStage.type !== 'webgl') allFails.push(`[亮] 首屏应为 3D WebGL 画布，实测: ${lightStage.type}`);
+    else checkClearColor(lightStage.clear, '#f8fafc', '[亮] 3D 舞台', allFails);
+
+    // #150: 2D 画布双主题非空（碰撞场景走 SimulationCanvas 自定义绘制，覆盖迁移后的 isDark 分支）
+    // 注：每个场景都有 3D rig，需显式切「2D 板书」才会卸载 StageRenderer、挂载 SimulationCanvas。
+    await openScene(page, '碰撞');
+    const btn2d = page.locator('.stage-actions button', { hasText: '2D 板书' });
+    if (await btn2d.isVisible()) {
+        await btn2d.click();
+        await page.waitForTimeout(400);
+    }
+    const light2d = await probeStageCanvas(page);
+    if (!light2d.ok || light2d.type !== '2d') {
+        allFails.push(`[亮] 碰撞场景 2D 画布不可用: ${JSON.stringify(light2d)}`);
+    } else if (light2d.colors <= 1) {
+        allFails.push(`[亮] 碰撞场景 2D 画布为空/纯色: ${light2d.colors}`);
+    }
+    await toggleTheme(page); // 切回暗色
+    const dark2d = await probeStageCanvas(page);
+    if (!dark2d.ok || dark2d.type !== '2d') {
+        allFails.push(`[暗] 碰撞场景 2D 画布不可用: ${JSON.stringify(dark2d)}`);
+    } else if (dark2d.colors <= 1) {
+        allFails.push(`[暗] 碰撞场景 2D 画布为空/纯色: ${dark2d.colors}`);
+    }
+
+    const realErrors = consoleErrors.filter(
+        e =>
+            !/favicon/i.test(e) &&
+            !/the server responded with a status of 404/i.test(e) &&
+            !/localhost:3001|api\/ocr|ERR_CONNECTION_REFUSED/i.test(e)
+    );
+    if (realErrors.length) allFails.push(...realErrors.map(e => `[console] ${e}`));
+
     await browser.close();
 
-    console.log(JSON.stringify({ dark, light }, null, 2));
+    console.log(JSON.stringify({ dark, light, darkStage, lightStage, light2d, dark2d }, null, 2));
     if (allFails.length) {
         console.log('FAIL:\n- ' + allFails.join('\n- '));
         process.exit(1);
     }
-    console.log('PORTAL TOKENS OK: OCR 弹窗在暗/亮双主题下设计令牌均正确继承');
+    console.log('PORTAL TOKENS OK: OCR 弹窗在暗/亮双主题下设计令牌均正确继承，3D clear color 与 2D 画布双主题均非空');
     process.exit(0);
 })().catch(e => {
     console.error('FATAL:', e.message);

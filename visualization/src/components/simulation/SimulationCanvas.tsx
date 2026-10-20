@@ -4,6 +4,7 @@ import { CoordinateTransformer } from '../../rendering/CoordinateTransformer';
 import { CanvasRenderer } from '../../rendering/CanvasRenderer';
 import { setupHiDPICanvas } from '../../rendering/dpr';
 import { COLORS } from '../../utils/colorMap';
+import { getThemeTokens, hexToRgba } from '../../utils/themeTokens';
 import { findFrameIndex, interpolateFrame, getTotalDuration } from '../../utils/frameUtils';
 import type { TrajectoryPoint, SimulationResult } from 'physics-core';
 import type { Vec2 } from '../../types/visualization';
@@ -343,29 +344,30 @@ function drawElectricField(
     height: number,
     isDark: boolean
 ) {
+    const tokens = getThemeTokens(isDark);
     const spacing = 60;
-    const baseColor = isDark ? ([251, 191, 36] as const) : ([234, 179, 8] as const);
+    const baseColor = tokens.canvasEFieldAccent;
 
     for (let x = spacing / 2; x < width; x += spacing) {
         const startY = height - 30;
         const endY = 30;
-        ctx.strokeStyle = `rgba(${baseColor[0]},${baseColor[1]},${baseColor[2]},${isDark ? 0.12 : 0.15})`;
+        ctx.strokeStyle = tokens.canvasEFieldGlow;
         ctx.lineWidth = 6;
         ctx.beginPath();
         ctx.moveTo(x, startY);
         ctx.lineTo(x, endY + 12);
         ctx.stroke();
         const grad = ctx.createLinearGradient(x, startY, x, endY);
-        grad.addColorStop(0, `rgba(${baseColor[0]},${baseColor[1]},${baseColor[2]},0.2)`);
-        grad.addColorStop(0.5, `rgba(${baseColor[0]},${baseColor[1]},${baseColor[2]},${isDark ? 0.55 : 0.65})`);
-        grad.addColorStop(1, `rgba(${baseColor[0]},${baseColor[1]},${baseColor[2]},${isDark ? 0.55 : 0.65})`);
+        grad.addColorStop(0, hexToRgba(baseColor, 0.2));
+        grad.addColorStop(0.5, tokens.canvasEFieldGradient);
+        grad.addColorStop(1, tokens.canvasEFieldGradient);
         ctx.strokeStyle = grad;
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(x, startY);
         ctx.lineTo(x, endY + 12);
         ctx.stroke();
-        ctx.fillStyle = `rgba(${baseColor[0]},${baseColor[1]},${baseColor[2]},${isDark ? 0.6 : 0.7})`;
+        ctx.fillStyle = tokens.canvasEFieldArrow;
         ctx.beginPath();
         ctx.moveTo(x, endY);
         ctx.lineTo(x - 7, endY + 14);
@@ -382,14 +384,14 @@ function drawElectricField(
     const eLabel = 'E';
     const tm = ctx.measureText(eLabel);
     const arrowW = 18;
-    ctx.fillStyle = isDark ? 'rgba(15,23,42,0.7)' : 'rgba(255,255,255,0.8)';
+    ctx.fillStyle = tokens.canvasHudBg;
     ctx.fillRect(lx - tm.width - arrowW - 6, ly - 12, tm.width + arrowW + 10, 18);
-    ctx.fillStyle = `rgb(${baseColor[0]},${baseColor[1]},${baseColor[2]})`;
+    ctx.fillStyle = baseColor;
     ctx.fillText(eLabel, lx - arrowW, ly);
     {
         const ax = lx - arrowW + tm.width + 4,
             ay = ly - 9;
-        ctx.strokeStyle = `rgb(${baseColor[0]},${baseColor[1]},${baseColor[2]})`;
+        ctx.strokeStyle = baseColor;
         ctx.lineWidth = 2;
         ctx.lineCap = 'round';
         ctx.beginPath();
@@ -401,7 +403,7 @@ function drawElectricField(
         ctx.lineTo(ax + 1, ay + 5);
         ctx.lineTo(ax + 9, ay + 5);
         ctx.closePath();
-        ctx.fillStyle = `rgb(${baseColor[0]},${baseColor[1]},${baseColor[2]})`;
+        ctx.fillStyle = baseColor;
         ctx.fill();
     }
 }
@@ -414,10 +416,11 @@ function drawMagneticField(
     height: number,
     isDark: boolean
 ) {
+    const tokens = getThemeTokens(isDark);
     const spacing = 70;
     const r = 10;
-    const lineColor = isDark ? 'rgba(168,85,247,0.55)' : 'rgba(147,51,234,0.5)';
-    const circleColor = isDark ? 'rgba(168,85,247,0.3)' : 'rgba(147,51,234,0.25)';
+    const lineColor = tokens.canvasBFieldLine;
+    const circleColor = tokens.canvasBFieldCircle;
 
     for (let x = spacing / 2; x < width; x += spacing) {
         for (let y = spacing / 2; y < height; y += spacing) {
@@ -461,9 +464,10 @@ function drawCollisionScene(
     const m2 = params['m2'] ?? 1;
     const v1 = params['v1'] ?? 5;
     const v2 = params['v2'] ?? 0;
+    const tokens = getThemeTokens(isDark);
     const e = params['e'] ?? 1;
-    const labelColor = isDark ? '#e2e8f0' : '#1e293b';
-    const subColor = isDark ? '#94a3b8' : '#64748b';
+    const labelColor = tokens.readoutText;
+    const subColor = tokens.text3;
 
     const size1 = Math.max(24, Math.min(64, 18 + m1 * 5));
     const size2 = Math.max(24, Math.min(64, 18 + m2 * 5));
@@ -472,7 +476,7 @@ function drawCollisionScene(
     function draw3DBox(cx: number, cy2: number, sz: number, baseHex: string) {
         const x = cx - sz / 2,
             y = cy2 - sz / 2;
-        ctx.fillStyle = isDark ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.12)';
+        ctx.fillStyle = tokens.canvasShadowStrong;
         ctx.fillRect(x + 4, y + 4, sz, sz);
         const metalTex = metalTexture(sz, sz, baseHex, isDark);
         ctx.save();
@@ -553,7 +557,7 @@ function drawCollisionScene(
     ctx.font = '12px sans-serif';
     ctx.textAlign = 'center';
     const tw = ctx.measureText(labelText).width;
-    ctx.fillStyle = isDark ? 'rgba(15,23,42,0.7)' : 'rgba(255,255,255,0.8)';
+    ctx.fillStyle = tokens.canvasHudBg;
     roundRectPath(ctx, width / 2 - tw / 2 - 8, height - 34, tw + 16, 22, 4);
     ctx.fill();
     ctx.fillStyle = subColor;
@@ -572,9 +576,10 @@ function drawSpringScene(
     const k = params['k'] ?? 10;
     const m = params['m'] ?? 1;
     const A = params['A'] ?? 0.5;
+    const tokens = getThemeTokens(isDark);
     const damping = params['damping'] ?? 0;
-    const labelColor = isDark ? '#e2e8f0' : '#1e293b';
-    const subColor = isDark ? '#94a3b8' : '#64748b';
+    const labelColor = tokens.readoutText;
+    const subColor = tokens.text3;
     const cy = height / 2;
     const anchorX = 60;
     const blockW = 44;
@@ -585,11 +590,11 @@ function drawSpringScene(
     const blockX = eqX + Math.max(-maxOff, Math.min(maxOff, A * 200));
 
     const wallGrad = ctx.createLinearGradient(anchorX - 14, 0, anchorX, 0);
-    wallGrad.addColorStop(0, isDark ? '#334155' : '#94a3b8');
-    wallGrad.addColorStop(1, isDark ? '#475569' : '#cbd5e1');
+    wallGrad.addColorStop(0, tokens.canvasWallGradFrom);
+    wallGrad.addColorStop(1, tokens.canvasWallGradTo);
     ctx.fillStyle = wallGrad;
     ctx.fillRect(anchorX - 14, cy - 55, 14, 110);
-    ctx.strokeStyle = isDark ? 'rgba(100,116,139,0.25)' : 'rgba(0,0,0,0.08)';
+    ctx.strokeStyle = tokens.canvasWallHatch;
     ctx.lineWidth = 1;
     for (let i = -10; i < 120; i += 6) {
         ctx.beginPath();
@@ -601,7 +606,7 @@ function drawSpringScene(
     const coils = 14;
     const springLen = blockX - blockW / 2 - anchorX;
     const amplitude = Math.max(6, Math.min(14, 10 * (springLen / 200)));
-    ctx.strokeStyle = isDark ? 'rgba(34,211,238,0.15)' : 'rgba(8,145,178,0.12)';
+    ctx.strokeStyle = tokens.canvasSpringGlow;
     ctx.lineWidth = 5;
     ctx.beginPath();
     ctx.moveTo(anchorX, cy);
@@ -612,9 +617,9 @@ function drawSpringScene(
     }
     ctx.stroke();
     const springGrad = ctx.createLinearGradient(anchorX, cy - amplitude, anchorX, cy + amplitude);
-    springGrad.addColorStop(0, isDark ? '#67e8f9' : '#06b6d4');
-    springGrad.addColorStop(0.5, isDark ? '#22d3ee' : '#0891b2');
-    springGrad.addColorStop(1, isDark ? '#06b6d4' : '#0e7490');
+    springGrad.addColorStop(0, tokens.canvasSpringLight);
+    springGrad.addColorStop(0.5, tokens.canvasSpringMid);
+    springGrad.addColorStop(1, tokens.canvasSpringDark);
     ctx.strokeStyle = springGrad;
     ctx.lineWidth = 2.5;
     ctx.lineJoin = 'round';
@@ -630,7 +635,7 @@ function drawSpringScene(
 
     const bx = blockX - blockW / 2,
         by = cy - blockH / 2;
-    ctx.fillStyle = isDark ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.12)';
+    ctx.fillStyle = tokens.canvasShadowStrong;
     roundRectPath(ctx, bx + 3, by + 3, blockW, blockH, 4);
     ctx.fill();
     const blockTex = metalTexture(blockW, blockH, '#3b82f6', isDark);
@@ -648,7 +653,7 @@ function drawSpringScene(
     ctx.fillText(`m=${m}kg`, blockX, cy + blockH / 2 + 18);
 
     ctx.setLineDash([5, 4]);
-    ctx.strokeStyle = isDark ? 'rgba(34,211,238,0.35)' : 'rgba(8,145,178,0.35)';
+    ctx.strokeStyle = tokens.canvasSpringGuide;
     ctx.lineWidth = 1.2;
     ctx.beginPath();
     ctx.moveTo(eqX, cy - 65);
@@ -664,7 +669,7 @@ function drawSpringScene(
     ctx.font = '11px sans-serif';
     ctx.textAlign = 'center';
     const tw = ctx.measureText(infoText).width;
-    ctx.fillStyle = isDark ? 'rgba(15,23,42,0.7)' : 'rgba(255,255,255,0.8)';
+    ctx.fillStyle = tokens.canvasHudBg;
     roundRectPath(ctx, width / 2 - tw / 2 - 8, height - 34, tw + 16, 22, 4);
     ctx.fill();
     ctx.fillStyle = subColor;
@@ -684,9 +689,10 @@ function drawInclinedPlaneScene(
 ) {
     const thetaDeg = params['theta'] ?? 30;
     const m = params['m'] ?? 1;
+    const tokens = getThemeTokens(isDark);
     const mu = params['mu'] ?? 0;
-    const labelColor = isDark ? '#e2e8f0' : '#1e293b';
-    const subColor = isDark ? '#94a3b8' : '#64748b';
+    const labelColor = tokens.readoutText;
+    const subColor = tokens.text3;
     const thetaRad = (thetaDeg * Math.PI) / 180;
 
     const baseLen = width * 0.65;
@@ -695,7 +701,7 @@ function drawInclinedPlaneScene(
     const bottomLeft = { x: bottomRight.x - baseLen, y: bottomRight.y };
     const topLeft = { x: bottomLeft.x, y: bottomRight.y - wallH };
 
-    ctx.fillStyle = isDark ? 'rgba(0,0,0,0.22)' : 'rgba(0,0,0,0.10)';
+    ctx.fillStyle = tokens.canvasShadowSoft;
     ctx.beginPath();
     ctx.moveTo(topLeft.x + 5, topLeft.y + 5);
     ctx.lineTo(bottomLeft.x + 5, bottomLeft.y + 5);
@@ -705,7 +711,7 @@ function drawInclinedPlaneScene(
 
     const wedgeW = bottomRight.x - bottomLeft.x;
     const wedgeH = bottomRight.y - topLeft.y;
-    const woodTex = woodTexture(Math.max(64, wedgeW), Math.max(64, wedgeH), isDark ? '#7c5e3c' : '#b07c4f', isDark);
+    const woodTex = woodTexture(Math.max(64, wedgeW), Math.max(64, wedgeH), tokens.canvasWood, isDark);
     ctx.save();
     ctx.beginPath();
     ctx.moveTo(topLeft.x, topLeft.y);
@@ -716,7 +722,7 @@ function drawInclinedPlaneScene(
     ctx.drawImage(woodTex, bottomLeft.x, topLeft.y, wedgeW, wedgeH);
     ctx.restore();
 
-    ctx.strokeStyle = isDark ? '#64748b' : '#94a3b8';
+    ctx.strokeStyle = tokens.canvasWedgeEdge;
     ctx.lineWidth = 1.8;
     ctx.beginPath();
     ctx.moveTo(topLeft.x, topLeft.y);
@@ -725,7 +731,7 @@ function drawInclinedPlaneScene(
     ctx.closePath();
     ctx.stroke();
 
-    ctx.strokeStyle = isDark ? 'rgba(100,116,139,0.18)' : 'rgba(0,0,0,0.08)';
+    ctx.strokeStyle = tokens.canvasWedgeHatch;
     ctx.lineWidth = 1;
     for (let i = 0; i < wallH; i += 7) {
         ctx.beginPath();
@@ -740,18 +746,18 @@ function drawInclinedPlaneScene(
     // 取从水平底边(startAngle)到斜面边的最小扫角(=θ)，避免 anticlockwise=true 画出 330° 优角
     const minorSweep = (((slopeAngleFromBR - startAngle) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
     const midAngle = startAngle + minorSweep / 2;
-    ctx.fillStyle = isDark ? 'rgba(251,191,36,0.10)' : 'rgba(217,119,6,0.08)';
+    ctx.fillStyle = tokens.canvasAngleFill;
     ctx.beginPath();
     ctx.moveTo(bottomRight.x, bottomRight.y);
     ctx.arc(bottomRight.x, bottomRight.y, arcR, startAngle, slopeAngleFromBR, false);
     ctx.closePath();
     ctx.fill();
-    ctx.strokeStyle = isDark ? '#fbbf24' : '#d97706';
+    ctx.strokeStyle = tokens.canvasAngleStroke;
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.arc(bottomRight.x, bottomRight.y, arcR, startAngle, slopeAngleFromBR, false);
     ctx.stroke();
-    ctx.fillStyle = isDark ? '#fbbf24' : '#d97706';
+    ctx.fillStyle = tokens.canvasAngleStroke;
     ctx.font = 'bold 13px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -798,7 +804,7 @@ function drawInclinedPlaneScene(
         ctx.font = '11px sans-serif';
         ctx.textAlign = 'center';
         const tw = ctx.measureText(infoText).width;
-        ctx.fillStyle = isDark ? 'rgba(15,23,42,0.7)' : 'rgba(255,255,255,0.8)';
+        ctx.fillStyle = tokens.canvasHudBg;
         roundRectPath(ctx, width / 2 - tw / 2 - 8, height - 34, tw + 16, 22, 4);
         ctx.fill();
         ctx.fillStyle = subColor;
@@ -814,28 +820,29 @@ function drawEMCombinedField(
     height: number,
     isDark: boolean
 ) {
+    const tokens = getThemeTokens(isDark);
     const spacing = 60;
-    const eColor = isDark ? ([251, 191, 36] as const) : ([234, 179, 8] as const);
+    const eColor = tokens.canvasEFieldAccent;
     for (let y = spacing / 2; y < height; y += spacing) {
         const startX = 30;
         const endX = width - 30;
-        ctx.strokeStyle = `rgba(${eColor[0]},${eColor[1]},${eColor[2]},0.1)`;
+        ctx.strokeStyle = hexToRgba(eColor, 0.1);
         ctx.lineWidth = 5;
         ctx.beginPath();
         ctx.moveTo(startX, y);
         ctx.lineTo(endX, y);
         ctx.stroke();
         const grad = ctx.createLinearGradient(startX, y, endX, y);
-        grad.addColorStop(0, `rgba(${eColor[0]},${eColor[1]},${eColor[2]},0.2)`);
-        grad.addColorStop(0.4, `rgba(${eColor[0]},${eColor[1]},${eColor[2]},${isDark ? 0.5 : 0.6})`);
-        grad.addColorStop(1, `rgba(${eColor[0]},${eColor[1]},${eColor[2]},${isDark ? 0.5 : 0.6})`);
+        grad.addColorStop(0, hexToRgba(eColor, 0.2));
+        grad.addColorStop(0.4, tokens.canvasEMFieldGradient);
+        grad.addColorStop(1, tokens.canvasEMFieldGradient);
         ctx.strokeStyle = grad;
         ctx.lineWidth = 1.8;
         ctx.beginPath();
         ctx.moveTo(startX, y);
         ctx.lineTo(endX, y);
         ctx.stroke();
-        ctx.fillStyle = `rgba(${eColor[0]},${eColor[1]},${eColor[2]},${isDark ? 0.55 : 0.65})`;
+        ctx.fillStyle = tokens.canvasEMFieldArrow;
         ctx.beginPath();
         ctx.moveTo(endX, y);
         ctx.lineTo(endX - 12, y - 5);
@@ -846,12 +853,12 @@ function drawEMCombinedField(
     }
     ctx.font = 'bold 13px sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillStyle = `rgb(${eColor[0]},${eColor[1]},${eColor[2]})`;
+    ctx.fillStyle = eColor;
     ctx.fillText('E', 12, 20);
     {
         const arrowX = 26,
             arrowY = 16;
-        ctx.strokeStyle = `rgb(${eColor[0]},${eColor[1]},${eColor[2]})`;
+        ctx.strokeStyle = eColor;
         ctx.lineWidth = 2;
         ctx.lineCap = 'round';
         ctx.beginPath();
@@ -863,14 +870,14 @@ function drawEMCombinedField(
         ctx.lineTo(arrowX + 9, arrowY - 4);
         ctx.lineTo(arrowX + 9, arrowY + 4);
         ctx.closePath();
-        ctx.fillStyle = `rgb(${eColor[0]},${eColor[1]},${eColor[2]})`;
+        ctx.fillStyle = eColor;
         ctx.fill();
     }
 
     const bSpacing = 70;
     const bR = 9;
-    const bLineColor = isDark ? 'rgba(168,85,247,0.5)' : 'rgba(147,51,234,0.45)';
-    const bCircleColor = isDark ? 'rgba(168,85,247,0.25)' : 'rgba(147,51,234,0.2)';
+    const bLineColor = tokens.canvasBFieldLineSoft;
+    const bCircleColor = tokens.canvasBFieldCircleSoft;
     for (let x = bSpacing; x < width; x += bSpacing) {
         for (let y = bSpacing; y < height; y += bSpacing) {
             ctx.strokeStyle = bCircleColor;
@@ -934,6 +941,7 @@ function drawAirTrackScene(
     const trackLength = params['trackLength'] ?? 1.5;
     const x1 = params['x1'] ?? 0.3;
     const x2 = params['x2'] ?? 0.8;
+    const tokens = getThemeTokens(isDark);
     const flagWidth = params['flagWidth'] ?? 0.02;
     const mass = params['mass'] ?? 0.2;
 
@@ -1043,12 +1051,12 @@ function drawAirTrackScene(
         channels
     });
 
-    ctx.fillStyle = isDark ? '#e2e8f0' : '#1e293b';
+    ctx.fillStyle = tokens.readoutText;
     ctx.font = 'bold 14px monospace';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
     ctx.fillText(`t = ${currentTime.toFixed(4)} s`, 16, 18);
-    ctx.fillStyle = isDark ? '#94a3b8' : '#64748b';
+    ctx.fillStyle = tokens.text3;
     ctx.font = '12px monospace';
     ctx.fillText(`v = ${gliderV.toFixed(3)} m/s`, 16, 38);
     ctx.fillText(`Δx = ${flagWidth.toFixed(3)} m`, 16, 56);
@@ -1255,6 +1263,7 @@ export function SimulationCanvas() {
 
         const ctx = canvas.getContext('2d')!;
         const { w: cssW, h: cssH } = logicalSizeRef.current;
+        const tokens = getThemeTokens(isDark);
 
         // 标准轨迹场景: 背景 / 网格 / 坐标轴 / 自定义背景 / 地面 / 完整轨迹 全部烘焙到离屏层,
         // 每帧仅需一次 drawImage 合成. 跳过低级的逐帧 clear / grid / axes 绘制.
@@ -1678,7 +1687,7 @@ export function SimulationCanvas() {
         }
 
         if (!simulationResult) {
-            ctx.fillStyle = isDark ? '#64748b' : '#94a3b8';
+            ctx.fillStyle = tokens.canvasEmptyText;
             ctx.font = '16px sans-serif';
             ctx.textAlign = 'center';
             ctx.fillText('点击「运行仿真」开始', cssW / 2, cssH / 2);
@@ -1947,20 +1956,20 @@ export function SimulationCanvas() {
             const yText = `y = ${frame.position.y.toFixed(2)} m`;
             const hasLabels = visibleLayers.bodyLabels;
             const panelH = hasLabels ? 64 : 28;
-            ctx.fillStyle = isDark ? 'rgba(15,23,42,0.75)' : 'rgba(255,255,255,0.85)';
+            ctx.fillStyle = tokens.canvasHudBgStrong;
             roundRectPath(ctx, 8, 10, 200, panelH, 6);
             ctx.fill();
-            ctx.strokeStyle = is3DScene ? (isDark ? 'rgba(56,189,248,0.3)' : 'rgba(59,130,246,0.2)') : 'transparent';
+            ctx.strokeStyle = is3DScene ? tokens.canvasHudBorder : 'transparent';
             ctx.lineWidth = 1;
             roundRectPath(ctx, 8, 10, 200, panelH, 6);
             ctx.stroke();
-            ctx.fillStyle = isDark ? '#e2e8f0' : '#1e293b';
+            ctx.fillStyle = tokens.readoutText;
             ctx.font = 'bold 14px monospace';
             ctx.textAlign = 'left';
             ctx.fillText(timeText, 16, 30);
             if (hasLabels) {
                 ctx.font = '12px monospace';
-                ctx.fillStyle = isDark ? '#94a3b8' : '#64748b';
+                ctx.fillStyle = tokens.text3;
                 ctx.fillText(xText, 16, 50);
                 ctx.fillText(yText, 16, 68);
             }
@@ -2031,7 +2040,7 @@ export function SimulationCanvas() {
                         fctx.font = '11px monospace';
                         fctx.textAlign = 'right';
                         fctx.textBaseline = 'top';
-                        fctx.fillStyle = isDarkRef.current ? 'rgba(148,163,184,0.85)' : 'rgba(71,85,105,0.85)';
+                        fctx.fillStyle = getThemeTokens(isDarkRef.current).canvasCompareOverlayText;
                         fctx.fillText(`${Math.round(fpsRef.current)} FPS`, w - 10, 8);
                         fctx.restore();
                     }

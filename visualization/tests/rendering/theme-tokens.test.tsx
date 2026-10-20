@@ -13,7 +13,16 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
 import { render } from '@testing-library/react';
-import { THEME_TOKENS, THEME_TOKEN_SOURCES, getThemeTokens, type ThemeTokenKey } from '../../src/utils/themeTokens';
+import {
+    THEME_TOKENS,
+    THEME_TOKEN_SOURCES,
+    getThemeTokens,
+    hexToRgba,
+    hexToThreeColorNumber,
+    parseHexColor,
+    resolveStage3DBackground,
+    type ThemeTokenKey
+} from '../../src/utils/themeTokens';
 import { PhotogateTimer } from '../../src/components/simulation/PhotogateTimer';
 import { GraphPanel } from '../../src/components/charts/GraphPanel';
 import { useSimulationStore } from '../../src/store/simulationStore';
@@ -124,6 +133,113 @@ describe('主题色单一真源契约 (themeTokens ↔ styles.css)', () => {
         expect(getThemeTokens('light')).toBe(THEME_TOKENS.light);
         expect(getThemeTokens(true)).toBe(THEME_TOKENS.dark);
         expect(getThemeTokens(false)).toBe(THEME_TOKENS.light);
+    });
+});
+
+describe('颜色纯函数 (#150)', () => {
+    it('parseHexColor 支持 3/6 位十六进制并忽略大小写与前导 #', () => {
+        expect(parseHexColor('#0b1020')).toEqual({ r: 11, g: 16, b: 32 });
+        expect(parseHexColor('FFF')).toEqual({ r: 255, g: 255, b: 255 });
+        expect(parseHexColor('  #F8FAFC  ')).toEqual({ r: 248, g: 250, b: 252 });
+    });
+
+    it('parseHexColor 对非法输入返回 null（不静默吞错）', () => {
+        expect(parseHexColor('')).toBeNull();
+        expect(parseHexColor('#12')).toBeNull();
+        expect(parseHexColor('#gggggg')).toBeNull();
+        expect(parseHexColor('rgb(1,2,3)')).toBeNull();
+    });
+
+    it('hexToRgba 输出规范化 rgba 且钳制 alpha 到 [0, 1]', () => {
+        expect(hexToRgba('#fbbf24', 0.12)).toBe('rgba(251, 191, 36, 0.12)');
+        expect(hexToRgba('#fff', 1)).toBe('rgba(255, 255, 255, 1)');
+        expect(hexToRgba('#000000', -0.5)).toBe('rgba(0, 0, 0, 0)');
+        expect(hexToRgba('#000000', 2)).toBe('rgba(0, 0, 0, 1)');
+        expect(hexToRgba('#000000', Number.NaN)).toBe('rgba(0, 0, 0, 0)');
+    });
+
+    it('hexToRgba 对非法颜色回退黑色（令牌契约保证正常路径不命中）', () => {
+        expect(hexToRgba('not-a-color', 0.5)).toBe('rgba(0, 0, 0, 0.5)');
+    });
+
+    it('hexToThreeColorNumber 输出 0xRRGGBB 且非法输入回退 0', () => {
+        expect(hexToThreeColorNumber('#0b1020')).toBe(0x0b1020);
+        expect(hexToThreeColorNumber('#f8fafc')).toBe(0xf8fafc);
+        expect(hexToThreeColorNumber('#fff')).toBe(0xffffff);
+        expect(hexToThreeColorNumber('oops')).toBe(0x000000);
+    });
+
+    it('resolveStage3DBackground 从主题令牌派生且兼容 boolean', () => {
+        expect(resolveStage3DBackground('dark')).toBe(0x0b1020);
+        expect(resolveStage3DBackground('light')).toBe(0xf8fafc);
+        expect(resolveStage3DBackground(true)).toBe(0x0b1020);
+        expect(resolveStage3DBackground(false)).toBe(0xf8fafc);
+    });
+});
+
+/**
+ * 迁移前基线：SimulationCanvas 47 处 `isDark ?` 与 EquipmentStage 两处写死色的
+ * 实际渲染值（#150 执行前 HEAD 4fc7cab 实测）。锁成回归表，保证迁移后暗/亮取值零漂移。
+ */
+const LEGACY_CANVAS_PALETTE: ReadonlyArray<readonly [ThemeTokenKey, string, string]> = [
+    ['canvasHudBg', 'rgba(15,23,42,0.7)', 'rgba(255,255,255,0.8)'],
+    ['canvasHudBgStrong', 'rgba(15,23,42,0.75)', 'rgba(255,255,255,0.85)'],
+    ['canvasHudBorder', 'rgba(56,189,248,0.3)', 'rgba(59,130,246,0.2)'],
+    ['canvasShadowStrong', 'rgba(0,0,0,0.3)', 'rgba(0,0,0,0.12)'],
+    ['canvasShadowSoft', 'rgba(0,0,0,0.22)', 'rgba(0,0,0,0.10)'],
+    ['canvasEmptyText', '#64748b', '#94a3b8'],
+    ['canvasCompareOverlayText', 'rgba(148,163,184,0.85)', 'rgba(71,85,105,0.85)'],
+    ['canvasEFieldAccent', '#fbbf24', '#eab308'],
+    ['canvasEFieldGlow', 'rgba(251,191,36,0.12)', 'rgba(234,179,8,0.15)'],
+    ['canvasEFieldGradient', 'rgba(251,191,36,0.55)', 'rgba(234,179,8,0.65)'],
+    ['canvasEFieldArrow', 'rgba(251,191,36,0.6)', 'rgba(234,179,8,0.7)'],
+    ['canvasEMFieldGradient', 'rgba(251,191,36,0.5)', 'rgba(234,179,8,0.6)'],
+    ['canvasEMFieldArrow', 'rgba(251,191,36,0.55)', 'rgba(234,179,8,0.65)'],
+    ['canvasBFieldLine', 'rgba(168,85,247,0.55)', 'rgba(147,51,234,0.5)'],
+    ['canvasBFieldCircle', 'rgba(168,85,247,0.3)', 'rgba(147,51,234,0.25)'],
+    ['canvasBFieldLineSoft', 'rgba(168,85,247,0.5)', 'rgba(147,51,234,0.45)'],
+    ['canvasBFieldCircleSoft', 'rgba(168,85,247,0.25)', 'rgba(147,51,234,0.2)'],
+    ['canvasWallGradFrom', '#334155', '#94a3b8'],
+    ['canvasWallGradTo', '#475569', '#cbd5e1'],
+    ['canvasWallHatch', 'rgba(100,116,139,0.25)', 'rgba(0,0,0,0.08)'],
+    ['canvasSpringGlow', 'rgba(34,211,238,0.15)', 'rgba(8,145,178,0.12)'],
+    ['canvasSpringLight', '#67e8f9', '#06b6d4'],
+    ['canvasSpringMid', '#22d3ee', '#0891b2'],
+    ['canvasSpringDark', '#06b6d4', '#0e7490'],
+    ['canvasSpringGuide', 'rgba(34,211,238,0.35)', 'rgba(8,145,178,0.35)'],
+    ['canvasWedgeHatch', 'rgba(100,116,139,0.18)', 'rgba(0,0,0,0.08)'],
+    ['canvasWedgeEdge', '#64748b', '#94a3b8'],
+    ['canvasWood', '#7c5e3c', '#b07c4f'],
+    ['canvasAngleFill', 'rgba(251,191,36,0.10)', 'rgba(217,119,6,0.08)'],
+    ['canvasAngleStroke', '#fbbf24', '#d97706'],
+    ['stage3dBg', '#0b1020', '#f8fafc']
+];
+
+describe('画布/舞台主题令牌取值零漂移 (#150)', () => {
+    it.each(LEGACY_CANVAS_PALETTE)('%s 暗/亮取值与迁移前字面量逐项一致', (key, dark, light) => {
+        expect(normalizeColor(THEME_TOKENS.dark[key])).toBe(normalizeColor(dark));
+        expect(normalizeColor(THEME_TOKENS.light[key])).toBe(normalizeColor(light));
+    });
+});
+
+describe('消费方主题分支清零守卫 (#150)', () => {
+    it('SimulationCanvas 不再出现 isDark 颜色三元，颜色统一取自 getThemeTokens', () => {
+        const source = fs.readFileSync(
+            path.resolve(__dirname, '../../src/components/simulation/SimulationCanvas.tsx'),
+            'utf-8'
+        );
+        expect(source).not.toMatch(/isDark\s*\?/);
+        expect(source).not.toMatch(/isDarkRef\.current\s*\?/);
+        expect(source).toMatch(/getThemeTokens\(isDark\)/);
+    });
+
+    it('EquipmentStage 3D 背景由 token 派生，无写死 0x0b1020 / 0xf8fafc', () => {
+        const source = fs.readFileSync(
+            path.resolve(__dirname, '../../src/components/simulation3d/EquipmentStage.tsx'),
+            'utf-8'
+        );
+        expect(source).not.toMatch(/0x0b1020|0xf8fafc/);
+        expect(source).toMatch(/resolveStage3DBackground\(theme\)/);
     });
 });
 
