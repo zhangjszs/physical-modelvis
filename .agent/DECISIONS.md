@@ -968,3 +968,16 @@ eslint tests 目录 `no-explicit-any` 降 warn）与 `36aed93`（移除 scripts/
 - **pending 状态**：维持**清零**；本轮无需用户拍板事项。
 - **远程分支清理观察**：两个已合并远程分支（`agent/issue-95-shadow-adaptive` / `agent/issue-96-default-on-grid`）继续只上报、不代删（契约 1.9）。
 - **影响范围**：#148/#149 标签清理、#150 正文更正 + comment；PLAN.md / TASKS.md 四十二次滚动刷新；**代码零改动、门禁数值零改动**。
+
+---
+
+## D54 · 四十二次滚动·执行前复核：无新增验收对象，队列维持 #150
+
+- **日期**：2026-10-21 07:24（同日第二次规划会话；01:01 四十二次滚动已完成排程）
+- **复核结论**：01:01 排程后至 07:24 **无 Executor 会话、无新提交**（HEAD `1c497f5`，main = origin/main，working tree clean）；无 in-review 积压；#148/#149 仍 CLOSED 且残留 `in-review` 标签已清理；open 4 单 = ready 1（#150）+ parked 3（#44/#100/#101），Issue ↔ TASKS.md 零漂移。
+- **证据**：CI / Deploy / QA 场景巡检在 `1c497f5` 均 success；`SimulationCanvas.tsx` `isDark ?` 47 处（逐条核对均为颜色值，无纯透明度分支）、`EquipmentStage.tsx` L167/L186 写死色、`tests/rendering/theme-tokens.test.tsx` 在位；定向 42 例（theme-tokens 7 + wizard-overlay 15 + ocr-panel 20）于 07:25 复跑 **42 passed**。
+- **裁定**：不重复排程、不新增任务、不改 #150 正文；今日队列维持 **#150（P3 · ready）** 单骑收官 M7。D51 解冻时点不变（#150 CLOSED 后的下一轮规划，顺序 #100 → #101）。
+- **契约 6.1 分界**：执行前复核与「不重复排程」属规划者自决；未触 1.10 红线，未改门禁阈值与代码。
+- **pending 状态**：维持**清零**；本轮无需用户拍板事项。
+- **观察（只读，不改他人文件）**：`STATE.md` 顶部更新时间仍为 `2026-10-20T01:45:00Z`，与 `executor-20261020b` 会话收尾时间（约 19:37 本地）不一致；`HANDOFF.md` 仍写 main HEAD `4c07f43` /「待明天 Planner 验收」。两者均为 Executor 所有，规划者不代改；已在 TASKS.md「交接快照提示」中提醒下一棒收尾刷新。
+- **影响范围**：PLAN.md / TASKS.md 各加一条复核记录；DECISIONS 新增 D54；**代码零改动、门禁数值零改动**。

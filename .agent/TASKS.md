@@ -1,7 +1,8 @@
 # TASKS（Issue 本地镜像 · 规划者每轮整体重写）
 
-> 权威来源 = **GitHub Issues**（gh 可用，本轮实拉 `gh issue list --state open` 于 **2026-10-21 · 四十二次滚动**，非记忆）。
-> 本轮验收：**无 in-review 积压**——上一轮 in-review 2 单（#148/#149）已于四十一次滚动（2026-10-20）关闭；本轮独立抽查 42 例定向测试全绿，HEAD `4fc7cab` CI/Deploy 双绿。
+> 权威来源 = **GitHub Issues**（gh 可用，本轮实拉 `gh issue list --state open` 于 **2026-10-21 · 四十二次滚动 + 07:24 执行前复核**，非记忆）。
+> 本轮验收：**无 in-review 积压**——上一轮 in-review 2 单（#148/#149）已于四十一次滚动（2026-10-20）关闭；42 例定向测试于 07:25 复跑全绿，HEAD `1c497f5` 的 CI / Deploy / QA 场景巡检三绿。
+> 07:24 执行前复核：01:01 排程后至复核时**无 Executor 会话、无新提交**（working tree clean，main = origin/main）；open 仍 4 单、今日队列无变化。
 > open 共 **4 单** = ready 1（#150）+ parked 3（#44/#100/#101）；Issue ↔ 本文件**零漂移**。
 
 ## 今日队列（2026-10-21 · 四十二次滚动 · 执行顺序，1 个 ready）
@@ -21,7 +22,7 @@
     - 不改已有 token 值、不引入第三方色彩库。
   - **依赖**：无（前置 #149 已 CLOSED）。
   - **验收标准**：
-    - [ ] `SimulationCanvas.tsx` 中主题相关 `isDark ?` 颜色分支清零，颜色取自 `getThemeTokens(theme)`。
+    - [ ] `SimulationCanvas.tsx` 中主题相关 `isDark ?` 颜色分支清零（复核基线：47 处，全部为颜色值，无纯透明度分支），颜色取自 `getThemeTokens(theme)`。
     - [ ] `EquipmentStage.tsx` 3D 背景色由 token 派生，无写死 `0x0b1020` / `0xf8fafc`。
     - [ ] `theme-tokens.test.tsx` 覆盖新增键且逐项对齐 CSS；红向验证有效。
     - [ ] 暗色渲染值保持不变（如个别亮色语义化调整须在执行报告逐条列出并附证据）；双主题画布非空、零 console error。
@@ -38,19 +39,20 @@
   - 本轮独立抽查：`useDialogAccessibility` 在 OverlayDrawer / OCRPanel 双接入在位；定向测试 42 例全绿（含 ocr-panel 20、wizard-overlay 15）。
 - [x] **#149（P2 · area:render · CLOSED）主题色 JS 单一真源（切片 1）：themeTokens 语义表 + GraphPanel/PhotogateTimer 迁移**
   - 交付 `dfb68d3` → merge `4c07f43`，均为 main 祖先；CI `39416415976` + Deploy `39416691193` 双绿。
-  - 本轮独立抽查：`themeTokens.ts` 双主题表在位；`theme-tokens.test.tsx` 7 例通过；HEAD `4fc7cab` 的 CI/Deploy 均 success。
+  - 本轮独立抽查：`themeTokens.ts` 双主题表在位；`theme-tokens.test.tsx` 7 例通过；HEAD `1c497f5` 的 CI/Deploy/QA 均 success。
 
 ## 阻塞 / 待处理（parked）
 
 - **#100（P2）/#101（P3）** —— parked（D19/D51），**M7 期间勿领**；D51 已拍板：**M7 收官（#150 CLOSED）后的下一轮规划立即解冻**转产品功能线，顺序 **#100 → #101**（届时由 Planner 摘 `parked`、加 `ready-for-agent` 并重写验收项）。
 - **#44（P2 · type:chore/area:ci · parked）React 19 专项迁移** —— D44 = **B**（用户 2026-10-18 拍板）：**暂不升**；解除条件三条（用户改选 A/C、React 19 出现已验证功能收益、react 18 遇安全/兼容硬约束）。**勿领**。
 - **观察（不建单，需用户点头才做）**：`origin/agent/issue-95-shadow-adaptive`(`ba0bd6f`) 与 `origin/agent/issue-96-default-on-grid`(`f73f21a`) 两个远程分支已是 main 祖先且对应 Issue 已 CLOSED，属 §1.9 未执行的清理。删除远程分支影响共享状态且契约 1.9 禁止 agent 删他人分支，本轮**只上报、不代删**。
+- **交接快照提示**：`STATE.md` / `HANDOFF.md` 为 2026-10-20 收尾快照（HANDOFF 仍写 main HEAD `4c07f43`、#148/#149 待验收；STATE 更新时间 `2026-10-20T01:45:00Z`），已被四十一次/四十二次滚动取代。下一棒以 TASKS.md / PLAN.md 为准，并在收尾时如实刷新两者。
 
 ## 标签说明
 
 - 状态：ready-for-agent（可执行）· in-progress（执行中）· in-review（待验收）· blocked（外部/依赖阻塞）· parked（排程冻结 D19/D44/D51）· needs-info（需决策）；closed = done
 - 优先级：P0 最多 2 个（现 0）；P1 与今日容量匹配（现 0）；P2 为当前核心质量收口，P3 为次级迁移切片
 - 契约 1.6 一致性：本轮 Issue ↔ TASKS.md 无漂移（Issue 为权威，本文件由 `gh issue list/view` 实拉整体重写）；当前 open 共 4 单 = ready 1 + parked 3，in-review 0
-- 本轮 Issue 治理：#148/#149 已关闭但残留的 `in-review` 标签已清理；#150 正文测试文件名 `.test.ts` → `.test.tsx` 更正，并留基线 comment `6296452544`
+- 本轮 Issue 治理：#148/#149 已关闭且 `in-review` 标签已清理；#150 正文测试文件名 `.test.ts` → `.test.tsx` 更正，并留基线 comment `6296452544`（07:24 复核确认正文与基线一致）
 - 契约 1.2：本轮未发现 `.agent/LOCK` 残留
 - **pending 决策**：清零

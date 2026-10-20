@@ -279,9 +279,11 @@
 > open 共 **4 单** = ready 1（#150）+ parked 3（#44/#100/#101），Issue ↔ TASKS.md 零漂移；ready 仅 1 单**系有意不凑数**：M7 收官前 #100/#101 按 D51 不得解冻。
 > 验收 #150 后 M7 3/3 收官；**下一轮规划**按 D51 解冻 #100 → #101 转产品功能线。远程分支清理观察继续（只上报不代删）；pending 维持清零。
 
+> 2026-10-21 07:24 执行前复核（同日第二次规划会话，**非新规划轮**）：01:01 排程后至复核时**无 Executor 会话、无新提交**；main = origin/main = `1c497f5`，working tree clean；CI / Deploy / QA 场景巡检三绿；#150 基线复核（`SimulationCanvas.tsx` `isDark ?` 47 处且全部为颜色值、`EquipmentStage.tsx` L167/L186、`theme-tokens.test.tsx` 在位）与定向 42 例复跑均无变化；open 4 单、今日队列维持 #150、pending 清零。**不重复排程、不新增任务、不改 #150 正文。**
+
 ## 当前方向
 
-**四十二次滚动（2026-10-21 · 验收与排程轮）**：M7 已推进 2/3（#148/#149 全 CLOSED），仅剩收官切片 #150。
+**四十二次滚动（2026-10-21 · 验收与排程轮；07:24 执行前复核无变化）**：M7 已推进 2/3（#148/#149 全 CLOSED），仅剩收官切片 #150。
 **今天最重要的事**：收官 **M7 · UI 基础质量收口** 最后一单：
 - **#150（P3 · ready · 唯一队首）主题色 JS 单一真源切片 2**：迁移 `SimulationCanvas.tsx` 47 处 `isDark ?` 主题分支与 `EquipmentStage.tsx` 3D 背景色（L167/L186）到 `themeTokens.ts`，扩展契约测试与双主题探针。
 **明确不在今天**：场景 Canvas 调色板（`rendering/*Scenes.ts` / `CanvasRenderer.ts`，D45 第 ② 类，保持集中常量）；#44/#100/#101（parked；#100/#101 待 #150 验收关闭后按 D51 解冻）。
