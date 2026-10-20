@@ -91,6 +91,26 @@ const probeSurfaceConsumers = async page => {
     }
     return { guidanceBg, exportBg };
 };
+
+/** #149: 采集暗/亮双主题下核心图表与仪器设计令牌计算值 */
+const probeThemeTokens = page =>
+    page.evaluate(() => {
+        const root = window.getComputedStyle(document.documentElement);
+        return {
+            chartGrid: root.getPropertyValue('--chart-grid').trim().toLowerCase(),
+            chartMarker: root.getPropertyValue('--chart-marker').trim().toLowerCase(),
+            tooltipBg: root.getPropertyValue('--tooltip-bg').trim().toLowerCase(),
+            tooltipBorder: root.getPropertyValue('--tooltip-border').trim().toLowerCase(),
+            readoutText: root.getPropertyValue('--readout-text').trim().toLowerCase(),
+            photogateCardBorder: root.getPropertyValue('--photogate-card-border').trim().toLowerCase(),
+            photogateCyan: root.getPropertyValue('--photogate-cyan').trim().toLowerCase()
+        };
+    });
+const normColor = c => {
+    const s = (c || '').trim().toLowerCase();
+    if (s === '#fff') return '#ffffff';
+    return s;
+};
 /** 对单主题采集结果逐项判定，返回失败原因数组 */
 const check = r => {
     const fails = [];
@@ -122,6 +142,19 @@ const check = r => {
     if (darkConsumers.exportBg && darkConsumers.exportBg !== 'rgb(30, 41, 59)')
         allFails.push(`[暗] export-menu 背景色应为 rgb(30, 41, 59)，实测: ${darkConsumers.exportBg}`);
 
+    // #149: 暗色主题令牌断言
+    const darkTokens = await probeThemeTokens(page);
+    if (darkTokens.chartGrid !== '#1e293b')
+        allFails.push(`[暗] --chart-grid 应为 #1e293b，实测: ${darkTokens.chartGrid}`);
+    if (darkTokens.chartMarker !== '#f59e0b')
+        allFails.push(`[暗] --chart-marker 应为 #f59e0b，实测: ${darkTokens.chartMarker}`);
+    if (darkTokens.tooltipBg !== '#1e293b')
+        allFails.push(`[暗] --tooltip-bg 应为 #1e293b，实测: ${darkTokens.tooltipBg}`);
+    if (darkTokens.readoutText !== '#e2e8f0')
+        allFails.push(`[暗] --readout-text 应为 #e2e8f0，实测: ${darkTokens.readoutText}`);
+    if (darkTokens.photogateCyan !== '#22d3ee')
+        allFails.push(`[暗] --photogate-cyan 应为 #22d3ee，实测: ${darkTokens.photogateCyan}`);
+
     // ── 亮色 ──
     await toggleTheme(page);
     await openModal(page);
@@ -135,6 +168,18 @@ const check = r => {
         allFails.push(`[亮] export-menu 背景色应为 rgb(255, 255, 255)，实测: ${lightConsumers.exportBg}`);
     if (!light.htmlLight) allFails.push('[亮] <html> 未带 light 类（主题未镜像到根，portal 取不到亮色令牌）');
     if (dark.htmlLight) allFails.push('[暗] <html> 不应带 light 类');
+    // #149: 浅色主题令牌断言
+    const lightTokens = await probeThemeTokens(page);
+    if (lightTokens.chartGrid !== '#e2e8f0')
+        allFails.push(`[亮] --chart-grid 应为 #e2e8f0，实测: ${lightTokens.chartGrid}`);
+    if (lightTokens.chartMarker !== '#b45309')
+        allFails.push(`[亮] --chart-marker 应为 #b45309，实测: ${lightTokens.chartMarker}`);
+    if (normColor(lightTokens.tooltipBg) !== '#ffffff')
+        allFails.push(`[亮] --tooltip-bg 应为 #ffffff，实测: ${lightTokens.tooltipBg}`);
+    if (lightTokens.readoutText !== '#1e293b')
+        allFails.push(`[亮] --readout-text 应为 #1e293b，实测: ${lightTokens.readoutText}`);
+    if (lightTokens.photogateCyan !== '#22d3ee')
+        allFails.push(`[亮] --photogate-cyan 应为 #22d3ee，实测: ${lightTokens.photogateCyan}`);
 
     await browser.close();
 

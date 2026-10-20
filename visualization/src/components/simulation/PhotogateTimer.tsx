@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useSimulationStore } from '../../store/simulationStore';
 import { getTimerDisplayValue, getTimerDisplayVelocity, type PhotogateMeasurement } from '../../utils/photogate';
 import { PanelSection } from '../common/PanelSection';
+import { getThemeTokens, type ThemeTokens } from '../../utils/themeTokens';
 
 /**
  * 数字毫秒计 React 面板。
@@ -17,8 +18,7 @@ export function PhotogateTimer() {
     const currentTime = useSimulationStore(s => s.currentTime);
     const parameters = useSimulationStore(s => s.parameters);
     const theme = useSimulationStore(s => s.theme);
-
-    const isDark = theme === 'dark';
+    const tokens = getThemeTokens(theme);
     const flagWidth = parameters['flagWidth'] ?? 0.02;
 
     const channels = useMemo(() => {
@@ -47,8 +47,8 @@ export function PhotogateTimer() {
         return { v1, v2, vAvg, relDiff, isUniform: relDiff < 0.01 };
     }, [channels]);
 
-    const textColor = isDark ? '#e2e8f0' : '#1e293b';
-    const subColor = isDark ? '#94a3b8' : '#64748b';
+    const textColor = tokens.readoutText;
+    const subColor = tokens.text3;
 
     if (channels.length === 0) {
         return (
@@ -71,7 +71,7 @@ export function PhotogateTimer() {
                         isBlocked={ch.isBlocked}
                         isDone={ch.isDone}
                         isWaiting={ch.isWaiting}
-                        isDark={isDark}
+                        tokens={tokens}
                     />
                 ))}
             </div>
@@ -81,7 +81,7 @@ export function PhotogateTimer() {
                 style={{
                     padding: '6px 8px',
                     marginTop: 4,
-                    background: isDark ? 'rgba(15,23,42,0.5)' : 'rgba(241,245,249,0.8)',
+                    background: tokens.readoutParamBg,
                     borderRadius: 4,
                     fontSize: 11,
                     color: subColor,
@@ -94,7 +94,7 @@ export function PhotogateTimer() {
                         style={{
                             marginTop: 4,
                             paddingTop: 4,
-                            borderTop: `1px solid ${isDark ? '#334155' : '#cbd5e1'}`
+                            borderTop: `1px solid ${tokens.readoutDivider}`
                         }}
                     >
                         <div style={{ color: textColor }}>
@@ -105,14 +105,8 @@ export function PhotogateTimer() {
                                 marginTop: 4,
                                 padding: '4px 6px',
                                 borderRadius: 3,
-                                background: conclusion.isUniform
-                                    ? isDark
-                                        ? 'rgba(34,197,94,0.15)'
-                                        : 'rgba(34,197,94,0.1)'
-                                    : isDark
-                                      ? 'rgba(245,158,11,0.15)'
-                                      : 'rgba(245,158,11,0.1)',
-                                color: conclusion.isUniform ? '#22c55e' : '#f59e0b',
+                                background: conclusion.isUniform ? tokens.readoutUniformBg : tokens.readoutNonuniformBg,
+                                color: conclusion.isUniform ? tokens.ok : tokens.warn,
                                 fontWeight: 'bold',
                                 fontSize: 11
                             }}
@@ -136,11 +130,11 @@ interface ChannelCardProps {
     isBlocked: boolean;
     isDone: boolean;
     isWaiting: boolean;
-    isDark: boolean;
+    tokens: ThemeTokens;
 }
 
 function ChannelCard(props: ChannelCardProps) {
-    const { label, gatePosition, deltaT, velocity, isBlocked, isDone, isWaiting, isDark } = props;
+    const { label, gatePosition, deltaT, velocity, isBlocked, isDone, isWaiting, tokens } = props;
 
     // 数值显示
     const deltaTDisplay =
@@ -150,17 +144,11 @@ function ChannelCard(props: ChannelCardProps) {
 
     // 状态指示
     const status = isBlocked ? '挡光中' : isDone ? '已完成' : isWaiting ? '待挡光' : '----';
-    const statusColor = isBlocked ? '#ef4444' : isDone ? '#22c55e' : isWaiting ? '#94a3b8' : '#64748b';
+    const statusColor = isBlocked ? tokens.err : isDone ? tokens.ok : tokens.text3;
 
     // 卡片背景与边框（挡光中高亮闪烁）
-    const cardBg = isBlocked
-        ? isDark
-            ? 'rgba(239,68,68,0.12)'
-            : 'rgba(239,68,68,0.08)'
-        : isDark
-          ? 'rgba(15,23,42,0.6)'
-          : 'rgba(15,23,42,0.85)';
-    const borderColor = isBlocked ? '#ef4444' : isDark ? '#334155' : '#1e293b';
+    const cardBg = isBlocked ? tokens.photogateCardBlockedBg : tokens.photogateCardBg;
+    const borderColor = isBlocked ? tokens.err : tokens.photogateCardBorder;
 
     return (
         <div
@@ -173,13 +161,6 @@ function ChannelCard(props: ChannelCardProps) {
                 animation: isBlocked ? 'photogate-flash 0.6s infinite alternate' : undefined
             }}
         >
-            <style>{`
-        @keyframes photogate-flash {
-          from { box-shadow: 0 0 0 rgba(239,68,68,0.0); }
-          to { box-shadow: 0 0 10px rgba(239,68,68,0.6); }
-        }
-      `}</style>
-
             {/* 通道标签 + 状态 */}
             <div
                 style={{
@@ -191,7 +172,7 @@ function ChannelCard(props: ChannelCardProps) {
             >
                 <span
                     style={{
-                        color: '#22d3ee',
+                        color: tokens.photogateCyan,
                         fontFamily: 'bold 11px monospace',
                         fontSize: 11,
                         fontWeight: 'bold'
@@ -205,7 +186,7 @@ function ChannelCard(props: ChannelCardProps) {
                         fontSize: 10,
                         fontWeight: 'bold',
                         padding: '1px 6px',
-                        background: isDark ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.1)',
+                        background: tokens.photogatePillBg,
                         borderRadius: 3
                     }}
                 >
@@ -220,20 +201,20 @@ function ChannelCard(props: ChannelCardProps) {
                     justifyContent: 'space-between',
                     alignItems: 'baseline',
                     padding: '4px 8px',
-                    background: isDark ? '#020617' : '#000',
+                    background: tokens.photogateTubeBg,
                     borderRadius: 3,
-                    border: `1px solid ${isDark ? '#1e293b' : '#0f172a'}`
+                    border: `1px solid ${tokens.photogateTubeBorder}`
                 }}
             >
                 <div>
-                    <div style={{ fontSize: 9, color: '#64748b', fontFamily: 'monospace' }}>Δt</div>
+                    <div style={{ fontSize: 9, color: tokens.photogateTubeMuted, fontFamily: 'monospace' }}>Δt</div>
                     <div
                         style={{
-                            color: isBlocked ? '#fca5a5' : '#22c55e',
+                            color: isBlocked ? tokens.photogateTimeBlocked : tokens.ok,
                             fontFamily: '"Courier New", monospace',
                             fontSize: 18,
                             fontWeight: 'bold',
-                            textShadow: `0 0 8px ${isBlocked ? '#ef4444' : '#22c55e'}`,
+                            textShadow: `0 0 8px ${isBlocked ? tokens.err : tokens.ok}`,
                             minWidth: 80,
                             textAlign: 'right',
                             display: 'inline-block'
@@ -243,7 +224,7 @@ function ChannelCard(props: ChannelCardProps) {
                     </div>
                     <span
                         style={{
-                            color: '#64748b',
+                            color: tokens.photogateTubeMuted,
                             fontSize: 10,
                             marginLeft: 4,
                             fontFamily: 'monospace'
@@ -253,21 +234,23 @@ function ChannelCard(props: ChannelCardProps) {
                     </span>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: 9, color: '#64748b', fontFamily: 'monospace' }}>v=Δx/Δt</div>
+                    <div style={{ fontSize: 9, color: tokens.photogateTubeMuted, fontFamily: 'monospace' }}>
+                        v=Δx/Δt
+                    </div>
                     <div
                         style={{
-                            color: '#22d3ee',
+                            color: tokens.photogateCyan,
                             fontFamily: '"Courier New", monospace',
                             fontSize: 14,
                             fontWeight: 'bold',
-                            textShadow: '0 0 6px #22d3ee'
+                            textShadow: `0 0 6px ${tokens.photogateCyan}`
                         }}
                     >
                         {velocityDisplay}
                     </div>
                     <span
                         style={{
-                            color: '#64748b',
+                            color: tokens.photogateTubeMuted,
                             fontSize: 9,
                             fontFamily: 'monospace'
                         }}
