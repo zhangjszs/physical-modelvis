@@ -222,6 +222,18 @@ describe('画布/舞台主题令牌取值零漂移 (#150)', () => {
     });
 });
 
+describe('消费方主题分支清零守卫 (#150)', () => {
+    it('SimulationCanvas 不再出现 isDark 颜色三元，颜色统一取自 getThemeTokens', () => {
+        const source = fs.readFileSync(
+            path.resolve(__dirname, '../../src/components/simulation/SimulationCanvas.tsx'),
+            'utf-8'
+        );
+        expect(source).not.toMatch(/isDark\s*\?/);
+        expect(source).not.toMatch(/isDarkRef\.current\s*\?/);
+        expect(source).toMatch(/getThemeTokens\(isDark\)/);
+    });
+});
+
 describe('组件主题色消费集成测试 (GraphPanel & PhotogateTimer)', () => {
     beforeEach(() => {
         useSimulationStore.setState({
