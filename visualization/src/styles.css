@@ -128,6 +128,39 @@ body {
     --photogate-tube-muted: #64748b;
     --photogate-cyan: #22d3ee;
     --photogate-time-blocked: #fca5a5;
+
+    /* 2D 画布与 3D 舞台主题令牌（#150 主题单一真源 · 深色） */
+    --canvas-hud-bg: rgba(15, 23, 42, 0.7);
+    --canvas-hud-bg-strong: rgba(15, 23, 42, 0.75);
+    --canvas-hud-border: rgba(56, 189, 248, 0.3);
+    --canvas-shadow-strong: rgba(0, 0, 0, 0.3);
+    --canvas-shadow-soft: rgba(0, 0, 0, 0.22);
+    --canvas-empty-text: #64748b;
+    --canvas-compare-overlay-text: rgba(148, 163, 184, 0.85);
+    --canvas-efield-accent: #fbbf24;
+    --canvas-efield-glow: rgba(251, 191, 36, 0.12);
+    --canvas-efield-gradient: rgba(251, 191, 36, 0.55);
+    --canvas-efield-arrow: rgba(251, 191, 36, 0.6);
+    --canvas-emfield-gradient: rgba(251, 191, 36, 0.5);
+    --canvas-emfield-arrow: rgba(251, 191, 36, 0.55);
+    --canvas-bfield-line: rgba(168, 85, 247, 0.55);
+    --canvas-bfield-circle: rgba(168, 85, 247, 0.3);
+    --canvas-bfield-line-soft: rgba(168, 85, 247, 0.5);
+    --canvas-bfield-circle-soft: rgba(168, 85, 247, 0.25);
+    --canvas-wall-grad-from: #334155;
+    --canvas-wall-grad-to: #475569;
+    --canvas-wall-hatch: rgba(100, 116, 139, 0.25);
+    --canvas-spring-glow: rgba(34, 211, 238, 0.15);
+    --canvas-spring-light: #67e8f9;
+    --canvas-spring-mid: #22d3ee;
+    --canvas-spring-dark: #06b6d4;
+    --canvas-spring-guide: rgba(34, 211, 238, 0.35);
+    --canvas-wedge-hatch: rgba(100, 116, 139, 0.18);
+    --canvas-wedge-edge: #64748b;
+    --canvas-wood: #7c5e3c;
+    --canvas-angle-fill: rgba(251, 191, 36, 0.1);
+    --canvas-angle-stroke: #fbbf24;
+    --stage3d-bg: #0b1020;
 }
 .app {
     height: 100vh;
@@ -193,6 +226,39 @@ body {
     --photogate-tube-muted: #64748b;
     --photogate-cyan: #22d3ee;
     --photogate-time-blocked: #fca5a5;
+
+    /* 2D 画布与 3D 舞台主题令牌（#150 主题单一真源 · 浅色） */
+    --canvas-hud-bg: rgba(255, 255, 255, 0.8);
+    --canvas-hud-bg-strong: rgba(255, 255, 255, 0.85);
+    --canvas-hud-border: rgba(59, 130, 246, 0.2);
+    --canvas-shadow-strong: rgba(0, 0, 0, 0.12);
+    --canvas-shadow-soft: rgba(0, 0, 0, 0.1);
+    --canvas-empty-text: #94a3b8;
+    --canvas-compare-overlay-text: rgba(71, 85, 105, 0.85);
+    --canvas-efield-accent: #eab308;
+    --canvas-efield-glow: rgba(234, 179, 8, 0.15);
+    --canvas-efield-gradient: rgba(234, 179, 8, 0.65);
+    --canvas-efield-arrow: rgba(234, 179, 8, 0.7);
+    --canvas-emfield-gradient: rgba(234, 179, 8, 0.6);
+    --canvas-emfield-arrow: rgba(234, 179, 8, 0.65);
+    --canvas-bfield-line: rgba(147, 51, 234, 0.5);
+    --canvas-bfield-circle: rgba(147, 51, 234, 0.25);
+    --canvas-bfield-line-soft: rgba(147, 51, 234, 0.45);
+    --canvas-bfield-circle-soft: rgba(147, 51, 234, 0.2);
+    --canvas-wall-grad-from: #94a3b8;
+    --canvas-wall-grad-to: #cbd5e1;
+    --canvas-wall-hatch: rgba(0, 0, 0, 0.08);
+    --canvas-spring-glow: rgba(8, 145, 178, 0.12);
+    --canvas-spring-light: #06b6d4;
+    --canvas-spring-mid: #0891b2;
+    --canvas-spring-dark: #0e7490;
+    --canvas-spring-guide: rgba(8, 145, 178, 0.35);
+    --canvas-wedge-hatch: rgba(0, 0, 0, 0.08);
+    --canvas-wedge-edge: #94a3b8;
+    --canvas-wood: #b07c4f;
+    --canvas-angle-fill: rgba(217, 119, 6, 0.08);
+    --canvas-angle-stroke: #d97706;
+    --stage3d-bg: #f8fafc;
 }
 
 @keyframes photogate-flash {
