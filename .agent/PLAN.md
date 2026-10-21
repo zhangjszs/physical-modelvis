@@ -281,52 +281,65 @@
 
 > 2026-10-21 07:24 执行前复核（同日第二次规划会话，**非新规划轮**）：01:01 排程后至复核时**无 Executor 会话、无新提交**；main = origin/main = `1c497f5`，working tree clean；CI / Deploy / QA 场景巡检三绿；#150 基线复核（`SimulationCanvas.tsx` `isDark ?` 47 处且全部为颜色值、`EquipmentStage.tsx` L167/L186、`theme-tokens.test.tsx` 在位）与定向 42 例复跑均无变化；open 4 单、今日队列维持 #150、pending 清零。**不重复排程、不新增任务、不改 #150 正文。**
 
+> 2026-10-21 四十三次滚动（每日规划 · 验收与解冻轮）：**#150 验收 CLOSED —— M7 3/3 收官；D51 兑现，#100/#101 解冻入队**。
+> Planner 独立取证（非只信报告）：批次 A/B/C 三 commit + merge `1bdf60e` 经 `git merge-base --is-ancestor` **四条全 YES**；
+> `grep -c "isDark ?" SimulationCanvas.tsx` = **0**（含 `isDarkRef.current ?` = 0）、`EquipmentStage.tsx` 写死 `0x0b1020`/`0xf8fafc` = **0**、`getThemeTokens` 消费点 10 处；
+> styles.css 批次 A diff 纯新增（31 个 `canvas*` + `--stage3d-bg` 双主题变量），「迁移前字面量回归表」锁定取值零漂移，亮色无语义化调整；
+> **定向 58 例本轮独立重跑全绿**（theme-tokens + equipment-stage）；`count:check` exit 0 = core 1169 / viz 1759 / **total 2928**；
+> CI `39519139867` + Deploy `39519497003` @ HEAD `72ffeb8` 双绿（验收评论 issuecomment-6306565989）。
+> **M8 立（Planner 自决兑现 D51，非新方向）**：组合实验台产品功能线——#100（器材旋转编辑 + 轨迹回放控制，队首）→ #101（预设实验模板，次位）。
+> 两单正文已重写（保留原三条 + 补键盘路径 / **产品交互验收（Playwright 浏览器实测，双证据）** / precheck+CI 双绿 / count:sync / 明确不包含与依赖节），摘 `parked` 加 `ready-for-agent`（解冻 comment 在案）。
+> 今日队列 = **#100 → #101**；#44 维持 parked（D44=B）；pending 清零。
+
 ## 当前方向
 
-**四十二次滚动（2026-10-21 · 验收与排程轮；07:24 执行前复核无变化）**：M7 已推进 2/3（#148/#149 全 CLOSED），仅剩收官切片 #150。
-**今天最重要的事**：收官 **M7 · UI 基础质量收口** 最后一单：
-- **#150（P3 · ready · 唯一队首）主题色 JS 单一真源切片 2**：迁移 `SimulationCanvas.tsx` 47 处 `isDark ?` 主题分支与 `EquipmentStage.tsx` 3D 背景色（L167/L186）到 `themeTokens.ts`，扩展契约测试与双主题探针。
-**明确不在今天**：场景 Canvas 调色板（`rendering/*Scenes.ts` / `CanvasRenderer.ts`，D45 第 ② 类，保持集中常量）；#44/#100/#101（parked；#100/#101 待 #150 验收关闭后按 D51 解冻）。
-**下一轮展望**：#150 验收关闭 → M7 3/3 收官 → 下一轮规划解冻 #100/#101（顺序 #100 → #101）并重写产品交互验收项。
+**四十三次滚动（2026-10-21 · 验收与解冻轮）**：M7 · UI 基础质量收口 **3/3 收官**（#148/#149/#150 全 CLOSED）。
+**今天最重要的事**：转入 **M8 · 组合实验台产品功能线**（D51 兑现），从 UI 基础质量收口回到教学产品本身：
+- **#100（P2 · ready · 队首）**：器材旋转编辑 + 轨迹回放控制（播放/暂停/倍速/进度）——组合实验台两大交互缺口。
+- **#101（P3 · ready · 次位）**：预设实验模板（速度选择器/质谱仪/磁聚焦/平行板偏转）——课堂主路径「打开 → 30 秒进入标准实验」。
+**明确不在今天**：#44 React 19（parked，D44=B）；场景 Canvas 调色板迁移（D45 第 ② 类）；#103 派生重构（D31 暂缓）。
+**下一轮展望**：#100 验收后 #101 开工；M8 收官后回到缺陷/体验收口或按用户新方向规划。
 
-## 今日目标（2026-10-21 · 四十二次滚动）
+## 今日目标（2026-10-21 · 四十三次滚动）
 
-- **#150（切片 2）**：`SimulationCanvas.tsx` 中 47 处 `isDark ?` 颜色分支清零并取自 `getThemeTokens`；`EquipmentStage.tsx` L167/L186 的 3D 背景色由 token 派生；扩展 `theme-tokens.test.tsx` 双向契约与红向拦截；双主题探针实测通过。
-- 交付 commit 以 `--no-ff` 入 main 成祖先，CI+Deploy 双绿，全量门禁与物理自检 pass，收官 M7（3/3）。
-- 无其他 ready；不为凑队列放行 parked 单（D51 解冻时点在 #150 CLOSED 之后）。
+- **#100**：三类方向字段（线圈 axis / 极板 normal / 导线 direction）可在检查器编辑；回放控制条（播/暂停、倍速 0.25×–2×、进度滑块）；空格/Delete 键盘路径；产品交互验收走 Playwright 浏览器实测。
+- **#101（#100 验收后）**：≥3 个预设模板一键加载出正确物理图像，单次 commit 不逐器材重仿真，store 层测试覆盖。
+- 交付 commit 以 `--no-ff` 入 main 成祖先，CI+Deploy 双绿，precheck（含 11 层自检）pass。
 
 ## 已完成 Milestone：M6 · 物理世界盒子 UI 统一与组件复用收口（7 / 7 · 2026-10-20 收官）
 - #137 / #138 / #139 / #142 / #145 / #146 / #147 全部 CLOSED；验收证据见各 Issue 的 Planner 验收 comment。
 
-## 当前 Milestone：M7 · UI 基础质量收口：浮层可访问性与主题色单一真源（进度：2 / 3）
+## 已完成 Milestone：M7 · UI 基础质量收口：浮层可访问性与主题色单一真源（3 / 3 · 2026-10-21 四十三次滚动收官）
+- #148（Esc/焦点/dialog 语义）、#149（themeTokens 切片 1）、#150（SimulationCanvas 47 处 `isDark ?` 清零 + EquipmentStage 3D 背景 token 化）全部 CLOSED；验收证据见各 Issue 的 Planner 验收 comment。
+- 完成信号达成：`theme-tokens.test.tsx` 逐项对齐 `styles.css`、红向改值必报红；GraphPanel / PhotogateTimer / SimulationCanvas / EquipmentStage 无散落颜色三元与硬编码 hex；precheck 全绿 + 4 探针 exit 0 + CI/Deploy 双绿。
+
+## 当前 Milestone：M8 · 组合实验台产品功能线（进度：0 / 2 · 2026-10-21 四十三次滚动立，D51 兑现）
 
 ### 目标与验收
-- [x] **#148**（P2 · CLOSED）：OverlayDrawer + OCRPanel 的 Esc / 焦点 / dialog 语义闭环，键盘路径测试覆盖。
-- [x] **#149**（P2 · CLOSED）：`themeTokens.ts` + CSS↔JS 契约测试 + GraphPanel / PhotogateTimer 迁移，双主题探针通过。
-- [ ] **#150**（P3 · ready · 队首）：SimulationCanvas / EquipmentStage 主题分支迁移；双向契约测试扩展，收官 M7。
+- [ ] **#100**（P2 · ready · 队首）：器材旋转编辑（线圈 axis / 极板 normal / 导线 direction 预设轴 + 角度）+ 轨迹回放控制（播/暂停、倍速 0.25×–2×、进度滑块）+ 空格/Delete 键盘路径；产品交互验收走 Playwright 浏览器实测（双证据）。
+- [ ] **#101**（P3 · ready · 次位）：3–4 个预设实验模板一键加载出正确物理图像；模板加载单次 commit；每模板 ≥1 个 store 层测试；产品交互验收浏览器实测。
 
 ### 完成信号（Success signal）
-- 键盘可完成「打开弹窗 → 操作 → Esc 关闭」全流程，焦点不逃出 dialog 且关闭后回到触发按钮；OCR 弹窗被读屏识别为对话框（已达成）。
-- `theme-tokens.test.tsx` 逐项对齐 `styles.css`，红向改值必报红；GraphPanel / PhotogateTimer / SimulationCanvas / EquipmentStage 无散落颜色三元与硬编码 hex（#149 已达成；#150 待执行）。
-- `npm run precheck` 全绿，4 个浏览器探针 exit 0，CI + Deploy 双绿。
+- 老师「停在最高点讲受力」：回放可暂停在任意帧、倍速可调、暂停时 rAF 不空转（与 #79 按需渲染约定一致）。
+- 课堂主路径达成：打开组合台 → 点模板 → 30 秒内进入标准实验（浏览器实测截图存证，零 console error）。
+- precheck（含 11 层自检）全绿，CI + Deploy 双绿。
 
 ### 明确非目标（Non-goals）
-- 不迁移场景 Canvas 调色板（`rendering/*Scenes.ts` / `CanvasRenderer.ts`，D45 第 ② 类）。
-- 不做 3D 材质/光照重设计，不动物理与 rig 生命周期。
-- 不升 React 19（#44 parked）、暂不做 #100/#101（D19/D51 parked，M7 后解冻）、不拆 FormulaPanel（D31 暂缓）。
-- 不处理 `.problem-overlay` 死样式（无组件使用，另案）。
+- 不做自由向量输入控件；不改 fields3d 引擎接口与数值语义。
+- 不含螺线管等新器材类型（#94 §5 第二波后备，按需另立）；不做模板导入导出/分享。
+- 不升 React 19（#44 parked）；不做场景 Canvas 调色板迁移（D45 第 ② 类）；不拆 FormulaPanel（D31 暂缓）。
 
-### 执行队列（给 Executor 的建议顺序，1 个 ready）
-1. **#150** 主题色 JS 单一真源切片 2（P3 · area:render · ready-for-agent）——唯一 ready，完成即 M7 3/3 收官。
-   > 队列低于 2–5 区间系有意为之：M7 未收官前 #100/#101 按 D51 不得解冻；不拆分 #150、不凑数放行 parked 单。
+### 执行队列（给 Executor 的建议顺序，2 个 ready）
+1. **#100** 器材旋转编辑 + 轨迹回放控制（P2 · area:render · ready-for-agent）——队首。
+2. **#101** 预设实验模板（P3 · area:render · ready-for-agent）——次位，在 #100 验收关闭之后开工（D51 顺序，避免组合台同文件并发冲突）。
 
 ## 已知阻塞与依赖
-- **#150**：无阻塞（前置 #149 已 CLOSED）。
-- **#44（React 19）**：parked（D44=B）勿领；**#100/#101**：parked（D19/D51），M7 收官前勿领；**#150 CLOSED 后的下一轮规划**由 Planner 摘 `parked`、重写验收项并按 #100 → #101 放行。
+- **#101** 依赖 #100 先关闭（D51 顺序）。
+- **#44（React 19）**：parked（D44=B）勿领，解除条件三条见 Issue comment。
 - **分支清理（需用户点头，默认不做）**：`origin/agent/issue-95-shadow-adaptive` / `origin/agent/issue-96-default-on-grid` 均为 main 祖先且 Issue CLOSED，继续只上报不代删。
 ## 下一阶段
-- M7 三个切片完成后，Canvas/SVG/JS 主题色与浮层键盘可访问性完成基础收口。
-- **M8（用户已定，D51）**：M7 收官后的下一轮规划解冻 #100/#101 转产品功能线——先 #100（P2，器材旋转编辑 + 轨迹回放控制），后 #101（P3，预设实验模板）；解冻轮由 Planner 摘 `parked`、加 `ready-for-agent` 并重写验收项（含产品交互验收）。
+- M8 两单收官后，组合实验台具备「旋转编辑 + 回放控制 + 预设模板」完整课堂链路。
+- 届时方向：回到缺陷/体验收口（按巡检发现立单），或按用户新方向规划（#103 派生重构、#44 解除条件等均需用户拍板）。
 ## 已放弃的方向
 - M5 立项（D19 用户已定不立项；#100–#104 维持 parked）。
 - #103 派生三张重构实施单（D31 默认转正：长期暂缓）。
@@ -349,7 +362,7 @@
 → **验证与物料收尾：#106 → #115**（**全 CLOSED，二十六次滚动收官**）。
 
 **进度**：M2 3/3 + M2.5 4/4 + M3 8/8 + M4 5/5 + L6 2/2 全收官；#107/#110/#111/#112/#109/#106/#115 缺陷门禁物料全部验收 CLOSED。
-当前 = **M7 · UI 基础质量收口：浮层可访问性与主题色单一真源**（2026-10-20 立，进度 2/3）：M6 已 7/7 收官（#137/#138/#139/#142/#145/#146/#147 全 CLOSED）；#148/#149 已 CLOSED；今日队列仅 #150（ready）；D50/D52 已落盘，D51 已答复（M7 后转 #100 → #101 产品线），pending 清零。
+当前 = **M8 · 组合实验台产品功能线**（2026-10-21 四十三次滚动立，进度 0/2）：M7 已 3/3 收官（#148/#149/#150 全 CLOSED）；M6 已 7/7 收官（#137/#138/#139/#142/#145/#146/#147 全 CLOSED）；今日队列 = #100 → #101（均已解冻 ready）；D51 已兑现，pending 清零。
 
 ### #67 背景备忘（原「候选 A 详细」收编记录）
 
@@ -559,8 +572,8 @@ T=25℃ 时二者等价，无正确性影响，属「面板公式与算法严格
 
 | # | 主题 | 状态 | 优先级 | 红线裁定 |
 |---|---|---|---|---|
-| [#100](https://github.com/zhangjszs/physical-modelvis/issues/100) | 组合实验台交互增强：器材旋转编辑 + 轨迹回放控制（播/暂停/倍速） | ready（parked） | P2 | 属 D6 已确认愿景内，低风险 |
-| [#101](https://github.com/zhangjszs/physical-modelvis/issues/101) | 组合实验台预设实验模板：高频电磁场景一键布置 | ready（parked） | P3 | 同上 |
+| [#100](https://github.com/zhangjszs/physical-modelvis/issues/100) | 组合实验台交互增强：器材旋转编辑 + 轨迹回放控制（播/暂停/倍速） | **ready（已解冻）**（四十三次滚动 D51 兑现：摘 `parked` 转 `ready-for-agent`，验收项已重写含产品交互验收；今日队首） | P2 | 属 D6 已确认愿景内，低风险 |
+| [#101](https://github.com/zhangjszs/physical-modelvis/issues/101) | 组合实验台预设实验模板：高频电磁场景一键布置 | **ready（已解冻）**（四十三次滚动 D51 兑现：次位，在 #100 验收关闭后开工） | P3 | 同上 |
 | [#102](https://github.com/zhangjszs/physical-modelvis/issues/102) | **调查**：多线圈场求值性能（Biot-Savart × Worker 化评估） | ✅ **CLOSED**（二十八次滚动验收：复跑 bench exit 0，**8.60×** / 1.16e-14） | P3 | C1 → **#119**（最小切片放行）；Worker 化不立项 |
 | [#103](https://github.com/zhangjszs/physical-modelvis/issues/103) | **调查**：渲染层结构治理（按机制抽 primitives + 巨型文件拆分路线） | ✅ **CLOSED**（二十八次滚动验收：坐标抽查全吻合） | P2 | 落档 → **#121**；14 批实施**已按 D31 暂缓** |
 | [#104](https://github.com/zhangjszs/physical-modelvis/issues/104) | **调查**：引擎契约上帝对象治理（ConstraintConfig 拆分 + charts 键名规范） | ✅ **CLOSED**（二十八次滚动验收：三处口径纠正属实） | P3 | A/B 不立项；C → **#120**（最小切片放行）；§5.4/§5.5 落 D30 |
@@ -571,11 +584,11 @@ T=25℃ 时二者等价，无正确性影响，属「面板公式与算法严格
 
 ## 给 Executor 的指令
 
-1. **队首 = #150**（P3，主题色 JS 单一真源切片 2：`SimulationCanvas.tsx` 47 处 `isDark ?` + `EquipmentStage.tsx` L167/L186 3D 背景色迁移到 `getThemeTokens`）。
-   **硬边界**：以 `styles.css` 为唯一真源：允许新增 token，**不得改已有 token 值**；暗色实际渲染值必须保持不变（状态色亮色语义化除外，须在报告逐条列出）；Canvas/SVG 不得写 `var()` 字符串；场景 Canvas 调色板（`rendering/*Scenes.ts` / `CanvasRenderer.ts`）不迁；不做 3D 材质/光照重设计，不动物理与 rig 生命周期。
-   **#44/#100/#101 维持 parked 勿领**（#100/#101 待 #150 验收关闭后的下一轮规划解冻）。
+1. **队首 = #100**（P2，器材旋转编辑 + 轨迹回放控制；#101 次位，在 #100 验收关闭后开工，D51 顺序）。
+   **硬边界**：不改 fields3d 引擎接口与数值语义；不做自由向量输入控件（预设轴 + 角度即可）；回放状态留 CompositionStage 局部不入 store；不含螺线管等新器材；不引入新依赖。
+   **#44 维持 parked 勿领**（D44=B，解除条件三条在 Issue comment）。
    沿 D42 集成口径（`--no-ff` 使交付 SHA 成 main 祖先 + CI 绿双证），新增测试后 `count:sync` 回写；**全程禁 `--no-verify` / 禁 force-push**。
-   **报告口径提醒**：主题 token 迁移必须区分「值保持」与「亮色语义化调整」，后者逐条列出并附双主题截图/探针证据；不要把「静态契约测试绿」写成「双主题视觉已实测」，两者须分别给证据。
+   **报告口径提醒**：产品交互验收（#100 回放控制 / #101 模板加载）必须给 Playwright 浏览器实测证据 + 截图存证；不要把「单测绿」写成「交互已实测」，两者须分别给证据。
 2. **标签流转纪律（LOCK 已裁决废止）**：继续规范执行 领取 `in-progress` → 完工 `in-review`；
    **不设锁**——契约 1.2 串行口径为准（2026-10-14 二十八次滚动裁决，见 D30；`.agent/LOCK` 现无残留，若再见直接删除）。
 3. **无凭证环境注意**（继承 #75 轮）：OCR demo 链路的端到端验证用 mock 上游（参照 tests/ocr/
