@@ -46,11 +46,12 @@
 - 定向测试：`theme-tokens.test.tsx` 46 + `equipment-stage.test.tsx` 12 = **58 passed**。
 - 静态基线复核：`grep -c "isDark ?" SimulationCanvas.tsx` = **0**；`EquipmentStage.tsx` 无 `0x0b1020` / `0xf8fafc`；`getThemeTokens` 消费点 10 处。
 - `count:check` exit 0：core 1169 / viz 1759 / total **2928**。
-- CI `39517693080` success；Deploy `39517995535` success。
+- 代码 merge CI `39517693080` success；Deploy `39517995535` success。
+- 状态收尾 CI `39518352533` success；Deploy `39518613160` success。
 
 ## 风险与注意事项
 
-1. **main HEAD = `1bdf60e`**（merge）；批次 A/B/C 三个 commit 均已成 main 祖先。
+1. **main HEAD = `82122a3`**（代码 merge `1bdf60e` + 状态收尾）；批次 A/B/C 三个 commit 均已成 main 祖先。
 2. **探针口径**：3D clear color 上报的是**归一化 sRGB**（three r185 `WebGLBackground.setClear` 走 `getUnlitUniformColorSpace(renderer)`），不是 `THREE.Color` 内部线性值；后续改探针勿按线性比较。
 3. **2D 探针**：所有 123 场景都有 3D rig，`useSceneRig.is3DScene = hasSceneRig(sceneId)`；要探测 `SimulationCanvas` 必须显式点「2D 板书」，否则仍是 WebGL 画布。
 4. **暗/亮渲染值零变化**：31 个新键由「迁移前字面量回归表」逐项锁定；暗色无任何语义化调整。后续若改 token 值，该测试会红。
