@@ -4,60 +4,69 @@
 
 ## 本轮概要
 
-本轮（2026-10-21 · `executor-20261021a` · Execution Agent）完成 **#150 主题色 JS 单一真源（切片 2）**，按 3 个可独立回退的代码批次交付并合入 main，M7 等待 Planner 验收关闭。
+本轮（2026-10-21 · `executor-20261021b` · Execution Agent）完成 **#100 组合实验台交互增强：器材旋转编辑 + 轨迹回放控制**，功能与测试已验证并通过 `--no-ff` 合入 main 推送，CI 与 Deploy 双绿，等待 Planner 验收关闭。
 
-| 批次 | 内容 | 提交 |
+| 模块 | 内容 | 提交 |
 |---|---|---|
-| A | 令牌表扩展 + 颜色纯函数（无消费方迁移） | `3163e89` |
-| B | SimulationCanvas 47 处主题分支迁移 | `1f20d19` |
-| C | EquipmentStage 3D 背景 token 化 + 双主题探针 | `3becce0` |
-| 集成 | `--no-ff` 合入 main | `1bdf60e` |
+| 方向计算 | `directionUtils.ts` 纯函数 + 轴向角度与 6 向预设转换 | `9b020c0` |
+| 朝向编辑 | `DirectionEditor.tsx` 检查器控件（预设轴 + 角度滑块 + 快捷按钮 + 读数） | `9b020c0` |
+| 回放控制 | `CompositionStage.tsx` 回放控制条（播/停、0.25x-2x倍速、进度跳帧、按需渲染） | `9b020c0` |
+| 键盘支持 | 空格播/停、Delete删除选中、input/textarea/select 焦点保护 | `9b020c0` |
+| 集成 | `--no-ff` 合入 main | `4d3ef08` |
 
 ## 已完成
 
-- **批次 A**：
-  - `visualization/src/styles.css`：`:root` / `:root.light` 各新增 33 条 CSS 变量（31 个 `canvas*` / `--stage3d-bg` 颜色键 + 分组注释），已有 token 值零改动（diff 纯新增）。
-  - `visualization/src/utils/themeTokens.ts`：新增 31 键双主题表；新增 `parseHexColor` / `hexToRgba` / `hexToThreeColorNumber` / `resolveStage3DBackground` 纯函数。
-  - `theme-tokens.test.tsx`：+6 个纯函数用例 +31 行「迁移前字面量回归表」，暗/亮取值逐项锁定。
-- **批次 B**：
-  - `SimulationCanvas.tsx`：47 处 `isDark ?` 颜色分支 + 1 处 FPS 叠层 `isDarkRef.current ?` 全部迁移至 `getThemeTokens`；`label` / `sub` 复用 `readoutText` / `text3`；主题无关 alpha 用 `hexToRgba` 派生。
-  - 守卫测试：源码中 `isDark ?` / `isDarkRef.current ?` 必须为 0，且必须存在 `getThemeTokens(isDark)` 消费点。
-- **批次 C**：
-  - `EquipmentStage.tsx`：L167/L186 两处 `0x0b1020` / `0xf8fafc` 改为 `resolveStage3DBackground(theme)`，背景与雾效同步。
-  - `equipment-stage.test.tsx`：mock `THREE.Scene` 记录实例，断言暗色 `background/fog=0x0b1020`、亮色切换为 `0xf8fafc` 且不重建 Scene。
-  - `verify-portal-tokens.mjs`：新增 3D clear color 双主题断言、碰撞场景「2D 板书」双主题非空、全流程 console error 收集。
-- **医书**：`.agent/DIARY/2026-10-21.md`（每批症状/诊断/处方/疗效/范围/回滚），Issue #150 留执行摘要。
+- **检查器器材旋转编辑**：
+  - `visualization/src/utils/directionUtils.ts`：支持 `axisAngleToVector`（Z 偏转 / X 俯仰 / Y 倾斜）、`vectorToAxisAngle` 反解、`PRESET_DIRECTIONS` 6 向预设与 `formatVector`。
+  - `visualization/src/components/composition/DirectionEditor.tsx`：提供预设旋转轴选择器、-180°~180° 滑块+输入框、六向快捷预设按钮与当前物理单位向量读数，避免自由 3D 向量输入。
+  - `visualization/src/components/composition/CompositionLab.tsx`：类型安全提取方向字段（线圈 axis / 极板 normal / 导线与磁铁 direction），零类型强转。
+  - `visualization/src/store/compositionStore.ts`：`updateSourceParams` 允许传入向量并自增 `fieldLineRevision` 触发重仿真与场线重追踪。
+- **轨迹回放控制条**：
+  - `CompositionStage.tsx`：底部半透明叠层控制条（重置到起点、播放/暂停、时间进度滑块拖动跳帧、0.25x–2x 五档倍速）。
+  - 按需渲染契约 (#79/#100)：暂停且无交互时，rAF 跳过 `renderer.render`，零 GPU 空转。
+  - 节流 UI 进度（~16Hz），避免 60fps 频繁触发 React 重渲染，3D 质点小球仍以完整 60fps 平滑插值。
+- **键盘快捷键**：
+  - 空格键控制播放/暂停，Delete 键删除选中器材。
+  - 智能焦点保护：当焦点在 input、textarea、select 或 contentEditable 时放行键盘事件，不吞打字焦点。
+- **测试覆盖与产品交互验收**：
+  - 新增 `directionUtils.test.ts`（10 例）、`directionEditor.test.tsx`（6 例）、`compositionPlayback.test.tsx`（7 例），并在 `compositionStore.test.ts` 补充方向字段单测，仓内测试数增至 **2952**（viz 1783 / core 1169）。
+  - 新增 `scripts/verify-composition-interaction.mjs`：Playwright 真实浏览器实跑 10 项交互验收，全部通过，全程零 console error。
 
 ## 未完成 / 进行中（下一棒最优先看这里）
 
-- **无代码半成品，无未提交改动。** #150 已转 `in-review`，等待 Planner 独立验收关闭；关闭后 M7 3/3 收官。
-- **#100/#101 维持 parked**：按 D51，M7 收官后的下一轮规划解冻并重写验收项（顺序 #100 → #101）。
-- `.agent/TASKS.md` / `.agent/PLAN.md` 仍是 Planner 四十二次滚动的快照（写着 #150 ready），需下一轮 Planner 整体重写；本棒未越权改规划文件。
+- **无代码半成品，无未提交改动。**
+- #100 已转 `in-review`，等待 Planner 独立验收关闭；
+- #101 维持 `ready-for-agent`，按 D51 约定在 #100 验收关闭后开工。
 
 ## 验证情况
 
-- `npm run precheck` exit 0（build:core → typecheck → lint → format:check → sweep → core+viz test → count:check → build:viz → check:bundle → check:publish → selfcheck）；
-  11 层物理自检 **11 PASS / 0 FAIL**。
-- 4 个 headless 探针生产 preview（:4173，`SMOKE_BROWSER_CHANNEL=""`）全部 exit 0：
-  - `FIRST FRAME SMOKE OK`：连续 3 次通过，平均首帧 791ms，3D/2D 画布非空，零 console error，挂载前必需体积 70.5 kB gzip。
-  - `OVERLAY DRAWER SMOKE OK`：1440×900 / 1024×768 双视口全通过。
-  - `PORTAL TOKENS OK`：暗色 3D clear `[0.0431,0.0627,0.1255]` ↔ `#0b1020`；亮色 `[0.9725,0.9804,0.9882]` ↔ `#f8fafc`；碰撞 2D 板书亮/暗均 `colors=3`（826×413）；零 console error。
-  - `[guidance] SMOKE OK`。
-- 定向测试：`theme-tokens.test.tsx` 46 + `equipment-stage.test.tsx` 12 = **58 passed**。
-- 静态基线复核：`grep -c "isDark ?" SimulationCanvas.tsx` = **0**；`EquipmentStage.tsx` 无 `0x0b1020` / `0xf8fafc`；`getThemeTokens` 消费点 10 处。
-- `count:check` exit 0：core 1169 / viz 1759 / total **2928**。
-- 代码 merge CI `39517693080` success；Deploy `39517995535` success。
-- 状态收尾 CI `39518352533` success；Deploy `39518613160` success。
-- 状态收尾提交 `82122a3` / `f0b99d3`（仅 `.agent/` 文档，不含代码）。
+- `npm run precheck` exit 0（build:core → typecheck → lint → format:check → sweep → core+viz test → count:check → build:viz → check:bundle → check:publish → selfcheck）；11 层物理自检 **11 PASS / 0 FAIL**。
+- 浏览器交互验收探针 `scripts/verify-composition-interaction.mjs` 生产 preview（:4173）实测 exit 0（10 项交互全过，零 console error）。
+- 4 个已有生产 preview 探针全部 exit 0：
+  - `verify-first-frame-smoke.cjs`：3 次通过，平均首帧 709ms，必需体积 70.6 kB gzip，0 console error。
+  - `verify-overlay-drawer-smoke.cjs`：1440×900 / 1024×768 双视口全通过。
+  - `verify-portal-tokens.mjs`：暗/亮双主题设计令牌正确继承，3D/2D 画布非空。
+  - `verify-guidance-smoke.cjs`：全流程通过。
+- GitHub Actions CI `39596743691` success（2m9s）；Deploy `39597035981` success（21s）。
+- `count:check` exit 0：core 1169 / viz 1783 / total **2952**。
 
 ## 风险与注意事项
 
-1. **main 包含代码 merge `1bdf60e`**（其后仅 `.agent/` 状态收尾提交）；批次 A/B/C 三个 commit 均已成 main 祖先。
-2. **探针口径**：3D clear color 上报的是**归一化 sRGB**（three r185 `WebGLBackground.setClear` 走 `getUnlitUniformColorSpace(renderer)`），不是 `THREE.Color` 内部线性值；后续改探针勿按线性比较。
-3. **2D 探针**：所有 123 场景都有 3D rig，`useSceneRig.is3DScene = hasSceneRig(sceneId)`；要探测 `SimulationCanvas` 必须显式点「2D 板书」，否则仍是 WebGL 画布。
-4. **暗/亮渲染值零变化**：31 个新键由「迁移前字面量回归表」逐项锁定；暗色无任何语义化调整。后续若改 token 值，该测试会红。
-5. **回滚手册**（按逆序执行，避免上下文冲突）：
-   - 只回退批次 C：`git revert 3becce0`（3D 恢复写死色、探针回 #149 版）
-   - 只回退批次 B：`git revert 1f20d19`（Canvas 恢复 47 处三元，令牌表保留无消费方）
-   - 只回退批次 A：`git revert 3163e89`（删除新令牌与纯函数；须先回退 B/C）
-   - 全部回退：`git revert -m 1 1bdf60e`
+1. **回放状态保留在局部**：播放/暂停、倍速、时间跳帧均留在 `CompositionStage` 内部，不写入全局 `compositionStore`，确保顶层组件不会因回放高频刷新。
+2. **按需渲染口径**：暂停且无交互（相机静止、未拖动进度）时，Three.js 的 `renderer.render` 调用数为 0；任何 controls change 或 slider scrub 都会置脏补帧。
+3. **回滚手册**：
+   - 撤销本任务全部代码：`git revert -m 1 4d3ef08`
+
+## 给下一棒的第一步建议
+
+1. Planner 验收 #100（证据链在 Issue #100 评论，CI/Deploy 双绿，代码 merge `4d3ef08` 已成 main 祖先）；
+2. 验收通过后关闭 #100；
+3. 按 D51 解冻后置单 #101（组合实验台预设实验模板），进入 #101 实施。
+
+## 今日日报
+
+- 已追加写入 `.agent/DIARY/2026-10-21.md`
+
+## 给 Planner 的信号
+
+- 继续执行即可；#100 待验收关闭，关闭后按 D51 解冻 #101。
