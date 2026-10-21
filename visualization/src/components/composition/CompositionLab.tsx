@@ -2,7 +2,8 @@ import { useCompositionStore, SOURCE_DEFAULTS, type SourceKind } from '../../sto
 import { CompositionStage } from './CompositionStage';
 import { NumberField } from '../common/NumberField';
 import { PanelSection } from '../common/PanelSection';
-import type { FieldSource } from 'physics-core';
+import { DirectionEditor } from './DirectionEditor';
+import type { FieldSource, Vector3D } from 'physics-core';
 
 type UniformFieldZone = Extract<FieldSource, { kind: 'uniform-field-zone' }>;
 
@@ -39,6 +40,22 @@ const EDITABLE_FIELDS: Record<SourceKind, Array<{ key: string; label: string; st
     // 匀强磁场区: 向量型参数 (field/size) 走下方定制编辑区, 此处留空
     'uniform-field-zone': []
 };
+
+/** 获取器材的方向字段信息（#100 类型安全提取，零强制类型转换） */
+function getSourceDirection(source: FieldSource): { key: string; label: string; value: Vector3D } | null {
+    switch (source.kind) {
+        case 'circular-coil':
+            return { key: 'axis', label: '线圈轴向', value: source.axis };
+        case 'charged-plate':
+            return { key: 'normal', label: '极板法线', value: source.normal };
+        case 'straight-wire':
+            return { key: 'direction', label: '导线方向', value: source.direction };
+        case 'bar-magnet':
+            return { key: 'direction', label: '磁矩方向 (N极)', value: source.direction };
+        default:
+            return null;
+    }
+}
 
 const KIND_LABEL: Record<SourceKind, string> = {
     'point-charge': '点电荷',
@@ -219,6 +236,19 @@ export function CompositionLab({ onExit }: { onExit: () => void }) {
                             {selected.source.kind === 'uniform-field-zone' && (
                                 <UniformFieldZoneEditor id={selected.id} source={selected.source} />
                             )}
+                            {(() => {
+                                const dir = getSourceDirection(selected.source);
+                                if (!dir) return null;
+                                return (
+                                    <DirectionEditor
+                                        id={selected.id}
+                                        fieldKey={dir.key}
+                                        label={dir.label}
+                                        value={dir.value}
+                                        onChange={v => updateSourceParams(selected.id, { [dir.key]: v })}
+                                    />
+                                );
+                            })()}
                         </>
                     )}
                 </PanelSection>

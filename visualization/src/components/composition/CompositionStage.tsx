@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import type { TrajectoryPoint3D } from 'physics-core';
@@ -43,9 +43,24 @@ interface DragState {
     moved: boolean;
 }
 
+const SPEED_OPTIONS = [0.25, 0.5, 1, 1.5, 2] as const;
+
 export function CompositionStage() {
     const containerRef = useRef<HTMLDivElement | null>(null);
 
+    const [isPlaying, setIsPlaying] = useState(true);
+    const [playbackSpeed, setPlaybackSpeed] = useState<number>(1);
+    const [currentTime, setCurrentTime] = useState(0);
+    const [trajectoryDuration, setTrajectoryDuration] = useState(1);
+    const [hasTrajectory, setHasTrajectory] = useState(false);
+
+    const isPlayingRef = useRef(true);
+    const playbackSpeedRef = useRef(1);
+    const playheadRef = useRef(0);
+    const dirtyRef = useRef(true);
+    const jumpToTimeRef = useRef<(t: number) => void>(() => {});
+    const onTimeUpdateRef = useRef<(t: number) => void>(setCurrentTime);
+    onTimeUpdateRef.current = setCurrentTime;
     useEffect(() => {
         const container = containerRef.current;
         if (!container) return;
@@ -68,6 +83,9 @@ export function CompositionStage() {
         controls.target.set(0, 0.3, 0);
         controls.enableDamping = true;
         controls.maxPolarAngle = Math.PI / 2 - 0.05;
+        controls.addEventListener('change', () => {
+            dirtyRef.current = true;
+        });
 
         // 桌面环境: 8m×8m 台面 + 0.25m 网格 + 双灯
         const ground = new THREE.Mesh(
@@ -142,6 +160,7 @@ export function CompositionStage() {
                     }
                 }
             }
+            dirtyRef.current = true;
         };
 
         // 轨迹线 + 粒子小球 (有引擎结果时可见)
@@ -184,18 +203,43 @@ export function CompositionStage() {
                     meshes.delete(id);
                 }
             }
+            dirtyRef.current = true;
         };
         reconcile();
         const unsubscribeStore = useCompositionStore.subscribe(reconcile);
 
         // --- 轨迹重建 ---
         let trajectory: TrajectoryPoint3D[] = [];
-        let trajectoryDuration = 1;
-        let playhead = 0;
+        let trajectoryDurationLocal = 1;
+
+        const updateParticleBall = (t: number) => {
+            if (trajectory.length <= 1) return;
+            const step = trajectoryDurationLocal / (trajectory.length - 1);
+            const idx = Math.min(Math.floor(t / step), trajectory.length - 2);
+            const frac = t / step - idx;
+            const p0 = trajectory[idx]!;
+            const p1 = trajectory[idx + 1]!;
+            const w = physicsToWorld({
+                x: p0.position.x + (p1.position.x - p0.position.x) * frac,
+                y: p0.position.y + (p1.position.y - p0.position.y) * frac,
+                z: p0.position.z + (p1.position.z - p0.position.z) * frac
+            });
+            particleBall.position.set(w.x, w.y, w.z);
+        };
+
+        jumpToTimeRef.current = (t: number) => {
+            playheadRef.current = t;
+            updateParticleBall(t);
+            dirtyRef.current = true;
+        };
+
         const rebuildTrajectory = () => {
             const { result } = useCompositionStore.getState();
             trajectory = result?.trajectory ?? [];
-            trajectoryDuration = trajectory.length > 1 ? trajectory[trajectory.length - 1]!.t : 1;
+            const dur = trajectory.length > 1 ? trajectory[trajectory.length - 1]!.t : 1;
+            trajectoryDurationLocal = dur;
+            setTrajectoryDuration(dur);
+            setHasTrajectory(trajectory.length > 1);
             if (trajectory.length > 1) {
                 const positions = new Float32Array(trajectory.length * 3);
                 trajectory.forEach((p, i) => {
@@ -209,10 +253,14 @@ export function CompositionStage() {
                 trajectoryLine.geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
                 trajectoryLine.visible = true;
                 particleBall.visible = true;
-                playhead = 0;
+                playheadRef.current = 0;
+                setCurrentTime(0);
+                updateParticleBall(0);
+                dirtyRef.current = true;
             } else {
                 trajectoryLine.visible = false;
                 particleBall.visible = false;
+                dirtyRef.current = true;
             }
         };
         rebuildTrajectory();
@@ -305,6 +353,7 @@ export function CompositionStage() {
             const physics = worldToPhysics({ x: hitPoint.x, y: drag.planeY, z: hitPoint.z });
             useCompositionStore.getState().moveSource(drag.id, snapVector(physics));
             drag.moved = true;
+            dirtyRef.current = true;
         };
 
         const onPointerUp = (event: PointerEvent) => {
@@ -324,6 +373,7 @@ export function CompositionStage() {
             if (renderer.domElement.hasPointerCapture(event.pointerId)) {
                 renderer.domElement.releasePointerCapture(event.pointerId);
             }
+            dirtyRef.current = true;
         };
 
         renderer.domElement.addEventListener('pointerdown', onPointerDown);
@@ -338,42 +388,50 @@ export function CompositionStage() {
             renderer.setSize(w, h);
             camera.aspect = w / h;
             camera.updateProjectionMatrix();
+            dirtyRef.current = true;
         };
         resize();
-        const observer = new ResizeObserver(resize);
-        observer.observe(container);
+        const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(resize) : null;
+        if (observer) observer.observe(container);
 
-        // --- 渲染循环: 轨迹回放 ---
+        // --- 渲染循环: 轨迹回放 (支持暂停/倍速/跳帧 + 按需渲染 #79/#100) ---
         let lastTs = performance.now();
+        let lastUiUpdateTs = 0;
         let raf = 0;
         const tick = (ts: number) => {
             const dt = Math.min((ts - lastTs) / 1000, 0.05);
             lastTs = ts;
             controls.update();
-            if (trajectory.length > 1) {
-                playhead = (playhead + dt) % trajectoryDuration;
-                const step = trajectoryDuration / (trajectory.length - 1);
-                const idx = Math.min(Math.floor(playhead / step), trajectory.length - 2);
-                const frac = playhead / step - idx;
-                const p0 = trajectory[idx]!;
-                const p1 = trajectory[idx + 1]!;
-                const w = physicsToWorld({
-                    x: p0.position.x + (p1.position.x - p0.position.x) * frac,
-                    y: p0.position.y + (p1.position.y - p0.position.y) * frac,
-                    z: p0.position.z + (p1.position.z - p0.position.z) * frac
-                });
-                particleBall.position.set(w.x, w.y, w.z);
+
+            const playing = isPlayingRef.current;
+            const hasTraj = trajectory.length > 1;
+
+            if (playing && hasTraj) {
+                playheadRef.current = (playheadRef.current + dt * playbackSpeedRef.current) % trajectoryDurationLocal;
+                updateParticleBall(playheadRef.current);
+                renderer.render(scene, camera);
+
+                // 节流更新 UI 滑块与时间（~16Hz），避免 60fps 频繁触发 React 重渲染
+                if (ts - lastUiUpdateTs > 60) {
+                    lastUiUpdateTs = ts;
+                    onTimeUpdateRef.current(playheadRef.current);
+                }
+            } else if (dirtyRef.current) {
+                dirtyRef.current = false;
+                if (hasTraj) {
+                    updateParticleBall(playheadRef.current);
+                }
+                renderer.render(scene, camera);
             }
-            renderer.render(scene, camera);
+
             raf = requestAnimationFrame(tick);
         };
         raf = requestAnimationFrame(tick);
-
         // --- 清理 ---
         return () => {
             cancelAnimationFrame(raf);
             if (fieldLineTimer !== null) window.clearTimeout(fieldLineTimer);
-            observer.disconnect();
+            if (observer) observer.disconnect();
             unsubscribeStore();
             unsubscribeResult();
             unsubscribeFieldLines();
@@ -390,5 +448,119 @@ export function CompositionStage() {
         };
     }, []);
 
-    return <div ref={containerRef} className="composition-stage" style={{ width: '100%', height: '100%' }} />;
+    const togglePlay = () => {
+        setIsPlaying(prev => {
+            const next = !prev;
+            isPlayingRef.current = next;
+            dirtyRef.current = true;
+            return next;
+        });
+    };
+
+    const handleSpeedChange = (speed: number) => {
+        setPlaybackSpeed(speed);
+        playbackSpeedRef.current = speed;
+    };
+
+    const handleScrub = (t: number) => {
+        playheadRef.current = t;
+        setCurrentTime(t);
+        jumpToTimeRef.current(t);
+    };
+
+    const handleRewind = () => {
+        playheadRef.current = 0;
+        setCurrentTime(0);
+        jumpToTimeRef.current(0);
+    };
+
+    // 键盘快捷键（空格 = 播放/暂停，Delete = 删除选中；不吞输入框焦点）
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            const target = e.target as HTMLElement | null;
+            if (target && typeof target.tagName === 'string') {
+                const tag = target.tagName.toLowerCase();
+                if (target.isContentEditable || tag === 'input' || tag === 'textarea' || tag === 'select') {
+                    return;
+                }
+            }
+
+            if (e.code === 'Space' || e.key === ' ') {
+                e.preventDefault();
+                togglePlay();
+            } else if (e.code === 'Delete' || e.key === 'Delete') {
+                const { selectedId, removeSource } = useCompositionStore.getState();
+                if (selectedId) {
+                    e.preventDefault();
+                    removeSource(selectedId);
+                }
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []);
+
+    return (
+        <div className="composition-stage" style={{ width: '100%', height: '100%', position: 'relative' }}>
+            <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+            <div className="composition-playback-overlay" onPointerDown={e => e.stopPropagation()}>
+                <div className="playback-controls">
+                    <div className="playback-buttons">
+                        <button
+                            type="button"
+                            onClick={handleRewind}
+                            className="btn btn-icon"
+                            title="重置到起点"
+                            disabled={!hasTrajectory}
+                            aria-label="重置到起点"
+                        >
+                            ⏮
+                        </button>
+                        <button
+                            type="button"
+                            onClick={togglePlay}
+                            className={`btn btn-icon btn-primary${isPlaying ? ' active' : ''}`}
+                            title={isPlaying ? '暂停 (空格)' : '播放 (空格)'}
+                            disabled={!hasTrajectory}
+                            aria-label={isPlaying ? '暂停 (空格)' : '播放 (空格)'}
+                        >
+                            {isPlaying ? '⏸' : '▶'}
+                        </button>
+                    </div>
+
+                    <div className="playback-timeline">
+                        <span className="time-label">{currentTime.toFixed(2)}s</span>
+                        <input
+                            type="range"
+                            min={0}
+                            max={trajectoryDuration || 1}
+                            step={0.001}
+                            value={currentTime}
+                            onChange={e => handleScrub(parseFloat(e.target.value))}
+                            className="timeline-slider"
+                            disabled={!hasTrajectory}
+                            aria-label="轨迹回放进度"
+                        />
+                        <span className="time-label">{trajectoryDuration.toFixed(2)}s</span>
+                    </div>
+
+                    <div className="playback-speed">
+                        <span className="speed-label">速度</span>
+                        {SPEED_OPTIONS.map(s => (
+                            <button
+                                key={s}
+                                type="button"
+                                className={`btn btn-sm${playbackSpeed === s ? ' active' : ''}`}
+                                onClick={() => handleSpeedChange(s)}
+                                title={`${s}倍速`}
+                            >
+                                {s}x
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
 }
