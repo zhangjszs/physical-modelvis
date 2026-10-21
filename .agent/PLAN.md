@@ -296,23 +296,23 @@
 > 定向 36 例（directionUtils 10 + directionEditor 6 + compositionPlayback 7 + compositionStore 13）**本轮独立重跑全绿**；
 > `verify-composition-interaction.mjs` **独立重跑 OK**（10 项断言、零 console error）；`count:check` exit 0 = core 1169 / viz 1783 / **total 2952**；
 > CI `39596743691` + Deploy `39597035981` @ `4d3ef08` 双绿；源码抽查方向字段四类覆盖、键盘焦点保护、`dirtyRef` 按需渲染门控。
-> **证据强度缺口**：探针画布断言仍是 DOM 读数/时间标签级（未做像素差异），与「画布随动重画/静止/跳转」原始意图有差距 → 已立 **#151（P3）** 承接，排在 #101 后。
+> **证据强度缺口**：探针画布断言仍是 DOM 读数/时间标签级（未做像素差异），与「画布随动重画/静止/跳转」原始意图有差距 → 已立 **#151（P3 · blocked）** 承接，依赖 #101 关闭后由 Planner 转 ready。
 > **治理**：#101 P3 → **P2**（4.3 普通功能）；开工口径 comment 在案（3 模板保底 / 0.25m 网格 / 单次 commit / 真实截图+像素断言）。
-> 今日队列 = **#101 → #151（#101 关闭后）**；#44 维持 parked；pending 清零。
+> 今日队列 = **#101（唯一 ready）**；#151 依赖阻塞、#44 parked；pending 清零。
 
 ## 当前方向
 
 **四十四次滚动（2026-10-21 · 验收轮）**：**#100 验收 CLOSED —— M8 进度 1/2**。
 **今天最重要的事**：完成 **M8 最后一单 #101（P2 · 预设实验模板）**，打通「打开 → 点模板 → 30 秒进入标准实验」课堂主路径：
 - **#101（P2 · ready · 队首）**：≥3 个模板一键加载（速度选择器/质谱仪/平行板偏转，磁聚焦可选）、单次 commit、store 测试 + 真实截图/画布像素证据。
-- **#151（P3 · ready · 次位）**：浏览器探针像素断言强化（承接 #100 证据强度缺口），在 #101 关闭后开工，避免同文件并发。
+- **#151（P3 · blocked · 次位）**：浏览器探针像素断言强化（承接 #100 证据强度缺口），在 #101 关闭、Planner 解阻后开工，避免同文件并发。
 **明确不在今天**：#44 React 19（parked，D44=B）；场景 Canvas 调色板迁移（D45 第 ② 类）；#103 派生重构（D31 暂缓）。
 **下一轮展望**：M8 收官后回到缺陷/体验收口或按用户新方向规划。
 
 ## 今日目标（2026-10-21 · 四十四次滚动）
 
 - **#101（队首）**：≥3 个预设模板一键加载出正确物理图像（直线/圆弧/抛物线），单次 commit 不逐器材重仿真，模板参数过 `validateComposition` 且落 0.25m 网格，store 层测试 + 真实截图。
-- **#151（#101 关闭后，余量时）**：交互探针补画布像素级断言（改角度重画 / 暂停静止 / 跳帧 / 倍速推进比），红向验证可拦截。
+- **#151（blocked，#101 关闭并解阻后）**：交互探针补画布像素级断言（改角度重画 / 暂停静止 / 跳帧 / 倍速推进比），红向验证可拦截。
 - 交付 commit 以 `--no-ff` 入 main 成祖先，CI+Deploy 双绿，precheck（含 11 层自检）pass。
 
 ## 已完成 Milestone：M6 · 物理世界盒子 UI 统一与组件复用收口（7 / 7 · 2026-10-20 收官）
@@ -338,13 +338,13 @@
 - 不含螺线管等新器材类型（#94 §5 第二波后备，按需另立）；不做模板导入导出/分享。
 - 不升 React 19（#44 parked）；不做场景 Canvas 调色板迁移（D45 第 ② 类）；不拆 FormulaPanel（D31 暂缓）。
 
-### 执行队列（给 Executor 的建议顺序，2 个 ready）
-1. **#101** 预设实验模板（P2 · area:render · ready-for-agent）——队首，D51 依赖已解除。
-2. **#151** 浏览器探针像素断言强化（P3 · area:render · ready-for-agent）——次位，在 #101 验收关闭之后开工（同文件并发保护）。
+### 执行队列（给 Executor 的建议顺序，1 个 ready + 1 个 blocked）
+1. **#101** 预设实验模板（P2 · area:render · ready-for-agent）——今日唯一 ready，队首。
+2. **#151** 浏览器探针像素断言强化（P3 · area:render · **blocked**）——依赖 #101 关闭，解阻后转 ready（同文件并发保护）。
 
 ## 已知阻塞与依赖
 - **#101**：#100 已 CLOSED，依赖解除，可即日开工。
-- **#151**：依赖 #101 关闭（两者都可能修改 `scripts/verify-composition-interaction.mjs`）。
+- **#151**：依赖 #101 关闭（两者都可能修改 `scripts/verify-composition-interaction.mjs`）；当前挂 `blocked`，关闭后由 Planner 摘除转 ready。
 - **#44（React 19）**：parked（D44=B）勿领，解除条件三条见 Issue comment。
 - **分支清理（需用户点头，默认不做）**：`origin/agent/issue-95-shadow-adaptive` / `origin/agent/issue-96-default-on-grid` 均为 main 祖先且 Issue CLOSED，继续只上报不代删。
 ## 下一阶段
@@ -372,7 +372,7 @@
 → **验证与物料收尾：#106 → #115**（**全 CLOSED，二十六次滚动收官**）。
 
 **进度**：M2 3/3 + M2.5 4/4 + M3 8/8 + M4 5/5 + L6 2/2 全收官；#107/#110/#111/#112/#109/#106/#115 缺陷门禁物料全部验收 CLOSED。
-当前 = **M8 · 组合实验台产品功能线**（2026-10-21 四十四次滚动，进度 **1/2**）：#100 已验收 CLOSED；M7 已 3/3 收官（#148/#149/#150 全 CLOSED）；M6 已 7/7 收官（#137/#138/#139/#142/#145/#146/#147 全 CLOSED）；今日队列 = **#101 → #151（#101 关闭后）**；D51 已兑现，pending 清零。
+当前 = **M8 · 组合实验台产品功能线**（2026-10-21 四十四次滚动，进度 **1/2**）：#100 已验收 CLOSED；M7 已 3/3 收官（#148/#149/#150 全 CLOSED）；M6 已 7/7 收官（#137/#138/#139/#142/#145/#146/#147 全 CLOSED）；今日队列 = **#101（唯一 ready；#151 依赖阻塞，关闭后解阻）**；D51 已兑现，pending 清零。
 
 ### #67 背景备忘（原「候选 A 详细」收编记录）
 
@@ -584,7 +584,7 @@ T=25℃ 时二者等价，无正确性影响，属「面板公式与算法严格
 |---|---|---|---|---|
 | [#100](https://github.com/zhangjszs/physical-modelvis/issues/100) | 组合实验台交互增强：器材旋转编辑 + 轨迹回放控制（播/暂停/倍速） | ✅ **CLOSED**（四十四次滚动验收：定向 36 例 + 交互探针独立重跑 + count 2952 + CI/Deploy 双绿；证据强度缺口转 #151） | P2 | 属 D6 已确认愿景内，低风险 |
 | [#101](https://github.com/zhangjszs/physical-modelvis/issues/101) | 组合实验台预设实验模板：高频电磁场景一键布置 | **ready-for-agent（P2）**（四十四次滚动：#100 关闭后解依赖，即日队首；开工口径 comment issuecomment-6318541200） | P2 | 同上 |
-| [#151](https://github.com/zhangjszs/physical-modelvis/issues/151) | 浏览器探针视觉断言强化：#100 交互探针补画布像素级证据 | **ready-for-agent（P3）**（四十四次滚动新建；依赖 #101 关闭后开工，避免同文件冲突） | P3 | 测试基础设施，低风险 |
+| [#151](https://github.com/zhangjszs/physical-modelvis/issues/151) | 浏览器探针视觉断言强化：#100 交互探针补画布像素级证据 | **blocked（P3）**（四十四次滚动新建；依赖 #101 关闭后由 Planner 转 ready，避免同文件冲突） | P3 | 测试基础设施，低风险 |
 | [#102](https://github.com/zhangjszs/physical-modelvis/issues/102) | **调查**：多线圈场求值性能（Biot-Savart × Worker 化评估） | ✅ **CLOSED**（二十八次滚动验收：复跑 bench exit 0，**8.60×** / 1.16e-14） | P3 | C1 → **#119**（最小切片放行）；Worker 化不立项 |
 | [#103](https://github.com/zhangjszs/physical-modelvis/issues/103) | **调查**：渲染层结构治理（按机制抽 primitives + 巨型文件拆分路线） | ✅ **CLOSED**（二十八次滚动验收：坐标抽查全吻合） | P2 | 落档 → **#121**；14 批实施**已按 D31 暂缓** |
 | [#104](https://github.com/zhangjszs/physical-modelvis/issues/104) | **调查**：引擎契约上帝对象治理（ConstraintConfig 拆分 + charts 键名规范） | ✅ **CLOSED**（二十八次滚动验收：三处口径纠正属实） | P3 | A/B 不立项；C → **#120**（最小切片放行）；§5.4/§5.5 落 D30 |
