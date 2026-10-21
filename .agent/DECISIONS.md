@@ -441,6 +441,7 @@ eslint tests 目录 `no-explicit-any` 降 warn）与 `36aed93`（移除 scripts/
 - 未采纳项的后果如实登记：**方案 A（抬 `vendor-react-` 预算放行 React 19）与方案 C（把挂载前合计做成硬门禁）均未获采纳**；`BUDGET_KB` / `LAZY_BUDGETS` 数值维持不变，首屏真实成本仍**无门禁约束**（由 #141 转为可观测项，#143 使浏览器回归由机制拦截）。
 - **三十八次滚动（2026-10-19）复核：仍无 pending**——本轮 D48 六条裁定全属契约 6.1「实现细节 / 测试策略 / 文档结构 / 低风险方案选择」自决列，且第 3 条是把 1.10 红线授权**收窄**而非扩大，不需用户拍板。唯一留给用户的是**远程分支清理**（`origin/agent/issue-95-shadow-adaptive` / `origin/agent/issue-96-default-on-grid` 均为 main 祖先、Issue 已 CLOSED）：删远程分支影响共享状态且契约 1.9 禁止 agent 删他人分支 → **默认不删，仅上报，不列 pending**。
 - **四十次滚动（2026-10-20）复核：pending 清零**——D51（M7 后是否解冻 #100/#101）已获用户同轮答复，按「先完成 M7 → 收官后解冻 #100/#101 转产品功能线」生效（落实细则见 D51「用户答复」条）。无其他待用户拍板事项。
+- **四十三次滚动（2026-10-21）复核：pending 维持清零**——D51 已正式兑现，#100/#101 解冻入 M8 队列；#44 维持 parked（D44=B）；本轮无新增待用户拍板事项。
 
 > **D31 已于 2026-10-16 三十一次滚动 default 转正**（详见「已确认」节 D31 条目）。
 
@@ -982,3 +983,28 @@ eslint tests 目录 `no-explicit-any` 降 warn）与 `36aed93`（移除 scripts/
 - **pending 状态**：维持**清零**；本轮无需用户拍板事项。
 - **观察（只读，不改他人文件）**：`STATE.md` 顶部更新时间仍为 `2026-10-20T01:45:00Z`，与 `executor-20261020b` 会话收尾时间（约 19:37 本地）不一致；`HANDOFF.md` 仍写 main HEAD `4c07f43` /「待明天 Planner 验收」。两者均为 Executor 所有，规划者不代改；已在 TASKS.md「交接快照提示」中提醒下一棒收尾刷新。
 - **影响范围**：PLAN.md / TASKS.md 各加一条复核记录；DECISIONS 新增 D54；**代码零改动、门禁数值零改动**。
+
+---
+
+## D55 · 四十三次滚动：#150 验收关闭 + M7 3/3 收官 + D51 兑现解冻 #100/#101 转 M8
+
+- **日期**：2026-10-21（四十三次滚动 · 每日规划）
+- **验收（独立复核，不只信报告）**：
+  - **#150 通过**：
+    1. 交付 commit `3163e89`（批次 A：新增 31 键 + 4 纯函数）、`1f20d19`（批次 B：SimulationCanvas 47 处 `isDark ?` 迁移）、`3becce0`（批次 C：EquipmentStage 背景 token 化）及 merge `1bdf60e` 经 `git merge-base --is-ancestor` 均为 main 祖先。
+    2. 静态基线清零：`SimulationCanvas.tsx` 中 `isDark ?` = 0、`isDarkRef.current ?` = 0；`EquipmentStage.tsx` 中 `0x0b1020` / `0xf8fafc` = 0；`getThemeTokens` 消费点 10 处。
+    3. `styles.css` 批次 A diff 纯新增（31 个 `canvas*` + `--stage3d-bg` 双主题变量），已有 token 零改动，「迁移前字面量回归表」锁定暗/亮取值零漂移，亮色无语义化调整。
+    4. 定向测试 58 例（`theme-tokens.test.tsx` 46 + `equipment-stage.test.tsx` 12）独立重跑全绿；`count:check` exit 0（core 1169 / viz 1759 / total 2928）。
+    5. CI `39519139867` + Deploy `39519497003` @ HEAD `72ffeb8` 双绿；验收评论 issuecomment-6306565989 在案，Issue #150 CLOSED。
+  - **M7 3/3 收官**（#148/#149/#150 全 CLOSED）。
+- **裁定与排程**：
+  - **D51 兑现**：M7 既已收官，立即兑现 D51 复合口径，解冻 #100/#101 转入产品功能线（M8 · 组合实验台产品功能线）。
+  - **Issue 正文重写**：对 #100 与 #101 重写验收标准，保留原物理要求的同时补全键盘路径、**产品交互验收（Playwright 浏览器实测，改角度/切倍速/拖进度/加载模板出物理图像，双证据）**、precheck+CI 双绿、count:sync 回写、明确不包含与依赖节。
+  - **今日执行队列**：
+    1. **#100（P2 · ready · 队首）**：器材旋转编辑 + 轨迹回放控制（播放/暂停/倍速/进度）。
+    2. **#101（P3 · ready · 次位）**：预设实验模板（速度选择器/质谱仪/磁聚焦/平行板偏转），排在 #100 验收关闭之后（避免同文件并发冲突）。
+  - #44 维持 parked（D44=B，解除条件三条在案），本轮不解冻。
+- **契约 6.1 分界**：解冻 #100/#101 系落实用户 D51 明确决定（「A. 继续技术加固，解冻产品功能，转做 #100/#101」）；验收关闭 #150 与重写验收标准属规划者权限内；未触 1.10 红线，未改门禁阈值与代码。
+- **pending 状态**：维持**清零**；本轮无需用户拍板事项。
+- **远程分支清理观察**：两个已合并远程分支（`origin/agent/issue-95-shadow-adaptive` / `origin/agent/issue-96-default-on-grid`）继续只上报、不代删（契约 1.9）。
+- **影响范围**：#150 CLOSED；#100/#101 摘 parked 加 ready-for-agent 并重写正文；DECISIONS 新增 D55；PLAN.md / TASKS.md 四十三次滚动刷新；**代码零改动、门禁数值零改动**。

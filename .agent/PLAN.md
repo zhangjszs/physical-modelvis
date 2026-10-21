@@ -577,8 +577,8 @@ T=25℃ 时二者等价，无正确性影响，属「面板公式与算法严格
 | [#102](https://github.com/zhangjszs/physical-modelvis/issues/102) | **调查**：多线圈场求值性能（Biot-Savart × Worker 化评估） | ✅ **CLOSED**（二十八次滚动验收：复跑 bench exit 0，**8.60×** / 1.16e-14） | P3 | C1 → **#119**（最小切片放行）；Worker 化不立项 |
 | [#103](https://github.com/zhangjszs/physical-modelvis/issues/103) | **调查**：渲染层结构治理（按机制抽 primitives + 巨型文件拆分路线） | ✅ **CLOSED**（二十八次滚动验收：坐标抽查全吻合） | P2 | 落档 → **#121**；14 批实施**已按 D31 暂缓** |
 | [#104](https://github.com/zhangjszs/physical-modelvis/issues/104) | **调查**：引擎契约上帝对象治理（ConstraintConfig 拆分 + charts 键名规范） | ✅ **CLOSED**（二十八次滚动验收：三处口径纠正属实） | P3 | A/B 不立项；C → **#120**（最小切片放行）；§5.4/§5.5 落 D30 |
-| [#99](https://github.com/zhangjszs/physical-modelvis/issues/99) | 发布门禁切片：CI `npm publish --dry-run` + files/类型入口/体积断言（真实发布暂缓） | **ready**（三十二次滚动：D38 用户两轮拍板——包名保持 / 不真发布 / 版本手动 bump+tag 仅登记；单已改写定标） | P2 | real publish 仍属 **1.10 红线**，不经用户放行不动；已授权切片仅新增 dry-run job |
-| [#105](https://github.com/zhangjszs/physical-modelvis/issues/105) | 外部入口齐备：README 英文摘要 + badge 行 + CONTRIBUTING first-contribution（不整篇双语） | **ready**（三十二次滚动：D39 拍板——英文物料先行取代 D21「随发布走」；剔除 npm i 示例；入门 = TASKS.md/维护者认领） | P3 | 原「硬依赖 #99 发布决策」解除；#100/#101 继续 parked（D19） |
+| [#99](https://github.com/zhangjszs/physical-modelvis/issues/99) | 发布门禁切片：CI `npm publish --dry-run` + files/类型入口/体积断言（真实发布暂缓） | ✅ **CLOSED**（三十三次滚动：D38 用户两轮拍板——包名保持 / 不真发布 / 版本手动 bump+tag 仅登记；交付物 dry-run 门禁已合入 main） | P2 | real publish 仍属 **1.10 红线**，不经用户放行不动；已授权切片仅新增 dry-run job |
+| [#105](https://github.com/zhangjszs/physical-modelvis/issues/105) | 外部入口齐备：README 英文摘要 + badge 行 + CONTRIBUTING first-contribution（不整篇双语） | ✅ **CLOSED**（三十四次滚动：D39 拍板——英文物料先行取代 D21「随发布走」；剔除 npm i 示例；交付 commit 成 main 祖先） | P3 | 原「硬依赖 #99 发布决策」解除；#100/#101 已解冻入 M8 |
 
 **执行顺序**：**#102–#104 调查三单已 CLOSED**（二十八次滚动）；#100/#101 维持 parked（D19）、#99/#105 已按 D38/D39 落地并 CLOSED，执行棒不领。#103 派生的**重构实施单已按 D31 默认转正暂缓**；#102-C1/#104-C 按最小切片放行（D30，已兑现）。
 
