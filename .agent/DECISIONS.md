@@ -1008,3 +1008,27 @@ eslint tests 目录 `no-explicit-any` 降 warn）与 `36aed93`（移除 scripts/
 - **pending 状态**：维持**清零**；本轮无需用户拍板事项。
 - **远程分支清理观察**：两个已合并远程分支（`origin/agent/issue-95-shadow-adaptive` / `origin/agent/issue-96-default-on-grid`）继续只上报、不代删（契约 1.9）。
 - **影响范围**：#150 CLOSED；#100/#101 摘 parked 加 ready-for-agent 并重写正文；DECISIONS 新增 D55；PLAN.md / TASKS.md 四十三次滚动刷新；**代码零改动、门禁数值零改动**。
+
+---
+
+## D56 · 四十四次滚动：#100 验收关闭（M8 1/2）+ #101 转 P2 开工 + #151 承接探针证据缺口
+
+- **日期**：2026-10-21（四十四次滚动 · 每日规划验收轮）
+- **验收（独立复核，不只信报告）**：
+  - **#100 通过**：
+    1. 提交链：`9b020c0`（功能）与 merge `4d3ef08` 经 `git merge-base --is-ancestor ... main` 均 exit 0；merge 为 `--no-ff`（父提交 `efb9ec1` + `9b020c0`）。
+    2. 变更面：13 文件 +1261/−31；含 `directionUtils.ts` / `DirectionEditor.tsx` / `CompositionStage.tsx` / `CompositionLab.tsx` / `compositionStore.ts` / `styles.css` / 3 个新测试 + 浏览器探针；未改 fields3d 引擎接口。
+    3. 定向 36 例（directionUtils 10 + directionEditor 6 + compositionPlayback 7 + compositionStore 13）本轮独立重跑全绿；`verify-composition-interaction.mjs` 独立重跑 **OK**（10 项断言、零 console error）。
+    4. `npm run count:check` exit 0 = core 1169 / viz 1783 / **total 2952**（13 数字 + 3 标记一致）。
+    5. CI `39596743691` + Deploy `39597035981` @ `4d3ef08` 双绿；源码抽查方向字段四类覆盖、键盘焦点保护、`dirtyRef` 按需渲染门控均在位。
+    6. **证据强度缺口（已记录，不影响通过）**：探针的画布断言为 DOM 读数/时间标签级，未做画布像素差异，与「画布随动重画 / 画面静止 / 画面跳转」原始意图有差距；功能已由源码路径与单测交叉佐证。按契约「部分未满足且值得单独立项 → 关闭原件并创建后续任务」，新建 **#151（P3）** 承接。
+- **裁定与排程**：
+  - #100 CLOSED，清理 `in-review` 标签；验收评论 issuecomment-6318536216。
+  - #101 依赖解除，即日开工；优先级按契约 4.3 由 P3 更正为 **P2**（普通功能，非测试/文档类）。开工口径：3 模板保底（磁聚焦可选）/ 0.25m 网格 / 单次 commit / 真实截图 + 画布像素断言（comment issuecomment-6318541200）。
+  - 新建 **#151（P3 · ready-for-agent）**，依赖 #101 关闭（同文件探针冲突保护）；今日队列 = **#101 → #151（#101 关闭后）**。
+  - #44 维持 parked（D44=B），本轮不解冻。
+- **契约 6.1 分界**：验收关闭、优先级更正、后续任务拆分与队列排序均属规划者权限内；未触 1.10 红线，未改门禁阈值与代码。
+- **pending 状态**：维持**清零**；本轮无需用户拍板事项。
+- **远程分支清理观察**：`origin/agent/issue-95-shadow-adaptive` / `origin/agent/issue-96-default-on-grid` 继续只上报、不代删（契约 1.9）。
+- **遗留观察（不建单）**：#100 将 `updateSourceParams` 参数类型放宽为 `Record<string, unknown>`；当前调用点类型安全且有测试，后续新增消费方时优先改为按 source kind 的类型化 patch。
+- **影响范围**：#100 CLOSED；#101 改 P2 + 开工 comment；#151 新建；DECISIONS 新增 D56；PLAN.md / TASKS.md 四十四次滚动刷新；**代码零改动、门禁数值零改动**。
