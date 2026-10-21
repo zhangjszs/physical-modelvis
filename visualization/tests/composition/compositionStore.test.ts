@@ -54,6 +54,47 @@ describe('compositionStore 组合实验台状态', () => {
         expect(result).toBe(good); // 校验失败保留最近有效结果
     });
 
+    it('updateSourceParams 支持方向类字段 (线圈 axis / 极板 normal / 导线与磁铁 direction) 且触发重仿真与场线刷新', () => {
+        // 线圈 axis
+        useCompositionStore.getState().addSource('circular-coil');
+        const coilId = useCompositionStore.getState().sources[0]!.id;
+        const res1 = useCompositionStore.getState().result;
+        const rev1 = useCompositionStore.getState().fieldLineRevision;
+
+        useCompositionStore.getState().updateSourceParams(coilId, { axis: { x: 1, y: 0, z: 0 } });
+        expect(useCompositionStore.getState().sources[0]!.source).toMatchObject({
+            axis: { x: 1, y: 0, z: 0 }
+        });
+        expect(useCompositionStore.getState().result).not.toBe(res1);
+        expect(useCompositionStore.getState().fieldLineRevision).toBe(rev1 + 1);
+
+        // 极板 normal
+        useCompositionStore.getState().addSource('charged-plate');
+        const plateId = useCompositionStore.getState().sources[1]!.id;
+        useCompositionStore.getState().updateSourceParams(plateId, { normal: { x: 0, y: 0, z: 1 } });
+        expect(useCompositionStore.getState().sources[1]!.source).toMatchObject({
+            normal: { x: 0, y: 0, z: 1 }
+        });
+
+        // 导线 direction
+        useCompositionStore.getState().addSource('straight-wire');
+        const wireId = useCompositionStore.getState().sources[2]!.id;
+        useCompositionStore.getState().updateSourceParams(wireId, { direction: { x: 1, y: 0, z: 0 } });
+        expect(useCompositionStore.getState().sources[2]!.source).toMatchObject({
+            direction: { x: 1, y: 0, z: 0 }
+        });
+
+        // 条形磁铁 direction
+        useCompositionStore.getState().addSource('bar-magnet');
+        const magnetId = useCompositionStore.getState().sources[3]!.id;
+        useCompositionStore.getState().updateSourceParams(magnetId, { direction: { x: 0, y: 0, z: 1 } });
+        expect(useCompositionStore.getState().sources[3]!.source).toMatchObject({
+            direction: { x: 0, y: 0, z: 1 }
+        });
+
+        expect(useCompositionStore.getState().validationMessage).toBeNull();
+    });
+
     it('粒子参数非法 → validationMessage; 合法后恢复', () => {
         useCompositionStore.getState().addSource('point-charge');
         useCompositionStore.getState().setParticle({ mass: 0 });

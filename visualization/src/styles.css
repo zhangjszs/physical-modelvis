@@ -2668,6 +2668,62 @@ body {
     margin-top: 6px;
 }
 
+/* ========== Composition Playback Overlay & Direction Editor (#100) ========== */
+.composition-playback-overlay {
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+    z-index: 10;
+    pointer-events: auto;
+}
+.composition-direction-editor {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--glass-border);
+}
+.composition-direction-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+.composition-direction-label {
+    font-size: var(--text-body);
+    font-weight: 500;
+    color: var(--text);
+}
+.composition-vector-readout {
+    font-size: 11px;
+    font-family: monospace;
+    color: var(--text3);
+}
+.composition-axis-select {
+    background: var(--glass-bg);
+    color: var(--text);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-xs);
+    padding: 3px 6px;
+    font-size: var(--text-small);
+    outline: none;
+    max-width: 170px;
+}
+.composition-axis-select:focus {
+    border-color: var(--accent);
+}
+.composition-preset-row {
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+}
+.composition-preset-buttons {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
 /* ========== MeasurementToolbox Photogate Gate Colors ========== */
 .interactive-photogate.gate-a .gate-u-shape {
     border-color: var(--accent2);

@@ -109,7 +109,7 @@ interface CompositionState {
     moveSource: (id: string, position: Vector3D) => void;
     /** 拖拽结束/外部修改后重仿真 */
     commit: () => void;
-    updateSourceParams: (id: string, patch: Record<string, number>) => void;
+    updateSourceParams: (id: string, patch: Record<string, unknown>) => void;
     /** 更新器材的向量型参数 (匀强磁场区的 field/size; 合并式更新 + 重仿真) */
     updateSourceVector: (id: string, key: 'size' | 'field', patch: Partial<Vector3D>) => void;
     removeSource: (id: string) => void;
