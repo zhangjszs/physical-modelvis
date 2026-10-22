@@ -442,6 +442,7 @@ eslint tests 目录 `no-explicit-any` 降 warn）与 `36aed93`（移除 scripts/
 - **三十八次滚动（2026-10-19）复核：仍无 pending**——本轮 D48 六条裁定全属契约 6.1「实现细节 / 测试策略 / 文档结构 / 低风险方案选择」自决列，且第 3 条是把 1.10 红线授权**收窄**而非扩大，不需用户拍板。唯一留给用户的是**远程分支清理**（`origin/agent/issue-95-shadow-adaptive` / `origin/agent/issue-96-default-on-grid` 均为 main 祖先、Issue 已 CLOSED）：删远程分支影响共享状态且契约 1.9 禁止 agent 删他人分支 → **默认不删，仅上报，不列 pending**。
 - **四十次滚动（2026-10-20）复核：pending 清零**——D51（M7 后是否解冻 #100/#101）已获用户同轮答复，按「先完成 M7 → 收官后解冻 #100/#101 转产品功能线」生效（落实细则见 D51「用户答复」条）。无其他待用户拍板事项。
 - **四十三次滚动（2026-10-21）复核：pending 维持清零**——D51 已正式兑现，#100/#101 解冻入 M8 队列；#44 维持 parked（D44=B）；本轮无新增待用户拍板事项。
+- **四十五次滚动（2026-10-22）复核：pending 维持清零**——无新用户答复待处理；#152 红线判定（非 1.10）属规划者自决列；远程分支清理维持「只上报、不代删」既定口径。
 
 > **D31 已于 2026-10-16 三十一次滚动 default 转正**（详见「已确认」节 D31 条目）。
 
@@ -1032,3 +1033,19 @@ eslint tests 目录 `no-explicit-any` 降 warn）与 `36aed93`（移除 scripts/
 - **远程分支清理观察**：`origin/agent/issue-95-shadow-adaptive` / `origin/agent/issue-96-default-on-grid` 继续只上报、不代删（契约 1.9）。
 - **遗留观察（不建单）**：#100 将 `updateSourceParams` 参数类型放宽为 `Record<string, unknown>`；当前调用点类型安全且有测试，后续新增消费方时优先改为按 source kind 的类型化 patch。
 - **影响范围**：#100 CLOSED；#101 改 P2 + 开工 comment；#151 新建；DECISIONS 新增 D56；PLAN.md / TASKS.md 四十四次滚动刷新；**代码零改动、门禁数值零改动**。
+
+---
+
+## D57 · 四十五次滚动（2026-10-22 · 复核轮）：无新验收对象，队列维持 #101；新建 #152（QA 巡检 action 版本对齐）
+
+- **日期**：2026-10-22（四十五次滚动 · 每日规划）
+- **事实**：自上轮规划（2026-10-21 22:31 CST）至本轮 **Executor 未运行**——main HEAD 仍 `5ec44ac`、无 in-progress / in-review、无新 Issue 评论；本轮无验收产出（#100 已于四十四次滚动规范关闭）。
+- **本轮独立实测（只读）**：main = origin/main、working tree clean；open 3 单（#101 ready / #151 blocked / #44 parked）与 TASKS.md 零漂移；CI `39617786858` / Deploy `39618326078` / QA 场景巡检 `39682553419`（24m51s，严格口径全量）三绿；`count:check` exit 0 = core 1169 / viz 1783 / total 2952。
+- **#101 ready 门禁复核（4.2 维持通过）**：前提实测——`snapVector`（`compositionCoords.ts:39`）/ `validateComposition`（`compositionStore.ts:133` 消费）在位、`loadTemplate` 全仓 0 命中（确未开工）、台面可视网格 0.25m（`CompositionStage.tsx:90` GridHelper 8m/32 格）。「0.25m 网格」口径可执行，已在开工口径中补「`snapVector` 默认步长 0.05，落 0.25 网格请显式传 `snapVector(v, 0.25)`」。
+- **裁定与排程**：
+  - 今日队列 = **#101 → #152**（2 单）；#151 维持 blocked（依赖 #101 关闭）。
+  - 新建 **#152（P3 · area:ci）**：`.github/workflows/qa-sweep.yml:82` 的 `upload-artifact@v4 → @v7`。证据：QA 巡检 run `39682553419` annotations 出现 Node.js 20 弃用告警；`b67c439`（"彻底消除 Node 20 警告"）只升级了 ci.yml/deploy.yml，遗漏 qa-sweep.yml——本单为同类维护动作的收尾。**红线判定：非 1.10「主要 CI/CD 流程变化」**——不改变流程语义（不新增/删除 job、不改触发与阻断关系），qa-sweep 不阻断 Deploy 链，且与 `b67c439` 已建立的仓内先例同类。
+  - 观察：本地遗留分支 `agent/issue-150-theme-tokens-slice-2`（已合并、ancestor 校验 exit 0）属 §1.9 未清理，建议执行棒下轮 `git branch -d`（Planner 不代动）；两个远程遗留分支维持只上报不代删。
+- **契约 6.1 分界**：#101 门禁复核、队列维持、新建维护性 P3 单与排序均属规划者权限；未触红线（#152 判定理由如上并在 Issue 正文留档）、未改门禁数值与代码。
+- **pending 状态**：维持**清零**；本轮无用户拍板事项。
+- **影响范围**：新建 #152（入今日队列次位）；PLAN.md / TASKS.md 四十五次滚动刷新；**代码零改动、门禁数值零改动**。
