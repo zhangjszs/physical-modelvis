@@ -17,7 +17,7 @@
 import { chromium } from 'playwright';
 import { spawn } from 'child_process';
 import { resolve } from 'path';
-import { existsSync } from 'fs';
+import { existsSync, mkdirSync } from 'fs';
 
 const BASE = process.env.BASE_URL ?? 'http://localhost:4173/';
 const CHANNEL = process.env.SMOKE_BROWSER_CHANNEL ?? '';
@@ -111,6 +111,106 @@ async function runProbe() {
         await labBtn.click();
         await page.waitForSelector('.composition-layout', { state: 'visible', timeout: 10000 });
         console.log('✓ 成功进入组合实验台');
+        // 2.1 验证预设实验模板区 (#101)
+        const templateGrid = page.locator('.composition-template-grid');
+        await templateGrid.waitFor({ state: 'visible', timeout: 5000 });
+        const templateBtns = templateGrid.locator('.composition-template-btn');
+        const templateCount = await templateBtns.count();
+        if (templateCount < 3) {
+            throw new Error(`预设实验模板数量不足 3 个，实际为: ${templateCount}`);
+        }
+        console.log(`✓ 实验模板面板在位，提供 ${templateCount} 个预设模板`);
+
+        // 2.2 模板一键加载与画布像素级渲染断言
+        const canvas = page.locator('.composition-stage canvas');
+        await canvas.waitFor({ state: 'visible', timeout: 5000 });
+        const blankBuffer = await canvas.screenshot();
+
+        // 点击「速度选择器」模板
+        const velocityBtn = page.locator('.composition-template-btn:has-text("速度选择器")');
+        await velocityBtn.click();
+        await delay(300);
+
+        const activeBtn = page.locator('.composition-template-btn.active');
+        const activeText = await activeBtn.innerText();
+        if (!activeText.includes('速度选择器')) {
+            throw new Error(`点击速度选择器后按钮未激活，实际为: ${activeText}`);
+        }
+        const goalCard = page.locator('.composition-template-goal-card');
+        await goalCard.waitFor({ state: 'visible', timeout: 3000 });
+        const goalText = await goalCard.innerText();
+        if (!goalText.includes('qvB')) {
+            throw new Error(`速度选择器教学目标卡片内容缺失或不符: ${goalText}`);
+        }
+
+        const statusOk = page.locator('.composition-status-ok');
+        await statusOk.waitFor({ state: 'visible', timeout: 5000 });
+        const statusText = await statusOk.innerText();
+        console.log(`✓ 速度选择器模板一键加载成功，状态: ${statusText}`);
+
+        // 比较画布像素差异
+        const velocityBuffer = await canvas.screenshot();
+        let diffBytes = 0;
+        const minLen = Math.min(blankBuffer.length, velocityBuffer.length);
+        for (let i = 0; i < minLen; i++) {
+            if (blankBuffer[i] !== velocityBuffer[i]) diffBytes++;
+        }
+        if (diffBytes === 0) {
+            throw new Error('加载速度选择器后画布像素与空白台完全相同，未发生实际 3D 渲染');
+        }
+        console.log(
+            `✓ 画布像素变化断言通过: 差异字节数 ${diffBytes}/${minLen} (${((diffBytes / minLen) * 100).toFixed(1)}%)`
+        );
+
+        const scratchDir = resolve('.scratch');
+        if (!existsSync(scratchDir)) {
+            mkdirSync(scratchDir, { recursive: true });
+        }
+        const shot1Path = resolve('.scratch/composition-template-velocity-selector.png');
+        await canvas.screenshot({ path: shot1Path });
+        console.log(`✓ 速度选择器实验画面真实截图已保存: ${shot1Path}`);
+
+        // 切换到「质谱仪」模板
+        const msBtn = page.locator('.composition-template-btn:has-text("质谱仪")');
+        await msBtn.click();
+        await delay(300);
+        const msGoal = await goalCard.innerText();
+        if (!msGoal.includes('mv/qB')) {
+            throw new Error(`质谱仪教学目标不符: ${msGoal}`);
+        }
+        const shot2Path = resolve('.scratch/composition-template-mass-spectrometer.png');
+        await canvas.screenshot({ path: shot2Path });
+        console.log(`✓ 质谱仪模板切换成功，截图: ${shot2Path}`);
+
+        // 切换到「平行板偏转」模板
+        const deflectBtn = page.locator('.composition-template-btn:has-text("平行板偏转")');
+        await deflectBtn.click();
+        await delay(300);
+        const deflectGoal = await goalCard.innerText();
+        if (!deflectGoal.includes('抛物线')) {
+            throw new Error(`平行板偏转教学目标不符: ${deflectGoal}`);
+        }
+        console.log('✓ 平行板偏转模板切换成功');
+
+        // 切换到「磁聚焦」模板
+        const focusBtn = page.locator('.composition-template-btn:has-text("磁聚焦")');
+        await focusBtn.click();
+        await delay(300);
+        const focusGoal = await goalCard.innerText();
+        if (!focusGoal.includes('会聚')) {
+            throw new Error(`磁聚焦教学目标不符: ${focusGoal}`);
+        }
+        console.log('✓ 磁聚焦模板切换成功');
+
+        // 清空实验台，准备进入器材旋转编辑与回放测试
+        const resetBtn = page.locator('.composition-reset-btn');
+        await resetBtn.click();
+        await delay(150);
+        const goalCardCount = await page.locator('.composition-template-goal-card').count();
+        if (goalCardCount > 0) {
+            throw new Error('清空实验台后教学目标卡片未消除');
+        }
+        console.log('✓ 清空实验台成功，模板激活态复位');
 
         // 3. 添加圆形线圈
         const addCoilBtn = page.locator('.composition-palette-grid button:has-text("圆形线圈")');

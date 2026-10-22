@@ -3,7 +3,7 @@ import type { FieldSource, Vector3D, CompositionParticle, CompositionSimResult, 
 import { simulateComposition, validateComposition } from 'physics-core';
 import { snapVector } from '../utils/compositionCoords';
 import { FIELD_LINE_DENSITY, clampFieldLineDensity } from '../components/composition/fieldLineSeeds';
-
+import { getCompositionTemplate } from '../components/composition/compositionTemplates';
 /**
  * 组合实验台状态 (L4) — 器材布置 + 粒子 + 自动重仿真。
  *
@@ -87,6 +87,8 @@ let nextId = 1;
 interface CompositionState {
     sources: PlacedSource[];
     selectedId: string | null;
+    /** 当前激活的预设实验模板 ID (null = 空白台或已自定义) */
+    activeTemplateId: string | null;
     particle: CompositionParticle;
     duration: number;
     sampleCount: number;
@@ -120,6 +122,8 @@ interface CompositionState {
     toggleMagneticFieldLines: () => void;
     /** 设置场线密度倍率 (夹取到档位区间, #93) */
     setFieldLineDensity: (density: number) => void;
+    /** 加载预设实验模板 (单次 commit 替换场源/粒子/时长/场线并重仿真) */
+    loadTemplate: (id: string) => void;
     resetLab: () => void;
 }
 
@@ -154,6 +158,7 @@ export const useCompositionStore = create<CompositionState>((set, get) => ({
     showMagneticFieldLines: false,
     fieldLineDensity: FIELD_LINE_DENSITY.default,
     fieldLineRevision: 0,
+    activeTemplateId: null,
 
     addSource: (kind, position) => {
         const def = SOURCE_DEFAULTS[kind];
@@ -164,6 +169,7 @@ export const useCompositionStore = create<CompositionState>((set, get) => ({
             const next: Partial<CompositionState> = {
                 sources: [...s.sources, { id, source: placed }],
                 selectedId: id,
+                activeTemplateId: null,
                 fieldLineRevision: s.fieldLineRevision + 1
             };
             return { ...next, ...recompute({ ...get(), ...next } as CompositionState) };
@@ -187,6 +193,7 @@ export const useCompositionStore = create<CompositionState>((set, get) => ({
                 sources: s.sources.map(p =>
                     p.id === id ? { ...p, source: { ...p.source, ...patch } as FieldSource } : p
                 ),
+                activeTemplateId: null,
                 fieldLineRevision: s.fieldLineRevision + 1
             };
             return { ...next, ...recompute({ ...get(), ...next } as CompositionState) };
@@ -200,6 +207,7 @@ export const useCompositionStore = create<CompositionState>((set, get) => ({
                     if (p.id !== id || p.source.kind !== 'uniform-field-zone') return p;
                     return { ...p, source: { ...p.source, [key]: { ...p.source[key], ...patch } } as FieldSource };
                 }),
+                activeTemplateId: null,
                 fieldLineRevision: s.fieldLineRevision + 1
             };
             return { ...next, ...recompute({ ...get(), ...next } as CompositionState) };
@@ -211,6 +219,7 @@ export const useCompositionStore = create<CompositionState>((set, get) => ({
             const next: Partial<CompositionState> = {
                 sources: s.sources.filter(p => p.id !== id),
                 selectedId: s.selectedId === id ? null : s.selectedId,
+                activeTemplateId: null,
                 fieldLineRevision: s.fieldLineRevision + 1
             };
             return { ...next, ...recompute({ ...get(), ...next } as CompositionState) };
@@ -221,7 +230,7 @@ export const useCompositionStore = create<CompositionState>((set, get) => ({
 
     setParticle: patch => {
         set(s => {
-            const next: Partial<CompositionState> = { particle: { ...s.particle, ...patch } };
+            const next: Partial<CompositionState> = { particle: { ...s.particle, ...patch }, activeTemplateId: null };
             return { ...next, ...recompute({ ...get(), ...next } as CompositionState) };
         });
     },
@@ -229,7 +238,7 @@ export const useCompositionStore = create<CompositionState>((set, get) => ({
     setDuration: duration => {
         if (!Number.isFinite(duration) || duration <= 0) return;
         set(() => {
-            const next: Partial<CompositionState> = { duration };
+            const next: Partial<CompositionState> = { duration, activeTemplateId: null };
             return { ...next, ...recompute({ ...get(), ...next } as CompositionState) };
         });
     },
@@ -238,10 +247,38 @@ export const useCompositionStore = create<CompositionState>((set, get) => ({
     toggleMagneticFieldLines: () => set(s => ({ showMagneticFieldLines: !s.showMagneticFieldLines })),
     setFieldLineDensity: density => set({ fieldLineDensity: clampFieldLineDensity(density) }),
 
+    loadTemplate: id => {
+        const template = getCompositionTemplate(id);
+        if (!template) return;
+        set(s => {
+            const placedSources: PlacedSource[] = template.sources.map(src => ({
+                id: `${src.kind}-${nextId++}`,
+                source: JSON.parse(JSON.stringify(src))
+            }));
+            const next: Partial<CompositionState> = {
+                sources: placedSources,
+                selectedId: null,
+                activeTemplateId: template.id,
+                particle: {
+                    ...template.particle,
+                    position: { ...template.particle.position },
+                    velocity: { ...template.particle.velocity }
+                },
+                duration: template.duration,
+                sampleCount: template.sampleCount ?? SAMPLE_COUNT_DEFAULT,
+                showElectricFieldLines: template.showElectricFieldLines ?? true,
+                showMagneticFieldLines: template.showMagneticFieldLines ?? false,
+                fieldLineRevision: s.fieldLineRevision + 1
+            };
+            return { ...next, ...recompute({ ...get(), ...next } as CompositionState) };
+        });
+    },
+
     resetLab: () => {
         set(s => ({
             sources: [],
             selectedId: null,
+            activeTemplateId: null,
             particle: { ...PARTICLE_DEFAULT },
             duration: DURATION_DEFAULT,
             result: null,

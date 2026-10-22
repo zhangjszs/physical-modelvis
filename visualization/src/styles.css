@@ -2617,6 +2617,50 @@ body {
     gap: 6px;
     margin-top: 8px;
 }
+.composition-template-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-top: 4px;
+}
+.composition-template-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px 8px;
+    font-size: var(--text-small);
+}
+.composition-template-btn.active {
+    background: var(--brand-gradient);
+    color: #fff;
+    border-color: transparent;
+}
+.composition-template-icon {
+    font-size: 13px;
+    line-height: 1;
+}
+.composition-template-name {
+    font-size: 12px;
+}
+.composition-template-goal-card {
+    background: var(--surface);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm, 6px);
+    padding: 8px 10px;
+    margin-top: 8px;
+}
+.composition-template-goal-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text2);
+    margin-bottom: 3px;
+}
+.composition-template-goal-text {
+    font-size: 12px;
+    color: var(--text);
+    line-height: 1.45;
+}
 .composition-field-label {
     display: flex;
     align-items: center;
