@@ -1049,3 +1049,32 @@ eslint tests 目录 `no-explicit-any` 降 warn）与 `36aed93`（移除 scripts/
 - **契约 6.1 分界**：#101 门禁复核、队列维持、新建维护性 P3 单与排序均属规划者权限；未触红线（#152 判定理由如上并在 Issue 正文留档）、未改门禁数值与代码。
 - **pending 状态**：维持**清零**；本轮无用户拍板事项。
 - **影响范围**：新建 #152（入今日队列次位）；PLAN.md / TASKS.md 四十五次滚动刷新；**代码零改动、门禁数值零改动**。
+
+---
+
+## D58 · 四十六次滚动（2026-10-22 · 验收与排程轮）：#101/#152 验收 CLOSED + M8 收官 + 解锁 #151 + 新建 #154
+
+- **日期**：2026-10-22（四十六次滚动 · 每日规划验收与排程轮）
+- **验收昨日产出（独立复核，非只信报告）**：
+  - **#101（组合实验台预设实验模板）通过 (CLOSED)**：
+    1. 交付提交 `9f532e2` 与 `--no-ff` 合并提交 `1daf121` 经 `git merge-base --is-ancestor` 均为 main 祖先。
+    2. 模板定义与数学断言：`compositionTemplates.ts` 提供 4 个经典实验模板（速度选择器、质谱仪、平行板偏转、磁聚焦）；7 例单测全绿，物理数学断言确凿（直线偏转 <1e-5m、质谱仪 2R 约 0.50m、平抛偏转曲线、磁聚焦束径缩小 >3 倍）；全部器材坐标与尺寸严格通过 `snapVector(v, 0.25)` 检验并过 `validateComposition`。
+    3. 单次 commit 状态管理：`useCompositionStore.loadTemplate(id)` 在单次 `set()` 内置换场源并仅调用一次 `recompute()`，单测通过；新增 `activeTemplateId` 状态平滑复位。
+    4. 浏览器产品交互实测：本轮独立重跑 `node scripts/verify-composition-interaction.mjs` exit 0；四大模板一键切换、清空复位、教学目标卡片展开全通；画布像素差异率达 98.3%，真实截图保存至 `.scratch/`（102kB / 106kB）；全程零 console error。
+    5. 门禁与自检：11 层物理自检 11 PASS / 0 FAIL；测试数真值 2963（core 1169 / viz 1794，`count:check` exit 0）；CI `39775867914` + Deploy `39776322562` 双绿。
+    - **结论**：关闭 #101，清理 `in-review` 标签；**Milestone M8（组合实验台产品功能线）2 / 2 收官（100%）**。
+  - **#152（QA 巡检流水线 upload-artifact v4 → v7）通过 (CLOSED)**：
+    1. 交付提交 `29d73a2` 与 `--no-ff` 合并提交 `8fe01ea` 经 `git merge-base --is-ancestor` 均为 main 祖先。
+    2. 范围精确：`git diff` 仅 1 行版本号对齐；`grep -rn "upload-artifact@"` 全仓 0 处 `@v4` 残留。
+    3. 工作流实跑取证：PR smoke run `39778247099` 成功生成产物 `qa-sweep-report-26`（1120 bytes），运行页 Node.js 20 弃用告警彻底消除。
+    4. CI `39776937440` + Deploy `39777860720` 双绿。
+    - **结论**：关闭 #152，清理 `in-review` 标签。
+- **裁定与排程**：
+  - **#151 解锁入队首**：依赖 #101 已关闭，摘除 `blocked` 标签，添加 `ready-for-agent`，作为今日队列首位。任务范围保持为交互探针补画布像素级和推进比断言，不修改应用源码。
+  - **新建 #154（P3 · type:docs · ready-for-agent · 今日队列次位）**：README 演示截图脚本与物料更新。M8 组合台新增模板与回放后，`docs/screenshots/06-composition-bench.png` 呈现陈旧界面；`scripts/capture-screenshots.mjs` 仍残留针对 OCR 的临时 `addStyleTag` 规避（#112 已解决）与过时头注释描述。更新采集配方以展示 M8 新能力并重新生成截图，约束在单张 ≤1MB、总量 ≤8MB。
+  - 今日队列 = **#151 → #154**（2 个 ready 任务，顺序串行）。
+  - #44 维持 parked（D44=B），本轮不解冻。
+- **契约 6.1 分界**：任务验收、依赖解锁、新建维护性文档/测试 P3 单与队列排序均属规划者自决；未触 1.10 红线，未改门禁阈值与业务代码。
+- **pending 状态**：维持**清零**；本轮无用户拍板事项。
+- **远程分支清理观察**：`origin/agent/issue-95-shadow-adaptive` / `origin/agent/issue-96-default-on-grid` 继续只上报、不代删（契约 1.9）。本地分支 `agent/issue-150-theme-tokens-slice-2` 已确认由执行棒删除。
+- **影响范围**：#101/#152 CLOSED；#151 摘 blocked 转 ready；新建 #154（ready）；PLAN.md / TASKS.md 四十六次滚动刷新；**业务代码零改动、门禁数值零改动**。

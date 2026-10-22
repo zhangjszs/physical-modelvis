@@ -306,59 +306,58 @@
 > **治理**：新建 **#152**（P3 · area:ci）——QA 巡检 `upload-artifact@v4 → @v7`，收尾 `b67c439` 的 Node 20 告警清理漏项（该 commit 只改了 ci.yml/deploy.yml）；判定非 1.10 红线（不改流程语义、qa-sweep 不阻断 Deploy）。今日队列 = **#101 → #152**（2 单）；#151 维持 blocked、#44 parked；pending 清零。
 > 观察：本地遗留分支 `agent/issue-150-theme-tokens-slice-2`（已合并）建议执行棒下轮清理；两个远程遗留分支继续只上报不代删。
 
+> 2026-10-22 四十六次滚动（**每日规划 · 验收与排程轮**）：**in-review 积压 2 单（#101/#152）全部独立复核 CLOSED，M8 2/2 收官**——
+> Planner 逐单独立取证（非只信报告）：交付提交 `9f532e2`/`29d73a2` 与 `--no-ff` 合并提交 `1daf121`/`8fe01ea` 经 `git merge-base --is-ancestor` 均为 main 祖先；
+> **本轮独立实测复核**：`compositionTemplates.test.ts` 7 例 + `compositionStore.test.ts` 17 例（共 24 passed · exit 0）；四大模板数学特性断言确凿且全部过 `snapVector(v, 0.25)` 与 `validateComposition`；
+> `node scripts/verify-composition-interaction.mjs` **独立重跑 exit 0**（四大模板切换 + 画布像素差异率 98.3% + 真实截图存盘，零 console error）；
+> `grep -rn "upload-artifact@"` 全仓 0 处 `@v4` 残留；PR smoke run `39778247099` 成功生成产物 `qa-sweep-report-26` 且彻底消除 Node 20 弃用告警；
+> 11 层物理自检 `selfcheck` 11 PASS / 0 FAIL；测试数真值 2963（core 1169 / viz 1794，`count:check` exit 0）；CI `39775867914` & `39776937440` + Deploy `39776322562` & `39777860720` 双绿；
+> 执行棒已顺手删除已合并本地分支 `agent/issue-150-theme-tokens-slice-2`。
+> **治理与排程**：
+> - #101 关闭，**Milestone M8 组合实验台产品功能线 2/2 正式收官**；
+> - **#151 依赖解除，摘除 `blocked` 标签转入 `ready-for-agent`（今日队首）**；
+> - 新建 **#154**（P3 · type:docs · ready-for-agent · 今日次位）：README 演示截图脚本与物料更新（06 组合台截图反映 M8 模板/回放/朝向新界面，清理 `capture-screenshots.mjs` 中陈旧的 OCR `addStyleTag` 规避与过时注释）。
+> 今日队列 = **#151 → #154**（2 个 ready 任务）；#44 维持 parked（D44=B）；pending 清零。
+
 ## 当前方向
 
-**四十五次滚动（2026-10-22 · 复核轮）**：自上轮起 Executor 未运行，无验收产出；**队列维持 #101，即日开工**。**#100 验收 CLOSED —— M8 进度 1/2**。
-**今天最重要的事**：完成 **M8 最后一单 #101（P2 · 预设实验模板）**，打通「打开 → 点模板 → 30 秒进入标准实验」课堂主路径：
-- **#101（P2 · ready · 队首）**：≥3 个模板一键加载（速度选择器/质谱仪/平行板偏转，磁聚焦可选）、单次 commit、store 测试 + 真实截图/画布像素证据。
-- **#152（P3 · ready · 次位）**：QA 巡检 upload-artifact 版本对齐（收尾 b67c439），dispatch/PR smoke 实跑取证。
-- **#151（P3 · blocked）**：浏览器探针像素断言强化（承接 #100 证据强度缺口），在 #101 关闭、Planner 解阻后开工，避免同文件并发。
+**四十六次滚动（2026-10-22 · 每日规划验收与排程轮）**：#101 与 #152 验收关闭，**Milestone M8（组合实验台产品功能线）2 / 2 正式收官**。
+**今天最重要的事**：巩固 M8 成果，推进端到端交互证据补齐与开源演示物料同步：
+- **#151（P3 · ready · 队首）**：浏览器探针视觉断言强化（承接 #100 证据缺口），在 `verify-composition-interaction.mjs` 补充改角度/暂停/跳帧画布像素差异与倍速推进比断言，完成红向拦截验证。
+- **#154（P3 · ready · 次位）**：README 演示截图脚本与物料更新，更新 06 截图反映 M8 预设模板与轨迹回放新貌，清理陈旧 OCR 样式规避代码与过时注释。
 **明确不在今天**：#44 React 19（parked，D44=B）；场景 Canvas 调色板迁移（D45 第 ② 类）；#103 派生重构（D31 暂缓）。
-**下一轮展望**：M8 收官后回到缺陷/体验收口或按用户新方向规划。
+**下一阶段展望**：M8 证据与物料收口后，可按用户决策启动新的产品方向或推进存量技术债清理。
 
-## 今日目标（2026-10-22 · 四十五次滚动）
+## 今日目标（2026-10-22 · 四十六次滚动）
 
-- **#101（队首）**：≥3 个预设模板一键加载出正确物理图像（直线/圆弧/抛物线），单次 commit 不逐器材重仿真，模板参数过 `validateComposition` 且落 0.25m 网格，store 层测试 + 真实截图。
-- **#152（次位）**：qa-sweep `upload-artifact` v4→v7 对齐，实跑取证（run success + annotations 无 Node 20 弃用 + artifact 正常）。
-- **#151（blocked，#101 关闭并解阻后）**：交互探针补画布像素级断言（改角度重画 / 暂停静止 / 跳帧 / 倍速推进比），红向验证可拦截。
+- **#151（队首）**：`verify-composition-interaction.mjs` 增设 4 类画布像素级/推进比断言（改角度显著差异、暂停 300ms 像素一致、跳帧画面差异、倍速推进比 ≈ 4:1），红向验证可拦截，既有 10 项断言全过，零 console error。
+- **#154（次位）**：`scripts/capture-screenshots.mjs` 优化 06 采集配方展示 M8 新能力，移除陈旧的 OCR `addStyleTag`，生成截图满足单张 ≤1MB、总量 ≤8MB 预算约束，README 文案自洽。
 - 交付 commit 以 `--no-ff` 入 main 成祖先，CI+Deploy 双绿，precheck（含 11 层自检）pass。
 
-## 已完成 Milestone：M6 · 物理世界盒子 UI 统一与组件复用收口（7 / 7 · 2026-10-20 收官）
-- #137 / #138 / #139 / #142 / #145 / #146 / #147 全部 CLOSED；验收证据见各 Issue 的 Planner 验收 comment。
-
-## 已完成 Milestone：M7 · UI 基础质量收口：浮层可访问性与主题色单一真源（3 / 3 · 2026-10-21 四十三次滚动收官）
-- #148（Esc/焦点/dialog 语义）、#149（themeTokens 切片 1）、#150（SimulationCanvas 47 处 `isDark ?` 清零 + EquipmentStage 3D 背景 token 化）全部 CLOSED；验收证据见各 Issue 的 Planner 验收 comment。
-- 完成信号达成：`theme-tokens.test.tsx` 逐项对齐 `styles.css`、红向改值必报红；GraphPanel / PhotogateTimer / SimulationCanvas / EquipmentStage 无散落颜色三元与硬编码 hex；precheck 全绿 + 4 探针 exit 0 + CI/Deploy 双绿。
-
-## 当前 Milestone：M8 · 组合实验台产品功能线（进度：1 / 2 · 2026-10-21 四十四次滚动验收 #100）
+## 已完成 Milestone：M8 · 组合实验台产品功能线（2 / 2 · 2026-10-22 四十六次滚动收官）
 
 ### 目标与验收
 - [x] **#100**（P2 · ✅ CLOSED 四十四次滚动）：器材旋转编辑（线圈 axis / 极板 normal / 导线 direction 预设轴 + 角度）+ 轨迹回放控制（播/暂停、倍速 0.25×–2×、进度滑块）+ 空格/Delete 键盘路径；Playwright 探针独立重跑 10 项全过、零 console error（证据强度缺口转 #151）。
-- [ ] **#101**（P2 · ready · 队首）：3–4 个预设实验模板一键加载出正确物理图像；模板加载单次 commit；每模板 ≥1 个 store 层测试；浏览器实测 + 真实截图 + 画布像素变化断言。
+- [x] **#101**（P2 · ✅ CLOSED 四十六次滚动）：4 个经典预设实验模板（速度选择器/质谱仪/平行板偏转/磁聚焦）一键加载出正确物理图像；模板加载走单次 commit 不逐器材重仿真；全部器材坐标尺寸严格按 0.25m 网格并过 validateComposition；store 层单测 + 浏览器实测真实截图与画布像素差异断言（98.3%）；precheck、CI、Deploy 全绿。
 
-### 完成信号（Success signal）
-- 老师「停在最高点讲受力」：回放可暂停在任意帧、倍速可调、暂停时 rAF 不空转（与 #79 按需渲染约定一致）。
+### 完成信号（Success signal 达成）
+- 老师「停在最高点讲受力」：回放可暂停在任意帧、倍速可调、暂停时 rAF 不空转。
 - 课堂主路径达成：打开组合台 → 点模板 → 30 秒内进入标准实验（浏览器实测截图存证，零 console error）。
 - precheck（含 11 层自检）全绿，CI + Deploy 双绿。
 
-### 明确非目标（Non-goals）
-- 不做自由向量输入控件；不改 fields3d 引擎接口与数值语义。
-- 不含螺线管等新器材类型（#94 §5 第二波后备，按需另立）；不做模板导入导出/分享。
-- 不升 React 19（#44 parked）；不做场景 Canvas 调色板迁移（D45 第 ② 类）；不拆 FormulaPanel（D31 暂缓）。
+## 当前阶段：M8 质量收尾与开源物料收口
 
-### 执行队列（给 Executor 的建议顺序，2 个 ready + 1 个 blocked）
-1. **#101** 预设实验模板（P2 · area:render · ready-for-agent）——今日 M8 项，队首。
-2. **#152** QA 巡检 upload-artifact 版本对齐（P3 · area:ci · ready-for-agent）——#101 完成有余量再接（四十五次滚动新建）。
-3. **#151** 浏览器探针像素断言强化（P3 · area:render · **blocked**）——依赖 #101 关闭，解阻后转 ready（同文件并发保护）。
+### 执行队列（给 Executor 的建议顺序，2 个 ready）
+1. **#151** 浏览器探针像素断言强化（P3 · area:render · ready-for-agent）——今日队首。
+2. **#154** README 演示截图脚本与物料更新（P3 · type:docs · ready-for-agent）——今日次位（四十六次滚动新建）。
 
 ## 已知阻塞与依赖
-- **#101**：#100 已 CLOSED，依赖解除，可即日开工。
-- **#151**：依赖 #101 关闭（两者都可能修改 `scripts/verify-composition-interaction.mjs`）；当前挂 `blocked`，关闭后由 Planner 摘除转 ready。
-- **#152**：无依赖（与 #101/#151 无文件交集）；红线判定见 Issue 正文与 D57。
+- **#151**：#101 已 CLOSED，依赖解除，可即日开工。
+- **#154**：排在 #151 之后（同属测试/验证脚本类任务，串行执行）。
 - **#44（React 19）**：parked（D44=B）勿领，解除条件三条见 Issue comment。
-- **分支清理（需用户点头，默认不做）**：`origin/agent/issue-95-shadow-adaptive` / `origin/agent/issue-96-default-on-grid` 均为 main 祖先且 Issue CLOSED，继续只上报不代删；本地 `agent/issue-150-theme-tokens-slice-2`（已合并）建议执行棒下轮顺手 `git branch -d`。
+- **分支清理（需用户点头，默认不做）**：`origin/agent/issue-95-shadow-adaptive` / `origin/agent/issue-96-default-on-grid` 均为 main 祖先且 Issue CLOSED，继续只上报不代删；本地 `agent/issue-150-theme-tokens-slice-2` 已由执行棒清理完毕。
 ## 下一阶段
-- M8 两单收官后，组合实验台具备「旋转编辑 + 回放控制 + 预设模板」完整课堂链路。
+- M8 证据与物料收口后，组合实验台具备完整的课堂链路与演示物料。
 - 届时方向：回到缺陷/体验收口（按巡检发现立单），或按用户新方向规划（#103 派生重构、#44 解除条件等均需用户拍板）。
 ## 已放弃的方向
 - M5 立项（D19 用户已定不立项；#100–#104 维持 parked）。
