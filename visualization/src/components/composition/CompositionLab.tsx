@@ -3,6 +3,7 @@ import { CompositionStage } from './CompositionStage';
 import { NumberField } from '../common/NumberField';
 import { PanelSection } from '../common/PanelSection';
 import { DirectionEditor } from './DirectionEditor';
+import { COMPOSITION_TEMPLATES } from './compositionTemplates';
 import type { FieldSource, Vector3D } from 'physics-core';
 
 type UniformFieldZone = Extract<FieldSource, { kind: 'uniform-field-zone' }>;
@@ -121,6 +122,8 @@ export function CompositionLab({ onExit }: { onExit: () => void }) {
     const validationMessage = useCompositionStore(s => s.validationMessage);
     const addSource = useCompositionStore(s => s.addSource);
     const updateSourceParams = useCompositionStore(s => s.updateSourceParams);
+    const activeTemplateId = useCompositionStore(s => s.activeTemplateId);
+    const loadTemplate = useCompositionStore(s => s.loadTemplate);
     const removeSource = useCompositionStore(s => s.removeSource);
     const setParticle = useCompositionStore(s => s.setParticle);
     const setDuration = useCompositionStore(s => s.setDuration);
@@ -133,6 +136,8 @@ export function CompositionLab({ onExit }: { onExit: () => void }) {
     const resetLab = useCompositionStore(s => s.resetLab);
 
     const selected = sources.find(p => p.id === selectedId) ?? null;
+
+    const activeTemplate = COMPOSITION_TEMPLATES.find(t => t.id === activeTemplateId) ?? null;
 
     return (
         <div className="classroom-scene composition-layout">
@@ -160,6 +165,33 @@ export function CompositionLab({ onExit }: { onExit: () => void }) {
                             </button>
                         ))}
                     </div>
+                </PanelSection>
+
+                <PanelSection title="📋 实验模板">
+                    <div className="composition-template-grid">
+                        {COMPOSITION_TEMPLATES.map(tmpl => {
+                            const isActive = activeTemplateId === tmpl.id;
+                            return (
+                                <button
+                                    key={tmpl.id}
+                                    className={`btn btn-sm composition-template-btn${isActive ? ' active' : ''}`}
+                                    onClick={() => loadTemplate(tmpl.id)}
+                                    title={tmpl.description}
+                                >
+                                    <span className="composition-template-icon">{tmpl.icon}</span>
+                                    <span className="composition-template-name">{tmpl.name}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                    {activeTemplate ? (
+                        <div className="composition-template-goal-card">
+                            <div className="composition-template-goal-title">🎯 教学目标</div>
+                            <div className="composition-template-goal-text">{activeTemplate.teachingGoal}</div>
+                        </div>
+                    ) : (
+                        <p className="composition-desc">点击模板一键布置经典电磁实验，或在下方自由添加器材。</p>
+                    )}
                 </PanelSection>
 
                 <PanelSection title="带电粒子">

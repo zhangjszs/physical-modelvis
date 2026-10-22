@@ -197,4 +197,71 @@ describe('compositionStore 组合实验台状态', () => {
         // 密度由渲染层直接订阅 (与 E/B 开关同款即时重画), 不走 sources 版本号
         expect(useCompositionStore.getState().fieldLineRevision).toBe(revision0);
     });
+    it('loadTemplate 针对每个模板成功加载且 result.completed 为 true，场源数量与激活 ID 正确', () => {
+        const store = useCompositionStore.getState();
+        const templates = ['velocity-selector', 'mass-spectrometer', 'electric-deflection', 'magnetic-focusing'];
+
+        for (const tid of templates) {
+            store.resetLab();
+            expect(useCompositionStore.getState().sources).toHaveLength(0);
+
+            store.loadTemplate(tid);
+            const s = useCompositionStore.getState();
+            expect(s.activeTemplateId).toBe(tid);
+            expect(s.sources.length).toBeGreaterThan(0);
+            expect(s.result).not.toBeNull();
+            expect(s.result!.completed).toBe(true);
+            expect(s.result!.trajectory.length).toBeGreaterThan(50);
+            expect(s.validationMessage).toBeNull();
+        }
+    });
+
+    it('loadTemplate 走单次 commit: 一次性替换并重仿真，fieldLineRevision 仅自增 1', () => {
+        const store = useCompositionStore.getState();
+        store.resetLab();
+        const rev0 = useCompositionStore.getState().fieldLineRevision;
+
+        // 加载包含 3 个场源的模板
+        store.loadTemplate('velocity-selector');
+        const s = useCompositionStore.getState();
+        expect(s.sources).toHaveLength(3);
+        // fieldLineRevision 仅自增 1 (单次 commit 约定，绝非逐器材累加)
+        expect(s.fieldLineRevision).toBe(rev0 + 1);
+        expect(s.result?.completed).toBe(true);
+    });
+
+    it('loadTemplate 后添加器材/修改参数/清空实验台均清空 activeTemplateId', () => {
+        const store = useCompositionStore.getState();
+        store.loadTemplate('velocity-selector');
+        expect(useCompositionStore.getState().activeTemplateId).toBe('velocity-selector');
+
+        // 改粒子参数
+        store.setParticle({ charge: 2e-4 });
+        expect(useCompositionStore.getState().activeTemplateId).toBeNull();
+
+        // 重新加载模板
+        store.loadTemplate('velocity-selector');
+        expect(useCompositionStore.getState().activeTemplateId).toBe('velocity-selector');
+
+        // 加器材
+        store.addSource('point-charge');
+        expect(useCompositionStore.getState().activeTemplateId).toBeNull();
+
+        // 清空
+        store.loadTemplate('velocity-selector');
+        store.resetLab();
+        expect(useCompositionStore.getState().activeTemplateId).toBeNull();
+    });
+
+    it('loadTemplate 传入非法 ID 时静默忽略，不破坏现有状态', () => {
+        const store = useCompositionStore.getState();
+        store.resetLab();
+        store.addSource('bar-magnet');
+        const sBefore = useCompositionStore.getState();
+
+        store.loadTemplate('non-existent-template-id');
+        const sAfter = useCompositionStore.getState();
+        expect(sAfter.sources).toHaveLength(sBefore.sources.length);
+        expect(sAfter.activeTemplateId).toBeNull();
+    });
 });
