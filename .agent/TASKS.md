@@ -7,7 +7,7 @@
 
 ## 今日队列（2026-10-22 · 四十五次滚动 · 执行顺序，2 个 ready）
 
-- [ ] **#101（P2 · type:feature/area:render · ready-for-agent）组合实验台预设实验模板：高频电磁场景一键布置**（M8 第二单 · 队首）
+- [ ] **#101（P2 · type:feature/area:render · in-review）组合实验台预设实验模板：高频电磁场景一键布置**（M8 第二单 · 队首）
   - **背景**：课堂主路径「打开 → 30 秒进入标准实验」缺席，空白台 + 手动凑参数备课成本高。
   - **范围**：≥3 个模板（速度选择器 / 质谱仪 / 平行板偏转，磁聚焦可选）+ `loadTemplate(id)` 单次 commit + 「📋 模板」面板区 + 每模板一句教学目标。
   - **开工口径（Planner comment issuecomment-6318541200）**：模板位置/尺寸按 0.25m 网格（对齐台面可视网格；`snapVector` 默认步长 0.05，请显式传 `snapVector(v, 0.25)`）；参数全过 `validateComposition`；加载仅触发一次重仿真；浏览器探针输出真实截图 + 模板加载前后画布像素变化断言。
@@ -17,7 +17,7 @@
   - **测试要求**：store 层单测 + 浏览器级产品交互验收实跑（双证据）。
   - **本轮前提复核（Planner 实测）**：`snapVector`（`compositionCoords.ts:39`，默认步长 0.05，接受自定义 step）/ `validateComposition`（`compositionStore.ts:133` 消费）在位；`loadTemplate` 全仓 0 命中（确未开工）；台面可视网格 0.25m（`CompositionStage.tsx:90` GridHelper 8m/32 分格）。
 
-- [ ] **#152（P3 · type:chore/area:ci · ready-for-agent）QA 巡检 upload-artifact v4 → v7（收尾 b67c439，消除 Node 20 弃用告警）**
+- [ ] **#152（P3 · type:chore/area:ci · in-review）QA 巡检 upload-artifact v4 → v7（收尾 b67c439，消除 Node 20 弃用告警）**
   - **背景**：QA 巡检 run `39682553419` annotations 现「Node.js 20 is deprecated … upload-artifact@v4」；`qa-sweep.yml:82` 仍 `@v4`，而 ci.yml 已是 `@v7`——`b67c439` 升级时遗漏 `qa-sweep.yml`。
   - **范围**：仅 qa-sweep.yml 一行版本号对齐（步骤参数逐项不变）+ 实跑取证（dispatch 或 PR smoke：run success、artifact 正常、annotation 消失）。
   - **明确不包含**：不改触发条件/job 结构/门禁语义；不升级其他 action；不触依赖与 Node 版本。

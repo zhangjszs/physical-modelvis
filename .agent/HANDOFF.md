@@ -4,69 +4,63 @@
 
 ## 本轮概要
 
-本轮（2026-10-21 · `executor-20261021b` · Execution Agent）完成 **#100 组合实验台交互增强：器材旋转编辑 + 轨迹回放控制**，功能与测试已验证并通过 `--no-ff` 合入 main 推送，CI 与 Deploy 双绿，等待 Planner 验收关闭。
+本轮（2026-10-22 · `executor-20261022` · Execution Agent）串行清空今日队列全部 2 个 ready 任务：
+1. **#101 组合实验台预设实验模板：高频电磁场景一键布置** —— 完成，功能与测试全绿，`9f532e2` 经 `--no-ff` merge `1daf121` 入 main 并已推送，CI `39775867914` + Deploy `39776322562` 双绿；
+2. **#152 QA 巡检流水线 upload-artifact v4 → v7** —— 完成，对齐版本号并消除 Node 20 告警，`29d73a2` 经 `--no-ff` merge `8fe01ea` 入 main 并已推送，CI `39776937440` + Deploy `39777860720` 双绿，工作流实跑 run `39778247099` 验证 artifact 生成且 annotation 消失。
 
-| 模块 | 内容 | 提交 |
-|---|---|---|
-| 方向计算 | `directionUtils.ts` 纯函数 + 轴向角度与 6 向预设转换 | `9b020c0` |
-| 朝向编辑 | `DirectionEditor.tsx` 检查器控件（预设轴 + 角度滑块 + 快捷按钮 + 读数） | `9b020c0` |
-| 回放控制 | `CompositionStage.tsx` 回放控制条（播/停、0.25x-2x倍速、进度跳帧、按需渲染） | `9b020c0` |
-| 键盘支持 | 空格播/停、Delete删除选中、input/textarea/select 焦点保护 | `9b020c0` |
-| 集成 | `--no-ff` 合入 main | `4d3ef08` |
+| 任务 | 内容 | 交付 Commit | Merge Commit | 结论 |
+|---|---|---|---|---|
+| #101 | 组合实验台预设实验模板：速度选择器/质谱仪/平行板偏转/磁聚焦四大场景 + 0.25m 网格对齐 + 单次 commit + 教学目标卡片 + 浏览器交互探针真实截图与像素差异断言 | `9f532e2` | `1daf121` | 完成（转 in-review） |
+| #152 | QA 巡检工作流 `upload-artifact@v4 → @v7` 版本对齐，消除 Node 20 弃用告警 | `29d73a2` | `8fe01ea` | 完成（转 in-review） |
 
 ## 已完成
 
-- **检查器器材旋转编辑**：
-  - `visualization/src/utils/directionUtils.ts`：支持 `axisAngleToVector`（Z 偏转 / X 俯仰 / Y 倾斜）、`vectorToAxisAngle` 反解、`PRESET_DIRECTIONS` 6 向预设与 `formatVector`。
-  - `visualization/src/components/composition/DirectionEditor.tsx`：提供预设旋转轴选择器、-180°~180° 滑块+输入框、六向快捷预设按钮与当前物理单位向量读数，避免自由 3D 向量输入。
-  - `visualization/src/components/composition/CompositionLab.tsx`：类型安全提取方向字段（线圈 axis / 极板 normal / 导线与磁铁 direction），零类型强转。
-  - `visualization/src/store/compositionStore.ts`：`updateSourceParams` 允许传入向量并自增 `fieldLineRevision` 触发重仿真与场线重追踪。
-- **轨迹回放控制条**：
-  - `CompositionStage.tsx`：底部半透明叠层控制条（重置到起点、播放/暂停、时间进度滑块拖动跳帧、0.25x–2x 五档倍速）。
-  - 按需渲染契约 (#79/#100)：暂停且无交互时，rAF 跳过 `renderer.render`，零 GPU 空转。
-  - 节流 UI 进度（~16Hz），避免 60fps 频繁触发 React 重渲染，3D 质点小球仍以完整 60fps 平滑插值。
-- **键盘快捷键**：
-  - 空格键控制播放/暂停，Delete 键删除选中器材。
-  - 智能焦点保护：当焦点在 input、textarea、select 或 contentEditable 时放行键盘事件，不吞打字焦点。
-- **测试覆盖与产品交互验收**：
-  - 新增 `directionUtils.test.ts`（10 例）、`directionEditor.test.tsx`（6 例）、`compositionPlayback.test.tsx`（7 例），并在 `compositionStore.test.ts` 补充方向字段单测，仓内测试数增至 **2952**（viz 1783 / core 1169）。
-  - 新增 `scripts/verify-composition-interaction.mjs`：Playwright 真实浏览器实跑 10 项交互验收，全部通过，全程零 console error。
+- **#101 组合实验台预设实验模板**：
+  - `visualization/src/components/composition/compositionTemplates.ts`：定义 4 个经典实验模板（速度选择器、质谱仪、平行板偏转、磁聚焦），位置/尺寸/粒子坐标经 `snapVector(v, 0.25)` 严格对齐台面可视网格，全部参数通过 `validateComposition`；
+  - `visualization/src/store/compositionStore.ts`：增加 `loadTemplate(id)`（单次 commit 替换并触发一次重仿真，`fieldLineRevision` 单次自增 1）与 `activeTemplateId`；
+  - `visualization/src/components/composition/CompositionLab.tsx` 与 `styles.css`：在检查器新增「📋 实验模板」专区，支持激活态展示与 `🎯 教学目标` 卡片展开/收起；
+  - `compositionTemplates.test.ts`（7 例）与 `compositionStore.test.ts`（+4 例）：验证模板元信息、物理图像数学断言（直线/圆弧/抛物线/会聚）、单次 commit 契约与非法 ID 防御；
+  - `scripts/verify-composition-interaction.mjs`：Playwright 实跑四大模板切换与复位，断言画布像素差异率（98.3%），生成存盘真实截图 `.scratch/composition-template-velocity-selector.png` (104kB) 与 `composition-template-mass-spectrometer.png` (108kB)，零 console error；
+  - 测试数由 2952 增至 **2963**（core 1169 / viz 1794），回写 README.md 与 docs/plan.md。
+- **#152 QA 巡检 upload-artifact v4 → v7**：
+  - `.github/workflows/qa-sweep.yml:82`：升级为 `actions/upload-artifact@v7`，步骤参数严格不变；全仓 grep `upload-artifact@` 确认 0 处 `@v4` 残留；
+  - PR smoke 工作流实跑取证（run `39778247099`）：success，生成 artifact `qa-sweep-report-26`（1120 bytes），运行页原有 Node.js 20 弃用告警彻底消除。
+- **分支清理**：
+  - 顺手执行规划者建议，删除本地已并入 main 的历史分支 `agent/issue-150-theme-tokens-slice-2`。
 
 ## 未完成 / 进行中（下一棒最优先看这里）
 
 - **无代码半成品，无未提交改动。**
-- #100 已转 `in-review`，等待 Planner 独立验收关闭；
-- #101 维持 `ready-for-agent`，按 D51 约定在 #100 验收关闭后开工。
+- 今日队列全部 2 个任务均已交付并转 `in-review`，等待 Planner 独立验收关闭；
+- #151（浏览器探针视觉断言强化）维持 `blocked`，待 Planner 验收关闭 #101 后解冻。
 
 ## 验证情况
 
-- `npm run precheck` exit 0（build:core → typecheck → lint → format:check → sweep → core+viz test → count:check → build:viz → check:bundle → check:publish → selfcheck）；11 层物理自检 **11 PASS / 0 FAIL**。
-- 浏览器交互验收探针 `scripts/verify-composition-interaction.mjs` 生产 preview（:4173）实测 exit 0（10 项交互全过，零 console error）。
-- 4 个已有生产 preview 探针全部 exit 0：
-  - `verify-first-frame-smoke.cjs`：3 次通过，平均首帧 709ms，必需体积 70.6 kB gzip，0 console error。
-  - `verify-overlay-drawer-smoke.cjs`：1440×900 / 1024×768 双视口全通过。
-  - `verify-portal-tokens.mjs`：暗/亮双主题设计令牌正确继承，3D/2D 画布非空。
-  - `verify-guidance-smoke.cjs`：全流程通过。
-- GitHub Actions CI `39596743691` success（2m9s）；Deploy `39597035981` success（21s）。
-- `count:check` exit 0：core 1169 / viz 1783 / total **2952**。
+- `npm run precheck` exit 0（build:core → typecheck → lint → format:check → sweep → core+viz test → count:check → build:viz → check:bundle → check:publish → selfcheck）；11 层物理自检 **11 PASS / 0 FAIL**；
+- 浏览器交互验收探针 `scripts/verify-composition-interaction.mjs` 实测 exit 0（模板切换 + 像素断言 98.3% + 截图存盘 + 回放控制全过，零 console error）；
+- GitHub Actions CI `39775867914`（#101）& `39776937440`（#152）全部 success；
+- GitHub Actions Deploy `39776322562` & `39777860720` 全部 success；
+- QA 巡检工作流实跑 `39778247099` 成功生成 artifact 且消除 Node 20 告警；
+- `count:check` exit 0：core 1169 / viz 1794 / total **2963**。
 
 ## 风险与注意事项
 
-1. **回放状态保留在局部**：播放/暂停、倍速、时间跳帧均留在 `CompositionStage` 内部，不写入全局 `compositionStore`，确保顶层组件不会因回放高频刷新。
-2. **按需渲染口径**：暂停且无交互（相机静止、未拖动进度）时，Three.js 的 `renderer.render` 调用数为 0；任何 controls change 或 slider scrub 都会置脏补帧。
+1. **模板单次 commit 契约**：`loadTemplate` 在一次 `set()` 中置换全部场源与粒子，保证只调用一次 `recompute()`，避免 3D 渲染与物理引擎因逐个器材添加发生多次冗余重仿真。
+2. **0.25m 网格一致性**：模板数据定义直接调用 `snapVector(..., 0.25)` 消除浮点尾尘，与 `CompositionStage.tsx` 的 32 分格台面网格物理对齐。
 3. **回滚手册**：
-   - 撤销本任务全部代码：`git revert -m 1 4d3ef08`
+   - 撤销 #152：`git revert -m 1 8fe01ea`
+   - 撤销 #101：`git revert -m 1 1daf121`
 
 ## 给下一棒的第一步建议
 
-1. Planner 验收 #100（证据链在 Issue #100 评论，CI/Deploy 双绿，代码 merge `4d3ef08` 已成 main 祖先）；
-2. 验收通过后关闭 #100；
-3. 按 D51 解冻后置单 #101（组合实验台预设实验模板），进入 #101 实施。
+1. Planner 验收 #101 与 #152（两单执行报告均已留在各自 Issue，CI/Deploy 双绿，交付 commit 均成 main 祖先）；
+2. 验收通过后关闭 #101 与 #152；
+3. 解冻后置单 #151（浏览器探针视觉断言强化：#100 交互探针补画布像素级证据），由 Planner 摘除 `blocked` 标签排入下一轮执行队列。
 
 ## 今日日报
 
-- 已追加写入 `.agent/DIARY/2026-10-21.md`
+- 已追加写入 `.agent/DIARY/2026-10-22.md`
 
 ## 给 Planner 的信号
 
-- 继续执行即可；#100 待验收关闭，关闭后按 D51 解冻 #101。
+- 今日队列全部清空，两单均已完成交付并在 Issue 留全执行报告，主干 CI/Deploy 双绿；继续执行即可，请验收 #101 与 #152，随后可解锁 #151。
