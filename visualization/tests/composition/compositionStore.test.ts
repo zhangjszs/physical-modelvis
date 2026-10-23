@@ -197,18 +197,23 @@ describe('compositionStore 组合实验台状态', () => {
         // 密度由渲染层直接订阅 (与 E/B 开关同款即时重画), 不走 sources 版本号
         expect(useCompositionStore.getState().fieldLineRevision).toBe(revision0);
     });
-    it('loadTemplate 针对每个模板成功加载且 result.completed 为 true，场源数量与激活 ID 正确', () => {
+    it('loadTemplate 针对每个模板成功加载且 result.completed 为 true，场源数量精确匹配 3/3/2/1 与激活 ID 正确', () => {
         const store = useCompositionStore.getState();
-        const templates = ['velocity-selector', 'mass-spectrometer', 'electric-deflection', 'magnetic-focusing'];
+        const expectedSourceCounts: ReadonlyArray<{ id: string; count: number }> = [
+            { id: 'velocity-selector', count: 3 },
+            { id: 'mass-spectrometer', count: 3 },
+            { id: 'electric-deflection', count: 2 },
+            { id: 'magnetic-focusing', count: 1 }
+        ];
 
-        for (const tid of templates) {
+        for (const { id: tid, count } of expectedSourceCounts) {
             store.resetLab();
             expect(useCompositionStore.getState().sources).toHaveLength(0);
 
             store.loadTemplate(tid);
             const s = useCompositionStore.getState();
             expect(s.activeTemplateId).toBe(tid);
-            expect(s.sources.length).toBeGreaterThan(0);
+            expect(s.sources).toHaveLength(count);
             expect(s.result).not.toBeNull();
             expect(s.result!.completed).toBe(true);
             expect(s.result!.trajectory.length).toBeGreaterThan(50);
@@ -230,20 +235,39 @@ describe('compositionStore 组合实验台状态', () => {
         expect(s.result?.completed).toBe(true);
     });
 
-    it('loadTemplate 后添加器材/修改参数/清空实验台均清空 activeTemplateId', () => {
+    it('loadTemplate 后仅选中器材保持激活；实际拖动移动 + commit / 添加器材 / 修改参数 / 清空实验台均清除 activeTemplateId', () => {
         const store = useCompositionStore.getState();
-        store.loadTemplate('velocity-selector');
-        expect(useCompositionStore.getState().activeTemplateId).toBe('velocity-selector');
+        store.loadTemplate('magnetic-focusing');
+        expect(useCompositionStore.getState().activeTemplateId).toBe('magnetic-focusing');
+        const coilId = useCompositionStore.getState().sources[0]!.id;
+
+        // 仅选中器材或取消选中，保持模板激活
+        store.select(coilId);
+        expect(useCompositionStore.getState().selectedId).toBe(coilId);
+        expect(useCompositionStore.getState().activeTemplateId).toBe('magnetic-focusing');
+        store.select(null);
+        expect(useCompositionStore.getState().activeTemplateId).toBe('magnetic-focusing');
+
+        // 传相同坐标 (未发生真实位移) 保持模板激活
+        store.moveSource(coilId, { x: 0, y: 0, z: 0.25 });
+        expect(useCompositionStore.getState().activeTemplateId).toBe('magnetic-focusing');
+
+        // 真实拖动移动 + commit 松手后清除 activeTemplateId 并触发重仿真
+        const prevResult = useCompositionStore.getState().result;
+        store.moveSource(coilId, { x: 0.25, y: 0.1, z: 0.25 });
+        expect(useCompositionStore.getState().activeTemplateId).toBeNull();
+        store.commit();
+        expect(useCompositionStore.getState().activeTemplateId).toBeNull();
+        expect(useCompositionStore.getState().result).not.toBe(prevResult);
 
         // 改粒子参数
+        store.loadTemplate('velocity-selector');
+        expect(useCompositionStore.getState().activeTemplateId).toBe('velocity-selector');
         store.setParticle({ charge: 2e-4 });
         expect(useCompositionStore.getState().activeTemplateId).toBeNull();
 
-        // 重新加载模板
-        store.loadTemplate('velocity-selector');
-        expect(useCompositionStore.getState().activeTemplateId).toBe('velocity-selector');
-
         // 加器材
+        store.loadTemplate('velocity-selector');
         store.addSource('point-charge');
         expect(useCompositionStore.getState().activeTemplateId).toBeNull();
 

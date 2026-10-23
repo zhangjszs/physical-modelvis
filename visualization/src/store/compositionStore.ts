@@ -177,15 +177,26 @@ export const useCompositionStore = create<CompositionState>((set, get) => ({
     },
 
     moveSource: (id, position) => {
-        set(s => ({
-            sources: s.sources.map(p =>
-                p.id === id ? { ...p, source: applyPosition(p.source, snapVector(position)) } : p
-            ),
-            fieldLineRevision: s.fieldLineRevision + 1
-        }));
+        set(s => {
+            const nextPos = snapVector(position);
+            let changed = false;
+            const sources = s.sources.map(p => {
+                if (p.id !== id) return p;
+                const cur = getSourcePosition(p.source);
+                if (cur.x === nextPos.x && cur.y === nextPos.y && cur.z === nextPos.z) return p;
+                changed = true;
+                return { ...p, source: applyPosition(p.source, nextPos) };
+            });
+            if (!changed) return s;
+            return {
+                sources,
+                activeTemplateId: null,
+                fieldLineRevision: s.fieldLineRevision + 1
+            };
+        });
     },
 
-    commit: () => set(s => recompute(s)),
+    commit: () => set(s => ({ activeTemplateId: null, ...recompute(s) })),
 
     updateSourceParams: (id, patch) => {
         set(s => {
@@ -289,6 +300,20 @@ export const useCompositionStore = create<CompositionState>((set, get) => ({
 }));
 
 /** 把新位置写进场源对应的位置字段 (kind 决定字段名), 方向字段保持不变 */
+function getSourcePosition(source: FieldSource): Vector3D {
+    switch (source.kind) {
+        case 'point-charge':
+            return source.position;
+        case 'straight-wire':
+            return source.point;
+        case 'charged-plate':
+        case 'circular-coil':
+        case 'bar-magnet':
+        case 'uniform-field-zone':
+            return source.center;
+    }
+}
+
 function applyPosition(source: FieldSource, position: Vector3D): FieldSource {
     switch (source.kind) {
         case 'point-charge':
