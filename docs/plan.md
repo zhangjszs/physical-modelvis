@@ -5,7 +5,7 @@
 
 ---
 
-## 0. 当前状态快照 (2026-08-11 更新)
+## 0. 当前状态快照 (2026-10-24 更新)
 
 - 分支 main,工作树干净,全部已 push
 - 阶段 A-D、E-1/4/5/6 全部完成并已提交(详见下方各阶段 ✅)
@@ -23,6 +23,11 @@
 - `教材目录精讲高亮与置顶` — 在 `TextbookDirectory` 中加入 **“🌟 高中核心精讲 (24 节)”** 置顶推荐组与 `[精讲]` 勋章 Badge，极大提升老师备课选课效率
 - `高中核心精讲 (24 节) 3D 实验模块标准化升级` — 24 节核心实验 3D 真实器材建模与柔和光影、clampToGround 真实停靠、onAnimate 动态每帧物理随动；新增交互测量工具箱 `MeasurementToolbox`（悬浮标尺 + 虚拟光电门）；视角预设拓展缩放/全景居中 HUD；详见 [`docs/3D_CORE_STANDARDIZATION_SUMMARY.md`](./3D_CORE_STANDARDIZATION_SUMMARY.md)
 - `质量门禁与脚本补齐` — 根目录 `package.json` 补齐 `verify:3d` 脚本，全量 `npm run precheck` 与 9 层物理自检全部通过 (694/694 checks passed)
+- **8-11 之后的里程碑收官** (事实来源: `gh issue list --state closed` + `git log`, 各 Issue 号均 CLOSED):
+  - **M6 物理世界盒子 UI 统一与组件复用 (7/7 收官 2026-10-20)** — 复用壳抽取: PanelSection+LazyPanel (#132, merge `5252f4e`) / common/NumberField (#135, `a8dc71f`) / common/StepWizard+OverlayDrawer (#136, `10dbba9`); Design Token 切片 1-4: #138 (`9aaf3aa`) / #147 (`6d99989`) / #146 (`76019de`) / #145 (`2841124`) + 首批落地 #142 (`9e33a2a`); PanelSection 收口迁移 7 文件 (#139, `fc6c2ef`) 与窄视口遮挡修复 (#137, `d17a458`)
+  - **M7 UI 基础质量收口 (3/3 收官 2026-10-21)** — 浮层可访问性统一 (Esc 关闭+初始焦点/焦点归还+OCR 弹窗 dialog 语义, #148, merge `fc029e7`); 主题色 JS 单一真源 themeTokens 语义表 (#149, `4c07f43`) 与 SimulationCanvas/EquipmentStage 主题分支迁移 (#150, `1bdf60e`)
+  - **M8 组合实验台产品功能线+证据物料 (2+2 收官 2026-10-23)** — 器材旋转编辑+轨迹回放控制 (#100, merge `4d3ef08`); 预设实验模板一键布置 (速度选择器/质谱仪/磁聚焦/平行板偏转, #101, `8622ea0`); 收尾: 交互探针画布像素级断言强化 (#151, `9a33f58`) 与 README 演示截图更新 (#154, `8fea81a`)
+  - **CI 门禁补强** — vendor-react 懒拆保 70kB 首屏 (#140, merge `f9cd5d6`); 挂载前必需资源度量口径重建 (#141, `fedd6b5`); 4 个 headless 浏览器探针接入 CI 阻断 Deploy (#143, `b982aa0`)
 
 ---
 
