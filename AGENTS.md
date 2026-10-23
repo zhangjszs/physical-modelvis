@@ -118,11 +118,13 @@ visualization/         — React 可视化前端
     guidance/          — 引导面板 (GuidancePanel)
     ocr/               — OCR 面板与工具函数
     workbench/         — 课堂工作台 (WorkbenchScene 壳 + SceneStage 舞台 + InspectorPanel 检查器 + DataDrawer 抽屉 + TextbookDirectory 目录 + useSceneRig/useCompareSimulations/useSceneSimulation hooks)
+    composition/       — 组合实验台 (CompositionLab 面板 + CompositionStage 舞台 + DirectionEditor 朝向编辑 + compositionTemplates 预设模板 + fieldLines 场线)
   src/scenes/          — 场景配置 + buildProblem (sceneRegistry.ts + guidance.ts 引导映射)
   src/scenes/scenes/   — 场景定义按领域拆分子目录 (mechanics/electromagnetism/modern/optics/thermodynamics, index.ts 聚合) — 新增场景放到对应领域子目录, 并注册到 sceneRegistry.ts
   src/rendering/       — Canvas 2D 渲染器 (按物理领域分文件)
   src/adapters/        — physics-core 适配器 (runSceneSimulation)
   src/store/           — Zustand 状态管理
+    compositionStore.ts — 组合实验台状态机 (器材源增删/拖动吸附/朝向编辑/回放与模板激活)
   src/utils/           — 工具函数 (exportCsv 等)
   server/              — OCR 后端代理 (Express + Anthropic API, ocr-utils.ts)
   tests/accuracy/      — 渲染单一真源契约测试 (single-source-contract.test.ts)
@@ -132,6 +134,7 @@ visualization/         — React 可视化前端
 
 experiments/           — 人教版高中物理实验整理 (176 个实验, 6 册教材)
 scripts/               — 验证脚本 (self-check.mjs L0-L6 + L8-L11 物理自检, verify-*.cjs 冒烟测试)
+  verify-composition-interaction.mjs — 组合实验台交互探针 (画布像素比对+倍速推进比, 手动运行)
 ```
 
 ## Key Patterns
