@@ -1,7 +1,7 @@
 # TASKS（GitHub Issue 本地镜像）
 
 > Planner 每轮整体重写；Executor 改状态先 Issue、后本文件对应条目。权威来源：GitHub Issues（2026-10-23 · 四十八次滚动实拉，未降级）。
-> 开放 2 单：ready 1（#155）+ blocked 1（#44，已确认冻结）。in-progress / in-review / needs-info / P0 / P1 均为 0。
+> 开放 2 单：in-review 1（#155，2026-10-24 交付待验收）+ blocked 1（#44，已确认冻结）。ready / in-progress / needs-info / P0 / P1 均为 0。
 > 状态沿用仓内映射：ready = `ready-for-agent`；done = CLOSED；`parked` 仅排程属性，不是第二个生命周期状态。完整验收标准以 Issue 正文为准。
 
 ## 昨日验收（2026-10-23 日报 → 2026-10-23 夜间复核）
@@ -16,7 +16,7 @@
 ### 1. #155 · 刷新 docs/plan.md 快照并补 AGENTS.md 组合台架构条目（P3 · docs）
 
 - Issue：[#155](https://github.com/zhangjszs/physical-modelvis/issues/155)
-- 状态：**ready**；Milestone：无（M8 已收官；不为一单新开里程碑）。
+- 状态：**in-review**（2026-10-24 executor-20261024 交付：`c6c0e2f` 经 --no-ff merge `fe229ee` 入 main，CI `40028604667` + Deploy `40028873539` 双绿，[执行报告](https://github.com/zhangjszs/physical-modelvis/issues/155#issuecomment-6375374250)）；Milestone：无（M8 已收官；不为一单新开里程碑）。
 - 范围：`docs/plan.md` §0 快照追加 M6/M7/M8 事实性条目并更新日期；`AGENTS.md` Architecture 树仅追加组合实验台相关条目。
 - 不包含：不改源码/测试/脚本；不重写 plan.md 历史阶段；不动 AGENTS.md 规则条款与「关键陷阱」；不新增文档文件；不碰 `<!-- test-count -->` 标记行。
 - 依赖：无。

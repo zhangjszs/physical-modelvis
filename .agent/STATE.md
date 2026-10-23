@@ -1,21 +1,16 @@
 # STATE
-- 更新时间：2026-10-23T14:08:00Z
-- 当前任务：#101 / #151 / #154（均已交付入 main 并转 in-review；今日队列已清空）
-- 本会话：`executor-20261023`
-- 分支：main（代码已 push；最新 merge `8fea81a`）
-- 未完成工作：无代码半成品；#101、#151、#154 待 Planner 验收关闭；#44 维持 blocked（parked）
+- 更新时间：2026-10-24T00:00:00Z（本轮 executor-20261024）
+- 当前任务：#155（已交付入 main 并转 in-review；今日队列已清空）
+- 本会话：`executor-20261024`
+- 分支：main（代码已 push；最新 merge `fe229ee`）
+- 未完成工作：无代码半成品；#155 待 Planner 验收关闭；#44 维持 blocked（parked）
 - 最近提交：
-  - #101 返工 `6d164c9` + `--no-ff` merge `8622ea0`（CI `39960068670` + Deploy `39960515664` 双绿）
-  - #151 探针 `de2fe4e` + `--no-ff` merge `9a33f58`（CI `39963039327` + Deploy `39964954710` 双绿）
-  - #154 截图 `884f2ce` + `--no-ff` merge `8fea81a`（CI `39965748616` + Deploy `39966155418` 双绿）
+  - #155 文档刷新 `c6c0e2f` + `--no-ff` merge `fe229ee`（CI `40028604667` + Deploy `40028873539` 双绿）
   - 全程走完整 pre-push precheck，**未 --no-verify、未 force-push**
 - 验证结果：
-  - `npm run precheck` exit 0（11 层物理自检 11 PASS / 0 FAIL）
-  - #101 两类受控错误反例（平行板二次位移 / 质谱仪圆弧半径）与真实浏览器选中保持/拖动清除复核全过
-  - #151 浏览器交互探针 `verify-composition-interaction.mjs` exit 0（同尺寸 1128×836 解码 RGBA：模板加载 7.19%、改朝向 1.00%、暂停 300ms 0px、0.5x/2x 速率比 3.94:1、跳帧 293px，零 console error），两类受控红向反例均触发 exit 1 并已还原
-  - #154 截图采集脚本 `capture-screenshots.mjs` exit 0（6 张 1440×900，单张 ≤ 1MB、总量 1.48MB ≤ 8MB），仅提交更新的 04/06 图与 README 增量文案
-- 测试数真值：core 1169 / viz 1794 / total **2963**（`count:check` exit 0，13 数字 + 3 标记一致）
-- 首屏包体积：`check:bundle` 入口 11.5 kB / 预算 70 kB，36 个懒 chunk 全过
-- 今日日报：已写（`.agent/DIARY/2026-10-23.md`，并在 `.agent/DIARY/2026-10-22.md` 追加更正行）
+  - `npm run precheck` exit 0（11 层物理自检 11 PASS / 0 FAIL；count:check / format:check 在链中通过）
+  - grep 证据：plan.md §0 标题已更新（2026-08-11 → 0 命中）、`grep -c "M8"` = 1、AGENTS.md composition 3 命中且路径 ls 全过
+  - `git diff AGENTS.md` 删改行计数 = 0（仅新增 3 行）；diff 仅涉及 AGENTS.md + docs/plan.md 两文件
+- 今日日报：已写（`.agent/DIARY/2026-10-24.md`）
 - 已知环境限制：PATH 需 mise shims；改 physics-core 源码后须 build；preview 端口 :4173，dev 端口 :3000
 - 契约 1.2 提示：本轮未发现 `.agent/LOCK` 残留
