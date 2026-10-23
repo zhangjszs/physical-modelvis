@@ -25,12 +25,10 @@
  *   - 2D 板书画布无条件逐帧重绘且无旋转相位依赖，真实时钟下已验证稳定（第 2 张）。
  *   - 视口固定 1440×900；2D 画布在布局变化（开数据抽屉）后需触发 window.resize 才会重排。
  *
- * 已知问题绕行（已立 auto-discovered 单跟踪，不属本脚本职责）:
- *   - 生产构建（preview / 线上部署）下首屏默认场景的 3D 舞台空白（dev 模式正常），
- *     故所有 3D 图都走「点击目录场景」路径触发渲染；
- *   - OCR 弹窗因 .top-bar 的 backdrop-filter 成为 fixed 定位参照而溢出视口顶部，
- *     脚本用 addStyleTag 临时取消该属性取景（不改应用源码）。
- *
+ * 历史问题修复说明 (#111 / #112 / #154):
+ *   - #111（生产构建首屏 3D 舞台空白）与 #112（OCR 弹窗 createPortal(document.body) 视口居中）均已根治修复；
+ *   - 第 1 张图保留「先切到另一场景再切回默认场景」仅用于使虚拟时钟下的 3D 渲染帧序列收敛起点确定；
+ *   - 第 4 张图直接验证真实 Portal 挂载下的全视口居中渲染，不再注入临时 addStyleTag 绕行。
  * 环境要求: headless Chromium 需要系统中文字体，缺失时中文渲染为方块（脚本启动时检测并警告）。
  * 图片预算: 单张 ≤1MB（超限自动降级 JPEG q88）、总量 ≤8MB（超限报错）。
  */
@@ -356,11 +354,8 @@ async function clickSceneClock(page, sceneName) {
         // 3) 3D 实验器材（匀强磁场：带电粒子圆周运动 + 课堂教案）
         await clockShot('03-scene-3d-magnetic', page => clickSceneClock(page, '匀强磁场'));
 
-        // 4) AI 拍照解题面板（叠在 2D 场景上；临时取消 top-bar 毛玻璃以修正 fixed 定位参照）
+        // 4) AI 拍照解题面板（#112 createPortal(document.body) 根治后直接验证真实 Portal 视口内居中渲染）
         await clockShot('04-ocr-panel', async page => {
-            await page.addStyleTag({
-                content: '.top-bar{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}'
-            });
             await clickSceneClock(page, '玻尔氢原子模型 (能级与光谱)');
             await page.click('button:has-text("拍照解题")');
             await page.waitForSelector('.ocr-modal', { state: 'visible', timeout: 15000 });
@@ -397,18 +392,15 @@ async function clickSceneClock(page, sceneName) {
             await page.clock.runFor(300);
         });
 
-        // 6) 组合实验台（点电荷 + 圆形线圈 + 双色场线 + 2× 密度）
+        // 6) 组合实验台（#100/#101/#154：一键加载「质谱仪」预设实验模板，展示实验模板专区、教学目标卡片、双色场线、轨迹与回放控制栏）
         await clockShot('06-composition-bench', async page => {
             await page.click('button:has-text("组合实验")');
             await page.clock.runFor(1000);
             await page.waitForSelector('.composition-stage canvas', { timeout: 30000 });
-            await page.click('button[title="添加点电荷"]');
-            await page.clock.runFor(1600);
-            await page.click('button[title="添加圆形线圈"]');
-            await page.clock.runFor(1600);
-            await page.locator('label:has-text("显示磁场线 (B)") input').check();
-            await page.click('button[title*="2×"]');
-            await page.clock.runFor(1600);
+            await page.click('.composition-template-btn:has-text("质谱仪")');
+            await page.clock.runFor(2700);
+            const goalVisible = await page.locator('.composition-template-goal-card').count();
+            if (!goalVisible) throw new Error('组合实验台教学目标卡片未出现');
             const solved = await page.locator('text=轨迹求解完成').count();
             if (!solved) throw new Error('组合实验台轨迹求解未完成（"轨迹求解完成" 未出现）');
         });
