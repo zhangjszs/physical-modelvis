@@ -446,6 +446,10 @@ eslint tests 目录 `no-explicit-any` 降 warn）与 `36aed93`（移除 scripts/
 - **四十三次滚动（2026-10-21）复核：pending 维持清零**——D51 已正式兑现，#100/#101 解冻入 M8 队列；#44 维持 parked（D44=B）；本轮无新增待用户拍板事项。
 - **四十五次滚动（2026-10-22）复核：pending 维持清零**——无新用户答复待处理；#152 红线判定（非 1.10）属规划者自决列；远程分支清理维持「只上报、不代删」既定口径。
 - **四十七次滚动（2026-10-23）复核：pending 维持 0**——用户未提供新决策；#101 报告失实按协议重开，验收纠错不需产品拍板；#44 生命周期统一 blocked、parked 仅冻结属性，不改变 D44=B。未授权事项不因三天默认转正获得红线实施许可。
+- **四十八次滚动（2026-10-23）复核：新增 2 个 pending（D61 / D62，均为产品方向 / 主要 CI 流程类，必须由用户定；低风险部分按默认方案先行）**。
+  - D61 | 2026-10-23 | M8 收官后的产品方向？| A 维持维护模式：仅处理巡检缺陷、文档与 Executor 自动发现项，不立新功能；B 继续扩组合实验台（新器材 / 新模板 / 模板导入导出）；C 转向 123 场景教学内容深化（导学脚本 / 课堂脚本扩面）| 推荐 A | 默认 A | pending（第 1 天询问）
+  - D62 | 2026-10-23 | 是否把 `verify-composition-interaction.mjs`（#100/#101/#151 的 RGBA 像素 + 倍速探针，本地约 19 秒）接入 `ci.yml` 作为第 5 个浏览器探针？触 1.10「主要 CI/CD 流程变化」红线，D46 的授权只覆盖当时 4 个探针 | A 不接入，维持手动运行；B 接入阻断 Deploy（+约 20 秒/次，像素阈值在 CI 的 GPU/软渲染环境下可能抖动，需 1 次自动重试）；C 接入但仅 warn 不阻断 | 推荐 A（探针依赖 WebGL 软渲染像素阈值，CI 抖动风险未实测）| 默认 A | pending（第 1 天询问）
+  - 默认 A/A 下可执行范围：仅 #155 文档单；不向 ready 放新功能或 CI 改动。若用户选 B/C，再按 4.2 门禁立单。
 
 > **D31 已于 2026-10-16 三十一次滚动 default 转正**（详见「已确认」节 D31 条目）。
 
@@ -1122,3 +1126,22 @@ eslint tests 目录 `no-explicit-any` 降 warn）与 `36aed93`（移除 scripts/
 - 当前 HEAD `123a7b6` 的 CI `39814573581` / Deploy `39816033106` / QA `39860609121` 均 success；后者产物 `qa-sweep-report-27` 4434 bytes。只引用本轮查询或既有真实执行记录，不冒称新跑全量门禁。
 - Planner 未改业务代码、测试、截图配方或 Executor 文件。STATE/HANDOFF 的“#101 待验收 / #151 blocked”已过时，纠正通过 Issue/本文件传递，由 Executor 自行刷新；DIARY 历史不可改，只追加更正。
 - **pending=0**；D44=B、D31 暂缓、大版本/公共 API/主要 CI/CD/真实发布红线维持；远程旧分支继续默认不删、不重复询问。不设锁、不以锁为开工前提；若历史锁残留按契约仅忽略并提示用户删除。
+
+---
+
+## D60 · 四十八次滚动（2026-10-23）：#101 / #151 / #154 验收 CLOSED，M8 两个里程碑收官；新立 #155 文档单；D61 / D62 pending
+
+- **日期 / 决策者**：2026-10-23；Planner 按验收与任务治理权限自行决定；D61 / D62 属必问类，已记 pending。
+- **同步事实**：`git fetch --all --prune && git pull --rebase` → Already up to date；HEAD `5dea4dc`（main）。昨日日报 `.agent/DIARY/2026-10-23.md` 存在，与 STATE/HANDOFF 一致。无 `.agent/LOCK`。
+- **验收结论（均独立复核，不只读报告）**：
+  - **#101 通过 → CLOSED**。`6d164c9`/`8622ea0` 为 main 祖先；读 `compositionStore.ts`（`moveSource` 仅在吸附后坐标变化才清 `activeTemplateId`、`commit` 同步清、`select` 不清）；读 `compositionTemplates.test.ts`（独立 σ/ε₀/q/m 常量逐采样点验二次位移与抛物线；质谱仪独立 v、R、圆心 + Kåsa 圆拟合）与 store 测试 3/3/2/1；复跑 `npx vitest run tests/composition` → exit 0（9 files / 93 tests）。D59 退回的 4 项差距全部关闭，退回计数清零。
+  - **#151 通过 → CLOSED**。本轮复跑 `node scripts/verify-composition-interaction.mjs` → exit 0，零 console error；模板加载 67844/943008 (7.19%)、改朝向 9477/943008 (1.00%)、暂停 0/943008、0.5x/2x 速率比 3.92:1（Executor 报 3.94:1，本轮实测略有差异但同口径同容差内）、跳帧 293/943008，与报告逐项一致。备注：比值按「推进量÷各自墙钟」归一化而非严格同一窗口，容差 [3.0, 5.2] 偏宽，接受，不立单。
+  - **#154 通过 → CLOSED**。读 04/06 两张真实 PNG（含放大 06 的轨迹区：细蓝弧线可辨但部分被极板遮挡，接受）；磁盘实测 6 张合计 1,615,438 B ≈ 1.54 MiB、单张最大 312,003 B；`git show 884f2ce --stat` 仅 README 2 行 + 04/06 + 脚本，无无关重采。**报告小瑕疵**：同一报告内总量写 1.48MB 与 1.54MB 两种、单张 291KB 与 305KB 两种，以实测为准；仅记录，不退回。
+  - CI `39967081302` / Deploy `39968917328`（HEAD `5dea4dc`）success；nightly QA `39860609121`（最近一次 schedule）success，产物 `qa-sweep.json` 读取：堆增长 4MB/预算 12MB、最慢场景切换 1044ms/预算 10000ms，无失败项。
+- **里程碑**：M8 产品功能线 2/2、M8 收尾 2/2；两个 GitHub Milestone 已 close。D59 的“不能称收敛”条件已满足（#101 报告有实证、#151 像素证据可复现）。
+- **队列治理**：开放 2 单 = #155（ready，新建）+ #44（blocked/parked，D44=B 维持）。无 P0/P1；无 auto-discovered 待定级；无 in-progress 疑似中断；无重复/方向冲突。
+- **新立 #155（P3 · docs · ready）**：`docs/plan.md` 快照标题仍为 2026-08-11，`grep -c` 对「组合实验台|composition|M6|M7|M8|Design Token」命中 0；`AGENTS.md` Architecture 无 composition 条目（0 命中）。AGENTS.md 要求变更前先读 plan.md，过时快照会误导新接手者。属契约 6.1 自决（文档结构）。AGENTS.md 仅允许追加 Architecture 行，不动规则条款。
+- **今日队列只有 1 个 ready（低于 2–5 的惯例，如实记录）**：已找实证候选——docs 索引（`docs/*.md` 全在 README 索引中）、`TODO|FIXME` 在 src 为 0、nightly QA 无失败、远程旧分支仅 2 个且按既定口径只上报。没有可用实证撑起第二个任务；不为凑数立单（4.3「宁缺毋滥」+ 禁止为扩产品而立单）。
+- **向 Executor 的补充**：#154 报告中数字请同源（取同一次 `ls`/脚本输出）；STATE/HANDOFF 已与 D59 之后事实一致，无需纠正。
+- **远程旧分支**：`origin/agent/issue-95-shadow-adaptive`、`origin/agent/issue-96-default-on-grid` 仍在，沿用「只上报、不代删」，不新问。
+- **pending**：D61 / D62（见 pending 节），第 1 天询问；默认 A / A。
