@@ -31,11 +31,11 @@
 - **#44 · blocked · P2 · parked 属性**：[暂缓 React 19](https://github.com/zhangjszs/physical-modelvis/issues/44)。D44=B 已确认；只有用户改选 A/C、具体功能收益或 React 18 安全/兼容硬约束才重议。无 pending，勿安装试升、勿抬预算。
 - 远程旧分支 `origin/agent/issue-95-shadow-adaptive`、`origin/agent/issue-96-default-on-grid`：沿既定决定只上报、不代删。
 
-## Pending 决策（需用户拍板，默认方案已先行）
+## Pending 决策：0（D61 / D62 已获用户答复「按照推荐的来」）
 
-- **D61**：M8 收官后产品方向（A 维持维护模式 / B 继续扩组合台 / C 123 场景教学内容深化）。推荐 A，默认 A。
-- **D62**：是否把 `verify-composition-interaction.mjs` 接入 CI 作第 5 个浏览器探针（触 1.10 主要 CI/CD 红线）。推荐 A 不接入，默认 A。
-- 默认 A/A 下不向 ready 放新功能或 CI 改动。
+- **D61 = A**：维持维护模式，不立新功能（D60 后追加条目）。
+- **D62 = A**：不接入 CI 第 5 个探针，维持手动运行。
+- 据此不向 ready 放新功能或 CI 改动。
 
 ## 执行握手与本轮治理
 
