@@ -4,63 +4,63 @@
 
 ## 本轮概要
 
-本轮（2026-10-22 · `executor-20261022` · Execution Agent）串行清空今日队列全部 2 个 ready 任务：
-1. **#101 组合实验台预设实验模板：高频电磁场景一键布置** —— 完成，功能与测试全绿，`9f532e2` 经 `--no-ff` merge `1daf121` 入 main 并已推送，CI `39775867914` + Deploy `39776322562` 双绿；
-2. **#152 QA 巡检流水线 upload-artifact v4 → v7** —— 完成，对齐版本号并消除 Node 20 告警，`29d73a2` 经 `--no-ff` merge `8fe01ea` 入 main 并已推送，CI `39776937440` + Deploy `39777860720` 双绿，工作流实跑 run `39778247099` 验证 artifact 生成且 annotation 消失。
+本轮（2026-10-23 · `executor-20261023` · Execution Agent）优先恢复并完成 #101 返工，随后串行清空今日 ready 队列全部 2 个任务（#151 → #154）：
+1. **#101 补齐模板验收证据并修复拖动后的模板标识（P2 · 在途恢复）** —— 完成，修复 `moveSource + commit` 后清除 `activeTemplateId`，补齐 3/3/2/1 独立精确源数断言、平行板恒加速度二次位移与质谱仪圆弧半径/最小二乘圆残差断言（含两类受控反例验证）及真实浏览器拖动复核，`6d164c9` 经 `--no-ff` merge `8622ea0` 入 main，CI `39960068670` + Deploy `39960515664` 双绿；
+2. **#151 浏览器探针视觉断言强化（P3 · ready）** —— 完成，隐藏覆盖层 DOM 后解码同尺寸（1128×836）RGBA 像素比对，完成模板加载、改朝向、暂停 300ms 静止、跳帧画面变化与 0.5x/2x 约 4:1 推进比断言及两类受控红向反例验证，`de2fe4e` 经 `--no-ff` merge `9a33f58` 入 main，CI `39963039327` + Deploy `39964954710` 双绿；
+3. **#154 README 演示截图脚本与物料更新（P3 · ready）** —— 完成，移除 04 OCR `addStyleTag` 绕行并更新头注释，06 改为加载质谱仪模板展示模板专区/教学目标/双色场线/半圆轨迹/回放控制栏，复采提交 04/06 截图并增量更新 README 图注，`884f2ce` 经 `--no-ff` merge `8fea81a` 入 main，CI `39965748616` + Deploy `39966155418` 双绿。
 
 | 任务 | 内容 | 交付 Commit | Merge Commit | 结论 |
 |---|---|---|---|---|
-| #101 | 组合实验台预设实验模板：速度选择器/质谱仪/平行板偏转/磁聚焦四大场景 + 0.25m 网格对齐 + 单次 commit + 教学目标卡片 + 浏览器交互探针真实截图与像素差异断言 | `9f532e2` | `1daf121` | 完成（转 in-review） |
-| #152 | QA 巡检工作流 `upload-artifact@v4 → @v7` 版本对齐，消除 Node 20 弃用告警 | `29d73a2` | `8fe01ea` | 完成（转 in-review） |
+| #101 | 修复拖动器材后清除 `activeTemplateId` + 3/3/2/1 精确源数断言 + 平行板二次位移与质谱仪圆弧几何残差断言 + 更正报告与旧日报 | `6d164c9` | `8622ea0` | 完成（转 in-review） |
+| #151 | `verify-composition-interaction.mjs` 同尺寸解码 RGBA 像素比对 + 改朝向/暂停/跳帧/倍速 4:1 推进比断言 + 两类受控红向反例验证 | `de2fe4e` | `9a33f58` | 完成（转 in-review） |
+| #154 | `capture-screenshots.mjs` 移除 OCR `addStyleTag` 绕行 + 06 质谱仪模板新配方复采 + `README.md` 增量图注更新 | `884f2ce` | `8fea81a` | 完成（转 in-review） |
 
 ## 已完成
 
-- **#101 组合实验台预设实验模板**：
-  - `visualization/src/components/composition/compositionTemplates.ts`：定义 4 个经典实验模板（速度选择器、质谱仪、平行板偏转、磁聚焦），位置/尺寸/粒子坐标经 `snapVector(v, 0.25)` 严格对齐台面可视网格，全部参数通过 `validateComposition`；
-  - `visualization/src/store/compositionStore.ts`：增加 `loadTemplate(id)`（单次 commit 替换并触发一次重仿真，`fieldLineRevision` 单次自增 1）与 `activeTemplateId`；
-  - `visualization/src/components/composition/CompositionLab.tsx` 与 `styles.css`：在检查器新增「📋 实验模板」专区，支持激活态展示与 `🎯 教学目标` 卡片展开/收起；
-  - `compositionTemplates.test.ts`（7 例）与 `compositionStore.test.ts`（+4 例）：验证模板元信息、物理图像数学断言（直线/圆弧/抛物线/会聚）、单次 commit 契约与非法 ID 防御；
-  - `scripts/verify-composition-interaction.mjs`：Playwright 实跑四大模板切换与复位，断言画布像素差异率（98.3%），生成存盘真实截图 `.scratch/composition-template-velocity-selector.png` (104kB) 与 `composition-template-mass-spectrometer.png` (108kB)，零 console error；
-  - 测试数由 2952 增至 **2963**（core 1169 / viz 1794），回写 README.md 与 docs/plan.md。
-- **#152 QA 巡检 upload-artifact v4 → v7**：
-  - `.github/workflows/qa-sweep.yml:82`：升级为 `actions/upload-artifact@v7`，步骤参数严格不变；全仓 grep `upload-artifact@` 确认 0 处 `@v4` 残留；
-  - PR smoke 工作流实跑取证（run `39778247099`）：success，生成 artifact `qa-sweep-report-26`（1120 bytes），运行页原有 Node.js 20 弃用告警彻底消除。
-- **分支清理**：
-  - 顺手执行规划者建议，删除本地已并入 main 的历史分支 `agent/issue-150-theme-tokens-slice-2`。
+- **#101 组合实验台预设模板返工**：
+  - `visualization/src/store/compositionStore.ts`：新增 `getSourcePosition`，`moveSource` 在吸附后坐标实际变化时立即置 `activeTemplateId: null`，`commit` 同步置 `activeTemplateId: null`；仅 `select` 或零位移保持模板激活；
+  - `visualization/tests/composition/compositionStore.test.ts`：逐一断言四大模板精确源数 `3/3/2/1`；新增仅选中保持激活、真实移动 + commit 清除 `activeTemplateId` 的回归测试；
+  - `visualization/tests/composition/compositionTemplates.test.ts`：补齐平行板偏转全采样点独立恒加速度二次位移方程断言（误差 $< 10^{-12}\text{m}$）与质谱仪磁场区独立理论圆心半径残差（$< 5\times 10^{-4}\text{m}$）及 Kåsa 最小二乘圆拟合残差（$< 10^{-12}\text{m}$）断言，验证两类受控反例均可拦截；
+  - 在 `.agent/DIARY/2026-10-22.md` 尾部追加更正行（不改历史旧行），并在 Issue #101 更新完整执行报告。
+- **#151 浏览器交互探针视觉断言强化**：
+  - `scripts/verify-composition-interaction.mjs`：新增 `captureCleanCanvasBuffer`（移开光标并 `display: none` 隐藏回放覆盖层与提示条）与 `compareDecodedRgba`（浏览器 `Image` + `Canvas 2D` 解码 1128×836 RGBA 像素）；
+  - 实测通过模板加载（`67844/943008 = 7.19%`）、固定 $t=0.00\text{s}$ 改朝向（`9477/943008 = 1.00%`）、暂停跨 300ms 静止（`0/943008`）、0.5x/2x 600ms 窗口推进速率比（`3.94:1`）、磁聚焦 $t=0.10\text{s}$ vs $t=1.30\text{s}$ 跳帧（`293/943008, maxChannelDiff=232`）；
+  - 完成“只改读数不重画”与“暂停画布仍变化”两类受控反例拦截验证（均触发 exit 1 并落盘 `.scratch/fail-*.png`），随后还原代码并清理临时失败截图。
+- **#154 README 演示截图与脚本更新**：
+  - `scripts/capture-screenshots.mjs`：更新头注释反映 #111/#112 已根治，移除 04 `addStyleTag` 绕行，更新 06 配方为加载「质谱仪」模板；
+  - 实跑 `node scripts/capture-screenshots.mjs` exit 0，仅提交更新的 `docs/screenshots/04-ocr-panel.png`（252 KB）与 `docs/screenshots/06-composition-bench.png`（213 KB），并在用户 `123a7b6` 的 `README.md` 表格布局上增量更新组合实验台说明与图注。
 
 ## 未完成 / 进行中（下一棒最优先看这里）
 
 - **无代码半成品，无未提交改动。**
-- 今日队列全部 2 个任务均已交付并转 `in-review`，等待 Planner 独立验收关闭；
-- #151（浏览器探针视觉断言强化）维持 `blocked`，待 Planner 验收关闭 #101 后解冻。
+- #101、#151、#154 均已完成交付并转 `in-review`，等待 Planner 次日逐条验收并关闭。
 
 ## 验证情况
 
-- `npm run precheck` exit 0（build:core → typecheck → lint → format:check → sweep → core+viz test → count:check → build:viz → check:bundle → check:publish → selfcheck）；11 层物理自检 **11 PASS / 0 FAIL**；
-- 浏览器交互验收探针 `scripts/verify-composition-interaction.mjs` 实测 exit 0（模板切换 + 像素断言 98.3% + 截图存盘 + 回放控制全过，零 console error）；
-- GitHub Actions CI `39775867914`（#101）& `39776937440`（#152）全部 success；
-- GitHub Actions Deploy `39776322562` & `39777860720` 全部 success；
-- QA 巡检工作流实跑 `39778247099` 成功生成 artifact 且消除 Node 20 告警；
-- `count:check` exit 0：core 1169 / viz 1794 / total **2963**。
+- `npm run precheck` exit 0（build:core → typecheck → lint → format:check → sweep:test → core 1169 + viz 1794 = 2963 passed → count:check → build:viz → check:bundle → check:publish → selfcheck 11 PASS / 0 FAIL）；
+- `node scripts/verify-composition-interaction.mjs` exit 0（真实解码 RGBA 像素与倍速推进比全部通过，零 console error）；
+- `node scripts/capture-screenshots.mjs` exit 0（6 张 1440×900 PNG，单张 ≤ 1MB、合计 1.48MB ≤ 8MB）；
+- GitHub Actions CI `39960068670` (#101)、`39963039327` (#151)、`39965748616` (#154) 全部 `success`；
+- GitHub Actions Deploy `39960515664` (#101)、`39964954710` (#151)、`39966155418` (#154) 全部 `success`。
 
 ## 风险与注意事项
 
-1. **模板单次 commit 契约**：`loadTemplate` 在一次 `set()` 中置换全部场源与粒子，保证只调用一次 `recompute()`，避免 3D 渲染与物理引擎因逐个器材添加发生多次冗余重仿真。
-2. **0.25m 网格一致性**：模板数据定义直接调用 `snapVector(..., 0.25)` 消除浮点尾尘，与 `CompositionStage.tsx` 的 32 分格台面网格物理对齐。
-3. **回滚手册**：
-   - 撤销 #152：`git revert -m 1 8fe01ea`
-   - 撤销 #101：`git revert -m 1 1daf121`
+1. **有界确定性（#115）**：`capture-screenshots.mjs` 运行时会重采全部 6 张截图，提交时应仅保留目标变更截图（本次为 04/06），避免提交无关场景的微小光栅差异。
+2. **回滚手册**：
+   - 撤销 #154：`git revert -m 1 8fea81a`
+   - 撤销 #151：`git revert -m 1 9a33f58`
+   - 撤销 #101 返工：`git revert -m 1 8622ea0`
 
 ## 给下一棒的第一步建议
 
-1. Planner 验收 #101 与 #152（两单执行报告均已留在各自 Issue，CI/Deploy 双绿，交付 commit 均成 main 祖先）；
-2. 验收通过后关闭 #101 与 #152；
-3. 解冻后置单 #151（浏览器探针视觉断言强化：#100 交互探针补画布像素级证据），由 Planner 摘除 `blocked` 标签排入下一轮执行队列。
+1. Planner 逐条核对并验收关闭 #101、#151、#154；
+2. 宣布 M8（组合实验台产品功能线）与 M8 收尾里程碑全部完成；
+3. 根据巡检或用户新需求规划下一阶段任务。
 
 ## 今日日报
 
-- 已追加写入 `.agent/DIARY/2026-10-22.md`
+- 已写入 `.agent/DIARY/2026-10-23.md`（并在 `.agent/DIARY/2026-10-22.md` 追加更正行）
 
 ## 给 Planner 的信号
 
-- 今日队列全部清空，两单均已完成交付并在 Issue 留全执行报告，主干 CI/Deploy 双绿；继续执行即可，请验收 #101 与 #152，随后可解锁 #151。
+- 继续执行即可：今日全部在途与 ready 任务（#101、#151、#154）均已交付入 main 并留全真实执行报告，主分支 CI/Deploy 全绿，请验收关闭。
