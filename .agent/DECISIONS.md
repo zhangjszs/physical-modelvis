@@ -4,6 +4,8 @@
 > 旧答案与现状明显冲突时，可确认一次"是否仍然有效"。
 > 本文件曾随 `6214cbd` 开源化清理被误删，2026-10-02 规划者从 `d0d9e37` 恢复（D1–D4 原文保留），此后新增 D5+。
 
+> **当前有效结论（2026-10-23，D59）**：无 pending；D44=B 暂缓 React 19、D31 暂缓大重构、真实 npm 发布红线维持。D58 对 #101 的通过与 M8 2/2 收官结论已被本轮证据推翻：#101 重开 in-progress，M8 产品退回 1/2。先恢复 #101，再执行 ready #151 → #154；不要按下文历史队列领单。
+
 ---
 
 ## D1 · 下一里程碑主题
@@ -443,6 +445,7 @@ eslint tests 目录 `no-explicit-any` 降 warn）与 `36aed93`（移除 scripts/
 - **四十次滚动（2026-10-20）复核：pending 清零**——D51（M7 后是否解冻 #100/#101）已获用户同轮答复，按「先完成 M7 → 收官后解冻 #100/#101 转产品功能线」生效（落实细则见 D51「用户答复」条）。无其他待用户拍板事项。
 - **四十三次滚动（2026-10-21）复核：pending 维持清零**——D51 已正式兑现，#100/#101 解冻入 M8 队列；#44 维持 parked（D44=B）；本轮无新增待用户拍板事项。
 - **四十五次滚动（2026-10-22）复核：pending 维持清零**——无新用户答复待处理；#152 红线判定（非 1.10）属规划者自决列；远程分支清理维持「只上报、不代删」既定口径。
+- **四十七次滚动（2026-10-23）复核：pending 维持 0**——用户未提供新决策；#101 报告失实按协议重开，验收纠错不需产品拍板；#44 生命周期统一 blocked、parked 仅冻结属性，不改变 D44=B。未授权事项不因三天默认转正获得红线实施许可。
 
 > **D31 已于 2026-10-16 三十一次滚动 default 转正**（详见「已确认」节 D31 条目）。
 
@@ -1078,3 +1081,44 @@ eslint tests 目录 `no-explicit-any` 降 warn）与 `36aed93`（移除 scripts/
 - **pending 状态**：维持**清零**；本轮无用户拍板事项。
 - **远程分支清理观察**：`origin/agent/issue-95-shadow-adaptive` / `origin/agent/issue-96-default-on-grid` 继续只上报、不代删（契约 1.9）。本地分支 `agent/issue-150-theme-tokens-slice-2` 已确认由执行棒删除。
 - **影响范围**：#101/#152 CLOSED；#151 摘 blocked 转 ready；新建 #154（ready）；PLAN.md / TASKS.md 四十六次滚动刷新；**业务代码零改动、门禁数值零改动**。
+
+---
+
+## D59 · 四十七次滚动：纠正 #101 证据失实并重开，M8 退回 1/2；保留两个 ready 并消除依赖互等
+
+- **日期 / 决策者**：2026-10-23；Planner 按验收、任务治理与低风险内部实现权限自行决定，无需用户拍板。
+- **同步事实**：`git fetch --all --prune && git pull --rebase` exit 0，main 已最新；起点 HEAD `123a7b61d4b2fed3f27c57447f82855eeb6490ba`。用户新增 README 提交 `123a7b6` 保留，不恢复旧版。昨日日报存在，读取 10-21/10-22、STATE/HANDOFF/ENV；不反推或捏造历史。
+- **昨日验收的纠错**：
+  - #101 昨日虽已 CLOSED，本轮必须纠正真实证据与报告的冲突。结论为**报告失实 → reopen / in-progress**，认可已交付四模板和可加载，不声称模板求解已证明失败；D58 通过/2/2 收官结论作废。逐项差距已发 [退回 comment](https://github.com/zhangjszs/physical-modelvis/issues/101#issuecomment-6355227373)。
+  - #152 **通过，维持 CLOSED**，本轮未重复关闭；新复核证据已 [回写 Issue](https://github.com/zhangjszs/physical-modelvis/issues/152#issuecomment-6355250303)。
+
+### Standards（独立只读审查）
+
+- **1 项实质缺陷**：`compositionStore.ts:179–188` 的 moveSource→commit 未清 activeTemplateId，违反新增的“null=已自定义”状态契约；模板高亮和教学目标错误保留。真实生产 preview 已加载磁聚焦、命中 circular-coil-1、拖动器材，观察器材位移后激活仍为磁聚焦、goal=true。本轮不修复，交 #101 返工，要求转换回归 + 真实拖动证据；只选择器材不应清除激活。
+- **判断性异味，非独立发现**：多处手工重复清激活遗漏 moveSource；无需为此引入统一状态框架。其余未发现额外实质规范问题。
+
+### Spec（独立只读审查）
+
+- **3 项验收证据缺口**：
+  1. `verify-composition-interaction.mjs:151–163` 对 PNG Buffer 逐字节比较；98.3% 是**压缩字节差异率**，不是解码像素率。画布截图还覆盖回放 DOM，可能由控件推进制造差异。旧 Executor 报告、D58 及旧 Planner 验收评论中的“像素差异 98.3%”均由本条明确纠正，历史不抹改。
+  2. `compositionStore.test.ts:209–215` 的四模板源数仅 >0；原要求“每模板场源数量正确”，应按独立期望 3/3/2/1 验证，不是泛泛的非空断言。
+  3. `compositionTemplates.test.ts:94–97,119–121` 分别只验证质谱端点、平行板 y 递减，不能证明圆弧/抛物线。要求独立解析/几何不变量与临时错误反例，不以同一引擎输出生成期望。
+- #152 一行 action 版本变更符合规格；未发现额外范围扩张。两轴独立结论：Standards 1 项；Spec 3 项，最主要风险分别为状态失效遗漏、验收证据不实。
+
+### 任务拆界与 ready 门禁
+
+1. **#101（P2 · in-progress，恢复项）**：只负责 store 状态失效、两份现有模板/store 测试与更正报告。第一次验收退回计数=1；下次仍失败必须拆分/重定标准，不让第三次盲试。#151 未交付时像素项保持未满足，最终验收可复用 #151，不重复改探针。
+2. **#151（P3 · ready，队首）**：独占交互探针。原“等 #101 CLOSED”只用于同文件冲突，现模板实现已在 main、返工范围分离，所以取消关闭硬依赖，不产生互等。补同尺寸 RGBA 解码、排除 DOM/hover、固定时间/相机/分辨率、改向/静止/跳帧与约 4:1 实际推进比、两种受控负例；正确旧日志保持，错误伪像素日志必须更正。详见 [治理 comment](https://github.com/zhangjszs/physical-modelvis/issues/151#issuecomment-6355228783)。
+3. **#154（P3 · ready，次位）**：#151 后执行仅为建议顺序，不是未完成硬依赖。核实旧 06 图不是空白台，已有点电荷/线圈与六按钮；真正缺口是模板/回放新界面。移除 OCR 绕行、保持 1440×900 与既有预算、只提交必要 04/06 变化；沿 #115 有界确定性，不承诺六图跨会话逐字节一致。README 基于用户 `123a7b6` 布局增量改动。详见 [治理 comment](https://github.com/zhangjszs/physical-modelvis/issues/154#issuecomment-6355229660)。
+4. **#44（P2 · blocked，parked 属性）**：#140/#141 已 CLOSED，不再列为未完成技术前置；真正冻结来自 D44=B 已确认成本约束。blocked 是生命周期，parked 是排程属性；标签描述与 Issue 标题/正文已改齐。无新增 pending、无自动放行。
+5. **权威与里程碑**：GitHub 可用；TASKS 整体重写。创建原有任务的可追溯 GitHub Milestone（非新产品方向）：[M8 产品](https://github.com/zhangjszs/physical-modelvis/milestone/1) 关联 #100 CLOSED / #101 OPEN = **1/2**；[M8 收尾](https://github.com/zhangjszs/physical-modelvis/milestone/2) 关联 #151/#154 OPEN = **0/2**。计数以关联 Issue 实际状态为准，不用可能延迟的汇总缓存。
+6. **路线图收敛**：PLAN 改为当前快照，移除互相矛盾的重复队列和过期现场指令；完整旧滚动记录仍在 Git，决策历史保留本文件，不制造另一套权威。今日两个 ready 均有范围/非目标/无未决取舍/可判验收/依赖已满足，不触红线；#101 另列恢复项，不把 in-progress 伪装成 ready。
+
+### 本轮已执行的验证与界限
+
+- `node scripts/verify-composition-interaction.mjs` → exit 0，4 模板加载与既有交互通过、零 console error；读看两张真实截图。但其旧 98.3% 日志不构成像素证据；不能用本次绿输出抵消上述差距。
+- `npm run count:check` → exit 0，读取已有测试 JSON 报告并核对 13 个数字/3 标记，core 1169 / viz 1794 / total 2963；**此命令不是重跑全量测试**。验收取证阶段未另跑全套；随后提交推送由既有 pre-push 强制执行 precheck，以真实钩子输出为准。
+- `git show 9f532e2` / `git show 29d73a2` 核实关键 diff。QA run `39778247099` success，产物 `qa-sweep-report-26` 1120 bytes 未过期；check-run `119822588394` annotations 只有 Ubuntu 26 notice，无 Node 20 弃用告警。
+- 当前 HEAD `123a7b6` 的 CI `39814573581` / Deploy `39816033106` / QA `39860609121` 均 success；后者产物 `qa-sweep-report-27` 4434 bytes。只引用本轮查询或既有真实执行记录，不冒称新跑全量门禁。
+- Planner 未改业务代码、测试、截图配方或 Executor 文件。STATE/HANDOFF 的“#101 待验收 / #151 blocked”已过时，纠正通过 Issue/本文件传递，由 Executor 自行刷新；DIARY 历史不可改，只追加更正。
+- **pending=0**；D44=B、D31 暂缓、大版本/公共 API/主要 CI/CD/真实发布红线维持；远程旧分支继续默认不删、不重复询问。不设锁、不以锁为开工前提；若历史锁残留按契约仅忽略并提示用户删除。
