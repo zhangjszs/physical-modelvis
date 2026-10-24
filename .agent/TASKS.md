@@ -1,42 +1,45 @@
 # TASKS（GitHub Issue 本地镜像）
 
-> Planner 每轮整体重写；Executor 改状态先 Issue、后本文件对应条目。权威来源：GitHub Issues（2026-10-24 · 四十九次滚动实拉，未降级）。
-> 开放 2 单：in-review 1（#156，本轮交付）+ blocked 1（#44，已确认冻结）。ready / in-progress / needs-info / P0 / P1 均为 0（#155 已于本轮验收 CLOSED）。
-> 状态沿用仓内映射：ready = `ready-for-agent`；done = CLOSED；`parked` 仅排程属性，不是第二个生命周期状态。完整验收标准以 Issue 正文为准。
+> Planner 每轮整体重写；Executor 改状态先 Issue、后同步本文件。权威来源：GitHub Issues（2026-10-24 · 第五十次滚动实拉，未降级）。
+> 验收后开放 1 单：blocked 1（#44，冻结）；ready / in-progress / in-review / needs-info / P0 / P1 均为 0。
+> 仓内映射：ready = `ready-for-agent`；done = CLOSED；`parked` 仅排程冻结属性，不是第二个生命周期状态。
 
-## 昨日验收（今晨 executor-20261024 交付 · 日报 2026-10-24 → 本轮复核）
+## 昨日及最近交付验收
 
-- **#155：通过 → CLOSED（四十九次滚动验收）。** 独立复核：`git show c6c0e2f --stat` 仅 AGENTS.md +3（纯新增）+ docs/plan.md +7−1；`fe229ee` 双亲 + c6c0e2f 为其祖先（--no-ff）；grep 复验旧日期 0 命中 / M8=1 / composition 3 命中；20 个被引 Issue 全 CLOSED；8 个 merge 哈希抽查一一对应；CI `40028604667` + Deploy `40028873539` 双绿 @ `fe229ee`。报告数字同源，无失实点。[验收 comment](https://github.com/zhangjszs/physical-modelvis/issues/155#issuecomment-6383684408)
+- 2026-10-23 日报的 #101 / #151 / #154 已在 D60 验收关闭，本轮查询仍全部 CLOSED；不重复验收或重开。M8 产品与收尾两个 GitHub Milestone 均 closed，各 2/2。
+- 2026-10-24 会话 1 的 #155 已在 D63 验收关闭，本轮查询仍 CLOSED。
+- **2026-10-24 会话 2 的 #156：通过 → done / CLOSED。** [执行报告](https://github.com/zhangjszs/physical-modelvis/issues/156#issuecomment-6384088450)；[本轮验收](https://github.com/zhangjszs/physical-modelvis/issues/156#issuecomment-6385943890)。
+  - [x] 4 条目录说明齐备。独立读取 `21f665e` 完整 diff 与当前测试目录，composition / workbench / charts / utils 均存在，具名 hook 和工具用途与文件头一致。
+  - [x] 范围正确。`git show --format=fuller --stat --patch 21f665e` → exit 0；唯一文件 AGENTS.md，新增 4 行、无删改。Standards 无规范缺口；Spec 无遗漏或越界。
+  - [x] 验证与集成满足。Planner 本轮 `npm run format:check` → exit 0；CI `40092774812` 所有验证步骤 success，Deploy `40092999706` success，二者同属 `84b861b`。merge 双亲 `7d5b58f` / `21f665e`；`git merge-base --is-ancestor 21f665e main` → exit 0。
+  - 本轮只在本地实跑格式检查；未声称重跑全套测试/浏览器，交付 SHA 的远程测试与四探针结果已直接核对。
 
-## 今日队列（2026-10-24 · in-review 1 · ready 0）
+## 今日队列（2026-10-24 · ready 0）
 
-### 1. #156 · 补 AGENTS.md Architecture 树缺失的 visualization 测试目录条目（P3 · docs）
+**无可领取任务。** #156 已验收完成；D61=A 维护态不立新功能，#44 不满足解冻条件。现有证据没有支持第二个或新的可执行任务；依 4.3「宁缺毋滥」保留空队列，不伪造 2–5 个 ready，不把冻结项挪入队列。
 
-- Issue：[#156](https://github.com/zhangjszs/physical-modelvis/issues/156)
-- 状态：**in-review**（2026-10-24 会话 executor-20261024-s2 交付：`21f665e` + merge `84b861b` @ main，CI `40092774812` + Deploy `40092999706` 双绿；[执行报告](https://github.com/zhangjszs/physical-modelvis/issues/156#issuecomment-6384088450)）；Milestone：无（不为一单新开里程碑）。
-- 范围：AGENTS.md Architecture 树 visualization 段仅追加 4 行测试目录条目（`tests/composition`、`tests/workbench`、`tests/charts`、`tests/utils`），风格与既有条目一致。
-- 不包含：不改源码/测试/脚本；不动规则条款与「关键陷阱」；不重排/改写既有行；不新增文档文件；不改 docs/plan.md。
-- 依赖：无（#155 已 CLOSED）。
-- 验收标准（摘要）：
-  - [ ] 4 个新条目齐备（`grep -n "tests/composition" AGENTS.md` 等各 ≥1 命中）
-  - [ ] `git diff AGENTS.md` 仅新增行（删改行计数 0）；`git diff --stat` 仅涉及 AGENTS.md 一个文件
-  - [ ] `npm run format:check` exit 0；CI / Deploy 双绿；--no-ff 祖先
-- 为什么只有 1 个：巡检全绿、src TODO/FIXME=0、docs 索引完整，无第二实证候选；不凑数（D60/D63）。
+新增入口：nightly QA / CI 的实证缺陷、Executor auto-discovered 或用户具体需求；Planner 补齐范围、非目标、依赖及可判验收后才转 ready。当前无恢复项或疑似中断现场。
 
 ## 冻结 / 不可领取
 
-- **#44 · blocked · P2 · parked 属性**：[暂缓 React 19](https://github.com/zhangjszs/physical-modelvis/issues/44)。D44=B 已确认；只有用户改选 A/C、具体功能收益或 React 18 安全/兼容硬约束才重议。无 pending，勿安装试升、勿抬预算。
-- 远程旧分支 `origin/agent/issue-95-shadow-adaptive`、`origin/agent/issue-96-default-on-grid`：沿既定决定只上报、不代删。
+### #44 · 暂缓 React 19 迁移（P2 · blocked · parked 属性）
 
-## Pending 决策：0（D61=A / D62=A 已确认；四十九次滚动复核维持 0）
+- Issue：[暂缓 React 19](https://github.com/zhangjszs/physical-modelvis/issues/44)；Milestone：无。
+- 冻结依据：D44=B 已确认；#140 / #141 已 CLOSED，并非尚未完成的技术依赖。
+- 解除条件：用户改选 A/C、具体需求证明 React 19 功能收益，或 React 18 出现安全/兼容硬约束；目前未获新证据。不安装试升、不提高体积预算、不扩展至其他大版本。
+- 维持开放跟踪已确认的成本约束，不作为普通 P3/P4 饥饿任务关闭；本轮不改变其状态或优先级。
 
-- **D61 = A**：维持维护模式，不立新功能。
-- **D62 = A**：不接入 CI 第 5 个探针，维持手动运行。
-- 据此不向 ready 放新功能或 CI 改动。
+## Pending 决策：0
 
-## 执行握手与本轮治理
+- D61=A：维护模式，仅处理实证缺陷、文档与自动发现项，不启动新功能线。
+- D62=A：组合台交互探针继续手动运行；不增加 CI 第 5 个探针。
+- D44=B / D31 暂缓及真实发布红线维持。本轮无新用户答复或红线授权，无需重复提问。
 
-- Executor 领取 #156 走 Issue comment，in-progress → in-review，**不 close**；代码/文档提交与 `.agent/` 提交分属不同 commit。
-- 报告数字请同源（取同一次命令输出），避免 #154 式前后不一致。
-- 治理清单：无重复/方向冲突；P0/P1 均 0；无待定级 auto-discovered；无超 24h 缺日报的在途任务；#156 七项 ready 门禁通过（目标明确 / 范围清楚 / 依赖满足 / 无未决产品取舍 / 标准可判定 / 不涉红线 / 无需发明决策即可开工）。
-- 不设锁、不读取或创建锁；本轮未发现 `.agent/LOCK`。
+## 本轮治理与信号回应
+
+- 已逐一治理全部开放任务：#156 原 in-review 已验收关闭并摘除状态标签；余下 #44 冻结依据有效，无重复、方向冲突、待定级 auto-discovered 或无优先级项；P0/P1=0，无 in-progress 超时项。
+- Executor 的 #156 信号已处理：独立目录列表核实 composition 为 9 个测试文件，Issue 正文 8→9；验收 checklist 已勾选。D63 的历史错误通过 D64 追加更正，不抹改历史；AGENTS.md 不固化测试数量。
+- 当前 main 同步起点 `96a9be9`：CI `40093424297` / Deploy `40093611992` success；最近 QA `40027811873` success，但 QA 对应旧 SHA `a59596e`，不冒称对当前 HEAD 重跑。
+- STATE / HANDOFF 仍写「#156 待验收」属于 Executor 快照滞后；已在验收 comment 告知下一次自行刷新，Planner 不代改。DIARY 历史保留。
+- DECISIONS 顶部旧 D59 当前状态摘要由 Planner 修正为 D64；D59 返工记录保留为历史。
+- 远程旧分支（issue-95 / issue-96）沿用只上报、不代删；串行不设锁，不以锁为开工前提。

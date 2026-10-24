@@ -4,7 +4,7 @@
 > 旧答案与现状明显冲突时，可确认一次"是否仍然有效"。
 > 本文件曾随 `6214cbd` 开源化清理被误删，2026-10-02 规划者从 `d0d9e37` 恢复（D1–D4 原文保留），此后新增 D5+。
 
-> **当前有效结论（2026-10-23，D59）**：无 pending；D44=B 暂缓 React 19、D31 暂缓大重构、真实 npm 发布红线维持。D58 对 #101 的通过与 M8 2/2 收官结论已被本轮证据推翻：#101 重开 in-progress，M8 产品退回 1/2。先恢复 #101，再执行 ready #151 → #154；不要按下文历史队列领单。
+> **当前有效结论（2026-10-24，D64）**：pending=0；D61=A 维持维护态、D62=A 组合台探针不接 CI。#101/#151/#154 已在 D60 验收关闭，M8 产品与收尾均 2/2 closed；#155/#156 文档收尾均已验收关闭，ready=0。唯一开放 #44 维持 blocked/parked（D44=B）；D31 暂缓大重构、真实 npm 发布红线维持。下文 D59 退回结论是历史，勿按历史队列领单。
 
 ---
 
@@ -1168,3 +1168,22 @@ eslint tests 目录 `no-explicit-any` 降 warn）与 `36aed93`（移除 scripts/
 - **维护态巡检（D61=A 观察）**：main 最新 CI `40029366121` / Deploy `40029771873` / QA 场景巡检 `40027811873` 均 success；src TODO/FIXME grep 复验 = 0。无实证缺陷，不立功能单。
 - **队列**：开放 2 单 = #156（ready）+ #44（blocked / parked 维持）。今日队列 1 个 ready（低于 2–5 惯例，如实记录：巡检全绿、TODO/FIXME 0、docs 索引完整，无第二实证候选；不凑数，沿 D60 口径）。
 - **pending**：维持 0。D44=B / D61=A / D62=A 等既定决策无冲突事实，不重议；远程旧分支 2 个沿用「只上报、不代删」。
+
+---
+
+## D64 · 第五十次滚动（2026-10-24）：#156 验收 CLOSED，维护态空队列；纠正当前决策摘要与历史目录计数
+
+- **日期 / 决策者**：2026-10-24；Planner 按验收、任务治理及文档结构权限自行决定，无新产品或红线授权。
+- **同步事实**：`git fetch --all --prune && git pull --rebase` → exit 0 / Already up to date；起点 main `96a9be9258e2a4eeb59332cd3b81d38540e5fb24`。读取 10-23 / 10-24 日报及 STATE / HANDOFF / ENV / PLAN / TASKS；日报存在，不反推或捏造历史。10-24 会话 2 是本轮新增待验收交付，不将同日交付误记为昨日报告。
+- **既有验收去重**：10-23 日报 #101 / #151 / #154 已于 D60 验收，本轮真实 Issue 状态仍 CLOSED；10-24 会话 1 #155 已于 D63 验收，本轮仍 CLOSED。两个 M8 GitHub Milestone 均 closed、各 closed_issues=2 / open_issues=0。M6 7/7、M7 3/3 历史进度维持，不凭记忆新增成果。
+- **#156 通过 → done / CLOSED**（[验收 comment](https://github.com/zhangjszs/physical-modelvis/issues/156#issuecomment-6385943890)）：
+  - 读执行报告并独立运行 `git show --format=fuller --stat --patch 21f665e`：唯一文件 AGENTS.md，4 insertions(+)、无删改；四个新增条目与当前加载文档一致，没有改规则、源码或测试。
+  - 读取实际 visualization/tests/ 目录：composition / workbench / charts / utils 均存在；具名三个 workbench hook 文件齐备，hook-order / canvasMock 文件头与新增用途说明一致。Standards：无规范缺口；Spec：无遗漏、无越界。纯四行文档审查由 Planner 直接完成，不为机械验收拆代理。
+  - Planner 本轮 `npm run format:check` → exit 0，`All matched files use Prettier code style!`。直接核对 CI `40092774812` 的每个步骤：类型、lint、格式、core/viz 测试、计数、自检、构建、体积、dry-run、四浏览器探针均 success；Deploy `40092999706` success；两者 headSha 均 `84b861bf0b66620d2d6730c175b3a91ec7ae629e`。本轮没有本地重跑全套测试/浏览器，不将远程核对写成本机实跑。
+  - merge `84b861b` 双亲为 `7d5b58f` / `21f665e`；`git merge-base --is-ancestor 21f665e main` → exit 0，满足 --no-ff 集成要求。三项验收标准全部通过，Issue checklist 已勾选、in-review 标签已摘除并关闭。
+- **Executor 信号回应 / 追加更正**：D63 称 composition「8 文件」不准确；本轮目录列表为 **9 个测试文件**，包含 directionUtils / sourceMeshes。已将 #156 Issue 背景 8→9 并补用途，D63 原历史不抹改，以本条更正。AGENTS.md 维持「用途+关键文件」、不固化计数的处理正确，不另立实现单。
+- **决策摘要收敛**：本文件顶部仍把 D59「#101 返工、M8 1/2」标为当前结论，与后续 D60/D63 事实冲突；本轮直接修正 Planner 所有的当前摘要，D59 历史保留。属于既有事实纠偏，不是重新决策，不向 Executor 转交本属 Planner 的文档工作。
+- **队列治理**：GitHub 可用且可写，TASKS 整体重写；验收后唯一开放 #44（priority:P2 / blocked / parked）。冻结条件未变，不关闭、不重置，不误判为 P3/P4 长期饥饿项；无重复、方向冲突、待定级 auto-discovered、无优先级项或 >24h 无日报的 in-progress；P0/P1=0。
+- **今日 ready=0 的明确例外**：#155/#156 已完成，main 起点 CI `40093424297` / Deploy `40093611992` success；最近 QA `40027811873` success @ `a59596e`（旧 SHA，不称当前 HEAD 重跑）。没有新的实证候选，D61=A 禁止自行开功能线，因此按 4.3「宁缺毋滥」保留空队列，不伪造 2–5 个任务，不解冻 #44。
+- **pending=0**：无用户新答复待处理；D44=B / D61=A / D62=A、D31 与真实发布红线维持。不因低于队列惯例重问已答事项；没有新需要用户拍板的问题。
+- **所有权与交接**：STATE / HANDOFF 中「#156 待验收」已在验收 comment 通知由 Executor 下次刷新；Planner 不改其文件，也不改 DIARY。远程旧分支继续只上报、不代删；串行不设锁。此次变更限 Planner 的 PLAN / TASKS / DECISIONS，与实现提交分离。
