@@ -131,6 +131,10 @@ visualization/         — React 可视化前端
   tests/rendering/     — 渲染单元测试 (rigs-build, equipment-stage)
   tests/guidance/      — 引导系统测试
   tests/ocr/           — OCR 测试
+  tests/composition/   — 组合实验台测试 (store / 模板 / 回放 / 朝向编辑 / 场线 / 场线种子 / 坐标 / 器材网格 sourceMeshes)
+  tests/workbench/     — 课堂工作台 hook 测试 (useSceneRig / useCompareSimulations / useSceneSimulation)
+  tests/charts/        — React hooks 调用顺序守卫测试 (hook-order)
+  tests/utils/         — 测试工具 (canvasMock 录制型 ctx 及其自测)
 
 experiments/           — 人教版高中物理实验整理 (176 个实验, 6 册教材)
 scripts/               — 验证脚本 (self-check.mjs L0-L6 + L8-L11 物理自检, verify-*.cjs 冒烟测试)
