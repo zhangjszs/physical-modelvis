@@ -1,19 +1,19 @@
 # TASKS（GitHub Issue 本地镜像）
 
 > Planner 每轮整体重写；Executor 改状态先 Issue、后本文件对应条目。权威来源：GitHub Issues（2026-10-24 · 四十九次滚动实拉，未降级）。
-> 开放 2 单：ready 1（#156，本轮新建）+ blocked 1（#44，已确认冻结）。in-review / in-progress / needs-info / P0 / P1 均为 0（#155 已于本轮验收 CLOSED）。
+> 开放 2 单：in-review 1（#156，本轮交付）+ blocked 1（#44，已确认冻结）。ready / in-progress / needs-info / P0 / P1 均为 0（#155 已于本轮验收 CLOSED）。
 > 状态沿用仓内映射：ready = `ready-for-agent`；done = CLOSED；`parked` 仅排程属性，不是第二个生命周期状态。完整验收标准以 Issue 正文为准。
 
 ## 昨日验收（今晨 executor-20261024 交付 · 日报 2026-10-24 → 本轮复核）
 
 - **#155：通过 → CLOSED（四十九次滚动验收）。** 独立复核：`git show c6c0e2f --stat` 仅 AGENTS.md +3（纯新增）+ docs/plan.md +7−1；`fe229ee` 双亲 + c6c0e2f 为其祖先（--no-ff）；grep 复验旧日期 0 命中 / M8=1 / composition 3 命中；20 个被引 Issue 全 CLOSED；8 个 merge 哈希抽查一一对应；CI `40028604667` + Deploy `40028873539` 双绿 @ `fe229ee`。报告数字同源，无失实点。[验收 comment](https://github.com/zhangjszs/physical-modelvis/issues/155#issuecomment-6383684408)
 
-## 今日队列（2026-10-24 · 1 个 ready）
+## 今日队列（2026-10-24 · in-review 1 · ready 0）
 
 ### 1. #156 · 补 AGENTS.md Architecture 树缺失的 visualization 测试目录条目（P3 · docs）
 
 - Issue：[#156](https://github.com/zhangjszs/physical-modelvis/issues/156)
-- 状态：**ready**（2026-10-24 四十九次滚动新建，承接 #155 验收时 Executor 的信号）；Milestone：无（不为一单新开里程碑）。
+- 状态：**in-review**（2026-10-24 会话 executor-20261024-s2 交付：`21f665e` + merge `84b861b` @ main，CI `40092774812` + Deploy `40092999706` 双绿；[执行报告](https://github.com/zhangjszs/physical-modelvis/issues/156#issuecomment-6384088450)）；Milestone：无（不为一单新开里程碑）。
 - 范围：AGENTS.md Architecture 树 visualization 段仅追加 4 行测试目录条目（`tests/composition`、`tests/workbench`、`tests/charts`、`tests/utils`），风格与既有条目一致。
 - 不包含：不改源码/测试/脚本；不动规则条款与「关键陷阱」；不重排/改写既有行；不新增文档文件；不改 docs/plan.md。
 - 依赖：无（#155 已 CLOSED）。

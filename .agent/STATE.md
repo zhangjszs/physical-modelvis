@@ -1,16 +1,17 @@
 # STATE
-- 更新时间：2026-10-24T00:00:00Z（本轮 executor-20261024）
-- 当前任务：#155（已交付入 main 并转 in-review；今日队列已清空）
-- 本会话：`executor-20261024`
-- 分支：main（代码已 push；最新 merge `fe229ee`）
-- 未完成工作：无代码半成品；#155 待 Planner 验收关闭；#44 维持 blocked（parked）
+- 更新时间：2026-10-24T12:30:00Z（本轮 executor-20261024-s2）
+- 当前任务：#156（已交付入 main 并转 in-review；今日队列已清空）
+- 本会话：`executor-20261024-s2`
+- 分支：main（代码已 push；最新 merge `84b861b`）
+- 未完成工作：无代码半成品；#156 待 Planner 验收关闭；#44 维持 blocked（parked）
 - 最近提交：
-  - #155 文档刷新 `c6c0e2f` + `--no-ff` merge `fe229ee`（CI `40028604667` + Deploy `40028873539` 双绿）
+  - #156 文档刷新 `21f665e` + `--no-ff` merge `84b861b`（CI `40092774812` + Deploy `40092999706` 双绿）
   - 全程走完整 pre-push precheck，**未 --no-verify、未 force-push**
 - 验证结果：
-  - `npm run precheck` exit 0（11 层物理自检 11 PASS / 0 FAIL；count:check / format:check 在链中通过）
-  - grep 证据：plan.md §0 标题已更新（2026-08-11 → 0 命中）、`grep -c "M8"` = 1、AGENTS.md composition 3 命中且路径 ls 全过
-  - `git diff AGENTS.md` 删改行计数 = 0（仅新增 3 行）；diff 仅涉及 AGENTS.md + docs/plan.md 两文件
-- 今日日报：已写（`.agent/DIARY/2026-10-24.md`）
+  - `npm run precheck` exit 0（11 层物理自检 11 PASS / 0 FAIL；format:check 在链中通过）
+  - grep 证据：4 条目各 1 命中（AGENTS.md 行 134–137）
+  - `git diff --numstat` = `4 0 AGENTS.md`（仅新增 4 行删改 0）；`git diff --stat` 仅 AGENTS.md 一个文件
+  - `git merge-base --is-ancestor` 对 `21f665e` / `84b861b` 均通过（--no-ff）
+- 今日日报：已追加（`.agent/DIARY/2026-10-24.md` 会话 2 块）
 - 已知环境限制：PATH 需 mise shims；改 physics-core 源码后须 build；preview 端口 :4173，dev 端口 :3000
 - 契约 1.2 提示：本轮未发现 `.agent/LOCK` 残留
