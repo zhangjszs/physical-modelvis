@@ -1,45 +1,56 @@
 # TASKS（GitHub Issue 本地镜像）
 
-> Planner 每轮整体重写；Executor 改状态先 Issue、后同步本文件。权威来源：GitHub Issues（2026-10-24 · 第五十次滚动实拉，未降级）。
-> 验收后开放 1 单：blocked 1（#44，冻结）；ready / in-progress / in-review / needs-info / P0 / P1 均为 0。
-> 仓内映射：ready = `ready-for-agent`；done = CLOSED；`parked` 仅排程冻结属性，不是第二个生命周期状态。
+> Planner 整体重写 · 2026-10-25 · 用户截图缺陷专项（D65）。GitHub Issues 可读写，为唯一权威；Executor 先改 Issue，再同步本文件状态。
+> 实拉开放 3 单：ready 2（#157 / #158）+ blocked 1（#44）；in-progress / in-review / needs-info / P0=0；P1=2，与今日队列匹配。
+> ready = `ready-for-agent`；done = CLOSED；parked 是冻结属性，不是第二个生命周期状态。
 
-## 昨日及最近交付验收
+## 昨日交付与本轮纠偏
 
-- 2026-10-23 日报的 #101 / #151 / #154 已在 D60 验收关闭，本轮查询仍全部 CLOSED；不重复验收或重开。M8 产品与收尾两个 GitHub Milestone 均 closed，各 2/2。
-- 2026-10-24 会话 1 的 #155 已在 D63 验收关闭，本轮查询仍 CLOSED。
-- **2026-10-24 会话 2 的 #156：通过 → done / CLOSED。** [执行报告](https://github.com/zhangjszs/physical-modelvis/issues/156#issuecomment-6384088450)；[本轮验收](https://github.com/zhangjszs/physical-modelvis/issues/156#issuecomment-6385943890)。
-  - [x] 4 条目录说明齐备。独立读取 `21f665e` 完整 diff 与当前测试目录，composition / workbench / charts / utils 均存在，具名 hook 和工具用途与文件头一致。
-  - [x] 范围正确。`git show --format=fuller --stat --patch 21f665e` → exit 0；唯一文件 AGENTS.md，新增 4 行、无删改。Standards 无规范缺口；Spec 无遗漏或越界。
-  - [x] 验证与集成满足。Planner 本轮 `npm run format:check` → exit 0；CI `40092774812` 所有验证步骤 success，Deploy `40092999706` success，二者同属 `84b861b`。merge 双亲 `7d5b58f` / `21f665e`；`git merge-base --is-ancestor 21f665e main` → exit 0。
-  - 本轮只在本地实跑格式检查；未声称重跑全套测试/浏览器，交付 SHA 的远程测试与四探针结果已直接核对。
+- 10-24 的 #155 / #156 已在 D63 / D64 验收 CLOSED；本轮无新 Executor 交付或 in-review，不重复验收，不将文档单错误重开。
+- 用户报告并提供两张真实画面：竖直自由落体不动、斜面球/轨迹与板面错位。本轮实际启动生产 preview 驱动 UI，并在源码 Vite 浏览器执行真实 scene→engine→rig 数值诊断，确认两项根因，转为下列修复任务。
+- **代码尚未修复。** 既有 CI/QA 全绿和 123 场景 build 不抛错，不构成球心运动/板面接触正确的证据。昨日空队列结论已被新用户缺陷证据取代，不再指示 Executor 待机。
 
-## 今日队列（2026-10-24 · ready 0）
+## 今日队列（2026-10-25 · ready 2，按此顺序）
 
-**无可领取任务。** #156 已验收完成；D61=A 维护态不立新功能，#44 不满足解冻条件。现有证据没有支持第二个或新的可执行任务；依 4.3「宁缺毋滥」保留空队列，不伪造 2–5 个 ready，不把冻结项挪入队列。
+### 1. #157 · 修复竖直自由落体默认播放静止及高度/教案坐标不一致
 
-新增入口：nightly QA / CI 的实证缺陷、Executor auto-discovered 或用户具体需求；Planner 补齐范围、非目标、依赖及可判验收后才转 ready。当前无恢复项或疑似中断现场。
+- Issue：[#157](https://github.com/zhangjszs/physical-modelvis/issues/157)；状态：**ready**；优先级：**P1**；Milestone：**M9 课堂核心场景坐标纠错**。
+- 正确目标：`uniform-accelerated` / 当前“自由落体(竖直)”；不是相邻 `free-fall`。后者默认20m会下落，不能用另一入口的成功代替验收。
+- 证据：真实 UI 播放计时从1.25s到2.217s，球仍停在底座；默认引擎 y 从0降到−44.1m，所有采样经 verticalMotionRig 后 visualY min=max=0.22。场景初始 y=0/v0y=0，rig 的 max(0,pos.y)压平所有负轨迹。
+- 范围：保留 sceneId/model；补与 free-fall 同约定的 `height`（m、默认20、1–200、步长1），实际输入引擎初始y；v0y仍默认0并保留正负范围；显示名改“竖直运动（自由落体/上抛）”。修正 rig 的释放点、最高点与高度标尺语义，默认从高处可见下落，地面接触后统一截断主球/残影/线。同步受影响教案、导学与审计记录，绝对高度/相对上升高度分清；上抛对称性指回到释放高度，不指到地面全过程。
+- 不包含：不删/合并两入口，不改公共引擎API/轨迹，不重写播放框架，不通过改默认速度或移除地面检测隐藏零/负初速问题；不改CI、依赖或预算。
+- 依赖：无；先完成本单再集成 #158，避免公用 EquipmentStage 冲突。
+- 验收摘要（完整清单以 Issue 正文为准）：
+  - [ ] 真实 scene→engine→rig：默认落地前不同采样的球心确实下移，视觉位移等于引擎位移乘 worldScale；不能只看时间条或整张canvas哈希。
+  - [ ] height1/20、v0y负/0/正、两档g；上抛先升后落、下抛向下；释放点/高度尺/最高点一致；落地后主球/线/残影一致，暂停/重置/拖时间均正确。
+  - [ ] 生产构建真实浏览器默认播放、暂停拖时、落地、切换并返回均验证；提供参数/时刻/球心数值与前后截图，零console error。
+  - [ ] 失效路径行为回归先红后绿、precheck通过、测试数同步、交付SHA经--no-ff入main且同SHA CI/Deploy成功；完整执行报告后只转in-review。
+
+### 2. #158 · 修复斜面板与球轨迹错位、二次投影及全程支撑范围
+
+- Issue：[#158](https://github.com/zhangjszs/physical-modelvis/issues/158)；状态：**ready**；优先级：**P1**；Milestone：**M9 课堂核心场景坐标纠错**。
+- 正确目标：`inclined-plane` / “斜面运动”，不是 `galileo-incline`。
+- 证据：默认30°时板中心(0.214359354,0.8,0)，球心(−1.385640646,0.98,0)；真实Three.js worldToLocal得到球心localY=−0.644115427，距上表面−0.684115427 world，本应为正球半径0.18。引擎已输出(s cosθ,−s sinθ)，rig又投影pos.x，切向位移缩小cosθ倍。默认3s沿面位移22.05m→3.528 world，超过当前3.2板长。
+- 范围：板面/端点/厚度与球/轨迹统一几何定义；实际引擎XY只做等比缩放/平移，法向偏置半板厚+球半径，不二次投影。维持现有连续斜面引擎语义，展示板按真实引擎采样范围覆盖全程（含负向），不让地面夹高把后半程压平；需要时仅最小扩展内部结果上下文，不全仓重构。移除无引擎碰撞契约的装饰性红挡板；a标签读取引擎状态，不再硬编码g自算。同步受影响审计/开发记录。
+- 不包含：不改引擎初速/摩擦语义或公共API，不新增碰撞/离板/落地物理，不在渲染层伪造碰撞停止，不改其他场景/CI/预算/框架。额外缺陷另行报告。
+- 依赖：无；在 #157 后串行集成是建议顺序，不是等待其验收关闭的硬依赖。
+- 验收摘要：
+  - [ ] 实际 scene→engine→rig/mesh，在30°及5°/85°、初始化/更新/变角后，采样球心局部y=halfThickness+radius（误差≤1e−5 world），切向投影在实际板长范围内。
+  - [ ] 多个真实采样含0/.5/1/3秒：视觉切向位移=引擎有向沿面位移×worldScale，无额外cos；μ0滑动与μ≥tanθ且v0=0静止状态均贴面，a标签与引擎一致。
+  - [ ] 生产构建真实浏览器播放、暂停、拖时、改角、切场景返回；初始/中段/末段截图与间隙/切向位移数值证明不穿板、不脱离支撑、不假停；零console error。
+  - [ ] 接触距离与位移缩放回归旧实现失败、修复后通过；precheck/测试数/--no-ff/同SHA CI+Deploy及完整执行报告齐备后转in-review。
+
+## 当前 Milestone
+
+[M9 课堂核心场景坐标纠错](https://github.com/zhangjszs/physical-modelvis/milestone/3)：**0/2**；真实关联 #157 / #158 均 OPEN。M8 两个已关闭Milestone维持历史收官，不因独立缺陷修复伪改旧计数。
 
 ## 冻结 / 不可领取
 
-### #44 · 暂缓 React 19 迁移（P2 · blocked · parked 属性）
+- **#44 · P2 · blocked · parked**：[暂缓 React 19](https://github.com/zhangjszs/physical-modelvis/issues/44)。D44=B不变；#140/#141已完成。只在用户改选A/C、已验证功能收益或React18安全/兼容硬约束时重议，不因本轮Bug解冻。
 
-- Issue：[暂缓 React 19](https://github.com/zhangjszs/physical-modelvis/issues/44)；Milestone：无。
-- 冻结依据：D44=B 已确认；#140 / #141 已 CLOSED，并非尚未完成的技术依赖。
-- 解除条件：用户改选 A/C、具体需求证明 React 19 功能收益，或 React 18 出现安全/兼容硬约束；目前未获新证据。不安装试升、不提高体积预算、不扩展至其他大版本。
-- 维持开放跟踪已确认的成本约束，不作为普通 P3/P4 饥饿任务关闭；本轮不改变其状态或优先级。
+## Pending 与治理
 
-## Pending 决策：0
-
-- D61=A：维护模式，仅处理实证缺陷、文档与自动发现项，不启动新功能线。
-- D62=A：组合台交互探针继续手动运行；不增加 CI 第 5 个探针。
-- D44=B / D31 暂缓及真实发布红线维持。本轮无新用户答复或红线授权，无需重复提问。
-
-## 本轮治理与信号回应
-
-- 已逐一治理全部开放任务：#156 原 in-review 已验收关闭并摘除状态标签；余下 #44 冻结依据有效，无重复、方向冲突、待定级 auto-discovered 或无优先级项；P0/P1=0，无 in-progress 超时项。
-- Executor 的 #156 信号已处理：独立目录列表核实 composition 为 9 个测试文件，Issue 正文 8→9；验收 checklist 已勾选。D63 的历史错误通过 D64 追加更正，不抹改历史；AGENTS.md 不固化测试数量。
-- 当前 main 同步起点 `96a9be9`：CI `40093424297` / Deploy `40093611992` success；最近 QA `40027811873` success，但 QA 对应旧 SHA `a59596e`，不冒称对当前 HEAD 重跑。
-- STATE / HANDOFF 仍写「#156 待验收」属于 Executor 快照滞后；已在验收 comment 告知下一次自行刷新，Planner 不代改。DIARY 历史保留。
-- DECISIONS 顶部旧 D59 当前状态摘要由 Planner 修正为 D64；D59 返工记录保留为历史。
-- 远程旧分支（issue-95 / issue-96）沿用只上报、不代删；串行不设锁，不以锁为开工前提。
+- pending=0。D61=A维护态允许本次实证Bug修复，不等于新增功能线；D62=A不新增CI探针，修复浏览器证据可手动获取；D31/真实发布红线不变。
+- 全部开放单已治理：两单用户报告缺陷有独立证据，不重复、不标auto-discovered；P1=2符合今日容量；无待定级/无优先级/超时in-progress。#44冻结理由仍成立。两张ready的目标、非目标、依赖、产品取舍、可判验收、红线与无需凭空决策七门禁均补齐。
+- 只将“计时条前进/整图哈希变了/没有console错误”作辅助证据，不能证明球在运动或贴面；原弱验证不再充当这两单验收依据。
+- STATE/HANDOFF仍为旧执行现场，由Executor领取后自行刷新；Planner不改。DIARY保持追加历史；远程旧分支只上报、不代删；串行不设锁。
