@@ -4,9 +4,20 @@ import { PHYSICS_CONSTANTS } from 'physics-core';
 
 export const uniform_acceleratedScene: SceneConfig = {
     id: 'uniform-accelerated',
-    name: '自由落体(竖直)',
+    name: '竖直运动（自由落体/上抛）',
     model: 'uniform-accelerated',
     parameters: [
+        {
+            name: 'height',
+            label: '初始高度 h',
+            unit: 'm',
+            value: 20,
+            min: 1,
+            max: 200,
+            step: 1,
+            default: 20,
+            description: '物体释放或抛出的初始高度'
+        },
         {
             name: 'v0y',
             label: '竖直初速度 vy₀',
@@ -42,18 +53,19 @@ export const uniform_acceleratedScene: SceneConfig = {
         }
     ],
     buildProblem: params => {
+        const height = params['height'] ?? 20;
         const v0y = params['v0y'] ?? 0;
         const g = params['g'] ?? PHYSICS_CONSTANTS.g.value;
         const duration = params['duration'] ?? 3;
         return {
             id: `uniform-accel-${Date.now()}`,
-            title: '自由落体(竖直)',
+            title: '竖直运动（自由落体/上抛）',
             model: 'uniform-accelerated',
             bodies: [
                 {
                     id: 'object',
                     mass: { value: 1, unit: 'kg' },
-                    position: { x: 0, y: 0 },
+                    position: { x: 0, y: height },
                     velocity: { x: 0, y: v0y }
                 }
             ],

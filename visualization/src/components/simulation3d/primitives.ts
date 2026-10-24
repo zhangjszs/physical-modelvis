@@ -85,15 +85,18 @@ export function makeTextSprite(
     texture.colorSpace = THREE.SRGBColorSpace;
     const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
     const sprite = new THREE.Sprite(material);
+    sprite.userData['text'] = text;
     sprite.scale.set(scale.x, scale.y, 1);
     return sprite;
 }
 
 /** 复用已有 sprite 的 canvas，更新文字（避免重复创建纹理） */
 export function updateTextSprite(sprite: THREE.Sprite, text: string, color = '#334155', fontSize = 40): void {
+    sprite.userData['text'] = text;
     const canvas = (sprite.material as THREE.SpriteMaterial).map?.image as HTMLCanvasElement | undefined;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d')!;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.font = `600 ${fontSize}px "Microsoft YaHei", "PingFang SC", sans-serif`;
     ctx.fillStyle = color;

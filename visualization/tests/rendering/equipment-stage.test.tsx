@@ -17,6 +17,9 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { EquipmentStage, type SceneRig } from '../../src/components/simulation3d/EquipmentStage';
 import { useSimulationStore } from '../../src/store/simulationStore';
+import { verticalMotionRig } from '../../src/components/simulation3d/rigs/verticalMotionRig';
+import { uniform_acceleratedScene } from '../../src/scenes/scenes/mechanics/uniform-accelerated';
+import { runSceneSimulation } from '../../src/adapters/physicsCoreAdapter';
 import type { SimulationResult } from 'physics-core';
 
 /** 最小可用的 SimulationResult (仅含轨迹, 用于触发 getVisualPosition 路径) */
@@ -249,11 +252,11 @@ describe('EquipmentStage 行为', () => {
 let rafQueue: FrameRequestCallback[] = [];
 let frameTime = 0;
 
-function flushFrames(count: number) {
+function flushFrames(count: number, stepMs = 16) {
     for (let i = 0; i < count; i++) {
         const callbacks = rafQueue;
         rafQueue = [];
-        frameTime += 16;
+        frameTime += stepMs;
         callbacks.forEach(cb => cb(frameTime));
     }
 }
@@ -409,5 +412,88 @@ describe('布局尺寸变化补帧 (#111)', () => {
         // 之后恢复静默，不持续渲染
         flushFrames(60);
         expect(renderSpy).toHaveBeenCalledTimes(1);
+    });
+});
+
+describe('#157 EquipmentStage + verticalMotionRig 播放/暂停/拖时间条/重置与落地停靠回归', () => {
+    beforeEach(() => {
+        rafQueue = [];
+        frameTime = 0;
+        vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
+            rafQueue.push(cb);
+            return rafQueue.length;
+        });
+        vi.stubGlobal('cancelAnimationFrame', () => {});
+    });
+
+    afterEach(() => {
+        vi.unstubAllGlobals();
+    });
+
+    it('默认参数 (height=20, v0y=0, g=9.8): 播放推进、暂停拖动时间条、落地截断与重置回 0s 球心位置均与引擎一致', () => {
+        const params = { height: 20, v0y: 0, g: 9.8, duration: 3 };
+        const { result, error } = runSceneSimulation(uniform_acceleratedScene, params);
+        expect(error).toBeNull();
+        expect(result).not.toBeNull();
+
+        useSimulationStore.setState({
+            parameters: params,
+            simulationResult: result,
+            currentTime: 0,
+            isPlaying: false,
+            playbackSpeed: 1
+        });
+
+        const fakeRenderer = makeFakeRenderer();
+        render(<EquipmentStage rig={verticalMotionRig} renderer={fakeRenderer} />);
+        flushFrames(1);
+
+        const sceneInstances = (THREE.Scene as unknown as { instances: THREE.Scene[] }).instances;
+        const stageScene = sceneInstances[sceneInstances.length - 1]!;
+        // 主球是半径 0.22 的 SphereGeometry Mesh
+        const mainBall = stageScene.children.find((obj): obj is THREE.Mesh => {
+            if (!(obj instanceof THREE.Mesh) || !(obj.geometry instanceof THREE.SphereGeometry)) return false;
+            return Math.abs(obj.geometry.parameters.radius - 0.22) < 1e-4;
+        });
+        expect(mainBall).toBeDefined();
+
+        // t = 0: 释放点 y = 0.22 + 20 * 0.16 = 3.42
+        expect(mainBall!.position.y).toBeCloseTo(3.42, 5);
+
+        // 开始播放并推进 0.5s (10 帧 × 50ms)，随后暂停补一帧同步
+        act(() => {
+            useSimulationStore.getState().play();
+        });
+        flushFrames(10, 50);
+        expect(useSimulationStore.getState().currentTime).toBeCloseTo(0.5, 5);
+        act(() => {
+            useSimulationStore.getState().pause();
+        });
+        flushFrames(1);
+        // t = 0.5s: y = 20 - 0.5 * 9.8 * 0.25 = 18.775m -> visualY = 0.22 + 18.775 * 0.16 = 3.224
+        expect(mainBall!.position.y).toBeCloseTo(0.22 + 18.775 * 0.16, 4);
+
+        // 暂停态拖动时间条到 t = 1.0s
+        act(() => {
+            useSimulationStore.getState().pause();
+            useSimulationStore.getState().setCurrentTime(1.0);
+        });
+        flushFrames(1);
+        // t = 1.0s: y = 20 - 4.9 = 15.1m -> visualY = 0.22 + 15.1 * 0.16 = 2.636
+        expect(mainBall!.position.y).toBeCloseTo(0.22 + 15.1 * 0.16, 4);
+
+        // 拖动时间条到落地后 t = 2.5s (> 2.0203s): 停靠在地面接触面 0.22
+        act(() => {
+            useSimulationStore.getState().setCurrentTime(2.5);
+        });
+        flushFrames(1);
+        expect(mainBall!.position.y).toBeCloseTo(0.22, 6);
+
+        // 重置回 t = 0s: 球心回到初始高度 3.42
+        act(() => {
+            useSimulationStore.getState().setCurrentTime(0);
+        });
+        flushFrames(1);
+        expect(mainBall!.position.y).toBeCloseTo(3.42, 5);
     });
 });
