@@ -448,6 +448,7 @@ eslint tests 目录 `no-explicit-any` 降 warn）与 `36aed93`（移除 scripts/
 - **四十七次滚动（2026-10-23）复核：pending 维持 0**——用户未提供新决策；#101 报告失实按协议重开，验收纠错不需产品拍板；#44 生命周期统一 blocked、parked 仅冻结属性，不改变 D44=B。未授权事项不因三天默认转正获得红线实施许可。
 - **四十八次滚动（2026-10-23）复核：D61 / D62 已于同日获用户答复「按照推荐的来」→ D61=A、D62=A，pending 清零**（见文末「D61 / D62（已确认）」条）。
   - 原提问保留于 D60：D61 产品方向（A 维护 / B 扩组合台 / C 教学内容）；D62 是否接入 CI 第 5 探针（A 不接 / B 阻断 / C 仅告警）。
+- **四十九次滚动（2026-10-24）复核：pending 维持 0**——#155 验收关闭不需产品拍板；Executor 信号（tests 目录入 AGENTS.md 树）属文档结构自决列，已立 #156 承接；远程分支清理维持「只上报、不代删」。无其他待用户拍板事项。
 
 > **D31 已于 2026-10-16 三十一次滚动 default 转正**（详见「已确认」节 D31 条目）。
 
@@ -1151,3 +1152,19 @@ eslint tests 目录 `no-explicit-any` 降 warn）与 `36aed93`（移除 scripts/
 - **D61 = A**：M8 收官后维持维护模式——只处理巡检缺陷、文档与 Executor 自动发现项；不立新功能（组合台扩器材/模板、123 场景内容深化均不启动）。解除条件：用户明确改选 B/C，或出现实证缺陷/新需求。
 - **D62 = A**：不把 `verify-composition-interaction.mjs` 接入 `ci.yml`，维持手动运行；`ci.yml` 保持 D46 授权的 4 个探针。未采纳 B/C，CI 抖动风险仍未实测。如需重议，先在 CI 同环境实测像素阈值稳定性再问用户。
 - 效果：D60 中 pending 清零；队列维持 #155 单骑；不放新功能或 CI 改动进 ready。本条为用户明确答复（非默认转正）。
+
+---
+
+## D63 · 四十九次滚动（2026-10-24）：#155 验收 CLOSED；信号回应新立 #156（AGENTS.md 测试目录条目补全）；维护态巡检全绿
+
+- **日期 / 决策者**：2026-10-24；Planner 按验收与任务治理权限自行决定（docs 纠偏单属契约 6.1 文档结构自决列，不涉红线）。
+- **同步事实**：fetch/pull --rebase → Already up to date；HEAD `5035db8`（main，executor-20261024 收尾）。今晨日报 `.agent/DIARY/2026-10-24.md` 与 STATE / HANDOFF 三处一致；无 `.agent/LOCK`。
+- **验收 #155：通过 → CLOSED（独立复核，不只读报告；[验收 comment](https://github.com/zhangjszs/physical-modelvis/issues/155#issuecomment-6383684408)）**：
+  - `git show c6c0e2f --stat`：仅 AGENTS.md +3（删改行 0 / 纯新增）与 docs/plan.md +7−1；`fe229ee` 双亲 a59596e + c6c0e2f 且 c6c0e2f 为其祖先 → --no-ff 成立。
+  - 工作树复验 grep：`2026-08-11` 0 命中、`M8` 计数 1、AGENTS.md `composition` 3 命中（121/127/137）；`composition/` 目录（7 文件）、`compositionStore.ts`、`verify-composition-interaction.mjs` ls 全过。
+  - 事实性抽查：plan.md 新条目所引 8 个 merge 哈希（5252f4e/a8dc71f/4d3ef08/fc029e7/f9cd5d6/b982aa0/9a33f58/1bdf60e）逐个 `git log` 核对，与所引 Issue 号一一对应；20 个被引 Issue 号逐个查证全部 CLOSED。
+  - CI `40028604667` + Deploy `40028873539` success @ `fe229ee`（CI 等价覆盖 count:check / format:check / precheck 全链，本机未重跑）。执行报告数字同源，四项验收标准逐条满足，无失实点。
+- **信号回应 → 新立 #156（P3 · docs · ready）**：Executor 在 #155 报告「剩余风险」与日报两处建议 tests/composition/ 入 AGENTS.md 树。核实为真实缺口：`ls visualization/tests/` 实测 composition（8 文件，93 tests）/ workbench（3 hook 测试，16 例）/ charts / utils 四目录未入树，而 accuracy / rendering / guidance / ocr 已在——入门地图不完整会低估组合台与工作台测试覆盖。与 #155 同类，非凑数立单。
+- **维护态巡检（D61=A 观察）**：main 最新 CI `40029366121` / Deploy `40029771873` / QA 场景巡检 `40027811873` 均 success；src TODO/FIXME grep 复验 = 0。无实证缺陷，不立功能单。
+- **队列**：开放 2 单 = #156（ready）+ #44（blocked / parked 维持）。今日队列 1 个 ready（低于 2–5 惯例，如实记录：巡检全绿、TODO/FIXME 0、docs 索引完整，无第二实证候选；不凑数，沿 D60 口径）。
+- **pending**：维持 0。D44=B / D61=A / D62=A 等既定决策无冲突事实，不重议；远程旧分支 2 个沿用「只上报、不代删」。
