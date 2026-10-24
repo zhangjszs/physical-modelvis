@@ -684,5 +684,6 @@ grep -oE "scene\('[a-z0-9-]+'\)" visualization/tests/accuracy/single-source-cont
 - **R7**: cavendish 软命中 — `onAnimate` 用 `ctx.time` 算悬丝扭转装饰包络(扭秤无 trajectory), 非引擎自算, 不违单源; 豁免。
 - **浏览器实测覆盖(一次性 headless harness, 非门禁)**: 遍历教材目录去重 123 个 sceneId, 逐景判 `canvas.getContext('webgl2')` — **123/123 均为 3D 首帧, 0 CRASH / 0 ERROR**(主扫 107 + 折叠侧栏滚动不可达的 16 景补测)。产物 `.scratch/unify-3d/browser-coverage{,-rest}.json`(gitignored)。
 - **未 push 之前**: 本轮 2 处 rig 修复 + 本审计段已 push 至 main。
+- **M9 课堂核心场景坐标纠错 — #157 `uniform-accelerated` 竖直运动修复 (2026-10-25)**: 补齐初始高度参数 `height` (m, 默认 20, 范围 1–200, 步长 1) 并写入 `buildProblem` 初始 `y`；显示名统一为「竖直运动（自由落体/上抛）」。`verticalMotionRig` 的释放点 (`getOrigin` / `launcherBase` / `releaseLabel`)、高度标尺 (`heightRuler`)、最高点 (`apexMarker` / `apexLabel`) 与球/残影/轨迹统一采用 `BALL_RADIUS + y * WORLD_SCALE` 真实物理映射，严格区分相对上升高度 $\Delta h = v_{0y}^2/(2g)$ ($v_{0y}>0$) 与绝对最高点高度 $H_{\max} = h_0 + \Delta h$，$v_{0y} \le 0$ 不再出现虚增最高点或负上升时间；同步课堂教案与导学说明。
 
 > 完整例外论证见会话产物 `.scratch/unify-3d/FINAL.md`(gitignored, 不入库)。

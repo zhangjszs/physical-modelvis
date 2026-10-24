@@ -125,16 +125,18 @@ export const CLASSROOM_SCRIPTS: Record<string, ClassroomScript> = {
 
     'uniform-accelerated': {
         sceneId: 'uniform-accelerated',
-        title: '匀变速直线运动的规律',
+        title: '竖直运动（自由落体与竖直上抛）规律',
         subtitle: '必修第一册 · 匀变速直线运动的研究',
-        goal: '掌握匀变速直线运动的速度-时间关系与位移-时间关系，理解 v-t 图像斜率代表加速度、面积代表位移。',
-        demoParams: { v0y: 20, g: 9.8 },
-        demoNote: '初速度竖直向上 20 m/s，加速度竖直向下 9.8 m/s²。观察对称的上升与下落过程。',
+        goal: '掌握竖直方向匀变速直线运动的速度-时间关系与位移-时间关系，区分初始释放高度 h₀、相对上升高度 Δh 与最高点离地高度 H_max。',
+        demoParams: { height: 20, v0y: 20, g: 9.8 },
+        demoNote:
+            '从初始高度 h₀=20 m 处以初速度 v₀y=20 m/s 竖直上抛（设 v₀y=0 即自由落体），加速度竖直向下 g=9.8 m/s²。观察上升至最高点、对称回落经过释放高度及最终落地的过程。',
         compareFocus: {
             paramName: 'v0y',
             range: [10, 30],
             count: 3,
-            description: '改变初速度 v₀y（10~30 m/s），对比最大上升高度 H ∝ v₀² 与上升时间 t ∝ v₀。'
+            description:
+                '改变初速度 v₀y（10~30 m/s），对比相对释放点的最大上升高度 Δh = v₀y²/(2g)（最高点离地高度 H_max = h₀ + Δh）与上升时间 t_上 = v₀y/g。'
         },
         quizzes: [
             {
@@ -153,7 +155,7 @@ export const CLASSROOM_SCRIPTS: Record<string, ClassroomScript> = {
         conclusion: {
             takeaways: [
                 'v-t 图像的斜率表示加速度 a；图像与时间轴围成的面积表示位移 x。',
-                '竖直上抛运动具有时间对称性（t_上 = t_下）与速率对称性（v_上 = v_下）。'
+                '从指定高度 h₀ 竖直上抛时，“上升至最高点”与“从最高点回到释放高度 h₀”具有时间对称性（t_上 = t_回释放点 = v₀y/g）与速率对称性，而非到地面全过程等时对称。'
             ],
             formulas: [
                 '速度公式: v = v_0 + a t',
