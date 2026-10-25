@@ -1,17 +1,12 @@
 # STATE
-- 更新时间：2026-10-24T12:30:00Z（本轮 executor-20261024-s2）
-- 当前任务：#156（已交付入 main 并转 in-review；今日队列已清空）
-- 本会话：`executor-20261024-s2`
-- 分支：main（代码已 push；最新 merge `84b861b`）
-- 未完成工作：无代码半成品；#156 待 Planner 验收关闭；#44 维持 blocked（parked）
-- 最近提交：
-  - #156 文档刷新 `21f665e` + `--no-ff` merge `84b861b`（CI `40092774812` + Deploy `40092999706` 双绿）
-  - 全程走完整 pre-push precheck，**未 --no-verify、未 force-push**
-- 验证结果：
-  - `npm run precheck` exit 0（11 层物理自检 11 PASS / 0 FAIL；format:check 在链中通过）
-  - grep 证据：4 条目各 1 命中（AGENTS.md 行 134–137）
-  - `git diff --numstat` = `4 0 AGENTS.md`（仅新增 4 行删改 0）；`git diff --stat` 仅 AGENTS.md 一个文件
-  - `git merge-base --is-ancestor` 对 `21f665e` / `84b861b` 均通过（--no-ff）
-- 今日日报：已追加（`.agent/DIARY/2026-10-24.md` 会话 2 块）
-- 已知环境限制：PATH 需 mise shims；改 physics-core 源码后须 build；preview 端口 :4173，dev 端口 :3000
-- 契约 1.2 提示：本轮未发现 `.agent/LOCK` 残留
+
+- 更新时间：2026-10-25（本轮恢复现场）
+- 当前任务：#158（in-progress，优先恢复）；#157（Planner 首次退回 in-progress，排在 #158 后串行返工）
+- 分支：agent/issue-158-inclined-plane-rig
+- 未完成工作：#158 尚无代码提交；按 Issue 原验收修复真实板面接触、位移比例与全程支撑。#157 五项差距见 TASKS 与 Issue 验收 comment。
+- 最近提交：10df68e chore(agent): 验收157退回并保留158恢复队列
+- 现场来源：原未提交 STATE 为上一 Executor 的执行快照，保留其恢复事实；旧验证块混入 #156，不作为 #157/#158 证据。HANDOFF 仍是 #156，待本轮收尾整体刷新。
+- 验证结果：本轮 gh 登录与开放 Issue 读取成功；git fetch --all --prune 成功；git pull --rebase 因未提交 STATE 退出 128，保存状态后重试。
+- 今日日报：未写；本轮收尾创建 .agent/DIARY/2026-10-25.md，明确 #157 历史交付来源为 Issue/Git，非本轮实跑。
+- 已知环境限制：npm/node 需 mise shims；改 core 后须 build；Issue 为唯一权威，旧 TASKS 曾与远程状态漂移，已由 Planner 整体纠正。
+- 契约 1.2：目录清单未见 LOCK 残留；串行不使用锁。
