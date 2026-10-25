@@ -1,7 +1,7 @@
 # TASKS（GitHub Issue 本地镜像）
 
 > Planner 整体重写 · 2026-10-25 · D66。GitHub Issues 可读写，为唯一权威；Executor 先改 Issue，再同步本文件状态。
-> 开放 3 单：in-progress 1（#157）+ in-review 1（#158）+ blocked 1（#44）；ready / needs-info / P0=0，P1=2。
+> 开放 3 单：in-review 2（#157 / #158）+ blocked 1（#44）；ready / in-progress / needs-info / P0=0，P1=2。
 > ready 对应 `ready-for-agent`，done 对应 CLOSED；parked 只是冻结属性，不是第二生命周期。
 
 ## 本轮验收与来源
@@ -32,7 +32,7 @@
 
 ### 2. 返工 #157 · 修复竖直自由落体默认播放静止及高度/教案坐标不一致
 
-- Issue：[#157](https://github.com/zhangjszs/physical-modelvis/issues/157)；状态：**in-progress**（本轮从 in-review 退回）；优先级：**P1**；Milestone：**M9**。
+- Issue：[#157](https://github.com/zhangjszs/physical-modelvis/issues/157)；状态：**in-review**（Executor 首次退回返工已交付，报告见 issuecomment-6399428226）；优先级：**P1**；Milestone：**M9**。
 - [执行报告](https://github.com/zhangjszs/physical-modelvis/issues/157#issuecomment-6386991445)；[逐条验收与五项差距](https://github.com/zhangjszs/physical-modelvis/issues/157#issuecomment-6398555835)。首次退回=1；若下一次仍不通过，Planner 必须拆小/重定标准，不让第三次盲试。
 - 已认可：`uniform-accelerated`（不是相邻 free-fall）补 height 默认20m且保留 v0y0/正负范围；真实默认球心下落、参数矩阵、上抛高度语义、播放暂停/拖时/场景返回正确；实现 `438cbaf` 经 --no-ff merge `fc2e731` 入 main，同 SHA CI `40113595479` / Deploy `40113808015` success。
 - Planner 实测：相关四文件 167 tests passed；生产 preview 的真实主球 t0/.5/1/2.5s 的 y=3.4200000000000004 / 3.2240031360000003 / 2.63600784 / .22；轨迹 minY=.2199999988079071（Float32精度），落地残影 y=.22；切 free-fall 再回来 t0/y3.42，页面错误0。解析期望与插值实测须分别标注，不冒称完全相等。

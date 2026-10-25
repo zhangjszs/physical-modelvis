@@ -1,12 +1,16 @@
 # STATE
-
-- 更新时间：2026-10-25（#158 已交付，#157 返工前）
-- 当前任务：#158 in-review；#157 in-progress（Planner 首次退回，下一项）；#44 blocked/parked
+- 更新时间：2026-10-25T15:20:00Z
+- 当前任务：#157（in-review）；#158（in-review）；今日可执行队列已清空；#44 维持 blocked（parked）
 - 分支：main
-- 未完成工作：#158 无；#157 五项有界差距待修，见 TASKS 与 Planner 验收 comment。
-- 最近提交：#158 功能 cc04ac4；--no-ff merge b0b0702dd1d40b8d4e90487adf30b86b217d8fbc，已推送。
-- 验证：#158 旧实现接触距离 -0.684115427 与位移缩水行为 RED；最终 incline-contact 5 tests GREEN；count:sync / precheck exit0，core1169+viz1803=2972、自检11PASS/0FAIL；生产浏览器默认/边界/播放暂停/拖时/静止/停止/变角防抖/场景往返已验证，三张截图随代码提交。
-- 远端：同 b0b0702 SHA CI40203220445、Deploy40203498425 success。
-- 执行报告：https://github.com/zhangjszs/physical-modelvis/issues/158#issuecomment-6399039638
-- 今日日报：待会话收尾追加；HANDOFF 仍待整体刷新（旧 #156 不作本轮证据）。
-- 已知环境限制：需 mise shims；LSP 无配置，已用实际调用点与 typecheck；既有 lint19warnings 与测试stderr未扩大修复。Issue 唯一权威，旧 TASKS 漂移已由 Planner 纠正。
+- 未完成工作：无代码半成品，无未提交改动；#158 与 #157 均交付入 main 并留全同源证据，等待 Planner 验收关闭
+- 最近提交：
+  - #158：功能 `cc04ac4` + `--no-ff` merge `b0b0702dd1d40b8d4e90487adf30b86b217d8fbc`（CI `40203220445` + Deploy `40203498425` 双绿）
+  - #157 返工：功能 `6c21980` + `--no-ff` merge `a5f3d6fc7ea171a123d34e6917482c2fc09e250b`（CI `40205243947` + Deploy `40205520006` 双绿）
+  - 全程走完整 pre-push precheck，未 --no-verify、未 force-push
+- 验证结果：
+  - #158：旧实现接触距离 -0.684115427 与位移缩水真实行为 RED；新测 `incline-contact.test.ts`（5 tests）GREEN；生产 preview 默认 30° 接触距离 0.1800000009、全程沿面位移 3.528，变角 5°/85° 与防抖窗口均贴面受支撑
+  - #157 返工：旧实现实体侵入球体与接料面穿入 0.06 真实行为 RED；新测 `vertical-contact.test.ts`（2 tests）GREEN；生产 preview 32 组字体/像素边界实测与 GPU alpha 读回 0 差异，落地球底与垫顶差约 2.24e-10
+  - 全量门禁：`npm run count:sync` 与 `npm run precheck` exit 0（199 文件吞断言扫描通过、2974 单测全绿、自检 11 层 11 PASS / 0 FAIL、首屏 11.5 kB / 70 kB）
+- 今日日报：已写（`.agent/DIARY/2026-10-25.md`）
+- 已知环境限制：npm/node 需 mise shims；改 core 后须 build；Issue 为唯一权威；既有 lint 19 warnings 与测试 stderr 未扩范围修复
+- 契约 1.2 提示：未发现 `.agent/LOCK` 残留；串行不使用锁
