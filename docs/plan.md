@@ -17,7 +17,7 @@
   - `b0bd171` 清理失效/一次性脚本(verify-3d-coverage.mjs 因 SCENES 重构失效、fix-scene-names/split-scenes/rewrite-time-series 等迁移工具、.scratch 草稿)
   - README 补测试数行(core 923 / viz 1159 / 2082)
   - **audit 遗留低优先级清理完成**(liquid-crystal 透射率曲线迁引擎 x_t Tarasov + capillary 常量 ρ_汞 13534/θ 汞+石蜡 150° 对齐引擎,契约测试 21→23)
-- 测试数: core 1169 (128 files) + viz 1798 (66 files) = 2967 (2026-10-25 实测) <!-- test-count -->
+- 测试数: core 1169 (128 files) + viz 1803 (67 files) = 2972 (2026-10-25 实测) <!-- test-count -->
 - `WorkbenchScene 拆分` — ProjectileScene(430 行) 拆为 components/workbench/ 组件族 (WorkbenchScene/SceneStage/InspectorPanel/DataDrawer/TextbookDirectory + useSceneRig/useCompareSimulations/useSceneSimulation)；CompareEntry 支持失败变体显式报错 (result 可空 + error)；tests/workbench/ 新增 16 例
 - `课堂教学脚本系统 (Classroom Scripts)` — 扩充至 **24 个高中高频核心实验** 的 5 阶段结构化教学全流程（目标 → 启发演示 → 变量对比 → 预测提问与错因剖析 → 结论与公式）+ `ClassroomScriptPanel` 组件 + 7 例契约测试全绿通过
 - `教材目录精讲高亮与置顶` — 在 `TextbookDirectory` 中加入 **“🌟 高中核心精讲 (24 节)”** 置顶推荐组与 `[精讲]` 勋章 Badge，极大提升老师备课选课效率
@@ -29,6 +29,7 @@
   - **M8 组合实验台产品功能线+证据物料 (2+2 收官 2026-10-23)** — 器材旋转编辑+轨迹回放控制 (#100, merge `4d3ef08`); 预设实验模板一键布置 (速度选择器/质谱仪/磁聚焦/平行板偏转, #101, `8622ea0`); 收尾: 交互探针画布像素级断言强化 (#151, `9a33f58`) 与 README 演示截图更新 (#154, `8fea81a`)
   - **CI 门禁补强** — vendor-react 懒拆保 70kB 首屏 (#140, merge `f9cd5d6`); 挂载前必需资源度量口径重建 (#141, `fedd6b5`); 4 个 headless 浏览器探针接入 CI 阻断 Deploy (#143, `b982aa0`)
   - **M9 课堂核心场景坐标纠错 (进行中)** — #157 修复 `uniform-accelerated`（竖直运动：自由落体/上抛）默认播放静止及高度/教案坐标不一致（补 `height` 默认 20m、统一 `verticalMotionRig` 释放点/高度尺/最高点绝对与相对高度语义、同步教案/导学与先红后绿回归）
+  - **M9 #158 斜面坐标与全程支撑修复** — `inclined-plane` 板与球/轨迹共用实际引擎结果布局，XY 不再二次投影；展示板覆盖有向采样全程并留球半径法向距离，移除装饰挡板和地面夹高，a 标签读引擎。真实生产浏览器完成播放/暂停/拖时/85°变角/静止/场景往返，接触与位移测量及截图见渲染审计与 Issue #158 执行报告。
 
 ---
 

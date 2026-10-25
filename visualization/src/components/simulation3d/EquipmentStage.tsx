@@ -13,6 +13,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
+import type { SimulationResult } from 'physics-core';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { useSimulationStore } from '../../store/simulationStore';
 import { findFrameIndex, getTotalDuration, interpolateFrame } from '../../utils/frameUtils';
@@ -47,19 +48,27 @@ export interface SceneRig {
      */
     buildEquipment(
         scene: THREE.Scene,
-        params: Record<string, number>
+        params: Record<string, number>,
+        result?: SimulationResult | null
     ): {
         group: THREE.Group;
         handles: unknown;
     };
-    /** 参数变化时更新器材状态 */
-    updateEquipment(handles: unknown, params: Record<string, number>): void;
-    /** 物理坐标 (米) → 3D 世界坐标 */
-    getVisualPosition(pos: { x: number; y: number }, params: Record<string, number>): THREE.Vector3;
+    /** 参数或结果变化时更新器材；结果只用于展示几何，不重算物理。 */
+    updateEquipment(handles: unknown, params: Record<string, number>, result?: SimulationResult | null): void;
+    /** 物理坐标 (米) → 3D 世界坐标，与器材共用本次结果上下文。 */
+    getVisualPosition(
+        pos: { x: number; y: number },
+        params: Record<string, number>,
+        result?: SimulationResult | null
+    ): THREE.Vector3;
     /** 轨迹起点在 3D 空间的位置（发射口 / 释放点） */
-    getOrigin(params: Record<string, number>): THREE.Vector3;
+    getOrigin(params: Record<string, number>, result?: SimulationResult | null): THREE.Vector3;
     /** 动画每帧回调 (用于悬绳、弹簧等器材部件实时连接到小球当前位置) */
-    onAnimate?(handles: unknown, ctx: { time: number; ballPos: THREE.Vector3; params: Record<string, number> }): void;
+    onAnimate?(
+        handles: unknown,
+        ctx: { time: number; ballPos: THREE.Vector3; params: Record<string, number>; result?: SimulationResult | null }
+    ): void;
     /**
      * rig 缓存淘汰清理钩子 (useSceneRig LRU 上限, #79)。
      * 现有 rig 均为无状态单例, 不实现即 no-op；根治单 (#81) 引入在单例上捕获
@@ -215,7 +224,7 @@ export function EquipmentStage({ rig, renderer, cameraPosition, cameraTarget, ca
         let equipmentGroup: THREE.Group;
         let equipmentHandles: unknown;
         try {
-            const built = rig.buildEquipment(scene, parameters);
+            const built = rig.buildEquipment(scene, parameters, simulationResult);
             equipmentGroup = built.group;
             equipmentHandles = built.handles;
         } catch (err) {
@@ -291,11 +300,11 @@ export function EquipmentStage({ rig, renderer, cameraPosition, cameraTarget, ca
         const handles = handlesRef.current;
         if (!handles) return;
         try {
-            rig.updateEquipment(handles.equipmentHandles, parameters);
+            rig.updateEquipment(handles.equipmentHandles, parameters, simulationResult);
         } catch (err) {
             console.error('[EquipmentStage] updateEquipment failed:', err);
         }
-    }, [parameters, rig]);
+    }, [parameters, simulationResult, rig]);
 
     // —— 2.5 视角预设：切换相机位置 ——
     useEffect(() => {
@@ -365,7 +374,7 @@ export function EquipmentStage({ rig, renderer, cameraPosition, cameraTarget, ca
             const points = simulationResult.trajectories[i] ?? [];
             let visualPoints: THREE.Vector3[];
             try {
-                visualPoints = points.map(p => rig.getVisualPosition(p.position, parameters));
+                visualPoints = points.map(p => rig.getVisualPosition(p.position, parameters, simulationResult));
             } catch (err) {
                 console.error('[EquipmentStage] getVisualPosition failed:', err);
                 return;
@@ -461,7 +470,7 @@ export function EquipmentStage({ rig, renderer, cameraPosition, cameraTarget, ca
                         const frame = interpolateFrame(p0, p1, now);
                         let ballPos: THREE.Vector3;
                         try {
-                            ballPos = rig.getVisualPosition(frame.position, params);
+                            ballPos = rig.getVisualPosition(frame.position, params, simulationResult);
                         } catch (err) {
                             console.error('[EquipmentStage] getVisualPosition in tick failed:', err);
                             ballPos = new THREE.Vector3(0, 1, 0);
@@ -490,7 +499,12 @@ export function EquipmentStage({ rig, renderer, cameraPosition, cameraTarget, ca
                             }
                             if (rig.onAnimate) {
                                 try {
-                                    rig.onAnimate(handles.equipmentHandles, { time: now, ballPos, params });
+                                    rig.onAnimate(handles.equipmentHandles, {
+                                        time: now,
+                                        ballPos,
+                                        params,
+                                        result: simulationResult
+                                    });
                                 } catch {
                                     // 防御异常不中断循环
                                 }
