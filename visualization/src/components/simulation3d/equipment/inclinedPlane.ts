@@ -1,9 +1,33 @@
-/**
- * 斜面 — 可调角度的斜面板 + 支架
- * 用于伽利略斜面、牛顿第二定律、滑动摩擦等
- */
+/** 可调斜面：面板、支架和物理坐标映射共享同一几何定义。 */
 import * as THREE from 'three';
-import { makeBox, makeCylinder, makeTextSprite, makeLine } from '../primitives';
+import { makeBox, makeCylinder, makeTextSprite, makeLine, updateTextSprite } from '../primitives';
+
+export const INCLINED_PLANE_THICKNESS = 0.08;
+const MIN_LENGTH = 3.2;
+const END_MARGIN = 0.3;
+const GROUND_CLEARANCE = 0.06;
+
+export interface InclinedPlaneGeometry {
+    angleRad: number;
+    length: number;
+    centerY: number;
+    origin: THREE.Vector3;
+}
+
+/** min/max 是真实采样投影到向下切线后的世界长度，允许负位移。 */
+export function inclinedPlaneGeometry(angleDeg: number, minAlong = 0, maxAlong = 0): InclinedPlaneGeometry {
+    const angleRad = (angleDeg * Math.PI) / 180;
+    const length = Math.max(MIN_LENGTH, maxAlong - minAlong + 2 * END_MARGIN);
+    const middle = (minAlong + maxAlong) / 2;
+    const centerY =
+        (length / 2) * Math.sin(angleRad) + (INCLINED_PLANE_THICKNESS / 2) * Math.cos(angleRad) + GROUND_CLEARANCE;
+    return {
+        angleRad,
+        length,
+        centerY,
+        origin: new THREE.Vector3(-middle * Math.cos(angleRad), centerY + middle * Math.sin(angleRad), 0)
+    };
+}
 
 export interface InclinedPlaneHandles {
     panel: THREE.Mesh;
@@ -13,73 +37,44 @@ export interface InclinedPlaneHandles {
     group: THREE.Group;
 }
 
-export function createInclinedPlane(angleDeg = 30): {
+/** build 与 update 使用同一布局；板端无引擎未定义的碰撞挡板。 */
+export function createInclinedPlane(geometry: InclinedPlaneGeometry): {
     group: THREE.Group;
     handles: InclinedPlaneHandles;
 } {
     const group = new THREE.Group();
-    const angleRad = (angleDeg * Math.PI) / 180;
-    const panelLen = 3.2;
-    const panelThickness = 0.08;
-
-    // 斜面板
-    const panel = makeBox(panelLen, panelThickness, 1.0, 0x78716c, 0.6, 0.05);
-    panel.position.set(0, 0, 0);
-    group.add(panel);
-
-    // 可调节支架
-    const support = makeCylinder(0.04, 1.2, 0x64748b, 0.3, 0.4);
-    support.position.set(-panelLen * 0.3, 0.3, 0);
-    group.add(support);
-
-    // 角度标注弧
-    const arcRadius = 0.7;
-    const arcPoints = Array.from({ length: 24 }, (_, i) => {
-        const a = (i / 23) * angleRad;
-        return new THREE.Vector3(Math.cos(a) * arcRadius, Math.sin(a) * arcRadius + 0.05, 0.55);
-    });
-    const angleArc = makeLine(arcPoints, 0x2563eb, 0.7);
-    group.add(angleArc);
-
-    // 角度标签
-    const angleLabel = makeTextSprite(`${angleDeg}°`, '#2563eb', 28, { x: 0.6, y: 0.22 });
-    angleLabel.position.set(Math.cos(angleRad / 2) * 0.95, Math.sin(angleRad / 2) * 0.95 + 0.05, 0.55);
-    group.add(angleLabel);
-
-    return { group, handles: { panel, support, angleArc, angleLabel, group } };
+    const panel = makeBox(1, INCLINED_PLANE_THICKNESS, 1, 0x78716c, 0.6, 0.05);
+    const support = makeCylinder(0.04, 1, 0x64748b, 0.3, 0.4);
+    const angleArc = makeLine([], 0x2563eb, 0.7);
+    const angleLabel = makeTextSprite('', '#2563eb', 28, { x: 0.6, y: 0.22 });
+    group.add(panel, support, angleArc, angleLabel);
+    const handles = { panel, support, angleArc, angleLabel, group };
+    updateInclinedPlane(handles, geometry);
+    return { group, handles };
 }
 
-/** 更新斜面角度 */
-export function updateInclinedPlane(handles: InclinedPlaneHandles | undefined, angleDeg: number): void {
-    if (!handles || !handles.panel) return;
-    const angleRad = (angleDeg * Math.PI) / 180;
-    const panelLen = 3.2;
-
-    // 旋转面板绕低端
+/** 统一更新板长、板角、支架及低端角度标记。 */
+export function updateInclinedPlane(handles: InclinedPlaneHandles, geometry: InclinedPlaneGeometry): void {
+    const { angleRad, length, centerY } = geometry;
+    const cos = Math.cos(angleRad);
+    const sin = Math.sin(angleRad);
+    handles.panel.scale.x = length;
     handles.panel.rotation.z = -angleRad;
-    handles.panel.position.set(panelLen * 0.5 * (1 - Math.cos(angleRad)), panelLen * 0.5 * Math.sin(angleRad), 0);
+    handles.panel.position.set(0, centerY, 0);
 
-    // 更新角度弧
-    const arcRadius = 0.7;
+    const supportX = -length * 0.3 * cos;
+    const supportHeight = centerY + length * 0.3 * sin - INCLINED_PLANE_THICKNESS / (2 * cos);
+    handles.support.scale.y = supportHeight;
+    handles.support.position.set(supportX, supportHeight / 2, 0);
+
+    const lowX = length * 0.5 * cos;
+    const lowY = centerY - length * 0.5 * sin;
     const arcPoints = Array.from({ length: 24 }, (_, i) => {
         const a = (i / 23) * angleRad;
-        return new THREE.Vector3(Math.cos(a) * arcRadius + panelLen * 0.0, Math.sin(a) * arcRadius + 0.05, 0.55);
+        return new THREE.Vector3(lowX - Math.cos(a) * 0.7, lowY + Math.sin(a) * 0.7, 0.55);
     });
     handles.angleArc.geometry.dispose();
     handles.angleArc.geometry = new THREE.BufferGeometry().setFromPoints(arcPoints);
-
-    // 更新标签
-    handles.angleLabel.position.set(Math.cos(angleRad / 2) * 0.95, Math.sin(angleRad / 2) * 0.95 + 0.1, 0.55);
-    const mat = handles.angleLabel.material as THREE.SpriteMaterial;
-    const canvas = mat.map?.image as HTMLCanvasElement;
-    if (canvas) {
-        const ctx = canvas.getContext('2d')!;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.font = '600 28px "Microsoft YaHei", "PingFang SC", sans-serif';
-        ctx.fillStyle = '#2563eb';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(`${angleDeg.toFixed(0)}°`, canvas.width / 2, canvas.height / 2);
-        mat.map!.needsUpdate = true;
-    }
+    handles.angleLabel.position.set(lowX - Math.cos(angleRad / 2) * 0.95, lowY + Math.sin(angleRad / 2) * 0.95, 0.55);
+    updateTextSprite(handles.angleLabel, `${((angleRad * 180) / Math.PI).toFixed(0)}°`, '#2563eb', 28);
 }

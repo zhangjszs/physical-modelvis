@@ -685,5 +685,6 @@ grep -oE "scene\('[a-z0-9-]+'\)" visualization/tests/accuracy/single-source-cont
 - **浏览器实测覆盖(一次性 headless harness, 非门禁)**: 遍历教材目录去重 123 个 sceneId, 逐景判 `canvas.getContext('webgl2')` — **123/123 均为 3D 首帧, 0 CRASH / 0 ERROR**(主扫 107 + 折叠侧栏滚动不可达的 16 景补测)。产物 `.scratch/unify-3d/browser-coverage{,-rest}.json`(gitignored)。
 - **未 push 之前**: 本轮 2 处 rig 修复 + 本审计段已 push 至 main。
 - **M9 课堂核心场景坐标纠错 — #157 `uniform-accelerated` 竖直运动修复 (2026-10-25)**: 补齐初始高度参数 `height` (m, 默认 20, 范围 1–200, 步长 1) 并写入 `buildProblem` 初始 `y`；显示名统一为「竖直运动（自由落体/上抛）」。`verticalMotionRig` 的释放点 (`getOrigin` / `launcherBase` / `releaseLabel`)、高度标尺 (`heightRuler`)、最高点 (`apexMarker` / `apexLabel`) 与球/残影/轨迹统一采用 `BALL_RADIUS + y * WORLD_SCALE` 真实物理映射，严格区分相对上升高度 $\Delta h = v_{0y}^2/(2g)$ ($v_{0y}>0$) 与绝对最高点高度 $H_{\max} = h_0 + \Delta h$，$v_{0y} \le 0$ 不再出现虚增最高点或负上升时间；同步课堂教案与导学说明。
+- **M9 — #158 `inclined-plane` 板面接触与全程支撑 (2026-10-25)**：`inclineRig` 将引擎笛卡尔 XY 仅等比缩放/平移，再沿法向偏移半板厚与球半径，不再对 x 二次投影。面板 build/update 共用几何，长度覆盖真实完整采样的有向沿面范围（含负位移），移除无碰撞语义的红挡板及地面夹高。`EquipmentStage` 仅透传本次引擎结果上下文，a 标牌读取引擎加速度（静止为 0）。真实生产浏览器默认板长 4.128 world，主球到板上表面距离 0.1800000009 world；完整 Float32 轨迹距离范围 0.1799998733–0.1800001282，t0→3 切向位移 3.528 world。回归覆盖 5°/30°/85°、build/update/变角、静止、减速与有向负位移；初始/中段/末段截图：`docs/screenshots/issue-158-t{0,1.5,3}.png`。
 
 > 完整例外论证见会话产物 `.scratch/unify-3d/FINAL.md`(gitignored, 不入库)。
