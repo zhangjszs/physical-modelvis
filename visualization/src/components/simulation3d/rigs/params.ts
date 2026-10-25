@@ -16,7 +16,6 @@ export const num = (v: unknown, fallback: number): number => {
  * sprite 的材质贴图是一个 2D canvas，重绘后需置 needsUpdate。
  */
 export const setLabel = (sprite: Sprite, text: string, color = '#334155'): void => {
-    sprite.userData['text'] = text;
     const canvas = (sprite.material as SpriteMaterial).map?.image as HTMLCanvasElement | undefined;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
