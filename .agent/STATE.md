@@ -1,12 +1,12 @@
 # STATE
 
-- 更新时间：2026-10-25（本轮恢复现场）
-- 当前任务：#158（in-progress，优先恢复）；#157（Planner 首次退回 in-progress，排在 #158 后串行返工）
-- 分支：agent/issue-158-inclined-plane-rig
-- 未完成工作：#158 尚无代码提交；按 Issue 原验收修复真实板面接触、位移比例与全程支撑。#157 五项差距见 TASKS 与 Issue 验收 comment。
-- 最近提交：10df68e chore(agent): 验收157退回并保留158恢复队列
-- 现场来源：原未提交 STATE 为上一 Executor 的执行快照，保留其恢复事实；旧验证块混入 #156，不作为 #157/#158 证据。HANDOFF 仍是 #156，待本轮收尾整体刷新。
-- 验证结果：本轮 gh 登录与开放 Issue 读取成功；git fetch --all --prune 成功；git pull --rebase 因未提交 STATE 退出 128，保存状态后重试。
-- 今日日报：未写；本轮收尾创建 .agent/DIARY/2026-10-25.md，明确 #157 历史交付来源为 Issue/Git，非本轮实跑。
-- 已知环境限制：npm/node 需 mise shims；改 core 后须 build；Issue 为唯一权威，旧 TASKS 曾与远程状态漂移，已由 Planner 整体纠正。
-- 契约 1.2：目录清单未见 LOCK 残留；串行不使用锁。
+- 更新时间：2026-10-25（#158 已交付，#157 返工前）
+- 当前任务：#158 in-review；#157 in-progress（Planner 首次退回，下一项）；#44 blocked/parked
+- 分支：main
+- 未完成工作：#158 无；#157 五项有界差距待修，见 TASKS 与 Planner 验收 comment。
+- 最近提交：#158 功能 cc04ac4；--no-ff merge b0b0702dd1d40b8d4e90487adf30b86b217d8fbc，已推送。
+- 验证：#158 旧实现接触距离 -0.684115427 与位移缩水行为 RED；最终 incline-contact 5 tests GREEN；count:sync / precheck exit0，core1169+viz1803=2972、自检11PASS/0FAIL；生产浏览器默认/边界/播放暂停/拖时/静止/停止/变角防抖/场景往返已验证，三张截图随代码提交。
+- 远端：同 b0b0702 SHA CI40203220445、Deploy40203498425 success。
+- 执行报告：https://github.com/zhangjszs/physical-modelvis/issues/158#issuecomment-6399039638
+- 今日日报：待会话收尾追加；HANDOFF 仍待整体刷新（旧 #156 不作本轮证据）。
+- 已知环境限制：需 mise shims；LSP 无配置，已用实际调用点与 typecheck；既有 lint19warnings 与测试stderr未扩大修复。Issue 唯一权威，旧 TASKS 漂移已由 Planner 纠正。

@@ -1,7 +1,7 @@
 # TASKS（GitHub Issue 本地镜像）
 
 > Planner 整体重写 · 2026-10-25 · D66。GitHub Issues 可读写，为唯一权威；Executor 先改 Issue，再同步本文件状态。
-> 开放 3 单：in-progress 2（#157 / #158）+ blocked 1（#44）；ready / in-review / needs-info / P0=0，P1=2。
+> 开放 3 单：in-progress 1（#157）+ in-review 1（#158）+ blocked 1（#44）；ready / needs-info / P0=0，P1=2。
 > ready 对应 `ready-for-agent`，done 对应 CLOSED；parked 只是冻结属性，不是第二生命周期。
 
 ## 本轮验收与来源
@@ -16,7 +16,7 @@
 
 ### 1. 恢复 #158 · 修复斜面板与球轨迹错位、二次投影及全程支撑范围
 
-- Issue：[#158](https://github.com/zhangjszs/physical-modelvis/issues/158)；状态：**in-progress**；优先级：**P1**；Milestone：**M9 课堂核心场景坐标纠错**。
+- Issue：[#158](https://github.com/zhangjszs/physical-modelvis/issues/158)；状态：**in-review**（Executor 已交付，报告见 issuecomment-6399039638）；优先级：**P1**；Milestone：**M9 课堂核心场景坐标纠错**。
 - 现场：`agent/issue-158-inclined-plane-rig`，基于 `fc2e731`；领取记录 `2026-10-24T16:58:38Z`，本轮尚未达 24h，不判疑似中断。没有交付报告，Planner 不代实施、不重置状态。
 - 当前问题：真实目标 `inclined-plane`，不是 `galileo-incline`。D65 已确认默认30°球心距板上表面为负值 −0.684115427 world，实际应为球半径 +0.18；引擎已输出笛卡尔 XY，旧 rig 再投影造成切向位移缩水；默认3s真实沿面长度3.528 world 超过旧板3.2。
 - 做什么：板角/长度/端点/厚度单一几何；实际引擎 XY 等比缩放平移，法向偏移半板厚+球半径。展示板根据真实完整有向采样覆盖全程，不被地面夹高改变轨迹；移除无碰撞语义的装饰红挡板；a 标签读引擎。只允许必要的最小内部结果上下文接缝，更新受影响审计/进度。
