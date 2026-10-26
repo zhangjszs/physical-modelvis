@@ -55,7 +55,7 @@
 | `em-combined` | 电磁学 | 电磁复合场 | em-combined-field | emCombinedRig | 0.32 | 3/5 | 1动/1条·4图 | OK | P2 | 通过 | worldScale=0.32 有意偏差, #160 已论证 |
 | `circuit` | 电磁学 | 直流电路分析 (串并联) | circuit | ? | 0.16 | n/a | 0动/1条·3图 | OK | P3 | 待判定 | 引擎无有效轨迹且非 ownParticles → 3D 动画装饰性, 需人工判定可视化是否充分(读数/曲线是否在 2D+数据抽屉) |
 | `magnetic-force` | 电磁学 | 安培力与洛伦兹力 | magnetic-force | ampereForceRig | 0.16 | 4/8 | 1动/1条·1图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
-| `em-induction` | 电磁学 | 电磁感应 (法拉第定律) | em-induction | ampereForceRig | 0.16 | 0/8 | 0动/1条·2图 | OK | P1 | 严重 | 3D 共享 rig 语义错配: 装置/标题/公式属另一现象且读数冻结默认(rig 不读引擎 result); 2D 已正确迁移 → 需为场景建专用 rig 或 rig 改读引擎(ampereForceRig 安培力F=BIL) |
+| `em-induction` | 电磁学 | 电磁感应 (法拉第定律) | em-induction | emInductionRig | 1 | 0/8 | 0动/1条·2图 | OK | 已修复 | — | F-A3 已修: 新建 emInductionRig（线圈+往复磁铁），ε(t)/Φ(t) 读 charts x_t/y_t 按引擎周期插值，ε_peak=157.1V/Φ单匝=5mWb 读 maxValues；不再显安培力装置；scene-rig-physics 增 3 例 |
 | `ac-current` | 电磁学 | 交变电流与变压器 (选必二§3) | ac-current | circuitRig | 0.16 | 0/7 | 0动/1条·2图 | OK | P1 | 严重 | 3D 共享 rig 语义错配: 装置/标题/公式属另一现象且读数冻结默认(rig 不读引擎 result); 2D 已正确迁移 → 需为场景建专用 rig 或 rig 改读引擎(circuitRig 直流欧姆定律, 应交流/变压器) |
 | `lc-oscillator` | 电磁学 | LC 电磁振荡 | lc-oscillator | lcOscillatorRig | 0.16 | 1/4 | 0动/1条·4图 | OK | P3 | 待判定 | 引擎无有效轨迹且非 ownParticles → 3D 动画装饰性, 需人工判定可视化是否充分(读数/曲线是否在 2D+数据抽屉) |
 | `current-balance` | 电磁学 | 电流天平 (安培力测量) | current-balance | ampereForceRig | 0.16 | 1/8 | 1动/1条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |

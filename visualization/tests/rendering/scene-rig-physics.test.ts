@@ -31,6 +31,12 @@ import {
 } from '../../src/components/simulation3d/rigs/pendulumRig';
 import { BASE_Y, waveRig, type WaveHandles } from '../../src/components/simulation3d/rigs/waveRig';
 import { dopplerRig, dopplerReadouts, type DopplerHandles } from '../../src/components/simulation3d/rigs/dopplerRig';
+import {
+    emInductionRig,
+    emInductionReadouts,
+    type EmInductionHandles
+} from '../../src/components/simulation3d/rigs/emInductionRig';
+import { chartsOf } from 'physics-core';
 import { efieldLinesRig, type EfieldHandles } from '../../src/components/simulation3d/rigs/efieldLinesRig';
 import { coulombRig, type CoulombHandles } from '../../src/components/simulation3d/rigs/coulombRig';
 import { STAGE_CENTER_X } from '../../src/components/simulation3d/rigs/params';
@@ -368,5 +374,38 @@ describe('#159 F-A3 库仑定律: 3D 力读引擎 F0_N', () => {
         const a = simulate('coulomb-force-explore').result.diagnostics.maxValues['F0_N']!;
         const b = simulate('coulomb-force-explore', { q2: 2 }).result.diagnostics.maxValues['F0_N']!;
         expect(b / a).toBeCloseTo(2, 6);
+    });
+});
+
+describe('#159 F-A3 电磁感应: 3D 读引擎 Φ/ε 曲线', () => {
+    it('charts y_t (mV) 峰值 = emfPeak(V)×1000, x_t 幅值 = B·A·1000 mWb', () => {
+        const { params, result } = simulate('em-induction');
+        const c = chartsOf(result, 'em-induction')!;
+        const mv = result.diagnostics.maxValues;
+        const maxE_mV = Math.max(...(c.y_t?.points ?? []).map(p => Math.abs(p.y)));
+        // maxValues.emfPeak 已是 SI 单位 V；图表 y_t 为 mV → ×1000 对齐
+        expect(maxE_mV / 1000).toBeCloseTo(mv['emfPeak']!, 1);
+        const maxFlux = Math.max(...(c.x_t?.points ?? []).map(p => Math.abs(p.y)));
+        expect(maxFlux).toBeCloseTo(params['Bind']! * params['A']! * 1000, 3);
+    });
+
+    it('读数在 ε 峰值时刻 = 峰值(V); t=0 处有限', () => {
+        const { params, result } = simulate('em-induction');
+        const c = chartsOf(result, 'em-induction')!;
+        const pts = c.y_t!.points;
+        const peak = pts.reduce((a, b) => (Math.abs(b.y) > Math.abs(a.y) ? b : a));
+        const r = emInductionReadouts(params, result, peak.x / 1000);
+        expect(Math.abs(r.emfV)).toBeCloseTo(Math.abs(peak.y) / 1000, 3);
+        expect(Number.isFinite(emInductionReadouts(params, result, 0).emfV)).toBe(true);
+    });
+
+    it('rig 结构: 线圈环数 / 磁铁 / ownParticles / 引擎周期 20ms', () => {
+        const { params, result } = simulate('em-induction');
+        const built = emInductionRig.buildEquipment(new THREE.Scene(), params, result);
+        const h = built.handles as EmInductionHandles;
+        expect(emInductionRig.ownParticles).toBe(true);
+        expect(h.rings.length).toBe(6);
+        expect(h.magnet).toBeDefined();
+        expect(h.period).toBeCloseTo(0.02, 3);
     });
 });

@@ -14,6 +14,7 @@ import { resistanceLawRig } from '../resistanceLawRig';
 import { capacitorRig } from '../capacitorRig';
 import { electroscopeRig } from '../electroscopeRig';
 import { ampereForceRig } from '../ampereForceRig';
+import { emInductionRig } from '../emInductionRig';
 import { emWaveRig } from '../emWaveRig';
 
 export default {
@@ -33,7 +34,7 @@ export default {
     'coulomb-force-explore': coulombRig,
     'ampere-force': ampereForceRig,
     'current-magnetic': fieldRig,
-    'em-induction': ampereForceRig,
+    'em-induction': emInductionRig,
     'em-wave-communication': emWaveRig,
     'em-wave-hertz': emWaveRig
 } as Record<string, SceneRig>;
