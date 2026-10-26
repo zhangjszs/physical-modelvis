@@ -76,7 +76,7 @@
 | `parallel-plate-capacitor` | 电磁学 | 平行板电容器因素 (C=εr·S/4πkd) | parallel-plate-capacitor | capacitorRig | 0.16 | 2/9 | 0动/1条·6图 | OK | P3 | 待判定 | 引擎无有效轨迹且非 ownParticles → 3D 动画装饰性, 需人工判定可视化是否充分(读数/曲线是否在 2D+数据抽屉) |
 | `load-voltage` | 电磁学 | 路端电压与负载 (U=E−Ir) | load-voltage | circuitRig | 0.16 | 1/7 | 0动/1条·6图 | OK | P3 | 待判定 | 引擎无有效轨迹且非 ownParticles → 3D 动画装饰性, 需人工判定可视化是否充分(读数/曲线是否在 2D+数据抽屉) |
 | `resistance-law` | 电磁学 | 电阻定律 (R=ρ·L/S) | resistance-law | resistanceLawRig | 0.16 | 3/3 | 0动/1条·6图 | OK | P3 | 待判定 | 引擎无有效轨迹且非 ownParticles → 3D 动画装饰性, 需人工判定可视化是否充分(读数/曲线是否在 2D+数据抽屉) |
-| `coulomb-force-explore` | 电磁学 | 探究电荷间作用力 (库仑定律) | coulomb-force-explore | electroscopeRig | 0.16 | 0/5 | 1动/1条·3图 | OK | P1 | 严重 | 3D 共享 rig 语义错配: 装置/标题/公式属另一现象且读数冻结默认(rig 不读引擎 result); 2D 已正确迁移 → 需为场景建专用 rig 或 rig 改读引擎(electroscopeRig 验电器, 应两点电荷库仑力) |
+| `coulomb-force-explore` | 电磁学 | 探究电荷间作用力 (库仑定律) | coulomb-force-explore | coulombRig | 1 | 0/5 | 1动/1条·3图 | OK | 已修复 | — | F-A3 已修: 新建 coulombRig（两点同号电荷 + 斥力箭头 + 间距标尺），F 读 maxValues.F0_N=3.595 N + k 相对误差；不再显验电器；scene-rig-physics 增 2 例 |
 | `electroscope` | 电磁学 | 验电器 (箔片张角 vs 电量) | electroscope | ? | 0.16 | n/a | 1动/1条·1图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
 | `electrostatic-induction` | 电磁学 | 静电感应 (近/远端感应电荷) | electrostatic-induction | electroscopeRig | 0.16 | 1/5 | 1动/1条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
 | `electrostatic-shielding` | 电磁学 | 静电屏蔽 (接地 vs 不接地) | electrostatic-shielding | electroscopeRig | 0.16 | 0/5 | 0动/1条·2图 | OK | P3 | 待判定 | 引擎无有效轨迹且非 ownParticles → 3D 动画装饰性, 需人工判定可视化是否充分(读数/曲线是否在 2D+数据抽屉) |
@@ -87,7 +87,7 @@
 | `vernier-caliper-tool` | 电磁学 | 游标卡尺读数 | vernier-caliper | measurementToolRig | 0.16 | n/a | 0动/1条·3图 | OK | P3 | 待判定 | 引擎无有效轨迹且非 ownParticles → 3D 动画装饰性, 需人工判定可视化是否充分(读数/曲线是否在 2D+数据抽屉) |
 | `micrometer-tool` | 电磁学 | 螺旋测微器读数 | micrometer | measurementToolRig | 0.16 | n/a | 0动/1条·3图 | OK | P3 | 待判定 | 引擎无有效轨迹且非 ownParticles → 3D 动画装饰性, 需人工判定可视化是否充分(读数/曲线是否在 2D+数据抽屉) |
 | `current-magnetic` | 电磁学 | 电流的磁场 | current-magnetic-field | fieldRig | 0.16 | 1/6 | 0动/0条·0图 | OK | P3 | 待判定 | 引擎无有效轨迹且非 ownParticles → 3D 动画装饰性, 需人工判定可视化是否充分(读数/曲线是否在 2D+数据抽屉) |
-| `efield-lines` | 电磁学 | 电场线分布 | electric-field-lines | fieldRig | 0.16 | 0/6 | 0动/0条·0图 | OK | P1 | 严重 | 3D 共享 rig 语义错配: 装置/标题/公式属另一现象且读数冻结默认(rig 不读引擎 result); 2D 已正确迁移 → 需为场景建专用 rig 或 rig 改读引擎(fieldRig 匀强场+霍尔, 应点电荷/偶极/极板场线) |
+| `efield-lines` | 电磁学 | 电场线分布 | electric-field-lines | efieldLinesRig | 1 | 0/6 | 0动/0条·0图 | OK | 已修复 | — | F-A3 已修: 新建 efieldLinesRig，场线几何直接读 extra.fieldLines(点电荷/偶极/极板)、maxField 读 maxValues；不再显匀强场+霍尔；scene-rig-physics 增 2 例 |
 | `bulb-vi` | 电磁学 | 小灯泡伏安特性 | circuit | circuitRig | 0.16 | 2/7 | 0动/1条·3图 | OK | P3 | 待判定 | 引擎无有效轨迹且非 ownParticles → 3D 动画装饰性, 需人工判定可视化是否充分(读数/曲线是否在 2D+数据抽屉) |
 | `refraction` | 光学 | 光的折射定律 (Snell) | refraction | ? | 0.16 | n/a | 1动/1条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
 | `interference` | 光学 | 双缝干涉 (杨氏实验) | interference | ? | 0.16 | n/a | 1动/1条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |

@@ -4,6 +4,8 @@
  */
 import type { SceneRig } from '../../EquipmentStage';
 import { fieldRig } from '../fieldRig';
+import { efieldLinesRig } from '../efieldLinesRig';
+import { coulombRig } from '../coulombRig';
 import { circuitRig } from '../circuitRig';
 import { electricFieldRig } from '../electricFieldRig';
 import { magneticFieldRig } from '../magneticFieldRig';
@@ -18,7 +20,7 @@ export default {
     'electric-field': electricFieldRig,
     'magnetic-field': magneticFieldRig,
     'em-combined': emCombinedRig,
-    'efield-lines': fieldRig,
+    'efield-lines': efieldLinesRig,
     circuit: circuitRig,
     'load-voltage': circuitRig,
     'resistance-law': resistanceLawRig,
@@ -28,7 +30,7 @@ export default {
     electroscope: electroscopeRig,
     'electrostatic-induction': electroscopeRig,
     'electrostatic-shielding': electroscopeRig,
-    'coulomb-force-explore': electroscopeRig,
+    'coulomb-force-explore': coulombRig,
     'ampere-force': ampereForceRig,
     'current-magnetic': fieldRig,
     'em-induction': ampereForceRig,

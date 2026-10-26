@@ -31,8 +31,10 @@ import {
 } from '../../src/components/simulation3d/rigs/pendulumRig';
 import { BASE_Y, waveRig, type WaveHandles } from '../../src/components/simulation3d/rigs/waveRig';
 import { dopplerRig, dopplerReadouts, type DopplerHandles } from '../../src/components/simulation3d/rigs/dopplerRig';
+import { efieldLinesRig, type EfieldHandles } from '../../src/components/simulation3d/rigs/efieldLinesRig';
+import { coulombRig, type CoulombHandles } from '../../src/components/simulation3d/rigs/coulombRig';
 import { STAGE_CENTER_X } from '../../src/components/simulation3d/rigs/params';
-import { readWaveMediumFromResult } from '../../src/rendering/engineExtraAccess';
+import { readElectricFieldExtra, readWaveMediumFromResult } from '../../src/rendering/engineExtraAccess';
 import { readWaveMediumView, waveVerticalGain } from '../../src/rendering/waveMediumView';
 import { measurePendulumPeriod } from '../../src/rendering/pendulumMetrics';
 
@@ -318,5 +320,53 @@ describe('#159 F-A2 多普勒: 3D 必须消费引擎 f′ 与声速, 不得回�
         expect(r.v).toBeCloseTo(340, 6);
         expect(r.fFront).toBeNull();
         expect(r.fBack).toBeNull();
+    });
+});
+
+describe('#159 F-A3 电场线分布: 3D 消费引擎 extra.fieldLines', () => {
+    it('rig 场线数 = 引擎 fieldLines 数, 不再回退匀强场/霍尔装置', () => {
+        const { params, result } = simulate('efield-lines');
+        const extra = readElectricFieldExtra((result as { extra?: unknown }).extra)!;
+        expect(extra).not.toBeNull();
+        expect(extra.fieldLines.length).toBeGreaterThan(0);
+
+        const scene = new THREE.Scene();
+        const built = efieldLinesRig.buildEquipment(scene, params, result);
+        scene.add(built.group);
+        const h = built.handles as EfieldHandles;
+        expect(efieldLinesRig.ownParticles).toBe(true);
+        // 每个场线折线 (≥2 点) 对应一条 3D Line
+        expect(h.lines.length).toBe(extra.fieldLines.filter(l => l.points.length >= 2).length);
+    });
+
+    it('偶极模式 (mode=1) 仍有引擎场线与双电荷标记', () => {
+        const { params, result } = simulate('efield-lines', { mode: 1 });
+        const scene = new THREE.Scene();
+        const built = efieldLinesRig.buildEquipment(scene, params, result);
+        const h = built.handles as EfieldHandles;
+        expect(h.lines.length).toBeGreaterThan(0);
+        expect(h.charges.length).toBe(2);
+    });
+});
+
+describe('#159 F-A3 库仑定律: 3D 力读引擎 F0_N', () => {
+    it('F0_N ≈ 3.595 N (q=1μC, r=5cm), rig 受力标牌存在', () => {
+        const { params, result } = simulate('coulomb-force-explore');
+        expect(result.diagnostics.maxValues['F0_N']).toBeCloseTo(3.59502, 3);
+
+        const scene = new THREE.Scene();
+        const built = coulombRig.buildEquipment(scene, params, result);
+        scene.add(built.group);
+        const h = built.handles as CoulombHandles;
+        expect(coulombRig.ownParticles).toBe(true);
+        expect(h.forceLabel).toBeDefined();
+        // 斥力箭头长度为正且有限
+        expect(h.arrow1.visible).toBe(true);
+    });
+
+    it('改 q 后轴力随引擎变大 (F ∝ q1q2): q2=2μC 时 F0_N 翻倍', () => {
+        const a = simulate('coulomb-force-explore').result.diagnostics.maxValues['F0_N']!;
+        const b = simulate('coulomb-force-explore', { q2: 2 }).result.diagnostics.maxValues['F0_N']!;
+        expect(b / a).toBeCloseTo(2, 6);
     });
 });
