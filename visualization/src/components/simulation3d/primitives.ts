@@ -65,6 +65,35 @@ export function makeSphere(
 // 文字精灵（中文标注）
 // ---------------------------------------------------------------------------
 
+const TEXT_CANVAS_HEIGHT = 128;
+const TEXT_CANVAS_MIN_WIDTH = 384;
+const TEXT_FONT_FAMILY = '"Microsoft YaHei", "PingFang SC", sans-serif';
+const TEXT_PADDING_X = 24;
+
+function textFont(fontSize: number): string {
+    return `600 ${fontSize}px ${TEXT_FONT_FAMILY}`;
+}
+
+function measureTextWidth(ctx: CanvasRenderingContext2D, text: string, fontSize: number): number {
+    ctx.font = textFont(fontSize);
+    return ctx.measureText(text).width;
+}
+
+function drawCenteredText(
+    canvas: HTMLCanvasElement,
+    ctx: CanvasRenderingContext2D,
+    text: string,
+    color: string,
+    fontSize: number,
+    y: number
+): void {
+    ctx.font = textFont(fontSize);
+    ctx.fillStyle = color;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, canvas.width / 2, y);
+}
+
 export function makeTextSprite(
     text: string,
     color = '#334155',
@@ -73,35 +102,137 @@ export function makeTextSprite(
 ): THREE.Sprite {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d')!;
-    canvas.width = 384;
-    canvas.height = 128;
-    ctx.font = `600 ${fontSize}px "Microsoft YaHei", "PingFang SC", sans-serif`;
-    ctx.fillStyle = color;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+    const textWidth = measureTextWidth(ctx, text, fontSize);
+    const needed = Math.ceil(textWidth + TEXT_PADDING_X * 2);
+    // 1.5 倍余量吸收数值位数变化；宽度一旦确定不再修改（见 updateTextSprite 注释）
+    const width = Math.max(TEXT_CANVAS_MIN_WIDTH, Math.ceil((needed * 1.5) / 64) * 64);
+    canvas.width = width;
+    canvas.height = TEXT_CANVAS_HEIGHT;
 
     const texture = new THREE.CanvasTexture(canvas);
     texture.colorSpace = THREE.SRGBColorSpace;
     const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
     const sprite = new THREE.Sprite(material);
-    sprite.scale.set(scale.x, scale.y, 1);
+    // 保持调用方传入的横向像素比例：画布越宽，sprite 越宽，字形大小不变
+    sprite.scale.set(scale.x * (width / TEXT_CANVAS_MIN_WIDTH), scale.y, 1);
+    sprite.userData.textFontSize = fontSize;
+    sprite.userData.textWidth = textWidth;
+
+    drawCenteredText(canvas, ctx, text, color, fontSize, canvas.height / 2);
+    texture.needsUpdate = true;
     return sprite;
 }
 
-/** 复用已有 sprite 的 canvas，更新文字（避免重复创建纹理） */
+/** 复用已有 sprite 的 canvas，更新文字（避免重复创建纹理；长文本首次超宽时重建纹理） */
 export function updateTextSprite(sprite: THREE.Sprite, text: string, color = '#334155', fontSize = 40): void {
-    const canvas = (sprite.material as THREE.SpriteMaterial).map?.image as HTMLCanvasElement | undefined;
+    const material = sprite.material as THREE.SpriteMaterial;
+    const canvas = material.map?.image as HTMLCanvasElement | undefined;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+    sprite.userData.textFontSize = fontSize;
+
+    // CanvasTexture 创建后再修改 canvas.width 会使后续 needsUpdate 不再上传（数值永远停在
+    // 第一次扩容那一刻）。因此扩容时必须重建纹理并释放旧纹理，而不是只改画布尺寸。
+    const textWidth = measureTextWidth(ctx, text, fontSize);
+    const needed = Math.ceil(textWidth + TEXT_PADDING_X * 2);
+    sprite.userData.textWidth = textWidth;
+    if (needed > canvas.width) {
+        const factor = needed / canvas.width;
+        canvas.width = needed;
+        sprite.scale.x *= factor;
+        const oldTexture = material.map;
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.colorSpace = THREE.SRGBColorSpace;
+        material.map = texture;
+        material.needsUpdate = true;
+        oldTexture?.dispose();
+    }
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.font = `600 ${fontSize}px "Microsoft YaHei", "PingFang SC", sans-serif`;
-    ctx.fillStyle = color;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(text, canvas.width / 2, canvas.height / 2);
-    (sprite.material as THREE.SpriteMaterial).map!.needsUpdate = true;
+    drawCenteredText(canvas, ctx, text, color, fontSize, canvas.height / 2);
+    material.map!.needsUpdate = true;
+}
+
+/** 按创建时记录的字号重绘单行标牌（供 rigs/params.ts 的 setLabel 复用扩宽能力） */
+export function redrawTextSprite(sprite: THREE.Sprite, text: string, color = '#334155'): void {
+    const fontSize = typeof sprite.userData.textFontSize === 'number' ? sprite.userData.textFontSize : 24;
+    updateTextSprite(sprite, text, color, fontSize);
+}
+
+export interface TextPanelOptions {
+    /** 面板标题（加粗、主题色） */
+    title?: string;
+    color?: string;
+    titleColor?: string;
+    fontSize?: number;
+    lineHeight?: number;
+    /** 面板世界高度；缺省按 24px 字号约 0.0055 world/px 换算，保证可读 */
+    worldHeight?: number;
+    background?: string;
+    borderColor?: string;
+    padding?: number;
+}
+
+function roundRectPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {
+    const radius = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + w - radius, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+    ctx.lineTo(x + w, y + h - radius);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+    ctx.lineTo(x + radius, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
+    ctx.closePath();
+}
+
+/**
+ * 多行说明/图例面板（半透明底板 + 自动换行宽度）。
+ * 用于光电效应等需要成段解释的关键要素标注，避免多个单行标牌相互遮挡。
+ */
+export function makeTextPanelSprite(lines: string[], opts: TextPanelOptions = {}): THREE.Sprite {
+    const color = opts.color ?? '#334155';
+    const titleColor = opts.titleColor ?? '#1d4ed8';
+    const fontSize = opts.fontSize ?? 22;
+    const lineHeight = opts.lineHeight ?? Math.round(fontSize * 1.45);
+    const padding = opts.padding ?? 18;
+    const background = opts.background ?? 'rgba(248,250,252,0.94)';
+    const borderColor = opts.borderColor ?? 'rgba(148,163,184,0.7)';
+
+    const allLines = opts.title ? [opts.title, ...lines] : lines;
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d')!;
+    ctx.font = textFont(fontSize);
+    const maxWidth = allLines.reduce((max, line) => Math.max(max, ctx.measureText(line).width), 0);
+    canvas.width = Math.max(160, Math.ceil(maxWidth + padding * 2));
+    canvas.height = Math.ceil(allLines.length * lineHeight + padding * 2);
+
+    roundRectPath(ctx, 0.5, 0.5, canvas.width - 1, canvas.height - 1, 10);
+    ctx.fillStyle = background;
+    ctx.fill();
+    ctx.strokeStyle = borderColor;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    allLines.forEach((line, i) => {
+        const isTitle = Boolean(opts.title) && i === 0;
+        ctx.font = textFont(fontSize);
+        ctx.fillStyle = isTitle ? titleColor : color;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(line, canvas.width / 2, padding + lineHeight * (i + 0.5));
+    });
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true }));
+    const worldHeight = opts.worldHeight ?? canvas.height * 0.0055;
+    sprite.scale.set((worldHeight * canvas.width) / canvas.height, worldHeight, 1);
+    sprite.userData.textFontSize = fontSize;
+    return sprite;
 }
 
 // ---------------------------------------------------------------------------

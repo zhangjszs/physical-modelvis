@@ -10,6 +10,7 @@
  */
 import type { SimulationResult } from 'physics-core';
 import { G_ACCELERATION, GRAVITATIONAL_CONSTANT } from './constants';
+import { altitudeVisualFraction, orbitShape } from '../utils/orbitGeometry';
 import {
     roundRectPath,
     textColor,
@@ -39,19 +40,26 @@ const RED = '#ef4444';
 
 export function drawOrbitalScene(opts: MechanicsSceneOptions): void {
     const { ctx, width, height, isDark, params, simulationResult, currentTime } = opts;
-    const h_km = params['altitude'] ?? 400;
-    const vFactor = params['velocityFactor'] ?? 1.0;
+    const h_km = Math.min(36000, Math.max(200, params['altitude'] ?? 400));
+    const vFactor = Math.min(1.5, Math.max(0.5, params['velocityFactor'] ?? 1.0));
     const GM = 3.986e14;
     const R_EARTH = 6.371e6;
     const r = R_EARTH + h_km * 1000;
     const vOrbit = Math.sqrt(GM / r);
     const v = vOrbit * vFactor;
+    // 轨道形状（与 3D rig 共用同一套 Kepler 几何）：闭合轨道画完整椭圆，
+    // 开放轨道只画已积分路径；卫星位置按同一比例尺映射，线与点必然重合。
+    const shape = orbitShape(h_km, vFactor);
 
-    // 布局
-    const cx = width * 0.45;
+    // 布局：地球（椭圆焦点）居中；轨道半径为 0.27–0.40 × 短边，保证完整可见且不压住底部信息条
+    const minDim = Math.min(width, height);
+    const cx = width * 0.5;
     const cy = height * 0.5;
-    const earthR = Math.min(width, height) * 0.12;
-    const orbitR = earthR + (h_km / 36000) * (Math.min(width, height) * 0.3);
+    const earthR = minDim * 0.1;
+    const baseOrbitPx = minDim * (0.27 + 0.13 * altitudeVisualFraction(h_km));
+    const rMaxPx = Math.min(minDim * 0.4, baseOrbitPx * (shape.rMaxM / shape.r0M));
+    const pxPerMeter = rMaxPx / shape.rMaxM;
+    const initialPx = shape.r0M * pxPerMeter;
 
     drawTitle(ctx, '万有引力与航天: 卫星轨道运动', width, isDark);
 
@@ -75,41 +83,58 @@ export function drawOrbitalScene(opts: MechanicsSceneOptions): void {
     ctx.textAlign = 'center';
     ctx.fillText('地球', cx, cy + 4);
 
-    // 轨道
-    ctx.strokeStyle = isDark ? 'rgba(148,163,184,0.4)' : 'rgba(100,116,139,0.3)';
+    // 完整轨道（闭合：Kepler 椭圆；开放：已积分路径）
+    ctx.strokeStyle = isDark ? 'rgba(148,163,184,0.45)' : 'rgba(100,116,139,0.35)';
     ctx.lineWidth = 1.5;
     ctx.setLineDash([6, 4]);
     ctx.beginPath();
-    if (Math.abs(vFactor - 1.0) < 0.02) {
-        ctx.arc(cx, cy, orbitR, 0, Math.PI * 2);
+    if (shape.closed) {
+        const N = 180;
+        for (let i = 0; i <= N; i++) {
+            const theta = (i / N) * Math.PI * 2;
+            const rr = initialPx * shape.radiusRatio(theta);
+            const px = cx + rr * Math.cos(theta);
+            const py = cy - rr * Math.sin(theta);
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+        }
     } else {
-        const a = orbitR * (vFactor > 1 ? 1.3 : 0.8);
-        const b = orbitR * (vFactor > 1 ? 0.9 : 1.1);
-        ctx.ellipse(cx, cy, a, b, 0, 0, Math.PI * 2);
+        const traj = simulationResult?.trajectories[0] ?? [];
+        const step = Math.max(1, Math.floor(traj.length / 180));
+        let started = false;
+        for (let i = 0; i < traj.length; i += step) {
+            const p = traj[i]!.position;
+            if (Math.hypot(p.x, p.y) < r * 0.1) continue;
+            const px = cx + p.x * pxPerMeter;
+            const py = cy - p.y * pxPerMeter;
+            if (!started) {
+                ctx.moveTo(px, py);
+                started = true;
+            } else {
+                ctx.lineTo(px, py);
+            }
+        }
     }
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // 卫星位置: 优先用引擎轨迹 (真实引力积分), 空结果时回退匀速圆
-    const T = (2 * Math.PI * r) / vOrbit;
-    const fallbackAngle = (currentTime / T) * Math.PI * 2;
+    // 卫星位置: 优先用引擎轨迹 (真实引力积分), 空结果/非物理坐标时回退匀速圆
     const frame = getFrame(simulationResult, currentTime);
+    const frameR = frame ? Math.hypot(frame.position.x, frame.position.y) : 0;
+    const hasEngineFrame = Boolean(frame) && frameR > r * 0.1;
+    const fallbackAngle = (currentTime / ((2 * Math.PI * r) / vOrbit)) * Math.PI * 2;
     let satX: number;
     let satY: number;
     let vAngle: number;
-    if (frame) {
-        // 引擎轨迹以地球中心为原点 (物理米), 按轨道半径比例 + 角度映射到屏幕
-        // 椭圆/逃逸轨道的真实形状与不均匀角速度都由引擎积分决定
-        const orbitScale = Math.hypot(frame.position.x, frame.position.y) / Math.max(r, 1);
-        const angle = Math.atan2(frame.position.y, frame.position.x);
-        satX = cx + orbitR * orbitScale * Math.cos(angle);
-        satY = cy + orbitR * orbitScale * Math.sin(angle);
-        // 速度方向来自引擎 (屏幕 y 向下翻转)
+    if (frame && hasEngineFrame) {
+        satX = cx + frame.position.x * pxPerMeter;
+        satY = cy - frame.position.y * pxPerMeter;
+        // 屏幕 y 向下，速度方向取反
         vAngle = Math.atan2(-frame.velocity.y, frame.velocity.x);
     } else {
-        satX = cx + orbitR * Math.cos(fallbackAngle);
-        satY = cy + orbitR * Math.sin(fallbackAngle);
-        vAngle = fallbackAngle + Math.PI / 2;
+        satX = cx + initialPx * Math.cos(fallbackAngle);
+        satY = cy - initialPx * Math.sin(fallbackAngle);
+        vAngle = -fallbackAngle - Math.PI / 2;
     }
 
     // 卫星
@@ -124,10 +149,11 @@ export function drawOrbitalScene(opts: MechanicsSceneOptions): void {
     // 速度箭头 (方向来自引擎轨迹速度, 椭圆上非切线垂直)
     drawArrow(ctx, satX, satY, satX + Math.cos(vAngle) * 40, satY + Math.sin(vAngle) * 40, GREEN, 'v');
 
-    // 引力箭头
-    const gDirX = (cx - satX) / orbitR;
-    const gDirY = (cy - satY) / orbitR;
-    drawArrow(ctx, satX, satY, satX + gDirX * 35, satY + gDirY * 35, RED, 'F引');
+    // 引力箭头（始终指向地球中心）
+    const toEarthX = cx - satX;
+    const toEarthY = cy - satY;
+    const toEarthLen = Math.hypot(toEarthX, toEarthY) || 1;
+    drawArrow(ctx, satX, satY, satX + (toEarthX / toEarthLen) * 35, satY + (toEarthY / toEarthLen) * 35, RED, 'F引');
 
     // 宇宙速度参考
     const v1 = Math.sqrt(GM / R_EARTH) / 1000;
@@ -138,8 +164,13 @@ export function drawOrbitalScene(opts: MechanicsSceneOptions): void {
     ctx.fillText(`第一宇宙速度 v₁=${v1.toFixed(2)}km/s`, 16, height - 80);
     ctx.fillText(`第二宇宙速度 v₂=${v2.toFixed(2)}km/s`, 16, height - 62);
 
-    const orbitType =
-        vFactor >= 1.41 ? '逃逸轨道' : vFactor > 1.01 ? '椭圆(近地点)' : vFactor < 0.99 ? '椭圆(远地点)' : '圆轨道';
+    const orbitType = !shape.closed
+        ? '逃逸轨道'
+        : vFactor > 1.01
+          ? '椭圆(近地点)'
+          : vFactor < 0.99
+            ? '椭圆(远地点)'
+            : '圆轨道';
     drawHud(ctx, isDark, [
         { label: 'h', value: `${h_km} km` },
         { label: 'v', value: `${(v / 1000).toFixed(2)} km/s` },

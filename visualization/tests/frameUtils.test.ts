@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { findFrameIndex, interpolateFrame, getTotalDuration, getTimeStep } from '../src/utils/frameUtils';
+import {
+    findFrameIndex,
+    interpolateFrame,
+    getTotalDuration,
+    getPlaybackDuration,
+    getTimeStep,
+    STATIC_SCENE_DEMO_DURATION_S
+} from '../src/utils/frameUtils';
 import type { TrajectoryPoint } from 'physics-core';
 
 const makePoints = (count: number, dt = 0.01): TrajectoryPoint[] =>
@@ -51,6 +58,21 @@ describe('frameUtils', () => {
     it('getTotalDuration returns 0 for empty', () => {
         expect(getTotalDuration([[]])).toBe(0);
         expect(getTotalDuration([])).toBe(0);
+    });
+
+    it('getPlaybackDuration: 运动场景用引擎时长, 静态/近零时长回退演示时长', () => {
+        const points = makePoints(50, 0.02);
+        expect(getPlaybackDuration([points])).toBeCloseTo(0.98);
+        const single: TrajectoryPoint = { t: 0, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } };
+        expect(getPlaybackDuration([[single]])).toBe(STATIC_SCENE_DEMO_DURATION_S);
+        expect(getPlaybackDuration([[]])).toBe(STATIC_SCENE_DEMO_DURATION_S);
+        expect(getPlaybackDuration([])).toBe(STATIC_SCENE_DEMO_DURATION_S);
+        // 安培力/洛伦兹力等演示模型会输出 7e-11s 这类近零时长
+        const nearZero: TrajectoryPoint[] = [
+            { t: 0, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } },
+            { t: 7.147e-11, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } }
+        ];
+        expect(getPlaybackDuration([nearZero])).toBe(STATIC_SCENE_DEMO_DURATION_S);
     });
 
     it('getTimeStep returns dt', () => {

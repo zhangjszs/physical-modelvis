@@ -344,6 +344,28 @@ describe('暂停时按需渲染 (#79)', () => {
         flushFrames(5);
         expect(renderSpy.mock.calls.length).toBeGreaterThanOrEqual(5);
     });
+
+    it('autoAnimate rig: 暂停时仍逐帧渲染并推进演示时钟 (光电效应类讲解装置)', () => {
+        const rig = makeMockRig('auto-animate') as SceneRig & { autoAnimate?: boolean; onAnimate?: unknown };
+        rig.autoAnimate = true;
+        const onAnimate = vi.fn();
+        rig.onAnimate = onAnimate;
+        const fakeRenderer = makeFakeRenderer();
+        const renderSpy = vi.spyOn(fakeRenderer, 'render');
+        render(<EquipmentStage rig={rig} renderer={fakeRenderer} />);
+        act(() => {
+            useSimulationStore.getState().setSimulationResult(minimalResult());
+        });
+        flushFrames(1);
+        renderSpy.mockClear();
+        onAnimate.mockClear();
+        flushFrames(5);
+        expect(renderSpy).toHaveBeenCalledTimes(5);
+        expect(onAnimate).toHaveBeenCalledTimes(5);
+        const firstTime = (onAnimate.mock.calls[0]![1] as { time: number }).time;
+        const lastTime = (onAnimate.mock.calls[4]![1] as { time: number }).time;
+        expect(lastTime).toBeGreaterThan(firstTime);
+    });
 });
 
 // ---------------------------------------------------------------------------

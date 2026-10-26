@@ -12,6 +12,7 @@
 import type { SimulationResult } from 'physics-core';
 import { chartsOf } from 'physics-core';
 import { clamp, clearScene, drawTitle, drawHud, drawArrow, interpSeries } from './renderingUtils';
+import { photoelectricSweep, H_EV_PER_THZ } from '../utils/photoelectricSweep';
 import {
     photoThresholdFrequencyTHz,
     wienPeakWavelength,
@@ -71,7 +72,7 @@ export function drawPhotoelectricScene(o: ModernSceneOptions): void {
     const ekSeries = engCharts?.y_t;
     const mvPhoto = simulationResult?.diagnostics?.maxValues as { thresholdFrequency_THz?: number } | undefined;
     const nu0 = mvPhoto?.thresholdFrequency_THz ?? photoThresholdFrequencyTHz(W0); // THz
-    const h_eV_per_THz = (PLANCK_H / E_CHARGE) * 1e12; // Ek = hν − W₀ (eV) 的每 THz 斜率 h/e
+    const h_eV_per_THz = H_EV_PER_THZ; // Ek = hν − W₀ (eV) 的每 THz 斜率 h/e（共享常量）
     const kAt = (f: number): number => {
         const eng = interpSeries(ekSeries, f);
         return Number.isFinite(eng) ? eng : h_eV_per_THz * f - W0;
@@ -150,16 +151,16 @@ export function drawPhotoelectricScene(o: ModernSceneOptions): void {
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // 动画: 入射光子 + 逸出电子
-    const animatedF = fLeft + ((currentTime * 0.5) % 1) * fRange;
-    const photonX = fToX(animatedF);
+    // 动画: 入射光子 + 逸出电子（与 3D 装置共用同一扫频函数与周期）
+    const sweep = photoelectricSweep(params, currentTime);
+    const photonX = fToX(sweep.nu);
     const photonY = plotY + 14;
     ctx.fillStyle = COL.yellow;
     ctx.beginPath();
     ctx.arc(photonX, photonY, 4, 0, Math.PI * 2);
     ctx.fill();
-    if (animatedF > nu0) {
-        const K = kAt(animatedF);
+    if (sweep.emitting) {
+        const K = kAt(sweep.nu);
         const ey = kToY(K);
         ctx.fillStyle = COL.cyan;
         ctx.beginPath();

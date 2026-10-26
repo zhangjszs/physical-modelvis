@@ -90,4 +90,14 @@ describe('PhotoelectricModel', () => {
         expect(r.explanation.summary).toContain('W₀=');
         expect(r.explanation.summary).toContain('ν₀=');
     });
+
+    it('占位轨迹覆盖 timeConfig 时长，供 2D/3D 播放时间轴使用', () => {
+        const r = model.solve(makeProblem()); // duration 1, sampleCount 10
+        const trajectory = r.trajectories[0]!;
+        expect(trajectory).toHaveLength(11);
+        expect(trajectory[0]!.t).toBe(0);
+        expect(trajectory[trajectory.length - 1]!.t).toBeCloseTo(1, 9);
+        // 轨迹只是时间基准，不是电子确定轨迹：所有位置保持在阴极原点
+        expect(trajectory.every(p => p.position.x === 0 && p.position.y === 0)).toBe(true);
+    });
 });

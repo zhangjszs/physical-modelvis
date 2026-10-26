@@ -5,7 +5,7 @@ import { CanvasRenderer } from '../../rendering/CanvasRenderer';
 import { setupHiDPICanvas } from '../../rendering/dpr';
 import { COLORS } from '../../utils/colorMap';
 import { getThemeTokens, hexToRgba } from '../../utils/themeTokens';
-import { findFrameIndex, interpolateFrame, getTotalDuration } from '../../utils/frameUtils';
+import { findFrameIndex, interpolateFrame, getPlaybackDuration } from '../../utils/frameUtils';
 import type { TrajectoryPoint, SimulationResult } from 'physics-core';
 import type { Vec2 } from '../../types/visualization';
 import {
@@ -1733,10 +1733,27 @@ export function SimulationCanvas() {
 
         const isCircular = currentScene === 'circular-motion';
         const circularCenter = { x: 0, y: 0 };
-        const circularRadius = parameters['radius'] ?? 1.0;
-        const circularOmega = parameters['omega'] ?? 3.0;
+        // 单一真源：圆锥摆的 effective radius / centripetalForce 由引擎 maxValues 给出；
+        // 场景参数只在结果未就绪时兜底（此前 2D 直接用 UI radius，与引擎轨迹半径不一致）。
+        const circularMv = simulationResult?.diagnostics?.maxValues;
+        const engineRadius = typeof circularMv?.['radius'] === 'number' ? circularMv['radius'] : undefined;
+        const engineSpeed = typeof circularMv?.['maxSpeed'] === 'number' ? circularMv['maxSpeed'] : undefined;
+        const engineForce =
+            typeof circularMv?.['centripetalForce'] === 'number' ? circularMv['centripetalForce'] : undefined;
+        const engineAcc =
+            typeof circularMv?.['maxAcceleration'] === 'number' ? circularMv['maxAcceleration'] : undefined;
+        const circularRadius = engineRadius ?? parameters['radius'] ?? 1.0;
+        const circularOmega =
+            engineSpeed !== undefined && circularRadius > 0
+                ? engineSpeed / circularRadius
+                : (parameters['omega'] ?? 3.0);
+        const circularForce =
+            engineForce ?? (parameters['mass'] ?? 0.2) * circularRadius * circularOmega * circularOmega;
+        const circularAcc = engineAcc ?? circularRadius * circularOmega * circularOmega;
+        // 2D 板书的球径/球高随有效半径缩放：小半径圆锥摆不再出现「球比圈大」或球飞出视口
+        const circularBallRadius = Math.min(0.12, Math.max(0.005, circularRadius * 0.12));
         const circularPivotH = is3DScene ? 1.2 : 0;
-        const circularBallH = is3DScene ? 0.35 : 0;
+        const circularBallH = is3DScene ? Math.min(0.35, Math.max(0.05, circularRadius * 0.6)) : 0;
 
         // 完整轨迹位置数组: points 引用跨帧稳定, 缓存复用避免每帧 map 分配
         if (!allPositionsCacheRef.current || allPositionsCacheRef.current.points !== points) {
@@ -1870,14 +1887,13 @@ export function SimulationCanvas() {
                 const label = '小球';
                 renderer.drawCircularBody3D(
                     frame.position,
-                    0.12,
+                    circularBallRadius,
                     bodyColor,
                     visibleLayers.bodyLabels ? label : undefined,
                     circularBallH
                 );
-                const mass = parameters['mass'] ?? 0.2;
-                const centripetalForce = mass * circularOmega * circularOmega * circularRadius;
-                const centripetalAcc = circularOmega * circularOmega * circularRadius;
+                const centripetalForce = circularForce;
+                const centripetalAcc = circularAcc;
                 renderer.drawCircularForceVectors(
                     circularCenter,
                     frame.position,
@@ -1901,12 +1917,11 @@ export function SimulationCanvas() {
                       : is3DScene
                         ? ''
                         : '物体';
-                renderer.drawBody(frame.position, isCircular ? 0.12 : 0.15, bodyColor, label);
+                renderer.drawBody(frame.position, isCircular ? circularBallRadius : 0.15, bodyColor, label);
 
                 if (isCircular) {
-                    const mass = parameters['mass'] ?? 0.2;
-                    const centripetalForce = mass * circularOmega * circularOmega * circularRadius;
-                    const centripetalAcc = circularOmega * circularOmega * circularRadius;
+                    const centripetalForce = circularForce;
+                    const centripetalAcc = circularAcc;
                     renderer.drawCircularForceVectors(
                         circularCenter,
                         frame.position,
@@ -2017,7 +2032,7 @@ export function SimulationCanvas() {
 
             if (isPlayingRef.current && simulationResultRef.current) {
                 const trajectories = simulationResultRef.current.trajectories;
-                const totalDuration = getTotalDuration(trajectories);
+                const totalDuration = getPlaybackDuration(trajectories);
                 const newTime = currentTimeRef.current + delta * playbackSpeedRef.current;
                 if (newTime >= totalDuration) {
                     setCurrentTime(totalDuration);
@@ -2067,7 +2082,11 @@ export function SimulationCanvas() {
         }
 
         const isCircular3D = currentScene === 'circular-motion';
-        const probeBallH = isCircular3D ? 0.35 : 0;
+        const probeRadius =
+            typeof simulationResult?.diagnostics?.maxValues?.['radius'] === 'number'
+                ? simulationResult.diagnostics.maxValues['radius']
+                : (parameters['radius'] ?? 1.0);
+        const probeBallH = isCircular3D ? Math.min(0.35, Math.max(0.05, probeRadius * 0.6)) : 0;
 
         function physToScreen(pos: { x: number; y: number }): { x: number; y: number } {
             const r = getRenderer();

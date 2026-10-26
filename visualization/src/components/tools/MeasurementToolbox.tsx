@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useSimulationStore } from '../../store/simulationStore';
-import { findFrameIndex, interpolateFrame, getTotalDuration } from '../../utils/frameUtils';
+import { findFrameIndex, interpolateFrame, getPlaybackDuration } from '../../utils/frameUtils';
 
 interface Point {
     x: number;
@@ -135,7 +135,7 @@ export function MeasurementToolbox() {
         const currentDtMs = speed > 0.01 ? (flagWidth / speed) * 1000 : null;
 
         // 根据时间戳比对穿过门 A 与门 B 的时刻
-        const totalDuration = getTotalDuration(simulationResult.trajectories) || 5;
+        const totalDuration = getPlaybackDuration(simulationResult.trajectories);
         const normTime = currentTime / Math.max(0.01, totalDuration);
 
         // 门 A 在 20%~40% 路径区间响应，门 B 在 50%~80% 区间响应

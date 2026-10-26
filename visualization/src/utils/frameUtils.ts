@@ -53,6 +53,23 @@ export function getTotalDuration(trajectories: TrajectoryPoint[][]): number {
     return points[points.length - 1]!.t;
 }
 
+/**
+ * 静态图表/工具场景的演示时间轴长度（秒）。
+ * 这类场景的模型只输出一个静止占位点（totalDuration=0），播放按钮和时间轴原本永远停在 0；
+ * 统一给一个短演示轴，让 2D 板书的装饰性扫描点、读数随时间变化的场景可播放。
+ * 这是纯展示层时长，不参与任何物理计算。
+ */
+export const STATIC_SCENE_DEMO_DURATION_S = 6;
+
+/** 低于该时长的轨迹视为静态演示（如安培力演示模型输出 7e-11s 的占位时长） */
+export const MIN_PLAYABLE_DURATION_S = 0.05;
+
+/** 播放控件使用的时长：有真实运动轨迹用引擎时长，静态/近零时长回退到演示时长 */
+export function getPlaybackDuration(trajectories: TrajectoryPoint[][]): number {
+    const total = getTotalDuration(trajectories);
+    return total >= MIN_PLAYABLE_DURATION_S ? total : STATIC_SCENE_DEMO_DURATION_S;
+}
+
 /** 获取时间步长 */
 export function getTimeStep(trajectories: TrajectoryPoint[][]): number {
     if (!trajectories[0] || trajectories[0].length < 2) return 0.01;

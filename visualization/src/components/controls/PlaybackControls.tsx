@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useSimulationStore } from '../../store/simulationStore';
-import { getTotalDuration } from '../../utils/frameUtils';
+import { getPlaybackDuration } from '../../utils/frameUtils';
 
 const SPEED_OPTIONS = [0.25, 0.5, 1, 2, 5];
 
@@ -52,7 +52,7 @@ export function PlaybackControls() {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [simulationResult, isPlaying, play, pause, reset, stepForward, stepBackward]);
 
-    const totalDuration = simulationResult ? getTotalDuration(simulationResult.trajectories) : 0;
+    const totalDuration = simulationResult ? getPlaybackDuration(simulationResult.trajectories) : 0;
 
     return (
         <div className="playback-controls">

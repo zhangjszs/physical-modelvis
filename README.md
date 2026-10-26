@@ -17,7 +17,7 @@
 | **教材实验覆盖** | **176 个实验** | 覆盖人教版高中物理全套 6 册教材 / 27 章教学体系 |
 | **可视化场景** | **123 个场景** | 覆盖力学、电磁学、热学、光学、近代物理五大板块 |
 | **物理仿真模型** | **113 个模型** | 自研核心库，解析解为主，电磁复合场采用 Boris 数值积分 |
-| **自动化测试** | **全量通过** | core 1169 / viz 1805 / 总计 2974 <!-- test-count --> |
+| **自动化测试** | **全量通过** | core 1170 / viz 1825 / 总计 2995 <!-- test-count --> |
 | **首屏加载体积** | **≤ 70 kB gzip** | 生产入口 chunks 深度精简，路由与 3D 实验器材按需懒加载 |
 
 ---
@@ -207,9 +207,9 @@ npm run server:dev
 <!-- test-count -->
 
 ```
-physics-core:   1169 tests passed (128 files)
-visualization:  1805 tests passed (68 files)
-Total:          2974 tests passed
+physics-core:   1170 tests passed (128 files)
+visualization:  1825 tests passed (70 files)
+Total:          2995 tests passed
 ```
 
 ### CI 流水线守卫矩阵（9 道防御环节）

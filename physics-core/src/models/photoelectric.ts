@@ -101,10 +101,18 @@ export class PhotoelectricModel extends PhysicsModelBase {
             }
         ];
 
-        // 模拟轨迹 (1 点)
-        const trajectory: TrajectoryPoint[] = [
-            { t: 0, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 }, kineticEnergy: 0, potentialEnergy: 0 }
-        ];
+        // 模拟轨迹：光电效应是量子统计过程，不存在单电子确定轨迹。
+        // 这里输出一条静止在阴极原点的占位轨迹，但覆盖 timeConfig 时长，
+        // 为 2D/3D 演示、播放控件和时间轴提供连续时间基准（不参与任何物理计算）。
+        const duration = Math.max(0, problem.timeConfig.duration);
+        const sampleCount = Math.max(1, problem.timeConfig.sampleCount ?? 100);
+        const trajectory: TrajectoryPoint[] = Array.from({ length: sampleCount + 1 }, (_, i) => ({
+            t: (duration * i) / sampleCount,
+            position: { x: 0, y: 0 },
+            velocity: { x: 0, y: 0 },
+            kineticEnergy: 0,
+            potentialEnergy: 0
+        }));
 
         const warnings: string[] = [];
         if (W0_eV < 2) warnings.push('逸出功较小, 低频光也能发生光电效应');

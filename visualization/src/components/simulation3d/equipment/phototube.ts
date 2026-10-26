@@ -40,9 +40,11 @@ export function createPhototube(centerY = 1.3): { group: THREE.Group; handles: P
     const bulbMat = new THREE.MeshPhysicalMaterial({
         color: 0xe0f2fe,
         transparent: true,
-        opacity: 0.28,
-        roughness: 0.05,
-        transmission: 0.9,
+        opacity: 0.22,
+        roughness: 0.12,
+        transmission: 0,
+        depthWrite: false,
+        side: THREE.DoubleSide,
         ior: 1.48
     });
     const bulb = makeSphere(0.42, 0xe0f2fe);

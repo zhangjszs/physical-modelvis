@@ -1814,6 +1814,26 @@ body {
     align-items: center;
     margin-bottom: 12px;
 }
+.inspector-collapse-btn,
+.inspector-reopen-btn {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--glass-bg-strong);
+    color: var(--text2);
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 5px 10px;
+    white-space: nowrap;
+}
+.inspector-collapse-btn:hover,
+.inspector-reopen-btn:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+}
 .inspector-tabs {
     display: flex;
     gap: 4px;
@@ -1930,7 +1950,9 @@ body {
     border: 1px solid var(--glass-border);
     border-radius: 7px;
     outline: none;
-    transition: border-color 0.15s, box-shadow 0.15s;
+    transition:
+        border-color 0.15s,
+        box-shadow 0.15s;
 }
 .directory-search-input:focus {
     border-color: var(--accent);
@@ -2188,7 +2210,9 @@ body {
     color: var(--text2);
     background: transparent;
     cursor: pointer;
-    transition: background 0.15s, color 0.15s;
+    transition:
+        background 0.15s,
+        color 0.15s;
 }
 .view-hud-btn:hover {
     background: rgba(37, 99, 235, 0.12);
@@ -2311,6 +2335,23 @@ body {
         max-height: calc(100vh - 152px);
         border: 1px solid var(--border);
         border-radius: 14px;
+        box-shadow: var(--shadow-lg);
+    }
+    .inspector-collapse-btn {
+        display: inline-flex;
+    }
+    /* 窄视口默认收起：检查器不再覆盖 3D 舞台，只保留一个可重新展开的胶囊按钮 */
+    .classroom-inspector.collapsed {
+        width: auto;
+        max-height: none;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        box-shadow: none;
+        overflow: visible;
+    }
+    .classroom-inspector.collapsed .inspector-reopen-btn {
+        display: inline-flex;
         box-shadow: var(--shadow-lg);
     }
 }
@@ -3080,7 +3121,9 @@ body {
     font-size: 11px;
     font-weight: bold;
     color: #ca8a04;
-    transition: transform 0.15s, border-color 0.15s;
+    transition:
+        transform 0.15s,
+        border-color 0.15s;
     z-index: 28;
 }
 
@@ -3190,7 +3233,9 @@ body {
     }
     to {
         opacity: 1;
-        box-shadow: 0 0 10px #ef4444, 0 0 16px #f87171;
+        box-shadow:
+            0 0 10px #ef4444,
+            0 0 16px #f87171;
     }
 }
 
@@ -3214,7 +3259,9 @@ body {
 
 .gate-status-led.active {
     background: #ef4444;
-    box-shadow: 0 0 10px #ef4444, 0 0 18px #ef4444;
+    box-shadow:
+        0 0 10px #ef4444,
+        0 0 18px #ef4444;
 }
 
 .gate-badge {
@@ -3361,5 +3408,3 @@ body {
     font-weight: 700;
     font-size: 12px;
 }
-
-

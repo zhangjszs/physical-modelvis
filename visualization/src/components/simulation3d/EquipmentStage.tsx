@@ -16,7 +16,7 @@ import * as THREE from 'three';
 import type { SimulationResult } from 'physics-core';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { useSimulationStore } from '../../store/simulationStore';
-import { findFrameIndex, getTotalDuration, interpolateFrame } from '../../utils/frameUtils';
+import { findFrameIndex, getPlaybackDuration, interpolateFrame } from '../../utils/frameUtils';
 import { resolveStage3DBackground } from '../../utils/themeTokens';
 import {
     createEnvironment,
@@ -39,6 +39,18 @@ export interface SceneRig {
     ballRadius?: number;
     /** 是否把球体夹高到地面以上（仅抛体/落体/斜面等有地面实验开启，默认 false） */
     clampToGround?: boolean;
+    /**
+     * 自定义初始取景（可选）。
+     * 返回后舞台不再用轨迹包围盒自动居中 —— 左右对称 / 自带固定展台的场景
+     * （卫星轨道、圆周运动、光电效应）必须显式给出，否则默认相机注视的是
+     * 舞台中心 x≈3.2，而器材在 x=0，画面整体偏左且轨道会落到地面以下。
+     */
+    framing?(params: Record<string, number>, result?: SimulationResult | null): SceneFraming | undefined;
+    /**
+     * 持续自主动画（可选）：讲解型装置（如光电效应）不依赖仿真时间轴，
+     * 每帧推进 rig 自己的演示时钟并渲染。普通运动场景不要开启。
+     */
+    autoAnimate?: boolean;
     /**
      * 构建器材，返回挂载到场景的 group 和内部句柄。
      *
@@ -67,7 +79,14 @@ export interface SceneRig {
     /** 动画每帧回调 (用于悬绳、弹簧等器材部件实时连接到小球当前位置) */
     onAnimate?(
         handles: unknown,
-        ctx: { time: number; ballPos: THREE.Vector3; params: Record<string, number>; result?: SimulationResult | null }
+        ctx: {
+            time: number;
+            ballPos: THREE.Vector3;
+            params: Record<string, number>;
+            result?: SimulationResult | null;
+            /** 引擎当前帧速度 (物理 m/s) —— 速度矢量方向走单一真源 */
+            velocity?: { x: number; y: number };
+        }
     ): void;
     /**
      * rig 缓存淘汰清理钩子 (useSceneRig LRU 上限, #79)。
@@ -75,6 +94,15 @@ export interface SceneRig {
      * handles/纹理的有状态 rig 后, 必须实现本钩子否则淘汰后仍持资源。
      */
     dispose?(): void;
+}
+
+export interface SceneFraming {
+    /** 相机位置 */
+    position: [number, number, number];
+    /** 相机注视目标（画面中心） */
+    target: [number, number, number];
+    /** 相机到目标的期望距离（用于视角预设「全景居中」） */
+    distance?: number;
 }
 
 interface EquipmentStageProps {
@@ -131,6 +159,8 @@ const BALL_COLORS = [0x2563eb, 0xdc2626, 0x16a34a] as const;
 export function EquipmentStage({ rig, renderer, cameraPosition, cameraTarget, caption }: EquipmentStageProps) {
     const handlesRef = useRef<StageHandles | null>(null);
     const lastTimeRef = useRef(0);
+    /** autoAnimate rig 的演示时钟（与仿真时间轴解耦） */
+    const demoTimeRef = useRef(0);
 
     // 用 ref 保存 rAF 循环需要读取的最新值，避免 effect 依赖 currentTime 导致每帧重建循环
     const currentTimeRef = useRef(0);
@@ -197,11 +227,12 @@ export function EquipmentStage({ rig, renderer, cameraPosition, cameraTarget, ca
         scene.fog = new THREE.Fog(bgColor, 24, 72);
 
         const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 150);
-        const defaultCamPos = cameraPosition ?? [6.5, 4.5, 8.0];
+        const initialFraming = rig.framing?.(parameters, simulationResult);
+        const defaultCamPos = cameraPosition ?? initialFraming?.position ?? [6.5, 4.5, 8.0];
         camera.position.set(...defaultCamPos);
 
         const controls = new OrbitControls(camera, canvas);
-        const defaultTarget = cameraTarget ?? [3.2, 0.8, 0];
+        const defaultTarget = cameraTarget ?? initialFraming?.target ?? [3.2, 0.8, 0];
         controls.target.set(...defaultTarget);
         controls.enableDamping = true;
         controls.dampingFactor = 0.08;
@@ -216,7 +247,7 @@ export function EquipmentStage({ rig, renderer, cameraPosition, cameraTarget, ca
             dirtyRef.current = true;
         };
         controls.addEventListener('change', markDirty);
-        initialViewRef.current = { pos: defaultCamPos, target: defaultTarget, dist: 9.0 };
+        initialViewRef.current = { pos: defaultCamPos, target: defaultTarget, dist: initialFraming?.distance ?? 9.0 };
 
         createEnvironment(scene);
 
@@ -304,6 +335,20 @@ export function EquipmentStage({ rig, renderer, cameraPosition, cameraTarget, ca
         } catch (err) {
             console.error('[EquipmentStage] updateEquipment failed:', err);
         }
+        // 自定义取景：几何随参数（轨道半径 / 圆周半径）变化时重新取景，
+        // 保证完整轨道始终在视口内居中；普通 rig 不提供 framing，行为不变
+        const framing = rig.framing?.(parameters, simulationResult);
+        if (framing) {
+            handles.camera.position.set(...framing.position);
+            handles.controls.target.set(...framing.target);
+            handles.controls.update();
+            initialViewRef.current = {
+                pos: framing.position,
+                target: framing.target,
+                dist: framing.distance ?? 9.0
+            };
+            dirtyRef.current = true;
+        }
     }, [parameters, simulationResult, rig]);
 
     // —— 2.5 视角预设：切换相机位置 ——
@@ -388,9 +433,9 @@ export function EquipmentStage({ rig, renderer, cameraPosition, cameraTarget, ca
             visualPointsList.push(visualPoints);
         }
 
-        // 残影覆盖主轨迹 & 动态全景居中
+        // 残影覆盖主轨迹 & 动态全景居中（显式 framing 的场景以 rig 给出的取景为准）
         const mainVisual = visualPointsList[0] ?? [];
-        if (mainVisual.length > 0) {
+        if (mainVisual.length > 0 && !rig.framing) {
             let minX = Infinity;
             let maxX = -Infinity;
             let minY = Infinity;
@@ -441,9 +486,16 @@ export function EquipmentStage({ rig, renderer, cameraPosition, cameraTarget, ca
             const now = currentTimeRef.current;
             const params = parametersRef.current;
             const layers = visibleLayersRef.current;
+            const autoAnimate = Boolean(rig.autoAnimate);
+            const animating = isPlaying || autoAnimate;
+            // 播放时演示时钟跟随 store.currentTime（2D 板书与 3D 装置同步扫频）；
+            // 暂停时继续用自有时钟，保证讲解型装置打开即持续演示。
+            if (autoAnimate) {
+                demoTimeRef.current = isPlaying ? now : demoTimeRef.current + delta;
+            }
 
             if (simulationResult && isPlaying) {
-                const total = getTotalDuration(simulationResult.trajectories);
+                const total = getPlaybackDuration(simulationResult.trajectories);
                 const next = now + delta * playbackSpeed;
                 if (next >= total) {
                     setCurrentTime(total);
@@ -457,7 +509,7 @@ export function EquipmentStage({ rig, renderer, cameraPosition, cameraTarget, ca
                 // damping 收敛与交互探测每帧照跑 (update 本身不做 GPU 工作, 相机未动时近乎空转)；
                 // 同步场景对象 + render 只在播放中或有脏标记时执行 —— 暂停且无交互时 0 render (#79)
                 handles.controls.update();
-                if (isPlaying || dirtyRef.current) {
+                if (animating || dirtyRef.current) {
                     dirtyRef.current = false;
                     const idx = findFrameIndex(simulationResult.trajectories, now);
                     // 逐物体更新球位置 (多体场景: 每轨迹一个球)
@@ -500,10 +552,11 @@ export function EquipmentStage({ rig, renderer, cameraPosition, cameraTarget, ca
                             if (rig.onAnimate) {
                                 try {
                                     rig.onAnimate(handles.equipmentHandles, {
-                                        time: now,
+                                        time: autoAnimate ? demoTimeRef.current : now,
                                         ballPos,
                                         params,
-                                        result: simulationResult
+                                        result: simulationResult,
+                                        velocity: frame.velocity
                                     });
                                 } catch {
                                     // 防御异常不中断循环
