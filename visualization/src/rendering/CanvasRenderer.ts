@@ -862,8 +862,9 @@ export class CanvasRenderer {
         const objY = s.y;
         const heightDiff = shadowY - objY;
 
-        const shadowScaleX = 1.0 + Math.min(heightDiff / (r * 4), 0.6);
-        const shadowScaleY = 0.35 + Math.min(heightDiff / (r * 8), 0.2);
+        // 物体落到地面投影线以下时 heightDiff 为负, 不 clamp 会让椭圆半径变负 → ctx.ellipse 抛错中断整帧 (#159 F-A1)
+        const shadowScaleX = Math.max(0.2, 1.0 + Math.min(heightDiff / (r * 4), 0.6));
+        const shadowScaleY = Math.max(0.06, 0.35 + Math.min(heightDiff / (r * 8), 0.2));
         const shadowAlpha = Math.max(0.12, 0.35 - heightDiff / 400);
         ctx.fillStyle = `rgba(0,0,0,${shadowAlpha})`;
         ctx.beginPath();
@@ -1334,8 +1335,9 @@ export class CanvasRenderer {
         const objY = s.y;
         const heightDiff = shadowY - objY;
 
-        const shadowScaleX = 1.0 + Math.min(heightDiff / (r * 4), 0.6);
-        const shadowScaleY = 0.35 + Math.min(heightDiff / (r * 8), 0.2);
+        // 物体落到地面投影线以下时 heightDiff 为负, 不 clamp 会让椭圆半径变负 → ctx.ellipse 抛错中断整帧 (#159 F-A1)
+        const shadowScaleX = Math.max(0.2, 1.0 + Math.min(heightDiff / (r * 4), 0.6));
+        const shadowScaleY = Math.max(0.06, 0.35 + Math.min(heightDiff / (r * 8), 0.2));
         const shadowAlpha = Math.max(0.12, 0.35 - heightDiff / 400);
         ctx.fillStyle = `rgba(0,0,0,${shadowAlpha})`;
         ctx.beginPath();

@@ -30,6 +30,7 @@ import {
     type PendulumHandles
 } from '../../src/components/simulation3d/rigs/pendulumRig';
 import { BASE_Y, waveRig, type WaveHandles } from '../../src/components/simulation3d/rigs/waveRig';
+import { dopplerRig, dopplerReadouts, type DopplerHandles } from '../../src/components/simulation3d/rigs/dopplerRig';
 import { STAGE_CENTER_X } from '../../src/components/simulation3d/rigs/params';
 import { readWaveMediumFromResult } from '../../src/rendering/engineExtraAccess';
 import { readWaveMediumView, waveVerticalGain } from '../../src/rendering/waveMediumView';
@@ -274,5 +275,48 @@ describe('#160 机械波: 介质质点与波形必须消费引擎结果', () => 
     it('rig 自绘质点 (ownParticles), 舞台不再按轨迹生成默认球', () => {
         expect(waveRig.ownParticles).toBe(true);
         expect(waveRig.worldScale).toBe(1);
+    });
+});
+
+describe('#159 F-A2 多普勒: 3D 必须消费引擎 f′ 与声速, 不得回退机械波默认值', () => {
+    it('观察者读数读引擎 θ 扫描: 前(迎) f′≈548.39 / 后(背) f′≈459.46', () => {
+        const { params, result } = simulate('doppler-effect');
+        const r = dopplerReadouts(params, result);
+        expect(r.f0).toBeCloseTo(500, 6);
+        expect(r.v).toBeCloseTo(340, 6);
+        expect(r.vs).toBeCloseTo(30, 6);
+        expect(r.fFront!).toBeCloseTo(548.39, 1);
+        expect(r.fBack!).toBeCloseTo(459.46, 1);
+    });
+
+    it('声速 = 340 m/s, 不是旧 waveRig 回退的 v=λf=1.00 m/s', () => {
+        const { params, result } = simulate('doppler-effect');
+        const r = dopplerReadouts(params, result);
+        expect(r.v).toBeGreaterThan(300);
+        expect(r.lambda).toBeCloseTo(340 / 500, 4);
+        // 展示压缩比 = 引擎真实 vs/v
+        expect(r.ratio).toBeCloseTo(30 / 340, 6);
+    });
+
+    it('rig 为多普勒专用: ownParticles + 1 单位=1 米 + 波前环/双观察者/信息牌齐备', () => {
+        expect(dopplerRig.ownParticles).toBe(true);
+        expect(dopplerRig.worldScale).toBe(1);
+        const { params, result } = simulate('doppler-effect');
+        const scene = new THREE.Scene();
+        const built = dopplerRig.buildEquipment(scene, params, result);
+        scene.add(built.group);
+        const h = built.handles as DopplerHandles;
+        expect(h.fronts.length).toBeGreaterThanOrEqual(6);
+        expect(h.source.position.y).toBeCloseTo(1.2, 6);
+        expect(h.frontObs.position.x).toBeGreaterThan(h.backObs.position.x);
+    });
+
+    it('applyReadouts 缺失引擎结果时回退场景参数, 不抛错 (防御空结果)', () => {
+        const { params } = simulate('doppler-effect');
+        const r = dopplerReadouts(params, null);
+        expect(r.f0).toBeCloseTo(500, 6);
+        expect(r.v).toBeCloseTo(340, 6);
+        expect(r.fFront).toBeNull();
+        expect(r.fBack).toBeNull();
     });
 });

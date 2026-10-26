@@ -7,12 +7,12 @@
 | sceneId | 领域 | 场景名 | 引擎模型 | rig | worldScale | 参数命中 | 引擎轨迹/图表 | 探针状态 | 判定 | 严重度 | 根因/建议 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | `projectile` | 力学 | 抛体运动 (平抛+斜抛) | projectile | ? | 0.16 | n/a | 1动/1条·7图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
-| `uniform-accelerated` | 力学 | 竖直运动（自由落体/上抛） | uniform-accelerated | verticalMotionRig | 0.16 | 3/4 | 1动/1条·5图 | OK | P3 | 严重 | 2D 播放期 ctx.ellipse 负半径抛错中断整帧 (CanvasRenderer.draw3DBody:865-870 shadowScaleY 未 clamp, 跨场景共享路径); 加正下限 clamp |
+| `uniform-accelerated` | 力学 | 竖直运动（自由落体/上抛） | uniform-accelerated | verticalMotionRig | 0.16 | 3/4 | 1动/1条·5图 | OK | 已修复 | — | F-A1 已修: CanvasRenderer.draw3DBody/drawCircularBody3D 阴影椭圆 radiusX/Y 加正下限 clamp(0.2/0.06); 回归 canvas-shadow-clamp.test.ts 3 例(先红后绿: 回退 clamp 2 例红) |
 | `free-fall` | 力学 | 自由落体 | uniform-accelerated | freeFallRig | 0.16 | 1/2 | 1动/1条·5图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
 | `collision` | 力学 | 碰撞 | collision-elastic | ? | 0.16 | n/a | 2动/2条·3图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
 | `spring` | 力学 | 弹簧振子 | spring-oscillator | ? | 0.16 | n/a | 1动/1条·3图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
 | `inclined-plane` | 力学 | 斜面运动 | inclined-plane | inclineRig | 0.16 | 1/2 | 1动/1条·3图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
-| `circular-motion` | 力学 | 匀速圆周运动 (向心力) | uniform-circular-motion | circularMotionRig | 0.6 | n/a | 1动/1条·6图 | OK | P2 | 待确认 | worldScale=0.6 (HEAD 9920bea 重写, 有注释论证), 需复核取景/球径比例 |
+| `circular-motion` | 力学 | 匀速圆周运动 (向心力) | uniform-circular-motion | circularMotionRig | 0.6 | n/a | 1动/1条·6图 | OK | 通过 | — | worldScale=0.6 有意偏差: 注释论证「1m 半径→0.6 单位」使小半径圆周可见, 球径按半径等比缩放(BALL_RADIUS_RATIO=0.12, MIN/MAX clamp), 有自定义 framing 与力/速度矢量; 复核无问题 |
 | `orbital` | 力学 | 万有引力与航天 (卫星轨道) | orbital | ? | 0.16 | n/a | 1动/1条·5图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
 | `air-track` | 力学 | 气垫导轨测速度 | uniform-linear | airTrackRig | 0.16 | 3/3 | 1动/1条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
 | `energy-conservation` | 力学 | 机械能守恒定律 (动能↔势能) | uniform-accelerated | fallingEnergyRig | 0.16 | 1/2 | 1动/1条·5图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
@@ -43,7 +43,7 @@
 | `forced-vibration-freq` | 力学 | 受迫振动 (频率响应) | forced-vibration | vibrationRig | 0.16 | 5/7 | 1动/1条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
 | `resonance-curve` | 力学 | 共振曲线 (幅-频) | resonance | vibrationRig | 0.16 | 4/7 | 0动/1条·2图 | OK | P3 | 待判定 | 引擎无有效轨迹且非 ownParticles → 3D 动画装饰性, 需人工判定可视化是否充分(读数/曲线是否在 2D+数据抽屉) |
 | `sound-waveform` | 力学 | 声音波形 (纯音+复合) | sound-waveform | soundWaveformRig | 0.16 | 5/5 | 1动/1条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
-| `doppler-effect` | 力学 | 多普勒效应 (声源运动) | doppler | waveRig | 1 | 0/3 | 1动/1条·2图 | OK | P1 | 阻断 | 3D=waveRig(机械波): v=λf=1.00m/s(声速应340)/λ恒0.50m/0质点/无波前观察者; 2D 读 fprime_vs_theta 正确 → 新建多普勒专用 rig |
+| `doppler-effect` | 力学 | 多普勒效应 (声源运动) | doppler | dopplerRig | 1 | 0/3 | 1动/1条·2图 | OK | 已修复 | — | F-A2 已修: 新建 dopplerRig(移动波源+同心波前+双观察者), 前/后 f′ 读 charts.fprime_vs_theta(548.39/459.46), 信息牌读 maxValues(v=340/λ=0.68)+「读数源自引擎」; 旧 waveRig 的 v=1.00m/s 已消除; scene-rig-physics 增 4 例 |
 | `water-diffraction` | 力学 | 水波衍射 (遇障碍物) | water-diffraction | waveOpticsRig | 0.16 | 2/8 | 1动/1条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
 | `sound-interference` | 力学 | 声波干涉 (双喇叭) | sound-interference | waveOpticsRig | 0.16 | 0/8 | 1动/1条·2图 | OK | P1 | 严重 | 3D 共享 rig 语义错配: 装置/标题/公式属另一现象且读数冻结默认(rig 不读引擎 result); 2D 已正确迁移 → 需为场景建专用 rig 或 rig 改读引擎(waveOpticsRig 光干涉, 应声干涉) |
 | `projectile-collision` | 力学 | 平抛碰撞 (验证动量守恒) | projectile-collision | collisionRig | 0.16 | 2/4 | 1动/1条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |

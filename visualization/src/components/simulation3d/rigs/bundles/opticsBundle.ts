@@ -4,6 +4,7 @@
  */
 import type { SceneRig } from '../../EquipmentStage';
 import { waveRig } from '../waveRig';
+import { dopplerRig } from '../dopplerRig';
 import { opticsRig } from '../opticsRig';
 import { waveOpticsRig } from '../waveOpticsRig';
 import { vibrationRig } from '../vibrationRig';
@@ -14,7 +15,8 @@ import { doublePendulumRig } from '../doublePendulumRig';
 export default {
     'mechanical-wave': waveRig,
     'sound-waveform': soundWaveformRig,
-    'doppler-effect': waveRig,
+    // doppler 曾误用 waveRig(读 extra.waveMedium, doppler 无) → 空台架+错误读数 (#159 F-A2); 改专用 rig
+    'doppler-effect': dopplerRig,
     refraction: opticsRig,
     'total-internal-reflection': opticsRig,
     'polarization-malus': opticsRig,
