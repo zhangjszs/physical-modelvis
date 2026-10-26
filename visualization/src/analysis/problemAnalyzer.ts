@@ -58,7 +58,6 @@ const FIELD_LABELS: Record<string, string> = {
     theta: '斜面倾角',
     mu: '摩擦系数',
     Ey: '电场强度',
-    Ex: '电场强度',
     Bz: '磁感应强度',
     charge: '电荷量'
 };
@@ -406,7 +405,7 @@ function inferParameters(
         addParam(params, extracted, 'v0y', velocityValue(text, ['竖直速度', '竖直初速度', 'vy', 'v0y']));
         addParam(params, extracted, 'charge', chargeValue(text));
         addParam(params, extracted, 'mass', massValue(text, ['粒子质量', '质量', 'm']));
-        addParam(params, extracted, 'Ex', fieldValue(text, ['电场强度', 'Ex', 'E'], 'N/C|V/m|牛每库|伏每米', 'N/C'));
+        addParam(params, extracted, 'Ey', fieldValue(text, ['电场强度', 'Ey', 'E'], 'N/C|V/m|牛每库|伏每米', 'N/C'));
         addParam(params, extracted, 'Bz', fieldValue(text, ['磁感应强度', '磁场强度', 'B', 'Bz'], 'T|特斯拉', 'T'));
     }
 

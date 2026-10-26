@@ -223,19 +223,19 @@ const CURATED: Record<string, Omit<SceneGuidance, 'sceneId'>> = {
                 title: '认识场景',
                 action: '同时调节电场与磁场参数',
                 observe: '两场力叠加，可作直线、圆周或螺旋运动',
-                paramFocus: ['Ex', 'Bz']
+                paramFocus: ['Ey', 'Bz']
             },
             {
                 title: '速度选择器',
                 action: '调节 v₀ 使 qE = qvB，播放',
                 observe: '粒子做匀速直线运动（仅当 v₀ = E/B）',
-                paramFocus: ['Ex', 'Bz', 'v0x']
+                paramFocus: ['Ey', 'Bz', 'v0x']
             },
             {
                 title: '磁偏转',
-                action: '撤去电场（E=0），播放',
+                action: '撤去电场（Ey=0），播放',
                 observe: '粒子做匀速圆周运动，轨迹为完整圆弧',
-                paramFocus: ['Ex', 'Bz']
+                paramFocus: ['Ey', 'Bz']
             }
         ]
     },

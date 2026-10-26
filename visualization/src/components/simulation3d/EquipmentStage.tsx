@@ -52,6 +52,19 @@ export interface SceneRig {
      */
     autoAnimate?: boolean;
     /**
+     * rig 自己绘制运动质点（可选）。
+     *
+     * 舞台默认行为是「每条引擎轨迹一个球 + 一条轨迹线」，这隐含了
+     * 「一条轨迹 = 一个物理物体」的假设。机械波场景不满足该假设:
+     * 引擎输出的是**介质质点群**（一条轨迹 = 介质上的一个质点），
+     * 按轨迹生成球会得到一堆积在极小空间里的彩色球 (彩虹柱),
+     * 且介质质点与波形线必须同尺度才能读出传播过程。
+     *
+     * 开启后：舞台不再生成默认球/轨迹线/残影/投影线/阴影板，
+     * rig 在 onAnimate 里用自己的几何消费引擎结果 (含 rig.framing 自定义取景)。
+     */
+    ownParticles?: boolean;
+    /**
      * 构建器材，返回挂载到场景的 group 和内部句柄。
      *
      * 约定（推荐）：器材全部 add 到 group 内部，Stage 负责 scene.add(group) 和统一 dispose。
@@ -213,6 +226,8 @@ export function EquipmentStage({ rig, renderer, cameraPosition, cameraTarget, ca
     visibleLayersRef.current = visibleLayers;
 
     const ballRadius = rig.ballRadius ?? 0.22;
+    /** rig 自绘质点 → 舞台不生成默认球/轨迹线/残影/投影 */
+    const ownsParticles = Boolean(rig.ownParticles);
 
     // —— 1. 初始化：构建环境 + 器材 + 运动证据 ——
     // renderer 由 StageRenderer 注入 (#81)：跨场景复用, 本组件只重建 Scene/Camera/Controls,
@@ -284,6 +299,17 @@ export function EquipmentStage({ rig, renderer, cameraPosition, cameraTarget, ca
 
         const shadowPlate = makeShadowPlate(ballRadius);
         scene.add(shadowPlate);
+
+        // rig 自绘质点的场景: 舞台默认运动证据全部隐藏 (由 rig 自己画)
+        if (ownsParticles) {
+            ball.visible = false;
+            trajectory.visible = false;
+            ghostBalls.forEach(g => {
+                g.visible = false;
+            });
+            projectionLine.visible = false;
+            shadowPlate.visible = false;
+        }
 
         handlesRef.current = {
             scene,
@@ -383,6 +409,8 @@ export function EquipmentStage({ rig, renderer, cameraPosition, cameraTarget, ca
     useEffect(() => {
         const handles = handlesRef.current;
         if (!handles || !simulationResult) return;
+        // rig 自绘质点 → 舞台不生成默认球/轨迹线 (也不做自动取景, 由 rig.framing 接管)
+        if (ownsParticles) return;
         const trajCount = simulationResult.trajectories.length;
 
         // 运动球数量与引擎轨迹数同步 (collision/inertia/newton-third-law 等双体场景)
@@ -468,7 +496,7 @@ export function EquipmentStage({ rig, renderer, cameraPosition, cameraTarget, ca
             ghost.position.copy(mainVisual[idx]!);
             ghost.visible = visibleLayers.trajectory;
         });
-    }, [simulationResult, parameters, visibleLayers.trajectory, rig, ballRadius]);
+    }, [simulationResult, parameters, visibleLayers.trajectory, rig, ballRadius, ownsParticles]);
 
     // —— 4. 动画循环：时间推进 + 球体位置 + 渲染 ——
     // 依赖保持稳定：只在这几个真正会“换场景/换仿真”时重建循环；
@@ -513,67 +541,87 @@ export function EquipmentStage({ rig, renderer, cameraPosition, cameraTarget, ca
                     dirtyRef.current = false;
                     const idx = findFrameIndex(simulationResult.trajectories, now);
                     // 逐物体更新球位置 (多体场景: 每轨迹一个球)
-                    for (let i = 0; i < handles.balls.length; i++) {
-                        const points = simulationResult.trajectories[i] ?? [];
-                        if (points.length === 0) continue;
-                        const p0 = points[idx];
-                        const p1 = points[Math.min(idx + 1, points.length - 1)];
-                        if (!p0 || !p1) continue;
-                        const frame = interpolateFrame(p0, p1, now);
-                        let ballPos: THREE.Vector3;
-                        try {
-                            ballPos = rig.getVisualPosition(frame.position, params, simulationResult);
-                        } catch (err) {
-                            console.error('[EquipmentStage] getVisualPosition in tick failed:', err);
-                            ballPos = new THREE.Vector3(0, 1, 0);
-                        }
-                        if (rig.clampToGround) {
-                            ballPos.y = Math.max(ballRadius, ballPos.y);
-                        }
-                        const ball = handles.balls[i];
-                        if (!ball) continue;
-                        ball.position.copy(ballPos);
-                        ball.rotation.y += delta * 2.4;
-                        if (i === 0) {
-                            // 投影线/阴影跟随主球
-                            handles.shadowPlate.position.set(ballPos.x, 0.028, ballPos.z);
-                            const projPos = handles.projectionLine.geometry.attributes['position'] as
-                                THREE.BufferAttribute | undefined;
-                            if (projPos && projPos.array) {
-                                const arr = projPos.array as Float32Array;
-                                arr[0] = ballPos.x;
-                                arr[1] = 0.035;
-                                arr[2] = ballPos.z;
-                                arr[3] = ballPos.x;
-                                arr[4] = ballPos.y;
-                                arr[5] = ballPos.z;
-                                projPos.needsUpdate = true;
+                    // rig 自绘质点的场景 (ownParticles): 舞台不生成/更新默认球, 由 rig 自己消费引擎结果
+                    let primaryBallPos: THREE.Vector3 | null = null;
+                    let primaryVelocity: { x: number; y: number } | undefined;
+                    if (!ownsParticles) {
+                        for (let i = 0; i < handles.balls.length; i++) {
+                            const points = simulationResult.trajectories[i] ?? [];
+                            if (points.length === 0) continue;
+                            const p0 = points[idx];
+                            const p1 = points[Math.min(idx + 1, points.length - 1)];
+                            if (!p0 || !p1) continue;
+                            const frame = interpolateFrame(p0, p1, now);
+                            let ballPos: THREE.Vector3;
+                            try {
+                                ballPos = rig.getVisualPosition(frame.position, params, simulationResult);
+                            } catch (err) {
+                                console.error('[EquipmentStage] getVisualPosition in tick failed:', err);
+                                ballPos = new THREE.Vector3(0, 1, 0);
                             }
-                            if (rig.onAnimate) {
-                                try {
-                                    rig.onAnimate(handles.equipmentHandles, {
-                                        time: autoAnimate ? demoTimeRef.current : now,
-                                        ballPos,
-                                        params,
-                                        result: simulationResult,
-                                        velocity: frame.velocity
-                                    });
-                                } catch {
-                                    // 防御异常不中断循环
+                            if (rig.clampToGround) {
+                                ballPos.y = Math.max(ballRadius, ballPos.y);
+                            }
+                            const ball = handles.balls[i];
+                            if (!ball) continue;
+                            ball.position.copy(ballPos);
+                            ball.rotation.y += delta * 2.4;
+                            if (i === 0) {
+                                primaryBallPos = ballPos;
+                                primaryVelocity = frame.velocity;
+                                // 投影线/阴影跟随主球
+                                handles.shadowPlate.position.set(ballPos.x, 0.028, ballPos.z);
+                                const projPos = handles.projectionLine.geometry.attributes['position'] as
+                                    THREE.BufferAttribute | undefined;
+                                if (projPos && projPos.array) {
+                                    const arr = projPos.array as Float32Array;
+                                    arr[0] = ballPos.x;
+                                    arr[1] = 0.035;
+                                    arr[2] = ballPos.z;
+                                    arr[3] = ballPos.x;
+                                    arr[4] = ballPos.y;
+                                    arr[5] = ballPos.z;
+                                    projPos.needsUpdate = true;
                                 }
                             }
                         }
                     }
-                    // 图层可见性
-                    handles.trajectory.visible = layers.trajectory;
-                    handles.trajectories.forEach((t, i) => {
-                        t.visible = layers.trajectory && i < simulationResult.trajectories.length;
-                    });
-                    handles.ghostBalls.forEach(g => {
-                        g.visible = layers.trajectory;
-                    });
-                    handles.projectionLine.visible = layers.axes;
-                    handles.shadowPlate.visible = layers.trajectory;
+                    // rig 动画回调: 每帧调用一次 (主球位置 + 引擎帧速度)
+                    if (rig.onAnimate) {
+                        try {
+                            let ballPos: THREE.Vector3;
+                            if (primaryBallPos) {
+                                ballPos = primaryBallPos;
+                            } else {
+                                try {
+                                    ballPos = rig.getOrigin(params, simulationResult);
+                                } catch {
+                                    ballPos = new THREE.Vector3(0, 1, 0);
+                                }
+                            }
+                            rig.onAnimate(handles.equipmentHandles, {
+                                time: autoAnimate ? demoTimeRef.current : now,
+                                ballPos,
+                                params,
+                                result: simulationResult,
+                                velocity: primaryVelocity
+                            });
+                        } catch {
+                            // 防御异常不中断循环
+                        }
+                    }
+                    // 图层可见性 (rig 自绘质点的场景: 默认运动证据的可见性归 rig 自己管)
+                    if (!ownsParticles) {
+                        handles.trajectory.visible = layers.trajectory;
+                        handles.trajectories.forEach((t, i) => {
+                            t.visible = layers.trajectory && i < simulationResult.trajectories.length;
+                        });
+                        handles.ghostBalls.forEach(g => {
+                            g.visible = layers.trajectory;
+                        });
+                        handles.projectionLine.visible = layers.axes;
+                        handles.shadowPlate.visible = layers.trajectory;
+                    }
                     handles.renderer.render(handles.scene, handles.camera);
                 }
             }
@@ -586,7 +634,7 @@ export function EquipmentStage({ rig, renderer, cameraPosition, cameraTarget, ca
             running = false;
             cancelAnimationFrame(animId);
         };
-    }, [simulationResult, isPlaying, playbackSpeed, setCurrentTime, pause, rig, ballRadius]);
+    }, [simulationResult, isPlaying, playbackSpeed, setCurrentTime, pause, rig, ballRadius, ownsParticles]);
 
     const captionText = caption?.(parameters) ?? '';
 

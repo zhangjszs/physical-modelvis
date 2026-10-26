@@ -351,9 +351,9 @@ export const CLASSROOM_SCRIPTS: Record<string, ClassroomScript> = {
         title: '速度选择器与电磁复合场',
         subtitle: '选择性必修第二册 · 复合场中的粒子运动',
         goal: '理解电场力与磁场力的矢量合成，掌握速度选择器原理与正交复合场中的平衡条件。',
-        demoParams: { v0x: 1000, v0y: 0, Ex: 100, Bz: 0.1, charge: 1.6, mass: 1.67 },
+        demoParams: { v0x: 1000, v0y: 0, Ey: 100, Bz: 0.1, charge: 1.6, mass: 1.67 },
         demoNote:
-            '场强 Ex=100 N/C，磁感应强度 Bz=0.1 T。当初速度 v₀=1000 m/s 时，电场力与洛伦兹力恰好平衡，沿直线匀速穿过。',
+            '场强 Ey=100 N/C（垂直于初速度），磁感应强度 Bz=0.1 T。当初速度 v₀=1000 m/s 时，电场力与洛伦兹力恰好平衡，沿直线匀速穿过。',
         compareFocus: {
             paramName: 'v0x',
             range: [500, 2000],

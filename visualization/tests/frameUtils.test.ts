@@ -67,6 +67,12 @@ describe('frameUtils', () => {
         expect(getPlaybackDuration([[single]])).toBe(STATIC_SCENE_DEMO_DURATION_S);
         expect(getPlaybackDuration([[]])).toBe(STATIC_SCENE_DEMO_DURATION_S);
         expect(getPlaybackDuration([])).toBe(STATIC_SCENE_DEMO_DURATION_S);
+        // 真实短时仿真（0.01s）必须保留引擎时长，不能被演示时长覆盖
+        const shortReal: TrajectoryPoint[] = [
+            { t: 0, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } },
+            { t: 0.01, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } }
+        ];
+        expect(getPlaybackDuration([shortReal])).toBeCloseTo(0.01);
         // 安培力/洛伦兹力等演示模型会输出 7e-11s 这类近零时长
         const nearZero: TrajectoryPoint[] = [
             { t: 0, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } },

@@ -310,8 +310,10 @@ export interface Environment {
 }
 
 export function createEnvironment(scene: THREE.Scene, bgColor = 0xf8fafc, shadowTier?: ShadowQualityTier): Environment {
+    // 地面/背景墙要足够大: 斜俯视相机会看到平面的边界, 边缘露出会在画面里变成一条
+    // 斜切的白线 (看着像凭空出现的一道坎), 故把地台从 14×8 扩到 20×14。
     const ground = new THREE.Mesh(
-        new THREE.PlaneGeometry(14, 8),
+        new THREE.PlaneGeometry(20, 14),
         new THREE.MeshStandardMaterial({ color: 0xeef6ff, roughness: 0.82, metalness: 0.02 })
     );
     ground.rotation.x = -Math.PI / 2;
@@ -319,14 +321,14 @@ export function createEnvironment(scene: THREE.Scene, bgColor = 0xf8fafc, shadow
     ground.receiveShadow = true;
     scene.add(ground);
 
-    const grid = new THREE.GridHelper(14, 14, 0xcbd5e1, 0xe5edf7);
+    const grid = new THREE.GridHelper(20, 20, 0xcbd5e1, 0xe5edf7);
     grid.position.set(3.6, 0.014, 0);
     (grid.material as THREE.Material).transparent = true;
     (grid.material as THREE.Material).opacity = 0.26;
     scene.add(grid);
 
     const wall = new THREE.Mesh(
-        new THREE.PlaneGeometry(14, 4),
+        new THREE.PlaneGeometry(20, 4),
         new THREE.MeshStandardMaterial({ color: bgColor, roughness: 0.9, metalness: 0 })
     );
     wall.position.set(3.6, 2, -3.05);

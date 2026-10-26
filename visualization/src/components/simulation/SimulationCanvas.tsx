@@ -812,42 +812,56 @@ function drawInclinedPlaneScene(
     }
 }
 
-/** 绘制电磁复合场：渐变电场线 + 精致磁场符号 */
+/**
+ * 绘制电磁复合场：竖直电场线 (E ⊥ v) + 精致磁场符号 (⊗ 垂直纸面向里)
+ *
+ * 电场方向必须与引擎/场景一致: em-combined 场景把电场放在 y 轴 (参数 Ey),
+ * 引擎 em-combined-field 也只在 |E.x| < 1e-12 时走速度选择器解析路径 (v = E/B)。
+ * 早期版本画的是**水平**电场线 (对应旧场景 E ∥ v 的错误参数),
+ * 与 3D 装置的上下极板 (竖直电场) 相互矛盾 —— 画面表达的物理模型与引擎不符。
+ *
+ * 方向约定: 画布 y 向下为正, 与引擎的 position.y 同一手性;
+ * Ey > 0 → 电场线向下 (正电荷受力向下), Ey < 0 → 向上。
+ */
 function drawEMCombinedField(
     ctx: CanvasRenderingContext2D,
     _transformer: CoordinateTransformer,
     width: number,
     height: number,
-    isDark: boolean
+    isDark: boolean,
+    params: Record<string, number>
 ) {
     const tokens = getThemeTokens(isDark);
     const spacing = 60;
     const eColor = tokens.canvasEFieldAccent;
-    for (let y = spacing / 2; y < height; y += spacing) {
-        const startX = 30;
-        const endX = width - 30;
+    // 场景参数即引擎输入 (buildProblem 直接取同名参数), 故方向/大小与引擎一致
+    const Ey = params['Ey'] ?? 10;
+    const downward = Ey >= 0;
+    for (let x = spacing / 2; x < width; x += spacing) {
+        const startY = downward ? 30 : height - 30;
+        const endY = downward ? height - 30 : 30;
         ctx.strokeStyle = hexToRgba(eColor, 0.1);
         ctx.lineWidth = 5;
         ctx.beginPath();
-        ctx.moveTo(startX, y);
-        ctx.lineTo(endX, y);
+        ctx.moveTo(x, startY);
+        ctx.lineTo(x, endY);
         ctx.stroke();
-        const grad = ctx.createLinearGradient(startX, y, endX, y);
+        const grad = ctx.createLinearGradient(x, startY, x, endY);
         grad.addColorStop(0, hexToRgba(eColor, 0.2));
         grad.addColorStop(0.4, tokens.canvasEMFieldGradient);
         grad.addColorStop(1, tokens.canvasEMFieldGradient);
         ctx.strokeStyle = grad;
         ctx.lineWidth = 1.8;
         ctx.beginPath();
-        ctx.moveTo(startX, y);
-        ctx.lineTo(endX, y);
+        ctx.moveTo(x, startY);
+        ctx.lineTo(x, endY);
         ctx.stroke();
+        // 箭头指向场线终点 (场方向)
         ctx.fillStyle = tokens.canvasEMFieldArrow;
         ctx.beginPath();
-        ctx.moveTo(endX, y);
-        ctx.lineTo(endX - 12, y - 5);
-        ctx.lineTo(endX - 7, y);
-        ctx.lineTo(endX - 12, y + 5);
+        ctx.moveTo(x, endY);
+        ctx.lineTo(x - 5, endY + (downward ? -12 : 12));
+        ctx.lineTo(x + 5, endY + (downward ? -12 : 12));
         ctx.closePath();
         ctx.fill();
     }
@@ -856,6 +870,7 @@ function drawEMCombinedField(
     ctx.fillStyle = eColor;
     ctx.fillText('E', 12, 20);
     {
+        // 左上角方向小图例 (箭头方向 = 电场方向)
         const arrowX = 26,
             arrowY = 16;
         ctx.strokeStyle = eColor;
@@ -863,12 +878,12 @@ function drawEMCombinedField(
         ctx.lineCap = 'round';
         ctx.beginPath();
         ctx.moveTo(arrowX, arrowY);
-        ctx.lineTo(arrowX + 14, arrowY);
+        ctx.lineTo(arrowX, arrowY + (downward ? 14 : -14));
         ctx.stroke();
         ctx.beginPath();
-        ctx.moveTo(arrowX + 14, arrowY);
-        ctx.lineTo(arrowX + 9, arrowY - 4);
-        ctx.lineTo(arrowX + 9, arrowY + 4);
+        ctx.moveTo(arrowX, arrowY + (downward ? 14 : -14));
+        ctx.lineTo(arrowX - 4, arrowY + (downward ? 5 : -5));
+        ctx.lineTo(arrowX + 4, arrowY + (downward ? 5 : -5));
         ctx.closePath();
         ctx.fillStyle = eColor;
         ctx.fill();
@@ -1282,7 +1297,7 @@ export function SimulationCanvas() {
                 } else if (currentScene === 'magnetic-field') {
                     drawMagneticField(c, transformer, cssW, cssH, isDark);
                 } else if (currentScene === 'em-combined') {
-                    drawEMCombinedField(c, transformer, cssW, cssH, isDark);
+                    drawEMCombinedField(c, transformer, cssW, cssH, isDark, parameters);
                 } else if (currentScene === 'collision') {
                     drawCollisionScene(c, transformer, cssW, cssH, isDark, parameters);
                 } else if (currentScene === 'spring') {

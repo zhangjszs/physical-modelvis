@@ -9,6 +9,7 @@
  */
 import type { SimulationResult } from 'physics-core';
 import { G_ACCELERATION } from './constants';
+import { measurePendulumPeriod } from './pendulumMetrics';
 import {
     roundRectPath,
     mutedColor,
@@ -202,8 +203,14 @@ export function drawSimplePendulumScene(opts: MechanicsSceneOptions): void {
     const mass = params['mass'] ?? 1;
     const g = params['g'] ?? G_ACCELERATION;
     const damping = params['damping'] ?? 0;
-    const T = 2 * Math.PI * Math.sqrt(L / g);
+    const Tsmall = 2 * Math.PI * Math.sqrt(L / g);
     const omega0 = Math.sqrt(g / L);
+
+    // 周期读数优先用引擎实测 (大摆角下 2π√(L/g) 明显偏小, 与画面轨迹对不上);
+    // 无引擎结果时才回退小角度公式。2D 板书与 3D 器材标牌共用同一份实测值。
+    const Tmeasured = measurePendulumPeriod(simulationResult?.trajectories?.[0]);
+    const T = Tmeasured ?? Tsmall;
+    const Tsource = Tmeasured !== null ? '引擎实测' : '小角度近似';
 
     // 当前摆角: 优先用引擎 theta_t 图表 (Velocity Verlet 非线性, 大角度精确)
     // 引擎图表单位是度; 无引擎结果时回退小角度近似
@@ -237,7 +244,7 @@ export function drawSimplePendulumScene(opts: MechanicsSceneOptions): void {
     const bobY = pivotY + ropeLen * Math.cos(theta);
     const bobR = 18 + mass * 2;
 
-    drawTitle(ctx, `单摆: T = 2π√(L/g) = ${T.toFixed(3)}s`, width, isDark);
+    drawTitle(ctx, `单摆: T = ${T.toFixed(3)}s (${Tsource})  |  2π√(L/g) = ${Tsmall.toFixed(3)}s`, width, isDark);
 
     // 支架
     ctx.fillStyle = isDark ? '#475569' : '#94a3b8';
@@ -359,14 +366,16 @@ export function drawSimplePendulumScene(opts: MechanicsSceneOptions): void {
     drawHud(ctx, isDark, [
         { label: 't', value: `${currentTime.toFixed(3)} s` },
         { label: 'θ', value: `${((theta * 180) / Math.PI).toFixed(1)}°` },
-        { label: 'T', value: `${T.toFixed(3)} s` },
+        { label: 'T', value: `${T.toFixed(3)} s (${Tsource})` },
         { label: 'v', value: `${v.toFixed(2)} m/s` }
     ]);
     drawInfoBar(
         ctx,
         width,
         height,
-        `L=${L}m  θ₀=${angleDeg}°  T=2π√(L/g)=${T.toFixed(3)}s${damping > 0 ? `  阻尼=${damping}` : ''}`,
+        `L=${L}m  θ₀=${angleDeg}°  T(${Tsource})=${T.toFixed(3)}s  2π√(L/g)=${Tsmall.toFixed(3)}s${
+            damping > 0 ? `  阻尼=${damping}` : ''
+        }`,
         isDark
     );
     if (!simulationResult) drawEmptyState(ctx, width, height, isDark);

@@ -5,6 +5,62 @@ import { PhysicsModelBase } from './base.js';
 import { sampleTrajectory } from '../physics/kinematics.js';
 
 /**
+ * 机械波介质的结构化附加数据 (SimulationResult.extra.waveMedium)。
+ *
+ * 渲染层 (2D 板书 / 3D 舞台) 需要知道「介质区间」与「追踪质点的平衡位置」,
+ * 才能把质点摆到正确的横坐标上 —— 这些是**几何事实**, 不属于任何一条时间序列,
+ * 故走 extra 通道而非 charts。结构单一真源在引擎, 渲染层经
+ * `readWaveMediumExtra` 类型谓词守卫读取 (见 #124 约定)。
+ */
+export interface WaveMediumExtra {
+    /** 介质左端 x (m) */
+    readonly xStart: number;
+    /** 介质右端 x (m) */
+    readonly xEnd: number;
+    /** 介质质点间距 dx (m) */
+    readonly dx: number;
+    /** 介质质点总数 N */
+    readonly particleCount: number;
+    /** 追踪质点的平衡位置 x (m), 升序, 长度 = trackedCount */
+    readonly trackedX: number[];
+    /** 追踪质点数 (trackedX.length) */
+    readonly trackedCount: number;
+    /** 波动模式 */
+    readonly mode: 'transverse' | 'longitudinal' | 'interference';
+    /** 振幅 A (m) */
+    readonly amplitude: number;
+    /** 频率 f (Hz) */
+    readonly frequency: number;
+    /** 波长 λ (m) */
+    readonly wavelength: number;
+    /** 波速 v = λ·f (m/s) */
+    readonly waveSpeed: number;
+}
+
+/**
+ * 追踪质点采样 — 相邻追踪点的平衡位置间距 ≤ λ/8。
+ *
+ * 早期实现固定取 9 个等间距质点 (间距 = 介质总长/8)。介质总长 4 m 时该间距为
+ * 0.5 m, 恰好等于默认波长 λ=0.5 m → 所有追踪点**同相**, 渲染层在追踪点之间
+ * 线性插值只能还原出一条直线, 波形在画面上彻底消失 (物理模型与画面脱节)。
+ *
+ * 这里按波长自适应选点: 索引步长 = floor((λ/8)/dx), 至少 1。
+ * 取 λ/8 而非 Nyquist 下限 λ/4, 是因为渲染层要用追踪点连线还原波形:
+ * 每波长 4 点连出来是尖刺状三角波, 每波长 8~10 点才接近光滑正弦。
+ *
+ * 下限 1 意味着当 λ/8 < dx 时追踪点已经密于介质分辨率, 再密也无法还原
+ * 更高频的波形 (受介质离散化本身限制, 不是采样规则的问题)。
+ */
+function selectTrackedIndices(N: number, dx: number, lambda: number): number[] {
+    const step = Math.max(1, Math.floor(lambda / 8 / dx));
+    const indices: number[] = [];
+    for (let i = 0; i < N - 1; i += step) indices.push(i);
+    const last = indices[indices.length - 1];
+    if (last !== N - 1) indices.push(N - 1);
+    return indices;
+}
+
+/**
  * 机械波模型 — 横波 / 纵波 / 干涉 (选必一 第三章)
  *
  * 把介质离散为 N 个质点沿 x 轴排列，相邻质点相位差 Δφ = 2π·dx/λ
@@ -63,24 +119,16 @@ export class MechanicalWaveModel extends PhysicsModelBase {
         const x0: number[] = [];
         for (let i = 0; i < N; i++) x0.push(xStart + i * dx);
 
-        // 选取 9 个等间距代表质点记录振动轨迹 (y-t 图)
-        const tracked = [
-            0,
-            Math.floor(N / 8),
-            Math.floor(N / 4),
-            Math.floor((3 * N) / 8),
-            Math.floor(N / 2),
-            Math.floor((5 * N) / 8),
-            Math.floor((3 * N) / 4),
-            Math.floor((7 * N) / 8),
-            N - 1
-        ];
+        // 追踪质点: 按波长自适应选点 (相邻间距 ≤ λ/8, 见 selectTrackedIndices 注释)
+        const tracked = selectTrackedIndices(N, dx, lambda);
+        const trackedX = tracked.map(i => x0[i]!);
         const trajs: TrajectoryPoint[][] = tracked.map(() => []);
 
         // 被追踪质点的质量 (用于动能计算)
         const mass = problem.bodies[0]?.mass.value ?? 1;
 
-        // 解析解采样: 9 个 tracked 质点的振动轨迹, 每质点独立调用 sampleTrajectory
+        // 解析解采样: tracked 质点 (数量随波长自适应, 见 selectTrackedIndices) 的振动轨迹,
+        //   每质点独立调用 sampleTrajectory
         //   yᵢ(t) = A·sin(ωt − k·xEqᵢ)  (+ A2·sin(ωt − dir2·k·xEqᵢ + φ2) 干涉模式)
         //  (公共脚手架 sampleTrajectory — 消除原有 time×particle 双层循环)
         for (let ti = 0; ti < tracked.length; ti++) {
@@ -202,11 +250,27 @@ export class MechanicalWaveModel extends PhysicsModelBase {
             }
         ];
 
+        // 介质几何 + 追踪点平衡位置 → extra 通道 (渲染层据此摆放质点)
+        const waveMedium: WaveMediumExtra = {
+            xStart,
+            xEnd,
+            dx,
+            particleCount: N,
+            trackedX,
+            trackedCount: tracked.length,
+            mode,
+            amplitude: A,
+            frequency: f,
+            wavelength: lambda,
+            waveSpeed
+        };
+
         return {
             meta: this.makeMeta('analytical'),
             trajectories: [...trajs, waveSnapshot],
             keyframes,
             charts: { wave_t, y_t, v_t },
+            extra: { waveMedium },
             diagnostics: {
                 conservedQuantities: [],
                 maxValues: { waveSpeed, wavelength: lambda, frequency: f, wavenumber: k, angularFreq: omega },

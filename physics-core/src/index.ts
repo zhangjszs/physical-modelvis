@@ -109,6 +109,7 @@ export { MODEL_CHART_KEYS, chartsOf, getChart } from './types/chart-registry.js'
 // visualization/src/rendering/engineExtraAccess.ts
 export type { ElectricFieldExtra } from './models/electric-field-lines.js';
 export type { MagFieldExtra } from './models/current-magnetic-field.js';
+export type { WaveMediumExtra } from './models/mechanical-wave.js';
 
 // === 错误类导出 ===
 export {

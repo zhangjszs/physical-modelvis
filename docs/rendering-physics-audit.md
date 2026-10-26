@@ -126,7 +126,7 @@ heat-direction / adiabatic-compression / energy-transformation / load-voltage / 
 | `projectile-collision` | 读 `diagnostics.maxValues` (OP/OM/ON/tFall/v1After/v2After/pBefore/pAfter) | 碰后速度/动量面板/HUD 不再自算解析公式; 回退保留 |
 | `inertia` | 读引擎双轨迹 `getFrame(sim, t, 0/1)` (上下物体), 像素映射 `x·scale+cx, groundY−y·scale` | 回退原 shake 自算 |
 | `sound-waveform` | 读 `charts.waveform_t` (x 轴 ms), 行波快照等效时移 `t_eng=(t−x/vPx) mod duration` 二分插值, `vPx=ω/k` | 与原 sin(kx−ωt) 恒等; 回退保留 |
-| `mechanical-wave` | 9 tracked 质点 (x=−1..3) 间线性插值驱动 60 粒子, `engineCount=trajs.length−1` 去掉末尾 snapshot | **附带修复引擎干涉公式 bug** (见下); 回退保留 |
+| `mechanical-wave` | tracked 质点 (数量随 λ 自适应, 间距 ≤ λ/8; x=−1..3) 间线性插值驱动画布粒子, `engineCount=trajs.length−1` 去掉末尾 snapshot | **附带修复引擎干涉公式 bug** (见下); 2026-10-26 追加: 原固定 9 点间距 = 0.5 m = 默认 λ → 全部同相 → 波形退化为直线, 改为自适应采样 (λ/4 仍呈尖刺三角波 → λ/8); 回退保留 |
 | `lc-oscillator` | 读 `charts.x_t/y_t/ke_t/pe_t` (μC/mA/μJ, x 轴 μs, 覆盖 2T), `interp()` 二分插值 + mod 2e6; q/i/Ee/Em 与 Q/I 曲线数组均改引擎 | 键名≠语义名 (q_t/i_t/Ee_t/Em_t), 类型强转访问; 回退保留 |
 
 ### 引擎 bug 修复:mechanical-wave 干涉方向
@@ -141,7 +141,7 @@ heat-direction / adiabatic-compression / energy-transformation / load-voltage / 
 | 场景 | 断言 |
 |------|------|
 | sound-waveform | 复合音谐波成分 (峰值间距≠T); 时域波形与行波快照等效时移一致 |
-| mechanical-wave | 9 tracked 质点轨迹; snapshot 起伏; 干涉驻波节点/波腹 (λ=0.4) |
+| mechanical-wave | tracked 质点轨迹 (间距 ≤ λ/8, 索引取自 extra.trackedX); snapshot 起伏; 干涉驻波节点/波腹 (λ=0.4) |
 | lc-oscillator | q(0)=1μC, i(0)≈0, q/i 90° 相位差, 能量守恒 Ee+Em=Q₀²/2C |
 
 core 测试数 881 → 917 (机械波单测重构 + 断言补齐), viz 393 → 402。

@@ -17,7 +17,7 @@
  * 渲染层直读 `simulationResult.meta.duration` 即受编译期检查, 缺省时自备场景默认时长)。
  */
 
-import type { ElectricFieldExtra, MagFieldExtra } from 'physics-core';
+import type { ElectricFieldExtra, MagFieldExtra, WaveMediumExtra } from 'physics-core';
 
 /** 有限数值 (排除 NaN / ±Infinity, 与自检 L10 输出扫描口径一致) */
 function isFiniteNumber(value: unknown): value is number {
@@ -122,4 +122,45 @@ export function readElectricFieldExtra(extra: unknown): ElectricFieldExtra | nul
  */
 export function readMagFieldExtra(extra: unknown): MagFieldExtra | null {
     return isMagFieldExtra(extra) ? extra : null;
+}
+
+/**
+ * 机械波介质 extra (mechanical-wave 模型) 的结构守卫。
+ * 必需字段: xStart / xEnd / dx / particleCount / trackedCount / amplitude /
+ *           frequency / wavelength / waveSpeed (均为有限数值) + trackedX (有限数值数组)
+ *           + mode ('transverse' | 'longitudinal' | 'interference')。
+ */
+export function isWaveMediumExtra(value: unknown): value is WaveMediumExtra {
+    if (!isRecord(value)) return false;
+    if (!isFiniteNumber(value['xStart']) || !isFiniteNumber(value['xEnd'])) return false;
+    if (!isFiniteNumber(value['dx']) || !isFiniteNumber(value['particleCount'])) return false;
+    if (!isFiniteNumber(value['trackedCount'])) return false;
+    if (!isUnknownArray(value['trackedX'])) return false;
+    if (!value['trackedX'].every(isFiniteNumber)) return false;
+    const mode = value['mode'];
+    if (mode !== 'transverse' && mode !== 'longitudinal' && mode !== 'interference') return false;
+    if (!isFiniteNumber(value['amplitude']) || !isFiniteNumber(value['frequency'])) return false;
+    if (!isFiniteNumber(value['wavelength']) || !isFiniteNumber(value['waveSpeed'])) return false;
+    return true;
+}
+
+/**
+ * 读取机械波介质 extra (入参为 `SimulationResult.extra` 通道值)。
+ * 无结果 / 结构不符 → null (调用方按场景默认值回退)。
+ */
+export function readWaveMediumExtra(extra: unknown): WaveMediumExtra | null {
+    return isWaveMediumExtra(extra) ? extra : null;
+}
+
+/**
+ * 从仿真结果里取机械波介质 extra。
+ *
+ * 机械波的 extra 是**嵌套**结构 (`extra.waveMedium`), 与电场/磁场的顶层结构不同 ——
+ * 这里统一收口, 渲染层只调本函数即可, 不必自己记 extra 的层级。
+ */
+export function readWaveMediumFromResult(
+    result: { extra?: Record<string, unknown> } | null | undefined
+): WaveMediumExtra | null {
+    if (!result?.extra) return null;
+    return readWaveMediumExtra(result.extra['waveMedium']);
 }

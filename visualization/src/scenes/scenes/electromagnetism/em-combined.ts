@@ -51,15 +51,15 @@ export const em_combinedScene: SceneConfig = {
             description: '竖直方向初速度'
         },
         {
-            name: 'Ex',
-            label: '电场强度 Ex',
+            name: 'Ey',
+            label: '电场强度 Ey',
             unit: 'N/C',
-            value: 100,
+            value: 10,
             min: -1000,
             max: 1000,
-            step: 10,
-            default: 100,
-            description: '匀强电场 x 分量'
+            step: 1,
+            default: 10,
+            description: '匀强电场 y 分量 (垂直于初速度; 速度选择器要求 E ⊥ v)'
         },
         {
             name: 'Bz',
@@ -70,7 +70,7 @@ export const em_combinedScene: SceneConfig = {
             max: 10,
             step: 0.001,
             default: 0.01,
-            description: '匀强磁场强度（垂直于运动平面）'
+            description: '匀强磁场强度 (垂直于运动平面; 引擎取 Bz = +value, 即 ⊗ 垂直纸面向里)'
         },
         {
             name: 'duration',
@@ -89,7 +89,9 @@ export const em_combinedScene: SceneConfig = {
         const m = (params['mass'] ?? 1.67) * 1e-27;
         const v0x = params['v0x'] ?? 1000;
         const v0y = params['v0y'] ?? 0;
-        const Ex = params['Ex'] ?? 100;
+        // 电场必须垂直于初速度 (E ⊥ v) 才构成速度选择器:
+        // 引擎 em-combined-field 仅在 |E.x| < 1e-12 时走解析速度选择路径 (v = E/B)。
+        const Ey = params['Ey'] ?? 10;
         const Bz = params['Bz'] ?? 0.01;
         const duration = params['duration'] ?? 0.01;
         return {
@@ -106,8 +108,8 @@ export const em_combinedScene: SceneConfig = {
                 }
             ],
             environment: {
-                electricField: { enabled: true, fieldVector: { x: Ex, y: 0 } },
-                magneticField: { enabled: true, fieldStrength: Bz, direction: 'out' }
+                electricField: { enabled: true, fieldVector: { x: 0, y: Ey } },
+                magneticField: { enabled: true, fieldStrength: Bz, direction: 'in' }
             },
             timeConfig: makeTimeSeries(duration, 1000)
         };

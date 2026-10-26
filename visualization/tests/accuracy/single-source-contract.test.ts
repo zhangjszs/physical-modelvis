@@ -26,6 +26,10 @@ import { readEngineOrbitRadii, readEngineBohrLevels } from '../../src/rendering/
 import { readEngineDiffusionCoeff, readEngineBrownianCoeff } from '../../src/rendering/molecularKineticScenes';
 import { readEngineAlphaK } from '../../src/rendering/nuclearScenes';
 import { readEngineVerticalCircle } from '../../src/rendering/chapter5Scenes';
+import { readWaveMediumFromResult } from '../../src/rendering/engineExtraAccess';
+import { drawSimplePendulumScene } from '../../src/rendering/chapter7Scenes';
+import { measurePendulumPeriod } from '../../src/rendering/pendulumMetrics';
+import { createRecordingCanvas } from '../utils/canvasMock';
 
 /** 取渲染源码中某导出函数的完整函数体 (到下一个 export function 为止) — 源码契约断言用 */
 function renderFn(file: string, fnName: string): string {
@@ -108,6 +112,35 @@ describe('L1-migration: 渲染单一真源契约 (orbital / pendulum / vertical-
         expect(Math.abs(TEngine - TSmall) / TSmall).toBeGreaterThan(0.05);
         // theta_t 图表单位是度
         expect(Math.abs(theta[0]!.y)).toBeCloseTo(60, 0);
+    });
+
+    it('simple-pendulum: 2D 板书周期读数必须用引擎实测值 (θ₀=60° 时与小角度公式明显不同)', () => {
+        const sc = scene('simple-pendulum');
+        const params: Record<string, number> = { length: 1, angle: 60, mass: 1, g: 9.8, damping: 0, duration: 20 };
+        const { result, error } = runSceneSimulation(sc, params);
+        expect(error).toBeNull();
+
+        // 引擎端: 实测周期由轨迹过零测得, 大摆角下明显长于小角度公式
+        const measured = measurePendulumPeriod(result!.trajectories[0]);
+        expect(measured, '轨迹应可测出周期').not.toBeNull();
+        const tSmall = 2 * Math.PI * Math.sqrt(1 / 9.8);
+        expect(Math.abs(measured! - tSmall) / tSmall).toBeGreaterThan(0.05);
+
+        // 渲染端: 画面上的周期读数必须是实测值 (公式值仅作对照, 不得冒充读数)
+        const { ctx, texts } = createRecordingCanvas({ width: 900, height: 600 });
+        drawSimplePendulumScene({
+            ctx,
+            width: 900,
+            height: 600,
+            isDark: true,
+            params,
+            simulationResult: result!,
+            currentTime: 0
+        });
+        const shown = texts.join('\n');
+        expect(shown, '画面标注周期来源').toContain('引擎实测');
+        expect(shown, '画面周期读数为引擎实测值').toContain(`${measured!.toFixed(3)} s`);
+        expect(shown, '小角度公式值仅作对照展示').toContain(`2π√(L/g) = ${tSmall.toFixed(3)}s`);
     });
 
     it('vertical-circle: 引擎速度在最高点 < 最低点 (机械能守恒), 渲染 HUD 用当前速度', () => {
@@ -196,7 +229,7 @@ describe('L1-migration: 渲染单一真源契约 (orbital / pendulum / vertical-
         return omega / k;
     }
 
-    it('mechanical-wave: 引擎 9 个 tracked 质点轨迹, 渲染粒子位置必须跟随引擎 (横波)', () => {
+    it('mechanical-wave: 引擎追踪质点按波长自适应 (间距 ≤ λ/8), 渲染粒子位置必须跟随引擎 (横波)', () => {
         const sc = scene('mechanical-wave');
         const params: Record<string, number> = {
             waveMode: 0,
@@ -209,10 +242,19 @@ describe('L1-migration: 渲染单一真源契约 (orbital / pendulum / vertical-
         expect(error).toBeNull();
 
         const trajs = result!.trajectories;
-        // 9 个 tracked 质点 + 1 条 waveSnapshot
-        expect(trajs.length).toBeGreaterThanOrEqual(10);
+        // 追踪质点数随波长自适应 + 末尾 1 条 waveSnapshot
+        // (早期固定 9 点: 间距 = 介质总长/8 = 0.5 m = 默认 λ → 全部同相 → 波形退化为直线)
+        const medium = readWaveMediumFromResult(result!)!;
+        expect(medium).not.toBeNull();
+        expect(medium.trackedCount).toBe(trajs.length - 1);
+        expect(medium.trackedCount).toBeGreaterThan(9);
+        for (let i = 1; i < medium.trackedX.length; i++) {
+            const gap = medium.trackedX[i]! - medium.trackedX[i - 1]!;
+            expect(gap).toBeGreaterThan(0);
+            expect(gap).toBeLessThanOrEqual(medium.wavelength / 8 + 1e-9);
+        }
         // 每个 tracked 质点轨迹覆盖整个时长且位移在 [-A, A] 内
-        for (let i = 0; i < 9; i++) {
+        for (let i = 0; i < medium.trackedCount; i++) {
             const t = trajs[i]!;
             expect(t.length).toBeGreaterThan(50);
             const maxDisp = Math.max(...t.map(p => Math.abs(p.position.y)));
@@ -232,8 +274,9 @@ describe('L1-migration: 渲染单一真源契约 (orbital / pendulum / vertical-
 
     it('mechanical-wave: 干涉模式引擎含驻波 — tracked 质点波节振幅≈0, 波腹≈2A', () => {
         const sc = scene('mechanical-wave');
-        // λ=0.4: 波节 x=(2n+1)λ/4 = 0.1, 0.3, 0.5, ...; tracked x: -1, -0.5, 0, 0.5, 1, ...
-        //   x=0.5 (trajs[3]) 波节, x=0 (trajs[2]) 波腹
+        // λ=0.4: 干涉叠加 y = 2A·sin(ωt)·cos(kx) → 波节 x=(2n+1)λ/4 = 0.1, 0.3, 0.5, ...
+        //   波腹 x = nλ/2 = 0, 0.4, 0.8, ...
+        // 波节/波腹的追踪索引由引擎 extra.trackedX 给出 (不写死索引, 随采样规则自适应)
         const params: Record<string, number> = {
             waveMode: 2,
             amplitude: 0.1,
@@ -245,9 +288,14 @@ describe('L1-migration: 渲染单一真源契约 (orbital / pendulum / vertical-
         expect(error).toBeNull();
 
         const trajs = result!.trajectories;
-        const nodeAmp = Math.max(...trajs[3]!.map(p => Math.abs(p.position.y)));
+        const medium = readWaveMediumFromResult(result!)!;
+        const nodeIdx = medium.trackedX.findIndex(x => Math.abs(x - 0.1) < 1e-6);
+        const antinodeIdx = medium.trackedX.findIndex(x => Math.abs(x) < 1e-6);
+        expect(nodeIdx).toBeGreaterThanOrEqual(0);
+        expect(antinodeIdx).toBeGreaterThanOrEqual(0);
+        const nodeAmp = Math.max(...trajs[nodeIdx]!.map(p => Math.abs(p.position.y)));
         expect(nodeAmp).toBeLessThan(0.02);
-        const antinodeAmp = Math.max(...trajs[2]!.map(p => Math.abs(p.position.y)));
+        const antinodeAmp = Math.max(...trajs[antinodeIdx]!.map(p => Math.abs(p.position.y)));
         expect(antinodeAmp).toBeGreaterThan(0.15);
     });
 

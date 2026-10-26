@@ -61,8 +61,11 @@ export function getTotalDuration(trajectories: TrajectoryPoint[][]): number {
  */
 export const STATIC_SCENE_DEMO_DURATION_S = 6;
 
-/** 低于该时长的轨迹视为静态演示（如安培力演示模型输出 7e-11s 的占位时长） */
-export const MIN_PLAYABLE_DURATION_S = 0.05;
+/**
+ * 低于该时长的轨迹视为静态占位（如安培力模型输出 7e-11s、霍尔元件 1e-6s）；
+ * 真实短时仿真（电磁复合场/磁场 0.01s）仍保留引擎时长，避免改变其物理时间轴。
+ */
+export const MIN_PLAYABLE_DURATION_S = 1e-4;
 
 /** 播放控件使用的时长：有真实运动轨迹用引擎时长，静态/近零时长回退到演示时长 */
 export function getPlaybackDuration(trajectories: TrajectoryPoint[][]): number {

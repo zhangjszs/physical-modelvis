@@ -46,11 +46,12 @@ export function createDeflectionPlates(
     });
 
     // 极板极性符号标识 (+ / -)
-    const plusLabel = makeTextSprite('+', '#ef4444', 36, { x: 0.3, y: 0.3 });
+    // 画布 384×128 → 单字符要保持正方, 横向 scale 必须是纵向的 3 倍 (否则会被压扁)
+    const plusLabel = makeTextSprite('+', '#ef4444', 36, { x: 0.9, y: 0.3 });
     plusLabel.position.set(-plateLength / 2 + 0.2, centerY + plateDistance / 2 + 0.15, plateWidth / 2 + 0.05);
     group.add(plusLabel);
 
-    const minusLabel = makeTextSprite('−', '#3b82f6', 36, { x: 0.3, y: 0.3 });
+    const minusLabel = makeTextSprite('−', '#3b82f6', 36, { x: 0.9, y: 0.3 });
     minusLabel.position.set(-plateLength / 2 + 0.2, centerY - plateDistance / 2 - 0.15, plateWidth / 2 + 0.05);
     group.add(minusLabel);
 
