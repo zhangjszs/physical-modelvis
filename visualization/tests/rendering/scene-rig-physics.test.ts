@@ -37,6 +37,66 @@ import {
     type EmInductionHandles
 } from '../../src/components/simulation3d/rigs/emInductionRig';
 import { chartsOf } from 'physics-core';
+import {
+    selfInductanceRig,
+    selfInductanceReadouts,
+    type SelfInductanceHandles
+} from '../../src/components/simulation3d/rigs/selfInductanceRig';
+import {
+    mutualInductanceRig,
+    mutualInductanceReadouts,
+    type MutualInductanceHandles
+} from '../../src/components/simulation3d/rigs/mutualInductanceRig';
+import {
+    eddyCurrentRig,
+    eddyCurrentReadouts,
+    type EddyCurrentHandles
+} from '../../src/components/simulation3d/rigs/eddyCurrentRig';
+import {
+    emDampingRig,
+    emDampingReadouts,
+    type EmDampingHandles
+} from '../../src/components/simulation3d/rigs/emDampingRig';
+import {
+    acCurrentRig,
+    acCurrentReadouts,
+    type AcCurrentHandles
+} from '../../src/components/simulation3d/rigs/acCurrentRig';
+import {
+    soundInterferenceRig,
+    soundInterferenceReadouts,
+    type SoundInterferenceHandles
+} from '../../src/components/simulation3d/rigs/soundInterferenceRig';
+import {
+    polarizationRig,
+    polarizationReadouts,
+    type PolarizationHandles
+} from '../../src/components/simulation3d/rigs/polarizationRig';
+import {
+    emSpectrumRig,
+    emSpectrumReadouts,
+    type EmSpectrumHandles
+} from '../../src/components/simulation3d/rigs/emSpectrumRig';
+import {
+    radioactiveRig,
+    radioactiveReadouts,
+    type RadioactiveHandles
+} from '../../src/components/simulation3d/rigs/radioactiveRig';
+import {
+    geigerCounterRig,
+    geigerReadouts,
+    type GeigerHandles
+} from '../../src/components/simulation3d/rigs/geigerCounterRig';
+import {
+    decayStatisticsRig,
+    decayStatsReadouts,
+    type DecayStatsHandles
+} from '../../src/components/simulation3d/rigs/decayStatisticsRig';
+import {
+    fissionChainRig,
+    fissionReadouts,
+    type FissionChainHandles
+} from '../../src/components/simulation3d/rigs/fissionChainRig';
 import { efieldLinesRig, type EfieldHandles } from '../../src/components/simulation3d/rigs/efieldLinesRig';
 import { coulombRig, type CoulombHandles } from '../../src/components/simulation3d/rigs/coulombRig';
 import { STAGE_CENTER_X } from '../../src/components/simulation3d/rigs/params';
@@ -407,5 +467,226 @@ describe('#159 F-A3 电磁感应: 3D 读引擎 Φ/ε 曲线', () => {
         expect(h.rings.length).toBe(6);
         expect(h.magnet).toBeDefined();
         expect(h.period).toBeCloseTo(0.02, 3);
+    });
+});
+
+describe('#159 F-A3 自感: 断电衰减 I(t)/ε_L(t) 读引擎 charts', () => {
+    it('t=0 时 I=I₀=1.2A、ε_L=-12V；τ=L/R=0.05s', () => {
+        const { params, result } = simulate('self-inductance');
+        const r0 = selfInductanceReadouts(params, result, 0);
+        expect(r0.currentA).toBeCloseTo(1.2, 2);
+        expect(r0.emfV).toBeCloseTo(-12, 0);
+        expect(r0.tauS).toBeCloseTo(0.05, 6);
+        expect(r0.i0A).toBeCloseTo(1.2, 6);
+    });
+    it('末期电流衰减趋于 0；rig 为线圈+ownParticles', () => {
+        const { params, result } = simulate('self-inductance');
+        expect(Math.abs(selfInductanceReadouts(params, result, 0.5).currentA)).toBeLessThan(0.01);
+        const built = selfInductanceRig.buildEquipment(new THREE.Scene(), params, result);
+        const h = built.handles as SelfInductanceHandles;
+        expect(selfInductanceRig.ownParticles).toBe(true);
+        expect(h.rings.length).toBe(7);
+    });
+});
+
+describe('#159 F-A3 互感: I₁(t)/E₂(t) 读引擎 charts', () => {
+    it('M=42.4mH、E₂幅值=13.33V、T=20ms', () => {
+        const { params, result } = simulate('mutual-inductance');
+        const r = mutualInductanceReadouts(params, result, 0);
+        expect(r.mH).toBeCloseTo(0.0424264, 6);
+        expect(r.e2AmpV).toBeCloseTo(13.3286, 3);
+        expect(r.periodS).toBeCloseTo(0.02, 6);
+    });
+    it('rig 为双线圈结构 (原 6 环 / 副 7 环) + ownParticles', () => {
+        const { params, result } = simulate('mutual-inductance');
+        const built = mutualInductanceRig.buildEquipment(new THREE.Scene(), params, result);
+        const h = built.handles as MutualInductanceHandles;
+        expect(mutualInductanceRig.ownParticles).toBe(true);
+        expect(h.primaryRings.length).toBe(6);
+        expect(h.secondaryRings.length).toBe(7);
+    });
+});
+
+describe('#159 F-A3 涡流: P/δ 读引擎 maxValues', () => {
+    it('P≈95.4mW、δ≈9.35mm', () => {
+        const { result } = simulate('eddy-current');
+        const r = eddyCurrentReadouts(result, 0);
+        expect(r.powerW).toBeCloseTo(0.095406, 5);
+        expect(r.skinDepthMm).toBeCloseTo(9.3459, 3);
+    });
+    it('rig 为板+磁极+4 涡流环', () => {
+        const { params, result } = simulate('eddy-current');
+        const built = eddyCurrentRig.buildEquipment(new THREE.Scene(), params, result);
+        const h = built.handles as EddyCurrentHandles;
+        expect(eddyCurrentRig.ownParticles).toBe(true);
+        expect(h.eddyRings.length).toBe(4);
+        expect(h.plate).toBeDefined();
+    });
+});
+
+describe('#159 F-A3 电磁阻尼: ω(t) 读引擎 charts', () => {
+    it('t=0 时 ω=ω₀=100 rad/s；τ_c≈3.83e-5 s', () => {
+        const { params, result } = simulate('em-damping');
+        const r = emDampingReadouts(params, result, 0);
+        expect(r.omega0).toBeCloseTo(100, 6);
+        expect(r.omega).toBeCloseTo(100, 1);
+        expect(r.tauC).toBeCloseTo(0.0000383142, 8);
+    });
+    it('rig 为摆臂+圆盘+双磁极', () => {
+        const { params, result } = simulate('em-damping');
+        const built = emDampingRig.buildEquipment(new THREE.Scene(), params, result);
+        const h = built.handles as EmDampingHandles;
+        expect(emDampingRig.ownParticles).toBe(true);
+        expect(h.disk).toBeDefined();
+        expect(h.magnetN).toBeDefined();
+    });
+});
+
+describe('#159 F-A3 交变电流: e(t)/u₂(t) 读引擎 charts', () => {
+    it('Eₘ=311V、匝比 0.1、U₂峰值=31.1V、T=20ms', () => {
+        const { params, result } = simulate('ac-current');
+        const r = acCurrentReadouts(params, result, 0);
+        expect(r.peakEmf).toBeCloseTo(311, 6);
+        expect(r.turnsRatio).toBeCloseTo(0.1, 6);
+        expect(r.secondaryPeak).toBeCloseTo(31.1, 6);
+        expect(r.periodS).toBeCloseTo(0.02, 6);
+    });
+    it('rig 为旋转线圈+铁芯', () => {
+        const { params, result } = simulate('ac-current');
+        const built = acCurrentRig.buildEquipment(new THREE.Scene(), params, result);
+        const h = built.handles as AcCurrentHandles;
+        expect(acCurrentRig.ownParticles).toBe(true);
+        expect(h.coil).toBeDefined();
+        expect(h.core).toBeDefined();
+    });
+});
+
+describe('#159 F-A3 声波干涉: 强度剖面读引擎 scan_line', () => {
+    it('f=500/λ=0.68/v=340/d=3、观察点 I/I₀≈0.482 读 maxValues', () => {
+        const { params, result } = simulate('sound-interference');
+        const r = soundInterferenceReadouts(params, result);
+        expect(r.f).toBeCloseTo(500, 6);
+        expect(r.v).toBeCloseTo(340, 6);
+        expect(r.d).toBeCloseTo(3, 6);
+        expect(r.lambda).toBeCloseTo(0.68, 6);
+        expect(r.iRatio).toBeCloseTo(0.4816, 3);
+    });
+    it('rig 的强度剖面来自引擎 scan_line (非空) + 双喇叭', () => {
+        const { params, result } = simulate('sound-interference');
+        const built = soundInterferenceRig.buildEquipment(new THREE.Scene(), params, result);
+        const h = built.handles as SoundInterferenceHandles;
+        expect(soundInterferenceRig.ownParticles).toBe(true);
+        expect(h.profile).not.toBeNull();
+        expect(h.rings.length).toBe(8);
+        expect(h.speakerR.position.x).toBeGreaterThan(h.speakerL.position.x);
+    });
+});
+
+describe('#159 F-A3 偏振马吕斯: I/I₀ 读引擎 maxValues', () => {
+    it('Ifinal=0.5、transmission=0.5 (0°→45° 偏振片级联)', () => {
+        const { params, result } = simulate('polarization-malus');
+        const r = polarizationReadouts(params, result);
+        expect(r.ifinal).toBeCloseTo(0.5, 6);
+        expect(r.transmission).toBeCloseTo(0.5, 6);
+    });
+    it('rig 为偏振片堆 + 光束 + 马吕斯曲线 (引擎 malus_curve)', () => {
+        const { params, result } = simulate('polarization-malus');
+        const built = polarizationRig.buildEquipment(new THREE.Scene(), params, result);
+        const h = built.handles as PolarizationHandles;
+        expect(polarizationRig.ownParticles).toBe(true);
+        expect(h.plates.length).toBeGreaterThanOrEqual(1);
+        expect(h.curve).not.toBeNull();
+    });
+});
+
+describe('#159 F-A3 电磁波谱: 谱带/读数读引擎', () => {
+    it('频率范围 10~1e16 Hz、高亮可见光 λ≈533nm / E≈2.32eV', () => {
+        const { result } = simulate('em-spectrum');
+        const r = emSpectrumReadouts(result);
+        expect(r.freqMin).toBeCloseTo(10, 6);
+        expect(r.freqMax).toBeCloseTo(1e16, -10);
+        expect(r.center).toBeGreaterThan(4e14);
+        expect(r.center).toBeLessThan(7.5e14);
+        expect(r.wavelength!).toBeCloseTo(5.33e-7, 9);
+    });
+    it('rig 为 6 频谱带 + 引擎 spectrum_curve', () => {
+        const { params, result } = simulate('em-spectrum');
+        const built = emSpectrumRig.buildEquipment(new THREE.Scene(), params, result);
+        const h = built.handles as EmSpectrumHandles;
+        expect(emSpectrumRig.ownParticles).toBe(true);
+        expect(h.bars.length).toBe(6);
+        expect(h.curve).not.toBeNull();
+    });
+});
+
+describe('#159 F-A3 放射性衰变: N(t)/A(t) 读引擎 charts', () => {
+    it('N(0)=1000、A(0)≈69.31、T½=10s、半衰期处 N≈500', () => {
+        const { params, result } = simulate('radioactive');
+        const r0 = radioactiveReadouts(params, result, 0);
+        expect(r0.atoms).toBeCloseTo(1000, 0);
+        expect(r0.activity).toBeCloseTo(69.3147, 2);
+        expect(r0.halfLife).toBeCloseTo(10, 6);
+        expect(radioactiveReadouts(params, result, 10).atoms).toBeCloseTo(500, 0);
+    });
+    it('rig 为样品 + 云室径迹 + 衰减曲线', () => {
+        const { params, result } = simulate('radioactive');
+        const built = radioactiveRig.buildEquipment(new THREE.Scene(), params, result);
+        const h = built.handles as RadioactiveHandles;
+        expect(radioactiveRig.ownParticles).toBe(true);
+        expect(h.tracks.length).toBe(20);
+        expect(h.curve).not.toBeNull();
+    });
+});
+
+describe('#159 F-A3 盖革计数器: 计数率读引擎 charts', () => {
+    it('t=0 计数率≈69.31 次/s、T½=10s', () => {
+        const { params, result } = simulate('geiger-counter');
+        const r = geigerReadouts(params, result, 0);
+        expect(r.countRate).toBeCloseTo(69.3147, 2);
+        expect(r.halfLife).toBeCloseTo(10, 6);
+    });
+    it('rig 为 GM 计数管 + 6 脉冲点', () => {
+        const { params, result } = simulate('geiger-counter');
+        const built = geigerCounterRig.buildEquipment(new THREE.Scene(), params, result);
+        const h = built.handles as GeigerHandles;
+        expect(geigerCounterRig.ownParticles).toBe(true);
+        expect(h.pulses.length).toBe(6);
+        expect(h.tube).toBeDefined();
+    });
+});
+
+describe('#159 F-A3 衰变统计: 直方图读引擎 charts', () => {
+    it('λ=50、σ≈7.07、maxBin=74', () => {
+        const { result } = simulate('decay-statistics');
+        const r = decayStatsReadouts(result);
+        expect(r.lambda).toBeCloseTo(50, 6);
+        expect(r.sigma).toBeCloseTo(7.0711, 3);
+        expect(r.maxBin).toBeCloseTo(74, 6);
+        expect(r.bins).toBeGreaterThan(0);
+    });
+    it('rig 柱数 = 引擎直方图 bin 数', () => {
+        const { params, result } = simulate('decay-statistics');
+        const built = decayStatisticsRig.buildEquipment(new THREE.Scene(), params, result);
+        const h = built.handles as DecayStatsHandles;
+        expect(decayStatisticsRig.ownParticles).toBe(true);
+        expect(h.bars.length).toBe(decayStatsReadouts(result).bins);
+    });
+});
+
+describe('#159 F-A3 链式反应: 逐代中子读引擎 charts', () => {
+    it('k=1 (临界)、genMax=10、totalFissions=11', () => {
+        const { result } = simulate('fission-chain');
+        const r = fissionReadouts(result);
+        expect(r.k).toBeCloseTo(1, 6);
+        expect(r.genMax).toBeCloseTo(10, 6);
+        expect(r.totalFissions).toBeCloseTo(11, 6);
+        expect(r.generations).toBeGreaterThan(0);
+    });
+    it('rig 柱数 = 引擎代数点数', () => {
+        const { params, result } = simulate('fission-chain');
+        const built = fissionChainRig.buildEquipment(new THREE.Scene(), params, result);
+        const h = built.handles as FissionChainHandles;
+        expect(fissionChainRig.ownParticles).toBe(true);
+        expect(h.bars.length).toBe(fissionReadouts(result).generations);
     });
 });

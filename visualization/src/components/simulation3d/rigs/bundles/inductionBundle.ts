@@ -4,9 +4,14 @@
  */
 import type { SceneRig } from '../../EquipmentStage';
 import { ampereForceRig } from '../ampereForceRig';
+import { selfInductanceRig } from '../selfInductanceRig';
+import { mutualInductanceRig } from '../mutualInductanceRig';
+import { eddyCurrentRig } from '../eddyCurrentRig';
+import { emDampingRig } from '../emDampingRig';
+import { acCurrentRig } from '../acCurrentRig';
 import { circuitRig } from '../circuitRig';
 import { lcOscillatorRig } from '../lcOscillatorRig';
-import { emWaveRig } from '../emWaveRig';
+import { emSpectrumRig } from '../emSpectrumRig';
 import { fieldRig } from '../fieldRig';
 import { thermistorRig } from '../thermistorRig';
 import { photoresistorRig } from '../photoresistorRig';
@@ -15,14 +20,14 @@ import { strainGaugeRig } from '../strainGaugeRig';
 
 export default {
     'magnetic-force': ampereForceRig,
-    'ac-current': circuitRig,
+    'ac-current': acCurrentRig,
     'lc-oscillator': lcOscillatorRig,
     'current-balance': ampereForceRig,
-    'eddy-current': ampereForceRig,
-    'em-damping': ampereForceRig,
-    'mutual-inductance': ampereForceRig,
-    'self-inductance': ampereForceRig,
-    'em-spectrum': emWaveRig,
+    'eddy-current': eddyCurrentRig,
+    'em-damping': emDampingRig,
+    'mutual-inductance': mutualInductanceRig,
+    'self-inductance': selfInductanceRig,
+    'em-spectrum': emSpectrumRig,
     'hall-effect': fieldRig,
     'reed-switch': reedSwitchRig,
     thermistor: thermistorRig,

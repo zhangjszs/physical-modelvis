@@ -45,7 +45,7 @@
 | `sound-waveform` | 力学 | 声音波形 (纯音+复合) | sound-waveform | soundWaveformRig | 0.16 | 5/5 | 1动/1条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
 | `doppler-effect` | 力学 | 多普勒效应 (声源运动) | doppler | dopplerRig | 1 | 0/3 | 1动/1条·2图 | OK | 已修复 | — | F-A2 已修: 新建 dopplerRig(移动波源+同心波前+双观察者), 前/后 f′ 读 charts.fprime_vs_theta(548.39/459.46), 信息牌读 maxValues(v=340/λ=0.68)+「读数源自引擎」; 旧 waveRig 的 v=1.00m/s 已消除; scene-rig-physics 增 4 例 |
 | `water-diffraction` | 力学 | 水波衍射 (遇障碍物) | water-diffraction | waveOpticsRig | 0.16 | 2/8 | 1动/1条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
-| `sound-interference` | 力学 | 声波干涉 (双喇叭) | sound-interference | waveOpticsRig | 0.16 | 0/8 | 1动/1条·2图 | OK | P1 | 严重 | 3D 共享 rig 语义错配: 装置/标题/公式属另一现象且读数冻结默认(rig 不读引擎 result); 2D 已正确迁移 → 需为场景建专用 rig 或 rig 改读引擎(waveOpticsRig 光干涉, 应声干涉) |
+| `sound-interference` | 力学 | 声波干涉 (双喇叭) | sound-interference | soundInterferenceRig | 1 | 0/8 | 1动/1条·2图 | OK | 已修复 | — | F-A3 已修: 新建 soundInterferenceRig：双喇叭+同心波前+引擎 scan_line 强度剖面；观察点 I/I₀=0.482/λ=0.68/f=500 读 maxValues；替代误用 waveOpticsRig(光干涉)；scene-rig-physics 增 2 例 |
 | `projectile-collision` | 力学 | 平抛碰撞 (验证动量守恒) | projectile-collision | collisionRig | 0.16 | 2/4 | 1动/1条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
 | `newton-tube` | 力学 | 牛顿管 (真空 vs 空气) | uniform-accelerated | newtonTubeRig | 0.16 | 3/3 | 1动/1条·5图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
 | `work-energy` | 力学 | 动能定理 W = ΔEk | uniform-accelerated | workEnergyRig | 0.16 | 3/3 | 1动/1条·5图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
@@ -56,15 +56,15 @@
 | `circuit` | 电磁学 | 直流电路分析 (串并联) | circuit | ? | 0.16 | n/a | 0动/1条·3图 | OK | P3 | 待判定 | 引擎无有效轨迹且非 ownParticles → 3D 动画装饰性, 需人工判定可视化是否充分(读数/曲线是否在 2D+数据抽屉) |
 | `magnetic-force` | 电磁学 | 安培力与洛伦兹力 | magnetic-force | ampereForceRig | 0.16 | 4/8 | 1动/1条·1图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
 | `em-induction` | 电磁学 | 电磁感应 (法拉第定律) | em-induction | emInductionRig | 1 | 0/8 | 0动/1条·2图 | OK | 已修复 | — | F-A3 已修: 新建 emInductionRig（线圈+往复磁铁），ε(t)/Φ(t) 读 charts x_t/y_t 按引擎周期插值，ε_peak=157.1V/Φ单匝=5mWb 读 maxValues；不再显安培力装置；scene-rig-physics 增 3 例 |
-| `ac-current` | 电磁学 | 交变电流与变压器 (选必二§3) | ac-current | circuitRig | 0.16 | 0/7 | 0动/1条·2图 | OK | P1 | 严重 | 3D 共享 rig 语义错配: 装置/标题/公式属另一现象且读数冻结默认(rig 不读引擎 result); 2D 已正确迁移 → 需为场景建专用 rig 或 rig 改读引擎(circuitRig 直流欧姆定律, 应交流/变压器) |
+| `ac-current` | 电磁学 | 交变电流与变压器 (选必二§3) | ac-current | acCurrentRig | 1 | 0/7 | 0动/1条·2图 | OK | 已修复 | — | F-A3 已修: 新建 acCurrentRig（Eₘ=311V/匝比10:1/U₂峰值=31.10V 读 maxValues；e/u₂ 读 charts x_t/y_t；旋转线圈+铁芯装置）；scene-rig-physics 增 2 例 |
 | `lc-oscillator` | 电磁学 | LC 电磁振荡 | lc-oscillator | lcOscillatorRig | 0.16 | 1/4 | 0动/1条·4图 | OK | P3 | 待判定 | 引擎无有效轨迹且非 ownParticles → 3D 动画装饰性, 需人工判定可视化是否充分(读数/曲线是否在 2D+数据抽屉) |
 | `current-balance` | 电磁学 | 电流天平 (安培力测量) | current-balance | ampereForceRig | 0.16 | 1/8 | 1动/1条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
-| `eddy-current` | 电磁学 | 涡流现象 (阻尼摆动) | eddy-current | ampereForceRig | 0.16 | 0/8 | 1动/1条·2图 | OK | P1 | 严重 | 3D 共享 rig 语义错配: 装置/标题/公式属另一现象且读数冻结默认(rig 不读引擎 result); 2D 已正确迁移 → 需为场景建专用 rig 或 rig 改读引擎(ampereForceRig) |
-| `em-damping` | 电磁学 | 电磁阻尼/驱动 | em-damping | ampereForceRig | 0.16 | 0/8 | 1动/1条·1图 | OK | P1 | 严重 | 3D 共享 rig 语义错配: 装置/标题/公式属另一现象且读数冻结默认(rig 不读引擎 result); 2D 已正确迁移 → 需为场景建专用 rig 或 rig 改读引擎(ampereForceRig) |
-| `mutual-inductance` | 电磁学 | 互感现象 (双线圈) | mutual-inductance | ampereForceRig | 0.16 | 0/8 | 1动/1条·2图 | OK | P1 | 严重 | 3D 共享 rig 语义错配: 装置/标题/公式属另一现象且读数冻结默认(rig 不读引擎 result); 2D 已正确迁移 → 需为场景建专用 rig 或 rig 改读引擎(ampereForceRig) |
-| `self-inductance` | 电磁学 | 自感现象 (断电自感) | self-inductance | ampereForceRig | 0.16 | 0/8 | 1动/1条·2图 | OK | P1 | 严重 | 3D 共享 rig 语义错配: 装置/标题/公式属另一现象且读数冻结默认(rig 不读引擎 result); 2D 已正确迁移 → 需为场景建专用 rig 或 rig 改读引擎(ampereForceRig) |
+| `eddy-current` | 电磁学 | 涡流现象 (阻尼摆动) | eddy-current | eddyCurrentRig | 1 | 0/8 | 1动/1条·2图 | OK | 已修复 | — | F-A3 已修: 新建 eddyCurrentRig（P=95.4mW/δ=9.35mm 读 maxValues；板温读轨迹；金属板+磁极+4 涡流环）；scene-rig-physics 增 2 例 |
+| `em-damping` | 电磁学 | 电磁阻尼/驱动 | em-damping | emDampingRig | 1 | 0/8 | 1动/1条·1图 | OK | 已修复 | — | F-A3 已修: 新建 emDampingRig（ω(t) 读 charts.angular_velocity_vs_time；τ_c=0.04ms/ω₀=100 读 maxValues；摆臂+铜盘+磁极）；scene-rig-physics 增 2 例 |
+| `mutual-inductance` | 电磁学 | 互感现象 (双线圈) | mutual-inductance | mutualInductanceRig | 1 | 0/8 | 1动/1条·2图 | OK | 已修复 | — | F-A3 已修: 新建 mutualInductanceRig（I₁/E₂ 读 charts primary_current_vs_time/secondary_emf_vs_time；M=42.4mH/E₂幅值=13.33V 读 maxValues；双线圈）；scene-rig-physics 增 2 例 |
+| `self-inductance` | 电磁学 | 自感现象 (断电自感) | self-inductance | selfInductanceRig | 1 | 0/8 | 1动/1条·2图 | OK | 已修复 | — | F-A3 已修: 新建 selfInductanceRig（断电衰减 I(t)/ε_L(t) 读 charts current_vs_time/voltage_vs_time；τ=0.05s/I₀=1.2A 读 maxValues；线圈+电源/电阻）；scene-rig-physics 增 2 例 |
 | `em-wave-communication` | 电磁学 | 电磁波发射接收 | em-wave-communication | emWaveRig | 0.16 | 0/2 | 1动/1条·4图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
-| `em-spectrum` | 电磁学 | 电磁波谱 (频段分布) | em-spectrum | emWaveRig | 0.16 | 0/2 | 1动/1条·2图 | OK | P1 | 严重 | 3D 共享 rig 语义错配: 装置/标题/公式属另一现象且读数冻结默认(rig 不读引擎 result); 2D 已正确迁移 → 需为场景建专用 rig 或 rig 改读引擎(emWaveRig 赫兹波, 应电磁波谱) |
+| `em-spectrum` | 电磁学 | 电磁波谱 (频段分布) | em-spectrum | emSpectrumRig | 1 | 0/2 | 1动/1条·2图 | OK | 已修复 | — | F-A3 已修: 新建 emSpectrumRig：6 段对数频率谱带+引擎 spectrum_curve+高亮频段；范围 10~1e16Hz/λ≈533nm/E≈2.32eV 读 maxValues；替代误用 emWaveRig(赫兹波)；scene-rig-physics 增 2 例 |
 | `hall-effect` | 电磁学 | 霍尔元件 (VH-IS) | hall-effect | fieldRig | 0.16 | 1/6 | 1动/2条·3图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
 | `reed-switch` | 电磁学 | 干簧管 (磁控开关) | reed-switch | reedSwitchRig | 0.16 | 1/1 | 1动/1条·3图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
 | `photoresistor` | 电磁学 | 光敏电阻 (R-L特性) | photoresistor | ? | 0.16 | n/a | 1动/1条·3图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
@@ -94,7 +94,7 @@
 | `thin-film` | 光学 | 薄膜干涉 (等厚) | thin-film | waveOpticsRig | 0.16 | 1/8 | 1动/1条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
 | `single-slit` | 光学 | 单缝衍射 (光强分布) | single-slit | waveOpticsRig | 0.16 | 2/8 | 0动/1条·2图 | OK | P3 | 待判定 | 引擎无有效轨迹且非 ownParticles → 3D 动画装饰性, 需人工判定可视化是否充分(读数/曲线是否在 2D+数据抽屉) |
 | `diffraction-grating` | 光学 | 光栅衍射 (光栅方程) | diffraction-grating | waveOpticsRig | 0.16 | 2/8 | 1动/1条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
-| `polarization-malus` | 光学 | 偏振光 (马吕斯定律) | polarization | opticsRig | 0.16 | 0/4 | 1动/1条·3图 | OK | P1 | 一般 | 3D 共享 rig 语义错配: 装置/标题/公式属另一现象且读数冻结默认(rig 不读引擎 result); 2D 已正确迁移 → 需为场景建专用 rig 或 rig 改读引擎(opticsRig 折射, 无硬编码标题较轻) |
+| `polarization-malus` | 光学 | 偏振光 (马吕斯定律) | polarization | polarizationRig | 1 | 0/4 | 1动/1条·3图 | OK | 已修复 | — | F-A3 已修: 新建 polarizationRig：偏振片堆+光束+引擎 malus_curve；Ifinal=0.5/透射率=0.5 读 maxValues；替代误用 opticsRig(折射)；scene-rig-physics 增 2 例 |
 | `hologram` | 光学 | 全息照相 (干涉记录) | hologram | ? | 0.16 | n/a | 1动/1条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
 | `total-internal-reflection` | 光学 | 全反射与光导 | refraction | opticsRig | 0.16 | 3/4 | 1动/1条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
 | `gas-law` | 热学 | 理想气体状态方程 | gas-law | gasLawRig | 0.16 | 5/5 | 1动/1条·1图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
@@ -117,18 +117,18 @@
 | `heat-direction` | 热学 | 热力学方向性 (热二定律) | heat-direction | heatDirectionRig | 0.16 | 3/3 | 1动/1条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
 | `photoelectric` | 近代物理 | 光电效应 (爱因斯坦方程) | photoelectric | ? | 0.16 | n/a | 1动/1条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
 | `bohr` | 近代物理 | 玻尔氢原子模型 (能级与光谱) | bohr-model | ? | 0.16 | n/a | 0动/1条·2图 | OK | P3 | 待判定 | 引擎无有效轨迹且非 ownParticles → 3D 动画装饰性, 需人工判定可视化是否充分(读数/曲线是否在 2D+数据抽屉) |
-| `radioactive` | 近代物理 | 放射性衰变 (云室径迹) | radioactive-decay | ? | 0.16 | n/a | 20动/20条·2图 | OK | P1 | 严重 | 3D 共享 rig 语义错配: 装置/标题/公式属另一现象且读数冻结默认(rig 不读引擎 result); 2D 已正确迁移 → 需为场景建专用 rig 或 rig 改读引擎(nuclearRig 标题α粒子散射) |
+| `radioactive` | 近代物理 | 放射性衰变 (云室径迹) | radioactive-decay | radioactiveRig | 1 | n/a | 20动/20条·2图 | OK | 已修复 | — | F-A3 已修: 新建 radioactiveRig：样品+云室径迹+引擎 x_t 衰减曲线；N(0)=1000/T½=10s 读 maxValues；替代误用 nuclearRig(α 散射)；scene-rig-physics 增 2 例 |
 | `micro-deformation` | 近代物理 | 光杠杆放大微小形变 | micro-deformation | microDeformationRig | 0.16 | 3/3 | 2动/3条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
 | `alpha-scattering` | 近代物理 | α 粒子散射实验 | alpha-scattering | nuclearRig | 0.16 | n/a | 5动/5条·3图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
 | `black-body` | 近代物理 | 黑体辐射 | black-body | blackBodyRig | 0.16 | 1/1 | 1动/1条·1图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
 | `electron-diffraction` | 近代物理 | 电子衍射 | electron-diffraction | electronDiffractionRig | 0.16 | 1/1 | 1动/1条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
 | `radiation-deflection` | 近代物理 | 放射线磁场偏转 | radiation-deflection | radiationDeflectionRig | 0.16 | 3/3 | 1动/1条·1图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
-| `decay-statistics` | 近代物理 | 衰变统计规律 | decay-statistics | nuclearRig | 0.16 | n/a | 1动/1条·2图 | OK | P1 | 严重 | 3D 共享 rig 语义错配: 装置/标题/公式属另一现象且读数冻结默认(rig 不读引擎 result); 2D 已正确迁移 → 需为场景建专用 rig 或 rig 改读引擎(nuclearRig) |
+| `decay-statistics` | 近代物理 | 衰变统计规律 | decay-statistics | decayStatisticsRig | 1 | n/a | 1动/1条·2图 | OK | 已修复 | — | F-A3 已修: 新建 decayStatisticsRig：引擎 x_t/y_t 直方图柱；λ=50/σ=7.07/maxBin=74 读 maxValues；替代误用 nuclearRig；scene-rig-physics 增 2 例 |
 | `cosmic-ray` | 近代物理 | 宇宙射线 | cosmic-ray | cosmicRayRig | 0.16 | 2/2 | 1动/1条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
 | `neutron-discovery` | 近代物理 | 中子发现 (查德威克实验) | neutron-discovery | neutronDiscoveryRig | 0.16 | 2/2 | 1动/1条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
-| `fission-chain` | 近代物理 | 核裂变链式反应 | fission-chain | nuclearRig | 0.16 | n/a | 1动/1条·2图 | OK | P1 | 严重 | 3D 共享 rig 语义错配: 装置/标题/公式属另一现象且读数冻结默认(rig 不读引擎 result); 2D 已正确迁移 → 需为场景建专用 rig 或 rig 改读引擎(nuclearRig) |
+| `fission-chain` | 近代物理 | 核裂变链式反应 | fission-chain | fissionChainRig | 1 | n/a | 1动/1条·2图 | OK | 已修复 | — | F-A3 已修: 新建 fissionChainRig：逐代中子柱读 charts.x_t/y_t；k=1/genMax=10/totalFissions=11 读 maxValues；替代误用 nuclearRig；scene-rig-physics 增 2 例 |
 | `bohr-orbit` | 近代物理 | 玻尔氢原子模型 (轨道能级) | bohr-model | quantumRig | 0.16 | n/a | 0动/1条·2图 | OK | P3 | 待判定 | 引擎无有效轨迹且非 ownParticles → 3D 动画装饰性, 需人工判定可视化是否充分(读数/曲线是否在 2D+数据抽屉) |
-| `geiger-counter` | 近代物理 | 盖革计数器 | radioactive-decay | nuclearRig | 0.16 | n/a | 20动/20条·2图 | OK | P1 | 严重 | 3D 共享 rig 语义错配: 装置/标题/公式属另一现象且读数冻结默认(rig 不读引擎 result); 2D 已正确迁移 → 需为场景建专用 rig 或 rig 改读引擎(nuclearRig) |
+| `geiger-counter` | 近代物理 | 盖革计数器 | radioactive-decay | geigerCounterRig | 1 | n/a | 20动/20条·2图 | OK | 已修复 | — | F-A3 已修: 新建 geigerCounterRig：GM 计数管+脉冲；计数率读 charts.y_t、剩余核数读 x_t；替代误用 nuclearRig；scene-rig-physics 增 2 例 |
 
 ---
 

@@ -6,7 +6,9 @@ import type { SceneRig } from '../../EquipmentStage';
 import { waveRig } from '../waveRig';
 import { dopplerRig } from '../dopplerRig';
 import { opticsRig } from '../opticsRig';
+import { polarizationRig } from '../polarizationRig';
 import { waveOpticsRig } from '../waveOpticsRig';
+import { soundInterferenceRig } from '../soundInterferenceRig';
 import { vibrationRig } from '../vibrationRig';
 import { collisionRig } from '../collisionRig';
 import { soundWaveformRig } from '../soundWaveformRig';
@@ -19,11 +21,11 @@ export default {
     'doppler-effect': dopplerRig,
     refraction: opticsRig,
     'total-internal-reflection': opticsRig,
-    'polarization-malus': opticsRig,
+    'polarization-malus': polarizationRig,
     hologram: opticsRig,
     interference: waveOpticsRig,
     'water-diffraction': waveOpticsRig,
-    'sound-interference': waveOpticsRig,
+    'sound-interference': soundInterferenceRig,
     'single-slit': waveOpticsRig,
     'diffraction-grating': waveOpticsRig,
     'thin-film': waveOpticsRig,
