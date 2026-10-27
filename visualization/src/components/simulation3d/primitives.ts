@@ -185,6 +185,37 @@ export function setSpriteGlyphHeight(sprite: THREE.Sprite, glyphHeight: number):
     sprite.scale.set((scaleY * canvas.width) / canvas.height, scaleY, 1);
 }
 
+/**
+ * 创建**字高已锁定**的文字精灵 (读数标牌专用)。
+ *
+ * 背景 (#159 逐节审计 · 批次 E' 电磁复合场):
+ *   `setSpriteGlyphHeight` 只在「文本发生变化后」才会被调用, 而 rig 里常见的
+ *   `setLabelOnce` 写法是「文本未变就直接 return」—— 于是**用最终文本创建**的
+ *   标牌永远拿不到字高修正, 保持 `makeTextSprite` 的初始 scale.y = 0.1,
+ *   字高只剩 22/128 × 0.1 ≈ 0.017 世界单位 (屏幕约 2~3 px), 文字被压成一条线。
+ *
+ *   本函数把「创建 + 锁定字高」合成一步, 消除这条依赖调用顺序的隐式契约;
+ *   后续换文本时仍需再调一次 `setSpriteGlyphHeight` (换文本会重建贴图)。
+ *
+ * @param glyphHeight 目标字高 (世界单位)
+ */
+export function makeLabelSprite(text: string, color: string, fontSize: number, glyphHeight: number): THREE.Sprite {
+    const sprite = makeTextSprite(text, color, fontSize, { x: 3, y: 0.1 });
+    setSpriteGlyphHeight(sprite, glyphHeight);
+    return sprite;
+}
+
+/**
+ * 读取精灵当前的实际字高 (世界单位) —— 供契约测试断言「标牌没有被压扁」。
+ */
+export function spriteGlyphHeight(sprite: THREE.Sprite): number {
+    const material = sprite.material as THREE.SpriteMaterial;
+    const canvas = material.map?.image as HTMLCanvasElement | undefined;
+    if (!canvas || canvas.height === 0) return 0;
+    const fontSize = typeof sprite.userData.textFontSize === 'number' ? sprite.userData.textFontSize : 24;
+    return (sprite.scale.y * fontSize) / canvas.height;
+}
+
 export interface TextPanelOptions {
     /** 面板标题（加粗、主题色） */
     title?: string;

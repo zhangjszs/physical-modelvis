@@ -1,10 +1,10 @@
 [
   {
-    "sceneId": "electric-field",
-    "name": "匀强电场",
+    "sceneId": "em-combined",
+    "name": "电磁复合场",
     "shots": [
       {
-        "file": "electric-field-3d-t0-after.png",
+        "file": "em-combined-3d-t0-after.png",
         "health": {
           "canvases": [
             {
@@ -22,7 +22,7 @@
         }
       },
       {
-        "file": "electric-field-3d-mid-after.png",
+        "file": "em-combined-3d-mid-after.png",
         "health": {
           "canvases": [
             {
@@ -40,7 +40,7 @@
         }
       },
       {
-        "file": "electric-field-3d-param-after.png",
+        "file": "em-combined-3d-param-after.png",
         "health": {
           "canvases": [
             {
@@ -58,7 +58,7 @@
         }
       },
       {
-        "file": "electric-field-2d-t0-after.png",
+        "file": "em-combined-2d-t0-after.png",
         "health": {
           "canvases": [
             {
@@ -67,7 +67,7 @@
               "cssWidth": 826,
               "cssHeight": 413,
               "blank": false,
-              "uniqueColors": 75,
+              "uniqueColors": 77,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }
@@ -76,7 +76,7 @@
         }
       },
       {
-        "file": "electric-field-2d-mid-after.png",
+        "file": "em-combined-2d-mid-after.png",
         "health": {
           "canvases": [
             {
@@ -85,107 +85,7 @@
               "cssWidth": 826,
               "cssHeight": 413,
               "blank": false,
-              "uniqueColors": 75,
-              "nonTransparentRatio": 1,
-              "readbackAvailable": true
-            }
-          ],
-          "bannerVisible": false
-        }
-      }
-    ],
-    "issues": [],
-    "paramChange": null,
-    "stageText": "",
-    "errors": []
-  },
-  {
-    "sceneId": "magnetic-field",
-    "name": "匀强磁场",
-    "shots": [
-      {
-        "file": "magnetic-field-3d-t0-after.png",
-        "health": {
-          "canvases": [
-            {
-              "width": 826,
-              "height": 690,
-              "cssWidth": 826,
-              "cssHeight": 690,
-              "blank": false,
-              "uniqueColors": 1,
-              "nonTransparentRatio": 0,
-              "readbackAvailable": false
-            }
-          ],
-          "bannerVisible": false
-        }
-      },
-      {
-        "file": "magnetic-field-3d-mid-after.png",
-        "health": {
-          "canvases": [
-            {
-              "width": 826,
-              "height": 690,
-              "cssWidth": 826,
-              "cssHeight": 690,
-              "blank": false,
-              "uniqueColors": 1,
-              "nonTransparentRatio": 0,
-              "readbackAvailable": false
-            }
-          ],
-          "bannerVisible": false
-        }
-      },
-      {
-        "file": "magnetic-field-3d-param-after.png",
-        "health": {
-          "canvases": [
-            {
-              "width": 826,
-              "height": 690,
-              "cssWidth": 826,
-              "cssHeight": 690,
-              "blank": false,
-              "uniqueColors": 1,
-              "nonTransparentRatio": 0,
-              "readbackAvailable": false
-            }
-          ],
-          "bannerVisible": false
-        }
-      },
-      {
-        "file": "magnetic-field-2d-t0-after.png",
-        "health": {
-          "canvases": [
-            {
-              "width": 826,
-              "height": 413,
-              "cssWidth": 826,
-              "cssHeight": 413,
-              "blank": false,
-              "uniqueColors": 75,
-              "nonTransparentRatio": 1,
-              "readbackAvailable": true
-            }
-          ],
-          "bannerVisible": false
-        }
-      },
-      {
-        "file": "magnetic-field-2d-mid-after.png",
-        "health": {
-          "canvases": [
-            {
-              "width": 826,
-              "height": 413,
-              "cssWidth": 826,
-              "cssHeight": 413,
-              "blank": false,
-              "uniqueColors": 75,
+              "uniqueColors": 77,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }

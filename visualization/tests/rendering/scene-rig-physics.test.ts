@@ -23,8 +23,11 @@ import {
     emCombinedRig,
     resolveFields,
     verdictText,
+    fieldText,
+    emCombinedUnitsPerMeter,
     type CombinedHandles
 } from '../../src/components/simulation3d/rigs/emCombinedRig';
+import { spriteGlyphHeight } from '../../src/components/simulation3d/primitives';
 import {
     pendulumRig,
     lengthOf,
@@ -152,7 +155,8 @@ import {
     magneticFieldRig,
     magneticFieldRigReadouts,
     magneticFieldUnitsPerMeter,
-    MAGNETIC_FIELD_CENTER_Y
+    MAGNETIC_FIELD_CENTER_Y,
+    type MFieldHandles
 } from '../../src/components/simulation3d/rigs/magneticFieldRig';
 
 beforeAll(loadAllScenes);
@@ -167,7 +171,7 @@ function simulate(sceneId: string, overrides: Record<string, number> = {}) {
 }
 
 describe('#160 电磁复合场: 速度选择器必须 E ⊥ v 且标牌读真实参数', () => {
-    it('场景只提供 Ey (垂直于初速度), 引擎据此走解析速度选择路径', () => {
+    it('场景只提供 Ey (垂直于初速度), 引擎据此走速度选择路径', () => {
         const { params, result } = simulate('em-combined');
         expect(params['Ey']).toBeDefined();
         expect(params['Ex']).toBeUndefined();
@@ -176,13 +180,23 @@ describe('#160 电磁复合场: 速度选择器必须 E ⊥ v 且标牌读真实
         const vSelect = result.diagnostics.maxValues.velocitySelectorSpeed!;
         expect(vSelect).toBeCloseTo(Math.abs(params['Ey']! / params['Bz']!), 6);
 
-        // v₀ = E/B → 轨迹为直线 (洛伦兹力平衡), 且无数值积分告警
+        // 默认参数必须**偏离**平衡点: 旧默认恰好 v₀ = E/B = 1000 → 画面看不出偏转
+        expect(Math.abs(params['v0x']! - vSelect)).toBeGreaterThan(vSelect * 0.2);
         const traj = result.trajectories[0]!;
-        expect(Math.max(...traj.map(p => Math.abs(p.position.y)))).toBeLessThan(1e-9);
+        expect(Math.max(...traj.map(p => Math.abs(p.position.y)))).toBeGreaterThan(0.3);
+        // Boris 数值路径分辨率充足 (旧默认下 |q|B·dt/(2m) = 4.79 rad ≫ π/4)
         expect(result.warnings).toHaveLength(0);
     });
 
-    it('rig 把引擎坐标映射进装置: 起点在电子枪口, 终点落在荧光屏', () => {
+    it('把 v₀ 调到 E/B 时轨迹回到直线 (速度选择器原理)', () => {
+        const { params } = simulate('em-combined');
+        const vSelect = Math.abs(params['Ey']! / params['Bz']!);
+        const { result } = simulate('em-combined', { v0x: vSelect });
+        const traj = result.trajectories[0]!;
+        expect(Math.max(...traj.map(p => Math.abs(p.position.y)))).toBeLessThan(1e-9);
+    });
+
+    it('rig 把引擎坐标映射进装置: 起点在电子枪口, 终点落在极板右端', () => {
         const { params, result } = simulate('em-combined');
         const scene = new THREE.Scene();
         const built = emCombinedRig.buildEquipment(scene, params, result);
@@ -192,12 +206,13 @@ describe('#160 电磁复合场: 速度选择器必须 E ⊥ v 且标牌读真实
         const start = emCombinedRig.getVisualPosition(traj[0]!.position, params, result);
         const end = emCombinedRig.getVisualPosition(traj[traj.length - 1]!.position, params, result);
 
-        // 起点 = 极板左端 (电子枪口), 终点 = 荧光屏 (极板右端 + 0.6), 均在舞台中心坐标系下
+        // 起点 = 极板左端 (电子枪口), 终点 = 极板右端 (水平跨度铺满极板)
         expect(start.x).toBeCloseTo(STAGE_CENTER_X - 1.3, 6);
-        expect(end.x).toBeCloseTo(STAGE_CENTER_X + 1.9, 6);
-        // 无偏转 → 始终在腔室中心线
+        expect(end.x).toBeCloseTo(STAGE_CENTER_X + 1.3, 6);
+        // 引擎 +y → 世界 +y (与 2D 板书同一手性; 旧版翻转 y 导致两层口径打架)
+        const up = emCombinedRig.getVisualPosition({ x: 0, y: 1 }, params, result);
+        expect(up.y).toBeGreaterThan(1.5);
         expect(start.y).toBeCloseTo(1.5, 6);
-        expect(end.y).toBeCloseTo(1.5, 6);
     });
 
     it('标牌读场景真实参数, 不再出现 1.00e+6 m/s 这类量级错位', () => {
@@ -209,26 +224,65 @@ describe('#160 电磁复合场: 速度选择器必须 E ⊥ v 且标牌读真实
 
         const verdict = verdictText(E, B, v0);
         expect(verdict.text).toContain('E/B');
-        expect(verdict.text).toContain('1000');
+        expect(verdict.text).toContain('44');
         expect(verdict.text).not.toMatch(/e\+6/);
-        // v₀ = E/B → 判定为「无偏转通过」
-        expect(verdict.text).toContain('无偏转通过');
+        // v₀ ≠ E/B → 判定为「发生偏转」
+        expect(verdict.text).toContain('发生偏转');
+        // 磁场方向标牌必须是 ⊙ 出纸面 (引擎 B 恒为 +z)
+        expect(fieldText(E, B)).toContain('⊙');
+        expect(fieldText(E, B)).not.toContain('⊗');
     });
 
-    it('E ⊥ v 的装置几何自洽: 上极板 + / 下极板 − → 电场向下', () => {
+    it('E ⊥ v 的装置几何自洽: 引擎 Ey > 0 → 电场向上 → 下极板为正极', () => {
         const { params, result } = simulate('em-combined');
         const scene = new THREE.Scene();
         const built = emCombinedRig.buildEquipment(scene, params, result);
         const h = built.handles as CombinedHandles;
-        const top = h.platesGroup.children.find(c => c.position.y > 1.5) as THREE.Mesh | undefined;
-        const bottom = h.platesGroup.children.find(c => c.position.y < 1.5) as THREE.Mesh | undefined;
-        expect(top).toBeDefined();
-        expect(bottom).toBeDefined();
-        // 引擎 Ey > 0 → 世界 y 向下为场方向 → 上极板为 +、下极板为 −
-        expect(top!.position.y).toBeGreaterThan(bottom!.position.y);
-        // 引擎 +y 映射到世界 −y (手性一致)
-        const down = emCombinedRig.getVisualPosition({ x: 0, y: 1 }, params, result);
-        expect(down.y).toBeLessThan(1.5);
+        // 下板 (+) 低于上板 (−)
+        expect(h.platesHandles.plusLabel.position.y).toBeLessThan(h.platesHandles.minusLabel.position.y);
+    });
+
+    it('3D 比例由引擎轨迹推导: 水平跨度铺满极板, 偏转量落在板间', () => {
+        const { params, result } = simulate('em-combined');
+        const scale = emCombinedUnitsPerMeter(params, result);
+        const traj = result.trajectories[0]!;
+        const last = traj[traj.length - 1]!;
+        const maxX = Math.max(...traj.map(p => Math.abs(p.position.x)));
+        const maxY = Math.max(...traj.map(p => Math.abs(p.position.y)));
+        expect(maxX * scale).toBeCloseTo(2.6, 6);
+        expect(maxY * scale).toBeLessThan(0.85);
+        void last;
+    });
+
+    it('2D 板书与 3D rig 同口径: E 向上 + ⊙ 出纸面 (旧版 2D 两处都画反)', () => {
+        const stripComments = (src: string): string => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+        const boardSrc = stripComments(
+            readFileSync(resolve(__dirname, '../../src/rendering/chargedParticleScenes.ts'), 'utf-8')
+        );
+        const rigSrc = stripComments(
+            readFileSync(resolve(__dirname, '../../src/components/simulation3d/rigs/emCombinedRig.ts'), 'utf-8')
+        );
+        expect(boardSrc).toContain('⊙');
+        expect(rigSrc).toContain('⊙');
+        expect(boardSrc).not.toContain('⊗');
+        expect(rigSrc).not.toContain('⊗');
+    });
+
+    it('读数标牌的字高必须达到可读阈值 (旧版用最终文本创建 → 早退 → 字高从未生效, 文字被压成一条线)', () => {
+        const { params, result } = simulate('em-combined');
+        const scene = new THREE.Scene();
+        const built = emCombinedRig.buildEquipment(scene, params, result);
+        const h = built.handles as CombinedHandles;
+
+        // 字高 (世界单位) = sprite.scale.y × 字号 / 画布高
+        const MIN_GLYPH_HEIGHT = 0.06;
+        for (const sprite of [h.fieldLabel, h.verdictLabel]) {
+            const glyph = spriteGlyphHeight(sprite);
+            expect(glyph).toBeGreaterThanOrEqual(MIN_GLYPH_HEIGHT);
+        }
+        // 标牌必须真的有内容 (不是空串占位)
+        expect(h.fieldLabel.userData.text).toContain('⊙');
+        expect(h.verdictLabel.userData.text).toContain('E/B');
     });
 });
 
@@ -1285,6 +1339,15 @@ describe('#159 高中核心·匀强电场: 类平抛必须读引擎, 标牌不�
         const h2 = built2.handles as ElectricFieldHandles;
         expect(h2.plateHandles.plusLabel.position.y).toBeGreaterThan(h2.plateHandles.minusLabel.position.y);
     });
+
+    it('读数标牌字高达到可读阈值 (标牌被压扁 = 画面读不出任何物理量)', () => {
+        const { params, result } = simulate('electric-field');
+        const built = electricFieldRig.buildEquipment(new THREE.Scene(), params, result);
+        const h = built.handles as ElectricFieldHandles;
+        for (const sprite of [h.conditionLabel, h.stateLabel]) {
+            expect(spriteGlyphHeight(sprite)).toBeGreaterThanOrEqual(0.06);
+        }
+    });
 });
 
 describe('#159 高中核心·匀强磁场: 回旋半径/周期必须读引擎, 符号方向 ⊙ 出纸面', () => {
@@ -1356,5 +1419,14 @@ describe('#159 高中核心·匀强磁场: 回旋半径/周期必须读引擎, �
         expect(rigSrc).toContain('⊙');
         expect(boardSrc).not.toContain('⊗');
         expect(rigSrc).not.toContain('⊗');
+    });
+
+    it('读数标牌字高达到可读阈值 (标牌被压扁 = 画面读不出 R/T 等物理量)', () => {
+        const { params, result } = simulate('magnetic-field');
+        const built = magneticFieldRig.buildEquipment(new THREE.Scene(), params, result);
+        const h = built.handles as MFieldHandles;
+        for (const sprite of [h.conditionLabel, h.stateLabel]) {
+            expect(spriteGlyphHeight(sprite)).toBeGreaterThanOrEqual(0.06);
+        }
     });
 });

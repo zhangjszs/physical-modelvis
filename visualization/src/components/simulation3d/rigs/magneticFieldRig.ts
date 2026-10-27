@@ -16,7 +16,7 @@
 import * as THREE from 'three';
 import type { SimulationResult } from 'physics-core';
 import type { SceneRig } from '../EquipmentStage';
-import { makeCylinder, makeTextSprite, setSpriteGlyphHeight } from '../primitives';
+import { makeCylinder, makeLabelSprite, setSpriteGlyphHeight } from '../primitives';
 import { setLabel } from './params';
 
 /** 磁腔半径 (世界单位) */
@@ -35,7 +35,7 @@ const SYMBOL_GAP = 0.38;
 /** 读数标牌字高 (世界单位) */
 const LABEL_GLYPH_HEIGHT = 0.085;
 
-interface MFieldHandles {
+export interface MFieldHandles {
     chamber: THREE.Mesh;
     boundary: THREE.Line;
     /** 引擎回旋半径还原出的轨道圆 (虚线) */
@@ -358,11 +358,11 @@ export const magneticFieldRig: SceneRig = {
         group.add(collimator);
 
         // 6. 读数标牌
-        const conditionLabel = makeTextSprite('', '#047857', 26, { x: 3, y: 0.1 });
+        const conditionLabel = makeLabelSprite('', '#047857', 26, LABEL_GLYPH_HEIGHT);
         conditionLabel.position.set(0, MAGNETIC_FIELD_CENTER_Y + CHAMBER_RADIUS + 0.3, 0.6);
         group.add(conditionLabel);
 
-        const stateLabel = makeTextSprite('', '#0f766e', 24, { x: 3, y: 0.1 });
+        const stateLabel = makeLabelSprite('', '#0f766e', 24, LABEL_GLYPH_HEIGHT);
         stateLabel.position.set(0, MAGNETIC_FIELD_CENTER_Y - CHAMBER_RADIUS - 0.28, 0.6);
         group.add(stateLabel);
 

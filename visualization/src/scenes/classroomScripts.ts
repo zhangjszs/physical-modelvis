@@ -353,14 +353,14 @@ export const CLASSROOM_SCRIPTS: Record<string, ClassroomScript> = {
         title: '速度选择器与电磁复合场',
         subtitle: '选择性必修第二册 · 复合场中的粒子运动',
         goal: '理解电场力与磁场力的矢量合成，掌握速度选择器原理与正交复合场中的平衡条件。',
-        demoParams: { v0x: 1000, v0y: 0, Ey: 100, Bz: 0.1, charge: 1.6, mass: 1.67 },
+        demoParams: { v0x: 20, v0y: 0, Ey: 22, Bz: 0.5, charge: 2, mass: 2 },
         demoNote:
-            '场强 Ey=100 N/C（垂直于初速度），磁感应强度 Bz=0.1 T。当初速度 v₀=1000 m/s 时，电场力与洛伦兹力恰好平衡，沿直线匀速穿过。',
+            '带电小球（q=2×10⁻⁶ C，m=2×10⁻⁸ kg）以 20 m/s 射入复合场（E=22 N/C 向上、B=0.5 T ⊙ 出纸面）。速度选择速度 v=E/B=44 m/s ≠ 20 m/s ⇒ 粒子走摆线被偏转，4.9 m 行程内拱起约 0.96 m；把 v₀ 调到 44 m/s 即「被选中」直线通过。',
         compareFocus: {
             paramName: 'v0x',
-            range: [500, 2000],
+            range: [10, 44],
             count: 4,
-            description: '改变入射速度 v₀x（500~2000 m/s），观察偏离直线轨迹（v > E/B 或 v < E/B 发生偏转）。'
+            description: '改变入射速度 v₀x（10~44 m/s），观察偏离直线轨迹（v₀ = E/B = 44 m/s 时直线通过）。'
         },
         quizzes: [
             {

@@ -584,3 +584,264 @@ export function magneticFieldReadoutText(read: MagneticFieldReadouts): string {
 
 /** 夹取辅助 (供其他板书复用, 保持 clamp 语义一致) */
 export const clampReadout = (v: number, lo: number, hi: number): number => clamp(v, lo, hi);
+
+// ============================================================================
+// 电磁复合场 (速度选择器)
+// ============================================================================
+
+export interface EmCombinedReadouts {
+    source: ReadoutSource;
+    /** 当前物理时刻 (s) */
+    t: number;
+    /** 水平位置 (m) */
+    x: number;
+    /** 竖直位置 (m) */
+    y: number;
+    /** 速率 (m/s) */
+    v: number;
+    /** 电场强度 y 分量 (N/C) */
+    E: number;
+    /** 磁感应强度 (T) */
+    B: number;
+    /** 速度选择速度 v = E/B (m/s) */
+    vSelect: number;
+    /** 入射速度 (m/s) */
+    v0: number;
+    /** 是否被速度选择器选中 (v₀ ≈ E/B) */
+    selected: boolean;
+    /** 引擎给出的最大速率 (m/s) */
+    maxSpeed: number;
+}
+
+/**
+ * 电磁复合场板书读数 — 单一真源: 引擎轨迹 + 引擎 maxValues。
+ *
+ * 物理: 复合场中粒子走摆线 —— 漂移速度 v_d = E×B/B² = E/B, 回旋角频率 ω = qB/m,
+ * 相对漂移速度 v₀ − v_d 决定摆幅。v₀ = E/B 时摆幅为零 (直线通过)。
+ */
+export function emCombinedReadouts(
+    params: Record<string, number>,
+    result: SimulationResult | null | undefined,
+    currentTime: number
+): EmCombinedReadouts {
+    const E = params['Ey'] ?? 22;
+    const B = params['Bz'] ?? 0.5;
+    const v0 = params['v0x'] ?? 20;
+    const vSelect = Math.abs(B) > 1e-12 ? Math.abs(E / B) : 0;
+
+    const mv = result?.diagnostics?.maxValues;
+    const engineVSelect = typeof mv?.velocitySelectorSpeed === 'number' ? mv.velocitySelectorSpeed : vSelect;
+
+    const traj = result?.trajectories?.[0] ?? [];
+    let x = v0 * currentTime;
+    let y = 0;
+    let v = v0;
+    let source: ReadoutSource = 'fallback';
+    if (traj.length > 0) {
+        const frame = getFrame(result ?? null, currentTime);
+        if (frame) {
+            source = 'engine';
+            x = frame.position.x;
+            y = frame.position.y;
+            v = Math.hypot(frame.velocity.x, frame.velocity.y);
+        }
+    }
+    return {
+        source,
+        t: currentTime,
+        x,
+        y,
+        v,
+        E,
+        B,
+        vSelect: engineVSelect,
+        v0,
+        selected: vSelect > 0 && Math.abs(v0 - vSelect) <= vSelect * 0.01,
+        maxSpeed: typeof mv?.maxSpeed === 'number' ? mv.maxSpeed : v
+    };
+}
+
+export function drawEMCombinedScene(opts: ChargedParticleSceneOptions): void {
+    const { ctx, width, height, isDark, params, simulationResult, currentTime } = opts;
+    const read = emCombinedReadouts(params, simulationResult, currentTime);
+    const tokens = getThemeTokens(isDark);
+
+    // —— 布局 ——
+    const plotLeft = 112;
+    const plotRight = width - 96;
+    const plotTop = 84;
+    const plotBottom = height - 92;
+    const axisY = (plotTop + plotBottom) / 2;
+
+    const traj = simulationResult?.trajectories?.[0] ?? [];
+    let maxX = 0;
+    let maxY = 0;
+    for (const p of traj) {
+        maxX = Math.max(maxX, Math.abs(p.position.x));
+        maxY = Math.max(maxY, Math.abs(p.position.y));
+    }
+    if (maxX === 0) maxX = Math.abs(read.v0 * read.t);
+    if (maxY === 0) maxY = 0.2;
+
+    const halfGapM = Math.max(0.4, maxY * 1.3);
+    const scale = Math.min((plotRight - plotLeft) / Math.max(maxX, 0.5), (plotBottom - plotTop) / (2 * halfGapM));
+    const halfGapPx = halfGapM * scale;
+    const xPx = (x: number): number => plotLeft + x * scale;
+    const yPx = (y: number): number => axisY - y * scale;
+
+    drawTitle(ctx, '电磁复合场中的带电粒子运动 (速度选择器)', width, isDark, { size: 17, y: 26 });
+    drawSubtitle(
+        ctx,
+        `E = ${read.E.toFixed(1)} N/C (${read.E >= 0 ? '向上' : '向下'})   B = ${read.B.toFixed(2)} T (⊙ 出纸面)   ` +
+            `v₀ = ${read.v0.toFixed(1)} m/s`,
+        width / 2,
+        46,
+        isDark
+    );
+
+    // —— ⊙ 出纸面符号 (引擎 B 恒为 +z) ——
+    const symGap = 40;
+    for (let gx = plotLeft; gx <= plotRight; gx += symGap) {
+        for (let gy = plotTop; gy <= plotBottom; gy += symGap) {
+            // 只在两极板之间画 ⊙ (板外没有磁场)
+            if (gy < axisY - halfGapPx + 8 || gy > axisY + halfGapPx - 8) continue;
+            ctx.strokeStyle = tokens.canvasBFieldLine;
+            ctx.lineWidth = 1.1;
+            ctx.beginPath();
+            ctx.arc(gx, gy, 7, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.fillStyle = tokens.canvasBFieldLine;
+            ctx.beginPath();
+            ctx.arc(gx, gy, 2.3, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+    // —— 极板 (E = (0, Ey): Ey>0 → 电场向上 → 下板 + / 上板 −) ——
+    const eUp = read.E >= 0;
+    const drawPlate = (py: number, sign: '+' | '−', color: string) => {
+        ctx.fillStyle = isDark ? 'rgba(148,163,184,0.22)' : 'rgba(100,116,139,0.22)';
+        roundRectPath(ctx, plotLeft - 26, py - 7, plotRight - plotLeft + 52, 14, 4);
+        ctx.fill();
+        ctx.strokeStyle = mutedColor(isDark);
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        const bx = plotRight + 42;
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(bx, py, 13, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 18px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(sign, bx, py + 1);
+        ctx.textBaseline = 'alphabetic';
+        ctx.textAlign = 'left';
+    };
+    drawPlate(axisY - halfGapPx, eUp ? '−' : '+', COLORS.BLUE);
+    drawPlate(axisY + halfGapPx, eUp ? '+' : '−', COLORS.RED);
+
+    // —— 电场线箭头 (方向 = E 方向) ——
+    const arrowColor = tokens.canvasEFieldAccent;
+    const arrowCount = 7;
+    for (let i = 0; i < arrowCount; i++) {
+        const ax = plotLeft + ((i + 0.5) / arrowCount) * (plotRight - plotLeft);
+        const from = eUp ? axisY + halfGapPx - 16 : axisY - halfGapPx + 16;
+        const to = eUp ? axisY - halfGapPx + 16 : axisY + halfGapPx - 16;
+        ctx.strokeStyle = arrowColor;
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.moveTo(ax, from);
+        ctx.lineTo(ax, to);
+        ctx.stroke();
+        const dir = eUp ? -1 : 1;
+        ctx.fillStyle = arrowColor;
+        ctx.beginPath();
+        ctx.moveTo(ax, to);
+        ctx.lineTo(ax - 6, to - dir * 12);
+        ctx.lineTo(ax + 6, to - dir * 12);
+        ctx.closePath();
+        ctx.fill();
+    }
+
+    // —— 电子枪发射口 ——
+    ctx.fillStyle = isDark ? '#334155' : '#475569';
+    roundRectPath(ctx, plotLeft - 92, axisY - 13, 64, 26, 6);
+    ctx.fill();
+    ctx.fillStyle = isDark ? '#fbbf24' : '#d97706';
+    roundRectPath(ctx, plotLeft - 36, axisY - 7, 12, 14, 3);
+    ctx.fill();
+    ctx.fillStyle = mutedColor(isDark);
+    ctx.font = '11px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('电子枪', plotLeft - 60, axisY - 22);
+    ctx.textAlign = 'left';
+
+    // —— 出射速度选择狭缝 (只放行几乎不偏转的粒子) ——
+    const slitX = plotRight + 26;
+    const slitHalf = Math.min(10, halfGapPx * 0.22);
+    ctx.fillStyle = isDark ? '#1e293b' : '#334155';
+    ctx.fillRect(slitX - 5, axisY - halfGapPx - 12, 10, halfGapPx + 12 - slitHalf);
+    ctx.fillRect(slitX - 5, axisY + slitHalf, 10, halfGapPx + 12 - slitHalf);
+
+    // —— 轨迹 (引擎结果) ——
+    if (traj.length > 1) {
+        ctx.strokeStyle = COLORS.ORANGE;
+        ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        for (let i = 0; i < traj.length; i++) {
+            const p = traj[i]!;
+            const px = xPx(p.position.x);
+            const py = yPx(p.position.y);
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+    }
+
+    // —— 当前质点 + 速度矢量 + 合力矢量 ——
+    const cx = xPx(read.x);
+    const cy = yPx(read.y);
+    const vLen = 44;
+    const vMag = Math.hypot(read.v0, 0) || 1;
+    const frame = getFrame(simulationResult ?? null, currentTime);
+    const vx = frame ? frame.velocity.x : read.v0;
+    const vy = frame ? frame.velocity.y : 0;
+    const speed = Math.hypot(vx, vy);
+    if (speed > 1e-9) {
+        drawArrow(ctx, cx, cy, cx + (vx / speed) * vLen, cy - (vy / speed) * vLen, COLORS.CYAN, 'v');
+    }
+    void vMag;
+
+    ctx.fillStyle = COLORS.ORANGE;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 7, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // —— HUD 读数 ——
+    drawHud(ctx, isDark, [
+        { label: 't', value: `${read.t.toFixed(3)} s` },
+        { label: 'x', value: `${read.x.toFixed(2)} m` },
+        { label: 'y', value: `${read.y.toFixed(3)} m` },
+        { label: 'v', value: `${read.v.toFixed(1)} m/s` },
+        { label: 'v选择', value: `${read.vSelect.toFixed(1)} m/s` },
+        { label: '判定', value: read.selected ? '被选中·直线' : '被偏转' }
+    ]);
+
+    drawInfoBar(
+        ctx,
+        width,
+        height,
+        read.selected
+            ? `v₀ = E/B = ${read.vSelect.toFixed(1)} m/s → 电场力与洛伦兹力平衡, 直线通过`
+            : `v₀ = ${read.v0.toFixed(1)} m/s ≠ E/B = ${read.vSelect.toFixed(1)} m/s → ` +
+                  `漂移 v_d = E/B, 摆线摆幅 |v₀−v_d|·m/(qB) = ${((Math.abs(read.v0 - read.vSelect) * (params['mass'] ?? 2) * 1e-8) / Math.abs((params['charge'] ?? 2) * 1e-6 * read.B)).toFixed(3)} m`,
+        isDark
+    );
+
+    if (!simulationResult) drawEmptyState(ctx, width, height, isDark);
+}

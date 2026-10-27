@@ -4,7 +4,7 @@ import { CoordinateTransformer } from '../../rendering/CoordinateTransformer';
 import { CanvasRenderer } from '../../rendering/CanvasRenderer';
 import { setupHiDPICanvas } from '../../rendering/dpr';
 import { COLORS } from '../../utils/colorMap';
-import { getThemeTokens, hexToRgba } from '../../utils/themeTokens';
+import { getThemeTokens } from '../../utils/themeTokens';
 import { findFrameIndex, interpolateFrame, getPlaybackDuration } from '../../utils/frameUtils';
 import type { TrajectoryPoint, SimulationResult } from 'physics-core';
 import type { Vec2 } from '../../types/visualization';
@@ -148,7 +148,11 @@ import {
     drawElectricFieldLinesScene
 } from '../../rendering/electrostaticFieldScenes';
 import { drawParallelPlateCapacitorScene, drawCapacitorChargeScene } from '../../rendering/electrostaticEnergyScenes';
-import { drawElectricFieldScene, drawMagneticFieldScene } from '../../rendering/chargedParticleScenes';
+import {
+    drawElectricFieldScene,
+    drawMagneticFieldScene,
+    drawEMCombinedScene
+} from '../../rendering/chargedParticleScenes';
 import {
     drawCircuitScene,
     drawResistanceLawScene,
@@ -187,15 +191,6 @@ function countPastPoints(points: TrajectoryPoint[], t: number): number {
     }
     return lo;
 }
-
-/**
- * 只画背景装饰的场景集合 (#159 逐节审计)。
- *
- * 「只画背景」= 画完背景后仍走标准轨迹/物体渲染流程 —— 同一物理量会出现
- * 两套表示 (装饰件 + 真实物体)。electric-field / magnetic-field 已在本轮
- * 升级为专属整屏板书, 从这里移出 (#159 高中核心 24 节)。
- */
-const SCENES_2D_CUSTOM_BG = new Set(['em-combined']);
 
 /** 第三章「相互作用——力」场景集合：完整自定义渲染，不走标准轨迹/物体绘制流程 */
 const SCENES_CHAPTER3 = new Set(['hooke-law', 'sliding-friction', 'force-composition', 'newton-third-law']);
@@ -338,7 +333,8 @@ const SCENES_ELECTROMAGNETISM = new Set([
     'em-wave-communication',
     'em-spectrum',
     'electric-field',
-    'magnetic-field'
+    'magnetic-field',
+    'em-combined'
 ]);
 
 /** 可视化缺口补建 8 场景集合 (Stage K) */
@@ -352,121 +348,6 @@ const SCENES_GAP = new Set([
     'ball-xt',
     'geiger-counter'
 ]);
-
-/** 绘制碰撞场景：两物体 3D 方块 + 阴影 + 高光 + 精致箭头 */
-function drawEMCombinedField(
-    ctx: CanvasRenderingContext2D,
-    _transformer: CoordinateTransformer,
-    width: number,
-    height: number,
-    isDark: boolean,
-    params: Record<string, number>
-) {
-    const tokens = getThemeTokens(isDark);
-    const spacing = 60;
-    const eColor = tokens.canvasEFieldAccent;
-    // 场景参数即引擎输入 (buildProblem 直接取同名参数), 故方向/大小与引擎一致
-    const Ey = params['Ey'] ?? 10;
-    const downward = Ey >= 0;
-    for (let x = spacing / 2; x < width; x += spacing) {
-        const startY = downward ? 30 : height - 30;
-        const endY = downward ? height - 30 : 30;
-        ctx.strokeStyle = hexToRgba(eColor, 0.1);
-        ctx.lineWidth = 5;
-        ctx.beginPath();
-        ctx.moveTo(x, startY);
-        ctx.lineTo(x, endY);
-        ctx.stroke();
-        const grad = ctx.createLinearGradient(x, startY, x, endY);
-        grad.addColorStop(0, hexToRgba(eColor, 0.2));
-        grad.addColorStop(0.4, tokens.canvasEMFieldGradient);
-        grad.addColorStop(1, tokens.canvasEMFieldGradient);
-        ctx.strokeStyle = grad;
-        ctx.lineWidth = 1.8;
-        ctx.beginPath();
-        ctx.moveTo(x, startY);
-        ctx.lineTo(x, endY);
-        ctx.stroke();
-        // 箭头指向场线终点 (场方向)
-        ctx.fillStyle = tokens.canvasEMFieldArrow;
-        ctx.beginPath();
-        ctx.moveTo(x, endY);
-        ctx.lineTo(x - 5, endY + (downward ? -12 : 12));
-        ctx.lineTo(x + 5, endY + (downward ? -12 : 12));
-        ctx.closePath();
-        ctx.fill();
-    }
-    ctx.font = 'bold 13px sans-serif';
-    ctx.textAlign = 'left';
-    ctx.fillStyle = eColor;
-    ctx.fillText('E', 12, 20);
-    {
-        // 左上角方向小图例 (箭头方向 = 电场方向)
-        const arrowX = 26,
-            arrowY = 16;
-        ctx.strokeStyle = eColor;
-        ctx.lineWidth = 2;
-        ctx.lineCap = 'round';
-        ctx.beginPath();
-        ctx.moveTo(arrowX, arrowY);
-        ctx.lineTo(arrowX, arrowY + (downward ? 14 : -14));
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(arrowX, arrowY + (downward ? 14 : -14));
-        ctx.lineTo(arrowX - 4, arrowY + (downward ? 5 : -5));
-        ctx.lineTo(arrowX + 4, arrowY + (downward ? 5 : -5));
-        ctx.closePath();
-        ctx.fillStyle = eColor;
-        ctx.fill();
-    }
-
-    const bSpacing = 70;
-    const bR = 9;
-    const bLineColor = tokens.canvasBFieldLineSoft;
-    const bCircleColor = tokens.canvasBFieldCircleSoft;
-    for (let x = bSpacing; x < width; x += bSpacing) {
-        for (let y = bSpacing; y < height; y += bSpacing) {
-            ctx.strokeStyle = bCircleColor;
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.arc(x, y, bR, 0, Math.PI * 2);
-            ctx.stroke();
-            ctx.strokeStyle = bLineColor;
-            ctx.lineWidth = 1.3;
-            const d = bR * 0.5;
-            ctx.beginPath();
-            ctx.moveTo(x - d, y - d);
-            ctx.lineTo(x + d, y + d);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(x + d, y - d);
-            ctx.lineTo(x - d, y + d);
-            ctx.stroke();
-        }
-    }
-    ctx.font = 'bold 13px sans-serif';
-    ctx.textAlign = 'right';
-    ctx.textBaseline = 'top';
-    ctx.fillStyle = bLineColor;
-    ctx.fillText('B', width - 28, 12);
-    {
-        const cx = width - 14,
-            cy = 18,
-            cr = 7;
-        ctx.strokeStyle = bLineColor;
-        ctx.lineWidth = 1.3;
-        ctx.beginPath();
-        ctx.arc(cx, cy, cr, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(cx - cr * 0.55, cy - cr * 0.55);
-        ctx.lineTo(cx + cr * 0.55, cy + cr * 0.55);
-        ctx.moveTo(cx + cr * 0.55, cy - cr * 0.55);
-        ctx.lineTo(cx - cr * 0.55, cy + cr * 0.55);
-        ctx.stroke();
-    }
-    ctx.textBaseline = 'alphabetic';
-}
 
 /**
  * 绘制气垫导轨测速度实验场景。
@@ -686,7 +567,6 @@ export function SimulationCanvas() {
     const isElectromagnetism = SCENES_ELECTROMAGNETISM.has(currentScene);
     const isGap = SCENES_GAP.has(currentScene);
     const isModern = SCENES_MODERN.has(currentScene);
-    const hasCustom2DBackground = SCENES_2D_CUSTOM_BG.has(currentScene);
 
     // 标准轨迹场景: 背景 + 网格 + 坐标轴 + 地面 + 完整轨迹 全部缓存到离屏层, 每帧仅一次 drawImage
     const isCustomScene =
@@ -814,26 +694,6 @@ export function SimulationCanvas() {
         // 标准轨迹场景: 背景 / 网格 / 坐标轴 / 自定义背景 / 地面 / 完整轨迹 全部烘焙到离屏层,
         // 每帧仅需一次 drawImage 合成. 跳过低级的逐帧 clear / grid / axes 绘制.
         const skipStaticDraws = usesStaticLayer;
-
-        // 自定义 2D 背景 (当前仅剩电磁复合场): 静态路径烘焙进离屏层,
-        // 非静态路径 (gap 等自定义场景 / 无轨迹空状态) 直接绘制到主 canvas.
-        let extraStaticDraw: ((c: CanvasRenderingContext2D) => void) | undefined;
-        let extraSig = '';
-        // 注意: 这里有意使用 if/else 而非 switch(currentScene), 避免被
-        // renderer-routing 自检正则误识别为主路由 switch (它匹配最近的 switch).
-        if (!is3DScene && hasCustom2DBackground) {
-            const drawBg = (c: CanvasRenderingContext2D) => {
-                if (currentScene === 'em-combined') {
-                    drawEMCombinedField(c, transformer, cssW, cssH, isDark, parameters);
-                }
-            };
-            if (usesStaticLayer) {
-                extraStaticDraw = drawBg;
-                extraSig = JSON.stringify(parameters);
-            } else {
-                drawBg(ctx);
-            }
-        }
 
         if (!skipStaticDraws) {
             renderer.clear(cssW, cssH);
@@ -1197,6 +1057,9 @@ export function SimulationCanvas() {
                 case 'magnetic-field':
                     drawMagneticFieldScene(sceneOpts);
                     break;
+                case 'em-combined':
+                    drawEMCombinedScene(sceneOpts);
+                    break;
                 case 'parallel-plate-capacitor':
                     drawParallelPlateCapacitorScene(sceneOpts);
                     break;
@@ -1330,8 +1193,8 @@ export function SimulationCanvas() {
                     points,
                     COLORS.trajectory,
                     skipGround,
-                    extraStaticDraw,
-                    extraSig,
+                    undefined,
+                    '',
                     (positions, color) => renderer.draw3DCircularTrajectory(positions, color, circularBallH)
                 );
             } else {
@@ -1348,8 +1211,8 @@ export function SimulationCanvas() {
                     points,
                     COLORS.trajectory,
                     skipGround,
-                    extraStaticDraw,
-                    extraSig
+                    undefined,
+                    ''
                 );
                 // 随播放增长的轨迹是动态的, 每帧重绘 (从缓存层之上合成).
                 // 用二分求已播放点数量并传 endIndex, 避免每帧 filter+map 分配新数组.
@@ -1559,7 +1422,6 @@ export function SimulationCanvas() {
         isAirTrack,
         isChapter3,
         isChapter2,
-        hasCustom2DBackground,
         isWaveOpt,
         isEmEquip,
         isNuclear,

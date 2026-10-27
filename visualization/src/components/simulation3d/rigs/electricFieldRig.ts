@@ -25,7 +25,7 @@ import {
     updateDeflectionPolarity,
     type DeflectionPlatesHandles
 } from '../equipment/deflectionPlates';
-import { makeTextSprite, setSpriteGlyphHeight } from '../primitives';
+import { makeLabelSprite, setSpriteGlyphHeight } from '../primitives';
 import { num, setLabel } from './params';
 
 /** 极板世界长度 (世界单位) */
@@ -263,11 +263,11 @@ export const electricFieldRig: SceneRig = {
             fieldArrows.push(arrow);
         }
 
-        const conditionLabel = makeTextSprite('', '#2563eb', 26, { x: 3, y: 0.1 });
+        const conditionLabel = makeLabelSprite('', '#2563eb', 26, LABEL_GLYPH_HEIGHT);
         conditionLabel.position.set(0, FIELD_CENTER_Y + layout.halfGap + 0.42, 0.6);
         group.add(conditionLabel);
 
-        const stateLabel = makeTextSprite('', '#0f766e', 24, { x: 3, y: 0.1 });
+        const stateLabel = makeLabelSprite('', '#0f766e', 24, LABEL_GLYPH_HEIGHT);
         stateLabel.position.set(0, FIELD_CENTER_Y - layout.halfGap - 0.42, 0.6);
         group.add(stateLabel);
 
