@@ -484,9 +484,34 @@ export function drawMiniChart(opts: {
     fillUnder?: string;
     logX?: boolean;
     logY?: boolean;
+    /**
+     * 下界夹到 0 (数据全非负时用)。
+     *
+     * 默认会按量程上下各留 12% 余量, 于是全正数据 (电阻、速率、能量…) 的
+     * 纵轴下界会跑到 0 以下, 刻度上出现「-0.01 Ω」这类**物理上不可能的负电阻**读数。
+     * 置 true 后下界不低于 0。
+     */
+    clampYZero?: boolean;
 }): void {
-    const { ctx, x, y, w, h, xs, ys, isDark, label, xLabel, yLabel, showPeakX, peakLabel, fillUnder, logX, logY } =
-        opts;
+    const {
+        ctx,
+        x,
+        y,
+        w,
+        h,
+        xs,
+        ys,
+        isDark,
+        label,
+        xLabel,
+        yLabel,
+        showPeakX,
+        peakLabel,
+        fillUnder,
+        logX,
+        logY,
+        clampYZero
+    } = opts;
     if (xs.length === 0 || ys.length === 0) return;
 
     const xMin = xs[0]!;
@@ -499,6 +524,7 @@ export function drawMiniChart(opts: {
     const padY = (yMax - yMin) * 0.12;
     yMin -= padY;
     yMax += padY;
+    if (clampYZero && yMin < 0) yMin = 0;
 
     ctx.fillStyle = isDark ? 'rgba(15,23,42,0.55)' : 'rgba(255,255,255,0.65)';
     roundRectPath(ctx, x, y, w, h, 6);

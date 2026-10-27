@@ -325,3 +325,32 @@
 映射不再翻转 / 极性下板为正 / 比例由引擎推导 / 2D 与 3D 同为 ⊙），并新增
 「标牌字高 ≥ 0.06 世界单位」的回归断言（守住上面那条「字被压成一条线」的坑）。
 
+### E-4 `resistance-law` 电阻定律（R = ρ·L/S）
+
+**修复前的问题（证据：基线截图 + 引擎 dump）**
+
+| 维度 | 判定 | 现象 / 证据 | 根因 |
+| --- | --- | --- | --- |
+| 问题一·物理 | **严重 → 已修复** | 3D rig 自带一份电阻率表（Cu **1.7e-8** / Fe 1.0e-7 / 镍铬 **1.0e-6**）并**自己**按 R = ρ·L/S 算电阻，而引擎用 `RESISTIVITY`（Cu **1.68e-8** / Fe 1.0e-7 / 镍铬 **1.1e-6**）⇒ 铜档 R₀ rig 0.021646 Ω vs 引擎 **0.021390 Ω**（差 1.2%），镍铬档差 **10%**；3D 标牌与 2D 板书 / 数据抽屉里的 R 不是同一个数 | `visualization/src/components/simulation3d/rigs/resistanceLawRig.ts`（改为读引擎 `diagnostics.maxValues`：resistivity / crossSection / baseResistance / slope_R_L / slope_R_invS / rCu / rFe / rNichrome；电阻率表直接用 physics-core 的 `RESISTIVITY`，不再维护第二份副本） |
+| 问题一·物理 | **严重 → 已修复** | 2D 板书内联的材料电阻率**铁档写 2.82e-8（实为铝值）**，与引擎 `RESISTIVITY.Fe = 1.0e-7` 不一致 ⇒ 铁档下画面电阻偏小约 **3.5 倍** | `visualization/src/rendering/electricCircuitScenes.ts`（旧 `drawResistanceLawScene` 整体迁出，见下） |
+| 问题一·物理 | **严重 → 已修复** | 引擎 `R_invS` 曲线的 **x 是降序**（xRange = [5092958.18, 50929.58]，因为按直径升序遍历 ⇒ 1/S 递减）⇒ 违反「charts 的 x 一律升序」的全局约定，`interpSeries` 的二分查找在该曲线上失效；画出来也是一条**下降**的线，看起来像「R 随 1/S 减小」，与 R = ρ·L·(1/S) 相反 | `physics-core/src/models/resistance-law.ts`（改为按直径**降序**遍历 ⇒ 1/S 升序；引擎侧已 `npm run build:core`） |
+| 问题一·物理 | **一般 → 已修复** | 2D 板书用 `as { baseResistance?: number } \| undefined` 强转读 `maxValues`，绕过类型化访问约定 | 新板书 `visualization/src/rendering/resistanceLawScenes.ts` 改为直接读 `maxValues`（类型本就是 `Record<string, number>`，取值得 `number \| undefined`，**无需任何强转**） |
+| 问题二·视觉 | **严重 → 已修复** | 2D 板书只有一根导线 + 三行读数，**引擎 6 条 charts 一条都没画** —— R-L / R-1/S / 材料对比这三条正是「控制变量法探究三因素」的结论本身 | 同上：新建专属板书，画出 R-L 直线、R-1/S 直线、材料对比柱 + ρ/S/R₀/斜率 HUD + 结论信息条 |
+| 问题二·视觉 | **严重 → 已修复** | 3D 实验板挤在画面左上角很小：舞台按「轨迹包围盒」自动取景，而本场景的引擎轨迹只有 **1 个静止点**（电阻定律是参数研究，没有运动物体） | `resistanceLawRig.ts`：新增 `framing` 显式取景（注视点抬到板面之上、俯角加大），实验板摆到 `STAGE_CENTER_X` |
+| 问题二·视觉 | **一般 → 已修复** | 3D 板面上有一颗**毫无意义的默认大球**（引擎轨迹 = 1 个静止点，球不代表任何物理量） | 同上：`ownParticles: true`（舞台不再生成默认球 / 轨迹线），只画实验板与滑夹 |
+| 问题二·视觉 | **一般 → 已修复** | 3D 标牌 `R = ${rTotal.toFixed(2)} Ω` 把 0.0214 Ω 写成「0.02 Ω」，有效数字全丢；四根电阻丝标签写死「镍铬 / 康铜」，与场景参数（铜 / 铁 / 镍铬）完全不对应 | `visualization/src/components/simulation3d/equipment/resistanceBoard.ts`：改用 `makeLabelSprite` 固定字高 + 有效数字格式化；丝线标签随场景材料生成 |
+| 问题二·视觉 | **一般 → 已修复** | 滑夹位置按 `L/2` 线性映射并硬夹在 [0.05, 0.95] ⇒ **L > 1.9 m 后滑夹卡死在右端**，画面与参数脱节 | `resistanceLawRig.resistanceClipRatio`：改为**对数刻度**映射（0.01~100 m 跨 4 个数量级，每个数量级等分），L = 1 m 正落在板中央，标尺文案同步为「标尺 0 ~ 100 m (对数)」 |
+| 问题三·实验作用 | **严重 → 已修复** | 整个实验的落点（R 随 L 线性、随 S 反比、随材料递增）在 2D 与 3D **都看不到**：2D 无曲线、3D 无对比，只有几个孤立的数字 | 2D：三条控制变量曲线 + 材料对比柱 + 结论条；3D：滑夹随 L 移动 + 丝线标签标明 (L,S)/(L/2,S)/(L,2S)/对比材料 + 铜/铁/镍铬三档电阻对比标牌 |
+
+**修复后（引擎实测）**：`ρ = 1.68e-8 Ω·m`、`S = 7.854e-7 m²`、
+`R₀ = 0.021390 Ω`、`k(R-L) = ρ/S = 2.139e-2 Ω/m`、`k(R-1/S) = ρ·L = 1.68e-8 Ω·m²`；
+三材料 `R_Cu = 0.021390 Ω < R_Fe = 0.127324 Ω < R_Nichrome = 1.400563 Ω`；
+三条曲线的 x 全部升序，且逐点满足 R = (ρ/S)·L 与 R = (ρ·L)·(1/S)（误差 < 1e-6，量化步长量级）。
+
+**契约保障**：`physics-core/tests/unit/resistance-law.test.ts` 新增 3 条
+（所有 charts 的 x 升序 / R-L 与 R-1/S 的斜率逐点自洽）；
+`visualization/tests/rendering/scene-rig-physics.test.ts` 新增 **7 条**
+（3D rig 读数 == 引擎 maxValues / rig 源码不再自带 ρ 表 / 标牌读数逐位等于引擎 R₀ /
+2D 读数 == 引擎且三条曲线都有数据 / 板书确实把三条曲线画上画布 /
+滑夹位置随 L 单调铺满板长 / 无运动物体时不画默认球且显式取景）。
+

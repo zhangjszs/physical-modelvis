@@ -1603,10 +1603,26 @@ describe('L1-migration: 渲染单一真源契约 (M3 批次 5: 电路 + 测量�
         expect(interpSeries(rSeries, 1)).toBeCloseTo(mv.baseResistance ?? 0, 5);
     });
 
-    it('resistance-law: HUD 电阻读引擎 maxValues.baseResistance, 导线示意保留 (源码契约)', () => {
-        const fn = renderFn('electricCircuitScenes.ts', 'drawResistanceLawScene');
-        expect(fn, 'R 读引擎 baseResistance').toContain('mvRes?.baseResistance');
-        expect(fn, '导线示意性质有注释记录').toContain('示意');
+    it('resistance-law: HUD 电阻读引擎 maxValues.baseResistance, 三条控制变量曲线读引擎 charts (源码契约)', () => {
+        // 板书已迁至 src/rendering/resistanceLawScenes.ts (#159 逐节审计 · 批次 E'')
+        const fn = renderFn('resistanceLawScenes.ts', 'drawResistanceLawScene');
+        const readouts = renderFn('resistanceLawScenes.ts', 'resistanceLawReadouts');
+
+        expect(fn, '板书走统一读数出口').toContain('resistanceLawReadouts');
+        expect(fn, '曲线走 chartPoints 出口').toContain('chartPoints');
+        expect(readouts, 'R 读引擎 baseResistance').toContain("eng('baseResistance')");
+        expect(readouts, '电阻率读引擎 resistivity').toContain("eng('resistivity')");
+        expect(readouts, '三条曲线走 chartOf 出口').toContain('chartOf');
+        expect(readouts, 'R-L 曲线').toContain('R_L');
+        expect(readouts, 'R-1/S 曲线').toContain('R_invS');
+        expect(readouts, '材料对比曲线').toContain('R_material');
+        // getChart 是类型化访问层入口 (在 chartOf 里), 整个文件不得绕过它直接读 charts
+        const fileSrc = readFileSync(resolve(__dirname, '../../src/rendering/resistanceLawScenes.ts'), 'utf-8');
+        expect(fileSrc, '曲线走 getChart 访问层').toContain('getChart');
+        expect(fileSrc, '不得直接读 result.charts').not.toMatch(/result\??\.charts\[/);
+        // 旧的「as {...} 强转 + 内联电阻率表」不得复活
+        expect(readouts, '不得有 maxValues 强转').not.toMatch(/maxValues\s+as\s/);
+        expect(readouts, '不得内联第二份电阻率表').not.toContain('2.82e-8');
     });
 
     it('vernier-caliper-tool: 主尺/K/量化读数与独立复算一致 (23.4mm@20 分度→23+8×0.05)', () => {

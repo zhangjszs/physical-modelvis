@@ -155,13 +155,13 @@ import {
 } from '../../rendering/chargedParticleScenes';
 import {
     drawCircuitScene,
-    drawResistanceLawScene,
     drawLoadVoltageScene,
     drawMultimeterScene,
     drawVernierCaliperScene,
     drawMicrometerScene,
     drawBulbVIScene
 } from '../../rendering/electricCircuitScenes';
+import { drawResistanceLawScene } from '../../rendering/resistanceLawScenes';
 import {
     drawMagneticForceScene,
     drawAmpereForceScene,

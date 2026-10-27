@@ -29,6 +29,15 @@ import {
 } from '../../src/components/simulation3d/rigs/emCombinedRig';
 import { spriteGlyphHeight } from '../../src/components/simulation3d/primitives';
 import {
+    resistanceLawRig,
+    resistanceLawRigReadouts,
+    resistanceReadoutText,
+    resistanceClipRatio,
+    formatResistance
+} from '../../src/components/simulation3d/rigs/resistanceLawRig';
+import { resistanceLawReadouts, drawResistanceLawScene } from '../../src/rendering/resistanceLawScenes';
+import { createRecordingCanvas } from '../utils/canvasMock';
+import {
     pendulumRig,
     lengthOf,
     pivotHeight,
@@ -1428,5 +1437,110 @@ describe('#159 高中核心·匀强磁场: 回旋半径/周期必须读引擎, �
         for (const sprite of [h.conditionLabel, h.stateLabel]) {
             expect(spriteGlyphHeight(sprite)).toBeGreaterThanOrEqual(0.06);
         }
+    });
+});
+
+describe('#159 高中核心·电阻定律: ρ / R / 曲线必须全部来自引擎', () => {
+    it('3D rig 读数 == 引擎 maxValues (旧版自带 ρ 表: Cu 1.7e-8 / 镍铬 1.0e-6 ≠ 引擎 1.68e-8 / 1.1e-6)', () => {
+        const { params, result } = simulate('resistance-law');
+        const read = resistanceLawRigReadouts(params, result);
+        const mv = result.diagnostics.maxValues;
+
+        expect(read.source).toBe('engine');
+        expect(read.rho).toBe(mv.resistivity);
+        expect(read.R).toBe(mv.baseResistance);
+        expect(read.slopeRL).toBe(mv.slope_R_L);
+        expect(read.slopeInvS).toBe(mv.slope_R_invS);
+        expect(read.rCu).toBe(mv.rCu);
+        expect(read.rFe).toBe(mv.rFe);
+        expect(read.rNichrome).toBe(mv.rNichrome);
+        // 引擎的电阻率表: Cu 1.68e-8 / Fe 1.0e-7 / Nichrome 1.1e-6
+        expect(read.rho).toBeCloseTo(1.68e-8, 12);
+        expect(read.rCu).toBeLessThan(read.rFe);
+        expect(read.rFe).toBeLessThan(read.rNichrome);
+    });
+
+    it('rig 源码不再自带第二份电阻率表 (单一真源: 引擎 RESISTIVITY)', () => {
+        const stripComments = (src: string): string => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+        const rigSrc = stripComments(
+            readFileSync(resolve(__dirname, '../../src/components/simulation3d/rigs/resistanceLawRig.ts'), 'utf-8')
+        );
+        // 不得出现字面量电阻率表
+        expect(rigSrc).not.toContain('1.7e-8');
+        expect(rigSrc).not.toContain('1.0e-6');
+        // 必须从 physics-core 取
+        expect(rigSrc).toContain('RESISTIVITY');
+    });
+
+    it('3D 标牌读数 == 引擎 R₀, 且精度足够 (旧版 toFixed(2) 把 0.0214 Ω 写成 0.02 Ω)', () => {
+        const { params, result } = simulate('resistance-law');
+        const read = resistanceLawRigReadouts(params, result);
+        const text = resistanceReadoutText(read);
+        expect(text).toContain('R = 0.0214 Ω');
+        expect(text).toContain('ρ = 1.68e-8 Ω·m');
+        // 标牌里的 R 必须逐位等于引擎值 (而不是四舍五入后的近似)
+        expect(text).toContain(formatResistance(read.R));
+    });
+
+    it('2D 板书读数 == 引擎 maxValues, 且三条控制变量曲线都有数据', () => {
+        const { params, result } = simulate('resistance-law');
+        const read = resistanceLawReadouts(params, result);
+        const mv = result.diagnostics.maxValues;
+
+        expect(read.source).toBe('engine');
+        expect(read.rho).toBe(mv.resistivity);
+        expect(read.R).toBe(mv.baseResistance);
+        expect(read.area).toBe(mv.crossSection);
+        // 旧版 2D 板书一条曲线都没画 ⇒ 这三条必须有数据
+        expect(read.curveRLPoints).toBeGreaterThan(10);
+        expect(read.curveInvSPoints).toBeGreaterThan(10);
+        expect(read.curveMaterialPoints).toBe(3);
+    });
+
+    it('2D 板书确实把三条曲线画到画布上 (旧版只有一根导线)', () => {
+        const { params, result } = simulate('resistance-law');
+        const canvas = createRecordingCanvas({ width: 1100, height: 700 });
+        drawResistanceLawScene({
+            ctx: canvas.ctx,
+            width: 1100,
+            height: 700,
+            isDark: true,
+            params,
+            simulationResult: result,
+            currentTime: 0
+        });
+        // 三个子图的标题 + 材料对比 + 结论条
+        for (const text of ['R-L 直线', 'R-1/S 直线', '材料对比', '铜', '铁', '镍铬']) {
+            expect(canvas.texts.join('|')).toContain(text);
+        }
+        // 曲线是折线 ⇒ 描边次数必须远多于「只有一根导线」的情形
+        expect(canvas.counts['stroke'] ?? 0).toBeGreaterThan(6);
+        // 画了材料对比柱 ⇒ 至少 3 次 fillRect
+        expect(canvas.counts['fillRect'] ?? 0).toBeGreaterThanOrEqual(3);
+    });
+
+    it('滑夹位置随 L 单调移动且覆盖整块板 (旧版 L > 1.9 m 后卡死在右端)', () => {
+        const r01 = resistanceClipRatio(0.01);
+        const r1 = resistanceClipRatio(1);
+        const r10 = resistanceClipRatio(10);
+        const r100 = resistanceClipRatio(100);
+        expect(r01).toBeLessThan(r1);
+        expect(r1).toBeLessThan(r10);
+        expect(r10).toBeLessThan(r100);
+        // 对数刻度: 默认 L = 1 m 落在板中央, 两端分别贴近左右边
+        expect(r1).toBeCloseTo(0.5, 6);
+        expect(r01).toBeLessThan(0.1);
+        expect(r100).toBeGreaterThan(0.9);
+        // 每个数量级都推进一整段板长 (不因夹紧而卡住)
+        expect(r1 - r01).toBeGreaterThan(0.4);
+        expect(r10 - r1).toBeGreaterThan(0.2);
+        expect(r100 - r10).toBeGreaterThan(0.15);
+    });
+
+    it('场景没有运动物体 ⇒ 3D 不画默认球, 且实验板显式取景居中', () => {
+        expect(resistanceLawRig.ownParticles).toBe(true);
+        const framing = resistanceLawRig.framing!({}, null)!;
+        expect(framing.target[0]).toBeCloseTo(STAGE_CENTER_X, 6);
+        expect(framing.distance).toBeGreaterThan(0);
     });
 });

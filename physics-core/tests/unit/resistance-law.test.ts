@@ -79,4 +79,39 @@ describe('ResistanceLawModel', () => {
         const r = model.solve(makeProblem());
         expect(r.explanation.summary).toContain('R₀=');
     });
+
+    it('所有 charts 的 x 必须升序 (R_invS 旧版按直径升序遍历 ⇒ 1/S 降序, 曲线方向反了)', () => {
+        const r = model.solve(makeProblem());
+        for (const [key, series] of Object.entries(r.charts)) {
+            // charts 里既有 ChartSeries 也有 force_diagram (ForceDiagram) —— 只看带 points 的
+            if (!series || !('points' in series)) continue;
+            const xs = series.points.map((p: { x: number }) => p.x);
+            for (let i = 1; i < xs.length; i++) {
+                expect(xs[i]!, key).toBeGreaterThanOrEqual(xs[i - 1]!);
+            }
+        }
+    });
+
+    it('R-1/S 直线满足 R = ρ·L·(1/S) 且斜率为 ρ·L', () => {
+        const r = model.solve(makeProblem({ length: 2, diameter: 1, material: 'Cu' }));
+        const pts = r.charts.R_invS!.points;
+        const slope = r.diagnostics.maxValues.slope_R_invS!;
+        expect(slope).toBeCloseTo(RESISTIVITY.Cu * 2, 14);
+        // chart 的 y 经过 toFixed(6) 量化 ⇒ 绝对误差控制在量化步长量级
+        for (const p of pts) {
+            expect(Math.abs(p.y - slope * p.x)).toBeLessThan(1e-6);
+        }
+    });
+
+    it('R-L 直线满足 R = (ρ/S)·L 且斜率为 ρ/S', () => {
+        const r = model.solve(makeProblem({ length: 1, diameter: 1, material: 'Cu' }));
+        const pts = r.charts.R_L!.points;
+        const slope = r.diagnostics.maxValues.slope_R_L!;
+        const d = 1 / 1000;
+        const S = Math.PI * (d / 2) ** 2;
+        expect(slope).toBeCloseTo(RESISTIVITY.Cu / S, 12);
+        for (const p of pts) {
+            expect(Math.abs(p.y - slope * p.x)).toBeLessThan(1e-6);
+        }
+    });
 });
