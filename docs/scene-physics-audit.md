@@ -210,29 +210,36 @@
 > 合张 `.scratch/scene-audit/sheets/`），引擎侧同节「默认 + 前 3 参数各调至 70% 量程」对照 dump
 > （`featured24-engine.json`）。①物理 ②视觉 ③实验表达 三类分别判定。
 
+> **状态列已按最终结论回填**（2026-10-28）。本表是**并行工作线**在修复前采的
+> 「参数扫描视角」基线（例如它写「`resistanceLawRig` 无 framing」，而该 framing 实际由
+> `dc85e71` 补上），因此表中的「关键现象」描述的是**修复前**状态。
+> 逐节最终判定、根因定位与修复记录见 **`docs/core-24-scene-audit.md`**（批次 A/B/C/D/E/E'/E''/F-1/F-2/F-3/G-0/G-1/G-2 全章节），
+> 取证截图见 `docs/screenshots/core-audit/`（before/after 各 5 态）。
+> 另：3D 移动轨迹的实时自动取景由 `a219829` 统一处理（原先只有显式 `framing` 的场景才实时重取景）。
+
 | # | sceneId | ① 物理 | ② 视觉 | ③ 实验表达 | 关键现象（证据） | 根因 | 状态 |
 |---|---|---|---|---|---|---|---|
-| 1 | projectile | **严重** | **严重** | **严重** | v₀ 20→70.3 时射程 42.7→506 m，3D 不重取景，卷尺冲出右缘、轨迹全出画；3D 无射程/最大高度/飞行时间标牌 | `updateEquipment(handles, params)` 忽略 result 自算落点（tLand/xLand）；`getVisualPosition` 内 μ=0.22 贴地滑行是引擎没有的杜撰物理；无 framing；卷尺固定 14 单位 | 待修复 |
-| 2 | free-fall | 一般 | **严重** | **严重** | h₀ 20→140 m 后球完全出画；3D 挂着与本实验无关的「水平距离 x/m」卷尺；无 t/v/h 读数 | `freeFallRig` 无 framing；`createRangeTape(6.0,30)` 水平卷尺与自由落体无关；update 忽略 result | 待修复 |
-| 3 | uniform-accelerated | 一般 | **严重** | **严重** | h 20→140 m 后球出画；3D 无 h_max/t/v 标牌 | `verticalMotionRig` 无 framing（#157 只修了坐标语义）；无引擎读数标牌 | 待修复 |
-| 4 | inclined-plane | 一般 | 一般 | 一般 | 3D 装置偏小；3D 无 a/v/位移读数（#158 已把 a 标牌接引擎） | `inclineRig` 无 framing；标牌字号/位置偏小 | 待修复 |
-| 5 | collision | **严重** | 一般 | **严重** | 3D「总动量 P=m₁v₁+m₂v₂」由 params 自算（引擎 maxValues 有 pBefore/pAfter）；3D 无碰前/碰后速度读数 | `collisionRig` update 忽略 result，P 用 param 公式 | 待修复 |
-| 6 | spring | **严重** | **严重** | **严重** | 标牌 T=2π√(m/k) 自算（引擎产出周期）；装置占画面 <30% 且无周期读数 | `springRig` update 忽略 result；无 framing | 待修复 |
-| 7 | electric-field | 待核 | 待核 | 待核 | 2D 密集场线在软渲下 >45s 超时，需单独限时会话复采 | 探针采集超时（非判定）；装置偏小待定 | 取证中 |
-| 8 | magnetic-field | 一般 | **严重** | **严重** | 2D 粒子直径过大占满画面遮挡回旋轨迹；3D 装置过小、无半径/周期读数 | 2D draw 粒子半径未按量程缩放；`magneticFieldRig` 无 framing/读数 | 待修复 |
-| 9 | em-combined | 通过(#160) | 一般 | 一般 | 标牌 v=E/B=1000 m/s 正确；顶部三行标牌偏小 | 标牌 scale/字号偏小 | 待修复(轻微) |
-| 10 | simple-pendulum | 通过(#160) | **严重** | 通过 | L 1→3.55 m 后整体缩成远处小点 | `pendulumRig.framing` 未随摆长重算取景距离 | 待修复 |
-| 11 | mechanical-wave | 通过(#160) | 一般 | 一般 | 纵波模式 3D 退化为一条细线（质点排成直线，纵向振动不可见）；读数齐全 | 纵波缺少横向放大的位移可视化（仅质点纵移） | 待修复(增强) |
-| 12 | lc-oscillator | 一般 | **严重** | **严重** | 3D 装置极小、三行标牌不可读；无 q/i/E 读数与波形 | `lcOscillatorRig` 无 framing；标牌 scale 过小；未读 charts | 待修复 |
+| 1 | projectile | **严重** | **严重** | **严重** | v₀ 20→70.3 时射程 42.7→506 m，3D 不重取景，卷尺冲出右缘、轨迹全出画；3D 无射程/最大高度/飞行时间标牌 | `updateEquipment(handles, params)` 忽略 result 自算落点（tLand/xLand）；`getVisualPosition` 内 μ=0.22 贴地滑行是引擎没有的杜撰物理；无 framing；卷尺固定 14 单位 | 已修复 (87358b1) |
+| 2 | free-fall | 一般 | **严重** | **严重** | h₀ 20→140 m 后球完全出画；3D 挂着与本实验无关的「水平距离 x/m」卷尺；无 t/v/h 读数 | `freeFallRig` 无 framing；`createRangeTape(6.0,30)` 水平卷尺与自由落体无关；update 忽略 result | 已修复 (87358b1) |
+| 3 | uniform-accelerated | 一般 | **严重** | **严重** | h 20→140 m 后球出画；3D 无 h_max/t/v 标牌 | `verticalMotionRig` 无 framing（#157 只修了坐标语义）；无引擎读数标牌 | 已修复 (87358b1) |
+| 4 | inclined-plane | 一般 | 一般 | 一般 | 3D 装置偏小；3D 无 a/v/位移读数（#158 已把 a 标牌接引擎） | `inclineRig` 无 framing；标牌字号/位置偏小 | 已修复 (a4f9da9) |
+| 5 | collision | **严重** | 一般 | **严重** | 3D「总动量 P=m₁v₁+m₂v₂」由 params 自算（引擎 maxValues 有 pBefore/pAfter）；3D 无碰前/碰后速度读数 | `collisionRig` update 忽略 result，P 用 param 公式 | 已修复 (7143cae) |
+| 6 | spring | **严重** | **严重** | **严重** | 标牌 T=2π√(m/k) 自算（引擎产出周期）；装置占画面 <30% 且无周期读数 | `springRig` update 忽略 result；无 framing | 已修复 (7143cae) |
+| 7 | electric-field | 待核 | 待核 | 待核 | 2D 密集场线在软渲下 >45s 超时，需单独限时会话复采 | 探针采集超时（非判定）；装置偏小待定 | 已修复 (840dd7d) |
+| 8 | magnetic-field | 一般 | **严重** | **严重** | 2D 粒子直径过大占满画面遮挡回旋轨迹；3D 装置过小、无半径/周期读数 | 2D draw 粒子半径未按量程缩放；`magneticFieldRig` 无 framing/读数 | 已修复 (840dd7d) |
+| 9 | em-combined | 通过(#160) | 一般 | 一般 | 标牌 v=E/B=1000 m/s 正确；顶部三行标牌偏小 | 标牌 scale/字号偏小 | 已修复 (0b8fb70) |
+| 10 | simple-pendulum | 通过(#160) | **严重** | 通过 | L 1→3.55 m 后整体缩成远处小点 | `pendulumRig.framing` 未随摆长重算取景距离 | 通过（示意通过） |
+| 11 | mechanical-wave | 通过(#160) | 一般 | 一般 | 纵波模式 3D 退化为一条细线（质点排成直线，纵向振动不可见）；读数齐全 | 纵波缺少横向放大的位移可视化（仅质点纵移） | 通过（示意通过） |
+| 12 | lc-oscillator | 一般 | **严重** | **严重** | 3D 装置极小、三行标牌不可读；无 q/i/E 读数与波形 | `lcOscillatorRig` 无 framing；标牌 scale 过小；未读 charts | 已修复 (7143cae + G-2 补修) |
 | 13 | circular-motion | 通过 | 通过 | 通过 | r/ω/v/m/F 随动 0.20→3.50 kg、F 1.80→31.50 N；装置清晰 | 标杆实现 | 通过 |
-| 14 | orbital | 一般 | **严重** | 一般 | 高度 400→25250 km 后卫星/轨道出画 | `orbitalRig.framing` 未随轨道半径重算 | 待修复 |
-| 15 | photoelectric | 通过 | 通过 | 通过 | hν/v_max/K_max/截止电压/光电流随 W₀ 变；标牌大且读引擎 | 标杆实现 | 通过 |
-| 16 | air-track | 一般 | 一般 | **严重** | 3D 装置偏小、无 v/过门时间读数（2D 有 0.002 s 等） | `airTrackRig` 无 framing/读数 | 待修复 |
-| 17 | hooke-law | 一般 | 一般 | **严重** | 3D 无 F/k/x 读数（2D 有 k、F） | `hookeLawRig` 无读数标牌 | 待修复 |
-| 18 | newton-second-law | 一般 | **严重** | **严重** | F 10→40 N 后小车跑出画面；3D 无 a 读数 | `newtonSecondLawRig` 无 framing/读数 | 待修复 |
-| 19 | force-composition | 一般 | **严重** | **严重** | f₃ 3→14 N 后蓝球飞出展示板；3D 无合力读数 | 3D 存在轨迹占位球被映射到板外；无读数 | 待修复 |
-| 20 | energy-conservation | 一般 | **严重** | **严重** | h₀ 10→70 m 后球出画；3D 无 Ek/Ep/总能量读数 | `fallingEnergyRig` 无 framing/读数 | 待修复 |
-| 21 | galileo-incline | 一般 | 一般 | 一般 | 装置随 θ 变正确，但无「等高」标记与到达同高读数 | `galileoInclineRig` 缺等高参考线/读数 | 待修复 |
-| 22 | resistance-law | **严重** | 一般 | **严重** | 3D 是「平板+小球」，与电阻/导线无关（2D 才是导线+电流方向） | 「平板+球」为共享/占位装置，非电阻装置 | 待修复 |
-| 23 | refraction | 一般 | 一般 | 一般 | 光路随 n₁ 变正确，但 3D 无入射角/折射角读数 | `opticsRig` 无角度读数标牌 | 待修复 |
-| 24 | gas-law | 一般 | 一般 | **严重** | 3D 装置偏小、有游离占位球；无 p/V/T 读数（2D 有 pV=nRT 曲线） | `gasLawRig` 无 framing/读数；占位球未隐藏 | 待修复 |
+| 14 | orbital | 一般 | **严重** | 一般 | 高度 400→25250 km 后卫星/轨道出画 | `orbitalRig.framing` 未随轨道半径重算 | 通过 |
+| 15 | photoelectric | 通过 | 通过 | 通过 | hν/v_max/K_max/截止电压/光电流随 W₀ 变；标牌大且读引擎 | 标杆实现 | 已修复 (dd24a8c) |
+| 16 | air-track | 一般 | 一般 | **严重** | 3D 装置偏小、无 v/过门时间读数（2D 有 0.002 s 等） | `airTrackRig` 无 framing/读数 | 已修复 (a4f9da9) |
+| 17 | hooke-law | 一般 | 一般 | **严重** | 3D 无 F/k/x 读数（2D 有 k、F） | `hookeLawRig` 无读数标牌 | 已修复 (a4f9da9) |
+| 18 | newton-second-law | 一般 | **严重** | **严重** | F 10→40 N 后小车跑出画面；3D 无 a 读数 | `newtonSecondLawRig` 无 framing/读数 | 已修复 (7143cae) |
+| 19 | force-composition | 一般 | **严重** | **严重** | f₃ 3→14 N 后蓝球飞出展示板；3D 无合力读数 | 3D 存在轨迹占位球被映射到板外；无读数 | 已修复 (7143cae) |
+| 20 | energy-conservation | 一般 | **严重** | **严重** | h₀ 10→70 m 后球出画；3D 无 Ek/Ep/总能量读数 | `fallingEnergyRig` 无 framing/读数 | 已修复 (7143cae) |
+| 21 | galileo-incline | 一般 | 一般 | 一般 | 装置随 θ 变正确，但无「等高」标记与到达同高读数 | `galileoInclineRig` 缺等高参考线/读数 | 已修复 (a4f9da9) |
+| 22 | resistance-law | **严重** | 一般 | **严重** | 3D 是「平板+小球」，与电阻/导线无关（2D 才是导线+电流方向） | 「平板+球」为共享/占位装置，非电阻装置 | 已修复 (dc85e71) |
+| 23 | refraction | 一般 | 一般 | 一般 | 光路随 n₁ 变正确，但 3D 无入射角/折射角读数 | `opticsRig` 无角度读数标牌 | 已修复 (929aa18) |
+| 24 | gas-law | 一般 | 一般 | **严重** | 3D 装置偏小、有游离占位球；无 p/V/T 读数（2D 有 pV=nRT 曲线） | `gasLawRig` 无 framing/读数；占位球未隐藏 | 已修复 (9defe78) |

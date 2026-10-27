@@ -67,7 +67,7 @@
               "cssWidth": 826,
               "cssHeight": 413,
               "blank": false,
-              "uniqueColors": 76,
+              "uniqueColors": 79,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }
@@ -85,7 +85,7 @@
               "cssWidth": 826,
               "cssHeight": 413,
               "blank": false,
-              "uniqueColors": 76,
+              "uniqueColors": 79,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }
@@ -95,7 +95,13 @@
       }
     ],
     "issues": [],
-    "paramChange": null,
+    "paramChange": {
+      "min": 1,
+      "max": 100,
+      "cur": 20,
+      "target": 30.7,
+      "label": "初速度 v₀"
+    },
     "stageText": "",
     "errors": []
   },
@@ -167,7 +173,7 @@
               "cssWidth": 826,
               "cssHeight": 413,
               "blank": false,
-              "uniqueColors": 48,
+              "uniqueColors": 50,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }
@@ -185,7 +191,7 @@
               "cssWidth": 826,
               "cssHeight": 413,
               "blank": false,
-              "uniqueColors": 48,
+              "uniqueColors": 50,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }
@@ -195,7 +201,13 @@
       }
     ],
     "issues": [],
-    "paramChange": null,
+    "paramChange": {
+      "min": 1,
+      "max": 200,
+      "cur": 20,
+      "target": 60.699999999999996,
+      "label": "初始高度 h"
+    },
     "stageText": "",
     "errors": []
   },
@@ -267,7 +279,7 @@
               "cssWidth": 826,
               "cssHeight": 413,
               "blank": false,
-              "uniqueColors": 68,
+              "uniqueColors": 70,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }
@@ -285,7 +297,7 @@
               "cssWidth": 826,
               "cssHeight": 413,
               "blank": false,
-              "uniqueColors": 68,
+              "uniqueColors": 70,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }
@@ -295,7 +307,13 @@
       }
     ],
     "issues": [],
-    "paramChange": null,
+    "paramChange": {
+      "min": 1,
+      "max": 200,
+      "cur": 20,
+      "target": 60.699999999999996,
+      "label": "初始高度 h"
+    },
     "stageText": "",
     "errors": []
   },
@@ -367,7 +385,7 @@
               "cssWidth": 826,
               "cssHeight": 413,
               "blank": false,
-              "uniqueColors": 66,
+              "uniqueColors": 64,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }
@@ -385,7 +403,7 @@
               "cssWidth": 826,
               "cssHeight": 413,
               "blank": false,
-              "uniqueColors": 66,
+              "uniqueColors": 64,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }
@@ -395,7 +413,13 @@
       }
     ],
     "issues": [],
-    "paramChange": null,
+    "paramChange": {
+      "min": 0.1,
+      "max": 100,
+      "cur": 1,
+      "target": 30.07,
+      "label": "质量 m"
+    },
     "stageText": "",
     "errors": []
   },
@@ -467,7 +491,7 @@
               "cssWidth": 826,
               "cssHeight": 413,
               "blank": false,
-              "uniqueColors": 58,
+              "uniqueColors": 63,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }
@@ -485,7 +509,7 @@
               "cssWidth": 826,
               "cssHeight": 413,
               "blank": false,
-              "uniqueColors": 58,
+              "uniqueColors": 63,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }
@@ -495,7 +519,13 @@
       }
     ],
     "issues": [],
-    "paramChange": null,
+    "paramChange": {
+      "min": 0.1,
+      "max": 100,
+      "cur": 1,
+      "target": 30.07,
+      "label": "物体1质量 m₁"
+    },
     "stageText": "",
     "errors": []
   },
@@ -595,7 +625,13 @@
       }
     ],
     "issues": [],
-    "paramChange": null,
+    "paramChange": {
+      "min": 0.1,
+      "max": 100,
+      "cur": 1,
+      "target": 30.07,
+      "label": "质量 m"
+    },
     "stageText": "",
     "errors": []
   },
@@ -667,7 +703,7 @@
               "cssWidth": 826,
               "cssHeight": 413,
               "blank": false,
-              "uniqueColors": 75,
+              "uniqueColors": 60,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }
@@ -685,7 +721,7 @@
               "cssWidth": 826,
               "cssHeight": 413,
               "blank": false,
-              "uniqueColors": 75,
+              "uniqueColors": 60,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }
@@ -695,7 +731,13 @@
       }
     ],
     "issues": [],
-    "paramChange": null,
+    "paramChange": {
+      "min": -20,
+      "max": 20,
+      "cur": 4,
+      "target": -8,
+      "label": "水平初速度 vx₀"
+    },
     "stageText": "",
     "errors": []
   },
@@ -795,7 +837,13 @@
       }
     ],
     "issues": [],
-    "paramChange": null,
+    "paramChange": {
+      "min": 0,
+      "max": 200,
+      "cur": 25,
+      "target": 60,
+      "label": "水平初速度 vx₀"
+    },
     "stageText": "",
     "errors": []
   },
@@ -867,7 +915,7 @@
               "cssWidth": 826,
               "cssHeight": 413,
               "blank": false,
-              "uniqueColors": 77,
+              "uniqueColors": 76,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }
@@ -885,7 +933,7 @@
               "cssWidth": 826,
               "cssHeight": 413,
               "blank": false,
-              "uniqueColors": 77,
+              "uniqueColors": 76,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }
@@ -895,7 +943,13 @@
       }
     ],
     "issues": [],
-    "paramChange": null,
+    "paramChange": {
+      "min": -10,
+      "max": 10,
+      "cur": 2,
+      "target": -4,
+      "label": "电荷量 q"
+    },
     "stageText": "",
     "errors": []
   },
@@ -967,7 +1021,7 @@
               "cssWidth": 826,
               "cssHeight": 413,
               "blank": false,
-              "uniqueColors": 59,
+              "uniqueColors": 65,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }
@@ -985,7 +1039,7 @@
               "cssWidth": 826,
               "cssHeight": 413,
               "blank": false,
-              "uniqueColors": 59,
+              "uniqueColors": 65,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }
@@ -995,7 +1049,13 @@
       }
     ],
     "issues": [],
-    "paramChange": null,
+    "paramChange": {
+      "min": 0.2,
+      "max": 5,
+      "cur": 1,
+      "target": 1.64,
+      "label": "摆长 L"
+    },
     "stageText": "",
     "errors": []
   },
@@ -1067,7 +1127,7 @@
               "cssWidth": 826,
               "cssHeight": 413,
               "blank": false,
-              "uniqueColors": 63,
+              "uniqueColors": 48,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }
@@ -1085,7 +1145,7 @@
               "cssWidth": 826,
               "cssHeight": 413,
               "blank": false,
-              "uniqueColors": 63,
+              "uniqueColors": 48,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }
@@ -1095,7 +1155,13 @@
       }
     ],
     "issues": [],
-    "paramChange": null,
+    "paramChange": {
+      "min": 0,
+      "max": 2,
+      "cur": 0,
+      "target": 0.6,
+      "label": "模式 (0=横波 1=纵波 2=干涉)"
+    },
     "stageText": "",
     "errors": []
   },
@@ -1167,7 +1233,7 @@
               "cssWidth": 826,
               "cssHeight": 413,
               "blank": false,
-              "uniqueColors": 129,
+              "uniqueColors": 123,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }
@@ -1185,7 +1251,7 @@
               "cssWidth": 826,
               "cssHeight": 413,
               "blank": false,
-              "uniqueColors": 129,
+              "uniqueColors": 123,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }
@@ -1195,7 +1261,13 @@
       }
     ],
     "issues": [],
-    "paramChange": null,
+    "paramChange": {
+      "min": 1,
+      "max": 1000000,
+      "cur": 100,
+      "target": 300000.7,
+      "label": "电容 C"
+    },
     "stageText": "",
     "errors": []
   },
@@ -1295,7 +1367,13 @@
       }
     ],
     "issues": [],
-    "paramChange": null,
+    "paramChange": {
+      "min": 0.01,
+      "max": 5,
+      "cur": 0.2,
+      "target": 1.5070000000000001,
+      "label": "小球质量 m"
+    },
     "stageText": "",
     "errors": []
   },
@@ -1367,7 +1445,7 @@
               "cssWidth": 826,
               "cssHeight": 413,
               "blank": false,
-              "uniqueColors": 60,
+              "uniqueColors": 59,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }
@@ -1385,7 +1463,7 @@
               "cssWidth": 826,
               "cssHeight": 413,
               "blank": false,
-              "uniqueColors": 60,
+              "uniqueColors": 59,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }
@@ -1395,7 +1473,13 @@
       }
     ],
     "issues": [],
-    "paramChange": null,
+    "paramChange": {
+      "min": 200,
+      "max": 36000,
+      "cur": 400,
+      "target": 10940,
+      "label": "轨道高度 h"
+    },
     "stageText": "",
     "errors": []
   },
@@ -1467,7 +1551,7 @@
               "cssWidth": 826,
               "cssHeight": 413,
               "blank": false,
-              "uniqueColors": 83,
+              "uniqueColors": 85,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }
@@ -1485,7 +1569,7 @@
               "cssWidth": 826,
               "cssHeight": 413,
               "blank": false,
-              "uniqueColors": 83,
+              "uniqueColors": 85,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }
@@ -1495,7 +1579,13 @@
       }
     ],
     "issues": [],
-    "paramChange": null,
+    "paramChange": {
+      "min": 1,
+      "max": 6,
+      "cur": 2.3,
+      "target": 4.5,
+      "label": "逸出功 W₀"
+    },
     "stageText": "",
     "errors": []
   },
@@ -1567,7 +1657,7 @@
               "cssWidth": 826,
               "cssHeight": 413,
               "blank": false,
-              "uniqueColors": 78,
+              "uniqueColors": 82,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }
@@ -1595,7 +1685,13 @@
       }
     ],
     "issues": [],
-    "paramChange": null,
+    "paramChange": {
+      "min": 0.05,
+      "max": 2,
+      "cur": 0.2,
+      "target": 0.635,
+      "label": "滑块质量 m"
+    },
     "stageText": "",
     "errors": []
   },
@@ -1667,7 +1763,7 @@
               "cssWidth": 826,
               "cssHeight": 413,
               "blank": false,
-              "uniqueColors": 57,
+              "uniqueColors": 55,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }
@@ -1685,7 +1781,7 @@
               "cssWidth": 826,
               "cssHeight": 413,
               "blank": false,
-              "uniqueColors": 57,
+              "uniqueColors": 55,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }
@@ -1695,7 +1791,13 @@
       }
     ],
     "issues": [],
-    "paramChange": null,
+    "paramChange": {
+      "min": 1,
+      "max": 200,
+      "cur": 20,
+      "target": 60.699999999999996,
+      "label": "劲度系数 k"
+    },
     "stageText": "",
     "errors": []
   },
@@ -1767,7 +1869,7 @@
               "cssWidth": 826,
               "cssHeight": 413,
               "blank": false,
-              "uniqueColors": 61,
+              "uniqueColors": 54,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }
@@ -1785,7 +1887,7 @@
               "cssWidth": 826,
               "cssHeight": 413,
               "blank": false,
-              "uniqueColors": 61,
+              "uniqueColors": 54,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }
@@ -1795,7 +1897,13 @@
       }
     ],
     "issues": [],
-    "paramChange": null,
+    "paramChange": {
+      "min": -100,
+      "max": 100,
+      "cur": 10,
+      "target": -40,
+      "label": "合外力 F"
+    },
     "stageText": "",
     "errors": []
   },
@@ -1867,7 +1975,7 @@
               "cssWidth": 826,
               "cssHeight": 413,
               "blank": false,
-              "uniqueColors": 72,
+              "uniqueColors": 66,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }
@@ -1885,7 +1993,7 @@
               "cssWidth": 826,
               "cssHeight": 413,
               "blank": false,
-              "uniqueColors": 72,
+              "uniqueColors": 66,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }
@@ -1895,7 +2003,13 @@
       }
     ],
     "issues": [],
-    "paramChange": null,
+    "paramChange": {
+      "min": 0,
+      "max": 20,
+      "cur": 3,
+      "target": 6,
+      "label": "分力 F₁"
+    },
     "stageText": "",
     "errors": []
   },
@@ -1967,7 +2081,7 @@
               "cssWidth": 826,
               "cssHeight": 413,
               "blank": false,
-              "uniqueColors": 74,
+              "uniqueColors": 76,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }
@@ -1985,7 +2099,7 @@
               "cssWidth": 826,
               "cssHeight": 413,
               "blank": false,
-              "uniqueColors": 74,
+              "uniqueColors": 76,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }
@@ -1995,7 +2109,13 @@
       }
     ],
     "issues": [],
-    "paramChange": null,
+    "paramChange": {
+      "min": 1,
+      "max": 100,
+      "cur": 10,
+      "target": 30.7,
+      "label": "释放高度 h"
+    },
     "stageText": "",
     "errors": []
   },
@@ -2067,7 +2187,7 @@
               "cssWidth": 826,
               "cssHeight": 413,
               "blank": false,
-              "uniqueColors": 66,
+              "uniqueColors": 72,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }
@@ -2085,7 +2205,7 @@
               "cssWidth": 826,
               "cssHeight": 413,
               "blank": false,
-              "uniqueColors": 66,
+              "uniqueColors": 72,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }
@@ -2095,7 +2215,13 @@
       }
     ],
     "issues": [],
-    "paramChange": null,
+    "paramChange": {
+      "min": 5,
+      "max": 90,
+      "cur": 30,
+      "target": 64.5,
+      "label": "斜面倾角 θ"
+    },
     "stageText": "",
     "errors": []
   },
@@ -2167,7 +2293,7 @@
               "cssWidth": 826,
               "cssHeight": 413,
               "blank": false,
-              "uniqueColors": 87,
+              "uniqueColors": 89,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }
@@ -2185,7 +2311,7 @@
               "cssWidth": 826,
               "cssHeight": 413,
               "blank": false,
-              "uniqueColors": 87,
+              "uniqueColors": 89,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }
@@ -2195,7 +2321,13 @@
       }
     ],
     "issues": [],
-    "paramChange": null,
+    "paramChange": {
+      "min": 0.01,
+      "max": 100,
+      "cur": 1,
+      "target": 30.006999999999998,
+      "label": "导线长度 L"
+    },
     "stageText": "",
     "errors": []
   },
@@ -2267,7 +2399,7 @@
               "cssWidth": 826,
               "cssHeight": 413,
               "blank": false,
-              "uniqueColors": 68,
+              "uniqueColors": 72,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }
@@ -2285,7 +2417,7 @@
               "cssWidth": 826,
               "cssHeight": 413,
               "blank": false,
-              "uniqueColors": 68,
+              "uniqueColors": 72,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }
@@ -2295,7 +2427,13 @@
       }
     ],
     "issues": [],
-    "paramChange": null,
+    "paramChange": {
+      "min": 1,
+      "max": 2.5,
+      "cur": 1,
+      "target": 1.45,
+      "label": "介质 1 折射率 n₁"
+    },
     "stageText": "",
     "errors": []
   },
@@ -2395,7 +2533,13 @@
       }
     ],
     "issues": [],
-    "paramChange": null,
+    "paramChange": {
+      "min": 0.1,
+      "max": 10,
+      "cur": 1,
+      "target": 3.0700000000000003,
+      "label": "物质的量 n"
+    },
     "stageText": "",
     "errors": []
   }

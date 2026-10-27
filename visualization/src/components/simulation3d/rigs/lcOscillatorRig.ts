@@ -156,6 +156,28 @@ export const lcOscillatorRig: SceneRig = {
     /** rig 自绘电荷指示球 → 舞台不生成默认占位球 */
     ownParticles: true,
 
+    /**
+     * 显式取景 (#165 逐节复核 · 问题二·视觉 · 严重)
+     *
+     * 背景: 本 rig 是 24 节里**唯一**同时满足「`ownParticles: true` + 没有 `framing`」的 rig。
+     *   舞台的自动取景 (EquipmentStage 的轨迹包围盒 → 相机) 依赖 `getVisualPosition` 产出的
+     *   轨迹点, 而本 rig 自绘电荷指示球, 舞台拿不到轨迹点 ⇒ 自动取景整体失效 ⇒
+     *   相机退回默认远景 ⇒ 3.0 宽的实验底板只占视口 ~30%, 顶部读数标牌还被视口上沿切掉。
+     *
+     * 修复: 显式给出 framing —— 目标点对准装置中心 (世界 x = 0, 与 magneticFieldRig 同口径),
+     *   距离按「底板宽 3.0 约占视口宽度 60%」反推, 并把目标点抬到 y = 0.62,
+     *   让顶部读数标牌 (y ≈ 0.85) 落在视口工具条下方。
+     */
+    framing() {
+        const target: [number, number, number] = [0, 0.62, 0];
+        const distance = 5.0;
+        return {
+            target,
+            position: [target[0] + distance * 0.22, target[1] + distance * 0.3, distance * 0.92],
+            distance
+        };
+    },
+
     buildEquipment(scene, params, result) {
         const group = new THREE.Group();
 

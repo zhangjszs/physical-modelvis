@@ -34,6 +34,15 @@ const PORT = Number(process.env.CAPTURE_PORT ?? 4321);
 const OUT_DIR = path.resolve(ROOT, process.env.CAPTURE_OUT ?? 'docs/screenshots/core-audit');
 const CHANNEL = process.env.CAPTURE_CHANNEL || '';
 const SUFFIX = process.env.CAPTURE_SUFFIX ?? '';
+/** 只拍指定档位 (逗号分隔: 3d-t0 / 3d-mid / 3d-param / 2d-t0 / 2d-mid); 空 = 全拍 */
+const ONLY_STAGES = new Set(
+    (process.env.ONLY_STAGES ?? '')
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean)
+);
+/** 该档位是否要拍 */
+const wantStage = stage => ONLY_STAGES.size === 0 || ONLY_STAGES.has(stage);
 const EXTERNAL_BASE = process.env.BASE_URL || '';
 const VIEWPORT = { width: 1440, height: 900 };
 
@@ -219,6 +228,32 @@ async function setTimeline(page, ratio) {
     return info;
 }
 
+/**
+ * 打开检查器的「⚙️ 参数调试」页签
+ *
+ * 课堂工作台 (classroom) 布局下, 参数面板挂在 `.classroom-inspector` 的
+ * `.inspector-tabs` 里, **默认停在「课堂教案」页签** ⇒ `.param-slider` 不在 DOM 里。
+ * 早期版本的采集脚本没开这个页签, 导致 changeFirstParam 恒返回 null,
+ * 「关键参数改动后」那一档截图其实没有改动任何参数 (见 _report-latest.json
+ * 全部 paramChange=null)。本函数显式打开页签, 保证参数改动真的生效。
+ */
+async function openParamPanel(page) {
+    const opened = await page.evaluate(() => {
+        const tabs = [...document.querySelectorAll('.inspector-tabs button')];
+        const tab = tabs.find(b => /参数/.test(b.textContent || ''));
+        if (!tab) return false;
+        tab.click();
+        return true;
+    });
+    if (!opened) return false;
+    await page.waitForFunction(() => document.querySelectorAll('.param-slider').length > 0, undefined, {
+        timeout: 15000,
+        polling: 200
+    });
+    await page.waitForTimeout(400);
+    return true;
+}
+
 /** 改动第一个实验参数 (slider 模式) 到区间内的新值 */
 async function changeFirstParam(page) {
     const info = await page.evaluate(() => {
@@ -366,36 +401,54 @@ async function shoot(page, file) {
                         await waitStageReady(page, '3d');
                         await page.click('button[title="重置"]').catch(() => {});
                         await page.waitForTimeout(500);
-                        let health = await withTimeout(canvasHealth(page), 25000, 'canvasHealth(3d-t0)');
-                        entry.shots.push({ file: `${sc.id}-3d-t0${SUFFIX}.png`, health });
-                        await withTimeout(shoot(page, `${sc.id}-3d-t0${SUFFIX}.png`), 40000, 'shot(3d-t0)');
-                        if (health.bannerVisible) entry.issues.push('3D: error-banner 可见');
-                        if (health.canvases.some(c => c.blank)) entry.issues.push('3D: 疑似空白画布');
+                        if (wantStage('3d-t0')) {
+                            let health = await withTimeout(canvasHealth(page), 25000, 'canvasHealth(3d-t0)');
+                            entry.shots.push({ file: `${sc.id}-3d-t0${SUFFIX}.png`, health });
+                            await withTimeout(shoot(page, `${sc.id}-3d-t0${SUFFIX}.png`), 40000, 'shot(3d-t0)');
+                            if (health.bannerVisible) entry.issues.push('3D: error-banner 可见');
+                            if (health.canvases.some(c => c.blank)) entry.issues.push('3D: 疑似空白画布');
+                        }
 
                         // —— 3D 中段 ——
                         await withTimeout(setTimeline(page, 0.5), 25000, 'setTimeline(3d-mid)');
-                        health = await withTimeout(canvasHealth(page), 25000, 'canvasHealth(3d-mid)');
-                        entry.shots.push({ file: `${sc.id}-3d-mid${SUFFIX}.png`, health });
-                        await withTimeout(shoot(page, `${sc.id}-3d-mid${SUFFIX}.png`), 40000, 'shot(3d-mid)');
-                        if (health.bannerVisible) entry.issues.push('3D(mid): error-banner 可见');
-                        if (health.canvases.some(c => c.blank)) entry.issues.push('3D(mid): 疑似空白画布');
+                        if (wantStage('3d-mid')) {
+                            let health = await withTimeout(canvasHealth(page), 25000, 'canvasHealth(3d-mid)');
+                            entry.shots.push({ file: `${sc.id}-3d-mid${SUFFIX}.png`, health });
+                            await withTimeout(shoot(page, `${sc.id}-3d-mid${SUFFIX}.png`), 40000, 'shot(3d-mid)');
+                            if (health.bannerVisible) entry.issues.push('3D(mid): error-banner 可见');
+                            if (health.canvases.some(c => c.blank)) entry.issues.push('3D(mid): 疑似空白画布');
+                        }
 
                         // —— 3D 参数改动后 ——
+                        // 必须先打开「⚙️ 参数调试」页签, 否则 .param-slider 不在 DOM 里,
+                        // 参数改不动 (早期版本 24 节的 paramChange 全是 null)。
+                        await step('打开参数面板', async () => {
+                            const ok = await openParamPanel(page);
+                            if (!ok) throw new Error('未找到「参数调试」页签');
+                        });
                         const changed = await withTimeout(changeFirstParam(page), 25000, 'changeParam');
                         entry.paramChange = changed;
+                        if (!changed) entry.issues.push('参数改动未生效 (未找到 .param-slider)');
                         await withTimeout(setTimeline(page, 0.5), 25000, 'setTimeline(3d-param)');
-                        health = await withTimeout(canvasHealth(page), 25000, 'canvasHealth(3d-param)');
-                        entry.shots.push({ file: `${sc.id}-3d-param${SUFFIX}.png`, health });
-                        await withTimeout(shoot(page, `${sc.id}-3d-param${SUFFIX}.png`), 40000, 'shot(3d-param)');
-                        if (health.bannerVisible) entry.issues.push('3D(param): error-banner 可见');
-                        if (health.canvases.some(c => c.blank)) entry.issues.push('3D(param): 疑似空白画布');
+                        if (wantStage('3d-param')) {
+                            let health = await withTimeout(canvasHealth(page), 25000, 'canvasHealth(3d-param)');
+                            entry.shots.push({ file: `${sc.id}-3d-param${SUFFIX}.png`, health });
+                            await withTimeout(shoot(page, `${sc.id}-3d-param${SUFFIX}.png`), 40000, 'shot(3d-param)');
+                            if (health.bannerVisible) entry.issues.push('3D(param): error-banner 可见');
+                            if (health.canvases.some(c => c.blank)) entry.issues.push('3D(param): 疑似空白画布');
+                        }
 
                         // —— 2D 板书 (软件渲染下重场景可能拖死页面 → 每步独立超时) ——
-                        await step('2D 切换', async () => {
-                            await page.click('button[title="切换到 2D 板书示意模式"]', { timeout: 15000 });
-                            await page.waitForTimeout(1200);
-                        });
+                        if (wantStage('2d-t0') || wantStage('2d-mid')) {
+                            await step('2D 切换', async () => {
+                                await page.click('button[title="切换到 2D 板书示意模式"]', {
+                                    timeout: 15000
+                                });
+                                await page.waitForTimeout(1200);
+                            });
+                        }
                         await step('2D t0', async () => {
+                            if (!wantStage('2d-t0')) return;
                             const h = await withTimeout(canvasHealth(page), 25000, 'canvasHealth(2d-t0)');
                             entry.shots.push({ file: `${sc.id}-2d-t0${SUFFIX}.png`, health: h });
                             await withTimeout(shoot(page, `${sc.id}-2d-t0${SUFFIX}.png`), 45000, 'shot(2d-t0)');
@@ -403,6 +456,7 @@ async function shoot(page, file) {
                             if (h.canvases.some(c => c.blank)) entry.issues.push('2D: 疑似空白画布');
                         });
                         await step('2D mid', async () => {
+                            if (!wantStage('2d-mid')) return;
                             await withTimeout(setTimeline(page, 0.5), 25000, 'setTimeline(2d-mid)');
                             const h = await withTimeout(canvasHealth(page), 25000, 'canvasHealth(2d-mid)');
                             entry.shots.push({ file: `${sc.id}-2d-mid${SUFFIX}.png`, health: h });

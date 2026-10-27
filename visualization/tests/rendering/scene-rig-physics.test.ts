@@ -41,6 +41,7 @@ import { opticsRig, opticsRigReadouts } from '../../src/components/simulation3d/
 import { photoelectricRig, photoelectricRigReadouts } from '../../src/components/simulation3d/rigs/photoelectricRig';
 import { photoelectricReadouts, drawPhotoelectricScene } from '../../src/rendering/photoelectricScenes';
 import { gasLawRig, gasLawRigReadouts } from '../../src/components/simulation3d/rigs/gasLawRig';
+import { lcOscillatorRig } from '../../src/components/simulation3d/rigs/lcOscillatorRig';
 import { gasLawReadouts, drawGasLawScene } from '../../src/rendering/gasThermalScenes';
 import type { OpticalDiskHandles } from '../../src/components/simulation3d/equipment/opticalDisk';
 import { refractionReadouts, drawRefractionScene } from '../../src/rendering/refractionScenes';
@@ -1829,5 +1830,40 @@ describe('#159 高中核心·气体定律: 过程必须真的动起来, 压强�
         expect(volTexts, '等容用 p–T 图').toContain('温度 T (K)');
         expect(volTexts, '等容过程').toContain('等容过程');
         expect(volTexts, '不得出现体积轴标签').not.toContain('体积 V (L)');
+    });
+});
+
+/**
+ * LC 电磁振荡 3D 取景 (#165 逐节复核 · 问题二·视觉 · 严重 → 已修复)
+ *
+ * 背景: 本 rig 是 24 节里**唯一**同时满足「`ownParticles: true` + 没有 `framing`」的 rig。
+ *   舞台的自动取景依赖 `getVisualPosition` 产出的轨迹点, 而本 rig 自绘电荷指示球 ⇒
+ *   舞台拿不到轨迹点 ⇒ 自动取景整体失效 ⇒ 相机退回默认远景 ⇒ 3.0 宽的实验底板
+ *   只占视口 ~30%, 顶部读数标牌还被视口上沿切掉 (截图 lc-oscillator-3d-t0-after.png)。
+ */
+describe('LC 电磁振荡 3D 取景 (#165)', () => {
+    it('必须有显式 framing (ownParticles 的 rig 拿不到自动取景所需的轨迹点)', () => {
+        expect(lcOscillatorRig.ownParticles).toBe(true);
+        expect(typeof lcOscillatorRig.framing).toBe('function');
+    });
+
+    it('取景让 3.0 宽的实验底板占据视口宽度的 40%~85% (旧版远景只占 ~30%)', () => {
+        const framing = lcOscillatorRig.framing!({}, null)!;
+        expect(framing.distance).toBeDefined();
+        const distance = framing.distance ?? 0;
+        // 3D 视口 826x690 ⇒ fov 45° 时可视高 ≈ 0.828 * distance, 可视宽 ≈ 0.828 * distance * (826/690)
+        const visibleWidth = 0.828 * distance * (826 / 690);
+        const boardRatio = 3.0 / visibleWidth;
+        expect(boardRatio).toBeGreaterThan(0.4);
+        expect(boardRatio).toBeLessThan(0.85);
+    });
+
+    it('目标点抬到装置上方, 顶部读数标牌不被视口工具条压住', () => {
+        const framing = lcOscillatorRig.framing!({}, null)!;
+        expect(framing.target[1]).toBeGreaterThan(0.5);
+        // 标牌在 y ≈ 0.85, 必须落在视口上半区内且离上沿留出工具条余量
+        const visibleHeight = 0.828 * (framing.distance ?? 0);
+        const topEdge = framing.target[1] + visibleHeight / 2;
+        expect(topEdge).toBeGreaterThan(0.85 + 0.4);
     });
 });
