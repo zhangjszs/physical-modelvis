@@ -81,10 +81,10 @@ export const emDampingRig: SceneRig = {
         magnetS.position.set(STAGE_CENTER_X + 0.45, PIVOT_Y - ARM_L, 0);
         group.add(magnetN, magnetS);
 
-        const label = makeTextSprite('', '#b45309', 24, { x: 3.6, y: 0.44 });
+        const label = makeTextSprite('', '#b45309', 24, { x: 1.1, y: 0.4 });
         label.position.set(STAGE_CENTER_X, PIVOT_Y + 0.6, 0.2);
         group.add(label);
-        const infoLabel = makeTextSprite('', '#1e293b', 22, { x: 3.8, y: 0.4 });
+        const infoLabel = makeTextSprite('', '#1e293b', 22, { x: 1.1, y: 0.4 });
         infoLabel.position.set(STAGE_CENTER_X, PIVOT_Y + 1.1, 0.2);
         group.add(infoLabel);
 

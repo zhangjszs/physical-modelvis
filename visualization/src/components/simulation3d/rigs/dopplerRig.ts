@@ -123,7 +123,7 @@ export const dopplerRig: SceneRig = {
         const backLabel = makeTextSprite('', '#b91c1c', 22, { x: 1.9, y: 0.34 });
         backLabel.position.set(STAGE_CENTER_X - RAIL_HALF + 0.25, RAIL_Y + 0.62, 0);
         group.add(backLabel);
-        const infoLabel = makeTextSprite('', '#1e293b', 22, { x: 3.2, y: 0.4 });
+        const infoLabel = makeTextSprite('', '#1e293b', 22, { x: 1.1, y: 0.4 });
         infoLabel.position.set(STAGE_CENTER_X, RAIL_Y + 1.5, 0.2);
         group.add(infoLabel);
 

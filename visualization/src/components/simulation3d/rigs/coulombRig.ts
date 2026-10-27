@@ -84,7 +84,7 @@ export const coulombRig: SceneRig = {
         const rulerLabel = makeTextSprite('', '#475569', 20, { x: 1.4, y: 0.3 });
         rulerLabel.position.set(STAGE_CENTER_X, CENTER_Y - 0.8, 0);
         group.add(rulerLabel);
-        const infoLabel = makeTextSprite('', '#1e293b', 22, { x: 3.8, y: 0.4 });
+        const infoLabel = makeTextSprite('', '#1e293b', 22, { x: 1.1, y: 0.4 });
         infoLabel.position.set(STAGE_CENTER_X, CENTER_Y + 1.15, 0.2);
         group.add(infoLabel);
 

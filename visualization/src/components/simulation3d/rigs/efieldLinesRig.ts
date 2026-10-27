@@ -126,7 +126,7 @@ export const efieldLinesRig: SceneRig = {
             }
         }
 
-        const infoLabel = makeTextSprite('', '#1e293b', 22, { x: 3.6, y: 0.4 });
+        const infoLabel = makeTextSprite('', '#1e293b', 22, { x: 1.1, y: 0.4 });
         infoLabel.position.set(STAGE_CENTER_X, CENTER_Y + BOX_H / 2 + 0.62, 0.2);
         group.add(infoLabel);
 

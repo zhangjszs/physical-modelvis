@@ -97,6 +97,11 @@ import {
     fissionReadouts,
     type FissionChainHandles
 } from '../../src/components/simulation3d/rigs/fissionChainRig';
+import {
+    vernierCaliperRig,
+    micrometerRig,
+    multimeterRig
+} from '../../src/components/simulation3d/rigs/measurementToolRig';
 import { efieldLinesRig, type EfieldHandles } from '../../src/components/simulation3d/rigs/efieldLinesRig';
 import { coulombRig, type CoulombHandles } from '../../src/components/simulation3d/rigs/coulombRig';
 import { STAGE_CENTER_X } from '../../src/components/simulation3d/rigs/params';
@@ -688,5 +693,17 @@ describe('#159 F-A3 链式反应: 逐代中子读引擎 charts', () => {
         const h = built.handles as FissionChainHandles;
         expect(fissionChainRig.ownParticles).toBe(true);
         expect(h.bars.length).toBe(fissionReadouts(result).generations);
+    });
+});
+
+describe('#164 测量工具 3D 取景: 器械居中放大且不画默认占位球', () => {
+    it('三工具均有 framing (拉近 <4) 且 ownParticles=true', () => {
+        for (const rig of [vernierCaliperRig, micrometerRig, multimeterRig]) {
+            expect(typeof rig.framing).toBe('function');
+            expect(rig.ownParticles).toBe(true);
+            const f = rig.framing!({}, null);
+            expect(f).toBeDefined();
+            expect(f!.distance!).toBeLessThan(4);
+        }
     });
 });

@@ -104,10 +104,10 @@ export const emSpectrumRig: SceneRig = {
             group.add(curve);
         }
 
-        const label = makeTextSprite('', '#1e293b', 22, { x: 3.6, y: 0.4 });
+        const label = makeTextSprite('', '#1e293b', 22, { x: 1.1, y: 0.4 });
         label.position.set(STAGE_CENTER_X, CENTER_Y + 1.35, 0.2);
         group.add(label);
-        const infoLabel = makeTextSprite('', '#334155', 22, { x: 3.8, y: 0.4 });
+        const infoLabel = makeTextSprite('', '#334155', 22, { x: 1.1, y: 0.4 });
         infoLabel.position.set(STAGE_CENTER_X, CENTER_Y - 0.85, 0.2);
         group.add(infoLabel);
 

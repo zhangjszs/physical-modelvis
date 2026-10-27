@@ -90,10 +90,10 @@ export const mutualInductanceRig: SceneRig = {
         secondaryGlow.position.set(SECONDARY_X, CENTER_Y, 0);
         group.add(secondaryGlow);
 
-        const label = makeTextSprite('', '#b45309', 24, { x: 3.6, y: 0.44 });
+        const label = makeTextSprite('', '#b45309', 24, { x: 1.1, y: 0.4 });
         label.position.set(STAGE_CENTER_X, CENTER_Y + 1.0, 0.2);
         group.add(label);
-        const infoLabel = makeTextSprite('', '#1e293b', 22, { x: 3.8, y: 0.4 });
+        const infoLabel = makeTextSprite('', '#1e293b', 22, { x: 1.1, y: 0.4 });
         infoLabel.position.set(STAGE_CENTER_X, CENTER_Y + 1.55, 0.2);
         group.add(infoLabel);
 

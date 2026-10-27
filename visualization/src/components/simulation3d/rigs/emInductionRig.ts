@@ -94,10 +94,10 @@ export const emInductionRig: SceneRig = {
         );
         group.add(rail);
 
-        const meterLabel = makeTextSprite('', '#b91c1c', 24, { x: 3.4, y: 0.44 });
+        const meterLabel = makeTextSprite('', '#b91c1c', 24, { x: 1.1, y: 0.4 });
         meterLabel.position.set(STAGE_CENTER_X, CENTER_Y + 1.0, 0.2);
         group.add(meterLabel);
-        const infoLabel = makeTextSprite('', '#1e293b', 22, { x: 3.8, y: 0.4 });
+        const infoLabel = makeTextSprite('', '#1e293b', 22, { x: 1.1, y: 0.4 });
         infoLabel.position.set(STAGE_CENTER_X, CENTER_Y + 1.55, 0.2);
         group.add(infoLabel);
 

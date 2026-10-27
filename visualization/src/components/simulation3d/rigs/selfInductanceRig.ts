@@ -90,10 +90,10 @@ export const selfInductanceRig: SceneRig = {
         resistor.position.set(STAGE_CENTER_X + 1.9, CENTER_Y - 0.15, 0);
         group.add(battery, resistor);
 
-        const currentLabel = makeTextSprite('', '#0369a1', 24, { x: 3.2, y: 0.42 });
+        const currentLabel = makeTextSprite('', '#0369a1', 24, { x: 1.1, y: 0.4 });
         currentLabel.position.set(STAGE_CENTER_X, CENTER_Y + 0.95, 0.2);
         group.add(currentLabel);
-        const infoLabel = makeTextSprite('', '#1e293b', 22, { x: 3.8, y: 0.4 });
+        const infoLabel = makeTextSprite('', '#1e293b', 22, { x: 1.1, y: 0.4 });
         infoLabel.position.set(STAGE_CENTER_X, CENTER_Y + 1.5, 0.2);
         group.add(infoLabel);
 

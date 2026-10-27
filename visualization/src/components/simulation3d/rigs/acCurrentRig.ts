@@ -87,10 +87,10 @@ export const acCurrentRig: SceneRig = {
         core.position.set(STAGE_CENTER_X + 2.1, CENTER_Y + 0.1, 0);
         group.add(core);
 
-        const label = makeTextSprite('', '#b45309', 24, { x: 3.6, y: 0.44 });
+        const label = makeTextSprite('', '#b45309', 24, { x: 1.1, y: 0.4 });
         label.position.set(STAGE_CENTER_X, CENTER_Y + 1.35, 0.2);
         group.add(label);
-        const infoLabel = makeTextSprite('', '#1e293b', 22, { x: 3.8, y: 0.4 });
+        const infoLabel = makeTextSprite('', '#1e293b', 22, { x: 1.1, y: 0.4 });
         infoLabel.position.set(STAGE_CENTER_X, CENTER_Y + 1.9, 0.2);
         group.add(infoLabel);
 
