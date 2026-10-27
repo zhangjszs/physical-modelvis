@@ -140,6 +140,11 @@ export const MODEL_CHART_KEYS = {
         'R_invS', // R-1/S 直线
         'R_material' // 材料比较 (Cu/Fe/Nichrome)
     ],
+    // —— #159 高中核心逐节复核 · 批次 F: 折射 (#159 Phase 2) ——
+    refraction: [
+        'x_t', // sinθ₁-sinθ₂ 直线 (Snell 定律验证, 语义主通道)
+        'y_t' // θ₁-θ₂ 关系曲线 (语义主通道)
+    ],
     'vernier-caliper': [
         'x_t', // 读数演示辅助曲线
         'y_t', // 读数演示辅助曲线

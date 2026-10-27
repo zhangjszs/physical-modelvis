@@ -37,6 +37,9 @@ import {
 } from '../../src/components/simulation3d/rigs/resistanceLawRig';
 import { resistanceLawReadouts, drawResistanceLawScene } from '../../src/rendering/resistanceLawScenes';
 import { createRecordingCanvas } from '../utils/canvasMock';
+import { opticsRig, opticsRigReadouts } from '../../src/components/simulation3d/rigs/opticsRig';
+import type { OpticalDiskHandles } from '../../src/components/simulation3d/equipment/opticalDisk';
+import { refractionReadouts, drawRefractionScene } from '../../src/rendering/refractionScenes';
 import {
     pendulumRig,
     lengthOf,
@@ -1542,5 +1545,110 @@ describe('#159 高中核心·电阻定律: ρ / R / 曲线必须全部来自引�
         const framing = resistanceLawRig.framing!({}, null)!;
         expect(framing.target[0]).toBeCloseTo(STAGE_CENTER_X, 6);
         expect(framing.distance).toBeGreaterThan(0);
+    });
+});
+
+describe('#159 高中核心·折射: 光路必须落在同一侧, 反射线不可缺席, 角度读引擎', () => {
+    it('3D rig 读数 == 引擎 maxValues (旧版自己按 Snell 重算, 引擎改公式画面就漂)', () => {
+        const { params, result } = simulate('refraction');
+        const read = opticsRigReadouts(params, result);
+        const mv = result.diagnostics.maxValues;
+
+        expect(read.source).toBe('engine');
+        expect(read.theta1).toBe(params['angle']);
+        expect(read.theta2).toBe(mv.refractionAngleDeg);
+        expect(read.totalInternalReflection).toBe(mv.totalInternalReflection === 1);
+        expect(read.sinTheta1).toBe(mv.sinTheta1);
+        expect(read.sinTheta2).toBe(mv.sinTheta2);
+        // n₁ ≤ n₂ ⇒ 无临界角 (引擎哨兵 -1 必须转成 null, 不能当角度用)
+        expect(mv.criticalAngleDeg).toBe(-1);
+        expect(read.criticalAngle).toBeNull();
+    });
+
+    it('2D 板书读数 == 引擎 maxValues, 且光路端点来自引擎轨迹', () => {
+        const { params, result } = simulate('refraction');
+        const read = refractionReadouts(params, result);
+        const mv = result.diagnostics.maxValues;
+        const traj = result.trajectories[0]!;
+
+        expect(read.source).toBe('engine');
+        expect(read.theta2).toBe(mv.refractionAngleDeg);
+        expect(read.incidentStart.x).toBeCloseTo(traj[0]!.position.x, 12);
+        expect(read.refractEnd!.x).toBeCloseTo(traj[2]!.position.x, 12);
+        expect(read.reflectEnd.x).toBeCloseTo(traj[3]!.position.x, 12);
+        // 折射线必须与入射线同侧 (引擎符号修正后的物理口径)
+        expect(read.refractEnd!.x).toBeGreaterThan(0);
+        expect(read.refractEnd!.y).toBeLessThan(0);
+        // sinθ₁-sinθ₂ 曲线有数据
+        expect(read.curvePoints).toBeGreaterThan(10);
+    });
+
+    it('2D 板书必须画出反射光线 (旧版非全反射分支只画入射+折射, 反射定律缺席)', () => {
+        const { params, result } = simulate('refraction');
+        const canvas = createRecordingCanvas({ width: 1100, height: 700 });
+        drawRefractionScene({
+            ctx: canvas.ctx,
+            width: 1100,
+            height: 700,
+            isDark: true,
+            params,
+            simulationResult: result,
+            currentTime: 0
+        });
+        const texts = canvas.texts.join('|');
+        expect(texts).toContain('反射');
+        expect(texts).toContain('折射');
+        // 三条光线 ⇒ 至少 3 次箭头绘制
+        expect(canvas.counts['stroke'] ?? 0).toBeGreaterThan(4);
+        // Snell 验证直线 + 工作点标注
+        expect(texts).toContain('sinθ₁');
+    });
+
+    it('全反射分支: 无折射光, 只画入射 + 反射, 并标出临界角', () => {
+        // 玻璃(1.5) → 空气(1.0), 入射 60° > 临界角 41.8°
+        const { params, result } = simulate('refraction', { n1: 1.5, n2: 1.0, angle: 60 });
+        const mv = result.diagnostics.maxValues;
+        expect(mv.totalInternalReflection).toBe(1);
+
+        const read = refractionReadouts(params, result);
+        expect(read.totalInternalReflection).toBe(true);
+        expect(read.theta2).toBeNull();
+        expect(read.refractEnd).toBeNull();
+        expect(read.criticalAngle).toBeCloseTo(41.81, 1);
+
+        const canvas = createRecordingCanvas({ width: 1100, height: 700 });
+        drawRefractionScene({
+            ctx: canvas.ctx,
+            width: 1100,
+            height: 700,
+            isDark: true,
+            params,
+            simulationResult: result,
+            currentTime: 0
+        });
+        const texts = canvas.texts.join('|');
+        expect(texts).toContain('全反射');
+        expect(texts).toContain('反射');
+        // 全反射时不得画折射光线 (光线标签是独立文本项, 不含标题里的「折射定律」)
+        expect(canvas.texts).not.toContain('折射');
+    });
+
+    it('3D 器材在全反射时隐藏折射光束, 非全反射时显示', () => {
+        const normal = simulate('refraction');
+        const built = opticsRig.buildEquipment(new THREE.Scene(), normal.params, normal.result);
+        const h = built.handles as { diskHandles: OpticalDiskHandles };
+        expect(h.diskHandles.refractedBeam.visible).toBe(true);
+
+        const tir = simulate('refraction', { n1: 1.5, n2: 1.0, angle: 60 });
+        const built2 = opticsRig.buildEquipment(new THREE.Scene(), tir.params, tir.result);
+        const h2 = built2.handles as { diskHandles: OpticalDiskHandles };
+        expect(h2.diskHandles.refractedBeam.visible).toBe(false);
+    });
+
+    it('场景没有运动物体 ⇒ 3D 不画默认球, 且分度盘显式取景居中', () => {
+        expect(opticsRig.ownParticles).toBe(true);
+        const framing = opticsRig.framing!({}, null)!;
+        expect(framing.distance).toBeGreaterThan(4);
+        expect(framing.target[1]).toBeGreaterThan(1.4);
     });
 });

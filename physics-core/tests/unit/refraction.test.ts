@@ -84,4 +84,41 @@ describe('RefractionModel', () => {
         expect(r.explanation.summary).toContain('全反射');
         expect(r.explanation.summary).toContain('θ_c=');
     });
+
+    it('光路几何: 折射线必须落在入射线的同一侧 (旧版 refractEndX 取负号 ⇒ 折射线跑到法线另一侧)', () => {
+        const r = model.solve(makeProblem({ n1: 1.0, n2: 1.5, incidentAngleDeg: 30 }));
+        const traj = r.trajectories[0]!;
+        // 轨迹点序: [入射起点, 界面点(原点), 折射终点, 反射终点]
+        const incidentStart = traj[0]!.position;
+        const hit = traj[1]!.position;
+        const refractEnd = traj[2]!.position;
+        const reflectEnd = traj[3]!.position;
+
+        expect(hit.x).toBeCloseTo(0, 12);
+        expect(hit.y).toBeCloseTo(0, 12);
+        // 入射起点在法线左侧 ⇒ 行进方向 x 分量为正
+        expect(incidentStart.x).toBeLessThan(0);
+        expect(incidentStart.y).toBeGreaterThan(0);
+        // 折射终点必须与入射行进方向同侧 (x > 0) 且在界面下方 (y < 0)
+        expect(refractEnd.x).toBeGreaterThan(0);
+        expect(refractEnd.y).toBeLessThan(0);
+        // 反射终点回到介质 1 (y > 0), 与入射起点关于法线对称
+        expect(reflectEnd.y).toBeGreaterThan(0);
+        expect(reflectEnd.x).toBeCloseTo(-incidentStart.x, 12);
+        expect(reflectEnd.y).toBeCloseTo(incidentStart.y, 12);
+    });
+
+    it('折射角与折射终点几何自洽: |x| / |y| = tanθ₂', () => {
+        const r = model.solve(makeProblem({ n1: 1.0, n2: 1.5, incidentAngleDeg: 30 }));
+        const traj = r.trajectories[0]!;
+        const refractEnd = traj[2]!.position;
+        const theta2 = r.diagnostics.maxValues.refractionAngleDeg!;
+        expect(Math.abs(refractEnd.x) / Math.abs(refractEnd.y)).toBeCloseTo(Math.tan((theta2 * Math.PI) / 180), 9);
+    });
+
+    it('全反射时不存在折射线 (轨迹只有入射 + 反射三点)', () => {
+        const r = model.solve(makeProblem({ n1: 1.5, n2: 1.0, incidentAngleDeg: 60 }));
+        expect(r.trajectories[0]!.length).toBe(3);
+        expect(r.diagnostics.maxValues.refractionAngleDeg).toBe(-1);
+    });
 });

@@ -89,7 +89,7 @@
 | `current-magnetic` | 电磁学 | 电流的磁场 | current-magnetic-field | fieldRig | 0.16 | 1/6 | 0动/0条·0图 | OK | 通过 | — | 通过(示意): 3D 为器械示意几何, 定量曲线与读数在 2D 板书+数据抽屉; 全量复扫 123 景 0 crash/error/空白、QA sweep 抽屉 123/123 无错、交互 0 不随动 |
 | `efield-lines` | 电磁学 | 电场线分布 | electric-field-lines | efieldLinesRig | 1 | 0/6 | 0动/0条·0图 | OK | 已修复 | — | F-A3 已修: 新建 efieldLinesRig，场线几何直接读 extra.fieldLines(点电荷/偶极/极板)、maxField 读 maxValues；不再显匀强场+霍尔；scene-rig-physics 增 2 例 |
 | `bulb-vi` | 电磁学 | 小灯泡伏安特性 | circuit | circuitRig | 0.16 | 2/7 | 0动/1条·3图 | OK | 通过 | — | 通过(示意): 3D 为器械示意几何, 定量曲线与读数在 2D 板书+数据抽屉; 全量复扫 123 景 0 crash/error/空白、QA sweep 抽屉 123/123 无错、交互 0 不随动 |
-| `refraction` | 光学 | 光的折射定律 (Snell) | refraction | ? | 0.16 | n/a | 1动/1条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `refraction` | 光学 | 光的折射定律 (Snell) | refraction | opticsRig | 1 | n/a | 1动/1条·2图 | OK | 已修复 | — | #159 高中核心逐节复核(阻断级): **引擎折射线画到法线另一侧**(refractEndX 取负号 ⇒ 左下, 而入射线行进方向是右下), 折射线不在入射线上; 3D rig 与 2D 板书均自算 θ₂/临界角不读引擎 (全反射判据 >1 vs 引擎 >=1); 2D 非全反射分支**不画反射光线**(反射定律缺席, 反而只有全反射分支才画); 引擎 sinθ₁-sinθ₂ 直线没画; 3D 分度盘被轨迹包围盒自动取景挤到左上角且圆心有一颗无意义默认大球遮住光路; 顶部标牌被工具条遮住。已修正引擎符号 (折射线 +L·sinθ₂)、3D/2D 整组读引擎、2D 新增专属板书 (三光线 + Snell 验证直线 + 工作点)、ownParticles + 显式取景, refraction 入 charts 登记表, 新增 4+6 条契约断言 |
 | `interference` | 光学 | 双缝干涉 (杨氏实验) | interference | ? | 0.16 | n/a | 1动/1条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
 | `thin-film` | 光学 | 薄膜干涉 (等厚) | thin-film | waveOpticsRig | 0.16 | 1/8 | 1动/1条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
 | `single-slit` | 光学 | 单缝衍射 (光强分布) | single-slit | waveOpticsRig | 0.16 | 2/8 | 0动/1条·2图 | OK | 通过 | — | 通过(示意): 3D 为器械示意几何, 定量曲线与读数在 2D 板书+数据抽屉; 全量复扫 123 景 0 crash/error/空白、QA sweep 抽屉 123/123 无错、交互 0 不随动 |

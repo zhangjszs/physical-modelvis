@@ -1,10 +1,10 @@
 [
   {
-    "sceneId": "resistance-law",
-    "name": "电阻定律 (R=ρ·L/S)",
+    "sceneId": "refraction",
+    "name": "光的折射定律 (Snell)",
     "shots": [
       {
-        "file": "resistance-law-3d-t0-after.png",
+        "file": "refraction-3d-t0-after.png",
         "health": {
           "canvases": [
             {
@@ -22,7 +22,7 @@
         }
       },
       {
-        "file": "resistance-law-3d-mid-after.png",
+        "file": "refraction-3d-mid-after.png",
         "health": {
           "canvases": [
             {
@@ -40,7 +40,7 @@
         }
       },
       {
-        "file": "resistance-law-3d-param-after.png",
+        "file": "refraction-3d-param-after.png",
         "health": {
           "canvases": [
             {
@@ -58,7 +58,7 @@
         }
       },
       {
-        "file": "resistance-law-2d-t0-after.png",
+        "file": "refraction-2d-t0-after.png",
         "health": {
           "canvases": [
             {
@@ -67,7 +67,7 @@
               "cssWidth": 826,
               "cssHeight": 413,
               "blank": false,
-              "uniqueColors": 87,
+              "uniqueColors": 68,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }
@@ -76,7 +76,7 @@
         }
       },
       {
-        "file": "resistance-law-2d-mid-after.png",
+        "file": "refraction-2d-mid-after.png",
         "health": {
           "canvases": [
             {
@@ -85,7 +85,7 @@
               "cssWidth": 826,
               "cssHeight": 413,
               "blank": false,
-              "uniqueColors": 87,
+              "uniqueColors": 68,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }

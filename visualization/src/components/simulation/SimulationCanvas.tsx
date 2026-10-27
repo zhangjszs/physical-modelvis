@@ -39,7 +39,6 @@ import {
     drawDopplerScene,
     drawSingleSlitScene,
     drawThinFilmScene,
-    drawRefractionScene,
     drawInterferenceScene,
     drawDiffractionGratingScene,
     drawPolarizationMalusScene,
@@ -162,6 +161,7 @@ import {
     drawBulbVIScene
 } from '../../rendering/electricCircuitScenes';
 import { drawResistanceLawScene } from '../../rendering/resistanceLawScenes';
+import { drawRefractionScene } from '../../rendering/refractionScenes';
 import {
     drawMagneticForceScene,
     drawAmpereForceScene,
