@@ -271,6 +271,26 @@
 极板下 `+` 上 `−`，场线箭头向上，与引擎一致；
 3D 轨迹铺满极板长度、偏转量落在板间，标牌 `q/m = 0.100 C/kg a = 1.00 m/s²`。
 
+**修复前 2D「无法成像」的取证缺口已补齐（复现实验）**：
+基线批次里 `electric-field` 的 2D before 截图**缺失**（3 张 3D before 齐全），
+基线报告 `_report-latest.json` 记录的是采集异常：
+`2D t0: 超时 canvasHealth(2d-t0) (25000ms)`、`2D mid: 超时 setTimeline(2d-mid) (25000ms)`、
+`采集异常: 超时 readVisibleText (20000ms)` —— 即**修复前的 2D 板书根本渲染不出来**，
+不是流程漏拍。
+
+为把这条证据做实，用 `git worktree` 检出**修复前的最后一个提交** `7143cae`
+（批次 C，`electric-field` 的 2D 代码直到批次 E 才动），独立构建 + preview + 重跑同一探针：
+
+| 复现项 | 结果 |
+| --- | --- |
+| 3D before `mid` / `param` | 与已入库基线**字节一致**（md5 相同）⇒ worktree 忠实复现修复前状态 |
+| 3D before `t0` | 仅首帧时序抖动（md5 不同），画面同为「读不回像素的空白 WebGL 画布」 |
+| 2D before `t0` / `mid` | **仍然三连超时**，无任何 PNG 产出 ⇒ 修复前 2D 渲染挂死属实 |
+
+复现报告入库：`docs/screenshots/core-audit/_report-before-repro.json`。
+结论：**「修复前 2D 无图」本身就是最强的 before 证据** ——
+修复后 2D 正常成像（`electric-field-2d-t0-after.png` / `electric-field-2d-mid-after.png`）。
+
 ### E-2 `magnetic-field` 匀强磁场中的匀速圆周运动
 
 **修复前的问题（证据：基线截图 + 引擎 dump）**
@@ -463,3 +483,74 @@ ownParticles + 显式取景）；
 
 本轮新增的 `photoelectric` / `gas-law` 板书已按 `h` 比例编写，两种高度都成立；
 后续做 G-0 独立批次时，这两节无需返工。
+
+### G-1 全局：2D 网格密度守卫缺失 ⇒ 坐标跨度大的场景会**拖死主线程** — 已根治
+
+> 这是本轮为补齐 `electric-field` 修复前 2D 取证缺口而顺藤摸瓜挖出的**渲染层通用缺陷**，
+> 属于「三类问题之外」的其他类别：**问题四·鲁棒性**。
+
+| 维度 | 判定 | 现象 / 证据 | 根因 |
+| --- | --- | --- | --- |
+| 问题四·鲁棒性 | **阻断 → 已根治** | 场景坐标跨度极大时，`CoordinateTransformer.autoFit` 得到的 `scale` 会小到 10⁻⁸ px/m 量级 ⇒ 2D 网格的**屏幕间距退化成亚像素** ⇒ `draw2DGrid` 的双重循环迭代次数达到 **10¹³ ~ 10¹⁴ 次** ⇒ **主线程被彻底占死，页面完全无响应**（切到 2D 板书模式后连 `page.evaluate(() => 1)` 都 15s 超时，三次全挂） | `visualization/src/rendering/CanvasRenderer.ts`：`calcGridSpacing(scale)` 在没有任何 `t * scale` 落进 [40, 120] 时**兜底 `return 1`**，于是屏幕间距 = `1 * scale`；`draw2DGrid` 的 `for (x += screenSpacing)` 双重循环无下界保护 |
+
+**取证链路（全部真实链路）**：
+
+1. **基线**：`electric-field` 的 2D before 截图**缺失**（3 张 3D before 齐全），
+   基线报告 `_report-latest.json` 记的是采集异常（`canvasHealth(2d-t0)` 25s 超时 /
+   `setTimeline(2d-mid)` 25s 超时 / `readVisibleText` 20s 超时），**不是流程漏拍**。
+2. **复现**：`git worktree` 检出修复前的最后一个提交 `7143cae`（`electric-field` 的 2D
+   代码直到批次 E 才动），独立构建 + preview + 重跑同一探针 ⇒ 3D before 的
+   `mid` / `param` 与已入库基线**字节一致**（md5 相同），2D 仍然**三连超时** ⇒
+   复现忠实，基线缺失属实。复现报告入库：`_report-before-repro.json`。
+3. **根因量化**：新增诊断脚本 `scripts/audit-grid-density.mts`，走
+   `scene.buildProblem(defaultParams) → solveProblem` 取每节轨迹 → 复算 2D `autoFit`
+   缩放 → 网格屏幕间距 → `draw2DGrid` 的实际循环次数。
+   修复前 `electric-field` 的 `scale ≈ 2.05×10⁻⁸ px/m` ⇒ 循环 **1.5×10¹³ 次**。
+4. **修复后浏览器复验**：把同一份 guard 移植回「修复前」的 worktree（只改
+   `CanvasRenderer.ts` 这一个文件，其余完全是修复前状态）→ 重建 → 重跑探针 ⇒
+   **2D 板书模式恢复正常响应**，页面不再挂死。
+
+**修复**：`CanvasRenderer.ts` 新增导出
+`MIN_GRID_SCREEN_SPACING_PX = 8` 与纯函数 `calcGridScreenSpacing(scale)`
+（= `calcGridSpacing(scale) * scale`，但**不小于 8 px**），`draw2DGrid` 改用它；
+`calcGridSpacing` 的目标档位表提为模块级 `GRID_SPACING_TARGETS` 单一真源。
+
+**为什么是 8 px（零视觉回归的依据）**：`scripts/audit-grid-density.mts` 实测 24 节的
+2D 网格屏幕间距，除病态项外全部落在 **44.4 ~ 83.3 px** 区间 ⇒ **全部 ≥ 8 px**
+⇒ 本下限对既有 24 节**画面零变化**，只兜住病态缩放。
+
+> 顺带确认：24 节里唯一 scale 病态的是 `orbital`（`scale ≈ 2.0×10⁻⁵ px/m`），
+> 但它走第三章专属板书 `drawOrbitalScene`（**跳过 `autoFit` 与 `drawGrid`**），
+> 实测 2D 正常成像（基线报告 `uniqueColors: 60 / nonTransparentRatio: 1`）⇒ 当前无实际影响；
+> 本 guard 则保证它将来若改走通用渲染路径也不会重现挂死。
+
+**契约保障**（先红后绿，`visualization/tests/rendering/grid-density-guard.test.ts`，3 条）：
+- 病态缩放（`2.05e-8` / `2.016e-5` px/m）下屏幕间距必须被钳到下限；
+- 24 节实测缩放下屏幕间距与旧实现**逐位相等**（零视觉回归）；
+- `drawGrid` 的网格点调用数必须有界（行为级：旧实现 ≈ 10⁶ 次 vs 新实现 ≈ 8.5k 次）。
+
+**零视觉回归验证（实测）**：修完后重拍全量 24 节 × 5 态（120 张），
+与已入库的 after 截图**逐像素比对**（Pillow `ImageChops`）：
+
+| 分类 | 张数 | 说明 |
+| --- | --- | --- |
+| 逐字节完全一致 | 74 | 含全部 2D 板书中的绝大部分 |
+| 视觉等价（差异 < 0.2 % 且最大通道差 ≤ 8） | 10 | 抗锯齿 / 首帧时序抖动 |
+| 有像素差异 | 36 | 见下方归因 |
+
+差异归因（三项，逐一隔离验证，**没有一项来自本次 guard**）：
+
+1. **2D 板书**（仅 `air-track` 2 张，0.43 %）：差异带位于 y ∈ [303, 366] 的一条水平带
+   （导轨与运动小球所在行）。用**同一构建连拍两次**做对照 ⇒ 两次之间的差异同样是
+   **0.44 %**、包围盒几乎重合 ⇒ **采集时序抖动**，与代码改动无关。
+2. **3D 视口**（其余 34 张）：`CanvasRenderer` 只画 2D 画布，**不参与 three.js 的 WebGL 渲染**，
+   本次 guard 在原理上不可能影响 3D 画面；实测差异集中于
+   `collision` / `energy-conservation` / `free-fall` 三节（9 %~13 %，差异包围盒覆盖整个舞台）
+   ⇒ 相机整体位移，来自同期并行的另一条工作线（3D 自动取景），与本节无关。
+3. **其余 3D**（差异均 < 0.01 %）：首帧渲染时序抖动。
+
+数学上也可直接排除：guard 只在 `gridSpacing * scale < 8 px` 时生效，
+而 `scripts/audit-grid-density.mts` 实测 24 节的网格屏幕间距**全部 ≥ 44.4 px**
+⇒ 本次改动对这 24 节是**恒等变换**。
+
+> 复跑探针：24 节全部 `shots=5 issues=无`（0 异常）。

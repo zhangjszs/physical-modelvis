@@ -5,6 +5,51 @@ import { labBenchTexture, clearTextureCache } from './textureFactory';
 
 type Screen3D = { x: number; y: number; depth: number };
 
+/**
+ * 2D 网格点的**屏幕间距下限** (px)
+ *
+ * 根因 (#159 高中核心逐节复核 · electric-field 阻断项):
+ *   `calcGridSpacing(scale)` 在没有任何 `t * scale` 落进 [40, 120] 时兜底 `return 1`,
+ *   于是屏幕间距 = `1 * scale`。当场景坐标跨度极大时 `autoFit` 得到的 scale 会小到
+ *   2e-8 px/m 量级 (electric-field 修复前默认参数: 轨迹 y 跨度 1.916e10 m),
+ *   `draw2DGrid` 的双重循环 `for (x += screenSpacing)` 迭代次数达到
+ *   (786 / 2e-8) × (393 / 2e-8) ≈ 1.5e13 次 ⇒ **主线程被彻底占死, 页面完全无响应**
+ *   (实测: 切到 2D 板书模式后 page.evaluate 连续三次 15s 超时)。
+ *
+ * 正常场景的屏幕间距都落在 44~84 px (见 scripts/audit-grid-density.mts 实测),
+ * 远大于本下限 ⇒ 本下限对既有场景**零视觉影响**, 只兜住病态缩放。
+ */
+export const MIN_GRID_SCREEN_SPACING_PX = 8;
+
+/**
+ * 3D 网格 / 坐标轴允许的最大刻度数
+ *
+ * 3D 网格的刻度循环步长是**世界单位** (`gridSpacing`), 而世界跨度由
+ * `canvasW / baseScale` 决定; `baseScale` 退化到 1e-8 量级时循环同样会爆炸。
+ * 故按「最大世界跨度 / 允许刻度数」给一个世界单位级的间距下限。
+ */
+export const MAX_3D_GRID_LINES = 200;
+
+/** 网格物理间隔的目标值表 (与 calcGridSpacing 同源) */
+const GRID_SPACING_TARGETS = [0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50];
+
+/**
+ * 计算 2D 网格点的屏幕间距 (px)
+ *
+ * = `calcGridSpacing(scale) * scale`, 但**不小于** {@link MIN_GRID_SCREEN_SPACING_PX},
+ * 保证 draw2DGrid 的双重循环次数有界 (最坏 ≈ (W/8) × (H/8) ≈ 4.8k 次)。
+ */
+export function calcGridScreenSpacing(scale: number): number {
+    let gridSpacing = 1;
+    for (const t of GRID_SPACING_TARGETS) {
+        if (t * scale >= 40 && t * scale <= 120) {
+            gridSpacing = t;
+            break;
+        }
+    }
+    return Math.max(gridSpacing * scale, MIN_GRID_SCREEN_SPACING_PX);
+}
+
 export class CanvasRenderer {
     private ctx: CanvasRenderingContext2D;
     private transformer: CoordinateTransformer;
@@ -357,8 +402,7 @@ export class CanvasRenderer {
     private draw2DGrid(width: number, height: number) {
         const ctx = this.ctx;
         const scale = this.transformer.getScale();
-        const gridSpacing = this.calcGridSpacing(scale);
-        const screenSpacing = gridSpacing * scale;
+        const screenSpacing = calcGridScreenSpacing(scale);
         const origin = this.transformer.toScreen({ x: 0, y: 0 });
         const dotR = this.isDark ? 1.0 : 0.8;
         ctx.fillStyle = this.isDark ? 'rgba(100,116,139,0.25)' : 'rgba(0,0,0,0.10)';
@@ -376,11 +420,15 @@ export class CanvasRenderer {
     private draw3DGrid(_width: number, _height: number) {
         const ctx = this.ctx;
         const scale = this.baseScale;
-        const gridSpacing = this.calcGridSpacing(scale);
         const zMax = this.groundZRange;
         const zMin = 0;
         const xMin = (-this.vpX / this.baseScale) * 0.5;
         const xMax = ((this.canvasW - this.vpX) / this.baseScale) * 0.95;
+        const yRange = this.canvasH / (2 * this.baseScale);
+        // 世界坐标跨度极大时 (baseScale 退化到 1e-8 量级) 刻度循环会爆炸,
+        // 故按「最大世界跨度 / 允许刻度数」给一个世界单位级的间距下限。
+        const worldSpan = Math.max(xMax - xMin, yRange, zMax, 1);
+        const gridSpacing = Math.max(this.calcGridSpacing(scale), worldSpan / MAX_3D_GRID_LINES);
 
         const groundLineFar = this.isDark ? 'rgba(100,116,139,0.10)' : 'rgba(100,116,139,0.07)';
         const groundLineNear = this.isDark ? 'rgba(148,163,184,0.35)' : 'rgba(71,85,105,0.25)';
@@ -422,7 +470,6 @@ export class CanvasRenderer {
             ctx.stroke();
         }
 
-        const yRange = this.canvasH / (2 * this.baseScale);
         ctx.fillStyle = motionPlaneColor;
         ctx.beginPath();
         const tl = this.worldToScreen(xMin, yRange, 0);
@@ -479,7 +526,7 @@ export class CanvasRenderer {
         ctx.textAlign = 'center';
         const scale = this.transformer.getScale();
         const gridSpacing = this.calcGridSpacing(scale);
-        const screenSpacing = gridSpacing * scale;
+        const screenSpacing = calcGridScreenSpacing(scale);
         const tickLen = 4;
         for (let x = origin.x % screenSpacing; x < width; x += screenSpacing) {
             const physX = this.transformer.toPhysical({ x, y: origin.y }).x;
@@ -536,7 +583,7 @@ export class CanvasRenderer {
         this.draw3DAxisWithArrow(origin, xEnd, xColor, 'x (m)', 'right');
         this.draw3DAxisWithArrow(origin, yEnd, yColor, 'y (m)', 'top');
 
-        const gridSpacing = this.calcGridSpacing(scale);
+        const gridSpacing = Math.max(this.calcGridSpacing(scale), axisLen / MAX_3D_GRID_LINES);
         ctx.font = '10px monospace';
         ctx.fillStyle = this.isDark ? 'rgba(148,163,184,0.7)' : 'rgba(71,85,105,0.7)';
         ctx.textAlign = 'center';
@@ -1822,9 +1869,9 @@ export class CanvasRenderer {
         ctx.fill();
     }
 
+    /** 网格物理间隔 (世界单位): 选一个让屏幕间距落在 40~120 px 的「整数档」 */
     private calcGridSpacing(scale: number): number {
-        const targets = [0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50];
-        for (const t of targets) {
+        for (const t of GRID_SPACING_TARGETS) {
             if (t * scale >= 40 && t * scale <= 120) return t;
         }
         return 1;

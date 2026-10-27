@@ -1,0 +1,69 @@
+[
+  {
+    "sceneId": "electric-field",
+    "name": "匀强电场",
+    "shots": [
+      {
+        "file": "electric-field-3d-t0-before.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "electric-field-3d-mid-before.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "electric-field-3d-param-before.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      }
+    ],
+    "issues": [
+      "2D t0: 超时 canvasHealth(2d-t0) (25000ms)",
+      "2D mid: 超时 setTimeline(2d-mid) (25000ms)",
+      "采集异常: 超时 readVisibleText (20000ms)"
+    ],
+    "paramChange": null,
+    "errors": []
+  }
+]
