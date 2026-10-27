@@ -215,3 +215,83 @@
 | 维度 | 判定 | 现象 / 证据 | 根因 |
 | --- | --- | --- | --- |
 | 问题一·物理 | **严重 → 已修复** | rig 死读 `params['L']`/`params['inductance']`（场景无此参数 → 静默回退 0.1 H，真值 10 μH）与 `params['C']`（把 pF 当 F）⇒ 标牌 `T=19869.06 ms | f=0.1 Hz`，真值 `T=0.19869 μs | f=5.0332 MHz`，**偏差 1.0×10⁸** | `visualization/src/components/simulation3d/rigs/lcOscillatorRig.ts`（重写：读引擎 `maxValues`，μs/ms/ns 与 Hz/kHz/MHz 自适应单位；q(t)/i(t) 走 `chartsOf` 的 `x_t`/`y_t`） |
+
+## 批次 D — 单摆 / 机械波 / 圆周运动 / 万有引力（逐节复核判定为「通过」）
+
+这四节本轮做了完整的引擎 → 渲染/标牌逐项对照，**未发现需要修复的偏差**；
+判定为「通过（示意通过）」，不做代码改动，仅补齐证据链与结论。
+
+| sceneId | 领域 | 引擎模型 | rig | 问题一·物理 | 问题二·视觉 | 问题三·实验作用 | 判定 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `simple-pendulum` | mechanics | `simple-pendulum` | `pendulumRig` | 通过 | 通过 | 通过 | 通过 |
+| `mechanical-wave` | optics | `mechanical-wave` | `waveRig` | 通过 | 通过 | 通过 | 通过 |
+| `circular-motion` | mechanics | `circular-motion` | `circularMotionRig` | 通过 | 通过 | 通过 | 通过 |
+| `orbital` | mechanics | `orbital` | `orbitalRig` | 通过 | 通过 | 通过 | 通过 |
+
+**逐项证据（引擎输出 ↔ 画面/标牌）**
+
+- `simple-pendulum`：引擎 `maxValues.periodSmall = 2.007090 s`，与小角度公式
+  `2π√(L/g) = 2π√(1/9.8) = 2.00709 s` **逐位一致**（相对偏差 < 1e-9）；
+  轨迹包围盒 x ∈ [−0.2588, 0.2588] m 正是 `L·sin15° = 0.2588 m`，
+  `maxThetaDeg = 15.000°` 与场景参数一致；死读扫描 0 处。
+- `mechanical-wave`：引擎 `waveSpeed = 1 m/s = f·λ = 2×0.5`，
+  `wavelength = 0.5 m`、`frequency = 2 Hz`、`angularFreq = k = 12.5664 rad/m`
+  三者自洽；9 个追踪质点相位互异（间距 ≠ λ），波形未退化成直线。
+- `circular-motion`：引擎 `radius = 1 m`、`maxSpeed = 3 m/s`、
+  `maxAcceleration = 9 m/s²`（= v²/R）、`centripetalForce = 1.8 N`（= mv²/R = 0.2×9）、
+  `period = 2.094395 s`；t = 3.142 s 时位置 x = −1.00 m（正好半周期回到 −R），
+  与解析解一致。
+- `orbital`：引擎 `vOrbit = 7.672594 km/s`、`minR = 6771 km`（= R⊕ + h = 6371 + 400）、
+  `vEscape = 10.850687 km/s`（= √2·vOrbit）、`orbitPeriod = 5544.86 s`
+  （= 2π√(r³/GM)），四个量互相自洽。
+
+**结论**：四节「画面 ↔ 引擎」逐项对照无偏差，问题一/二/三均判定为**通过**。
+截图基线见 `docs/screenshots/core-audit/{simple-pendulum,mechanical-wave,circular-motion,orbital}-*.png`。
+
+## 批次 E — 匀强电场 / 匀强磁场（两个阻断项逐节修复）
+
+### E-1 `electric-field` 匀强电场中的类平抛偏转
+
+**修复前的问题（证据：基线截图 + 引擎 dump）**
+
+| 维度 | 判定 | 现象 / 证据 | 根因 |
+| --- | --- | --- | --- |
+| 问题一·物理 | **阻断 → 已修复** | 默认 q = 1.6×10⁻¹⁹ C（质子）、m = 1.67×10⁻²⁷ kg、Ey = 100 N/C ⇒ a = qE/m = **9.58×10⁹ m/s²**；t = 2 s 时 v = **1.916×10¹⁰ m/s（64 倍光速）**、y = 1.916×10¹⁰ m。引擎自己的 `assumptions` 写着「粒子速度远小于光速」，默认参数却直接违反 | `visualization/src/scenes/scenes/electromagnetism/electric-field.ts`（改为演示用宏观带电小球量级 q = 2×10⁻⁸ C、m = 2×10⁻⁷ kg、Ey = 10 N/C、v₀x = 4 m/s、时长 1.5 s ⇒ a = 1 m/s²、x = 6 m、y = 1.125 m、偏转/水平 = 18.8%） |
+| 问题一·物理 | **阻断 → 已修复** | 3D 标牌读 `params['U'] ?? params['voltage']`（场景**无此参数** → 静默回退 100 V）与 `params['v0']`（无此参数 → 回退 20 m/s，真值 v₀x = 5 m/s，**错 4 倍**）⇒ 标牌与引擎毫无关系 | `visualization/src/components/simulation3d/rigs/electricFieldRig.ts`（重写：读引擎 q/m/a/v/x/y 与 `maxValues`，不再回退不存在的参数） |
+| 问题一·物理 | **一般 → 已修复** | 2D 只画一层**满屏向上的竖直箭头**（`SCENES_2D_CUSTOM_BG`），方向写死 —— Ey < 0 时与引擎的 E = (0, Ey) 相反 | `visualization/src/rendering/chargedParticleScenes.ts`（新增专属板书 `drawElectricFieldScene`，场线箭头方向随 Ey 符号） |
+| 问题一·物理 | **一般 → 已修复** | 3D 极板 +/− 极性写死「+ 在上板」，与 E 向上（Ey > 0 ⇒ 下板为正极）相反 | `visualization/src/components/simulation3d/equipment/deflectionPlates.ts`（新增 `updateDeflectionPolarity`，极性随 E 方向换位） |
+| 问题二·视觉 | **严重 → 已修复** | 3D 比例写死 0.16，极板 2.8 世界单位 = 17.5 m 物理长度，与真实轨迹尺度对不上；粒子瞬间出屏 | `electricFieldRig.ts`（比例由引擎轨迹跨度推导：水平跨度 → 极板长度，竖直偏移 → 板间距；粒子球半径 0.1；补 `framing`） |
+| 问题二·视觉 | **严重 → 已修复** | 3D 沿用通用自动取景（舞台中心 x ≈ 3.6，器材在 x ≈ 0）⇒ 画面偏左、顶部标牌出框 | 同上：`framing` 显式把器材摆到画面中心 |
+| 问题二·视觉 | **一般 → 已修复** | 3D 标牌是一条 60+ 字的长文本带（`makeTextSprite` 的 scale.x 随文本长度放大）⇒ 横贯画面且被压扁 | `visualization/src/components/simulation3d/primitives.ts`（新增 `setSpriteGlyphHeight` 固定字高） |
+| 问题三·实验作用 | **严重 → 已修复** | 2D 板书只有背景装饰，没有极板、没有轨迹、没有读数 —— 看不出「类平抛」这个实验在演示什么 | `chargedParticleScenes.ts`：极板 + 电子枪 + 场线箭头 + 抛物线轨迹 + 速度/受力矢量 + 读数 HUD + 米制标尺 + 类平抛公式信息条 |
+
+**修复后**：引擎 `a = 1.000 m/s²`、轨迹 x ∈ [0, 6] m / y ∈ [0, 1.125] m、
+能量守恒 `1.6×10⁻⁶ J`（首末一致）、`maxSpeed = 4.272 m/s`（全程亚光速）；
+2D 板书显示 `t=0.75 s x=3.00 m y=0.281 m v=4.07 m/s a=qE/m=1.000 m/s²`，
+极板下 `+` 上 `−`，场线箭头向上，与引擎一致；
+3D 轨迹铺满极板长度、偏转量落在板间，标牌 `q/m = 0.100 C/kg a = 1.00 m/s²`。
+
+### E-2 `magnetic-field` 匀强磁场中的匀速圆周运动
+
+**修复前的问题（证据：基线截图 + 引擎 dump）**
+
+| 维度 | 判定 | 现象 / 证据 | 根因 |
+| --- | --- | --- | --- |
+| 问题一·物理 | **阻断 → 已修复** | 默认 q = 1.6×10⁻¹⁹ C、m = 1.67×10⁻²⁷ kg、v₀ = 1000 m/s、B = 0.01 T ⇒ **R = mv/(qB) = 1.0437×10⁻³ m（1 mm）**、T = 2πm/(qB) = **6.56×10⁻⁷ s**；10 ms 的仿真时长里绕 **15 248 圈** —— 屏幕上看不出「回旋」 | `visualization/src/scenes/scenes/electromagnetism/magnetic-field.ts`（改为宏观量级 q = 2×10⁻⁶ C、m = 2×10⁻⁸ kg、B = 0.5 T、v₀ = 25 m/s、时长 0.3 s ⇒ **R = 0.500 m、T = 0.1257 s、≈2.4 个周期**） |
+| 问题一·物理 | **阻断 → 已修复** | 3D 与 2D 都画 **⊗（垂直纸面向里）**，而引擎 `uniform-magnetic-field` 只读 `fieldStrength`（恒 +z = **出纸面 ⊙**）⇒ 画的场与算的场**方向相反** | `visualization/src/components/simulation3d/rigs/magneticFieldRig.ts` + `chargedParticleScenes.ts`（改画 ⊙：3D 用「圆圈 + 中心实心点」几何，2D 同） |
+| 问题一·物理 | **一般 → 已修复** | 3D 标牌读 `params['v'] ?? params['v0']`（场景**两者都没有**）→ 回退 1.0×10⁶ m/s，真值 1000 m/s，**错 1000 倍** | `magneticFieldRig.ts`（重写：读引擎 `maxValues.cyclotronRadius` / `cyclotronPeriod` 与当前帧速率） |
+| 问题二·视觉 | **严重 → 已修复** | 3D 轨道世界半径 1.7×10⁻⁴ 单位，而默认球半径 0.22（轨道的 **1300 倍**）⇒ 只看得到一颗静止大球 | `magneticFieldRig.ts`（比例由引擎回旋半径推导：轨道 = 磁腔半径 × 0.66；粒子球半径 0.09；自绘轨道圆虚线） |
+| 问题二·视觉 | **严重 → 已修复** | 半透明磁腔写深度 ⇒ 腔内的轨迹线被**整段遮掉**，画面上只剩一根断线 | 同上：磁腔材质 `depthWrite: false` + `renderOrder = -1` |
+| 问题二·视觉 | **一般 → 已修复** | 磁腔中心 y = 1.5、半径 1.6 ⇒ 腔体**插进地面**，底部读数标牌被地面遮住 | 同上：`FIELD_CENTER_Y` 抬到 2.0；`framing` 显式取景 |
+| 问题三·实验作用 | **严重 → 已修复** | 2D 板书只有满屏 ⊗ 背景，没有轨道、没有洛伦兹力、没有 R/T 读数 —— 看不出「洛伦兹力提供向心力」 | `chargedParticleScenes.ts`：新增专属板书 `drawMagneticFieldScene`（磁腔 + ⊙ 符号 + 轨道圆 + 轨迹 + 速度/洛伦兹力矢量 + 圆心标注 + R/T/角度 HUD） |
+
+**修复后**：引擎 `cyclotronRadius = 0.500 m`、`cyclotronPeriod = 0.125664 s`、
+速率恒为 25 m/s（动能 6.25×10⁻⁶ J 首末一致）、轨迹包围盒 x ∈ [−0.5, 0.5] / y ∈ [−1, 0] m；
+2D 板书显示 `R=0.500 m T=0.1257 s 转过 430° v=25.0 m/s f=qvB=2.50e-5 N`，
+圆心在起点下方（与引擎 `acceleration.y < 0` 同向）；
+3D 画出 ⊙ 出纸面 + 轨道圆 + 轨迹 + 洛伦兹力矢量，标牌
+`q = +2.00×10⁻⁶ C B = 0.50 T (⊙ 出纸面)` / `R = 0.500 m T = 0.1257 s 转过 430° v = 25.0 m/s`。
+
+**契约保障**：`visualization/tests/rendering/scene-rig-physics.test.ts` 新增 **12 条**断言
+（`describe('#159 高中核心·匀强电场…')` / `describe('#159 高中核心·匀强磁场…')`），
+全部走「场景默认参数 → `runSceneSimulation` → 板书/rig 读数」真实链路。

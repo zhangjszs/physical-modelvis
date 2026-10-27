@@ -148,6 +148,7 @@ import {
     drawElectricFieldLinesScene
 } from '../../rendering/electrostaticFieldScenes';
 import { drawParallelPlateCapacitorScene, drawCapacitorChargeScene } from '../../rendering/electrostaticEnergyScenes';
+import { drawElectricFieldScene, drawMagneticFieldScene } from '../../rendering/chargedParticleScenes';
 import {
     drawCircuitScene,
     drawResistanceLawScene,
@@ -187,7 +188,14 @@ function countPastPoints(points: TrajectoryPoint[], t: number): number {
     return lo;
 }
 
-const SCENES_2D_CUSTOM_BG = new Set(['electric-field', 'magnetic-field', 'em-combined']);
+/**
+ * 只画背景装饰的场景集合 (#159 逐节审计)。
+ *
+ * 「只画背景」= 画完背景后仍走标准轨迹/物体渲染流程 —— 同一物理量会出现
+ * 两套表示 (装饰件 + 真实物体)。electric-field / magnetic-field 已在本轮
+ * 升级为专属整屏板书, 从这里移出 (#159 高中核心 24 节)。
+ */
+const SCENES_2D_CUSTOM_BG = new Set(['em-combined']);
 
 /** 第三章「相互作用——力」场景集合：完整自定义渲染，不走标准轨迹/物体绘制流程 */
 const SCENES_CHAPTER3 = new Set(['hooke-law', 'sliding-friction', 'force-composition', 'newton-third-law']);
@@ -328,7 +336,9 @@ const SCENES_ELECTROMAGNETISM = new Set([
     'em-wave-hertz',
     'eddy-current',
     'em-wave-communication',
-    'em-spectrum'
+    'em-spectrum',
+    'electric-field',
+    'magnetic-field'
 ]);
 
 /** 可视化缺口补建 8 场景集合 (Stage K) */
@@ -342,121 +352,6 @@ const SCENES_GAP = new Set([
     'ball-xt',
     'geiger-counter'
 ]);
-
-/** 绘制匀强电场线（渐变发光箭头，方向向上） */
-function drawElectricField(
-    ctx: CanvasRenderingContext2D,
-    _transformer: CoordinateTransformer,
-    width: number,
-    height: number,
-    isDark: boolean
-) {
-    const tokens = getThemeTokens(isDark);
-    const spacing = 60;
-    const baseColor = tokens.canvasEFieldAccent;
-
-    for (let x = spacing / 2; x < width; x += spacing) {
-        const startY = height - 30;
-        const endY = 30;
-        ctx.strokeStyle = tokens.canvasEFieldGlow;
-        ctx.lineWidth = 6;
-        ctx.beginPath();
-        ctx.moveTo(x, startY);
-        ctx.lineTo(x, endY + 12);
-        ctx.stroke();
-        const grad = ctx.createLinearGradient(x, startY, x, endY);
-        grad.addColorStop(0, hexToRgba(baseColor, 0.2));
-        grad.addColorStop(0.5, tokens.canvasEFieldGradient);
-        grad.addColorStop(1, tokens.canvasEFieldGradient);
-        ctx.strokeStyle = grad;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(x, startY);
-        ctx.lineTo(x, endY + 12);
-        ctx.stroke();
-        ctx.fillStyle = tokens.canvasEFieldArrow;
-        ctx.beginPath();
-        ctx.moveTo(x, endY);
-        ctx.lineTo(x - 7, endY + 14);
-        ctx.lineTo(x, endY + 9);
-        ctx.lineTo(x + 7, endY + 14);
-        ctx.closePath();
-        ctx.fill();
-    }
-
-    ctx.font = 'bold 13px sans-serif';
-    ctx.textAlign = 'right';
-    const lx = width - 12,
-        ly = 24;
-    const eLabel = 'E';
-    const tm = ctx.measureText(eLabel);
-    const arrowW = 18;
-    ctx.fillStyle = tokens.canvasHudBg;
-    ctx.fillRect(lx - tm.width - arrowW - 6, ly - 12, tm.width + arrowW + 10, 18);
-    ctx.fillStyle = baseColor;
-    ctx.fillText(eLabel, lx - arrowW, ly);
-    {
-        const ax = lx - arrowW + tm.width + 4,
-            ay = ly - 9;
-        ctx.strokeStyle = baseColor;
-        ctx.lineWidth = 2;
-        ctx.lineCap = 'round';
-        ctx.beginPath();
-        ctx.moveTo(ax + 5, ay + 12);
-        ctx.lineTo(ax + 5, ay);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(ax + 5, ay);
-        ctx.lineTo(ax + 1, ay + 5);
-        ctx.lineTo(ax + 9, ay + 5);
-        ctx.closePath();
-        ctx.fillStyle = baseColor;
-        ctx.fill();
-    }
-}
-
-/** 绘制匀强磁场符号（⊗ 画成圆圈+叉号，更精致） */
-function drawMagneticField(
-    ctx: CanvasRenderingContext2D,
-    _transformer: CoordinateTransformer,
-    width: number,
-    height: number,
-    isDark: boolean
-) {
-    const tokens = getThemeTokens(isDark);
-    const spacing = 70;
-    const r = 10;
-    const lineColor = tokens.canvasBFieldLine;
-    const circleColor = tokens.canvasBFieldCircle;
-
-    for (let x = spacing / 2; x < width; x += spacing) {
-        for (let y = spacing / 2; y < height; y += spacing) {
-            ctx.strokeStyle = circleColor;
-            ctx.lineWidth = 1.2;
-            ctx.beginPath();
-            ctx.arc(x, y, r, 0, Math.PI * 2);
-            ctx.stroke();
-            ctx.strokeStyle = lineColor;
-            ctx.lineWidth = 1.5;
-            const d = r * 0.55;
-            ctx.beginPath();
-            ctx.moveTo(x - d, y - d);
-            ctx.lineTo(x + d, y + d);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(x + d, y - d);
-            ctx.lineTo(x - d, y + d);
-            ctx.stroke();
-        }
-    }
-
-    ctx.font = 'bold 13px sans-serif';
-    ctx.textAlign = 'right';
-    ctx.textBaseline = 'top';
-    ctx.fillStyle = lineColor;
-    ctx.fillText('B (垂直纸面向里)', width - 12, 12);
-    ctx.textBaseline = 'alphabetic';
-}
 
 /** 绘制碰撞场景：两物体 3D 方块 + 阴影 + 高光 + 精致箭头 */
 function drawEMCombinedField(
@@ -920,7 +815,7 @@ export function SimulationCanvas() {
         // 每帧仅需一次 drawImage 合成. 跳过低级的逐帧 clear / grid / axes 绘制.
         const skipStaticDraws = usesStaticLayer;
 
-        // 自定义 2D 背景 (电场 / 磁场 / 碰撞 / 弹簧 / 斜面): 静态路径烘焙进离屏层,
+        // 自定义 2D 背景 (当前仅剩电磁复合场): 静态路径烘焙进离屏层,
         // 非静态路径 (gap 等自定义场景 / 无轨迹空状态) 直接绘制到主 canvas.
         let extraStaticDraw: ((c: CanvasRenderingContext2D) => void) | undefined;
         let extraSig = '';
@@ -928,11 +823,7 @@ export function SimulationCanvas() {
         // renderer-routing 自检正则误识别为主路由 switch (它匹配最近的 switch).
         if (!is3DScene && hasCustom2DBackground) {
             const drawBg = (c: CanvasRenderingContext2D) => {
-                if (currentScene === 'electric-field') {
-                    drawElectricField(c, transformer, cssW, cssH, isDark);
-                } else if (currentScene === 'magnetic-field') {
-                    drawMagneticField(c, transformer, cssW, cssH, isDark);
-                } else if (currentScene === 'em-combined') {
+                if (currentScene === 'em-combined') {
                     drawEMCombinedField(c, transformer, cssW, cssH, isDark, parameters);
                 }
             };
@@ -1299,6 +1190,12 @@ export function SimulationCanvas() {
                     break;
                 case 'em-spectrum':
                     drawEmSpectrumScene(sceneOpts);
+                    break;
+                case 'electric-field':
+                    drawElectricFieldScene(sceneOpts);
+                    break;
+                case 'magnetic-field':
+                    drawMagneticFieldScene(sceneOpts);
                     break;
                 case 'parallel-plate-capacitor':
                     drawParallelPlateCapacitorScene(sceneOpts);

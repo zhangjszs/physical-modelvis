@@ -278,13 +278,14 @@ export const CLASSROOM_SCRIPTS: Record<string, ClassroomScript> = {
         title: '带电粒子在匀强电场中的偏转',
         subtitle: '选择性必修第一册 / 第三册 · 静电场及其应用',
         goal: '掌握带电粒子在电场中的类平抛运动规律，理解电场力做功与电势能转化的物理过程。',
-        demoParams: { v0x: 10, Ey: 200, charge: 1.6, mass: 1.67 },
-        demoNote: '质子以 10 m/s 垂直电场线射入匀强电场（200 N/C），做匀变速曲线运动。',
+        demoParams: { v0x: 6, Ey: 20, charge: 2, mass: 2 },
+        demoNote:
+            '带电小球（q = 2×10⁻⁸ C，m = 2×10⁻⁷ kg）以 6 m/s 垂直电场线射入 20 N/C 匀强电场，做类平抛运动：水平前进 9 m，竖直偏转 2.25 m（a = qE/m = 2 m/s²）。',
         compareFocus: {
             paramName: 'Ey',
-            range: [50, 400],
+            range: [2, 40],
             count: 4,
-            description: '调节场强 Ey（50~400 N/C），对比粒子射出电场时的侧移量 y ∝ Ey。'
+            description: '调节场强 Ey（2~40 N/C），对比粒子射出电场时的侧移量 y ∝ Ey。'
         },
         quizzes: [
             {
@@ -314,13 +315,14 @@ export const CLASSROOM_SCRIPTS: Record<string, ClassroomScript> = {
         title: '带电粒子在匀强磁场中的圆周运动',
         subtitle: '选择性必修第二册 · 磁场与洛伦兹力',
         goal: '掌握左手定则判断洛伦兹力方向，掌握粒子在磁场中做匀速圆周运动的轨道半径与周期公式。',
-        demoParams: { v0x: 1000, Bz: 0.01, charge: 1.6, mass: 1.67 },
-        demoNote: '质子以 1000 m/s 垂直射入 0.01 T 匀强磁场，洛伦兹力提供向心力，做完整圆周运动。',
+        demoParams: { v0x: 35, Bz: 0.3, charge: 2, mass: 2 },
+        demoNote:
+            '带电小球（q = 2×10⁻⁶ C，m = 2×10⁻⁸ kg）以 35 m/s 垂直射入 0.3 T 匀强磁场（B ⊙ 出纸面），洛伦兹力提供向心力：回旋半径 R = mv/(qB) ≈ 1.17 m，周期 T = 2πm/(qB) ≈ 0.21 s。',
         compareFocus: {
             paramName: 'Bz',
-            range: [0.005, 0.05],
+            range: [0.1, 2],
             count: 4,
-            description: '改变磁感应强度 Bz（0.005~0.05 T），验证轨道半径 r ∝ 1/B。'
+            description: '改变磁感应强度 Bz（0.1~2 T），验证轨道半径 r ∝ 1/B。'
         },
         quizzes: [
             {

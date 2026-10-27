@@ -14,6 +14,8 @@
  * 本文件只做几何/数值断言, 不做像素断言 —— 后者由浏览器探针负责。
  */
 import { beforeAll, describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import * as THREE from 'three';
 import { loadAllScenes, getSceneSync } from '../../src/scenes/sceneRegistry';
 import { runSceneSimulation } from '../../src/adapters/physicsCoreAdapter';
@@ -139,6 +141,19 @@ import { STAGE_CENTER_X } from '../../src/components/simulation3d/rigs/params';
 import { readElectricFieldExtra, readWaveMediumFromResult } from '../../src/rendering/engineExtraAccess';
 import { readWaveMediumView, waveVerticalGain } from '../../src/rendering/waveMediumView';
 import { measurePendulumPeriod } from '../../src/rendering/pendulumMetrics';
+import { electricFieldReadouts, magneticFieldReadouts } from '../../src/rendering/chargedParticleScenes';
+import {
+    electricFieldRig,
+    electricFieldRigReadouts,
+    electricFieldUnitsPerMeter,
+    type ElectricFieldHandles
+} from '../../src/components/simulation3d/rigs/electricFieldRig';
+import {
+    magneticFieldRig,
+    magneticFieldRigReadouts,
+    magneticFieldUnitsPerMeter,
+    MAGNETIC_FIELD_CENTER_Y
+} from '../../src/components/simulation3d/rigs/magneticFieldRig';
 
 beforeAll(loadAllScenes);
 
@@ -1194,5 +1209,152 @@ describe('#159 高中核心·力的合成: 合力必须读引擎, 平行四边�
         const first = new THREE.Vector3().fromBufferAttribute(pts, 0);
         const last = new THREE.Vector3().fromBufferAttribute(pts, 4);
         expect(first.distanceTo(last)).toBeLessThan(1e-9);
+    });
+});
+
+describe('#159 高中核心·匀强电场: 类平抛必须读引擎, 标牌不得回退到不存在的参数', () => {
+    it('默认参数是演示用宏观量级: 全程亚光速 (旧版 64 倍光速违反引擎适用条件)', () => {
+        const { params, result } = simulate('electric-field');
+        const q = params['charge']! * 1e-8;
+        const m = params['mass']! * 1e-7;
+        const Ey = params['Ey']!;
+        const a = (q * Ey) / m;
+        // 引擎加速度必须等于 qE/m
+        expect(result.trajectories[0]![0]!.acceleration?.y ?? 0).toBeCloseTo(a, 9);
+        // 终态速度远小于光速
+        const vMax = result.diagnostics.maxValues.maxSpeed!;
+        expect(vMax).toBeLessThan(0.01 * 299792458);
+        // 旧默认 (质子 + 100 N/C) 会得到 1.92e10 m/s
+        expect(vMax).toBeLessThan(100);
+    });
+
+    it('引擎轨迹终点 = v₀x·t 与 ½at² (板书读数的几何依据)', () => {
+        const { params, result } = simulate('electric-field');
+        const t = params['duration']!;
+        const last = result.trajectories[0]![result.trajectories[0]!.length - 1]!;
+        const a = (params['charge']! * 1e-8 * params['Ey']!) / (params['mass']! * 1e-7);
+        expect(last.position.x).toBeCloseTo(params['v0x']! * t, 6);
+        expect(last.position.y).toBeCloseTo(0.5 * a * t * t, 6);
+    });
+
+    it('板书读数来自引擎当前帧 (source=engine), 且 a = qE/m', () => {
+        const { params, result } = simulate('electric-field');
+        const read = electricFieldReadouts(params, result, 0.75);
+        expect(read.source).toBe('engine');
+        const a = (params['charge']! * 1e-8 * params['Ey']!) / (params['mass']! * 1e-7);
+        expect(read.a).toBeCloseTo(a, 9);
+        expect(read.x).toBeCloseTo(params['v0x']! * 0.75, 6);
+        expect(read.y).toBeCloseTo(0.5 * a * 0.75 * 0.75, 6);
+        expect(read.maxSpeed).toBeCloseTo(result.diagnostics.maxValues.maxSpeed!, 9);
+    });
+
+    it('3D 标牌读引擎 (不再回退 params.U / params.v0 —— 场景里根本没有这两个参数)', () => {
+        const { params, result } = simulate('electric-field');
+        const read = electricFieldRigReadouts(params, result, 0.75);
+        expect(read.source).toBe('engine');
+        expect(read.chargeToMass).toBeCloseTo((params['charge']! * 1e-8) / (params['mass']! * 1e-7), 9);
+        expect(read.maxSpeed).toBeCloseTo(result.diagnostics.maxValues.maxSpeed!, 9);
+        // 旧实现回退 v₀ = 20 m/s (真值 4 m/s) —— 差 5 倍
+        expect(read.v).toBeLessThan(10);
+    });
+
+    it('3D 比例由引擎轨迹推导: 水平跨度铺满极板, 偏转量落在板间', () => {
+        const { params, result } = simulate('electric-field');
+        const scale = electricFieldUnitsPerMeter(params, result);
+        const traj = result.trajectories[0]!;
+        const last = traj[traj.length - 1]!;
+        // 水平跨度 → 极板长度 (2.8 世界单位)
+        expect(last.position.x * scale).toBeCloseTo(2.8, 6);
+        // 偏转量必须小于板间半间距
+        const halfGap = 0.9;
+        expect(Math.abs(last.position.y) * scale).toBeLessThan(halfGap);
+    });
+
+    it('极板极性与电场方向绑定: Ey<0 时上板为正极', () => {
+        const { params, result } = simulate('electric-field');
+        const scene = new THREE.Scene();
+        const built = electricFieldRig.buildEquipment(scene, params, result);
+        const h = built.handles as ElectricFieldHandles;
+        const plusY = h.plateHandles.plusLabel.position.y;
+        const minusY = h.plateHandles.minusLabel.position.y;
+        // 默认 Ey>0 → E 向上 → 下板 (+) 在下, 上板 (−) 在上
+        expect(plusY).toBeLessThan(minusY);
+        // Ey<0 → E 向下 → 上板 (+) 在上
+        const flipped = simulate('electric-field', { Ey: -10 });
+        const built2 = electricFieldRig.buildEquipment(new THREE.Scene(), flipped.params, flipped.result);
+        const h2 = built2.handles as ElectricFieldHandles;
+        expect(h2.plateHandles.plusLabel.position.y).toBeGreaterThan(h2.plateHandles.minusLabel.position.y);
+    });
+});
+
+describe('#159 高中核心·匀强磁场: 回旋半径/周期必须读引擎, 符号方向 ⊙ 出纸面', () => {
+    it('引擎 R = mv/(qB)、T = 2πm/(qB), 且速率恒定 (洛伦兹力不做功)', () => {
+        const { params, result } = simulate('magnetic-field');
+        const q = params['charge']! * 1e-6;
+        const m = params['mass']! * 1e-8;
+        const B = params['Bz']!;
+        const v = params['v0x']!;
+        const R = result.diagnostics.maxValues.cyclotronRadius!;
+        const T = result.diagnostics.maxValues.cyclotronPeriod!;
+        expect(R).toBeCloseTo((m * v) / (q * B), 9);
+        expect(T).toBeCloseTo((2 * Math.PI * m) / (q * B), 9);
+        // 速率守恒
+        const speeds = result.trajectories[0]!.map(p => Math.hypot(p.velocity.x, p.velocity.y));
+        expect(Math.max(...speeds) - Math.min(...speeds)).toBeLessThan(1e-6);
+    });
+
+    it('默认参数下能看到完整回旋 (旧版 R=1 mm, 10 ms 内绕 1500 圈)', () => {
+        const { params, result } = simulate('magnetic-field');
+        const T = result.diagnostics.maxValues.cyclotronPeriod!;
+        expect(params['duration']! / T).toBeGreaterThan(1.5);
+        expect(params['duration']! / T).toBeLessThan(6);
+        // 轨道半径落在「看得见」的世界尺度
+        expect(result.diagnostics.maxValues.cyclotronRadius!).toBeGreaterThan(0.1);
+    });
+
+    it('3D 标牌读引擎 R/T (旧版回退 v₀ = 1.0e+6 m/s, 真值 25 m/s)', () => {
+        const { params, result } = simulate('magnetic-field');
+        const read = magneticFieldRigReadouts(params, result, 0.1);
+        expect(read.source).toBe('engine');
+        expect(read.radius).toBeCloseTo(result.diagnostics.maxValues.cyclotronRadius!, 9);
+        expect(read.period).toBeCloseTo(result.diagnostics.maxValues.cyclotronPeriod!, 9);
+        // 引擎按固定步长采样, 帧间线性插值取到的速率与 v₀ 有 1e-4 量级相对偏差
+        expect(Math.abs(read.v - params['v0x']!) / params['v0x']!).toBeLessThan(1e-3);
+        expect(read.v).toBeLessThan(1000);
+    });
+
+    it('3D 轨道由引擎半径推导: 轨道世界半径 = 磁腔半径 × 0.66, 粒子不超出磁腔', () => {
+        const { params, result } = simulate('magnetic-field');
+        const scale = magneticFieldUnitsPerMeter(params, result);
+        const R = result.diagnostics.maxValues.cyclotronRadius!;
+        expect(R * scale).toBeCloseTo(1.6 * 0.66, 6);
+        // 起点到圆心的世界距离 = 轨道半径
+        const origin = magneticFieldRig.getOrigin(params, result);
+        const center = new THREE.Vector3(0, MAGNETIC_FIELD_CENTER_Y, 0);
+        expect(origin.distanceTo(center)).toBeCloseTo(R * scale, 6);
+    });
+
+    it('正电荷 + B 出纸面 → 圆心在起点下方 (引擎与渲染同向)', () => {
+        const { params, result } = simulate('magnetic-field');
+        const acc0 = result.trajectories[0]![0]!.acceleration;
+        // q>0, B>0 → F = q(vyB, −vxB) → 向下
+        expect(acc0?.y ?? 0).toBeLessThan(0);
+        const read = magneticFieldReadouts(params, result, 0);
+        expect(read.center.y).toBeLessThan(0);
+    });
+
+    it('渲染层画的是 ⊙ 出纸面, 不是 ⊗ 入纸面 (引擎 B 恒为 +z)', () => {
+        // 注释里会提到旧实现的 ⊗ (说明「旧版画反了」), 断言只看实际绘制代码
+        const stripComments = (src: string): string => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+        const boardSrc = stripComments(
+            readFileSync(resolve(__dirname, '../../src/rendering/chargedParticleScenes.ts'), 'utf-8')
+        );
+        const rigSrc = stripComments(
+            readFileSync(resolve(__dirname, '../../src/components/simulation3d/rigs/magneticFieldRig.ts'), 'utf-8')
+        );
+        expect(boardSrc).toContain('⊙');
+        expect(rigSrc).toContain('⊙');
+        expect(boardSrc).not.toContain('⊗');
+        expect(rigSrc).not.toContain('⊗');
     });
 });

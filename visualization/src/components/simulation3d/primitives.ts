@@ -164,6 +164,27 @@ export function redrawTextSprite(sprite: THREE.Sprite, text: string, color = '#3
     updateTextSprite(sprite, text, color, fontSize);
 }
 
+/**
+ * 按目标**字高** (世界单位) 重设文字精灵尺寸。
+ *
+ * `makeTextSprite` 的 scale.x 随文本长度放大 (长文本 → 画布变宽 → sprite 变宽)，
+ * 一条 60 字的读数会撑成横贯画面的巨幅字带 (旧电场/磁场 rig 的读数条就是这样
+ * 出框的)。本函数固定字高, 文字变长时标牌等比变宽 —— 版面宽度仍由文本长度
+ * 决定, 但字不会被压扁, 也不会因数字位数变化而忽大忽小。
+ *
+ * 必须在每次 `setLabel` / `updateTextSprite` 之后调用 (换文本会重建贴图)。
+ */
+export function setSpriteGlyphHeight(sprite: THREE.Sprite, glyphHeight: number): void {
+    const material = sprite.material as THREE.SpriteMaterial;
+    const canvas = material.map?.image as HTMLCanvasElement | undefined;
+    if (!canvas || canvas.width === 0 || canvas.height === 0) return;
+    const fontSize = typeof sprite.userData.textFontSize === 'number' ? sprite.userData.textFontSize : 24;
+    // 画布像素 → 世界单位的比例: 世界高 = 画布高 × scale.y
+    const scaleY = (glyphHeight * canvas.height) / fontSize;
+    // 保持像素不变形: 世界宽/画布宽 = 世界高/画布高
+    sprite.scale.set((scaleY * canvas.width) / canvas.height, scaleY, 1);
+}
+
 export interface TextPanelOptions {
     /** 面板标题（加粗、主题色） */
     title?: string;

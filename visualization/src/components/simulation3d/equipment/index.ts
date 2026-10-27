@@ -19,7 +19,7 @@ export { createPendulum } from './pendulum';
 export { createLauncher, updateLauncher, getVisualLaunchPoint, BARREL_LENGTH, VISUAL_MUZZLE_HEIGHT } from './launcher';
 export { createHelicalSpring, updateHelicalSpring } from './helicalSpring';
 export { createLinearTrack, updateLinearTrack } from './linearTrack';
-export { createDeflectionPlates } from './deflectionPlates';
+export { createDeflectionPlates, updateDeflectionPlateGeometry, updateDeflectionPolarity } from './deflectionPlates';
 export { createOpticalDisk, updateOpticalDisk } from './opticalDisk';
 export { createResistanceBoard, updateResistanceBoard } from './resistanceBoard';
 export { createPhototube } from './phototube';

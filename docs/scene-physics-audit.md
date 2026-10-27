@@ -13,12 +13,12 @@
 | `spring` | 力学 | 弹簧振子 | spring-oscillator | ? | 0.16 | n/a | 1动/1条·3图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
 | `inclined-plane` | 力学 | 斜面运动 | inclined-plane | inclineRig | 0.16 | 1/2 | 1动/1条·3图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
 | `circular-motion` | 力学 | 匀速圆周运动 (向心力) | uniform-circular-motion | circularMotionRig | 0.6 | n/a | 1动/1条·6图 | OK | 通过 | — | worldScale=0.6 有意偏差: 注释论证「1m 半径→0.6 单位」使小半径圆周可见, 球径按半径等比缩放(BALL_RADIUS_RATIO=0.12, MIN/MAX clamp), 有自定义 framing 与力/速度矢量; 复核无问题 |
-| `orbital` | 力学 | 万有引力与航天 (卫星轨道) | orbital | ? | 0.16 | n/a | 1动/1条·5图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `orbital` | 力学 | 万有引力与航天 (卫星轨道) | orbital | ? | 0.16 | n/a | 1动/1条·5图 | OK | 通过 | — | #159 高中核心 24 节逐节复核: 引擎 vOrbit=7.672594 km/s / minR=6771 km / vEscape=10.850687 km/s / orbitPeriod=5544.86 s 四量自洽, 画面↔引擎逐项无偏差 → 三类均判定通过 |
 | `air-track` | 力学 | 气垫导轨测速度 | uniform-linear | airTrackRig | 0.16 | 3/3 | 1动/1条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
 | `energy-conservation` | 力学 | 机械能守恒定律 (动能↔势能) | uniform-accelerated | fallingEnergyRig | 0.16 | 1/2 | 1动/1条·5图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
 | `momentum` | 力学 | 动量定理与反冲 | momentum | ? | 0.16 | n/a | 1动/1条·4图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
-| `mechanical-wave` | 力学 | 机械波 (横波/纵波/干涉) | mechanical-wave | waveRig | 1 | 3/3 | 82动/82条·3图 | OK | P2 | 通过 | worldScale=1 有意偏差, #160 已论证(介质4m→4单位) |
-| `simple-pendulum` | 力学 | 单摆 (简谐运动) | simple-pendulum | pendulumRig | 1 | n/a | 1动/1条·5图 | OK | P2 | 通过 | worldScale=1 (1单位=1米) 有意偏差, #160 已论证 |
+| `mechanical-wave` | 力学 | 机械波 (横波/纵波/干涉) | mechanical-wave | waveRig | 1 | 3/3 | 82动/82条·3图 | OK | P2 | 通过 | worldScale=1 有意偏差, #160 已论证(介质4m→4单位); #159 高中核心逐节复核: waveSpeed=1=f·λ、λ=0.5 m、f=2 Hz、k=ω=12.5664 自洽, 9 质点相位互异 → 三类均判定通过 |
+| `simple-pendulum` | 力学 | 单摆 (简谐运动) | simple-pendulum | pendulumRig | 1 | n/a | 1动/1条·5图 | OK | P2 | 通过 | worldScale=1 (1单位=1米) 有意偏差, #160 已论证; #159 高中核心逐节复核: 引擎 periodSmall=2.007090 s 与 2π√(L/g) 逐位一致, 轨迹 ±L·sin15°=±0.2588 m → 三类均判定通过 |
 | `hooke-law` | 力学 | 胡克定律 F=kx | spring-oscillator | hookeLawRig | 0.16 | 1/2 | 1动/1条·3图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
 | `sliding-friction` | 力学 | 滑动摩擦力 f=μN | sliding-friction | slidingFrictionRig | 0.16 | 4/4 | 2动/2条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
 | `force-composition` | 力学 | 力的合成 (平行四边形定则) | force-composition | forceCompositionRig | 0.16 | 3/3 | 1动/1条·1图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
@@ -50,8 +50,8 @@
 | `newton-tube` | 力学 | 牛顿管 (真空 vs 空气) | uniform-accelerated | newtonTubeRig | 0.16 | 3/3 | 1动/1条·5图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
 | `work-energy` | 力学 | 动能定理 W = ΔEk | uniform-accelerated | workEnergyRig | 0.16 | 3/3 | 1动/1条·5图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
 | `ball-xt` | 力学 | 小球 x-t 图像 (简谐运动) | simple-pendulum | ballXtRig | 0.16 | 4/4 | 1动/1条·5图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
-| `electric-field` | 电磁学 | 匀强电场 | uniform-electric-field | electricFieldRig | 0.16 | 0/3 | 1动/1条·4图 | SLOW | 通过(基线) |  | 2D 截图慢为探针软件渲染伪影：QA sweep 切换耗时最长 1348ms（预算 25000ms）正常、无 WARN → 非产品性能缺陷；fieldRig 语义错配见 efield-lines 行 |
-| `magnetic-field` | 电磁学 | 匀强磁场 | uniform-magnetic-field | magneticFieldRig | 0.16 | 1/4 | 1动/1条·3图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `electric-field` | 电磁学 | 匀强电场 | uniform-electric-field | electricFieldRig | 1 | 0/3 | 1动/1条·4图 | OK | 已修复 | — | #159 高中核心逐节复核(阻断级): 旧默认 q=1.6e-19 C/m=1.67e-27 kg/Ey=100 N/C → a=9.58e9 m/s²、v=64 倍光速; 3D 标牌读不存在的 params.U/v0 (回退 100 V / 20 m/s); 极板极性与 E 方向相反; 比例写死 0.16。已改为宏观量级 (q=2e-8 C, m=2e-7 kg, Ey=10 N/C → a=1 m/s², x=6 m, y=1.125 m), 比例由引擎轨迹推导, 专属 2D 板书 + 引擎驱动 3D rig, 新增 6 条契约断言 |
+| `magnetic-field` | 电磁学 | 匀强磁场 | uniform-magnetic-field | magneticFieldRig | 1 | 1/4 | 1动/1条·3图 | OK | 已修复 | — | #159 高中核心逐节复核(阻断级): 旧默认 R=1.04 mm、10 ms 绕 15248 圈, 只剩静止大球; 2D/3D 画 ⊗(入纸面) 而引擎 B 恒为 +z(⊙ 出纸面); 标牌读不存在的 params.v/v0 (回退 1e6 m/s, 错 1000 倍); 半透明磁腔写深度遮掉腔内轨迹。已改为 q=2e-6 C, m=2e-8 kg, B=0.5 T, v0=25 m/s → R=0.5 m, T=0.1257 s; ⊙ 出纸面; 轨道比例由引擎回旋半径推导; 新增 6 条契约断言 |
 | `em-combined` | 电磁学 | 电磁复合场 | em-combined-field | emCombinedRig | 0.32 | 3/5 | 1动/1条·4图 | OK | P2 | 通过 | worldScale=0.32 有意偏差, #160 已论证 |
 | `circuit` | 电磁学 | 直流电路分析 (串并联) | circuit | ? | 0.16 | n/a | 0动/1条·3图 | OK | 通过 | — | 通过(示意): 3D 为器械示意几何, 定量曲线与读数在 2D 板书+数据抽屉; 全量复扫 123 景 0 crash/error/空白、QA sweep 抽屉 123/123 无错、交互 0 不随动 |
 | `magnetic-force` | 电磁学 | 安培力与洛伦兹力 | magnetic-force | ampereForceRig | 0.16 | 4/8 | 1动/1条·1图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
