@@ -117,7 +117,9 @@ export function makeTextSprite(
     sprite.scale.set(scale.x * (width / TEXT_CANVAS_MIN_WIDTH), scale.y, 1);
     sprite.userData.textFontSize = fontSize;
     sprite.userData.textWidth = textWidth;
-
+    // 保留当前文字原文 —— 契约测试要断言「标牌读数 == 引擎输出」,
+    // 过去只能靠肉眼读贴图, 现在可在测试里直接读 userData.text。
+    sprite.userData.text = text;
     drawCenteredText(canvas, ctx, text, color, fontSize, canvas.height / 2);
     texture.needsUpdate = true;
     return sprite;
@@ -137,6 +139,8 @@ export function updateTextSprite(sprite: THREE.Sprite, text: string, color = '#3
     const textWidth = measureTextWidth(ctx, text, fontSize);
     const needed = Math.ceil(textWidth + TEXT_PADDING_X * 2);
     sprite.userData.textWidth = textWidth;
+    // 保留当前文字原文 (契约测试读标牌数值用, 见 makeTextSprite 同处注释)
+    sprite.userData.text = text;
     if (needed > canvas.width) {
         const factor = needed / canvas.width;
         canvas.width = needed;

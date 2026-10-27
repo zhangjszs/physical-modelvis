@@ -22,12 +22,12 @@ export const uniform_acceleratedScene: SceneConfig = {
             name: 'v0y',
             label: '竖直初速度 vy₀',
             unit: 'm/s',
-            value: 0,
+            value: 20,
             min: -50,
             max: 50,
             step: 1,
-            default: 0,
-            description: '竖直方向初速度（向上为正）'
+            default: 20,
+            description: '竖直方向初速度（向上为正）；设为 0 即退化为自由落体'
         },
         {
             name: 'g',
@@ -44,12 +44,12 @@ export const uniform_acceleratedScene: SceneConfig = {
             name: 'duration',
             label: '模拟时长',
             unit: 's',
-            value: 3,
+            value: 5,
             min: 0.5,
             max: 30,
             step: 0.5,
-            default: 3,
-            description: '仿真的总时长'
+            default: 5,
+            description: '仿真的总时长（默认 5 s 覆盖 h₀=20m / v₀y=20m/s 的完整上抛—落地过程）'
         }
     ],
     buildProblem: params => {

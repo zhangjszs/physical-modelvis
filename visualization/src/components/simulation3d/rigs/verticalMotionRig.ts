@@ -3,6 +3,7 @@
  * 统一释放高度 h₀、相对上升高度 Δh 与绝对最高点高度 H_max = h₀ + Δh
  */
 import * as THREE from 'three';
+import type { SimulationResult } from 'physics-core';
 import { SceneRig } from '../EquipmentStage';
 import { createHeightRuler, updateHeightRuler, type HeightRulerHandles } from '../equipment/heightRuler';
 import { makeBox, makeCylinder, makeTextSprite } from '../primitives';
@@ -26,16 +27,77 @@ export interface VerticalHandles {
     infoLabel: THREE.Sprite;
 }
 
-function resolveVerticalParams(params: Record<string, number>) {
+/**
+ * 竖直运动读数 — **单一真源: 引擎轨迹** (#159 逐节审计)
+ *
+ * 旧实现在 rig 内用 `Δh = v₀y²/(2g)` / `H_max = h₀ + Δh` 自算物理。
+ * 数值上与引擎一致, 但那是「渲染层第二套公式」: 引擎一旦改模型 (加空气阻力 /
+ * 改地面约束 / 改采样), 标牌就会与轨迹分叉。本函数改为从引擎轨迹读出
+ *   释放高度 h₀ / 最高点 H_max 及其时刻 t_up / 落地时刻 t_ground,
+ * 无引擎结果时才回退到解析式 (防御空结果)。
+ */
+export interface VerticalMotionReadouts {
+    h0: number;
+    v0y: number;
+    g: number;
+    /** 相对释放点的上升高度 Δh = H_max − h₀ */
+    deltaH: number;
+    /** 最高点离地高度 */
+    hMax: number;
+    /** 到达最高点的时刻 */
+    tUp: number;
+    /** 落地时刻 (轨迹首次触地) */
+    tGround: number;
+    /** 读数来源: engine = 引擎轨迹, fallback = 无引擎时的解析兜底 */
+    source: 'engine' | 'fallback';
+}
+
+export function verticalMotionReadouts(
+    params: Record<string, number>,
+    result?: SimulationResult | null
+): VerticalMotionReadouts {
     const h0 = Math.max(0, num(params['height'] ?? params['h0'], 20));
     const v0y = num(params['v0y'], 0);
     const g = Math.max(0.1, num(params['g'], 9.8));
+
+    const traj = result?.trajectories?.[0] ?? [];
+    if (traj.length > 0) {
+        let hMax = h0;
+        let tUp = 0;
+        let tGround: number | null = null;
+        for (const p of traj) {
+            if (p.position.y > hMax) {
+                hMax = p.position.y;
+                tUp = p.t;
+            }
+            if (tGround === null && p.t > 0 && p.position.y <= 0) tGround = p.t;
+        }
+        const fallbackGround = tUp > 0 ? tUp + Math.sqrt((2 * hMax) / g) : Math.sqrt((2 * h0) / g);
+        return {
+            h0,
+            v0y,
+            g,
+            deltaH: Math.max(0, hMax - h0),
+            hMax,
+            tUp,
+            tGround: tGround ?? fallbackGround,
+            source: 'engine'
+        };
+    }
+
     const deltaH = v0y > 0 ? (v0y * v0y) / (2 * g) : 0;
     const hMax = h0 + deltaH;
     const tUp = v0y > 0 ? v0y / g : 0;
-    const visualH0 = BALL_RADIUS + h0 * WORLD_SCALE;
-    const visualHMax = BALL_RADIUS + hMax * WORLD_SCALE;
-    return { h0, v0y, g, deltaH, hMax, tUp, visualH0, visualHMax };
+    return {
+        h0,
+        v0y,
+        g,
+        deltaH,
+        hMax,
+        tUp,
+        tGround: tUp > 0 ? tUp + Math.sqrt((2 * hMax) / g) : Math.sqrt((2 * h0) / g),
+        source: 'fallback'
+    };
 }
 
 /** 仅本 rig 自适应多行纹理；实际字宽决定画布宽度，世界尺寸保持字形比例。 */
@@ -78,9 +140,34 @@ export const verticalMotionRig: SceneRig = {
     ballRadius: BALL_RADIUS,
     clampToGround: true,
 
-    buildEquipment(scene, params) {
+    /**
+     * 自定义取景 (#159 逐节审计):
+     * 舞台的通用自动取景按轨迹包围盒算 `dist = max(5.5, spanX·0.9, spanY·1.8)`,
+     * 对「从 20 m 抛到 40 m」的竖直上抛, 透视相机的俯角会把最高点顶到视口边缘 ——
+     * 实测小球被裁在画面上沿 (只露出半个球)。
+     * 这里按「整条竖直通道必须完整可见」显式给取景:
+     *   通道跨度 = (H_max + 0.6) × WORLD_SCALE, 相机距离随跨度线性放大。
+     */
+    framing(params, result) {
+        const read = verticalMotionReadouts(params, result);
+        const span = Math.max(1.2, (read.hMax + 0.6) * WORLD_SCALE);
+        const target: [number, number, number] = [0, span / 2, 0];
+        // 相机 FOV 45° → 目标平面可视高度 ≈ 0.828·distance; 1.6 倍余量保证整条通道完整可见。
+        // 仰角压到很小 (distance·0.08), 否则俯视会把最高点顶出视口上沿。
+        const distance = Math.max(6, span * 1.6);
+        return {
+            target,
+            position: [target[0] + distance * 0.06, target[1] + distance * 0.08, distance * 0.95],
+            distance
+        };
+    },
+
+    buildEquipment(scene, params, result) {
         const group = new THREE.Group();
-        const { h0, v0y, g, visualH0, visualHMax } = resolveVerticalParams(params);
+        const read = verticalMotionReadouts(params, result);
+        const { h0 } = read;
+        const visualH0 = BALL_RADIUS + h0 * WORLD_SCALE;
+        const visualHMax = BALL_RADIUS + read.hMax * WORLD_SCALE;
 
         // 1. 嵌入式接料垫：实际顶面为 y=0，与既定球底/轨迹/残影接触面一致。
         const landingPad = new THREE.Group();
@@ -158,15 +245,14 @@ export const verticalMotionRig: SceneRig = {
             infoLabel
         };
 
-        updateVertical(handles, h0, v0y, g);
+        updateVertical(handles, read);
 
         return { group, handles };
     },
 
-    updateEquipment(handles, params) {
+    updateEquipment(handles, params, result) {
         const h = handles as VerticalHandles;
-        const { h0, v0y, g } = resolveVerticalParams(params);
-        updateVertical(h, h0, v0y, g);
+        updateVertical(h, verticalMotionReadouts(params, result));
     },
 
     getVisualPosition(pos, _params) {
@@ -175,16 +261,14 @@ export const verticalMotionRig: SceneRig = {
         return new THREE.Vector3(pos.x * WORLD_SCALE, visualY, 0);
     },
 
-    getOrigin(params) {
-        const { visualH0 } = resolveVerticalParams(params);
-        return new THREE.Vector3(0, visualH0, 0);
+    getOrigin(params, result) {
+        const read = verticalMotionReadouts(params, result);
+        return new THREE.Vector3(0, BALL_RADIUS + read.h0 * WORLD_SCALE, 0);
     }
 };
 
-function updateVertical(h: VerticalHandles, h0: number, v0y: number, g: number): void {
-    const deltaH = v0y > 0 && g > 0 ? (v0y * v0y) / (2 * g) : 0;
-    const hMax = h0 + deltaH;
-    const tUp = v0y > 0 && g > 0 ? v0y / g : 0;
+function updateVertical(h: VerticalHandles, read: VerticalMotionReadouts): void {
+    const { h0, v0y, g, deltaH, hMax, tUp } = read;
     const visualH0 = BALL_RADIUS + h0 * WORLD_SCALE;
     const visualHMax = BALL_RADIUS + hMax * WORLD_SCALE;
 

@@ -5,7 +5,6 @@
 import * as THREE from 'three';
 import { SceneRig } from '../EquipmentStage';
 import { createIronStand } from '../equipment/ironStand';
-import { createRangeTape } from '../equipment/rangeTape';
 import { createHeightRuler, updateHeightRuler } from '../equipment/heightRuler';
 import { makeBox, makeCylinder, makeTextSprite } from '../primitives';
 import { num, setLabel } from './params';
@@ -13,14 +12,13 @@ import { num, setLabel } from './params';
 const WORLD_SCALE = 0.16;
 const BALL_RADIUS = 0.22;
 
-interface FreeFallHandles {
+export interface FreeFallHandles {
     standGroup: THREE.Group;
     standHandles: ReturnType<typeof createIronStand>['handles'];
     standInitialH: number;
     magnetHead: THREE.Group;
     landingPad: THREE.Group;
     heightHandles: ReturnType<typeof createHeightRuler>['handles'];
-    rangeTape: THREE.Group;
     releaseLabel: THREE.Sprite;
 }
 
@@ -68,10 +66,10 @@ export const freeFallRig: SceneRig = {
         const { group: heightGroup, handles: heightHandles } = createHeightRuler();
         scene.add(heightGroup);
 
-        // 6. 地面卷尺
-        const { group: rangeTape } = createRangeTape(6.0, 30);
-        rangeTape.position.set(0, 0.035, 1.2);
-        scene.add(rangeTape);
+        // 6. 旧实现的「地面卷尺」已删除 (#159 逐节审计):
+        //    自由落体是**纯竖直**运动, 水平位移恒为 0 —— 地面上的水平卷尺既测不到东西,
+        //    又与本 rig 的 worldScale 口径打架 (5 m/单位 vs 实际 6.25 m/单位)。
+        //    真正需要读的量是「下落高度」, 已由左侧高度尺 + 释放点标牌承担。
 
         const group = new THREE.Group();
         return {
@@ -83,7 +81,6 @@ export const freeFallRig: SceneRig = {
                 magnetHead,
                 landingPad,
                 heightHandles,
-                rangeTape,
                 releaseLabel
             }
         };

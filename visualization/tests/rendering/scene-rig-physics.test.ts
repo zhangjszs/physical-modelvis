@@ -104,6 +104,23 @@ import {
 } from '../../src/components/simulation3d/rigs/measurementToolRig';
 import { efieldLinesRig, type EfieldHandles } from '../../src/components/simulation3d/rigs/efieldLinesRig';
 import { coulombRig, type CoulombHandles } from '../../src/components/simulation3d/rigs/coulombRig';
+import {
+    verticalMotionRig,
+    verticalMotionReadouts,
+    type VerticalHandles
+} from '../../src/components/simulation3d/rigs/verticalMotionRig';
+import {
+    freeFallReadouts,
+    verticalMotionBoardReadouts,
+    projectileBoardReadouts
+} from '../../src/rendering/chapter1Scenes';
+import {
+    projectileRig,
+    projectileReadouts,
+    type ProjectileHandles
+} from '../../src/components/simulation3d/rigs/projectileRig';
+import { freeFallRig, type FreeFallHandles } from '../../src/components/simulation3d/rigs/freeFallRig';
+import { createRangeTape } from '../../src/components/simulation3d/equipment/rangeTape';
 import { STAGE_CENTER_X } from '../../src/components/simulation3d/rigs/params';
 import { readElectricFieldExtra, readWaveMediumFromResult } from '../../src/rendering/engineExtraAccess';
 import { readWaveMediumView, waveVerticalGain } from '../../src/rendering/waveMediumView';
@@ -705,5 +722,165 @@ describe('#164 测量工具 3D 取景: 器械居中放大且不画默认占位�
             expect(f).toBeDefined();
             expect(f!.distance!).toBeLessThan(4);
         }
+    });
+});
+
+// ============================================================================
+// #159 Phase 2 — 《高中核心》24 节逐节审计 (批次 A: 抛体 / 自由落体 / 竖直运动)
+// ============================================================================
+
+describe('#159 高中核心·自由落体: 落地后板书读数必须冻结在落地值, 不得显示穿地外推量', () => {
+    it('引擎确实把轨迹外推到地面以下 (问题存在的证据)', () => {
+        const { result } = simulate('free-fall');
+        const traj = result.trajectories[0]!;
+        const minY = Math.min(...traj.map(p => p.position.y));
+        // h₀=20m, duration=3s → 自由落体外推到 y = −24.1m
+        expect(minY).toBeLessThan(-20);
+    });
+
+    it('板书读数: s ≤ h₀ 且 v ≤ 落地冲击速度 √(2gh₀)', () => {
+        const { params, result } = simulate('free-fall');
+        const h0 = params['height']!;
+        const g = params['g']!;
+        const vImpact = Math.sqrt(2 * g * h0);
+        for (const t of [0.5, 1.5, 2.0, 2.5, 3.0]) {
+            const read = freeFallReadouts(params, result, t);
+            expect(read.s).toBeLessThanOrEqual(h0 + 1e-9);
+            expect(read.v).toBeLessThanOrEqual(vImpact + 1e-9);
+        }
+    });
+
+    it('落地时刻: 读数冻结、时钟停在落地时刻', () => {
+        const { params, result } = simulate('free-fall');
+        const read = freeFallReadouts(params, result, 3);
+        expect(read.landed).toBe(true);
+        expect(read.t).toBeCloseTo(read.tImpact, 9);
+        expect(read.s).toBeCloseTo(params['height']!, 6);
+        expect(read.v).toBeCloseTo(Math.sqrt(2 * params['g']! * params['height']!), 6);
+    });
+
+    it('落地前读数与解析解一致 (未落地时不得被夹住)', () => {
+        const { params, result } = simulate('free-fall');
+        const g = params['g']!;
+        const read = freeFallReadouts(params, result, 1.5);
+        expect(read.landed).toBe(false);
+        expect(read.s).toBeCloseTo(0.5 * g * 1.5 * 1.5, 6);
+        expect(read.v).toBeCloseTo(g * 1.5, 6);
+    });
+});
+
+describe('#159 高中核心·竖直运动: 3D 标牌与板书必须读引擎轨迹, 且默认参数能演示上抛', () => {
+    it('默认参数不再是「与自由落体同形」(v₀y > 0)', () => {
+        const config = getSceneSync('uniform-accelerated')!;
+        const v0y = config.parameters.find(p => p.name === 'v0y')!;
+        expect(v0y.default).toBeGreaterThan(0);
+    });
+
+    it('板书最高点 H_max / 上升时间 t_up 读引擎轨迹', () => {
+        const { params, result } = simulate('uniform-accelerated');
+        const read = verticalMotionBoardReadouts(params, result, 0);
+        // 解析值: Δh = v₀y²/(2g), t_up = v₀y/g
+        const g = params['g']!;
+        const v0y = params['v0y']!;
+        expect(read.hMax).toBeCloseTo(params['height']! + (v0y * v0y) / (2 * g), 3);
+        expect(read.tUp).toBeCloseTo(v0y / g, 2);
+        expect(read.deltaH).toBeCloseTo((v0y * v0y) / (2 * g), 3);
+        // 引擎轨迹自身的最高点必须与板书一致 (画面 ≡ 引擎)
+        const engineMax = Math.max(...result.trajectories[0]!.map(p => p.position.y));
+        expect(read.hMax).toBeCloseTo(engineMax, 3);
+    });
+
+    it('落地时刻来自引擎轨迹首次触地, 之后读数冻结在地面', () => {
+        const { params, result } = simulate('uniform-accelerated');
+        const read = verticalMotionBoardReadouts(params, result, 5);
+        expect(read.landed).toBe(true);
+        expect(read.y).toBe(0);
+        expect(read.t).toBeCloseTo(read.tGround, 9);
+    });
+
+    it('3D rig 标牌读引擎 (verticalMotionReadouts.source === engine)', () => {
+        const { params, result } = simulate('uniform-accelerated');
+        const read = verticalMotionReadouts(params, result);
+        expect(read.h0).toBe(params['height']!);
+        expect(read.source).toBe('engine');
+        const engineMax = Math.max(...result.trajectories[0]!.map(p => p.position.y));
+        expect(read.hMax).toBeCloseTo(engineMax, 6);
+        expect(read.deltaH).toBeCloseTo(read.hMax - read.h0, 6);
+    });
+
+    it('3D rig 的最高点标记高度 = 引擎最高点 × 尺度 (装置与画面口径一致)', () => {
+        const { params, result } = simulate('uniform-accelerated');
+        const scene = new THREE.Scene();
+        const built = verticalMotionRig.buildEquipment(scene, params, result);
+        scene.add(built.group);
+        const h = built.handles as VerticalHandles;
+        const read = verticalMotionReadouts(params, result);
+        // 最高点标记的世界高度 = 球半径 + H_max × WORLD_SCALE
+        expect(h.apexMarker.position.y).toBeCloseTo(0.22 + read.hMax * 0.16, 6);
+        // 释放架的世界高度 = 球半径 + h₀ × WORLD_SCALE
+        expect(h.launcherBase.position.y).toBeCloseTo(0.22 + params['height']! * 0.16, 6);
+    });
+});
+
+describe('#159 高中核心·抛体运动: 落点/射程读引擎, 卷尺与场景尺度同源', () => {
+    it('引擎射程 = 轨迹终点横坐标 (引擎「落地即止」契约)', () => {
+        const { result } = simulate('projectile');
+        const traj = result.trajectories[0]!;
+        const last = traj[traj.length - 1]!;
+        const range = result.diagnostics.maxValues.range!;
+        expect(last.position.x).toBeCloseTo(range, 6);
+        expect(last.position.y).toBeLessThanOrEqual(1e-6);
+    });
+
+    it('3D rig 落点垫位置 = 引擎射程 × 场景尺度 (画面落点 ≡ 引擎落点)', () => {
+        const { params, result } = simulate('projectile');
+        const scene = new THREE.Scene();
+        const built = projectileRig.buildEquipment(scene, params, result);
+        scene.add(built.group);
+        const h = built.handles as ProjectileHandles;
+        projectileRig.updateEquipment(h, params, result);
+        const range = result.diagnostics.maxValues.range!;
+        expect(h.landingPad.position.x).toBeCloseTo(range * 0.16, 6);
+    });
+
+    it('projectileReadouts 走引擎 maxValues (source === engine)', () => {
+        const { params, result } = simulate('projectile');
+        const read = projectileReadouts(params, result);
+        expect(read.source).toBe('engine');
+        expect(read.range).toBe(result.diagnostics.maxValues.range!);
+        expect(read.apexHeight).toBe(result.diagnostics.maxValues.apexHeight!);
+    });
+
+    it('地面卷尺刻度与 worldScale 同源: 1 世界单位 = 1/0.16 米', () => {
+        // 旧实现 createRangeTape(14, 70) → 5 m/单位, 与 worldScale(6.25 m/单位) 打架
+        const { group } = createRangeTape(8.0, 1 / 0.16);
+        const labels = group.children.filter(
+            c => c.userData && typeof c.userData.text === 'string' && /^\d+$/.test(c.userData.text)
+        );
+        expect(labels.length).toBeGreaterThan(0);
+        // 第 1 格 = 1 单位 = 6.25 m → 标签应为 "6"
+        const first = labels[0]!.userData.text as string;
+        expect(Number(first)).toBeCloseTo(Math.round(6.25), 0);
+        // 末格 = 8 单位 = 50 m
+        const last = labels[labels.length - 1]!.userData.text as string;
+        expect(Number(last)).toBeCloseTo(50, 0);
+    });
+
+    it('自由落体 rig 不再摆放无意义的水平卷尺 (纯竖直运动)', () => {
+        const { params, result } = simulate('free-fall');
+        const scene = new THREE.Scene();
+        const built = freeFallRig.buildEquipment(scene, params, result);
+        const h = built.handles as FreeFallHandles;
+        expect('rangeTape' in h).toBe(false);
+    });
+
+    it('抛体板书读数与引擎一致 (H_max / R / vx / vy)', () => {
+        const { params, result } = simulate('projectile');
+        const read = projectileBoardReadouts(params, result, 1.0);
+        expect(read.apexHeight).toBe(result.diagnostics.maxValues.apexHeight!);
+        expect(read.range).toBe(result.diagnostics.maxValues.range!);
+        // 水平速度恒定 → vx(t) 与 vx(0) 相同 (类平抛分解规律的物理断言)
+        const read0 = projectileBoardReadouts(params, result, 0);
+        expect(read.vx).toBeCloseTo(read0.vx, 9);
     });
 });

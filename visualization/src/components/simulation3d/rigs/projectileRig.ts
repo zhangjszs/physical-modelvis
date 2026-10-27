@@ -3,6 +3,7 @@
  * 发射器 + 地面卷尺 + 高度尺 + 落点垫
  */
 import * as THREE from 'three';
+import type { SimulationResult } from 'physics-core';
 import { SceneRig } from '../EquipmentStage';
 import { createLauncher, updateLauncher, getVisualLaunchPoint } from '../equipment';
 import { createRangeTape } from '../equipment/rangeTape';
@@ -12,16 +13,71 @@ import { num } from './params';
 
 const WORLD_SCALE = 0.16;
 const BALL_RADIUS = 0.22;
+/** 卷尺与场景尺度同源: 1 世界单位 = 1/WORLD_SCALE 米 */
+const METERS_PER_UNIT = 1 / WORLD_SCALE;
 
 // 模块级 scratch vector，避免每帧分配新对象 (#16)
 const _scratchVec3 = new THREE.Vector3();
 
-interface ProjectileHandles {
+export interface ProjectileHandles {
     launcher: ReturnType<typeof createLauncher>['handles'];
     rangeTape: THREE.Group;
     heightRuler: ReturnType<typeof createHeightRuler>['handles'];
     landingPad: THREE.Group;
     xLabel: THREE.Sprite;
+}
+
+/**
+ * 抛体读数 — **单一真源: 引擎 diagnostics.maxValues** (#159 逐节审计)
+ *
+ * 旧实现在 rig 内重解落地方程求 xLand (`v₀x·tLand`), 与引擎的 `range` 是两套公式。
+ * 引擎的 projectile 模型已把「落地即止」写进契约 (tEnd = min(tLand, duration)),
+ * 射程/最高点/飞行时间都在 maxValues 里, rig 应直接读。
+ *
+ * 无引擎结果时回退到解析式 (防御空结果), 并用 `source` 标明来源。
+ */
+export interface ProjectileReadouts {
+    /** 射程 (落地水平距离, m) */
+    range: number;
+    /** 最高点离地高度 (m) */
+    apexHeight: number;
+    /** 飞行时间 (s) */
+    flightTime: number;
+    /** 发射角 (°) */
+    thetaDeg: number;
+    source: 'engine' | 'fallback';
+}
+
+export function projectileReadouts(
+    params: Record<string, number>,
+    result?: SimulationResult | null
+): ProjectileReadouts {
+    const angle = num(params['angle'], 45);
+    const h0 = num(params['h0'], 2);
+    const v0 = num(params['v0'], 20);
+    const g = num(params['g'], 9.8);
+    const mv = result?.diagnostics?.maxValues as Record<string, number> | undefined;
+    if (mv && typeof mv['range'] === 'number' && typeof mv['apexHeight'] === 'number') {
+        return {
+            range: mv['range'],
+            apexHeight: mv['apexHeight'],
+            flightTime: typeof mv['flightTime'] === 'number' ? mv['flightTime'] : 0,
+            thetaDeg: typeof mv['thetaDeg'] === 'number' ? mv['thetaDeg'] : angle,
+            source: 'engine'
+        };
+    }
+    const angleRad = (angle * Math.PI) / 180;
+    const v0x = v0 * Math.cos(angleRad);
+    const v0y = v0 * Math.sin(angleRad);
+    const disc = Math.max(0, v0y * v0y + 2 * g * h0);
+    const tLand = g > 0 ? (v0y + Math.sqrt(disc)) / g : 0;
+    return {
+        range: v0x * tLand,
+        apexHeight: h0 + (v0y * v0y) / (2 * g),
+        flightTime: tLand,
+        thetaDeg: angle,
+        source: 'fallback'
+    };
 }
 
 export const projectileRig: SceneRig = {
@@ -34,7 +90,8 @@ export const projectileRig: SceneRig = {
         scene.add(launcherGroup);
 
         // 地面卷尺 (从发射口下方 x=0 铺展到落点后方)
-        const { group: rangeTape } = createRangeTape(14.0, 70);
+        // 刻度数字由 metersPerUnit 推导 → 与 rig 的 worldScale 同源 (旧实现 5 m/单位 与 6.25 m/单位 打架)
+        const { group: rangeTape } = createRangeTape(8.0, METERS_PER_UNIT);
         rangeTape.position.set(0, 0.035, 0.55);
         scene.add(rangeTape);
 
@@ -66,26 +123,16 @@ export const projectileRig: SceneRig = {
         };
     },
 
-    updateEquipment(handles, params) {
+    updateEquipment(handles, params, result) {
         const h = handles as ProjectileHandles;
         const angle = num(params['angle'], 45);
         const h0 = num(params['h0'], 2);
-        const v0 = num(params['v0'], 20);
-        const g = num(params['g'], 9.8);
 
         const launchPoint = updateLauncher(h.launcher, angle, h0, WORLD_SCALE);
 
-        // 动态计算理论落地点 (物理坐标)
-        // y(t) = h0 + v0y*t - 0.5*g*t^2 = 0
-        const angleRad = (angle * Math.PI) / 180;
-        const v0x = v0 * Math.cos(angleRad);
-        const v0y = v0 * Math.sin(angleRad);
-        const discriminant = Math.max(0, v0y * v0y + 2 * g * h0);
-        const tLand = g > 0 ? (v0y + Math.sqrt(discriminant)) / g : 0;
-        const xLand = v0x * tLand;
-
-        // 3D 世界落地点 (严格对应 xLand * WORLD_SCALE)
-        const landingX = xLand * WORLD_SCALE;
+        // 落地点读引擎射程 (旧实现用本地重解的落地方程)
+        const read = projectileReadouts(params, result);
+        const landingX = read.range * WORLD_SCALE;
         h.landingPad.position.set(landingX, 0, 0);
 
         // 地面卷尺从 0 延伸，距离标注对齐落点
@@ -96,41 +143,13 @@ export const projectileRig: SceneRig = {
         updateHeightRuler(h.heightRuler, -0.35, 0.08, Math.max(0.22, launchPoint.y), `h0 = ${h0.toFixed(1)} m`);
     },
 
-    getVisualPosition(pos, params) {
-        // 单一真源：空中抛物线 + 落地后贴地减速滚动
-        const angle = num(params['angle'], 45);
-        const h0 = num(params['h0'], 2);
-        const v0 = num(params['v0'], 20);
-        const g = num(params['g'], 9.8);
-        const angleRad = (angle * Math.PI) / 180;
-        const v0x = v0 * Math.cos(angleRad);
-        const v0y = v0 * Math.sin(angleRad);
-        const discriminant = Math.max(0, v0y * v0y + 2 * g * h0);
-        const tLand = g > 0 ? (v0y + Math.sqrt(discriminant)) / g : 0;
-        const xLand = v0x * tLand;
-
-        let visualX: number;
-        let visualY: number;
-
-        if (pos.x <= xLand || v0x <= 0) {
-            // 阶段 1: 空中自由飞行抛物线
-            visualX = pos.x * WORLD_SCALE;
-            visualY = BALL_RADIUS + Math.max(0, pos.y) * WORLD_SCALE;
-        } else {
-            // 阶段 2: 击中地面后具有水平初速度，贴地减速滑行/滚动
-            const mu = 0.22;
-            const deltaT = (pos.x - xLand) / Math.max(0.1, v0x);
-            const tStop = v0x / (mu * g);
-            let xGround: number;
-            if (deltaT <= tStop) {
-                xGround = xLand + v0x * deltaT - 0.5 * mu * g * deltaT * deltaT;
-            } else {
-                xGround = xLand + (v0x * v0x) / (2 * mu * g);
-            }
-            visualX = xGround * WORLD_SCALE;
-            visualY = BALL_RADIUS;
-        }
-
+    getVisualPosition(pos) {
+        // 单一真源：引擎轨迹坐标 → 世界坐标。
+        // 旧实现在此重解落地方程并自算「贴地滑行」段, 但引擎的 projectile 模型
+        // 契约是「落地即止」(tEnd = min(tLand, duration)), 轨迹永远不会越过落点 ——
+        // 那段滑行分支是永远走不到的第二套物理, 已删除。
+        const visualX = pos.x * WORLD_SCALE;
+        const visualY = BALL_RADIUS + Math.max(0, pos.y) * WORLD_SCALE;
         return _scratchVec3.set(visualX, visualY, 0);
     },
 

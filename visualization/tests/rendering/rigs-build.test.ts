@@ -203,10 +203,12 @@ describe('3D rig 契约: buildEquipment 默认参数不抛错', () => {
     });
 
     describe('#157 uniform-accelerated (竖直运动) 真实 scene→engine→rig 几何与运动回归', () => {
-        it('默认参数 (height=20, v0y=0, g=9.8): 落地前 t=0/0.5/1s 球心明显下移且视觉位移严格等于 (y(t)-y(0))*worldScale，落地后主球/轨迹/残影同处接触平面无地下点', async () => {
+        it('自由落体分支 (height=20, v0y=0, g=9.8): 落地前 t=0/0.5/1s 球心明显下移且视觉位移严格等于 (y(t)-y(0))*worldScale，落地后主球/轨迹/残影同处接触平面无地下点', async () => {
             const sceneCfg = getSceneSync('uniform-accelerated')!;
             expect(sceneCfg).toBeDefined();
-            const params = defaultParams('uniform-accelerated');
+            // #159 逐节审计: 场景默认 v0y 已从 0 改为 20 (默认画面要能演示「上抛→最高点→回落」,
+            // 否则与「自由落体」场景同形)。本回归针对**自由落体分支**, 显式钉 v0y=0。
+            const params = { ...defaultParams('uniform-accelerated'), v0y: 0 };
 
             const { result, error } = runSceneSimulation(sceneCfg, params);
             expect(error).toBeNull();

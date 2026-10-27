@@ -1,0 +1,202 @@
+[
+  {
+    "sceneId": "projectile",
+    "name": "抛体运动 (平抛+斜抛)",
+    "shots": [
+      {
+        "file": "projectile-3d-t0-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "projectile-3d-mid-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "projectile-3d-param-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "projectile-2d-t0-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 413,
+              "cssWidth": 826,
+              "cssHeight": 413,
+              "blank": false,
+              "uniqueColors": 76,
+              "nonTransparentRatio": 1,
+              "readbackAvailable": true
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "projectile-2d-mid-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 413,
+              "cssWidth": 826,
+              "cssHeight": 413,
+              "blank": false,
+              "uniqueColors": 76,
+              "nonTransparentRatio": 1,
+              "readbackAvailable": true
+            }
+          ],
+          "bannerVisible": false
+        }
+      }
+    ],
+    "issues": [],
+    "paramChange": null,
+    "stageText": "",
+    "errors": []
+  },
+  {
+    "sceneId": "uniform-accelerated",
+    "name": "竖直运动（自由落体/上抛）",
+    "shots": [
+      {
+        "file": "uniform-accelerated-3d-t0-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "uniform-accelerated-3d-mid-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "uniform-accelerated-3d-param-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "uniform-accelerated-2d-t0-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 413,
+              "cssWidth": 826,
+              "cssHeight": 413,
+              "blank": false,
+              "uniqueColors": 68,
+              "nonTransparentRatio": 1,
+              "readbackAvailable": true
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "uniform-accelerated-2d-mid-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 413,
+              "cssWidth": 826,
+              "cssHeight": 413,
+              "blank": false,
+              "uniqueColors": 68,
+              "nonTransparentRatio": 1,
+              "readbackAvailable": true
+            }
+          ],
+          "bannerVisible": false
+        }
+      }
+    ],
+    "issues": [],
+    "paramChange": null,
+    "stageText": "",
+    "errors": []
+  }
+]

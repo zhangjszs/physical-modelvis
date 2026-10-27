@@ -107,6 +107,8 @@ import {
 import { drawSecurityAlarmScene, drawLightControlSwitchScene } from '../../rendering/sensorApplicationScenes';
 import {
     drawFreeFallScene,
+    drawVerticalMotionScene,
+    drawProjectileScene,
     drawGalileoInclineScene,
     drawReactionTimeScene,
     drawTickerTimerScene,
@@ -275,6 +277,11 @@ const SCENES_THERMAL = new Set([
 /** 基础力学实验场景集合：自由落体/斜面/惯性/牛顿定律等完整教学图 */
 const SCENES_MECHANICS = new Set([
     'free-fall',
+    // #159 逐节审计: 抛体 / 竖直运动 改为专属板书 (屏幕坐标系自定义渲染),
+    // 必须落在「完整自定义渲染」集合里, 否则 switch 分支不会执行, 且 autoFit 会与
+    // 板书自己的比例尺打架。
+    'projectile',
+    'uniform-accelerated',
     'galileo-incline',
     'reaction-time',
     'ticker-timer',
@@ -1543,6 +1550,12 @@ export function SimulationCanvas() {
                     break;
                 case 'free-fall':
                     drawFreeFallScene(sceneOpts);
+                    break;
+                case 'uniform-accelerated':
+                    drawVerticalMotionScene(sceneOpts);
+                    break;
+                case 'projectile':
+                    drawProjectileScene(sceneOpts);
                     break;
                 case 'galileo-incline':
                     drawGalileoInclineScene(sceneOpts);
