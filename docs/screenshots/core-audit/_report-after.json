@@ -1,10 +1,10 @@
 [
   {
-    "sceneId": "refraction",
-    "name": "光的折射定律 (Snell)",
+    "sceneId": "photoelectric",
+    "name": "光电效应 (爱因斯坦方程)",
     "shots": [
       {
-        "file": "refraction-3d-t0-after.png",
+        "file": "photoelectric-3d-t0-after.png",
         "health": {
           "canvases": [
             {
@@ -22,7 +22,7 @@
         }
       },
       {
-        "file": "refraction-3d-mid-after.png",
+        "file": "photoelectric-3d-mid-after.png",
         "health": {
           "canvases": [
             {
@@ -40,7 +40,7 @@
         }
       },
       {
-        "file": "refraction-3d-param-after.png",
+        "file": "photoelectric-3d-param-after.png",
         "health": {
           "canvases": [
             {
@@ -58,7 +58,7 @@
         }
       },
       {
-        "file": "refraction-2d-t0-after.png",
+        "file": "photoelectric-2d-t0-after.png",
         "health": {
           "canvases": [
             {
@@ -67,7 +67,7 @@
               "cssWidth": 826,
               "cssHeight": 413,
               "blank": false,
-              "uniqueColors": 68,
+              "uniqueColors": 83,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }
@@ -76,7 +76,7 @@
         }
       },
       {
-        "file": "refraction-2d-mid-after.png",
+        "file": "photoelectric-2d-mid-after.png",
         "health": {
           "canvases": [
             {
@@ -85,7 +85,107 @@
               "cssWidth": 826,
               "cssHeight": 413,
               "blank": false,
-              "uniqueColors": 68,
+              "uniqueColors": 83,
+              "nonTransparentRatio": 1,
+              "readbackAvailable": true
+            }
+          ],
+          "bannerVisible": false
+        }
+      }
+    ],
+    "issues": [],
+    "paramChange": null,
+    "stageText": "",
+    "errors": []
+  },
+  {
+    "sceneId": "gas-law",
+    "name": "理想气体状态方程",
+    "shots": [
+      {
+        "file": "gas-law-3d-t0-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "gas-law-3d-mid-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "gas-law-3d-param-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "gas-law-2d-t0-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 413,
+              "cssWidth": 826,
+              "cssHeight": 413,
+              "blank": false,
+              "uniqueColors": 48,
+              "nonTransparentRatio": 1,
+              "readbackAvailable": true
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "gas-law-2d-mid-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 413,
+              "cssWidth": 826,
+              "cssHeight": 413,
+              "blank": false,
+              "uniqueColors": 48,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }
