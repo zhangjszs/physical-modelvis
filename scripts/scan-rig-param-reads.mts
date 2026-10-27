@@ -64,20 +64,80 @@ function resolveRigFile(sceneId: string): string | null {
     return null;
 }
 
+/**
+ * 去掉注释 (行注释 + 块注释), 保留字符偏移以便报行号。
+ *
+ * 注释里常出现 `params['m']` 之类的**历史问题描述** (本仓库的 rig 注释里
+ * 会写明「旧实现读 params['m']」), 不剥离会把它们误判成死读。
+ */
+function stripComments(src: string): string {
+    let out = '';
+    let i = 0;
+    const n = src.length;
+    while (i < n) {
+        const ch = src[i]!;
+        const next = src[i + 1];
+        if (ch === '/' && next === '/') {
+            while (i < n && src[i] !== '\n') {
+                out += src[i] === '\n' ? '\n' : ' ';
+                i++;
+            }
+            continue;
+        }
+        if (ch === '/' && next === '*') {
+            out += '  ';
+            i += 2;
+            while (i < n && !(src[i] === '*' && src[i + 1] === '/')) {
+                out += src[i] === '\n' ? '\n' : ' ';
+                i++;
+            }
+            if (i < n) {
+                out += '  ';
+                i += 2;
+            }
+            continue;
+        }
+        // 字符串字面量里的 // 不算注释
+        if (ch === "'" || ch === '"' || ch === '`') {
+            const quote = ch;
+            out += ch;
+            i++;
+            while (i < n) {
+                if (src[i] === '\\') {
+                    out += src[i]! + (src[i + 1] ?? '');
+                    i += 2;
+                    continue;
+                }
+                out += src[i]!;
+                if (src[i] === quote) {
+                    i++;
+                    break;
+                }
+                i++;
+            }
+            continue;
+        }
+        out += ch;
+        i++;
+    }
+    return out;
+}
+
 /** 提取 rig 源码里所有 params['X'] / params.X 读取 */
 function extractParamReads(src: string): Array<{ name: string; index: number; line: number }> {
     const out: Array<{ name: string; index: number; line: number }> = [];
+    const code = stripComments(src);
     const bracket = /params\[\s*['"]([\w-]+)['"]\s*\]/g;
     let m: RegExpExecArray | null;
-    while ((m = bracket.exec(src))) {
-        out.push({ name: m[1]!, index: m.index, line: src.slice(0, m.index).split('\n').length });
+    while ((m = bracket.exec(code))) {
+        out.push({ name: m[1]!, index: m.index, line: code.slice(0, m.index).split('\n').length });
     }
     const dot = /params\.([A-Za-z_]\w*)/g;
-    while ((m = dot.exec(src))) {
+    while ((m = dot.exec(code))) {
         // 排除 params 后面紧跟的是方法调用 (params.xxx() 是函数, 不是参数读取)
-        const after = src[m.index + m[0].length];
+        const after = code[m.index + m[0].length];
         if (after === '(' || after === ')') continue;
-        out.push({ name: m[1]!, index: m.index, line: src.slice(0, m.index).split('\n').length });
+        out.push({ name: m[1]!, index: m.index, line: code.slice(0, m.index).split('\n').length });
     }
     return out;
 }
