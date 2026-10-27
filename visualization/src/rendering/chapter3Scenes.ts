@@ -99,6 +99,14 @@ function drawForceArrow(
  *   平衡时：mg = kx  →  x = mg/k
  *   弹簧弹力：F = kx (方向向上)
  *   重力：G = mg (方向向下)
+ *
+ * 单一真源 (#159 逐节审计·问题一/问题二):
+ *   - 伸长量 x(t) 由**引擎位置**导出 (锚点 (0,0), 轴向 (0,−1), 原长 L0=0.1 m
+ *     → x = −pos.y − L0), 不再由渲染层自算。
+ *   - 平衡伸长量 x_eq 读引擎 `maxValues.equilibriumDisplacement` (= mg/k)。
+ *   - 刻度尺量程随 x_eq 自适应, 像素/米比例与画出的弹簧形变**同源**:
+ *     旧实现固定 120 px/m, 又对伸长量取 `Math.max(20, …)` —— 9.8 cm 的形变
+ *     只有 11.76 px 被钳到 20 px, 钩码**永远不动**; 刻度尺却标到 1.667 m。
  */
 export function drawHookeLawScene(opts: Chapter3SceneOptions): void {
     const { ctx, width, height, isDark, params, simulationResult, currentTime } = opts;
@@ -108,18 +116,30 @@ export function drawHookeLawScene(opts: Chapter3SceneOptions): void {
     const weightCount = Math.max(1, params['weightCount'] ?? 4);
     const g = params['g'] ?? G_ACCELERATION;
     const m = (massPerWeight_g / 1000) * weightCount;
-    const x_eq = (m * g) / k; // 平衡位置弹簧伸长量 (m)
+    const weight = m * g;
 
-    // 布局
-    const ceilingY = 50;
-    const springX = width * 0.55;
-    const pixelsPerMeter = 120; // 1m = 120px
+    /** 引擎弹簧原长 (m) —— 与场景 buildProblem 保持一致 */
+    const naturalLength = 0.1;
 
-    // 当前帧的弹簧伸长量
+    // 平衡伸长量: 单一真源 = 引擎 maxValues.equilibriumDisplacement (= mg/k)
+    const mv = simulationResult?.diagnostics?.maxValues;
+    const engineEq = mv ? mv['equilibriumDisplacement'] : undefined;
+    const xEq = typeof engineEq === 'number' ? engineEq : k > 0 ? weight / k : 0;
+
+    // 当前帧伸长量: 由引擎位置导出 (锚点 (0,0), 轴向 (0,−1))
     const frame = getFrame(simulationResult, currentTime);
-    const currentX = frame ? frame.position.x : x_eq;
-    const extensionPx = Math.max(20, currentX * pixelsPerMeter);
+    const currentX = frame ? Math.max(0, -frame.position.y - naturalLength) : xEq;
+
+    // 布局: 刻度尺量程与像素比例同源, 覆盖 0 ~ 2.2·x_eq (最大过冲 ≈ 2·x_eq)
+    const ceilingY = 56;
+    const springX = width * 0.52;
+    const rulerPx = Math.max(140, Math.min(280, height * 0.42));
+    const rangeM = Math.max(0.3, xEq * 2.2);
+    const pixelsPerMeter = rulerPx / rangeM;
+    const extensionPx = Math.min(rulerPx, currentX * pixelsPerMeter);
     const blockY = ceilingY + extensionPx;
+    const blockW = 50,
+        blockH = 36;
 
     // --- 天花板 ---
     const ceilGrad = ctx.createLinearGradient(0, ceilingY - 14, 0, ceilingY);
@@ -171,27 +191,25 @@ export function drawHookeLawScene(opts: Chapter3SceneOptions): void {
     ctx.lineJoin = 'miter';
 
     // --- 钩码 (3D 方块) ---
-    const blockW = 50,
-        blockH = 36;
     draw3DBlock(ctx, springX, blockY + blockH / 2, blockW, blockH, '#3b82f6', isDark, `${m.toFixed(2)}kg`);
 
     // --- 刻度尺 (竖直，在弹簧左侧) ---
     // 标尺 X 钳制在左界内，窄画布不再越出画布左侧
-    const rulerX = Math.max(20, springX - 80);
+    const rulerX = Math.max(20, springX - 90);
     ctx.strokeStyle = isDark ? '#94a3b8' : '#475569';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.moveTo(rulerX, ceilingY);
-    ctx.lineTo(rulerX, ceilingY + 200);
+    ctx.lineTo(rulerX, ceilingY + rulerPx);
     ctx.stroke();
-    // 刻度
-    const rulerMeters = 200 / pixelsPerMeter;
-    const majorCount = Math.ceil(rulerMeters / 0.1);
+    // 刻度: 步长随量程选取, 保证至少 4 格
+    const tickStep = rangeM > 0.6 ? 0.1 : 0.05;
+    const majorCount = Math.ceil(rangeM / tickStep);
     ctx.font = '10px monospace';
     ctx.fillStyle = isDark ? '#cbd5e1' : '#475569';
     for (let i = 0; i <= majorCount; i++) {
-        const ty = ceilingY + i * 0.1 * pixelsPerMeter;
-        if (ty > ceilingY + 200) break;
+        const ty = ceilingY + i * tickStep * pixelsPerMeter;
+        if (ty > ceilingY + rulerPx + 0.5) break;
         ctx.strokeStyle = isDark ? '#94a3b8' : '#475569';
         ctx.beginPath();
         ctx.moveTo(rulerX, ty);
@@ -199,11 +217,11 @@ export function drawHookeLawScene(opts: Chapter3SceneOptions): void {
         ctx.stroke();
         ctx.textAlign = 'right';
         ctx.textBaseline = 'middle';
-        ctx.fillText(`${(i * 0.1).toFixed(1)}m`, rulerX - 4, ty);
+        ctx.fillText(`${(i * tickStep).toFixed(2)}m`, rulerX - 4, ty);
     }
     // 标记平衡位置 x_eq
-    const eqY = ceilingY + x_eq * pixelsPerMeter;
-    if (eqY <= ceilingY + 200) {
+    const eqY = ceilingY + xEq * pixelsPerMeter;
+    if (eqY <= ceilingY + rulerPx) {
         ctx.strokeStyle = '#22c55e';
         ctx.lineWidth = 1.5;
         ctx.setLineDash([4, 3]);
@@ -215,21 +233,18 @@ export function drawHookeLawScene(opts: Chapter3SceneOptions): void {
         ctx.fillStyle = '#22c55e';
         ctx.font = 'bold 11px sans-serif';
         ctx.textAlign = 'right';
-        ctx.fillText(`x=${x_eq.toFixed(3)}m`, rulerX - 6, eqY);
+        ctx.fillText(`x_eq=${(xEq * 100).toFixed(1)}cm`, rulerX - 6, eqY);
     }
-    // 尺标签
+    // 尺标签 (放在尺子下端, 避免与刻度数字重叠)
     ctx.fillStyle = isDark ? '#94a3b8' : '#64748b';
     ctx.font = 'bold 11px sans-serif';
-    ctx.save();
-    ctx.translate(rulerX - 28, ceilingY + 100);
-    ctx.rotate(-Math.PI / 2);
-    ctx.textAlign = 'center';
-    ctx.fillText('伸长量 x', 0, 0);
-    ctx.restore();
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText('伸长量 x', rulerX - 14, ceilingY + rulerPx + 16);
 
     // --- 力向量 ---
     const forceScale = 30; // 1N = 30px
-    const gravityN = m * g;
+    const gravityN = weight;
     const springForceN = k * currentX;
     // 重力 (向下，红色)
     drawForceArrow(ctx, springX, blockY + blockH, springX, blockY + blockH + gravityN * forceScale, '#ef4444', 'G=mg', {
@@ -247,7 +262,8 @@ export function drawHookeLawScene(opts: Chapter3SceneOptions): void {
         ctx,
         width,
         height,
-        `k=${k}N/m  m=${m.toFixed(2)}kg  x=${currentX.toFixed(3)}m  F=kx=${(k * currentX).toFixed(2)}N  G=mg=${gravityN.toFixed(2)}N`,
+        `k=${k}N/m  m=${m.toFixed(2)}kg  x=${currentX.toFixed(3)}m  F=kx=${springForceN.toFixed(2)}N  G=mg=${gravityN.toFixed(2)}N  ` +
+            `x_eq=mg/k=${xEq.toFixed(3)}m`,
         isDark,
         { height: 22, yOffset: 34 }
     );
@@ -256,7 +272,7 @@ export function drawHookeLawScene(opts: Chapter3SceneOptions): void {
     drawHud(ctx, isDark, [
         { label: 't', value: `${currentTime.toFixed(3)} s` },
         { label: 'x', value: `${currentX.toFixed(3)} m` },
-        { label: 'F', value: `${(k * currentX).toFixed(3)} N` }
+        { label: 'F', value: `${springForceN.toFixed(3)} N` }
     ]);
 
     if (!simulationResult) drawEmptyState(ctx, width, height, isDark);

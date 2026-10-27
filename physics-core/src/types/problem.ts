@@ -188,6 +188,14 @@ export interface GroundConfig {
 export interface InclinedPlaneConstraint {
     readonly angle: number; // 度
     readonly frictionCoefficient?: number;
+    /**
+     * 斜面长度 (m) —— 可选。
+     *
+     * 给出时模型按「到达底端即止」处理: 物体沿斜面下滑到 s = inclineLength
+     * 后停在底端 (速度归零), 不会继续加速冲出斜面底端。
+     * 不给出时保持旧行为 (无限斜面运动学, 仅按起点高度反推底端用于关键帧)。
+     */
+    readonly inclineLength?: number;
 }
 
 /** 弹簧约束 */

@@ -4,7 +4,7 @@ import type { SimulationResult } from 'physics-core';
 import type { InclinedPlaneHandles } from '../../src/components/simulation3d/equipment/inclinedPlane';
 import { loadAllScenes, getSceneSync } from '../../src/scenes/sceneRegistry';
 import { runSceneSimulation } from '../../src/adapters/physicsCoreAdapter';
-import { inclineRig } from '../../src/components/simulation3d/rigs/inclineRig';
+import { inclineRig, inclineUnitsPerMeter } from '../../src/components/simulation3d/rigs/inclineRig';
 import { findFrameIndex, interpolateFrame } from '../../src/utils/frameUtils';
 
 beforeAll(loadAllScenes);
@@ -64,7 +64,12 @@ describe('#158 真实引擎采样与斜面板接触', () => {
                 0
             );
             const visual = inclineRig.getVisualPosition(frame.position, params, result).sub(initial);
-            expect(visual.dot(tangent)).toBeCloseTo(displacement.dot(tangent) * inclineRig.worldScale!, 6);
+            // 斜面 rig 按「沿切向位移 × 米→世界换算」映射 (斜面是倾斜的,
+            // 物块必须沿切向移动, 而不是引擎笛卡尔坐标直接平移)。
+            expect(visual.dot(tangent)).toBeCloseTo(
+                displacement.dot(tangent) * inclineUnitsPerMeter(params, result),
+                6
+            );
         }
     });
 
@@ -86,6 +91,7 @@ describe('#158 真实引擎采样与斜面板接触', () => {
             inclineRig.updateEquipment(built.handles, params, result);
             scene.updateMatrixWorld(true);
             const bounds = panel.geometry.boundingBox!;
+            const tangent = new THREE.Vector3(1, 0, 0).transformDirection(panel.matrixWorld);
             const initial = inclineRig.getVisualPosition(result.trajectories[0]![0]!.position, params, result);
             const origin = inclineRig.getOrigin(params, result);
             expect(origin.distanceTo(initial)).toBeLessThan(1e-9);
@@ -96,8 +102,18 @@ describe('#158 真实引擎采样与斜面板接触', () => {
                 expect(local.x).toBeGreaterThanOrEqual(bounds.min.x);
                 expect(local.x).toBeLessThanOrEqual(bounds.max.x);
                 expect(center.y - inclineRig.ballRadius!).toBeGreaterThan(0);
-                expect(center.x - initial.x).toBeCloseTo(point.position.x * inclineRig.worldScale!, 6);
-                expect(center.y - initial.y).toBeCloseTo(point.position.y * inclineRig.worldScale!, 6);
+                // 位移沿斜面切向, 比例 = 米→世界换算 (无额外 cos 因子)
+                const engineDisplacement = new THREE.Vector3(
+                    point.position.x - result.trajectories[0]![0]!.position.x,
+                    point.position.y - result.trajectories[0]![0]!.position.y,
+                    0
+                );
+                const visualDisplacement = center.sub(initial);
+                const scale = inclineUnitsPerMeter(params, result);
+                expect(visualDisplacement.dot(tangent)).toBeCloseTo(engineDisplacement.dot(tangent) * scale, 6);
+                // 垂直切向的分量必须为 0: 物块始终贴在板面上
+                const normal = new THREE.Vector3(0, 1, 0).transformDirection(panel.matrixWorld);
+                expect(visualDisplacement.dot(normal)).toBeCloseTo(0, 6);
             }
         }
     });

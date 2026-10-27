@@ -83,6 +83,12 @@ export const energy_conservationScene: SceneConfig = {
         const duration = params['duration'] ?? 3;
         const v0x = v0;
         const v0y = 0; // 平抛/自由落体
+        // 仿真时长截到**触地时刻** (#159 逐节审计):
+        // 引擎 uniform-accelerated 是解析模型, 不消费 environment.ground 的约束,
+        // 若让它跑过落地点, 轨迹会继续外推到地面以下 (h₀=10m, 3s → y=−44.1m),
+        // 势能变负、动能虚涨, 「机械能守恒」这一节的结论被引擎自身的数字否定。
+        const tGround = Math.sqrt((2 * h0) / Math.max(1e-6, g));
+        const simDuration = Math.max(0.1, Math.min(duration, tGround));
         return {
             id: `energy-${Date.now()}`,
             title: '机械能守恒定律',
@@ -97,10 +103,12 @@ export const energy_conservationScene: SceneConfig = {
             ],
             environment: {
                 gravity: { enabled: true, value: g },
+                // 摩擦设定保留在 environment 里 (引擎 uniform-accelerated 目前不消费它,
+                // 板书已显式标注该事实, 避免「宣称能量损耗但引擎没算」的假象)
                 ground:
                     friction > 0 ? { enabled: true, y: 0, friction: friction / (mass * g) } : { enabled: true, y: 0 }
             },
-            timeConfig: makeTimeSeries(duration, 500)
+            timeConfig: makeTimeSeries(simDuration, 500)
         };
     }
 };

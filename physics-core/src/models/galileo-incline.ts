@@ -18,7 +18,10 @@
  *   - 'single'    : 沿斜面匀加速 一段
  *   - 'docked'    : 斜面滚下 + 对接斜面滚上 (回到原高)
  *   - 'horizontal': 水平面匀速运动 (牛顿第一定律直推)
- *   - 'all'       : 三段完整: 斜面 → 对接斜面 → 水平面 (动画演示)
+ *   - 'all'       : 物理连续的两段演示: 斜面滚下 → 谷底水平面匀速
+ *                    (对接斜面是**另一条**理想实验, 单独由 'docked' 呈现;
+ *                     旧版把水平面放在对接斜面顶端高度并让小球凭空飞出,
+ *                     几何与物理都不成立 —— 见 solve() 内注释)
  *
  * 关键帧 (keyframes):
  *   起点 → 斜面底端(速度最大) → [可选]对接斜面最高点 → [可选]水平面匀速段
@@ -107,6 +110,7 @@ export class GalileoInclineModel extends PhysicsModelBase {
         const cosTheta = Math.cos(theta);
         const h = L * sinTheta; // 斜面竖直落差
         const a = g * sinTheta; // 沿斜面加速度 a = g·sinθ
+        const duration = problem.timeConfig.duration;
 
         // 底部时间 & 底部速度 (解析解)
         const tEnd = Math.sqrt((2 * L) / a);
@@ -178,7 +182,20 @@ export class GalileoInclineModel extends PhysicsModelBase {
         // 对接斜面与原斜面倾角绝对值相同, 加速度幅值 a = g·sinθ, 起减速作用.
         let phase2End = tEnd;
         let phase2EndPos: Vector2D = Vec2.scale(inclineDir, L);
-        if (mode === 'docked' || mode === 'all') {
+        /**
+         * 对接斜面阶段只在 'docked' 模式出现 (#159 逐节审计·问题一·阻断)
+         *
+         * 旧实现里 'all' 模式 = 下滑 → 滚上对接斜面 → **从对接斜面顶端水平飞出**,
+         * 且水平面被放在「对接斜面顶端」的高度 (engine y = 0)。但伽利略的第三段
+         * 外推是「把对接斜面逐渐放平」: 对接斜面底端在谷底, 放平后水平面就在
+         * **谷底高度** (engine y = L·sinθ), 与 'horizontal' 模式一致。
+         * 旧口径让同一个「水平面外推」在两个模式下位于不同高度, 且小球会从
+         * 对接斜面顶端凭空飞出 —— 几何与物理都不成立。
+         *
+         * 现在: 'all' 模式改为**物理连续**的两段演示 (下滑 → 谷底水平面匀速),
+         * 对接斜面单独由 'docked' 模式呈现。
+         */
+        if (mode === 'docked') {
             const phase2StartPos = Vec2.scale(inclineDir, L);
             const dockedDir: Vector2D = { x: cosTheta, y: -sinTheta };
             const dockedAccelerationVec: Vector2D = Vec2.scale(dockedDir, -a); // 沿 dockedDir 负方向 (即 +inclineDir 方向) 加速幅值
@@ -190,7 +207,8 @@ export class GalileoInclineModel extends PhysicsModelBase {
                 dockedAccelerationVec,
                 startPos: phase2StartPos,
                 m,
-                g
+                g,
+                duration
             });
             for (const p of docked.points) trajectory.push(p);
             phase2End = tEnd + docked.tUp;
@@ -216,13 +234,15 @@ export class GalileoInclineModel extends PhysicsModelBase {
         // --- Phase 3: 水平面匀速 (可选) ---
         let phase3End = phase2End;
         if (mode === 'horizontal' || mode === 'all') {
-            const horizontalStart: Vector2D = mode === 'all' ? phase2EndPos : Vec2.scale(inclineDir, L);
+            // 水平面固定在**谷底** (engine y = L·sinθ): 对接斜面放平后的极限位置
+            const horizontalStart: Vector2D = Vec2.scale(inclineDir, L);
             const vHorizontal: Vector2D = { x: vEnd, y: 0 };
             const tStart = phase2End;
-            const tHoriz = Math.max(2, tEnd);
+            const tHoriz = Math.max(1, tEnd);
             for (let i = 1; i <= SAMPLES_PER_PHASE; i++) {
                 const tPrime = (i / SAMPLES_PER_PHASE) * tHoriz;
                 const t = tStart + tPrime;
+                if (t > duration) break; // 轨迹不得超出仿真时长
                 const pos: Vector2D = { x: horizontalStart.x + vHorizontal.x * tPrime, y: horizontalStart.y };
                 trajectory.push({
                     t,
@@ -450,8 +470,10 @@ export class GalileoInclineModel extends PhysicsModelBase {
         startPos: Vector2D;
         m: number;
         g: number;
+        /** 仿真总时长 (s) —— 轨迹不得超出该时刻 */
+        duration: number;
     }): { points: TrajectoryPoint[]; tUp: number; endPos: Vector2D } {
-        const { t0, samples, vEnd, dockedDir, dockedAccelerationVec, startPos, m, g } = opts;
+        const { t0, samples, vEnd, dockedDir, dockedAccelerationVec, startPos, m, g, duration } = opts;
         const aMag = Math.sqrt(
             dockedAccelerationVec.x * dockedAccelerationVec.x + dockedAccelerationVec.y * dockedAccelerationVec.y
         );
@@ -462,6 +484,7 @@ export class GalileoInclineModel extends PhysicsModelBase {
         for (let i = 1; i <= samples; i++) {
             const tPrime = (i / samples) * tUp;
             const t = t0 + tPrime;
+            if (t > duration) break; // 轨迹不得超出仿真时长
             const vProjNow = vEnd - aMag * tPrime;
             const sNow = vEnd * tPrime - 0.5 * aMag * tPrime * tPrime;
             const pos: Vector2D = {

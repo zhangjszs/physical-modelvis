@@ -37,6 +37,13 @@ import {
     type EmInductionHandles
 } from '../../src/components/simulation3d/rigs/emInductionRig';
 import { chartsOf } from 'physics-core';
+import { hookeLawRig, hookeLawReadouts, type HookeHandles } from '../../src/components/simulation3d/rigs/hookeLawRig';
+import { airTrackUnitsPerMeter, airTrackWorldX } from '../../src/components/simulation3d/rigs/airTrackRig';
+import { galileoInclineRig, type GalileoHandles } from '../../src/components/simulation3d/rigs/galileoInclineRig';
+import { inclineRig, inclineUnitsPerMeter } from '../../src/components/simulation3d/rigs/inclineRig';
+import type { InclinedPlaneHandles } from '../../src/components/simulation3d/equipment/inclinedPlane';
+import { galileoInclineReadouts, inclinePlaneReadouts } from '../../src/rendering/chapter1Scenes';
+import { computePhotogateMeasurements } from '../../src/utils/photogate';
 import {
     selfInductanceRig,
     selfInductanceReadouts,
@@ -882,5 +889,200 @@ describe('#159 高中核心·抛体运动: 落点/射程读引擎, 卷尺与场�
         // 水平速度恒定 → vx(t) 与 vx(0) 相同 (类平抛分解规律的物理断言)
         const read0 = projectileBoardReadouts(params, result, 0);
         expect(read.vx).toBeCloseTo(read0.vx, 9);
+    });
+});
+
+// ============================================================================
+// #159 Phase 2 — 《高中核心》24 节逐节审计 (批次 B: 胡克 / 斜面 / 伽利略 / 气垫导轨)
+// ============================================================================
+
+describe('#159 高中核心·胡克定律: 钩码必须真的挂在弹簧上, 伸长量读引擎', () => {
+    it('引擎计入重力: 平衡伸长量 x_eq = mg/k (旧版模型忽略重力, 钩码在原长附近穿过)', () => {
+        const { params, result } = simulate('hooke-law');
+        const m = ((params['massPerWeight']! / 1000) * params['weightCount']!)!;
+        const k = params['k']!;
+        const g = params['g']!;
+        const xEq = result.diagnostics.maxValues.equilibriumDisplacement!;
+        expect(xEq).toBeCloseTo((m * g) / k, 9);
+        // 初始位置 = 弹簧原长 (x₀ = 0), 不是平衡位置
+        const first = result.trajectories[0]![0]!;
+        expect(-first.position.y).toBeCloseTo(0.1, 6);
+    });
+
+    it('钩码从原长释放后伸长量在 [0, 2·x_eq] 内振荡并趋近 x_eq', () => {
+        const { result } = simulate('hooke-law');
+        const xEq = result.diagnostics.maxValues.equilibriumDisplacement!;
+        const traj = result.trajectories[0]!;
+        const extensions = traj.map(p => Math.max(0, -p.position.y - 0.1));
+        expect(Math.min(...extensions)).toBeGreaterThanOrEqual(-1e-9);
+        expect(Math.max(...extensions)).toBeGreaterThan(xEq * 1.2);
+        const last = extensions[extensions.length - 1]!;
+        expect(Math.abs(last - xEq)).toBeLessThan(xEq * 0.2);
+    });
+
+    it('3D 标牌读引擎 (不再回退到场景不存在的 params.m)', () => {
+        const { params, result } = simulate('hooke-law');
+        const read = hookeLawReadouts(params, result);
+        expect(read.source).toBe('engine');
+        expect(read.mass).toBeCloseTo(0.2, 6);
+        expect(read.deltaX).toBeCloseTo(result.diagnostics.maxValues.equilibriumDisplacement!, 9);
+        // 旧实现: params['m'] 不存在 → 静默回退 0.5kg → Δx = 0.245 m (错 2.5 倍)
+        expect(read.deltaX).toBeLessThan(0.15);
+    });
+
+    it('弹簧形变与刻度尺同源 (5.5 世界单位/米), 物块真的上下移动', () => {
+        const { params, result } = simulate('hooke-law');
+        void params;
+        const scene = new THREE.Scene();
+        const built = hookeLawRig.buildEquipment(scene, params, result);
+        const h = built.handles as HookeHandles;
+        const startY = h.weightGroup.position.y;
+        // 走到过冲最大处: 形变必须肉眼可见 (旧实现被 Math.max(20, x·120) 钉死)
+        const traj = result.trajectories[0]!;
+        let maxExtension = 0;
+        for (const p of traj) maxExtension = Math.max(maxExtension, -p.position.y - 0.1);
+        const expectedDrop = maxExtension * 5.5;
+        expect(expectedDrop).toBeGreaterThan(0.5);
+        // 初始摆放 = 平衡伸长量位置 (锚点 2.2 − 原长 0.55 − x_eq×5.5)
+        const xEq = result.diagnostics.maxValues.equilibriumDisplacement!;
+        expect(startY).toBeCloseTo(2.2 - 0.55 - xEq * 5.5, 6);
+    });
+});
+
+describe('#159 高中核心·气垫导轨: 光电门与滑块必须用同一套米→世界换算', () => {
+    it('滑块真的能通过两扇光电门 (旧实现比例系数差 11.25 倍, 全程到不了门)', () => {
+        const { params } = simulate('air-track');
+        const x1 = params['x1']!;
+        const x2 = params['x2']!;
+        const v0 = params['v0']!;
+        const duration = params['duration']!;
+        // 滑块终点必须越过第二扇门
+        expect(v0 * duration).toBeGreaterThan(x2);
+        // 门与滑块共用同一映射: 到达门位置时两者世界坐标相同
+        for (const gate of [x1, x2]) {
+            const gateWorld = airTrackWorldX(gate, params);
+            const sliderWorld = airTrackWorldX(gate, params);
+            expect(sliderWorld).toBeCloseTo(gateWorld, 12);
+        }
+        // 换算比例 = 导轨世界长度 / 导轨物理长度
+        expect(airTrackUnitsPerMeter(params)).toBeCloseTo(3.6 / params['trackLength']!, 9);
+    });
+
+    it('遮光计时给出的速度与引擎速度一致 (Δt = Δx / v)', () => {
+        const { params, result } = simulate('air-track');
+        const flagWidth = params['flagWidth']!;
+        const v0 = params['v0']!;
+        const measurements = computePhotogateMeasurements(result.trajectories[0]!, {
+            gatePositions: [params['x1']!, params['x2']!],
+            flagWidth
+        });
+        expect(measurements.length).toBe(2);
+        for (const m of measurements) {
+            expect(m.valid).toBe(true);
+            expect(m.speed).toBeCloseTo(v0, 6);
+            expect(m.deltaT).toBeCloseTo(flagWidth / v0, 6);
+        }
+    });
+});
+
+describe('#159 高中核心·伽利略斜面: 三段理想实验都要画出来, 位移必须是沿斜面投影', () => {
+    it('沿斜面位移 s = x·cosθ + y·sinθ, 不是水平分量 (θ=30° 时差 13.4%)', () => {
+        const { params, result } = simulate('galileo-incline');
+        const read = galileoInclineReadouts(params, result, 0.9);
+        expect(read.source).toBe('engine');
+        // t = t_end 时 s 应等于 L
+        const tEnd = result.diagnostics.maxValues.endTime!;
+        const readEnd = galileoInclineReadouts(params, result, tEnd);
+        expect(readEnd.s).toBeCloseTo(params['inclineLength']!, 6);
+        // 旧实现读 position.x → 只有 s·cosθ
+        expect(readEnd.s).toBeGreaterThan(readEnd.s * Math.cos(Math.PI / 6) + 0.1);
+    });
+
+    it('水平外推段不再冻结: 位移随时间继续增大', () => {
+        const { params, result } = simulate('galileo-incline');
+        const tEnd = result.diagnostics.maxValues.endTime!;
+        const a = galileoInclineReadouts(params, result, tEnd);
+        const b = galileoInclineReadouts(params, result, tEnd + 0.5);
+        expect(b.s).toBeGreaterThan(a.s + 0.5);
+    });
+
+    it('引擎 all 模式: 水平面位于谷底高度, 与 horizontal 模式口径一致', () => {
+        const { params, result } = simulate('galileo-incline', { mode: 3 });
+        const horiz = result.keyframes.find(k => k.label === '水平面匀速 (牛顿第一定律)')!;
+        const L = params['inclineLength']!;
+        const h = L * Math.sin((params['angleDeg']! * Math.PI) / 180);
+        expect(horiz.position.y).toBeCloseTo(h, 6);
+        // 轨迹不得超出仿真时长
+        const traj = result.trajectories[0]!;
+        expect(traj[traj.length - 1]!.t).toBeLessThanOrEqual(params['duration']! + 1e-9);
+    });
+
+    it('3D 斜面长度与引擎一致 (旧版画面斜面相当于 11.25 m, 引擎只有 2 m)', () => {
+        const { params, result } = simulate('galileo-incline');
+        const scene = new THREE.Scene();
+        const built = galileoInclineRig.buildEquipment(scene, params, result);
+        const h = built.handles as GalileoHandles;
+        const box =
+            h.leftIncline.geometry.boundingBox ??
+            (h.leftIncline.geometry.computeBoundingBox(), h.leftIncline.geometry.boundingBox!);
+        // 斜面世界长度 = L × (2.6 / L) = 2.6 世界单位
+        expect(box.max.x - box.min.x).toBeCloseTo(2.6, 6);
+        // 小球起点 = 斜面顶端
+        const origin = galileoInclineRig.getOrigin(params, result);
+        expect(origin.y).toBeCloseTo(2.6 * Math.sin((params['angleDeg']! * Math.PI) / 180) + 0.16, 6);
+    });
+});
+
+describe('#159 高中核心·斜面运动: 初速度分解与「滑到底端即止」', () => {
+    it('沿斜面向上的初速度 v₀ 必须真的向上 (旧实现被分解成 v₀·cos2θ)', () => {
+        const { params, result } = simulate('inclined-plane', { v0: 4 });
+        const first = result.trajectories[0]![0]!;
+        const theta = (params['theta']! * Math.PI) / 180;
+        // 引擎的沿斜面初速度 = v0x·cosθ − v0y·sinθ, 应等于 −v₀ (向上为负)
+        const along = first.velocity.x * Math.cos(theta) - first.velocity.y * Math.sin(theta);
+        expect(along).toBeCloseTo(-4, 6);
+        // 旧实现: v0x = v₀cosθ, v0y = v₀sinθ → along = v₀·cos2θ = 2 (θ=30°)
+        expect(along).toBeLessThan(0);
+    });
+
+    it('滑到底端即停: 终点在斜面底端且速度归零 (旧实现滑过底端 2.05 m 仍在加速)', () => {
+        const { params, result } = simulate('inclined-plane');
+        const L = params['inclineLength']!;
+        const theta = (params['theta']! * Math.PI) / 180;
+        const traj = result.trajectories[0]!;
+        const last = traj[traj.length - 1]!;
+        expect(last.position.x).toBeCloseTo(L * Math.cos(theta), 6);
+        expect(last.position.y).toBeCloseTo(0, 6);
+        expect(Math.hypot(last.velocity.x, last.velocity.y)).toBeCloseTo(0, 6);
+        expect(result.diagnostics.maxValues.inclineLength!).toBeCloseTo(L, 9);
+    });
+
+    it('板书沿斜面位移读引擎投影, 且与水平分量不同', () => {
+        const { params, result } = simulate('inclined-plane');
+        const read = inclinePlaneReadouts(params, result, 1.0);
+        expect(read.source).toBe('engine');
+        // s = ½at² (沿斜面), 而 position.x = s·cosθ —— 两者必须不同
+        const theta = (params['theta']! * Math.PI) / 180;
+        expect(read.s).toBeCloseTo(0.5 * 9.8 * Math.sin(theta) * 1.0, 4);
+        const frame = result.trajectories[0]![333]!;
+        expect(read.s).toBeGreaterThan(frame.position.x * 1.05);
+        expect(read.atBottom).toBe(false);
+    });
+
+    it('3D 物块沿斜面切向移动 (旧实现按引擎笛卡尔坐标直接平移, 与板面差一个 θ)', () => {
+        const { params, result } = simulate('inclined-plane');
+        const scene = new THREE.Scene();
+        const built = inclineRig.buildEquipment(scene, params, result);
+        scene.add(built.group);
+        scene.updateMatrixWorld(true);
+        const h = built.handles as { planeHandles: InclinedPlaneHandles };
+        const panel = h.planeHandles.panel;
+        const tangent = new THREE.Vector3(1, 0, 0).transformDirection(panel.matrixWorld);
+        const first = result.trajectories[0]![0]!.position;
+        const initial = inclineRig.getVisualPosition(first, params, result);
+        const later = result.trajectories[0]![500]!.position;
+        const visual = inclineRig.getVisualPosition(later, params, result).sub(initial);
+        const engineDelta = new THREE.Vector3(later.x - first.x, later.y - first.y, 0);
+        expect(visual.dot(tangent)).toBeCloseTo(engineDelta.dot(tangent) * inclineUnitsPerMeter(params, result), 6);
     });
 });

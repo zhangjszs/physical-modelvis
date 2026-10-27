@@ -1,10 +1,10 @@
 [
   {
-    "sceneId": "projectile",
-    "name": "抛体运动 (平抛+斜抛)",
+    "sceneId": "inclined-plane",
+    "name": "斜面运动",
     "shots": [
       {
-        "file": "projectile-3d-t0-after.png",
+        "file": "inclined-plane-3d-t0-after.png",
         "health": {
           "canvases": [
             {
@@ -22,7 +22,7 @@
         }
       },
       {
-        "file": "projectile-3d-mid-after.png",
+        "file": "inclined-plane-3d-mid-after.png",
         "health": {
           "canvases": [
             {
@@ -40,7 +40,7 @@
         }
       },
       {
-        "file": "projectile-3d-param-after.png",
+        "file": "inclined-plane-3d-param-after.png",
         "health": {
           "canvases": [
             {
@@ -58,7 +58,7 @@
         }
       },
       {
-        "file": "projectile-2d-t0-after.png",
+        "file": "inclined-plane-2d-t0-after.png",
         "health": {
           "canvases": [
             {
@@ -67,7 +67,7 @@
               "cssWidth": 826,
               "cssHeight": 413,
               "blank": false,
-              "uniqueColors": 76,
+              "uniqueColors": 66,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }
@@ -76,7 +76,7 @@
         }
       },
       {
-        "file": "projectile-2d-mid-after.png",
+        "file": "inclined-plane-2d-mid-after.png",
         "health": {
           "canvases": [
             {
@@ -85,7 +85,7 @@
               "cssWidth": 826,
               "cssHeight": 413,
               "blank": false,
-              "uniqueColors": 76,
+              "uniqueColors": 66,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }
@@ -100,11 +100,11 @@
     "errors": []
   },
   {
-    "sceneId": "uniform-accelerated",
-    "name": "竖直运动（自由落体/上抛）",
+    "sceneId": "air-track",
+    "name": "气垫导轨测速度",
     "shots": [
       {
-        "file": "uniform-accelerated-3d-t0-after.png",
+        "file": "air-track-3d-t0-after.png",
         "health": {
           "canvases": [
             {
@@ -122,7 +122,7 @@
         }
       },
       {
-        "file": "uniform-accelerated-3d-mid-after.png",
+        "file": "air-track-3d-mid-after.png",
         "health": {
           "canvases": [
             {
@@ -140,7 +140,7 @@
         }
       },
       {
-        "file": "uniform-accelerated-3d-param-after.png",
+        "file": "air-track-3d-param-after.png",
         "health": {
           "canvases": [
             {
@@ -158,7 +158,7 @@
         }
       },
       {
-        "file": "uniform-accelerated-2d-t0-after.png",
+        "file": "air-track-2d-t0-after.png",
         "health": {
           "canvases": [
             {
@@ -167,7 +167,7 @@
               "cssWidth": 826,
               "cssHeight": 413,
               "blank": false,
-              "uniqueColors": 68,
+              "uniqueColors": 77,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }
@@ -176,7 +176,7 @@
         }
       },
       {
-        "file": "uniform-accelerated-2d-mid-after.png",
+        "file": "air-track-2d-mid-after.png",
         "health": {
           "canvases": [
             {
@@ -185,7 +185,7 @@
               "cssWidth": 826,
               "cssHeight": 413,
               "blank": false,
-              "uniqueColors": 68,
+              "uniqueColors": 80,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }

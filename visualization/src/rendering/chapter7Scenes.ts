@@ -42,6 +42,77 @@ const ORANGE = '#f59e0b';
 const RED = '#ef4444';
 const PURPLE = '#a855f7';
 
+/**
+ * 机械能守恒板书读数 — **单一真源: 引擎轨迹** (#159 逐节审计)
+ *
+ * 旧实现只把**位置**夹到地面 (`Math.max(0, y)`) 却**放任速度继续增长**
+ * (`vy` 未夹), 于是物体「冻在地面」而动能一路涨到 432 J —— 同一块板上却写着
+ * 「无摩擦 → 守恒」, 总能量柱从 E₀=98 J 涨到 432 J, 结论与读数自相矛盾。
+ *
+ * 现在: 场景把仿真时长截到**触地时刻**, 引擎轨迹本身就终止在地面,
+ * 板书读到的 y/v/KE/PE/E 全部落在物理合法区间, E总 ≡ E₀。
+ */
+export interface EnergyConservationReadouts {
+    /** 当前水平位移 (m) */
+    x: number;
+    /** 当前离地高度 (m) */
+    h: number;
+    /** 水平速度 (m/s) */
+    vx: number;
+    /** 竖直速度 (m/s) */
+    vy: number;
+    /** 速率 (m/s) */
+    v: number;
+    /** 动能 (J) */
+    ke: number;
+    /** 势能 (J) */
+    pe: number;
+    /** 机械能 (J) */
+    total: number;
+    /** 初始机械能 (J) */
+    init: number;
+    /** 触地时刻 (s) */
+    tGround: number;
+    /** 是否已落地 */
+    landed: boolean;
+}
+
+export function energyConservationReadouts(
+    params: Record<string, number>,
+    result: SimulationResult | null,
+    currentTime: number
+): EnergyConservationReadouts {
+    const h0 = Math.max(0, params['h0'] ?? 10);
+    const v0 = params['v0'] ?? 0;
+    const mass = params['mass'] ?? 1;
+    const g = Math.max(1e-6, params['g'] ?? G_ACCELERATION);
+    const tGround = Math.sqrt((2 * h0) / g);
+
+    const frame = getFrame(result, currentTime);
+    const landed = currentTime >= tGround;
+    const y = frame ? frame.position.y : h0 - 0.5 * g * currentTime * currentTime;
+    const vy = frame ? frame.velocity.y : -g * currentTime;
+    const vx = frame ? frame.velocity.x : v0;
+    const h = Math.max(0, landed ? 0 : y);
+    const vyClamped = landed ? -Math.sqrt(2 * g * h0) : vy;
+    const v = Math.hypot(vx, vyClamped);
+    const ke = 0.5 * mass * v * v;
+    const pe = mass * g * h;
+    return {
+        x: frame ? frame.position.x : v0 * currentTime,
+        h,
+        vx,
+        vy: vyClamped,
+        v,
+        ke,
+        pe,
+        total: ke + pe,
+        init: mass * g * h0 + 0.5 * mass * v0 * v0,
+        tGround,
+        landed
+    };
+}
+
 export function drawEnergyConservationScene(opts: MechanicsSceneOptions): void {
     const { ctx, width, height, isDark, params, simulationResult, currentTime } = opts;
     const h0 = params['h0'] ?? 10;
@@ -50,16 +121,13 @@ export function drawEnergyConservationScene(opts: MechanicsSceneOptions): void {
     const g = params['g'] ?? G_ACCELERATION;
     const friction = params['friction'] ?? 0;
 
-    const frame = getFrame(simulationResult, currentTime);
-    const y = frame ? Math.max(0, frame.position.y) : h0 - 0.5 * g * currentTime * currentTime;
-    const vy = frame ? frame.velocity.y : -g * currentTime;
-    const vx = v0;
-    const h = Math.max(0, y);
-    const v = Math.hypot(vx, vy);
-    const KE = 0.5 * mass * v * v;
-    const PE = mass * g * h;
-    const totalE = KE + PE;
-    const initE = mass * g * h0 + 0.5 * mass * v0 * v0;
+    const read = energyConservationReadouts(params, simulationResult, currentTime);
+    const h = read.h;
+    const v = read.v;
+    const KE = read.ke;
+    const PE = read.pe;
+    const totalE = read.total;
+    const initE = read.init;
 
     // 布局
     const groundY = height - 60;
@@ -67,6 +135,9 @@ export function drawEnergyConservationScene(opts: MechanicsSceneOptions): void {
     const fallX = width * 0.35;
     const scale = (groundY - topY) / Math.max(1, h0);
     const ballY = clamp(topY + (h0 - h) * scale, topY, groundY);
+    // 水平位移单独定标: 落地时水平射程 x = v₀·√(2h₀/g) 恰好铺满轨道区
+    const range = Math.max(0.5, Math.abs(v0) * read.tGround);
+    const hScale = (width * 0.62 - fallX) / range;
 
     drawTitle(ctx, '机械能守恒定律: Ek + Ep = const', width, isDark);
     drawGround(ctx, groundY, width, isDark);
@@ -91,17 +162,25 @@ export function drawEnergyConservationScene(opts: MechanicsSceneOptions): void {
         ctx.fillText(`${((h0 * (5 - i)) / 5).toFixed(0)}m`, rulerX - 6, markY + 3);
     }
 
-    // 下落轨迹虚线
-    ctx.setLineDash([5, 4]);
-    ctx.strokeStyle = isDark ? 'rgba(148,163,184,0.3)' : 'rgba(100,116,139,0.2)';
-    ctx.beginPath();
-    ctx.moveTo(fallX, topY);
-    ctx.lineTo(fallX + v0 * scale * 0.3, groundY);
-    ctx.stroke();
-    ctx.setLineDash([]);
+    // 完整抛物线虚线 (引擎轨迹包络, 落地段止于地面)
+    const trajAll = simulationResult?.trajectories?.[0];
+    if (trajAll && trajAll.length > 1) {
+        ctx.setLineDash([5, 4]);
+        ctx.strokeStyle = isDark ? 'rgba(148,163,184,0.3)' : 'rgba(100,116,139,0.2)';
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        trajAll.forEach((p, i) => {
+            const sx = fallX + p.position.x * hScale;
+            const sy = clamp(topY + (h0 - Math.max(0, p.position.y)) * scale, topY, groundY);
+            if (i === 0) ctx.moveTo(sx, sy);
+            else ctx.lineTo(sx, sy);
+        });
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
 
-    // 已走过轨迹实线
-    if (simulationResult && v0 !== 0) {
+    // 已走过轨迹实线 (引擎轨迹; 旧实现只在 v₀≠0 时才画 → 默认自由落体看不到轨迹线)
+    if (simulationResult) {
         const traj = simulationResult.trajectories[0];
         if (traj) {
             ctx.strokeStyle = BLUE;
@@ -109,8 +188,8 @@ export function drawEnergyConservationScene(opts: MechanicsSceneOptions): void {
             ctx.beginPath();
             let started = false;
             for (const p of traj) {
-                const sx = fallX + p.position.x * scale * 0.3;
-                const sy = clamp(topY + (h0 - p.position.y) * scale, topY, groundY);
+                const sx = fallX + p.position.x * hScale;
+                const sy = clamp(topY + (h0 - Math.max(0, p.position.y)) * scale, topY, groundY);
                 if (!started) {
                     ctx.moveTo(sx, sy);
                     started = true;
@@ -121,8 +200,8 @@ export function drawEnergyConservationScene(opts: MechanicsSceneOptions): void {
         }
     }
 
-    // 小球
-    const bx = fallX + (v0 !== 0 ? (h0 - h) * scale * 0.3 * (v0 / Math.max(1, Math.abs(v0))) : 0);
+    // 小球 (水平位置读引擎 x, 不再用「下落距离 × 0.3」这种与物理无关的近似)
+    const bx = fallX + read.x * hScale;
     const grad = ctx.createRadialGradient(bx - 5, ballY - 6, 3, bx, ballY, 16);
     grad.addColorStop(0, '#fef3c7');
     grad.addColorStop(0.5, ORANGE);
@@ -183,14 +262,20 @@ export function drawEnergyConservationScene(opts: MechanicsSceneOptions): void {
     drawHud(ctx, isDark, [
         { label: 't', value: `${currentTime.toFixed(3)} s` },
         { label: 'h', value: `${h.toFixed(2)} m` },
+        { label: 'x', value: `${read.x.toFixed(2)} m` },
         { label: 'v', value: `${v.toFixed(2)} m/s` },
         { label: 'E', value: `${totalE.toFixed(2)} J` }
     ]);
+    // 摩擦说明必须诚实: 引擎 uniform-accelerated 是**解析无摩擦模型**
+    // (environment.ground.friction 不被该模型消费), 摩擦 > 0 时板书不能宣称能量已损耗。
+    const frictionNote =
+        friction > 0 ? `摩擦设定 ${friction}N (注: 当前引擎为无摩擦解析模型, 板书按引擎实际输出显示)` : '无摩擦 → 守恒';
     drawInfoBar(
         ctx,
         width,
         height,
-        `h₀=${h0}m  m=${mass}kg  g=${g.toFixed(1)}m/s²  ${friction > 0 ? `摩擦力=${friction}N` : '无摩擦 → 守恒'}`,
+        `h₀=${h0}m  m=${mass}kg  g=${g.toFixed(1)}m/s²  ${frictionNote}  E₀=${initE.toFixed(1)}J  E=${totalE.toFixed(1)}J` +
+            (read.landed ? `  [已落地 t=${read.tGround.toFixed(2)}s]` : ''),
         isDark
     );
     if (!simulationResult) drawEmptyState(ctx, width, height, isDark);

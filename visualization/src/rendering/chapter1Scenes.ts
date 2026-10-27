@@ -12,6 +12,8 @@
  */
 import type { SimulationResult } from 'physics-core';
 import { G_ACCELERATION } from './constants';
+import { getThemeTokens } from '../utils/themeTokens';
+import { woodTexture } from './textureFactory';
 import {
     roundRectPath,
     mutedColor,
@@ -597,53 +599,495 @@ export function drawProjectileScene(opts: MechanicsSceneOptions): void {
     if (!simulationResult) drawEmptyState(ctx, width, height, isDark);
 }
 
+/**
+ * 伽利略斜面读数 — **单一真源: 引擎轨迹** (#159 逐节审计)
+ *
+ * 旧板书用 `clamp(frame.position.x, 0, L)` 当作「沿斜面位移 s」:
+ *   - 引擎坐标里 x = s·cosθ, θ=30° 时只读到真值的 86.6%;
+ *   - clamp 到 L 之后, 水平外推段 (默认时长 76%) 全部显示同一个数 → 小球冻结;
+ *   - 对接斜面/水平面两段根本没有画。
+ * 现在沿斜面位移由引擎位置在斜面方向上的**投影**得到 (引擎 y 向下为正,
+ * 下滑方向 (cosθ, sinθ) → s = x·cosθ + y·sinθ), 并补齐三段装置。
+ */
+export interface GalileoInclineReadouts {
+    mode: 'single' | 'docked' | 'horizontal' | 'all';
+    thetaDeg: number;
+    inclineLength: number;
+    gravity: number;
+    /** 沿斜面加速度 a = g·sinθ */
+    acceleration: number;
+    /** 斜面竖直落差 h = L·sinθ */
+    heightDrop: number;
+    /** 滑到底端时间 t_end = √(2L/a) */
+    tEnd: number;
+    /** 底端速度 v_end = √(2gh) */
+    vEnd: number;
+    /** 当前沿斜面位移 (m) */
+    s: number;
+    /** 当前沿斜面速度 (m/s) */
+    v: number;
+    source: 'engine' | 'fallback';
+}
+
+export function galileoInclineReadouts(
+    params: Record<string, number>,
+    result: SimulationResult | null,
+    currentTime: number
+): GalileoInclineReadouts {
+    const thetaDeg = params['angleDeg'] ?? 30;
+    const inclineLength = params['inclineLength'] ?? 2;
+    const gravity = params['gravity'] ?? G_ACCELERATION;
+    const modeIdx = Math.round(params['mode'] ?? 3);
+    const mode = (['single', 'docked', 'horizontal', 'all'] as const)[modeIdx] ?? 'all';
+    const theta = (thetaDeg * Math.PI) / 180;
+    const cosT = Math.cos(theta);
+    const sinT = Math.sin(theta);
+    const acceleration = gravity * sinT;
+    const heightDrop = inclineLength * sinT;
+    const tEnd = acceleration > 0 ? Math.sqrt((2 * inclineLength) / acceleration) : Number.POSITIVE_INFINITY;
+    const vEnd = Math.sqrt(2 * gravity * heightDrop);
+
+    const frame = getFrame(result, currentTime);
+    if (frame) {
+        // 引擎 y 向下为正, 下滑方向 (cosθ, sinθ) → 沿斜面投影
+        const s = frame.position.x * cosT + frame.position.y * sinT;
+        const v = frame.velocity.x * cosT + frame.velocity.y * sinT;
+        return {
+            mode,
+            thetaDeg,
+            inclineLength,
+            gravity,
+            acceleration,
+            heightDrop,
+            tEnd,
+            vEnd,
+            s,
+            v,
+            source: 'engine'
+        };
+    }
+    const s = Math.min(inclineLength, 0.5 * acceleration * currentTime * currentTime);
+    return {
+        mode,
+        thetaDeg,
+        inclineLength,
+        gravity,
+        acceleration,
+        heightDrop,
+        tEnd,
+        vEnd,
+        s,
+        v: acceleration * currentTime,
+        source: 'fallback'
+    };
+}
+
+/**
+ * 斜面运动读数 — **单一真源: 引擎轨迹** (#159 逐节审计)
+ *
+ * 沿斜面位移 s = x·cosθ − y·sinθ (引擎坐标 y 向上为正, 下滑方向 (cosθ, −sinθ)),
+ * 不得再用笛卡尔 x 分量或写死的比例 (旧 2D 滑块被钉在斜面 45% 处)。
+ */
+export interface InclinedPlaneReadouts {
+    thetaDeg: number;
+    friction: number;
+    mass: number;
+    inclineLength: number;
+    /** 沿斜面加速度 a = g(sinθ − μcosθ) */
+    acceleration: number;
+    /** 当前沿斜面位移 (m) */
+    s: number;
+    /** 当前沿斜面速度 (m/s) */
+    v: number;
+    /** 是否已滑到底端 */
+    atBottom: boolean;
+    source: 'engine' | 'fallback';
+}
+
+export function inclinePlaneReadouts(
+    params: Record<string, number>,
+    result: SimulationResult | null,
+    currentTime: number
+): InclinedPlaneReadouts {
+    const thetaDeg = params['theta'] ?? 30;
+    const friction = params['mu'] ?? 0;
+    const mass = params['m'] ?? 1;
+    const inclineLength = params['inclineLength'] ?? 6;
+    const theta = (thetaDeg * Math.PI) / 180;
+    const cosT = Math.cos(theta);
+    const sinT = Math.sin(theta);
+    const acceleration = G_ACCELERATION * (sinT - friction * cosT);
+
+    const frame = getFrame(result, currentTime);
+    if (frame) {
+        const startY = inclineLength * sinT;
+        const s = frame.position.x * cosT - (frame.position.y - startY) * sinT;
+        const v = frame.velocity.x * cosT - frame.velocity.y * sinT;
+        return {
+            thetaDeg,
+            friction,
+            mass,
+            inclineLength,
+            acceleration,
+            s,
+            v,
+            atBottom: s >= inclineLength - 1e-6,
+            source: 'engine'
+        };
+    }
+    return {
+        thetaDeg,
+        friction,
+        mass,
+        inclineLength,
+        acceleration,
+        s: Math.min(inclineLength, 0.5 * acceleration * currentTime * currentTime),
+        v: acceleration * currentTime,
+        atBottom: false,
+        source: 'fallback'
+    };
+}
+
+/**
+ * 伽利略斜面理想实验板书 — 斜面 / 对接斜面 / 水平面外推 (#159 逐节审计)
+ *
+ * 旧实现的三个硬伤:
+ *   1. 沿斜面位移用 `frame.position.x` (水平分量) 算 —— 引擎坐标里 x = s·cosθ,
+ *      于是 s 永远读小 (θ=30° 时只有真值的 86.6%);
+ *   2. `clamp(…, 0, length)` 把位移钳在斜面长度内, 水平外推段 (76% 的时长)
+ *      全部显示成同一个值, 小球「冻结」;
+ *   3. 只画一条斜面, 对接斜面与水平面两段外推**完全不画** —— 伽利略实验的
+ *      三段推理链在 2D 上看不到。
+ *
+ * 现在整屏按引擎坐标 (x 向右, y 向下) 等比映射: 装置几何、轨迹、小球位置
+ * 共用同一套换算, 三段装置按 mode 呈现。
+ */
 export function drawGalileoInclineScene(opts: MechanicsSceneOptions): void {
     const { ctx, width, height, isDark, params, simulationResult, currentTime } = opts;
-    const angleDeg = params['angleDeg'] ?? 30;
-    const length = params['inclineLength'] ?? 2;
-    const g = params['gravity'] ?? G_ACCELERATION;
+
+    const read = galileoInclineReadouts(params, simulationResult, currentTime);
+    const angleDeg = read.thetaDeg;
+    const L = read.inclineLength;
+    const mode = read.mode;
     const theta = (angleDeg * Math.PI) / 180;
-    const a = g * Math.sin(theta);
+    const cosT = Math.cos(theta);
+    const a = read.acceleration;
+    const h = read.heightDrop; // 斜面竖直落差 (引擎坐标 y 向下为正)
+
+    const traj = simulationResult?.trajectories?.[0] ?? [];
     const frame = getFrame(simulationResult, currentTime);
-    const s = clamp(frame ? frame.position.x : 0.5 * a * currentTime * currentTime, 0, length);
 
-    const baseLeft = width * 0.18;
-    const baseRight = width * 0.82;
-    const baseY = height * 0.78;
-    const maxInclineH = Math.max(0, baseY - 56);
-    const inclineH = Math.min((baseRight - baseLeft) * Math.tan(theta), maxInclineH);
-    const top = { x: baseLeft, y: baseY - inclineH };
-    const bottom = { x: baseRight, y: baseY };
-    const u = s / Math.max(0.001, length);
-    const bx = top.x + (bottom.x - top.x) * u;
-    const by = top.y + (bottom.y - top.y) * u;
+    // —— 屏幕映射: 引擎坐标 (x 右, y 下) 等比缩放, 装置与轨迹同源 ——
+    let minX = 0;
+    let maxX = L * cosT;
+    let minY = 0;
+    let maxY = h;
+    for (const p of traj) {
+        minX = Math.min(minX, p.position.x);
+        maxX = Math.max(maxX, p.position.x);
+        minY = Math.min(minY, p.position.y);
+        maxY = Math.max(maxY, p.position.y);
+    }
+    const marginX = 70;
+    const marginTop = 96;
+    const marginBottom = 120;
+    const maxW = Math.max(80, width - marginX * 2);
+    const maxH = Math.max(80, height - marginTop - marginBottom);
+    const scale = Math.min(maxW / Math.max(0.2, maxX - minX), maxH / Math.max(0.2, maxY - minY));
+    const originX = marginX - minX * scale;
+    const originY = marginTop - minY * scale;
+    const sx = (x: number) => originX + x * scale;
+    const sy = (y: number) => originY + y * scale;
 
-    drawTitle(ctx, '伽利略斜面实验: s = 1/2 at^2', width, isDark);
-    ctx.fillStyle = isDark ? '#334155' : '#cbd5e1';
+    drawTitle(ctx, `伽利略理想斜面: a = g·sinθ = ${a.toFixed(2)} m/s²`, width, isDark);
+
+    // —— 装置: 左侧下滑斜面 ——
+    const topPt = { x: sx(0), y: sy(0) };
+    const valleyPt = { x: sx(L * cosT), y: sy(h) };
+    ctx.strokeStyle = isDark ? '#60a5fa' : '#2563eb';
+    ctx.lineWidth = 7;
+    ctx.lineCap = 'round';
     ctx.beginPath();
-    ctx.moveTo(top.x, top.y);
-    ctx.lineTo(baseLeft, baseY);
-    ctx.lineTo(baseRight, baseY);
-    ctx.closePath();
-    ctx.fill();
-    ctx.strokeStyle = mutedColor(isDark);
-    ctx.lineWidth = 2;
+    ctx.moveTo(topPt.x, topPt.y);
+    ctx.lineTo(valleyPt.x, valleyPt.y);
     ctx.stroke();
-    drawBlock(ctx, bx, by - 16, 34, 28, BLUE, isDark, '球');
-    drawArrow(ctx, bx + 20, by - 20, bx + 80 * Math.cos(theta), by - 20 + 80 * Math.sin(theta), GREEN, 'v');
-    drawArrow(ctx, bx - 10, by - 26, bx - 10 + 65 * Math.cos(theta), by - 26 + 65 * Math.sin(theta), RED, 'mg sinθ');
 
-    ctx.fillStyle = ORANGE;
-    ctx.font = 'bold 13px sans-serif';
+    // —— 装置: 右侧对接斜面 ('docked' 模式) ——
+    if (mode === 'docked') {
+        const dockTop = { x: sx(2 * L * cosT), y: sy(0) };
+        ctx.strokeStyle = isDark ? '#34d399' : '#059669';
+        ctx.lineWidth = 7;
+        ctx.beginPath();
+        ctx.moveTo(valleyPt.x, valleyPt.y);
+        ctx.lineTo(dockTop.x, dockTop.y);
+        ctx.stroke();
+        ctx.fillStyle = isDark ? '#34d399' : '#059669';
+        ctx.font = 'bold 12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('对接斜面', (valleyPt.x + dockTop.x) / 2, (valleyPt.y + dockTop.y) / 2 - 12);
+    }
+
+    // —— 装置: 谷底水平面 ('horizontal' / 'all' 模式) ——
+    if (mode === 'horizontal' || mode === 'all') {
+        const planeEnd = { x: sx(maxX), y: sy(h) };
+        ctx.strokeStyle = isDark ? '#a78bfa' : '#7c3aed';
+        ctx.lineWidth = 7;
+        ctx.beginPath();
+        ctx.moveTo(valleyPt.x, valleyPt.y);
+        ctx.lineTo(planeEnd.x, planeEnd.y);
+        ctx.stroke();
+        ctx.fillStyle = isDark ? '#a78bfa' : '#7c3aed';
+        ctx.font = 'bold 12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('水平面 (对接斜面放平的极限)', (valleyPt.x + planeEnd.x) / 2, valleyPt.y + 22);
+    }
+
+    // —— 等高参考虚线 (原起点高度) ——
+    ctx.strokeStyle = isDark ? '#f59e0b' : '#d97706';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([6, 5]);
+    ctx.beginPath();
+    ctx.moveTo(sx(minX), topPt.y);
+    ctx.lineTo(sx(maxX), topPt.y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = isDark ? '#fbbf24' : '#b45309';
+    ctx.font = '12px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('等高参考线 (h = L·sinθ)', sx(minX) + 6, topPt.y - 8);
+
+    // —— 轨迹 ——
+    if (traj.length > 1) {
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 2.5;
+        ctx.setLineDash([6, 4]);
+        ctx.beginPath();
+        traj.forEach((p, i) => {
+            const px = sx(p.position.x);
+            const py = sy(p.position.y);
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+        });
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+
+    // —— 当前小球 (引擎位置) ——
+    const cur = frame ? frame.position : { x: 0, y: 0 };
+    const ballX = sx(cur.x);
+    const ballY = sy(cur.y);
+    const grad = ctx.createRadialGradient(ballX - 4, ballY - 5, 2, ballX, ballY, 12);
+    grad.addColorStop(0, '#fef3c7');
+    grad.addColorStop(0.5, '#f59e0b');
+    grad.addColorStop(1, '#b45309');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(ballX, ballY, 12, 0, Math.PI * 2);
+    ctx.fill();
+
+    // —— 沿斜面位移 (引擎投影, 不是水平分量) ——
+    const s = read.s;
+    const v = read.v;
+
+    // —— 标注 ——
+    ctx.fillStyle = isDark ? '#60a5fa' : '#2563eb';
+    ctx.font = 'bold 12px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(`θ=${angleDeg}°`, baseRight - 48, baseY - 16);
+    ctx.fillText(`θ=${angleDeg}°`, (topPt.x + valleyPt.x) / 2 - 18, (topPt.y + valleyPt.y) / 2 + 18);
+    ctx.fillStyle = isDark ? '#94a3b8' : '#475569';
+    ctx.fillText(`L=${L.toFixed(1)}m`, (topPt.x + valleyPt.x) / 2 + 26, (topPt.y + valleyPt.y) / 2 + 4);
 
     drawHud(ctx, isDark, [
         { label: 't', value: `${currentTime.toFixed(3)} s` },
-        { label: 'a', value: `${a.toFixed(2)} m/s²` },
-        { label: 's', value: `${s.toFixed(2)} m` }
+        { label: 's', value: `${s.toFixed(2)} m` },
+        { label: 'v', value: `${v.toFixed(2)} m/s` },
+        { label: 'a', value: `${a.toFixed(2)} m/s²` }
     ]);
-    drawInfoBar(ctx, width, height, `a=g sinθ=${a.toFixed(2)}m/s^2  L=${length}m  θ=${angleDeg}°`, isDark);
+    drawInfoBar(
+        ctx,
+        width,
+        height,
+        `模式: ${mode}  θ=${angleDeg}°  L=${L.toFixed(1)}m  a=g·sinθ=${a.toFixed(2)}m/s²  ` +
+            `h=L·sinθ=${h.toFixed(2)}m  t_end=√(2L/a)=${Math.sqrt((2 * L) / a).toFixed(3)}s`,
+        isDark
+    );
+    if (!simulationResult) drawEmptyState(ctx, width, height, isDark);
+}
+
+/**
+ * 斜面运动板书 — 斜面 + 滑块 (位置/轨迹全部来自引擎) (#159 逐节审计)
+ *
+ * 旧实现把 2D 斜面画成**静态装饰件**: 木质楔形背景里的滑块被写死在斜面
+ * 45% 处 (`const t = 0.45`), 而真实物体又由通用轨迹通道按世界坐标绘制 ——
+ * 同一个画面出现「两个滑块、两个坐标系」, 且装饰滑块永远不动。
+ *
+ * 现在改为整屏自定义渲染: 楔形背景、滑块、轨迹、角度标注共用**同一套**
+ * 屏幕映射 (斜面长度 L 与倾角 θ 决定), 滑块位置读引擎轨迹。
+ */
+export function drawInclinedPlaneScene(opts: MechanicsSceneOptions): void {
+    const { ctx, width, height, isDark, params, simulationResult, currentTime } = opts;
+
+    const read = inclinePlaneReadouts(params, simulationResult, currentTime);
+    const thetaDeg = read.thetaDeg;
+    const mu = read.friction;
+    const m = read.mass;
+    const L = read.inclineLength;
+    const a = read.acceleration;
+    const theta = (thetaDeg * Math.PI) / 180;
+    const cosT = Math.cos(theta);
+    const sinT = Math.sin(theta);
+
+    // —— 屏幕映射: 斜面长度 L 与倾角 θ 唯一决定楔形与滑块位置 ——
+    const scale = Math.min((width * 0.66) / Math.max(0.05, L * cosT), (height * 0.55) / Math.max(0.05, L * sinT));
+    const rampLen = L * scale;
+    const bottomRight = { x: width * 0.84, y: height * 0.8 };
+    const bottomLeft = { x: bottomRight.x - rampLen * cosT, y: bottomRight.y };
+    const topLeft = { x: bottomLeft.x, y: bottomRight.y - rampLen * sinT };
+    /** 引擎沿斜面位移 s (m) → 屏幕点 */
+    const screenOfS = (s: number) => ({
+        x: topLeft.x + s * cosT * scale,
+        y: topLeft.y + s * sinT * scale
+    });
+
+    drawTitle(ctx, `斜面运动: a = g(sinθ − μcosθ) = ${a.toFixed(2)} m/s²`, width, isDark);
+
+    // —— 楔形 (木质斜面板) ——
+    const tokens = getThemeTokens(isDark);
+    ctx.fillStyle = tokens.canvasShadowSoft;
+    ctx.beginPath();
+    ctx.moveTo(topLeft.x + 5, topLeft.y + 5);
+    ctx.lineTo(bottomLeft.x + 5, bottomLeft.y + 5);
+    ctx.lineTo(bottomRight.x + 5, bottomRight.y + 5);
+    ctx.closePath();
+    ctx.fill();
+
+    const wedgeW = bottomRight.x - bottomLeft.x;
+    const wedgeH = bottomRight.y - topLeft.y;
+    const woodTex = woodTexture(Math.max(64, wedgeW), Math.max(64, wedgeH), tokens.canvasWood, isDark);
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(topLeft.x, topLeft.y);
+    ctx.lineTo(bottomLeft.x, bottomLeft.y);
+    ctx.lineTo(bottomRight.x, bottomRight.y);
+    ctx.closePath();
+    ctx.clip();
+    ctx.drawImage(woodTex, bottomLeft.x, topLeft.y, wedgeW, wedgeH);
+    ctx.restore();
+
+    ctx.strokeStyle = tokens.canvasWedgeEdge;
+    ctx.lineWidth = 1.8;
+    ctx.beginPath();
+    ctx.moveTo(topLeft.x, topLeft.y);
+    ctx.lineTo(bottomLeft.x, bottomLeft.y);
+    ctx.lineTo(bottomRight.x, bottomRight.y);
+    ctx.closePath();
+    ctx.stroke();
+
+    ctx.strokeStyle = tokens.canvasWedgeHatch;
+    ctx.lineWidth = 1;
+    for (let i = 0; i < rampLen * sinT; i += 7) {
+        ctx.beginPath();
+        ctx.moveTo(bottomLeft.x - 8, topLeft.y + i);
+        ctx.lineTo(bottomLeft.x, topLeft.y + i + 7);
+        ctx.stroke();
+    }
+
+    // —— 引擎轨迹 (沿斜面) ——
+    const startY = L * sinT;
+    const alongOf = (p: { x: number; y: number }) => p.x * cosT - (p.y - startY) * sinT;
+    const traj = simulationResult?.trajectories?.[0] ?? [];
+    if (traj.length > 1) {
+        ctx.strokeStyle = ORANGE;
+        ctx.lineWidth = 2.5;
+        ctx.setLineDash([6, 4]);
+        ctx.beginPath();
+        traj.forEach((p, i) => {
+            const pt = screenOfS(alongOf(p.position));
+            if (i === 0) ctx.moveTo(pt.x, pt.y);
+            else ctx.lineTo(pt.x, pt.y);
+        });
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+
+    // —— 当前滑块 (读引擎) ——
+    const s = read.s;
+    const vAlong = read.v;
+    const pos = screenOfS(s);
+    const blockW = 38;
+    const blockH = 24;
+
+    ctx.save();
+    ctx.translate(pos.x, pos.y);
+    ctx.rotate(theta);
+    ctx.fillStyle = 'rgba(0,0,0,0.18)';
+    roundRectPath(ctx, -blockW / 2 + 3, -blockH + 3, blockW, blockH, 4);
+    ctx.fill();
+    const bGrad = ctx.createLinearGradient(-blockW / 2, -blockH, blockW / 2, 0);
+    bGrad.addColorStop(0, '#60a5fa');
+    bGrad.addColorStop(0.5, '#3b82f6');
+    bGrad.addColorStop(1, '#1d4ed8');
+    ctx.fillStyle = bGrad;
+    roundRectPath(ctx, -blockW / 2, -blockH, blockW, blockH, 4);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.20)';
+    roundRectPath(ctx, -blockW / 2 + 3, -blockH + 3, blockW - 6, blockH * 0.35, 3);
+    ctx.fill();
+    ctx.restore();
+
+    // —— 角度标注 (底端) ——
+    const arcR = 45;
+    const startAngle = Math.PI;
+    const slopeAngleFromBR = Math.atan2(topLeft.y - bottomRight.y, topLeft.x - bottomRight.x);
+    const minorSweep = (((slopeAngleFromBR - startAngle) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+    const midAngle = startAngle + minorSweep / 2;
+    ctx.fillStyle = tokens.canvasAngleFill;
+    ctx.beginPath();
+    ctx.moveTo(bottomRight.x, bottomRight.y);
+    ctx.arc(bottomRight.x, bottomRight.y, arcR, startAngle, slopeAngleFromBR, false);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = tokens.canvasAngleStroke;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(bottomRight.x, bottomRight.y, arcR, startAngle, slopeAngleFromBR, false);
+    ctx.stroke();
+    ctx.fillStyle = tokens.canvasAngleStroke;
+    ctx.font = 'bold 13px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(
+        `θ=${thetaDeg}°`,
+        bottomRight.x + (arcR + 22) * Math.cos(midAngle),
+        bottomRight.y + (arcR + 22) * Math.sin(midAngle)
+    );
+    ctx.textBaseline = 'alphabetic';
+
+    // —— 斜面长度标注 ——
+    ctx.fillStyle = tokens.readoutText;
+    ctx.font = 'bold 12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(
+        `L = ${L.toFixed(1)} m`,
+        (topLeft.x + bottomLeft.x) / 2 - sinT * 26,
+        (topLeft.y + bottomLeft.y) / 2 + cosT * 26
+    );
+    ctx.fillText(`m=${m}kg`, pos.x + sinT * (blockH + 14), pos.y - cosT * (blockH + 14));
+
+    drawHud(ctx, isDark, [
+        { label: 't', value: `${currentTime.toFixed(2)} s` },
+        { label: 's', value: `${s.toFixed(2)} m` },
+        { label: 'v', value: `${vAlong.toFixed(2)} m/s` },
+        { label: 'a', value: `${a.toFixed(2)} m/s²` }
+    ]);
+    drawInfoBar(
+        ctx,
+        width,
+        height,
+        `θ=${thetaDeg}°  μ=${mu}  m=${m}kg  L=${L.toFixed(1)}m  a=g(sinθ−μcosθ)=${a.toFixed(2)}m/s²  ` +
+            `s=${s.toFixed(2)}m  v=${vAlong.toFixed(2)}m/s`,
+        isDark
+    );
     if (!simulationResult) drawEmptyState(ctx, width, height, isDark);
 }
 

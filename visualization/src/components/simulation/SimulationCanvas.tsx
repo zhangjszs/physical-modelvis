@@ -20,7 +20,7 @@ import {
     type TimerChannel
 } from '../../rendering/props';
 import { getBlockedGateIndices, getTimerDisplayValue, type PhotogateMeasurement } from '../../utils/photogate';
-import { woodTexture, metalTexture } from '../../rendering/textureFactory';
+import { metalTexture } from '../../rendering/textureFactory';
 import {
     drawHookeLawScene,
     drawSlidingFrictionScene,
@@ -109,6 +109,7 @@ import {
     drawFreeFallScene,
     drawVerticalMotionScene,
     drawProjectileScene,
+    drawInclinedPlaneScene,
     drawGalileoInclineScene,
     drawReactionTimeScene,
     drawTickerTimerScene,
@@ -185,14 +186,7 @@ function countPastPoints(points: TrajectoryPoint[], t: number): number {
     return lo;
 }
 
-const SCENES_2D_CUSTOM_BG = new Set([
-    'electric-field',
-    'magnetic-field',
-    'em-combined',
-    'collision',
-    'spring',
-    'inclined-plane'
-]);
+const SCENES_2D_CUSTOM_BG = new Set(['electric-field', 'magnetic-field', 'em-combined', 'collision', 'spring']);
 
 /** 第三章「相互作用——力」场景集合：完整自定义渲染，不走标准轨迹/物体绘制流程 */
 const SCENES_CHAPTER3 = new Set(['hooke-law', 'sliding-friction', 'force-composition', 'newton-third-law']);
@@ -283,6 +277,9 @@ const SCENES_MECHANICS = new Set([
     'projectile',
     'uniform-accelerated',
     'galileo-incline',
+    // #159 逐节审计: 斜面改为专属板书 (楔形背景 + 滑块共用同一屏幕映射),
+    // 旧实现是「静态装饰滑块 (写死 t=0.45) + 通用轨迹通道真实物体」的双表示。
+    'inclined-plane',
     'reaction-time',
     'ticker-timer',
     'transmission-belt',
@@ -686,138 +683,6 @@ function drawSpringScene(
 /**
  * 绘制斜面场景：教科书标准"左竖右斜"楔体 + 3D 滑块 + 角度标注
  */
-function drawInclinedPlaneScene(
-    ctx: CanvasRenderingContext2D,
-    _transformer: CoordinateTransformer,
-    width: number,
-    height: number,
-    isDark: boolean,
-    params: Record<string, number>
-) {
-    const thetaDeg = params['theta'] ?? 30;
-    const m = params['m'] ?? 1;
-    const tokens = getThemeTokens(isDark);
-    const mu = params['mu'] ?? 0;
-    const labelColor = tokens.readoutText;
-    const subColor = tokens.text3;
-    const thetaRad = (thetaDeg * Math.PI) / 180;
-
-    const baseLen = width * 0.65;
-    const wallH = baseLen * Math.tan(thetaRad);
-    const bottomRight = { x: width * 0.82, y: height * 0.82 };
-    const bottomLeft = { x: bottomRight.x - baseLen, y: bottomRight.y };
-    const topLeft = { x: bottomLeft.x, y: bottomRight.y - wallH };
-
-    ctx.fillStyle = tokens.canvasShadowSoft;
-    ctx.beginPath();
-    ctx.moveTo(topLeft.x + 5, topLeft.y + 5);
-    ctx.lineTo(bottomLeft.x + 5, bottomLeft.y + 5);
-    ctx.lineTo(bottomRight.x + 5, bottomRight.y + 5);
-    ctx.closePath();
-    ctx.fill();
-
-    const wedgeW = bottomRight.x - bottomLeft.x;
-    const wedgeH = bottomRight.y - topLeft.y;
-    const woodTex = woodTexture(Math.max(64, wedgeW), Math.max(64, wedgeH), tokens.canvasWood, isDark);
-    ctx.save();
-    ctx.beginPath();
-    ctx.moveTo(topLeft.x, topLeft.y);
-    ctx.lineTo(bottomLeft.x, bottomLeft.y);
-    ctx.lineTo(bottomRight.x, bottomRight.y);
-    ctx.closePath();
-    ctx.clip();
-    ctx.drawImage(woodTex, bottomLeft.x, topLeft.y, wedgeW, wedgeH);
-    ctx.restore();
-
-    ctx.strokeStyle = tokens.canvasWedgeEdge;
-    ctx.lineWidth = 1.8;
-    ctx.beginPath();
-    ctx.moveTo(topLeft.x, topLeft.y);
-    ctx.lineTo(bottomLeft.x, bottomLeft.y);
-    ctx.lineTo(bottomRight.x, bottomRight.y);
-    ctx.closePath();
-    ctx.stroke();
-
-    ctx.strokeStyle = tokens.canvasWedgeHatch;
-    ctx.lineWidth = 1;
-    for (let i = 0; i < wallH; i += 7) {
-        ctx.beginPath();
-        ctx.moveTo(bottomLeft.x - 8, topLeft.y + i);
-        ctx.lineTo(bottomLeft.x, topLeft.y + i + 7);
-        ctx.stroke();
-    }
-
-    const arcR = 45;
-    const startAngle = Math.PI;
-    const slopeAngleFromBR = Math.atan2(topLeft.y - bottomRight.y, topLeft.x - bottomRight.x);
-    // 取从水平底边(startAngle)到斜面边的最小扫角(=θ)，避免 anticlockwise=true 画出 330° 优角
-    const minorSweep = (((slopeAngleFromBR - startAngle) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
-    const midAngle = startAngle + minorSweep / 2;
-    ctx.fillStyle = tokens.canvasAngleFill;
-    ctx.beginPath();
-    ctx.moveTo(bottomRight.x, bottomRight.y);
-    ctx.arc(bottomRight.x, bottomRight.y, arcR, startAngle, slopeAngleFromBR, false);
-    ctx.closePath();
-    ctx.fill();
-    ctx.strokeStyle = tokens.canvasAngleStroke;
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.arc(bottomRight.x, bottomRight.y, arcR, startAngle, slopeAngleFromBR, false);
-    ctx.stroke();
-    ctx.fillStyle = tokens.canvasAngleStroke;
-    ctx.font = 'bold 13px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(
-        `\u03B8=${thetaDeg}\u00B0`,
-        bottomRight.x + (arcR + 22) * Math.cos(midAngle),
-        bottomRight.y + (arcR + 22) * Math.sin(midAngle)
-    );
-    ctx.textBaseline = 'alphabetic';
-
-    const t = 0.45;
-    const slopeCenterX = bottomRight.x + t * (topLeft.x - bottomRight.x);
-    const slopeCenterY = bottomRight.y + t * (topLeft.y - bottomRight.y);
-    const blockW = 38;
-    const blockH = 24;
-
-    ctx.save();
-    ctx.translate(slopeCenterX, slopeCenterY);
-    ctx.rotate(thetaRad);
-    ctx.fillStyle = 'rgba(0,0,0,0.18)';
-    roundRectPath(ctx, -blockW / 2 + 3, -blockH + 3, blockW, blockH, 4);
-    ctx.fill();
-    const bGrad = ctx.createLinearGradient(-blockW / 2, -blockH, blockW / 2, 0);
-    bGrad.addColorStop(0, '#60a5fa');
-    bGrad.addColorStop(0.5, '#3b82f6');
-    bGrad.addColorStop(1, '#1d4ed8');
-    ctx.fillStyle = bGrad;
-    roundRectPath(ctx, -blockW / 2, -blockH, blockW, blockH, 4);
-    ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,0.20)';
-    roundRectPath(ctx, -blockW / 2 + 3, -blockH + 3, blockW - 6, blockH * 0.35, 3);
-    ctx.fill();
-    ctx.restore();
-
-    const labelOffX = slopeCenterX + Math.sin(thetaRad) * (blockH + 12);
-    const labelOffY = slopeCenterY - Math.cos(thetaRad) * (blockH + 12);
-    ctx.fillStyle = labelColor;
-    ctx.font = 'bold 12px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(`m=${m}kg`, labelOffX, labelOffY);
-
-    if (mu > 0) {
-        const infoText = `\u03BC=${mu}`;
-        ctx.font = '11px sans-serif';
-        ctx.textAlign = 'center';
-        const tw = ctx.measureText(infoText).width;
-        ctx.fillStyle = tokens.canvasHudBg;
-        roundRectPath(ctx, width / 2 - tw / 2 - 8, height - 34, tw + 16, 22, 4);
-        ctx.fill();
-        ctx.fillStyle = subColor;
-        ctx.fillText(infoText, width / 2, height - 18);
-    }
-}
 
 /**
  * 绘制电磁复合场：竖直电场线 (E ⊥ v) + 精致磁场符号 (⊗ 垂直纸面向里)
@@ -1309,8 +1174,6 @@ export function SimulationCanvas() {
                     drawCollisionScene(c, transformer, cssW, cssH, isDark, parameters);
                 } else if (currentScene === 'spring') {
                     drawSpringScene(c, transformer, cssW, cssH, isDark, parameters);
-                } else if (currentScene === 'inclined-plane') {
-                    drawInclinedPlaneScene(c, transformer, cssW, cssH, isDark, parameters);
                 }
             };
             if (usesStaticLayer) {
@@ -1556,6 +1419,9 @@ export function SimulationCanvas() {
                     break;
                 case 'projectile':
                     drawProjectileScene(sceneOpts);
+                    break;
+                case 'inclined-plane':
+                    drawInclinedPlaneScene(sceneOpts);
                     break;
                 case 'galileo-incline':
                     drawGalileoInclineScene(sceneOpts);

@@ -1,26 +1,162 @@
 /**
  * LC 振荡电路 rig — 密绕电感线圈 + 平行板电容器 + 双刀双掷开关 + 电磁振荡标牌
  * 演示电场能与磁场能的相互周期性转化 T = 2π√(LC)
+ *
+ * #159 逐节审计修复:
+ *   1. 旧实现读 `params['L'] ?? params['inductance']` —— 场景参数名是 **`Lind`**,
+ *      两个名字都不存在 → `num(..., 0.1)` 静默回退 0.1 H (真实 10 μH, **差 1 万倍**);
+ *   2. 旧实现读 `params['C']` (场景单位 **pF**) 却当成 **F** → 差 1e12 倍;
+ *      两者相乘, 标牌显示 `T = 19869.06 ms | f = 0.1 Hz`, 而引擎真值是
+ *      `T = 0.19869 μs | f = 5.0332 MHz` —— **偏差 1.0×10⁸**。
+ *   现在: 全部读数走**引擎 `diagnostics.maxValues`** (period/frequency/inductance/capacitance),
+ *   场景参数只用于单位换算与兜底。
+ *
+ *   3. 引擎轨迹只有 1 个点 (0,0) —— 电荷 q(t) 走的是 charts `x_t`, 不是轨迹。
+ *      rig 改为在 `onAnimate` 里读引擎 chart 的 q(t)/i(t), 驱动电容极板间隙的
+ *      「电荷指示球」与能量柱, 让「电场能 ↔ 磁场能往返振荡」真正可见。
  */
 import * as THREE from 'three';
+import type { SimulationResult } from 'physics-core';
+import { chartsOf } from 'physics-core';
 import { SceneRig } from '../EquipmentStage';
 import { makeBox, makeCylinder, makeLine, makeTextSprite } from '../primitives';
 import { num, setLabel } from './params';
 
 const WORLD_SCALE = 0.16;
+/** 电荷指示球在电容极板间的最大偏移 (世界单位) */
+const CHARGE_INDICATOR_SPAN = 0.26;
 
-interface LCHandles {
+export interface LCHandles {
     coil: THREE.Group;
     capacitor: THREE.Group;
     switchLever: THREE.Mesh;
     infoLabel: THREE.Sprite;
+    /** 电荷指示球 (随 q(t) 在极板间往返) */
+    chargeBall: THREE.Mesh;
+    /** 电场能指示条 (高度 ∝ Ee) */
+    energyBar: THREE.Mesh;
+}
+
+/**
+ * LC 振荡读数 — **单一真源: 引擎 `diagnostics.maxValues`** (#159 逐节审计)
+ */
+export interface LCOscillatorReadouts {
+    /** 电感 (H) */
+    inductance: number;
+    /** 电容 (F) */
+    capacitance: number;
+    /** 角频率 (rad/s) */
+    omega: number;
+    /** 频率 (Hz) */
+    frequency: number;
+    /** 周期 (s) */
+    period: number;
+    /** 初始电荷 (C) */
+    maxCharge: number;
+    /** 最大电流 (A) */
+    maxCurrent: number;
+    /** 总能量 (J) */
+    totalEnergy: number;
+    /** 读数来源 */
+    source: 'engine' | 'fallback';
+}
+
+export function lcOscillatorReadouts(
+    params: Record<string, number>,
+    result?: SimulationResult | null
+): LCOscillatorReadouts {
+    // 场景单位: C = pF, Lind = μH, Q0 = μC
+    const capFromParams = num(params['C'], 100) * 1e-12;
+    const indFromParams = num(params['Lind'], 10) * 1e-6;
+    const q0FromParams = num(params['Q0'], 1) * 1e-6;
+
+    const mv = result?.diagnostics?.maxValues as Record<string, number> | undefined;
+    if (mv && typeof mv['period'] === 'number' && typeof mv['frequency'] === 'number') {
+        return {
+            inductance: typeof mv['inductance'] === 'number' ? mv['inductance'] : indFromParams,
+            capacitance: typeof mv['capacitance'] === 'number' ? mv['capacitance'] : capFromParams,
+            omega: typeof mv['omega'] === 'number' ? mv['omega'] : 0,
+            frequency: mv['frequency'],
+            period: mv['period'],
+            maxCharge: typeof mv['maxCharge'] === 'number' ? mv['maxCharge'] : q0FromParams,
+            maxCurrent: typeof mv['maxCurrent'] === 'number' ? mv['maxCurrent'] : 0,
+            totalEnergy: typeof mv['totalEnergy'] === 'number' ? mv['totalEnergy'] : 0,
+            source: 'engine'
+        };
+    }
+    const omega = Math.sqrt(1 / (indFromParams * capFromParams));
+    const period = (2 * Math.PI) / omega;
+    return {
+        inductance: indFromParams,
+        capacitance: capFromParams,
+        omega,
+        frequency: 1 / period,
+        period,
+        maxCharge: q0FromParams,
+        maxCurrent: omega * q0FromParams,
+        totalEnergy: (q0FromParams * q0FromParams) / (2 * capFromParams),
+        source: 'fallback'
+    };
+}
+
+/** 标牌文案: 周期/频率按量级自适应单位 (μs / ms / s; Hz / kHz / MHz) */
+export function lcOscillatorLabel(read: LCOscillatorReadouts): string {
+    const T = read.period;
+    const tText =
+        T >= 1e-3
+            ? `${(T * 1e3).toFixed(3)} ms`
+            : T >= 1e-6
+              ? `${(T * 1e6).toFixed(4)} μs`
+              : `${(T * 1e9).toFixed(2)} ns`;
+    const f = read.frequency;
+    const fText =
+        f >= 1e6 ? `${(f / 1e6).toFixed(4)} MHz` : f >= 1e3 ? `${(f / 1e3).toFixed(4)} kHz` : `${f.toFixed(3)} Hz`;
+    const lText =
+        read.inductance >= 1e-3
+            ? `${(read.inductance * 1e3).toFixed(3)} mH`
+            : `${(read.inductance * 1e6).toFixed(3)} μH`;
+    const cText =
+        read.capacitance >= 1e-6
+            ? `${(read.capacitance * 1e6).toFixed(3)} μF`
+            : `${(read.capacitance * 1e12).toFixed(3)} pF`;
+    return `T = 2π√(LC) = ${tText} | f = ${fText} | L=${lText} C=${cText}`;
+}
+
+/** 从引擎 charts 读当前时刻的电荷 q(t) 与电流 i(t) (归一化到 [-1,1]) */
+export function lcOscillatorState(result: SimulationResult | null | undefined, time: number): { q: number; i: number } {
+    if (!result) return { q: 0, i: 0 };
+    const charts = chartsOf(result, 'lc-oscillator');
+    const qSeries = charts?.['x_t'];
+    const iSeries = charts?.['y_t'];
+    const sample = (series: typeof qSeries): number => {
+        if (!series || !series.points || series.points.length === 0) return 0;
+        const pts = series.points;
+        if (time <= pts[0]!.x) return pts[0]!.y;
+        const last = pts[pts.length - 1]!;
+        if (time >= last.x) return last.y;
+        let lo = 0;
+        let hi = pts.length - 1;
+        while (hi - lo > 1) {
+            const mid = (lo + hi) >> 1;
+            if (pts[mid]!.x <= time) lo = mid;
+            else hi = mid;
+        }
+        const p0 = pts[lo]!;
+        const p1 = pts[hi]!;
+        const span = p1.x - p0.x;
+        const r = span > 0 ? (time - p0.x) / span : 0;
+        return p0.y + (p1.y - p0.y) * r;
+    };
+    return { q: sample(qSeries), i: sample(iSeries) };
 }
 
 export const lcOscillatorRig: SceneRig = {
     worldScale: WORLD_SCALE,
     clampToGround: true,
+    /** rig 自绘电荷指示球 → 舞台不生成默认占位球 */
+    ownParticles: true,
 
-    buildEquipment(scene, params) {
+    buildEquipment(scene, params, result) {
         const group = new THREE.Group();
 
         // 1. 绝缘实验底板
@@ -87,18 +223,25 @@ export const lcOscillatorRig: SceneRig = {
         const loopWire = makeLine(loopPts, 0xeab308, 0.8);
         group.add(loopWire);
 
-        // 5. 振荡周期与频率标牌
-        const LVal = num(params['L'] ?? params['inductance'], 0.1);
-        const CVal = num(params['C'] ?? params['capacitance'], 10e-6);
-        const T = 2 * Math.PI * Math.sqrt(LVal * CVal);
-        const f = T > 0 ? 1 / T : 0;
-
-        const infoLabel = makeTextSprite(
-            `T = 2π√(LC) = ${(T * 1e3).toFixed(2)} ms | f = ${f.toFixed(1)} Hz (电磁能量往返振荡)`,
-            '#2563eb',
-            24,
-            { x: 1.5, y: 0.22 }
+        // 5. 电荷指示球 (在电容极板间往返, 位置 = 引擎 q(t))
+        const chargeBall = new THREE.Mesh(
+            new THREE.SphereGeometry(0.05, 16, 12),
+            new THREE.MeshStandardMaterial({ color: 0x38bdf8, emissive: 0x0284c7, emissiveIntensity: 0.6 })
         );
+        chargeBall.position.set(0.8, 0.25, 0.25);
+        group.add(chargeBall);
+
+        // 6. 电场能指示条 (高度 ∝ Ee/E_total, 与磁场能互补)
+        const energyBar = makeBox(0.06, 0.5, 0.06, 0x22c55e, 0.5, 0.2);
+        energyBar.position.set(1.15, 0.25, 0.25);
+        group.add(energyBar);
+        const barLabel = makeTextSprite('电场能 Ee', '#22c55e', 18, { x: 0.55, y: 0.13 });
+        barLabel.position.set(1.15, 0.58, 0.25);
+        group.add(barLabel);
+
+        // 7. 振荡周期与频率标牌 (读引擎)
+        const read = lcOscillatorReadouts(params, result);
+        const infoLabel = makeTextSprite(lcOscillatorLabel(read), '#2563eb', 24, { x: 1.5, y: 0.22 });
         infoLabel.position.set(0, 0.85, 0.1);
         group.add(infoLabel);
 
@@ -108,29 +251,37 @@ export const lcOscillatorRig: SceneRig = {
             coil,
             capacitor,
             switchLever,
-            infoLabel
+            infoLabel,
+            chargeBall,
+            energyBar
         };
 
         return { group, handles };
     },
 
-    updateEquipment(handles, params) {
+    updateEquipment(handles, params, result) {
         const h = handles as LCHandles;
-        const LVal = num(params['L'] ?? params['inductance'], 0.1);
-        const CVal = num(params['C'] ?? params['capacitance'], 10e-6);
-        const T = 2 * Math.PI * Math.sqrt(LVal * CVal);
-        const f = T > 0 ? 1 / T : 0;
-
-        setLabel(
-            h.infoLabel,
-            `T = 2π√(LC) = ${(T * 1e3).toFixed(2)} ms | f = ${f.toFixed(1)} Hz (电磁能量往返振荡)`,
-            '#2563eb'
-        );
+        setLabel(h.infoLabel, lcOscillatorLabel(lcOscillatorReadouts(params, result)), '#2563eb');
     },
 
-    getVisualPosition(pos, _params) {
-        // 电荷量 q(t) 在电容极板间往返振荡
-        return new THREE.Vector3(0.8 + pos.x * WORLD_SCALE * 0.5, 0.25, 0.25);
+    onAnimate(handles, ctx) {
+        const h = handles as LCHandles;
+        const { q, i } = lcOscillatorState(ctx.result, ctx.time);
+        // 电荷指示球: q(t) ∈ [-Q₀, Q₀] → 在极板间往返
+        const qNorm = Math.max(-1, Math.min(1, q));
+        h.chargeBall.position.set(0.8 + qNorm * CHARGE_INDICATOR_SPAN, 0.25, 0.25);
+        // 开关摆杆随电流摆动 (±0.35 rad), 表示回路中有电流
+        h.switchLever.rotation.z = Math.PI / 5 + Math.max(-1, Math.min(1, i)) * 0.35;
+        // 电场能指示条: Ee/E_total = 1 − (i/i_max)² (电荷全部转为磁场能时为 0)
+        const iNorm = Math.max(-1, Math.min(1, i));
+        const eeRatio = Math.max(0.02, 1 - iNorm * iNorm);
+        h.energyBar.scale.y = eeRatio;
+        h.energyBar.position.y = 0.25;
+    },
+
+    getVisualPosition(_pos, _params, _result) {
+        // 电荷指示球由 onAnimate 按引擎 chart 驱动, 这里只给电容中心作为轨迹原点
+        return new THREE.Vector3(0.8, 0.25, 0.25);
     },
 
     getOrigin(_params) {

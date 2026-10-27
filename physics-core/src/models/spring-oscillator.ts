@@ -55,6 +55,25 @@ export class SpringOscillatorModel extends PhysicsModelBase {
         const omega0 = Math.sqrt(k / m);
         const beta = dampingCoeff / (2 * m);
 
+        /**
+         * 重力沿弹簧轴的分量。
+         *
+         * 此前本模型**完全忽略重力**, 振子只能在原长 (x=0) 附近做简谐振动 ——
+         * 于是「竖直悬挂钩码」的胡克定律场景在引擎层是错的: 钩码不会停在
+         * 平衡伸长量 mg/k 上, 而是在原长附近来回穿过 (甚至出现负伸长)。
+         *
+         * 现在把重力沿轴 (axisDir, 由锚点指向物体) 的分量计入:
+         *   m·ẍ = -k(x - x_eq),  x_eq = m·g∥/k
+         * 轴水平时 g∥ = 0 → 行为与旧版逐位一致 (既有水平弹簧场景零影响);
+         * 轴竖直 (悬挂) 时 g∥ = +g → 平衡伸长量 x_eq = mg/k, 钩码绕 x_eq 振动。
+         */
+        const gravityEnabled = problem.environment?.gravity?.enabled ?? false;
+        const gravityValue = problem.environment?.gravity?.value ?? 0;
+        const gravityAlongAxis = gravityEnabled ? -gravityValue * axisDir.y : 0;
+        const equilibriumDisplacement = k > 0 ? (m * gravityAlongAxis) / k : 0;
+        // 相对平衡位置的位移 (简谐振动的真正初始条件)
+        const displacement0 = x0 - equilibriumDisplacement;
+
         const duration = problem.timeConfig.duration;
         const sampleCount = problem.timeConfig.sampleCount ?? 1000;
 
@@ -68,35 +87,38 @@ export class SpringOscillatorModel extends PhysicsModelBase {
             sampleCount,
             duration,
             sampleAt: t => {
-                let x: number, v: number;
+                let xLocal: number, v: number;
 
                 if (beta === 0) {
-                    const { amplitude, phase } = this.solveSHM(x0, v0, omega0);
-                    x = amplitude * Math.cos(omega0 * t + phase);
+                    const { amplitude, phase } = this.solveSHM(displacement0, v0, omega0);
+                    xLocal = amplitude * Math.cos(omega0 * t + phase);
                     v = -amplitude * omega0 * Math.sin(omega0 * t + phase);
                 } else if (dampingType === 'underdamped') {
                     const omegaD = Math.sqrt(omega0 * omega0 - beta * beta);
-                    const { amplitude, phase } = this.solveDamped(x0, v0, beta, omegaD);
+                    const { amplitude, phase } = this.solveDamped(displacement0, v0, beta, omegaD);
                     const decay = Math.exp(-beta * t);
-                    x = amplitude * decay * Math.cos(omegaD * t + phase);
+                    xLocal = amplitude * decay * Math.cos(omegaD * t + phase);
                     v =
                         amplitude *
                         decay *
                         (-beta * Math.cos(omegaD * t + phase) - omegaD * Math.sin(omegaD * t + phase));
                 } else if (dampingType === 'critical') {
-                    const C1 = x0;
-                    const C2 = v0 + beta * x0;
-                    x = (C1 + C2 * t) * Math.exp(-beta * t);
+                    const C1 = displacement0;
+                    const C2 = v0 + beta * displacement0;
+                    xLocal = (C1 + C2 * t) * Math.exp(-beta * t);
                     v = (C2 - beta * (C1 + C2 * t)) * Math.exp(-beta * t);
                 } else {
                     const sqrtDisc = Math.sqrt(beta * beta - omega0 * omega0);
                     const lambda1 = -beta + sqrtDisc;
                     const lambda2 = -beta - sqrtDisc;
-                    const C1 = (v0 - x0 * lambda2) / (lambda1 - lambda2);
-                    const C2 = x0 - C1;
-                    x = C1 * Math.exp(lambda1 * t) + C2 * Math.exp(lambda2 * t);
+                    const C1 = (v0 - displacement0 * lambda2) / (lambda1 - lambda2);
+                    const C2 = displacement0 - C1;
+                    xLocal = C1 * Math.exp(lambda1 * t) + C2 * Math.exp(lambda2 * t);
                     v = C1 * lambda1 * Math.exp(lambda1 * t) + C2 * lambda2 * Math.exp(lambda2 * t);
                 }
+
+                // 绝对伸长量 (相对弹簧原长) = 平衡伸长量 + 相对平衡位置的位移
+                const x = equilibriumDisplacement + xLocal;
 
                 const speed = Math.abs(v);
                 // 诊断累加器 (仅用于 maxValues, 不计入帧物理, frame 值与原循环逐位一致)
@@ -106,9 +128,9 @@ export class SpringOscillatorModel extends PhysicsModelBase {
                 return {
                     position: Vec2.add(anchor, Vec2.scale(axisDir, L0 + x)),
                     velocity: Vec2.scale(axisDir, v),
-                    acceleration: Vec2.scale(axisDir, (-k * x) / m),
+                    acceleration: Vec2.scale(axisDir, (-k * (x - equilibriumDisplacement)) / m),
                     kineticEnergy: kineticEnergy(m, v),
-                    potentialEnergy: 0.5 * k * x * x
+                    potentialEnergy: 0.5 * k * x * x - m * gravityAlongAxis * x
                 };
             }
         });
@@ -125,8 +147,8 @@ export class SpringOscillatorModel extends PhysicsModelBase {
         for (let i = 1; i < trajectory.length; i++) {
             const prev = trajectory[i - 1];
             const cur = trajectory[i];
-            const prevX = Vec2.magnitude(Vec2.sub(prev.position, anchor)) - L0;
-            const curX = Vec2.magnitude(Vec2.sub(cur.position, anchor)) - L0;
+            const prevX = Vec2.magnitude(Vec2.sub(prev.position, anchor)) - L0 - equilibriumDisplacement;
+            const curX = Vec2.magnitude(Vec2.sub(cur.position, anchor)) - L0 - equilibriumDisplacement;
             if (prevX * curX < 0) {
                 keyframes.push({
                     label: '平衡位置',
@@ -222,7 +244,7 @@ export class SpringOscillatorModel extends PhysicsModelBase {
             charts: { x_t, v_t, energy_t },
             diagnostics: {
                 conservedQuantities,
-                maxValues: { maxSpeed, maxDisplacement },
+                maxValues: { maxSpeed, maxDisplacement, equilibriumDisplacement },
                 rangeCheck: { withinRange: true, warnings: [] }
             },
             explanation: {

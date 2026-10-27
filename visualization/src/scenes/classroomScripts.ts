@@ -791,7 +791,8 @@ export const CLASSROOM_SCRIPTS: Record<string, ClassroomScript> = {
         subtitle: '必修第一册 · 牛顿第一定律',
         goal: '领悟“实验事实 + 逻辑外推”的科学研究方法，理解力是改变物体运动状态的原因而非维持运动的原因。',
         demoParams: { angleDeg: 30, inclineLength: 2, mode: 3 },
-        demoNote: '小球从左侧斜面滚下，在右侧对接斜面上升至相同高度；当右侧倾角趋于 0° 时，小球将永远匀速运动。',
+        demoNote:
+            '小球从左侧斜面滑下 (a=g·sinθ, 倾角越小加速度越小、越便于测量)；到达谷底后在水平面上永远匀速运动（牛顿第一定律）。切换到「对接斜面」模式可见小球滚上另一斜面回到原高（机械能守恒）。',
         compareFocus: {
             paramName: 'angleDeg',
             range: [10, 60],

@@ -116,3 +116,51 @@
 ---
 
 <!-- 批次 B~F 待补 -->
+
+---
+
+## 批次 B — 胡克定律 / 斜面运动 / 伽利略斜面 / 气垫导轨
+
+> 修复前证据：`docs/screenshots/core-audit/{sceneId}-{2d|3d}-{t0|mid|param}-before.png`
+> 修复后证据：`docs/screenshots/core-audit/{sceneId}-{2d|3d}-{t0|mid|param}-after.png`
+
+### B-1 `hooke-law` 胡克定律 F=kx
+
+| 维度 | 判定 | 现象 / 证据 | 根因 |
+| --- | --- | --- | --- |
+| 问题一·物理 | **阻断 → 已修复** | **引擎层**：`spring-oscillator` 模型**完全忽略重力**，钩码被放在平衡位置后只能在原长附近做简谐振动（还会出现负伸长），「挂在弹簧上的钩码停在 mg/k」这一胡克定律核心结论在引擎里根本不成立 | `physics-core/src/models/spring-oscillator.ts`（新增 `gravityAlongAxis` / `equilibriumDisplacement`，运动方程改为绕 `x_eq = mg∥/k` 振动；水平轴场景 `g∥=0`，行为与旧版逐位一致） |
+| 问题一·物理 | **严重 → 已修复** | **2D**：`extensionPx = Math.max(20, currentX × 120)` —— 9.8 cm 形变只有 11.76 px，被钳到 20 px ⇒ **钩码永远不动**；刻度尺却按 120 px/m 标到 1.667 m（有效区间只剩 12/200 px） | `visualization/src/rendering/chapter3Scenes.ts` `drawHookeLawScene`（改为按引擎位置导出伸长量 + 量程自适应刻度尺） |
+| 问题二·视觉 | **严重 → 已修复** | **3D**：弹簧形变按 `Δx × WORLD_SCALE × 4`（0.64 单位/米）绘制，与右侧刻度尺的 5.5 单位/米 **差 8.6 倍**；3D 标牌读场景根本不存在的 `params['m']` → 静默回退 0.5 kg，显示 `F=4.90N / Δx=24.5cm`（真值 0.2 kg / 1.96 N / 9.8 cm，错 2.5×） | `visualization/src/components/simulation3d/rigs/hookeLawRig.ts`（形变与刻度尺同源；读数读引擎 `maxValues.equilibriumDisplacement`；新增 `framing` 解决相机过远） |
+
+**修复后**：钩码从弹簧原长释放 → 过冲 → 稳定在 `x_eq = mg/k = 9.8 cm`；2D 板书 `x=0.081m F=1.617N x_eq=0.098m`，3D 标牌 `F = 1.96 N | Δx_eq = 9.8 cm (k=20 N/m)`，与引擎 `maxValues.equilibriumDisplacement` 一致。
+
+### B-2 `inclined-plane` 斜面运动
+
+| 维度 | 判定 | 现象 / 证据 | 根因 |
+| --- | --- | --- | --- |
+| 问题一·物理 | **严重 → 已修复** | 场景把「沿斜面向上的初速度」分解成 `v0x=+v₀cosθ, v0y=+v₀sinθ`（**x 分量符号反**），引擎算出 `v∥ = v₀·cos2θ`：θ=30° 只有 0.5·v₀ 且方向朝下、θ=45° 变成 0、θ=60° 符号翻转 | `visualization/src/scenes/scenes/mechanics/inclined-plane.ts`（改为 `v0x=-v₀cosθ, v0y=+v₀sinθ`） |
+| 问题一·物理 | **一般 → 已修复** | 引擎把斜面底端硬编码成 `h = |x₀.y| \|\| 10`（20 m），场景没有「斜面长度」参数：默认参数下 t=3 s 时 s=22.05 m，**已滑过底端 2.05 m 仍在加速** | `physics-core/src/models/inclined-plane.ts`（新增 `constraints.inclinedPlane.inclineLength`，给出时按「到达底端即止」钳制）；场景新增 `inclineLength` 参数（默认 6 m）并把物体放在斜面顶端 |
+| 问题二·视觉 | **一般 → 已修复** | **2D**：木楔背景里的滑块被写死在斜面 45% 处（`const t = 0.45`），真实物体又由通用轨迹通道按世界坐标绘制 ⇒ 同一画面两个滑块、两个坐标系 | `visualization/src/components/simulation/SimulationCanvas.tsx`（`inclined-plane` 移出 `SCENES_2D_CUSTOM_BG`，并入 `SCENES_MECHANICS`）；新增专属板书 `drawInclinedPlaneScene` |
+| 问题二·视觉 | **一般 → 已修复** | **3D**：物块按引擎笛卡尔坐标直接平移（`origin + pos × 0.16`），而斜面是**倾斜**的 ⇒ 物块与板面差一个 θ 角（悬空/陷板）；斜面长度固定 0.16 比例，6 m 斜面只有 0.96 世界单位 | `visualization/src/components/simulation3d/rigs/inclineRig.ts`（改为「沿切向投影 + 长度→固定世界长度」换算；新增 `framing`） |
+
+**修复后**：斜面长 6 m，滑块从顶端 (0, 3 m) 滑到底端 (5.196, 0)，t=1.565 s 到底后速度归零；2D 板书 `s=5.51m v=7.35m/s a=4.90m/s²` 与引擎一致。
+
+### B-3 `galileo-incline` 伽利略斜面理想实验
+
+| 维度 | 判定 | 现象 / 证据 | 根因 |
+| --- | --- | --- | --- |
+| 问题一·物理 | **阻断 → 已修复** | **2D**：沿斜面位移用 `frame.position.x`（水平分量）算，θ=30° 时只读到真值的 86.6%；`clamp(…, 0, L)` 让位移在水平外推段（默认时长 76%）**全部冻结**在同一个数 | `visualization/src/rendering/chapter1Scenes.ts`（新增 `galileoInclineReadouts`，沿斜面投影 `s = x·cosθ + y·sinθ`） |
+| 问题一·物理 | **严重 → 已修复** | **引擎层**：`all` 模式把水平面放在「对接斜面顶端」高度（engine y=0），小球从对接斜面顶端凭空飞出；同一个「水平面外推」在 `horizontal` 模式却位于谷底高度 ⇒ 两个模式口径打架，几何与物理都不成立 | `physics-core/src/models/galileo-incline.ts`（`all` 模式改为物理连续的「下滑 → 谷底水平面匀速」，对接斜面单独由 `docked` 呈现；轨迹不再超出仿真时长） |
+| 问题二·视觉 | **阻断 → 已修复** | **3D**：斜面长度写死 `INCLINE_SPAN=1.8` 世界单位配 `WORLD_SCALE=0.16` ⇒ 画面斜面相当于 **11.25 m**（引擎只有 2 m，差 5.6 倍）；小球位置用手写三角剖面，与引擎轨迹无关 | `visualization/src/components/simulation3d/rigs/galileoInclineRig.ts`（装置几何与球位都由引擎参数/轨迹推导） |
+| 问题三·实验作用 | **严重 → 已修复** | **2D**：对接斜面、水平面两段外推**完全不画**，`mode` 参数在 2D 无分支 ⇒ 伽利略三段推理链在 2D 看不到 | `visualization/src/rendering/chapter1Scenes.ts`（按 mode 画斜面 / 对接斜面 / 谷底水平面 + 等高参考线） |
+
+**修复后**：2D 三段装置齐全（下滑斜面 + 谷底水平面 + 等高虚线），小球在谷底后沿水平面继续匀速；3D 斜面长度 = 引擎 L（2 m → 2.6 世界单位），球心贴面。
+
+### B-4 `air-track` 气垫导轨测速度
+
+| 维度 | 判定 | 现象 / 证据 | 根因 |
+| --- | --- | --- | --- |
+| 问题二·视觉 | **严重 → 已修复** | **3D**：滑块放在 `-1.2 + pos.x × 0.16`，光电门放在 `-1.2 + x₁ × 1.8` ⇒ 比例系数差 **11.25 倍**，滑块全程到不了任何一扇门，「遮光计时测速度」这个实验在 3D 里彻底失效 | `visualization/src/components/simulation3d/rigs/airTrackRig.ts`（统一用「导轨世界长度 ÷ 导轨物理长度」换算，与 2D 的 `pixelsPerMeter` 同源） |
+| 问题三·实验作用 | **一般 → 已修复** | **3D** 没有挡光片，也没有遮光时间/测速读数 —— 实验的关键量（Δt、v=Δx/Δt）在 3D 里读不到 | 同上：`ownParticles` 自绘滑块 + 挡光片（宽度同口径换算），标牌显示 `G1/G2: Δt=…ms v=…`，数据来自引擎轨迹（与 2D 共用 `computePhotogateMeasurements`） |
+
+**修复后**：3D 滑块（蓝块 + 红挡光片）实际穿过两扇光电门，标牌 `G1: Δt=40ms v=0.500 | G2: Δt=40ms v=0.500`，与引擎速度一致。

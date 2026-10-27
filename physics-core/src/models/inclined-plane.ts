@@ -105,6 +105,29 @@ export class InclinedPlaneModel extends PhysicsModelBase {
 
         const duration = problem.timeConfig.duration;
         const sampleCount = problem.timeConfig.sampleCount ?? 1000;
+
+        /**
+         * 斜面长度与「到达底端即止」(#159 逐节审计·问题一)
+         *
+         * 旧实现把斜面底端硬编码成 `h = |x₀.y| || 10` —— 场景没有「斜面长度」
+         * 参数, 底端高度恒为 10 m, 于是默认参数 (θ=30°, t=3 s) 下物体已滑过
+         * 底端 2.05 m 仍在加速, 画面上等于「滑块飞出了斜面」。
+         *
+         * 现在: 约束里显式给出 inclineLength 时, 物体下滑到 s = inclineLength
+         * 即停在底端 (速度归零), 与抛体模型的「落地即止」契约一致;
+         * 未给出时保持旧行为 (无限斜面), 不影响既有调用方。
+         */
+        const declaredLength = problem.constraints?.inclinedPlane?.inclineLength;
+        const hasDeclaredLength = typeof declaredLength === 'number' && declaredLength > 0;
+        // 斜面几何: 起点 (0, h), 终点 (h/tanθ, 0)
+        const h = Math.abs(x0.y) || 10;
+        const totalInclineLength = hasDeclaredLength
+            ? (declaredLength as number)
+            : sinTheta > 0
+              ? h / sinTheta
+              : Number.POSITIVE_INFINITY;
+        const clampToBottom = hasDeclaredLength && sinTheta > 0;
+
         // 解析解采样: 斜面运动 (公共脚手架 sampleTrajectory)
         const effectiveAccel = isMoving ? a : 0;
         const trajectory = sampleTrajectory({
@@ -112,8 +135,14 @@ export class InclinedPlaneModel extends PhysicsModelBase {
             duration,
             sampleAt: t => {
                 // 沿斜面的位移和速度
-                const s = displacementAt(t);
-                const vAlongIncline = velocityAt(t);
+                let s = displacementAt(t);
+                let vAlongIncline = velocityAt(t);
+
+                // 到达底端即止: 位移钳制在斜面长度内, 速度归零
+                if (clampToBottom && s >= totalInclineLength) {
+                    s = totalInclineLength;
+                    vAlongIncline = 0;
+                }
 
                 // 位置 = 初始位置 + 沿斜面位移
                 const position = Vec2.add(x0, Vec2.scale(inclineDir, s));
@@ -123,7 +152,8 @@ export class InclinedPlaneModel extends PhysicsModelBase {
 
                 // 加速度向量 (停下后加速度归零)
                 const atRest = isMoving && decelerating && t > stopTime;
-                const accelVec = !isMoving || atRest ? Vec2.zero() : Vec2.scale(inclineDir, effectiveAccel);
+                const atBottom = clampToBottom && s >= totalInclineLength - 1e-12;
+                const accelVec = !isMoving || atRest || atBottom ? Vec2.zero() : Vec2.scale(inclineDir, effectiveAccel);
 
                 return {
                     position,
@@ -134,9 +164,6 @@ export class InclinedPlaneModel extends PhysicsModelBase {
                 };
             }
         });
-
-        // 斜面几何: 起点 (0, h), 终点 (h/tanθ, 0)
-        const h = Math.abs(x0.y) || 10;
 
         // 关键帧
         const keyframes: Keyframe[] = [];
@@ -170,7 +197,6 @@ export class InclinedPlaneModel extends PhysicsModelBase {
         } else {
             // 检查物体是否到达斜面底端 (θ=0 的水平面无"底端"概念, 跳过)
             if (sinTheta > 0) {
-                const totalInclineLength = h / sinTheta;
                 const sAtEnd = v0Along;
                 // 用运动学公式求到达底端的时间: s = v0*t + 0.5*a*t²
                 if (effectiveAccel > 0) {
@@ -277,7 +303,9 @@ export class InclinedPlaneModel extends PhysicsModelBase {
                     maxAcceleration: effectiveAccel,
                     normalForce,
                     frictionForce,
-                    criticalAngle
+                    criticalAngle,
+                    /** 斜面长度 (m) —— 显式给出约束时为该长度, 否则由起点高度反推; -1 = 无限斜面 */
+                    inclineLength: Number.isFinite(totalInclineLength) ? totalInclineLength : -1
                 },
                 rangeCheck: {
                     withinRange: true,
