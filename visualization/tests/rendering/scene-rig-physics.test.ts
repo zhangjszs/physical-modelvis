@@ -40,6 +40,8 @@ import { createRecordingCanvas } from '../utils/canvasMock';
 import { opticsRig, opticsRigReadouts } from '../../src/components/simulation3d/rigs/opticsRig';
 import { photoelectricRig, photoelectricRigReadouts } from '../../src/components/simulation3d/rigs/photoelectricRig';
 import { photoelectricReadouts, drawPhotoelectricScene } from '../../src/rendering/photoelectricScenes';
+import { gasLawRig, gasLawRigReadouts } from '../../src/components/simulation3d/rigs/gasLawRig';
+import { gasLawReadouts, drawGasLawScene } from '../../src/rendering/gasThermalScenes';
 import type { OpticalDiskHandles } from '../../src/components/simulation3d/equipment/opticalDisk';
 import { refractionReadouts, drawRefractionScene } from '../../src/rendering/refractionScenes';
 import {
@@ -1736,5 +1738,96 @@ describe('#159 高中核心·光电效应: 读数必须来自引擎, 板书必�
         const framing = photoelectricRig.framing!({}, null)!;
         expect(framing.distance).toBeGreaterThan(3.5);
         expect(framing.target[1]).toBeGreaterThan(1);
+    });
+});
+
+describe('#159 高中核心·气体定律: 过程必须真的动起来, 压强必须查引擎曲线, 横轴随模式换', () => {
+    it('3D rig 读数 == 引擎初末态 (旧版只读场景参数, 且活塞高度恒定不变)', () => {
+        const { params, result } = simulate('gas-law');
+        const mv = result.diagnostics.maxValues;
+        const read = gasLawRigReadouts(result, params, 0);
+
+        expect(read.source).toBe('engine');
+        expect(read.mode).toBe(mv.modeCode);
+        expect(read.moles).toBe(mv.moles);
+        expect(read.R).toBe(mv.R);
+        expect(read.initial.volume_L).toBeCloseTo(mv.initialVolumeM3! * 1e3, 6);
+        expect(read.initial.pressure_kPa).toBeCloseTo(mv.initialPressurePa! / 1e3, 6);
+        expect(read.initial.temperature_K).toBe(mv.initialTemperatureK);
+        expect(read.final.volume_L).toBeCloseTo(mv.finalVolumeM3! * 1e3, 6);
+        expect(read.final.pressure_kPa).toBeCloseTo(mv.finalPressurePa! / 1e3, 6);
+        expect(read.final.temperature_K).toBe(mv.finalTemperatureK);
+    });
+
+    it('等温过程压强必须查引擎曲线 —— 两端线性插值会画错 (pV=const ⇒ p 对 V 是双曲线)', () => {
+        const { params, result } = simulate('gas-law');
+        const mv = result.diagnostics.maxValues;
+        // 相位 0.5 ⇒ V = (22.4 + 11.2)/2 = 16.8 L
+        const read = gasLawRigReadouts(result, params, 3);
+        expect(read.volume_L).toBeCloseTo(16.8, 6);
+
+        const expectedP = (mv.moles! * mv.R! * mv.initialTemperatureK!) / 16.8e-3 / 1e3;
+        expect(read.pressure_kPa).toBeCloseTo(expectedP, 1);
+        // 线性插值会给出 (101.3 + 202.6)/2 = 151.95 kPa —— 必须不是这个值
+        expect(read.pressure_kPa).not.toBeCloseTo(151.95, 0);
+        expect(read.pressureFromEngineCurve).toBe(true);
+    });
+
+    it('活塞高度随体积变化 (旧版 hGas 只看 V0 ⇒ 全程纹丝不动, 实验过程缺席)', () => {
+        const { params, result } = simulate('gas-law');
+        const atStart = gasLawRigReadouts(result, params, 0);
+        const atEnd = gasLawRigReadouts(result, params, 6 - 1e-6); // 相位 → 1 (t=6 会回卷到 0)
+        expect(atEnd.volume_L).toBeCloseTo(atStart.volume_L / 2, 4);
+        expect(atEnd.gasHeight).toBeCloseTo(atStart.gasHeight / 2, 4);
+        expect(atEnd.gasHeight).toBeLessThan(atStart.gasHeight);
+    });
+
+    it('3D 装置: 引擎轨迹是 p-V 状态点 ⇒ ownParticles + 显式取景 (旧版小球飘在缸外还拖一条轨迹线)', () => {
+        expect(gasLawRig.ownParticles).toBe(true);
+        const framing = gasLawRig.framing!({}, null)!;
+        expect(framing.distance).toBeGreaterThan(4);
+        expect(framing.target[1]).toBeGreaterThan(0.8);
+    });
+
+    it('2D 板书读数 == 引擎, 且等容模式横轴必须是温度 (旧版恒标 V/L ⇒ p–T 曲线被贴错轴)', () => {
+        const iso = simulate('gas-law');
+        const isoRead = gasLawReadouts(iso.params, iso.result, 0);
+        expect(isoRead.mode).toBe(0);
+        expect(isoRead.xIsTemperature).toBe(false);
+        expect(isoRead.curvePoints).toBeGreaterThan(50);
+
+        const isoCanvas = createRecordingCanvas({ width: 1100, height: 700 });
+        drawGasLawScene({
+            ctx: isoCanvas.ctx,
+            width: 1100,
+            height: 700,
+            isDark: true,
+            params: iso.params,
+            simulationResult: iso.result,
+            currentTime: 0
+        });
+        const isoTexts = isoCanvas.texts.join('|');
+        expect(isoTexts, '等温/等压用 p–V 图').toContain('体积 V (L)');
+        expect(isoTexts, '等温过程').toContain('等温过程');
+
+        const isoVol = simulate('gas-law', { modeG: 2 });
+        const volRead = gasLawReadouts(isoVol.params, isoVol.result, 0);
+        expect(volRead.mode).toBe(2);
+        expect(volRead.xIsTemperature).toBe(true);
+
+        const volCanvas = createRecordingCanvas({ width: 1100, height: 700 });
+        drawGasLawScene({
+            ctx: volCanvas.ctx,
+            width: 1100,
+            height: 700,
+            isDark: true,
+            params: isoVol.params,
+            simulationResult: isoVol.result,
+            currentTime: 0
+        });
+        const volTexts = volCanvas.texts.join('|');
+        expect(volTexts, '等容用 p–T 图').toContain('温度 T (K)');
+        expect(volTexts, '等容过程').toContain('等容过程');
+        expect(volTexts, '不得出现体积轴标签').not.toContain('体积 V (L)');
     });
 });

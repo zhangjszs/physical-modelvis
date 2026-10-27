@@ -1482,11 +1482,29 @@ describe('L1-migration: 渲染单一真源契约 (M3 批次 4: 气体分子/静�
     });
 
     it('gas-law: 过程曲线/动点 P 读引擎 x_t 插值, R 读 maxValues.R, 相位 sweep 示意保留 (源码契约)', () => {
+        // 板书已重写为引擎驱动版 (#159 逐节审计 · 批次 F-3 气体定律):
+        //   曲线走 getChart; 压强走**共享过程插值** utils/gasLawProcess.ts
+        //   (等温 pV=const ⇒ p 对 V 是双曲线, 两端线性插值会画错)
         const fn = renderFn('gasThermalScenes.ts', 'drawGasLawScene');
-        expect(fn, '曲线走引擎 chartsOf').toContain("chartsOf(simulationResult, 'gas-law')");
-        expect(fn, '动点 P 走引擎插值').toContain('interpSeries(engCurve');
-        expect(fn, 'R 读引擎 maxValues.R').toContain('mvGas?.R');
-        expect(fn, '相位示意性质有注释记录').toContain('示意');
+        const readouts = renderFn('gasThermalScenes.ts', 'gasLawReadouts');
+        const boardSrc = readFileSync(resolve(__dirname, '../../src/rendering/gasThermalScenes.ts'), 'utf-8');
+        const utilSrc = readFileSync(resolve(__dirname, '../../src/utils/gasLawProcess.ts'), 'utf-8');
+        const rigSrc = readFileSync(resolve(__dirname, '../../src/components/simulation3d/rigs/gasLawRig.ts'), 'utf-8');
+
+        expect(fn, '曲线走引擎 getChart').toContain("getChart(simulationResult, 'gas-law', 'x_t')");
+        expect(fn, '板书走统一读数出口').toContain('gasLawReadouts');
+        expect(readouts, 'R 读引擎 maxValues.R').toContain('state.R');
+        expect(readouts, '模式读引擎 modeCode (经共享插值)').toContain('state.mode');
+        expect(utilSrc, '过程插值压强查引擎曲线').toContain("getChart(result, 'gas-law', 'x_t')");
+        expect(utilSrc, '模式读引擎 modeCode').toContain("'modeCode'");
+        expect(utilSrc, '不得有 maxValues 强转').not.toMatch(/maxValues\s+as\s/);
+        expect(boardSrc, '不得有 maxValues 强转').not.toMatch(/maxValues\s+as\s/);
+        expect(boardSrc, '不得直接读 result.charts').not.toMatch(/result\??\.charts\[/);
+        expect(rigSrc, '3D rig 走共享过程插值').toContain('gasLawProcessState');
+        // 旧版用局部变量 hGas 按 V0 直接定活塞高度 (全程不动) —— 该变量名不得复活
+        expect(rigSrc, '3D rig 不得本地按 V0 算活塞高度 (旧版全程不动)').not.toMatch(/\bhGas\b/);
+        expect(rigSrc, '3D rig 活塞高度由共享插值给出').toContain('GAS_MAX_H');
+        expect(rigSrc, '3D rig 引擎轨迹是状态点 ⇒ ownParticles').toContain('ownParticles: true');
     });
 
     it('liquid-mixing: 终体积/收缩量与独立复算一致 (摩尔分数加权, 50/50mL→≈97.71mL)', () => {

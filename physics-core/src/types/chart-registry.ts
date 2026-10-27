@@ -103,7 +103,10 @@ export const MODEL_CHART_KEYS = {
     ],
     // —— M3 批次 4: 气体分子 / 静能 / 核 (#65) ——
     'gas-law': [
-        'x_t' // 过程曲线 (等温/等压/等容 p-V 等)
+        // 过程曲线: y 恒为压强 p(kPa); **x 的语义随过程模式变化** ——
+        //   等温/等压 x = 体积 V(L), 等容 x = 温度 T(K)。
+        //   渲染层必须按 maxValues.modeCode 切换横轴标签 (等容画的是 p–T 图)。
+        'x_t'
     ],
     'liquid-mixing': [
         'x_t', // 混合温度-时间

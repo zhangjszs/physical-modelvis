@@ -117,7 +117,10 @@ export const gas_lawScene: SceneConfig = {
                 }
             },
             environment: {},
-            timeConfig: makeTimeSeries(1, 10, 0.1)
+            // 6s 演示时间轴: 覆盖一次完整的「初态 → 终态」过程
+            // (与 visualization/src/utils/gasLawProcess.ts 的演示周期一致,
+            //  2D 板书与 3D 装置共用同一条插值路径, 画面同拍)
+            timeConfig: makeTimeSeries(6, 120)
         };
     }
 };
