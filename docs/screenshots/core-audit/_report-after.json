@@ -1,10 +1,10 @@
 [
   {
-    "sceneId": "inclined-plane",
-    "name": "斜面运动",
+    "sceneId": "newton-second-law",
+    "name": "牛顿第二定律 F=ma",
     "shots": [
       {
-        "file": "inclined-plane-3d-t0-after.png",
+        "file": "newton-second-law-3d-t0-after.png",
         "health": {
           "canvases": [
             {
@@ -22,7 +22,7 @@
         }
       },
       {
-        "file": "inclined-plane-3d-mid-after.png",
+        "file": "newton-second-law-3d-mid-after.png",
         "health": {
           "canvases": [
             {
@@ -40,7 +40,7 @@
         }
       },
       {
-        "file": "inclined-plane-3d-param-after.png",
+        "file": "newton-second-law-3d-param-after.png",
         "health": {
           "canvases": [
             {
@@ -58,7 +58,7 @@
         }
       },
       {
-        "file": "inclined-plane-2d-t0-after.png",
+        "file": "newton-second-law-2d-t0-after.png",
         "health": {
           "canvases": [
             {
@@ -67,7 +67,7 @@
               "cssWidth": 826,
               "cssHeight": 413,
               "blank": false,
-              "uniqueColors": 66,
+              "uniqueColors": 61,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }
@@ -76,7 +76,7 @@
         }
       },
       {
-        "file": "inclined-plane-2d-mid-after.png",
+        "file": "newton-second-law-2d-mid-after.png",
         "health": {
           "canvases": [
             {
@@ -85,107 +85,7 @@
               "cssWidth": 826,
               "cssHeight": 413,
               "blank": false,
-              "uniqueColors": 66,
-              "nonTransparentRatio": 1,
-              "readbackAvailable": true
-            }
-          ],
-          "bannerVisible": false
-        }
-      }
-    ],
-    "issues": [],
-    "paramChange": null,
-    "stageText": "",
-    "errors": []
-  },
-  {
-    "sceneId": "air-track",
-    "name": "气垫导轨测速度",
-    "shots": [
-      {
-        "file": "air-track-3d-t0-after.png",
-        "health": {
-          "canvases": [
-            {
-              "width": 826,
-              "height": 690,
-              "cssWidth": 826,
-              "cssHeight": 690,
-              "blank": false,
-              "uniqueColors": 1,
-              "nonTransparentRatio": 0,
-              "readbackAvailable": false
-            }
-          ],
-          "bannerVisible": false
-        }
-      },
-      {
-        "file": "air-track-3d-mid-after.png",
-        "health": {
-          "canvases": [
-            {
-              "width": 826,
-              "height": 690,
-              "cssWidth": 826,
-              "cssHeight": 690,
-              "blank": false,
-              "uniqueColors": 1,
-              "nonTransparentRatio": 0,
-              "readbackAvailable": false
-            }
-          ],
-          "bannerVisible": false
-        }
-      },
-      {
-        "file": "air-track-3d-param-after.png",
-        "health": {
-          "canvases": [
-            {
-              "width": 826,
-              "height": 690,
-              "cssWidth": 826,
-              "cssHeight": 690,
-              "blank": false,
-              "uniqueColors": 1,
-              "nonTransparentRatio": 0,
-              "readbackAvailable": false
-            }
-          ],
-          "bannerVisible": false
-        }
-      },
-      {
-        "file": "air-track-2d-t0-after.png",
-        "health": {
-          "canvases": [
-            {
-              "width": 826,
-              "height": 413,
-              "cssWidth": 826,
-              "cssHeight": 413,
-              "blank": false,
-              "uniqueColors": 77,
-              "nonTransparentRatio": 1,
-              "readbackAvailable": true
-            }
-          ],
-          "bannerVisible": false
-        }
-      },
-      {
-        "file": "air-track-2d-mid-after.png",
-        "health": {
-          "canvases": [
-            {
-              "width": 826,
-              "height": 413,
-              "cssWidth": 826,
-              "cssHeight": 413,
-              "blank": false,
-              "uniqueColors": 80,
+              "uniqueColors": 61,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }

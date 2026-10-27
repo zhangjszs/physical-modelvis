@@ -20,7 +20,6 @@ import {
     type TimerChannel
 } from '../../rendering/props';
 import { getBlockedGateIndices, getTimerDisplayValue, type PhotogateMeasurement } from '../../utils/photogate';
-import { metalTexture } from '../../rendering/textureFactory';
 import {
     drawHookeLawScene,
     drawSlidingFrictionScene,
@@ -110,6 +109,8 @@ import {
     drawVerticalMotionScene,
     drawProjectileScene,
     drawInclinedPlaneScene,
+    drawCollisionScene,
+    drawSpringScene,
     drawGalileoInclineScene,
     drawReactionTimeScene,
     drawTickerTimerScene,
@@ -186,7 +187,7 @@ function countPastPoints(points: TrajectoryPoint[], t: number): number {
     return lo;
 }
 
-const SCENES_2D_CUSTOM_BG = new Set(['electric-field', 'magnetic-field', 'em-combined', 'collision', 'spring']);
+const SCENES_2D_CUSTOM_BG = new Set(['electric-field', 'magnetic-field', 'em-combined']);
 
 /** 第三章「相互作用——力」场景集合：完整自定义渲染，不走标准轨迹/物体绘制流程 */
 const SCENES_CHAPTER3 = new Set(['hooke-law', 'sliding-friction', 'force-composition', 'newton-third-law']);
@@ -277,9 +278,11 @@ const SCENES_MECHANICS = new Set([
     'projectile',
     'uniform-accelerated',
     'galileo-incline',
-    // #159 逐节审计: 斜面改为专属板书 (楔形背景 + 滑块共用同一屏幕映射),
-    // 旧实现是「静态装饰滑块 (写死 t=0.45) + 通用轨迹通道真实物体」的双表示。
+    // #159 逐节审计: 斜面/碰撞/弹簧改为专属板书 (器材与物体共用同一屏幕映射),
+    // 旧实现是「静态装饰件 + 通用轨迹通道真实物体」的双表示。
     'inclined-plane',
+    'collision',
+    'spring',
     'reaction-time',
     'ticker-timer',
     'transmission-belt',
@@ -456,245 +459,6 @@ function drawMagneticField(
 }
 
 /** 绘制碰撞场景：两物体 3D 方块 + 阴影 + 高光 + 精致箭头 */
-function drawCollisionScene(
-    ctx: CanvasRenderingContext2D,
-    _transformer: CoordinateTransformer,
-    width: number,
-    height: number,
-    isDark: boolean,
-    params: Record<string, number>
-) {
-    const m1 = params['m1'] ?? 1;
-    const m2 = params['m2'] ?? 1;
-    const v1 = params['v1'] ?? 5;
-    const v2 = params['v2'] ?? 0;
-    const tokens = getThemeTokens(isDark);
-    const e = params['e'] ?? 1;
-    const labelColor = tokens.readoutText;
-    const subColor = tokens.text3;
-
-    const size1 = Math.max(24, Math.min(64, 18 + m1 * 5));
-    const size2 = Math.max(24, Math.min(64, 18 + m2 * 5));
-    const cy = height / 2;
-
-    function draw3DBox(cx: number, cy2: number, sz: number, baseHex: string) {
-        const x = cx - sz / 2,
-            y = cy2 - sz / 2;
-        ctx.fillStyle = tokens.canvasShadowStrong;
-        ctx.fillRect(x + 4, y + 4, sz, sz);
-        const metalTex = metalTexture(sz, sz, baseHex, isDark);
-        ctx.save();
-        roundRectPath(ctx, x, y, sz, sz, 4);
-        ctx.clip();
-        ctx.drawImage(metalTex, x, y, sz, sz);
-        ctx.restore();
-        ctx.strokeStyle = darkenHex(baseHex, 50);
-        ctx.lineWidth = 1;
-        ctx.globalAlpha = 0.3;
-        roundRectPath(ctx, x, y, sz, sz, 4);
-        ctx.stroke();
-        ctx.globalAlpha = 1;
-        ctx.fillStyle = 'rgba(255,255,255,0.15)';
-        roundRectPath(ctx, x + 3, y + 3, sz - 6, sz * 0.3, 3);
-        ctx.fill();
-    }
-
-    function drawArrow2(x1: number, y1: number, x2: number, y2: number, color: string) {
-        const dx = x2 - x1,
-            dy = y2 - y1;
-        const len = Math.sqrt(dx * dx + dy * dy);
-        if (len < 3) return;
-        const angle = Math.atan2(dy, dx);
-        const headLen = Math.min(12, len * 0.3);
-        const grad = ctx.createLinearGradient(x1, y1, x2, y2);
-        grad.addColorStop(0, color + '66');
-        grad.addColorStop(1, color);
-        ctx.strokeStyle = grad;
-        ctx.lineWidth = 2.5;
-        ctx.lineCap = 'round';
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2 - headLen * 0.6 * Math.cos(angle), y2 - headLen * 0.6 * Math.sin(angle));
-        ctx.stroke();
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.moveTo(x2, y2);
-        ctx.lineTo(x2 - headLen * Math.cos(angle - 0.38), y2 - headLen * Math.sin(angle - 0.38));
-        ctx.lineTo(x2 - headLen * 0.45 * Math.cos(angle), y2 - headLen * 0.45 * Math.sin(angle));
-        ctx.lineTo(x2 - headLen * Math.cos(angle + 0.38), y2 - headLen * Math.sin(angle + 0.38));
-        ctx.closePath();
-        ctx.fill();
-    }
-
-    draw3DBox(width * 0.25, cy, size1, '#3b82f6');
-    ctx.fillStyle = labelColor;
-    ctx.font = 'bold 12px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(`m1=${m1}kg`, width * 0.25, cy + size1 / 2 + 18);
-    ctx.fillStyle = subColor;
-    ctx.font = '11px sans-serif';
-    ctx.fillText(`v1=${v1}m/s`, width * 0.25, cy + size1 / 2 + 33);
-
-    draw3DBox(width * 0.7, cy, size2, '#ef4444');
-    ctx.fillStyle = labelColor;
-    ctx.font = 'bold 12px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(`m2=${m2}kg`, width * 0.7, cy + size2 / 2 + 18);
-    ctx.fillStyle = subColor;
-    ctx.font = '11px sans-serif';
-    ctx.fillText(`v2=${v2}m/s`, width * 0.7, cy + size2 / 2 + 33);
-
-    // 速度箭头按可用宽度归一化并钳制，大速度不再溢出画布
-    const maxV = Math.max(Math.abs(v1), Math.abs(v2), 1);
-    const vPixelScale = Math.min(4, (width * 0.16) / maxV);
-    if (v1 !== 0) {
-        const x1 = width * 0.25 + size1 / 2 + 5;
-        drawArrow2(x1, cy, Math.max(10, Math.min(width - 10, x1 + v1 * vPixelScale)), cy, '#3b82f6');
-    }
-    if (v2 !== 0) {
-        const x1 = width * 0.7 + size2 / 2 + 5;
-        drawArrow2(x1, cy, Math.max(10, Math.min(width - 10, x1 + v2 * vPixelScale)), cy, '#ef4444');
-    }
-
-    const typeLabel = e >= 0.99 ? '弹性碰撞' : e < 0.01 ? '完全非弹性碰撞' : '非弹性碰撞';
-    const labelText = `${typeLabel} (e=${e})`;
-    ctx.font = '12px sans-serif';
-    ctx.textAlign = 'center';
-    const tw = ctx.measureText(labelText).width;
-    ctx.fillStyle = tokens.canvasHudBg;
-    roundRectPath(ctx, width / 2 - tw / 2 - 8, height - 34, tw + 16, 22, 4);
-    ctx.fill();
-    ctx.fillStyle = subColor;
-    ctx.fillText(labelText, width / 2, height - 18);
-}
-
-/** 绘制弹簧振子场景：金属墙壁 + 立体弹簧线圈 + 3D 滑块 + 平衡位置 */
-function drawSpringScene(
-    ctx: CanvasRenderingContext2D,
-    _transformer: CoordinateTransformer,
-    width: number,
-    height: number,
-    isDark: boolean,
-    params: Record<string, number>
-) {
-    const k = params['k'] ?? 10;
-    const m = params['m'] ?? 1;
-    const A = params['A'] ?? 0.5;
-    const tokens = getThemeTokens(isDark);
-    const damping = params['damping'] ?? 0;
-    const labelColor = tokens.readoutText;
-    const subColor = tokens.text3;
-    const cy = height / 2;
-    const anchorX = 60;
-    const blockW = 44;
-    const blockH = 34;
-    const eqX = width * 0.5;
-    // 振幅按画布可用宽度钳制，大 A 时滑块/弹簧不再越出右界
-    const maxOff = Math.max(0, width - 30 - blockW / 2 - eqX);
-    const blockX = eqX + Math.max(-maxOff, Math.min(maxOff, A * 200));
-
-    const wallGrad = ctx.createLinearGradient(anchorX - 14, 0, anchorX, 0);
-    wallGrad.addColorStop(0, tokens.canvasWallGradFrom);
-    wallGrad.addColorStop(1, tokens.canvasWallGradTo);
-    ctx.fillStyle = wallGrad;
-    ctx.fillRect(anchorX - 14, cy - 55, 14, 110);
-    ctx.strokeStyle = tokens.canvasWallHatch;
-    ctx.lineWidth = 1;
-    for (let i = -10; i < 120; i += 6) {
-        ctx.beginPath();
-        ctx.moveTo(anchorX - 14, cy - 55 + i);
-        ctx.lineTo(anchorX - 4, cy - 55 + i + 10);
-        ctx.stroke();
-    }
-
-    const coils = 14;
-    const springLen = blockX - blockW / 2 - anchorX;
-    const amplitude = Math.max(6, Math.min(14, 10 * (springLen / 200)));
-    ctx.strokeStyle = tokens.canvasSpringGlow;
-    ctx.lineWidth = 5;
-    ctx.beginPath();
-    ctx.moveTo(anchorX, cy);
-    for (let i = 0; i <= coils; i++) {
-        const px = anchorX + (springLen * i) / coils;
-        const py = cy + (i % 2 === 0 ? -amplitude : amplitude);
-        ctx.lineTo(px, i === 0 || i === coils ? cy : py);
-    }
-    ctx.stroke();
-    const springGrad = ctx.createLinearGradient(anchorX, cy - amplitude, anchorX, cy + amplitude);
-    springGrad.addColorStop(0, tokens.canvasSpringLight);
-    springGrad.addColorStop(0.5, tokens.canvasSpringMid);
-    springGrad.addColorStop(1, tokens.canvasSpringDark);
-    ctx.strokeStyle = springGrad;
-    ctx.lineWidth = 2.5;
-    ctx.lineJoin = 'round';
-    ctx.beginPath();
-    ctx.moveTo(anchorX, cy);
-    for (let i = 0; i <= coils; i++) {
-        const px = anchorX + (springLen * i) / coils;
-        const py = cy + (i % 2 === 0 ? -amplitude : amplitude);
-        ctx.lineTo(px, i === 0 || i === coils ? cy : py);
-    }
-    ctx.stroke();
-    ctx.lineJoin = 'miter';
-
-    const bx = blockX - blockW / 2,
-        by = cy - blockH / 2;
-    ctx.fillStyle = tokens.canvasShadowStrong;
-    roundRectPath(ctx, bx + 3, by + 3, blockW, blockH, 4);
-    ctx.fill();
-    const blockTex = metalTexture(blockW, blockH, '#3b82f6', isDark);
-    ctx.save();
-    roundRectPath(ctx, bx, by, blockW, blockH, 4);
-    ctx.clip();
-    ctx.drawImage(blockTex, bx, by, blockW, blockH);
-    ctx.restore();
-    ctx.fillStyle = 'rgba(255,255,255,0.15)';
-    roundRectPath(ctx, bx + 3, by + 3, blockW - 6, blockH * 0.3, 3);
-    ctx.fill();
-    ctx.fillStyle = labelColor;
-    ctx.font = 'bold 12px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(`m=${m}kg`, blockX, cy + blockH / 2 + 18);
-
-    ctx.setLineDash([5, 4]);
-    ctx.strokeStyle = tokens.canvasSpringGuide;
-    ctx.lineWidth = 1.2;
-    ctx.beginPath();
-    ctx.moveTo(eqX, cy - 65);
-    ctx.lineTo(eqX, cy + 65);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.fillStyle = subColor;
-    ctx.font = '11px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('平衡位置', eqX, cy - 70);
-
-    const infoText = `k=${k}N/m  A=${A}m${damping > 0 ? `  阻尼=${damping}` : ''}`;
-    ctx.font = '11px sans-serif';
-    ctx.textAlign = 'center';
-    const tw = ctx.measureText(infoText).width;
-    ctx.fillStyle = tokens.canvasHudBg;
-    roundRectPath(ctx, width / 2 - tw / 2 - 8, height - 34, tw + 16, 22, 4);
-    ctx.fill();
-    ctx.fillStyle = subColor;
-    ctx.fillText(infoText, width / 2, height - 18);
-}
-
-/**
- * 绘制斜面场景：教科书标准"左竖右斜"楔体 + 3D 滑块 + 角度标注
- */
-
-/**
- * 绘制电磁复合场：竖直电场线 (E ⊥ v) + 精致磁场符号 (⊗ 垂直纸面向里)
- *
- * 电场方向必须与引擎/场景一致: em-combined 场景把电场放在 y 轴 (参数 Ey),
- * 引擎 em-combined-field 也只在 |E.x| < 1e-12 时走速度选择器解析路径 (v = E/B)。
- * 早期版本画的是**水平**电场线 (对应旧场景 E ∥ v 的错误参数),
- * 与 3D 装置的上下极板 (竖直电场) 相互矛盾 —— 画面表达的物理模型与引擎不符。
- *
- * 方向约定: 画布 y 向下为正, 与引擎的 position.y 同一手性;
- * Ey > 0 → 电场线向下 (正电荷受力向下), Ey < 0 → 向上。
- */
 function drawEMCombinedField(
     ctx: CanvasRenderingContext2D,
     _transformer: CoordinateTransformer,
@@ -1170,10 +934,6 @@ export function SimulationCanvas() {
                     drawMagneticField(c, transformer, cssW, cssH, isDark);
                 } else if (currentScene === 'em-combined') {
                     drawEMCombinedField(c, transformer, cssW, cssH, isDark, parameters);
-                } else if (currentScene === 'collision') {
-                    drawCollisionScene(c, transformer, cssW, cssH, isDark, parameters);
-                } else if (currentScene === 'spring') {
-                    drawSpringScene(c, transformer, cssW, cssH, isDark, parameters);
                 }
             };
             if (usesStaticLayer) {
@@ -1422,6 +1182,12 @@ export function SimulationCanvas() {
                     break;
                 case 'inclined-plane':
                     drawInclinedPlaneScene(sceneOpts);
+                    break;
+                case 'collision':
+                    drawCollisionScene(sceneOpts);
+                    break;
+                case 'spring':
+                    drawSpringScene(sceneOpts);
                     break;
                 case 'galileo-incline':
                     drawGalileoInclineScene(sceneOpts);
@@ -2116,22 +1882,4 @@ function roundRectPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: n
     ctx.lineTo(x, y + r);
     ctx.arcTo(x, y, x + r, y, r);
     ctx.closePath();
-}
-
-function hexToRgb(hex: string): [number, number, number] {
-    const h = hex.replace('#', '');
-    const full =
-        h.length === 3
-            ? h
-                  .split('')
-                  .map(c => c + c)
-                  .join('')
-            : h;
-    return [parseInt(full.slice(0, 2), 16), parseInt(full.slice(2, 4), 16), parseInt(full.slice(4, 6), 16)];
-}
-
-function darkenHex(hex: string, amount: number): string {
-    const [r, g, b] = hexToRgb(hex);
-    const clamp = (v: number) => Math.max(0, Math.min(255, Math.round(v)));
-    return '#' + [r - amount, g - amount, b - amount].map(v => clamp(v).toString(16).padStart(2, '0')).join('');
 }

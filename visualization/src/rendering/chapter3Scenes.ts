@@ -440,20 +440,84 @@ export function drawSlidingFrictionScene(opts: Chapter3SceneOptions): void {
  * 注：本场景的"轨迹"为伪轨迹 (扫过夹角 0°→180° 的合力)，
  *     可视化只展示用户指定夹角下的静态平行四边形。
  */
-export function drawForceCompositionScene(opts: Chapter3SceneOptions): void {
-    const { ctx, width, height, isDark, params, simulationResult } = opts;
+/**
+ * 力的合成读数 — **单一真源: 引擎轨迹** (#159 逐节审计)
+ *
+ * 引擎的伪轨迹里: position = 当前夹角下的合力矢量, velocity.x = 当前扫掠夹角(°),
+ * velocity.y = 合力大小。旧的 2D 完全自算公式 (不读引擎), 3D 又把合力矢量
+ * 当成「质体」让蓝色小球沿它扫动 —— 力矢量不是物体。
+ * 现在 2D/3D 都读引擎当前帧: 合力大小与方向由引擎给出, 画面随扫掠夹角演化。
+ */
+export interface ForceCompositionReadouts {
+    f1: number;
+    f2: number;
+    /** 场景指定的夹角 (°) */
+    angleDeg: number;
+    /** 引擎当前扫掠夹角 (°) */
+    sweepAngleDeg: number;
+    /** 当前合力大小 (N) */
+    magnitude: number;
+    /** 当前合力方向角 (°, 相对 F1) */
+    directionDeg: number;
+    /** 指定夹角下的合力大小 (N) */
+    magnitudeAtAngle: number;
+    source: 'engine' | 'fallback';
+}
 
-    const F1 = params['f1'] ?? 3;
-    const F2 = params['f2'] ?? 4;
+export function forceCompositionReadouts(
+    params: Record<string, number>,
+    result: SimulationResult | null,
+    currentTime: number
+): ForceCompositionReadouts {
+    const f1 = params['f1'] ?? 3;
+    const f2 = params['f2'] ?? 4;
     const angleDeg = params['angleDeg'] ?? 90;
-    const angleRad = (angleDeg * Math.PI) / 180;
+    const rad = (angleDeg * Math.PI) / 180;
+    const magnitudeAtAngle = Math.sqrt(f1 * f1 + f2 * f2 + 2 * f1 * f2 * Math.cos(rad));
+    const frame = getFrame(result, currentTime);
+    if (frame) {
+        // 引擎: position = 合力矢量 (N), velocity = (扫掠夹角°, 合力大小)
+        const magnitude = frame.velocity.y ?? Math.hypot(frame.position.x, frame.position.y);
+        const sweepAngleDeg = frame.velocity.x ?? 0;
+        const directionDeg = magnitude > 1e-9 ? (Math.atan2(frame.position.y, frame.position.x) * 180) / Math.PI : 0;
+        return {
+            f1,
+            f2,
+            angleDeg,
+            sweepAngleDeg,
+            magnitude,
+            directionDeg,
+            magnitudeAtAngle,
+            source: 'engine'
+        };
+    }
+    return {
+        f1,
+        f2,
+        angleDeg,
+        sweepAngleDeg: angleDeg,
+        magnitude: magnitudeAtAngle,
+        directionDeg: (Math.atan2(f2 * Math.sin(rad), f1 + f2 * Math.cos(rad)) * 180) / Math.PI,
+        magnitudeAtAngle,
+        source: 'fallback'
+    };
+}
 
-    // 合力计算
+export function drawForceCompositionScene(opts: Chapter3SceneOptions): void {
+    const { ctx, width, height, isDark, params, simulationResult, currentTime } = opts;
+
+    const read = forceCompositionReadouts(params, simulationResult, currentTime);
+    const F1 = read.f1;
+    const F2 = read.f2;
+    const angleDeg = read.angleDeg;
+    // 画面随引擎扫掠夹角演化 (0° → 180°), 指定夹角的关键帧由引擎标注
+    const sweepRad = (read.sweepAngleDeg * Math.PI) / 180;
+
+    // 合力计算 (引擎权威: magnitude/directionDeg; 方向按引擎坐标系)
     const F1vec = { x: F1, y: 0 };
-    const F2vec = { x: F2 * Math.cos(angleRad), y: -F2 * Math.sin(angleRad) }; // 屏幕y向下为正，取负让F2向上
-    const Fvec = { x: F1vec.x + F2vec.x, y: F1vec.y + F2vec.y };
-    const Fmag = Math.sqrt(Fvec.x * Fvec.x + Fvec.y * Fvec.y);
-    const FangleDeg = (Math.atan2(-Fvec.y, Fvec.x) * 180) / Math.PI; // 转回数学角度
+    const F2vec = { x: F2 * Math.cos(sweepRad), y: -F2 * Math.sin(sweepRad) }; // 屏幕y向下为正，取负让F2向上
+    const Fmag = read.magnitude;
+    const FangleDeg = read.directionDeg;
 
     // 布局：共点在画面中心偏左
     const originX = width * 0.35;
@@ -472,7 +536,10 @@ export function drawForceCompositionScene(opts: Chapter3SceneOptions): void {
     // --- 平行四边形虚线 (F1 平移到 F2 端点, F2 平移到 F1 端点) ---
     const F1end = { x: originX + F1vec.x * forceScale, y: originY + F1vec.y * forceScale };
     const F2end = { x: originX + F2vec.x * forceScale, y: originY + F2vec.y * forceScale };
-    const Fend = { x: originX + Fvec.x * forceScale, y: originY + Fvec.y * forceScale };
+    const Fend = {
+        x: originX + Fmag * Math.cos((FangleDeg * Math.PI) / 180) * forceScale,
+        y: originY - Fmag * Math.sin((FangleDeg * Math.PI) / 180) * forceScale
+    };
     // F1 平移到 F2 端点
     ctx.setLineDash([5, 4]);
     ctx.strokeStyle = isDark ? 'rgba(148,163,184,0.4)' : 'rgba(100,116,139,0.3)';
@@ -493,15 +560,15 @@ export function drawForceCompositionScene(opts: Chapter3SceneOptions): void {
     ctx.strokeStyle = isDark ? '#fbbf24' : '#d97706';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.arc(originX, originY, arcR, 0, -angleRad, true);
+    ctx.arc(originX, originY, arcR, 0, -sweepRad, true);
     ctx.stroke();
     ctx.fillStyle = isDark ? '#fbbf24' : '#d97706';
     ctx.font = 'bold 13px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    const arcMidAngle = -angleRad / 2;
+    const arcMidAngle = -sweepRad / 2;
     ctx.fillText(
-        `θ=${angleDeg}°`,
+        `θ=${read.sweepAngleDeg.toFixed(0)}°`,
         originX + (arcR + 16) * Math.cos(arcMidAngle),
         originY + (arcR + 16) * Math.sin(arcMidAngle)
     );

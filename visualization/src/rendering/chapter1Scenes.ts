@@ -1261,3 +1261,369 @@ export function drawCenterOfGravityScene(opts: MechanicsSceneOptions): void {
     ctx.fillText('G 重心', cx + 12, cy + 4);
     drawInfoBar(ctx, width, height, '两次悬挂的铅垂线交点即为薄板重心', isDark);
 }
+
+/**
+ * 碰撞读数 — **单一真源: 引擎双轨迹** (#159 逐节审计)
+ *
+ * 旧 2D 背景把两个方块**写死**在 `width×0.25` / `width×0.7`, 真实物体又由
+ * 通用轨迹通道按世界坐标绘制 ⇒ 同一画面两套位置、两套物体。
+ * 现在两个方块的位置、速度全部取自引擎的两条轨迹。
+ */
+export interface CollisionReadouts {
+    m1: number;
+    m2: number;
+    /** 碰前初速度 (m/s) */
+    v1: number;
+    v2: number;
+    /** 恢复系数 */
+    e: number;
+    /** 碰前总动量 (kg·m/s) */
+    pBefore: number;
+    /** 碰后总动量 (kg·m/s) */
+    pAfter: number;
+    /** 当前两球速度 (m/s) */
+    v1Now: number;
+    v2Now: number;
+    /** 当前总动量 (kg·m/s) */
+    pNow: number;
+    /** 碰撞时刻 (s) */
+    collisionTime: number;
+    source: 'engine' | 'fallback';
+}
+
+export function collisionReadouts(
+    params: Record<string, number>,
+    result: SimulationResult | null,
+    currentTime: number
+): CollisionReadouts {
+    const m1 = params['m1'] ?? 1;
+    const m2 = params['m2'] ?? 1;
+    const v1 = params['v1'] ?? 5;
+    const v2 = params['v2'] ?? 0;
+    const e = params['e'] ?? 1;
+    const f1 = getFrame(result, currentTime, 0);
+    const f2 = getFrame(result, currentTime, 1);
+    const v1Now = f1 ? f1.velocity.x : v1;
+    const v2Now = f2 ? f2.velocity.x : v2;
+    const pBefore = m1 * v1 + m2 * v2;
+    // 碰后: 弹性碰撞解 (e = 1) 或一般恢复系数解
+    const denom = m1 + m2;
+    const v1After = (m1 * v1 + m2 * v2 - m2 * e * (v1 - v2)) / denom;
+    const v2After = (m2 * v2 + m1 * v1 + m1 * e * (v1 - v2)) / denom;
+    const mv = result?.diagnostics?.maxValues;
+    const collisionTime = mv ? (mv['collisionTime'] ?? 0) : 0;
+    return {
+        m1,
+        m2,
+        v1,
+        v2,
+        e,
+        pBefore,
+        pAfter: m1 * v1After + m2 * v2After,
+        v1Now,
+        v2Now,
+        pNow: m1 * v1Now + m2 * v2Now,
+        collisionTime,
+        source: f1 && f2 ? 'engine' : 'fallback'
+    };
+}
+
+/**
+ * 碰撞板书 — 导轨 + 两个方块 (引擎位置) + 速度矢量 + 动量守恒读数
+ */
+export function drawCollisionScene(opts: MechanicsSceneOptions): void {
+    const { ctx, width, height, isDark, params, simulationResult, currentTime } = opts;
+    const read = collisionReadouts(params, simulationResult, currentTime);
+    const tokens = getThemeTokens(isDark);
+
+    // —— 屏幕映射: 由引擎轨迹包围盒决定, 导轨与方块同源 ——
+    const traj1 = simulationResult?.trajectories?.[0] ?? [];
+    const traj2 = simulationResult?.trajectories?.[1] ?? [];
+    let minX = Infinity;
+    let maxX = -Infinity;
+    for (const t of [traj1, traj2]) {
+        for (const p of t) {
+            minX = Math.min(minX, p.position.x);
+            maxX = Math.max(maxX, p.position.x);
+        }
+    }
+    if (!Number.isFinite(minX)) {
+        minX = -2;
+        maxX = 13;
+    }
+    const marginX = 60;
+    const maxW = Math.max(120, width - marginX * 2);
+    const scale = maxW / Math.max(0.5, maxX - minX);
+    const originX = marginX - minX * scale;
+    const trackY = height * 0.6;
+    const sx = (x: number) => originX + x * scale;
+
+    drawTitle(ctx, '一维碰撞: 动量守恒 m₁v₁ + m₂v₂ = m₁v₁′ + m₂v₂′', width, isDark);
+
+    // —— 导轨 ——
+    ctx.strokeStyle = mutedColor(isDark);
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.moveTo(10, trackY);
+    ctx.lineTo(width - 10, trackY);
+    ctx.stroke();
+    ctx.strokeStyle = mutedColor(isDark);
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 20; i++) {
+        const px = 10 + ((width - 20) * i) / 20;
+        ctx.beginPath();
+        ctx.moveTo(px, trackY + 4);
+        ctx.lineTo(px - 6, trackY + 12);
+        ctx.stroke();
+    }
+
+    // —— 两个方块 (引擎位置) ——
+    const f1 = getFrame(simulationResult, currentTime, 0);
+    const f2 = getFrame(simulationResult, currentTime, 1);
+    const blockW = 44;
+    const blockH = 34;
+    const drawBox = (x: number, color: string, label: string) => {
+        const bx = sx(x) - blockW / 2;
+        const by = trackY - blockH;
+        ctx.fillStyle = tokens.canvasShadowStrong;
+        roundRectPath(ctx, bx + 3, by + 3, blockW, blockH, 4);
+        ctx.fill();
+        ctx.fillStyle = color;
+        roundRectPath(ctx, bx, by, blockW, blockH, 4);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.22)';
+        roundRectPath(ctx, bx + 3, by + 3, blockW - 6, blockH * 0.3, 3);
+        ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(label, bx + blockW / 2, by + blockH / 2 + 4);
+    };
+    if (f1) drawBox(f1.position.x, '#3b82f6', `m₁=${read.m1}kg`);
+    if (f2) drawBox(f2.position.x, '#ef4444', `m₂=${read.m2}kg`);
+
+    // —— 速度矢量 (引擎当前速度) ——
+    const velScale = 18; // 1 m/s = 18px
+    const arrow = (x: number, v: number, color: string, label: string, up: boolean) => {
+        const len = v * velScale;
+        if (Math.abs(len) < 1) return;
+        const y = up ? trackY - blockH - 22 : trackY - blockH - 46;
+        drawArrow(ctx, sx(x), y, sx(x) + len, y, color, `${label}=${v.toFixed(2)}m/s`);
+    };
+    if (f1) arrow(f1.position.x, read.v1Now, '#3b82f6', 'v₁', true);
+    if (f2) arrow(f2.position.x, read.v2Now, '#ef4444', 'v₂', false);
+
+    // —— 碰撞时刻标记 ——
+    if (read.collisionTime > 0) {
+        const tc = read.collisionTime;
+        const before = currentTime < tc;
+        ctx.fillStyle = before ? '#f59e0b' : '#22c55e';
+        ctx.font = 'bold 12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(
+            before ? `碰撞前 (t_碰 = ${tc.toFixed(3)}s)` : `碰撞后 (t_碰 = ${tc.toFixed(3)}s)`,
+            width / 2,
+            trackY - blockH - 78
+        );
+    }
+
+    drawHud(ctx, isDark, [
+        { label: 't', value: `${currentTime.toFixed(3)} s` },
+        { label: 'v₁', value: `${read.v1Now.toFixed(2)} m/s` },
+        { label: 'v₂', value: `${read.v2Now.toFixed(2)} m/s` }
+    ]);
+    drawInfoBar(
+        ctx,
+        width,
+        height,
+        `m₁=${read.m1}kg m₂=${read.m2}kg e=${read.e}  |  碰前 P=${read.pBefore.toFixed(2)}  碰后 P=${read.pAfter.toFixed(2)}  ` +
+            `当前 P=${read.pNow.toFixed(2)} kg·m/s`,
+        isDark
+    );
+    if (!simulationResult) drawEmptyState(ctx, width, height, isDark);
+}
+
+/**
+ * 弹簧振子读数 — **单一真源: 引擎轨迹** (#159 逐节审计)
+ */
+export interface SpringReadouts {
+    m: number;
+    k: number;
+    /** 振幅 (m) */
+    amplitude: number;
+    /** 角频率 ω (rad/s) */
+    omega: number;
+    /** 周期 T (s) */
+    period: number;
+    /** 弹簧原长 (m) */
+    naturalLength: number;
+    /** 当前相对平衡位置的位移 (m) */
+    x: number;
+    /** 当前速度 (m/s) */
+    v: number;
+    /** 当前机械能 (J) */
+    energy: number;
+    source: 'engine' | 'fallback';
+}
+
+export function springReadouts(
+    params: Record<string, number>,
+    result: SimulationResult | null,
+    currentTime: number
+): SpringReadouts {
+    const m = params['m'] ?? 1;
+    const k = params['k'] ?? 10;
+    const amplitude = params['A'] ?? 0.5;
+    const omega = Math.sqrt(k / Math.max(0.01, m));
+    const period = (2 * Math.PI) / omega;
+    // 场景给弹簧留出原长, 保证振子不会穿过固定端 (见 spring.ts buildProblem)
+    const naturalLength = amplitude + 0.25;
+    const frame = getFrame(result, currentTime);
+    if (frame) {
+        const x = frame.position.x - naturalLength;
+        return {
+            m,
+            k,
+            amplitude,
+            omega,
+            period,
+            naturalLength,
+            x,
+            v: frame.velocity.x,
+            energy: (frame.kineticEnergy ?? 0) + (frame.potentialEnergy ?? 0),
+            source: 'engine'
+        };
+    }
+    return {
+        m,
+        k,
+        amplitude,
+        omega,
+        period,
+        naturalLength,
+        x: amplitude * Math.cos(omega * currentTime),
+        v: -amplitude * omega * Math.sin(omega * currentTime),
+        energy: 0.5 * k * amplitude * amplitude,
+        source: 'fallback'
+    };
+}
+
+/**
+ * 弹簧振子板书 — 墙面 + 真实螺旋弹簧 + 物块 (引擎位置) + 平衡位置与振幅标线
+ *
+ * 旧 2D 把物块画在 `eqX + clamp(A×200)` —— 即**永远停在最大振幅处**,
+ * 弹簧完全不伸缩, 与真实轨迹通道的物块构成两个物体。
+ */
+export function drawSpringScene(opts: MechanicsSceneOptions): void {
+    const { ctx, width, height, isDark, params, simulationResult, currentTime } = opts;
+    const read = springReadouts(params, simulationResult, currentTime);
+    const tokens = getThemeTokens(isDark);
+
+    // —— 屏幕映射: 世界长度与像素同源 ——
+    const wallX = 70;
+    const trackY = height * 0.58;
+    const maxSpringM = Math.max(read.naturalLength + read.amplitude, 0.5) * 1.25;
+    const maxSpringPx = Math.min(width - wallX - 90, width * 0.62);
+    const pixelsPerMeter = maxSpringPx / maxSpringM;
+    const sx = (x: number) => wallX + x * pixelsPerMeter;
+
+    drawTitle(ctx, `弹簧振子: x = A·cos(ωt), ω = √(k/m) = ${read.omega.toFixed(2)} rad/s`, width, isDark);
+
+    // —— 墙面 ——
+    ctx.fillStyle = isDark ? '#475569' : '#94a3b8';
+    ctx.fillRect(wallX - 16, trackY - 120, 16, 160);
+    ctx.strokeStyle = mutedColor(isDark);
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(wallX - 16, trackY - 120);
+    ctx.lineTo(wallX - 16, trackY + 40);
+    ctx.stroke();
+
+    // —— 底座 ——
+    ctx.strokeStyle = mutedColor(isDark);
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(10, trackY + 40);
+    ctx.lineTo(width - 10, trackY + 40);
+    ctx.stroke();
+
+    // —— 平衡位置与振幅标线 ——
+    const eqX = sx(read.naturalLength);
+    ctx.setLineDash([5, 4]);
+    ctx.strokeStyle = '#eab308';
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.moveTo(eqX, trackY - 110);
+    ctx.lineTo(eqX, trackY + 34);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#ca8a04';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('平衡位置 O', eqX, trackY - 116);
+
+    // 振幅标线 (当前位移)
+    const curX = sx(read.naturalLength + read.x);
+    ctx.strokeStyle = '#38bdf8';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(eqX, trackY + 18);
+    ctx.lineTo(curX, trackY + 18);
+    ctx.stroke();
+    ctx.fillStyle = '#0284c7';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(`x = ${read.x.toFixed(3)} m`, Math.min(curX, eqX) + 4, trackY + 34);
+
+    // —— 螺旋弹簧 (从墙面到物块) ——
+    const coils = 16;
+    const springEnd = curX;
+    const springLen = springEnd - wallX;
+    const amplitudePx = 9;
+    ctx.strokeStyle = isDark ? '#67e8f9' : '#0891b2';
+    ctx.lineWidth = 2.4;
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(wallX, trackY);
+    for (let i = 0; i <= coils; i++) {
+        const px = wallX + (springLen * i) / coils;
+        const py = trackY + (i === 0 || i === coils ? 0 : i % 2 === 0 ? -amplitudePx : amplitudePx);
+        ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+    ctx.lineJoin = 'miter';
+
+    // —— 物块 (引擎位置) ——
+    const blockW = 46;
+    const blockH = 34;
+    const bx = springEnd - blockW / 2;
+    const by = trackY - blockH / 2 - amplitudePx;
+    ctx.fillStyle = tokens.canvasShadowStrong;
+    roundRectPath(ctx, bx + 3, by + 3, blockW, blockH, 4);
+    ctx.fill();
+    ctx.fillStyle = '#3b82f6';
+    roundRectPath(ctx, bx, by, blockW, blockH, 4);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.22)';
+    roundRectPath(ctx, bx + 3, by + 3, blockW - 6, blockH * 0.3, 3);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(`m=${read.m}kg`, bx + blockW / 2, by + blockH / 2 + 4);
+
+    drawHud(ctx, isDark, [
+        { label: 't', value: `${currentTime.toFixed(3)} s` },
+        { label: 'x', value: `${read.x.toFixed(3)} m` },
+        { label: 'v', value: `${read.v.toFixed(3)} m/s` }
+    ]);
+    drawInfoBar(
+        ctx,
+        width,
+        height,
+        `k=${read.k}N/m  m=${read.m}kg  A=${read.amplitude.toFixed(2)}m  ω=${read.omega.toFixed(2)}rad/s  T=${read.period.toFixed(3)}s  ` +
+            `E=${read.energy.toFixed(3)}J`,
+        isDark
+    );
+    if (!simulationResult) drawEmptyState(ctx, width, height, isDark);
+}

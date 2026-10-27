@@ -164,3 +164,54 @@
 | 问题三·实验作用 | **一般 → 已修复** | **3D** 没有挡光片，也没有遮光时间/测速读数 —— 实验的关键量（Δt、v=Δx/Δt）在 3D 里读不到 | 同上：`ownParticles` 自绘滑块 + 挡光片（宽度同口径换算），标牌显示 `G1/G2: Δt=…ms v=…`，数据来自引擎轨迹（与 2D 共用 `computePhotogateMeasurements`） |
 
 **修复后**：3D 滑块（蓝块 + 红挡光片）实际穿过两扇光电门，标牌 `G1: Δt=40ms v=0.500 | G2: Δt=40ms v=0.500`，与引擎速度一致。
+
+---
+
+## 批次 C — 碰撞 / 弹簧振子 / 牛顿第二定律 / 力的合成（+ 机械能守恒、LC 振荡补记）
+
+### C-1 `collision` 碰撞
+
+| 维度 | 判定 | 现象 / 证据 | 根因 |
+| --- | --- | --- | --- |
+| 问题二·视觉 | **严重 → 已修复** | **2D**：木质背景里的两个方块被**写死**在 `width×0.25` / `width×0.7`，真实物体又由通用轨迹通道按世界坐标绘制 ⇒ 同一画面两套位置、两套物体 | `visualization/src/components/simulation/SimulationCanvas.tsx`（`collision` 移出 `SCENES_2D_CUSTOM_BG`，并入 `SCENES_MECHANICS`）；新增专属板书 `drawCollisionScene` + `collisionReadouts` |
+| 问题三·实验作用 | **一般 → 已修复** | 2D 没有碰前/碰后状态区分，也没有动量守恒读数 | 新板书：两个方块位置/速度读引擎双轨迹，显示碰前 P、碰后 P、当前 P 与碰撞时刻 |
+
+**修复后**：t=1.5 s（碰后）画面显示 `v₁=0.00 m/s  v₂=5.00 m/s`，`碰前 P=5.00 碰后 P=5.00 当前 P=5.00 kg·m/s`（守恒）。
+
+### C-2 `spring` 弹簧振子
+
+| 维度 | 判定 | 现象 / 证据 | 根因 |
+| --- | --- | --- | --- |
+| 问题一·物理 | **严重 → 已修复** | 场景 `naturalLength: 0` + 物体初始位置 `(A, 0)` ⇒ 弹簧长度会**穿过固定端变成负值**，振子从 x=+A 荡到墙的另一侧 | `visualization/src/scenes/scenes/mechanics/spring.ts`（原长 L₀ = A + 0.25，物体初始位于 (L₀+A, 0)，振子始终在墙右侧） |
+| 问题二·视觉 | **严重 → 已修复** | **2D**：物块画在 `eqX + clamp(A×200)` —— **永远停在最大振幅处**，弹簧完全不伸缩 | `visualization/src/rendering/chapter1Scenes.ts`（新增 `drawSpringScene` + `springReadouts`） |
+| 问题二·视觉 | **一般 → 已修复** | **3D**：固定端放在 world x=−1.6（@0.16 相当于 10 m），与引擎原长毫无关系；振子世界行程仅 ±0.08 单位，几乎看不出在振动 | `visualization/src/components/simulation3d/rigs/springRig.ts`（固定端 = 引擎锚点，世界比例由振幅推导，补 framing） |
+
+**修复后**：引擎轨迹 x ∈ [0.25, 1.25] m（不穿墙），板书 `x=-0.026 m v=-1.579 m/s`，弹簧随物块伸缩。
+
+### C-3 `newton-second-law` 牛顿第二定律
+
+| 维度 | 判定 | 现象 / 证据 | 根因 |
+| --- | --- | --- | --- |
+| 问题二·视觉 | **一般 → 已修复** | **2D**：像素比例固定 28 px/m，默认参数总位移 62.5 m → 1750 px 远超画布，小车在 t≈2.9 s 后被 `clamp` **钉在右缘冻结**约 36% 时长 | `visualization/src/rendering/chapter4Scenes.ts`（按引擎 `maxValues.displacement` 自适应像素/米） |
+| 问题二·视觉 | **一般 → 已修复** | **3D**：木板固定 4.2 世界单位（= 26.25 m），小车行程 62.5 m ⇒ **开出木板 2.38 倍**，画面上悬空加速 | `visualization/src/components/simulation3d/rigs/newtonSecondLawRig.ts`（木板长度随行程自适应并从小车起点铺开；滑轮位置随之调整；补 framing） |
+
+### C-4 `force-composition` 力的合成（平行四边形定则）
+
+| 维度 | 判定 | 现象 / 证据 | 根因 |
+| --- | --- | --- | --- |
+| 问题一·物理 | **一般 → 已修复** | **2D** 完全自算公式（不读引擎），画面停在指定夹角的静态图形，引擎的扫掠动画在 2D 完全看不到 | `visualization/src/rendering/chapter3Scenes.ts`（新增 `forceCompositionReadouts`，读引擎当前帧：position=合力矢量、velocity=(扫掠夹角°, 合力大小)） |
+| 问题二·视觉 | **一般 → 已修复** | **3D**：平行四边形只 push 3 个点（`[pt1, ptRes, pt2]`），**没有闭合** | `visualization/src/components/simulation3d/rigs/forceCompositionRig.ts`（改为 5 点闭合 O→F₁→F→F₂→O 并 `computeLineDistances`） |
+| 问题三·实验作用 | **一般 → 已修复** | **3D**：舞台默认小球沿「合力矢量」扫动 —— **把力箭头当成质体在空间里运动** | 同上：`ownParticles: true`（舞台不再叠加小球），改由 rig 绘制合力端点轨迹（引擎伪轨迹）+ 正对木板的取景 |
+
+### C-5 补记：`energy-conservation` 机械能守恒（批次 B 提交中一并修复）
+
+| 维度 | 判定 | 现象 / 证据 | 根因 |
+| --- | --- | --- | --- |
+| 问题一·物理 | **严重 → 已修复** | 板书只夹位置不夹速度 ⇒ 动能虚涨到 432.18 J 却写「无摩擦→守恒」；小球水平位置由「下落距离×0.3」自算而非读引擎 | `visualization/src/rendering/chapter7Scenes.ts`（新增 `energyConservationReadouts`，同时夹位置与速度，E总 ≡ E₀；水平位置读引擎 `frame.position.x`） |
+| 问题一·物理 | **一般 → 已修复** | 引擎时长 3 s > 触地时刻，轨迹本身穿地 | `visualization/src/scenes/scenes/mechanics/energy-conservation.ts`（仿真时长截到 tGround = √(2h₀/g)） |
+
+### C-6 补记：`lc-oscillator` LC 电振振荡（批次 B 提交中一并修复）
+
+| 维度 | 判定 | 现象 / 证据 | 根因 |
+| --- | --- | --- | --- |
+| 问题一·物理 | **严重 → 已修复** | rig 死读 `params['L']`/`params['inductance']`（场景无此参数 → 静默回退 0.1 H，真值 10 μH）与 `params['C']`（把 pF 当 F）⇒ 标牌 `T=19869.06 ms | f=0.1 Hz`，真值 `T=0.19869 μs | f=5.0332 MHz`，**偏差 1.0×10⁸** | `visualization/src/components/simulation3d/rigs/lcOscillatorRig.ts`（重写：读引擎 `maxValues`，μs/ms/ns 与 Hz/kHz/MHz 自适应单位；q(t)/i(t) 走 `chartsOf` 的 `x_t`/`y_t`） |

@@ -44,6 +44,13 @@ import { inclineRig, inclineUnitsPerMeter } from '../../src/components/simulatio
 import type { InclinedPlaneHandles } from '../../src/components/simulation3d/equipment/inclinedPlane';
 import { galileoInclineReadouts, inclinePlaneReadouts } from '../../src/rendering/chapter1Scenes';
 import { computePhotogateMeasurements } from '../../src/utils/photogate';
+import { collisionReadouts, springReadouts } from '../../src/rendering/chapter1Scenes';
+import { forceCompositionReadouts } from '../../src/rendering/chapter3Scenes';
+import { springRig, springUnitsPerMeter, springNaturalLength } from '../../src/components/simulation3d/rigs/springRig';
+import {
+    forceCompositionRig,
+    type ForceCompositionHandles
+} from '../../src/components/simulation3d/rigs/forceCompositionRig';
 import {
     selfInductanceRig,
     selfInductanceReadouts,
@@ -1084,5 +1091,108 @@ describe('#159 高中核心·斜面运动: 初速度分解与「滑到底端即�
         const visual = inclineRig.getVisualPosition(later, params, result).sub(initial);
         const engineDelta = new THREE.Vector3(later.x - first.x, later.y - first.y, 0);
         expect(visual.dot(tangent)).toBeCloseTo(engineDelta.dot(tangent) * inclineUnitsPerMeter(params, result), 6);
+    });
+});
+
+// ============================================================================
+// #159 Phase 2 — 《高中核心》24 节逐节审计 (批次 C: 碰撞 / 弹簧 / 牛顿二定律 / 力的合成)
+// ============================================================================
+
+describe('#159 高中核心·碰撞: 两个物块的位置必须来自引擎 (旧版是写死的装饰方块)', () => {
+    it('板书方块位置 = 引擎两条轨迹 (旧版固定在 width×0.25 / width×0.7)', () => {
+        const { params, result } = simulate('collision');
+        const read = collisionReadouts(params, result, 1.5);
+        expect(read.source).toBe('engine');
+        // 碰后 (t=1.5 > t_碰=0.8): m1=m2, e=1 ⇒ 速度互换
+        expect(read.v1Now).toBeCloseTo(0, 6);
+        expect(read.v2Now).toBeCloseTo(5, 6);
+        // 动量守恒
+        expect(read.pNow).toBeCloseTo(read.pBefore, 6);
+        expect(read.pAfter).toBeCloseTo(read.pBefore, 6);
+    });
+
+    it('碰撞时刻由引擎给出', () => {
+        const { result } = simulate('collision');
+        expect(result.diagnostics.maxValues.collisionTime).toBeCloseTo(0.8, 6);
+    });
+});
+
+describe('#159 高中核心·弹簧振子: 振子不得穿过固定端, 且形变必须可见', () => {
+    it('弹簧原长 > 振幅 ⇒ 振子始终在墙的右侧 (旧版 naturalLength=0 会穿过墙)', () => {
+        const { params, result } = simulate('spring');
+        const A = params['A']!;
+        const traj = result.trajectories[0]!;
+        const minX = Math.min(...traj.map(p => p.position.x));
+        expect(minX).toBeGreaterThan(0.05);
+        // 振幅 A 与位移范围一致
+        expect(result.diagnostics.maxValues.maxDisplacement).toBeCloseTo(A, 6);
+    });
+
+    it('板书位移 x = 引擎位置 − 原长, 振幅标注与引擎一致', () => {
+        const { params, result } = simulate('spring');
+        const read = springReadouts(params, result, 0.25);
+        expect(read.source).toBe('engine');
+        expect(Math.abs(read.x)).toBeLessThanOrEqual(read.amplitude + 1e-9);
+        // 初始位移 = +A
+        const read0 = springReadouts(params, result, 0);
+        expect(read0.x).toBeCloseTo(read.amplitude, 6);
+    });
+
+    it('3D 弹簧长度 = 引擎弹簧长度 (旧版固定端在 −1.6 世界单位, 与引擎原长无关)', () => {
+        const { params, result } = simulate('spring');
+        const k = springUnitsPerMeter(params);
+        const natural = springNaturalLength(params['A']!);
+        const first = result.trajectories[0]![0]!.position;
+        const visual = springRig.getVisualPosition(first, params);
+        // 引擎弹簧长度 = L₀ + x, 世界长度 = 引擎长度 × k
+        expect(visual.x).toBeCloseTo((natural + params['A']!) * k, 6);
+    });
+});
+
+describe('#159 高中核心·牛顿第二定律: 小车全程不得驶出木板 / 冻结在画布边缘', () => {
+    it('木板长度按引擎总位移自适应 (旧版 26.25 m 木板跑 62.5 m)', () => {
+        const { result } = simulate('newton-second-law');
+        const disp = result.diagnostics.maxValues.displacement!;
+        expect(disp).toBeGreaterThan(0);
+        // 木板世界长度必须覆盖行程
+        const benchLength = Math.max(4.2, disp * 0.16 + 1.4);
+        const travel = disp * 0.16;
+        expect(benchLength).toBeGreaterThan(travel);
+    });
+
+    it('2D 板书像素比例按总位移自适应, 小车不再贴右缘冻结', () => {
+        const { result } = simulate('newton-second-law');
+        const disp = result.diagnostics.maxValues.displacement!;
+        const width = 830;
+        const pixelsPerMeter = Math.min(28, (width - 220) / Math.max(0.5, disp));
+        // 全程位移对应的像素宽度必须小于可用画布宽度
+        expect(disp * pixelsPerMeter).toBeLessThan(width - 200);
+    });
+});
+
+describe('#159 高中核心·力的合成: 合力必须读引擎, 平行四边形必须闭合', () => {
+    it('板书读数来自引擎当前帧 (合力大小/方向/扫掠夹角)', () => {
+        const { params, result } = simulate('force-composition');
+        const read = forceCompositionReadouts(params, result, 0.5);
+        expect(read.source).toBe('engine');
+        // 引擎伪轨迹: velocity.x = 当前扫掠夹角(°), velocity.y = 合力大小(N)
+        expect(read.sweepAngleDeg).toBeCloseTo(90, 1);
+        // F1=3, F2=4, θ=90° → F = 5 N
+        expect(read.magnitude).toBeCloseTo(5, 6);
+        expect(read.magnitudeAtAngle).toBeCloseTo(5, 6);
+    });
+
+    it('3D rig 不再把合力矢量当质体 (ownParticles), 平行四边形四点闭合', () => {
+        const { params, result } = simulate('force-composition');
+        expect(forceCompositionRig.ownParticles).toBe(true);
+        const scene = new THREE.Scene();
+        const built = forceCompositionRig.buildEquipment(scene, params, result);
+        const h = built.handles as ForceCompositionHandles;
+        const pts = h.parallelogram.geometry.getAttribute('position');
+        // O → F1端 → 合力端 → F2端 → O (5 点闭合)
+        expect(pts.count).toBe(5);
+        const first = new THREE.Vector3().fromBufferAttribute(pts, 0);
+        const last = new THREE.Vector3().fromBufferAttribute(pts, 4);
+        expect(first.distanceTo(last)).toBeLessThan(1e-9);
     });
 });
