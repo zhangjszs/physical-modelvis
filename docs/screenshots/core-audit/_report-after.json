@@ -1,5 +1,1405 @@
 [
   {
+    "sceneId": "projectile",
+    "name": "抛体运动 (平抛+斜抛)",
+    "shots": [
+      {
+        "file": "projectile-3d-t0-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "projectile-3d-mid-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "projectile-3d-param-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "projectile-2d-t0-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 413,
+              "cssWidth": 826,
+              "cssHeight": 413,
+              "blank": false,
+              "uniqueColors": 76,
+              "nonTransparentRatio": 1,
+              "readbackAvailable": true
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "projectile-2d-mid-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 413,
+              "cssWidth": 826,
+              "cssHeight": 413,
+              "blank": false,
+              "uniqueColors": 76,
+              "nonTransparentRatio": 1,
+              "readbackAvailable": true
+            }
+          ],
+          "bannerVisible": false
+        }
+      }
+    ],
+    "issues": [],
+    "paramChange": null,
+    "stageText": "",
+    "errors": []
+  },
+  {
+    "sceneId": "free-fall",
+    "name": "自由落体",
+    "shots": [
+      {
+        "file": "free-fall-3d-t0-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "free-fall-3d-mid-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "free-fall-3d-param-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "free-fall-2d-t0-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 413,
+              "cssWidth": 826,
+              "cssHeight": 413,
+              "blank": false,
+              "uniqueColors": 48,
+              "nonTransparentRatio": 1,
+              "readbackAvailable": true
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "free-fall-2d-mid-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 413,
+              "cssWidth": 826,
+              "cssHeight": 413,
+              "blank": false,
+              "uniqueColors": 48,
+              "nonTransparentRatio": 1,
+              "readbackAvailable": true
+            }
+          ],
+          "bannerVisible": false
+        }
+      }
+    ],
+    "issues": [],
+    "paramChange": null,
+    "stageText": "",
+    "errors": []
+  },
+  {
+    "sceneId": "uniform-accelerated",
+    "name": "竖直运动（自由落体/上抛）",
+    "shots": [
+      {
+        "file": "uniform-accelerated-3d-t0-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "uniform-accelerated-3d-mid-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "uniform-accelerated-3d-param-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "uniform-accelerated-2d-t0-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 413,
+              "cssWidth": 826,
+              "cssHeight": 413,
+              "blank": false,
+              "uniqueColors": 68,
+              "nonTransparentRatio": 1,
+              "readbackAvailable": true
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "uniform-accelerated-2d-mid-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 413,
+              "cssWidth": 826,
+              "cssHeight": 413,
+              "blank": false,
+              "uniqueColors": 68,
+              "nonTransparentRatio": 1,
+              "readbackAvailable": true
+            }
+          ],
+          "bannerVisible": false
+        }
+      }
+    ],
+    "issues": [],
+    "paramChange": null,
+    "stageText": "",
+    "errors": []
+  },
+  {
+    "sceneId": "inclined-plane",
+    "name": "斜面运动",
+    "shots": [
+      {
+        "file": "inclined-plane-3d-t0-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "inclined-plane-3d-mid-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "inclined-plane-3d-param-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "inclined-plane-2d-t0-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 413,
+              "cssWidth": 826,
+              "cssHeight": 413,
+              "blank": false,
+              "uniqueColors": 66,
+              "nonTransparentRatio": 1,
+              "readbackAvailable": true
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "inclined-plane-2d-mid-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 413,
+              "cssWidth": 826,
+              "cssHeight": 413,
+              "blank": false,
+              "uniqueColors": 66,
+              "nonTransparentRatio": 1,
+              "readbackAvailable": true
+            }
+          ],
+          "bannerVisible": false
+        }
+      }
+    ],
+    "issues": [],
+    "paramChange": null,
+    "stageText": "",
+    "errors": []
+  },
+  {
+    "sceneId": "collision",
+    "name": "碰撞",
+    "shots": [
+      {
+        "file": "collision-3d-t0-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "collision-3d-mid-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "collision-3d-param-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "collision-2d-t0-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 413,
+              "cssWidth": 826,
+              "cssHeight": 413,
+              "blank": false,
+              "uniqueColors": 58,
+              "nonTransparentRatio": 1,
+              "readbackAvailable": true
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "collision-2d-mid-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 413,
+              "cssWidth": 826,
+              "cssHeight": 413,
+              "blank": false,
+              "uniqueColors": 58,
+              "nonTransparentRatio": 1,
+              "readbackAvailable": true
+            }
+          ],
+          "bannerVisible": false
+        }
+      }
+    ],
+    "issues": [],
+    "paramChange": null,
+    "stageText": "",
+    "errors": []
+  },
+  {
+    "sceneId": "spring",
+    "name": "弹簧振子",
+    "shots": [
+      {
+        "file": "spring-3d-t0-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "spring-3d-mid-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "spring-3d-param-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "spring-2d-t0-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 413,
+              "cssWidth": 826,
+              "cssHeight": 413,
+              "blank": false,
+              "uniqueColors": 64,
+              "nonTransparentRatio": 1,
+              "readbackAvailable": true
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "spring-2d-mid-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 413,
+              "cssWidth": 826,
+              "cssHeight": 413,
+              "blank": false,
+              "uniqueColors": 64,
+              "nonTransparentRatio": 1,
+              "readbackAvailable": true
+            }
+          ],
+          "bannerVisible": false
+        }
+      }
+    ],
+    "issues": [],
+    "paramChange": null,
+    "stageText": "",
+    "errors": []
+  },
+  {
+    "sceneId": "electric-field",
+    "name": "匀强电场",
+    "shots": [
+      {
+        "file": "electric-field-3d-t0-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "electric-field-3d-mid-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "electric-field-3d-param-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "electric-field-2d-t0-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 413,
+              "cssWidth": 826,
+              "cssHeight": 413,
+              "blank": false,
+              "uniqueColors": 75,
+              "nonTransparentRatio": 1,
+              "readbackAvailable": true
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "electric-field-2d-mid-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 413,
+              "cssWidth": 826,
+              "cssHeight": 413,
+              "blank": false,
+              "uniqueColors": 75,
+              "nonTransparentRatio": 1,
+              "readbackAvailable": true
+            }
+          ],
+          "bannerVisible": false
+        }
+      }
+    ],
+    "issues": [],
+    "paramChange": null,
+    "stageText": "",
+    "errors": []
+  },
+  {
+    "sceneId": "magnetic-field",
+    "name": "匀强磁场",
+    "shots": [
+      {
+        "file": "magnetic-field-3d-t0-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "magnetic-field-3d-mid-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "magnetic-field-3d-param-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "magnetic-field-2d-t0-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 413,
+              "cssWidth": 826,
+              "cssHeight": 413,
+              "blank": false,
+              "uniqueColors": 75,
+              "nonTransparentRatio": 1,
+              "readbackAvailable": true
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "magnetic-field-2d-mid-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 413,
+              "cssWidth": 826,
+              "cssHeight": 413,
+              "blank": false,
+              "uniqueColors": 75,
+              "nonTransparentRatio": 1,
+              "readbackAvailable": true
+            }
+          ],
+          "bannerVisible": false
+        }
+      }
+    ],
+    "issues": [],
+    "paramChange": null,
+    "stageText": "",
+    "errors": []
+  },
+  {
+    "sceneId": "em-combined",
+    "name": "电磁复合场",
+    "shots": [
+      {
+        "file": "em-combined-3d-t0-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "em-combined-3d-mid-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "em-combined-3d-param-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "em-combined-2d-t0-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 413,
+              "cssWidth": 826,
+              "cssHeight": 413,
+              "blank": false,
+              "uniqueColors": 77,
+              "nonTransparentRatio": 1,
+              "readbackAvailable": true
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "em-combined-2d-mid-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 413,
+              "cssWidth": 826,
+              "cssHeight": 413,
+              "blank": false,
+              "uniqueColors": 77,
+              "nonTransparentRatio": 1,
+              "readbackAvailable": true
+            }
+          ],
+          "bannerVisible": false
+        }
+      }
+    ],
+    "issues": [],
+    "paramChange": null,
+    "stageText": "",
+    "errors": []
+  },
+  {
+    "sceneId": "simple-pendulum",
+    "name": "单摆 (简谐运动)",
+    "shots": [
+      {
+        "file": "simple-pendulum-3d-t0-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "simple-pendulum-3d-mid-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "simple-pendulum-3d-param-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "simple-pendulum-2d-t0-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 413,
+              "cssWidth": 826,
+              "cssHeight": 413,
+              "blank": false,
+              "uniqueColors": 59,
+              "nonTransparentRatio": 1,
+              "readbackAvailable": true
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "simple-pendulum-2d-mid-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 413,
+              "cssWidth": 826,
+              "cssHeight": 413,
+              "blank": false,
+              "uniqueColors": 59,
+              "nonTransparentRatio": 1,
+              "readbackAvailable": true
+            }
+          ],
+          "bannerVisible": false
+        }
+      }
+    ],
+    "issues": [],
+    "paramChange": null,
+    "stageText": "",
+    "errors": []
+  },
+  {
+    "sceneId": "mechanical-wave",
+    "name": "机械波 (横波/纵波/干涉)",
+    "shots": [
+      {
+        "file": "mechanical-wave-3d-t0-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "mechanical-wave-3d-mid-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "mechanical-wave-3d-param-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "mechanical-wave-2d-t0-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 413,
+              "cssWidth": 826,
+              "cssHeight": 413,
+              "blank": false,
+              "uniqueColors": 63,
+              "nonTransparentRatio": 1,
+              "readbackAvailable": true
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "mechanical-wave-2d-mid-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 413,
+              "cssWidth": 826,
+              "cssHeight": 413,
+              "blank": false,
+              "uniqueColors": 63,
+              "nonTransparentRatio": 1,
+              "readbackAvailable": true
+            }
+          ],
+          "bannerVisible": false
+        }
+      }
+    ],
+    "issues": [],
+    "paramChange": null,
+    "stageText": "",
+    "errors": []
+  },
+  {
+    "sceneId": "lc-oscillator",
+    "name": "LC 电磁振荡",
+    "shots": [
+      {
+        "file": "lc-oscillator-3d-t0-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "lc-oscillator-3d-mid-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "lc-oscillator-3d-param-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "lc-oscillator-2d-t0-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 413,
+              "cssWidth": 826,
+              "cssHeight": 413,
+              "blank": false,
+              "uniqueColors": 129,
+              "nonTransparentRatio": 1,
+              "readbackAvailable": true
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "lc-oscillator-2d-mid-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 413,
+              "cssWidth": 826,
+              "cssHeight": 413,
+              "blank": false,
+              "uniqueColors": 129,
+              "nonTransparentRatio": 1,
+              "readbackAvailable": true
+            }
+          ],
+          "bannerVisible": false
+        }
+      }
+    ],
+    "issues": [],
+    "paramChange": null,
+    "stageText": "",
+    "errors": []
+  },
+  {
+    "sceneId": "circular-motion",
+    "name": "匀速圆周运动 (向心力)",
+    "shots": [
+      {
+        "file": "circular-motion-3d-t0-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "circular-motion-3d-mid-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "circular-motion-3d-param-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "circular-motion-2d-t0-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 413,
+              "cssWidth": 826,
+              "cssHeight": 413,
+              "blank": false,
+              "uniqueColors": 63,
+              "nonTransparentRatio": 1,
+              "readbackAvailable": true
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "circular-motion-2d-mid-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 413,
+              "cssWidth": 826,
+              "cssHeight": 413,
+              "blank": false,
+              "uniqueColors": 63,
+              "nonTransparentRatio": 1,
+              "readbackAvailable": true
+            }
+          ],
+          "bannerVisible": false
+        }
+      }
+    ],
+    "issues": [],
+    "paramChange": null,
+    "stageText": "",
+    "errors": []
+  },
+  {
+    "sceneId": "orbital",
+    "name": "万有引力与航天 (卫星轨道)",
+    "shots": [
+      {
+        "file": "orbital-3d-t0-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "orbital-3d-mid-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "orbital-3d-param-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "orbital-2d-t0-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 413,
+              "cssWidth": 826,
+              "cssHeight": 413,
+              "blank": false,
+              "uniqueColors": 60,
+              "nonTransparentRatio": 1,
+              "readbackAvailable": true
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "orbital-2d-mid-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 413,
+              "cssWidth": 826,
+              "cssHeight": 413,
+              "blank": false,
+              "uniqueColors": 60,
+              "nonTransparentRatio": 1,
+              "readbackAvailable": true
+            }
+          ],
+          "bannerVisible": false
+        }
+      }
+    ],
+    "issues": [],
+    "paramChange": null,
+    "stageText": "",
+    "errors": []
+  },
+  {
     "sceneId": "photoelectric",
     "name": "光电效应 (爱因斯坦方程)",
     "shots": [
@@ -86,6 +1486,806 @@
               "cssHeight": 413,
               "blank": false,
               "uniqueColors": 83,
+              "nonTransparentRatio": 1,
+              "readbackAvailable": true
+            }
+          ],
+          "bannerVisible": false
+        }
+      }
+    ],
+    "issues": [],
+    "paramChange": null,
+    "stageText": "",
+    "errors": []
+  },
+  {
+    "sceneId": "air-track",
+    "name": "气垫导轨测速度",
+    "shots": [
+      {
+        "file": "air-track-3d-t0-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "air-track-3d-mid-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "air-track-3d-param-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "air-track-2d-t0-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 413,
+              "cssWidth": 826,
+              "cssHeight": 413,
+              "blank": false,
+              "uniqueColors": 78,
+              "nonTransparentRatio": 1,
+              "readbackAvailable": true
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "air-track-2d-mid-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 413,
+              "cssWidth": 826,
+              "cssHeight": 413,
+              "blank": false,
+              "uniqueColors": 80,
+              "nonTransparentRatio": 1,
+              "readbackAvailable": true
+            }
+          ],
+          "bannerVisible": false
+        }
+      }
+    ],
+    "issues": [],
+    "paramChange": null,
+    "stageText": "",
+    "errors": []
+  },
+  {
+    "sceneId": "hooke-law",
+    "name": "胡克定律 F=kx",
+    "shots": [
+      {
+        "file": "hooke-law-3d-t0-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "hooke-law-3d-mid-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "hooke-law-3d-param-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "hooke-law-2d-t0-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 413,
+              "cssWidth": 826,
+              "cssHeight": 413,
+              "blank": false,
+              "uniqueColors": 57,
+              "nonTransparentRatio": 1,
+              "readbackAvailable": true
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "hooke-law-2d-mid-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 413,
+              "cssWidth": 826,
+              "cssHeight": 413,
+              "blank": false,
+              "uniqueColors": 57,
+              "nonTransparentRatio": 1,
+              "readbackAvailable": true
+            }
+          ],
+          "bannerVisible": false
+        }
+      }
+    ],
+    "issues": [],
+    "paramChange": null,
+    "stageText": "",
+    "errors": []
+  },
+  {
+    "sceneId": "newton-second-law",
+    "name": "牛顿第二定律 F=ma",
+    "shots": [
+      {
+        "file": "newton-second-law-3d-t0-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "newton-second-law-3d-mid-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "newton-second-law-3d-param-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "newton-second-law-2d-t0-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 413,
+              "cssWidth": 826,
+              "cssHeight": 413,
+              "blank": false,
+              "uniqueColors": 61,
+              "nonTransparentRatio": 1,
+              "readbackAvailable": true
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "newton-second-law-2d-mid-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 413,
+              "cssWidth": 826,
+              "cssHeight": 413,
+              "blank": false,
+              "uniqueColors": 61,
+              "nonTransparentRatio": 1,
+              "readbackAvailable": true
+            }
+          ],
+          "bannerVisible": false
+        }
+      }
+    ],
+    "issues": [],
+    "paramChange": null,
+    "stageText": "",
+    "errors": []
+  },
+  {
+    "sceneId": "force-composition",
+    "name": "力的合成 (平行四边形定则)",
+    "shots": [
+      {
+        "file": "force-composition-3d-t0-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "force-composition-3d-mid-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "force-composition-3d-param-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "force-composition-2d-t0-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 413,
+              "cssWidth": 826,
+              "cssHeight": 413,
+              "blank": false,
+              "uniqueColors": 72,
+              "nonTransparentRatio": 1,
+              "readbackAvailable": true
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "force-composition-2d-mid-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 413,
+              "cssWidth": 826,
+              "cssHeight": 413,
+              "blank": false,
+              "uniqueColors": 72,
+              "nonTransparentRatio": 1,
+              "readbackAvailable": true
+            }
+          ],
+          "bannerVisible": false
+        }
+      }
+    ],
+    "issues": [],
+    "paramChange": null,
+    "stageText": "",
+    "errors": []
+  },
+  {
+    "sceneId": "energy-conservation",
+    "name": "机械能守恒定律 (动能↔势能)",
+    "shots": [
+      {
+        "file": "energy-conservation-3d-t0-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "energy-conservation-3d-mid-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "energy-conservation-3d-param-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "energy-conservation-2d-t0-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 413,
+              "cssWidth": 826,
+              "cssHeight": 413,
+              "blank": false,
+              "uniqueColors": 74,
+              "nonTransparentRatio": 1,
+              "readbackAvailable": true
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "energy-conservation-2d-mid-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 413,
+              "cssWidth": 826,
+              "cssHeight": 413,
+              "blank": false,
+              "uniqueColors": 74,
+              "nonTransparentRatio": 1,
+              "readbackAvailable": true
+            }
+          ],
+          "bannerVisible": false
+        }
+      }
+    ],
+    "issues": [],
+    "paramChange": null,
+    "stageText": "",
+    "errors": []
+  },
+  {
+    "sceneId": "galileo-incline",
+    "name": "伽利略斜面理想实验",
+    "shots": [
+      {
+        "file": "galileo-incline-3d-t0-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "galileo-incline-3d-mid-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "galileo-incline-3d-param-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "galileo-incline-2d-t0-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 413,
+              "cssWidth": 826,
+              "cssHeight": 413,
+              "blank": false,
+              "uniqueColors": 66,
+              "nonTransparentRatio": 1,
+              "readbackAvailable": true
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "galileo-incline-2d-mid-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 413,
+              "cssWidth": 826,
+              "cssHeight": 413,
+              "blank": false,
+              "uniqueColors": 66,
+              "nonTransparentRatio": 1,
+              "readbackAvailable": true
+            }
+          ],
+          "bannerVisible": false
+        }
+      }
+    ],
+    "issues": [],
+    "paramChange": null,
+    "stageText": "",
+    "errors": []
+  },
+  {
+    "sceneId": "resistance-law",
+    "name": "电阻定律 (R=ρ·L/S)",
+    "shots": [
+      {
+        "file": "resistance-law-3d-t0-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "resistance-law-3d-mid-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "resistance-law-3d-param-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "resistance-law-2d-t0-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 413,
+              "cssWidth": 826,
+              "cssHeight": 413,
+              "blank": false,
+              "uniqueColors": 87,
+              "nonTransparentRatio": 1,
+              "readbackAvailable": true
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "resistance-law-2d-mid-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 413,
+              "cssWidth": 826,
+              "cssHeight": 413,
+              "blank": false,
+              "uniqueColors": 87,
+              "nonTransparentRatio": 1,
+              "readbackAvailable": true
+            }
+          ],
+          "bannerVisible": false
+        }
+      }
+    ],
+    "issues": [],
+    "paramChange": null,
+    "stageText": "",
+    "errors": []
+  },
+  {
+    "sceneId": "refraction",
+    "name": "光的折射定律 (Snell)",
+    "shots": [
+      {
+        "file": "refraction-3d-t0-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "refraction-3d-mid-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "refraction-3d-param-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "refraction-2d-t0-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 413,
+              "cssWidth": 826,
+              "cssHeight": 413,
+              "blank": false,
+              "uniqueColors": 68,
+              "nonTransparentRatio": 1,
+              "readbackAvailable": true
+            }
+          ],
+          "bannerVisible": false
+        }
+      },
+      {
+        "file": "refraction-2d-mid-after.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 413,
+              "cssWidth": 826,
+              "cssHeight": 413,
+              "blank": false,
+              "uniqueColors": 68,
               "nonTransparentRatio": 1,
               "readbackAvailable": true
             }

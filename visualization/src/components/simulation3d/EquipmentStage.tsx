@@ -12,6 +12,7 @@
  *   - getOrigin(params)             → 轨迹起点（发射口 / 释放点）
  */
 import { useEffect, useRef, useState } from 'react';
+import { computeAutoFraming } from './autoFraming';
 import * as THREE from 'three';
 import type { SimulationResult } from 'physics-core';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -462,26 +463,18 @@ export function EquipmentStage({ rig, renderer, cameraPosition, cameraTarget, ca
         }
 
         // 残影覆盖主轨迹 & 动态全景居中（显式 framing 的场景以 rig 给出的取景为准）
+        // #165: 原先只把包围盒写进「默认视角预设」，相机从不实时跟随 —— 参数一变（射程/位移/
+        // 高度大幅增大）主体就飞出画面。现在移动轨迹实时重取景；静态/退化轨迹不接管。
         const mainVisual = visualPointsList[0] ?? [];
         if (mainVisual.length > 0 && !rig.framing) {
-            let minX = Infinity;
-            let maxX = -Infinity;
-            let minY = Infinity;
-            let maxY = -Infinity;
-            for (const pt of mainVisual) {
-                if (pt.x < minX) minX = pt.x;
-                if (pt.x > maxX) maxX = pt.x;
-                if (pt.y < minY) minY = pt.y;
-                if (pt.y > maxY) maxY = pt.y;
+            const auto = computeAutoFraming(mainVisual);
+            if (auto) {
+                handles.camera.position.set(...auto.position);
+                handles.controls.target.set(...auto.target);
+                handles.controls.update();
+                initialViewRef.current = { pos: auto.position, target: auto.target, dist: auto.distance };
+                dirtyRef.current = true;
             }
-            const xMid = (minX + maxX) / 2;
-            const yMid = Math.max(0.6, (minY + maxY) / 2);
-            const spanX = Math.max(4, maxX - minX);
-            const spanY = Math.max(2, maxY - minY);
-            const dist = Math.max(5.5, spanX * 0.9, spanY * 1.8);
-            const newTarget: [number, number, number] = [xMid, yMid, 0];
-            const newCamPos: [number, number, number] = [xMid + dist * 0.45, yMid + dist * 0.35, dist * 0.85];
-            initialViewRef.current = { pos: newCamPos, target: newTarget, dist };
         }
 
         handles.ghostBalls.forEach((ghost, i) => {
