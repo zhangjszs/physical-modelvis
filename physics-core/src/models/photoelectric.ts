@@ -44,7 +44,10 @@ export class PhotoelectricModel extends PhysicsModelBase {
         const nu0_THz = nu0 / 1e12;
 
         const freqMin = (pc.freqMinTHz ?? Math.max(0.9 * nu0_THz, 0.1)) * 1e12;
-        const freqMax = (pc.freqMaxTHz ?? 2.5 * Math.max(nu0_THz, 2)) * 1e12;
+        // 频率上限必须严格大于下限: 场景允许 nuMin > nuMax (nuMin≤1500, nuMax≥500),
+        // 直接采样会得到 **x 降序** 的曲线 —— 渲染层的 interpSeries 按 x 升序二分查找,
+        // 降序曲线会被静默插值成错误值。统一夹到 freqMin + 1 THz 保证 x 升序。
+        const freqMax = Math.max((pc.freqMaxTHz ?? 2.5 * Math.max(nu0_THz, 2)) * 1e12, freqMin + 1e12);
 
         // U_c-ν 图：U_c = (h·ν − W₀)/e (ν ≥ ν₀), 否则无光电子
         const Uc_nu: ChartSeries = {

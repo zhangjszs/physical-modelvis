@@ -1259,11 +1259,14 @@ describe('L1-migration: 渲染单一真源契约 (M3 批次 1: 光学波动 + �
     });
 
     it('photoelectric: Ek-ν 直线读引擎 y_t, ν₀/K_max 读引擎 (源码契约)', () => {
-        const fn = renderFn('waveParticleDualityScenes.ts', 'drawPhotoelectricScene');
-        expect(fn, 'Ek-ν 直线读引擎 y_t (经 #82 chartsOf)').toContain("chartsOf(simulationResult, 'photoelectric')");
-        expect(fn, 'ν₀ 读引擎 maxValues').toContain('mvPhoto?.thresholdFrequency_THz ??');
-        expect(fn, 'K_max 由引擎序列插值').toContain('kAt(nuMax)');
-        expect(fn, '直线由引擎点列驱动').toContain('ekSeries?.points');
+        // 板书已迁至 src/rendering/photoelectricScenes.ts (#159 逐节审计 · 批次 F-2)
+        const fn = renderFn('photoelectricScenes.ts', 'drawPhotoelectricScene');
+        const readouts = renderFn('photoelectricScenes.ts', 'photoelectricReadouts');
+        expect(fn, 'Ek-ν 直线读引擎 y_t (经 chartOf → getChart)').toContain("chartOf(simulationResult, 'y_t')");
+        expect(fn, 'ν₀ 读引擎 maxValues').toContain('thresholdFrequency_THz');
+        expect(readouts, 'ν₀ 读引擎 thresholdFrequency_THz').toContain("engValue(result, 'thresholdFrequency_THz')");
+        expect(readouts, 'K_max 由引擎序列插值').toContain('interp(ekChart, sweep.nu)');
+        expect(fn, '直线由引擎点列驱动').toContain('ekChart.points');
     });
 });
 
@@ -1623,6 +1626,45 @@ describe('L1-migration: 渲染单一真源契约 (M3 批次 5: 电路 + 测量�
         // 旧的「as {...} 强转 + 内联电阻率表」不得复活
         expect(readouts, '不得有 maxValues 强转').not.toMatch(/maxValues\s+as\s/);
         expect(readouts, '不得内联第二份电阻率表').not.toContain('2.82e-8');
+    });
+
+    it('photoelectric: 板书与 3D rig 整组读引擎 maxValues/charts, 不得本地重算 ν₀ 与 E_k (源码契约)', () => {
+        const readouts = renderFn('photoelectricScenes.ts', 'photoelectricReadouts');
+        const board = renderFn('photoelectricScenes.ts', 'drawPhotoelectricScene');
+        const boardSrc = readFileSync(resolve(__dirname, '../../src/rendering/photoelectricScenes.ts'), 'utf-8');
+        const rigSrc = readFileSync(
+            resolve(__dirname, '../../src/components/simulation3d/rigs/photoelectricRig.ts'),
+            'utf-8'
+        );
+        const sweepSrc = readFileSync(resolve(__dirname, '../../src/utils/photoelectricSweep.ts'), 'utf-8');
+
+        // —— 2D 板书 ——
+        expect(readouts, 'W₀ 读引擎 workFunction_eV').toContain("engValue(result, 'workFunction_eV')");
+        expect(readouts, 'ν₀ 读引擎 thresholdFrequency_THz').toContain("engValue(result, 'thresholdFrequency_THz')");
+        expect(readouts, 'h/e 读引擎 h_over_e').toContain("engValue(result, 'h_over_e')");
+        expect(readouts, '曲线走 chartOf 出口').toContain('chartOf');
+        expect(readouts, '不得有 maxValues 强转').not.toMatch(/maxValues\s+as\s/);
+        expect(boardSrc, '曲线走 getChart 访问层').toContain('getChart');
+        expect(boardSrc, '不得直接读 result.charts').not.toMatch(/result\??\.charts\[/);
+        expect(board, '板书走统一读数出口').toContain('photoelectricReadouts');
+        expect(board, '必须同时画截止电压 U_c–ν 通道').toContain("'x_t'");
+
+        // —— 3D rig ——
+        expect(rigSrc, '3D rig 读引擎 workFunction_eV').toContain("engValue(result, 'workFunction_eV')");
+        expect(rigSrc, '3D rig 读引擎 thresholdFrequency_THz').toContain("engValue(result, 'thresholdFrequency_THz')");
+        expect(rigSrc, '3D rig 曲线走 getChart 访问层').toContain('getChart');
+        expect(rigSrc, '3D rig 不得直接读 result.charts').not.toMatch(/result\??\.charts\[/);
+        expect(rigSrc, '3D rig 不得有 maxValues 强转').not.toMatch(/maxValues\s+as\s/);
+
+        // —— 演示映射只做「时间 → 频率」, 不得再自算物理量 ——
+        expect(sweepSrc, '演示映射不再返回物理判据 (E_k/U_c/ν₀/emitting/hν)').not.toMatch(
+            /^\s*(Ek|Uc|nu0|emitting|hNu)\s*:/m
+        );
+
+        // —— 旧板书残留不得复活 ——
+        const legacySrc = readFileSync(resolve(__dirname, '../../src/rendering/waveParticleDualityScenes.ts'), 'utf-8');
+        expect(legacySrc, '旧板书已迁出, 不得保留 maxValues 强转').not.toMatch(/maxValues\s+as\s/);
+        expect(legacySrc, '旧板书已迁出').not.toContain('drawPhotoelectricScene');
     });
 
     it('vernier-caliper-tool: 主尺/K/量化读数与独立复算一致 (23.4mm@20 分度→23+8×0.05)', () => {

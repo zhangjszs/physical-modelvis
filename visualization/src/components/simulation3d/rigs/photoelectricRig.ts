@@ -8,15 +8,29 @@
  *   - 光子持续从光源飞向阴极 K；
  *   - 仅当 hν > W₀ 时光电子从 K 飞向阳极 A（否则一个也不逸出）；
  *   - 数值面板实时给出 ν、hν、E_k、ν₀、U_c，并解释「为什么没光电流」。
+ *
+ * 单一真源 (#159 逐节审计 · 批次 F-2):
+ *   旧版本的所有读数 (ν₀ / E_k / U_c) 都是 rig 本地按 `W₀ / h` 自算的,
+ *   引擎 `diagnostics.maxValues` 里的 workFunction_eV / thresholdFrequency_THz /
+ *   h_over_e / slope_dUc_dnu **一个都没用** —— 引擎改公式时标牌不会跟着变。
+ *   现在读数全部来自引擎:
+ *     - 标量 → `diagnostics.maxValues`;
+ *     - E_k / U_c → 引擎 charts (`x_t` = U_c–ν, `y_t` = E_k–ν) 插值;
+ *     - 演示时钟 (时间 → 当前频率) → `utils/photoelectricSweep`。
+ *   同时修正两处视觉缺陷:
+ *     - `ownParticles: true` —— 引擎轨迹是 (0,0) 占位点, 舞台按轨迹画的
+ *       默认球/轨迹线/投影线会在光电管下方留一条无意义的竖线;
+ *     - 显式 `framing` —— 旧版依赖轨迹包围盒自动取景, 装置在画面里过小。
  */
 import * as THREE from 'three';
+import type { SimulationResult } from 'physics-core';
+import { getChart, PHYSICS_CONSTANTS } from 'physics-core';
 import type { SceneFraming, SceneRig } from '../EquipmentStage';
 import { makeSphere, makeTextPanelSprite, makeTextSprite } from '../primitives';
 import { createPhototube, type PhototubeHandles } from '../equipment/phototube';
 import { setLabel, STAGE_CENTER_X } from './params';
-import { photoelectricSweep } from '../../../utils/photoelectricSweep';
+import { H_EV_PER_THZ, photoelectricSweep } from '../../../utils/photoelectricSweep';
 
-const WORLD_SCALE = 0.16;
 const CENTER_Y = 1.3;
 const N_PHOTONS = 7;
 const N_ELECTRONS = 6;
@@ -32,6 +46,96 @@ interface PhotoHandles {
     stateLabel: THREE.Sprite;
     legend: THREE.Sprite;
     lastLabelTime: number;
+}
+
+/** 3D rig 读数 — 单一真源: 引擎 maxValues + 引擎 charts */
+export interface PhotoelectricRigReadouts {
+    source: 'engine' | 'fallback';
+    /** 逸出功 W₀ (eV) */
+    workFunction_eV: number;
+    /** 极限频率 ν₀ (THz) */
+    thresholdFrequency_THz: number;
+    /** h/e (V·s) —— U_c–ν 斜率 */
+    hOverE: number;
+    /** 当前入射频率 (THz, 演示时钟映射) */
+    nu: number;
+    /** 光子能量 hν (eV) */
+    hNu_eV: number;
+    /** 光电子最大初动能 E_k (eV) —— 引擎 E_k–ν 曲线插值 */
+    maxKinetic_eV: number;
+    /** 截止电压 U_c (V) —— 引擎 U_c–ν 曲线插值 */
+    cutoffVoltage_V: number;
+    /** 是否发生光电效应 (ν > ν₀) */
+    emitting: boolean;
+}
+
+function engValue(result: SimulationResult | null | undefined, key: string): number | undefined {
+    const v = result?.diagnostics?.maxValues?.[key];
+    return typeof v === 'number' && Number.isFinite(v) ? v : undefined;
+}
+
+/** 引擎 chart 插值 (曲线 x 升序; 域外取端点值) */
+function interpChart(result: SimulationResult | null | undefined, key: 'x_t' | 'y_t', nu: number): number | undefined {
+    if (!result) return undefined;
+    const chart = getChart(result, 'photoelectric', key);
+    if (!chart || chart.points.length === 0) return undefined;
+    const pts = chart.points;
+    const first = pts[0];
+    const last = pts[pts.length - 1];
+    if (!first || !last) return undefined;
+    if (nu <= first.x) return first.y;
+    if (nu >= last.x) return last.y;
+    for (let i = 1; i < pts.length; i++) {
+        const p = pts[i];
+        if (!p) continue;
+        if (nu <= p.x) {
+            const prev = pts[i - 1];
+            if (!prev) return p.y;
+            const span = p.x - prev.x;
+            if (span <= 1e-12) return p.y;
+            return prev.y + ((p.y - prev.y) * (nu - prev.x)) / span;
+        }
+    }
+    return last.y;
+}
+
+export function photoelectricRigReadouts(
+    result: SimulationResult | null | undefined,
+    params: Record<string, number>,
+    time: number
+): PhotoelectricRigReadouts {
+    const sweep = photoelectricSweep(params, time);
+
+    const engW0 = engValue(result, 'workFunction_eV');
+    const engNu0 = engValue(result, 'thresholdFrequency_THz');
+    const engH = engValue(result, 'h');
+    const engE = engValue(result, 'e');
+    const engHOverE = engValue(result, 'h_over_e');
+
+    const workFunction_eV = engW0 ?? params['W0'] ?? 2.3;
+    const thresholdFrequency_THz = engNu0 ?? workFunction_eV / H_EV_PER_THZ;
+    const h = engH ?? PHYSICS_CONSTANTS.h.value;
+    const e = engE ?? PHYSICS_CONSTANTS.e.value;
+    const hOverE = engHOverE ?? h / e;
+
+    // 引擎语义: ν < ν₀ 时「截止电压不存在」, 曲线里没有这一段点 ⇒ 此处取 0
+    const belowThreshold = sweep.nu <= thresholdFrequency_THz;
+    const fallbackEk = Math.max(0, H_EV_PER_THZ * sweep.nu - workFunction_eV);
+    const maxKinetic_eV = belowThreshold ? 0 : (interpChart(result, 'y_t', sweep.nu) ?? fallbackEk);
+    const cutoffVoltage_V = belowThreshold ? 0 : (interpChart(result, 'x_t', sweep.nu) ?? Math.max(0, maxKinetic_eV));
+    const hNu_eV = (h * sweep.nu * 1e12) / e;
+
+    return {
+        source: engNu0 !== undefined && engW0 !== undefined ? 'engine' : 'fallback',
+        workFunction_eV,
+        thresholdFrequency_THz,
+        hOverE,
+        nu: sweep.nu,
+        hNu_eV,
+        maxKinetic_eV,
+        cutoffVoltage_V,
+        emitting: sweep.nu > thresholdFrequency_THz
+    };
 }
 
 /** 可见光波长 (nm) → 近似 sRGB；紫外/红外用紫/暗红表示 */
@@ -70,46 +174,43 @@ function frequencyToRgb(nuTHz: number): [number, number, number] {
     return wavelengthToRgb(nm);
 }
 
-/** 当前扫频频率与光电参数（与引擎同式，不重算动力学） */
-function sweepState(params: Record<string, number>, time: number) {
-    return photoelectricSweep(params, time);
-}
-
-function updateReadout(handles: PhotoHandles, params: Record<string, number>, time: number): void {
-    const s = sweepState(params, time);
+function updateReadout(handles: PhotoHandles, read: PhotoelectricRigReadouts): void {
     setLabel(
         handles.readoutLabel,
-        `入射光 ν = ${s.nu.toFixed(0)} THz | hν = ${s.hNu.toFixed(2)} eV | E_k = ${s.Ek.toFixed(2)} eV`,
+        `入射光 ν = ${read.nu.toFixed(0)} THz | hν = ${read.hNu_eV.toFixed(2)} eV | E_k = ${read.maxKinetic_eV.toFixed(2)} eV`,
         '#1d4ed8'
     );
     setLabel(
         handles.constantLabel,
-        `W₀ = ${s.W0.toFixed(2)} eV | 极限频率 ν₀ = ${s.nu0.toFixed(0)} THz | 截止电压 U_c = ${s.Uc.toFixed(2)} V`,
+        `W₀ = ${read.workFunction_eV.toFixed(2)} eV | 极限频率 ν₀ = ${read.thresholdFrequency_THz.toFixed(0)} THz | U_c = ${read.cutoffVoltage_V.toFixed(2)} V`,
         '#475569'
     );
     setLabel(
         handles.stateLabel,
-        s.emitting ? 'ν > ν₀：光电子逸出 → 光电流 I > 0' : 'ν < ν₀：无光电子逸出（增大光强也无光电流）',
-        s.emitting ? '#059669' : '#dc2626'
+        read.emitting ? 'ν > ν₀：光电子逸出 → 光电流 I > 0' : 'ν < ν₀：无光电子逸出（增大光强也无光电流）',
+        read.emitting ? '#059669' : '#dc2626'
     );
-    handles.lastLabelTime = time;
 }
 
 function framingFor(): SceneFraming {
-    const target: [number, number, number] = [STAGE_CENTER_X + 0.35, CENTER_Y + 0.35, 0];
-    const distance = 5.4;
+    // 装置主体 x ∈ [-1.35, 0.55] (相对 rig 根), 图例面板在 x≈1.65,
+    // 顶部标牌到 y≈2.95 —— 显式取景, 避免自动取景把装置缩成一小块。
+    // 目标点抬高到 y=1.58: 顶部标题 (y=2.85) 才不会被视口顶部的
+    // 「3D 透视 / 正面 / 俯视」工具条压住 (工具条占视口顶部约 55 px)。
+    const target: [number, number, number] = [STAGE_CENTER_X + 0.35, 1.58, 0];
+    const distance = 4.35;
     return {
         target,
-        // 相机略偏左：从光阴极「发射面」一侧看，光电子不会被阴极板挡住
-        position: [target[0] - distance * 0.12, target[1] + distance * 0.26, distance * 0.95],
+        // 相机略偏左上方：从光阴极「发射面」一侧看，光电子不会被阴极板挡住
+        position: [target[0] - distance * 0.1, target[1] + distance * 0.24, distance * 0.96],
         distance
     };
 }
 
 export const photoelectricRig: SceneRig = {
-    worldScale: WORLD_SCALE,
-    // 默认小球隐藏：光电子/光子由本 rig 自建并随演示时钟运动
-    ballRadius: 0.001,
+    worldScale: 0.16,
+    // 引擎轨迹是 (0,0) 占位点 → 舞台不生成默认球/轨迹线/投影线
+    ownParticles: true,
     clampToGround: false,
     autoAnimate: true,
 
@@ -117,7 +218,7 @@ export const photoelectricRig: SceneRig = {
         return framingFor();
     },
 
-    buildEquipment(_scene, params) {
+    buildEquipment(_scene, params, result) {
         const { group: tubeGroup, handles: tubeHandles } = createPhototube(CENTER_Y);
         // 旧的单行标牌保留在器材内但不再使用（改由 rig 提供分段说明）
         tubeHandles.readoutLabel.visible = false;
@@ -207,22 +308,22 @@ export const photoelectricRig: SceneRig = {
             legend,
             lastLabelTime: Number.NEGATIVE_INFINITY
         };
-        updateReadout(handles, params, 0);
+        updateReadout(handles, photoelectricRigReadouts(result, params, 0));
 
         return { group: root, handles };
     },
 
-    updateEquipment(handles, params) {
+    updateEquipment(handles, params, result) {
         const h = handles as PhotoHandles;
         h.lastLabelTime = Number.NEGATIVE_INFINITY;
-        updateReadout(h, params, 0);
+        updateReadout(h, photoelectricRigReadouts(result, params, 0));
     },
 
     onAnimate(handles, ctx) {
         const h = handles as PhotoHandles;
-        const { time, params } = ctx;
-        const s = sweepState(params, time);
-        const [r, g, b] = frequencyToRgb(s.nu);
+        const { time, params, result } = ctx;
+        const read = photoelectricRigReadouts(result, params, time);
+        const [r, g, b] = frequencyToRgb(read.nu);
 
         // 光束颜色随频率变化
         h.beamMaterial.color.setRGB(r, g, b);
@@ -239,9 +340,9 @@ export const photoelectricRig: SceneRig = {
             photon.visible = true;
         }
 
-        // 光电子：只有 hν > W₀ 才逸出；速度随 E_k 增大
-        const emit = s.emitting;
-        const speed = 1.5 + Math.sqrt(s.Ek) * 0.55;
+        // 光电子：只有 ν > ν₀ 才逸出；速度随 E_k 增大
+        const emit = read.emitting;
+        const speed = 1.5 + Math.sqrt(Math.max(0, read.maxKinetic_eV)) * 0.55;
         for (let i = 0; i < h.electrons.length; i++) {
             const electron = h.electrons[i]!;
             if (!emit) {
@@ -270,17 +371,14 @@ export const photoelectricRig: SceneRig = {
 
         // 文本节流（约 6 Hz），避免每帧重绘 canvas 纹理
         if (time - h.lastLabelTime > 0.16 || time < h.lastLabelTime) {
-            updateReadout(h, params, time);
+            updateReadout(h, read);
+            h.lastLabelTime = time;
         }
     },
 
-    getVisualPosition(pos, _params) {
-        // 占位轨迹停留在阴极附近（装置运动由 rig 自建动画承担）
-        return new THREE.Vector3(
-            STAGE_CENTER_X + 0.18 - pos.x * WORLD_SCALE * 0.4,
-            CENTER_Y + pos.y * WORLD_SCALE * 0.2,
-            0
-        );
+    getVisualPosition(_pos, _params) {
+        // 引擎轨迹是 (0,0) 占位点 (光电效应没有确定轨迹) —— 装置运动由 rig 自建动画承担
+        return new THREE.Vector3(STAGE_CENTER_X + 0.18, CENTER_Y, 0);
     },
 
     getOrigin(_params) {

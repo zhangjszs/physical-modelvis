@@ -38,6 +38,8 @@ import {
 import { resistanceLawReadouts, drawResistanceLawScene } from '../../src/rendering/resistanceLawScenes';
 import { createRecordingCanvas } from '../utils/canvasMock';
 import { opticsRig, opticsRigReadouts } from '../../src/components/simulation3d/rigs/opticsRig';
+import { photoelectricRig, photoelectricRigReadouts } from '../../src/components/simulation3d/rigs/photoelectricRig';
+import { photoelectricReadouts, drawPhotoelectricScene } from '../../src/rendering/photoelectricScenes';
 import type { OpticalDiskHandles } from '../../src/components/simulation3d/equipment/opticalDisk';
 import { refractionReadouts, drawRefractionScene } from '../../src/rendering/refractionScenes';
 import {
@@ -53,7 +55,7 @@ import {
     emInductionReadouts,
     type EmInductionHandles
 } from '../../src/components/simulation3d/rigs/emInductionRig';
-import { chartsOf } from 'physics-core';
+import { chartsOf, getChart } from 'physics-core';
 import { hookeLawRig, hookeLawReadouts, type HookeHandles } from '../../src/components/simulation3d/rigs/hookeLawRig';
 import { airTrackUnitsPerMeter, airTrackWorldX } from '../../src/components/simulation3d/rigs/airTrackRig';
 import { galileoInclineRig, type GalileoHandles } from '../../src/components/simulation3d/rigs/galileoInclineRig';
@@ -1650,5 +1652,89 @@ describe('#159 高中核心·折射: 光路必须落在同一侧, 反射线不�
         const framing = opticsRig.framing!({}, null)!;
         expect(framing.distance).toBeGreaterThan(4);
         expect(framing.target[1]).toBeGreaterThan(1.4);
+    });
+});
+
+describe('#159 高中核心·光电效应: 读数必须来自引擎, 板书必须同时给出 E_k–ν 与 U_c–ν', () => {
+    it('3D rig 读数 == 引擎 maxValues (旧版自己按 W₀/h 重算 ν₀ 与 E_k, 引擎改公式画面就漂)', () => {
+        const { params, result } = simulate('photoelectric');
+        const read = photoelectricRigReadouts(result, params, 0);
+        const mv = result.diagnostics.maxValues;
+
+        expect(read.source).toBe('engine');
+        expect(read.workFunction_eV).toBe(mv.workFunction_eV);
+        expect(read.thresholdFrequency_THz).toBe(mv.thresholdFrequency_THz);
+        expect(read.hOverE).toBe(mv.h_over_e);
+        // 演示时钟 t=0 落在 ν > ν₀ 的一段 → 应发生光电效应
+        expect(read.nu).toBeGreaterThan(mv.thresholdFrequency_THz!);
+        expect(read.emitting).toBe(true);
+    });
+
+    it('3D rig 的 E_k / U_c 走引擎 charts 插值 (e·U_c = hν − W₀)', () => {
+        const { params, result } = simulate('photoelectric');
+        const read = photoelectricRigReadouts(result, params, 0);
+        const mv = result.diagnostics.maxValues;
+        const ek = getChart(result, 'photoelectric', 'y_t');
+        const uc = getChart(result, 'photoelectric', 'x_t');
+
+        expect(ek?.points.length ?? 0).toBeGreaterThan(50);
+        expect(uc?.points.length ?? 0).toBeGreaterThan(50);
+        // 引擎把曲线点四舍五入到 4 位小数 ⇒ 插值与解析式相差 ~1e-4
+        const expectedEk = (mv.h! * read.nu * 1e12) / mv.e! - mv.workFunction_eV!;
+        expect(read.maxKinetic_eV).toBeCloseTo(expectedEk, 3);
+        expect(read.cutoffVoltage_V).toBeCloseTo(expectedEk, 3);
+        expect(read.hNu_eV).toBeCloseTo((mv.h! * read.nu * 1e12) / mv.e!, 9);
+    });
+
+    it('ν 低于红限 (红限) 时 E_k = 0 且不逸出 —— 引擎曲线在 ν₀ 之前无点', () => {
+        const { params, result } = simulate('photoelectric');
+        const mv = result.diagnostics.maxValues;
+        // 演示时钟 t = 4s → 扫到区间下限 300 THz < ν₀
+        const read = photoelectricRigReadouts(result, params, 4);
+        expect(read.nu).toBeLessThan(mv.thresholdFrequency_THz!);
+        expect(read.emitting).toBe(false);
+        expect(read.maxKinetic_eV).toBe(0);
+        expect(read.cutoffVoltage_V).toBe(0);
+    });
+
+    it('2D 板书读数 == 引擎, 且 E_k–ν 与 U_c–ν 两条曲线都取自引擎 charts', () => {
+        const { params, result } = simulate('photoelectric');
+        const read = photoelectricReadouts(params, result, 0);
+        const mv = result.diagnostics.maxValues;
+
+        expect(read.source).toBe('engine');
+        expect(read.workFunction_eV).toBe(mv.workFunction_eV);
+        expect(read.thresholdFrequency_THz).toBe(mv.thresholdFrequency_THz);
+        expect(read.ekCurvePoints).toBeGreaterThan(50);
+        expect(read.ucCurvePoints).toBeGreaterThan(50);
+        expect(read.maxKinetic_eV).toBeCloseTo((mv.h! * read.nu * 1e12) / mv.e! - mv.workFunction_eV!, 3);
+    });
+
+    it('2D 板书必须画出截止电压通道、光电管与实验结论 (旧版只画一根 E_k–ν 直线)', () => {
+        const { params, result } = simulate('photoelectric');
+        const canvas = createRecordingCanvas({ width: 1100, height: 700 });
+        drawPhotoelectricScene({
+            ctx: canvas.ctx,
+            width: 1100,
+            height: 700,
+            isDark: true,
+            params,
+            simulationResult: result,
+            currentTime: 0
+        });
+        const texts = canvas.texts.join('|');
+        expect(texts, '截止电压 U_c–ν 通道').toContain('U_c');
+        expect(texts, '阴极 K').toContain('阴极');
+        expect(texts, '阳极 A').toContain('阳极');
+        expect(texts, '光电流').toContain('光电流');
+        expect(texts, '普朗克常量测定').toContain('普朗克常量');
+        expect(texts, '红限阈值 ν₀').toContain('ν₀');
+    });
+
+    it('3D 装置: 引擎轨迹是 (0,0) 占位点 ⇒ ownParticles + 显式取景 (旧版留下无意义竖线)', () => {
+        expect(photoelectricRig.ownParticles).toBe(true);
+        const framing = photoelectricRig.framing!({}, null)!;
+        expect(framing.distance).toBeGreaterThan(3.5);
+        expect(framing.target[1]).toBeGreaterThan(1);
     });
 });

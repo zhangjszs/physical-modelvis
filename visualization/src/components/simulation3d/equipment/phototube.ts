@@ -17,8 +17,10 @@ export function createPhototube(centerY = 1.3): { group: THREE.Group; handles: P
     const group = new THREE.Group();
 
     // 1. 光学暗箱与实验基座
-    const base = makeBox(2.8, 0.06, 1.2, 0x1e293b, 0.6, 0.2);
-    base.position.set(0, 0.03, 0);
+    //    基座尺寸贴合器材实际占位 (光源左端 -1.3 ~ 泡右端 0.52):
+    //    旧版 2.8×1.2 远超器材宽度, 画面上是一块大黑板压着一只小泡。
+    const base = makeBox(1.78, 0.05, 0.72, 0x1e293b, 0.6, 0.2);
+    base.position.set(-0.34, 0.025, 0);
     group.add(base);
 
     // 2. 单色平行光源与透镜镜筒 (左侧)

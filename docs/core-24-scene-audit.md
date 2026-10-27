@@ -382,3 +382,38 @@ sinθ₁-sinθ₂ 直线斜率 = n₁/n₂ = 0.67，工作点 (0.500, 0.333) 标
 `visualization/tests/rendering/scene-rig-physics.test.ts` 新增 **6 条**
 （3D rig 读数 == 引擎 / 2D 读数 == 引擎且端点来自轨迹 / 板书必须画出反射线 /
 全反射分支无折射线并标出临界角 / 3D 器材在全反射时隐藏折射光束 / 无运动物体时不画球且显式取景）。
+
+
+### F-2 `photoelectric` 光电效应（爱因斯坦方程）
+
+**修复前的问题（证据：基线截图 + 引擎 dump）**
+
+| 维度 | 判定 | 现象 / 证据 | 根因 |
+| --- | --- | --- | --- |
+| 问题一·物理 | **严重 → 已修复** | 3D 装置的 ν₀ / E_k / U_c **全部由 rig 本地自算**（`W₀/h`、`hν−W₀`），引擎 `diagnostics.maxValues` 里的 `workFunction_eV / thresholdFrequency_THz / h_over_e / slope_dUc_dnu` 一个都没用 ⇒ 引擎改公式，标牌不会跟着变 | `visualization/src/components/simulation3d/rigs/photoelectricRig.ts`（重写：新增 `photoelectricRigReadouts`，标量读 maxValues，E_k/U_c 读引擎 charts 插值） |
+| 问题一·物理 | **一般 → 已修复** | 2D 板书读引擎 maxValues 时用 `as { thresholdFrequency_THz?: number } \| undefined` **双重强转**，绕开类型化访问层 | 新板书 `visualization/src/rendering/photoelectricScenes.ts`（改用 `engValue()` 直接取 `Record<string, number>` 的键，无强转） |
+| 问题一·物理 | **一般 → 已修复** | 2D 板书纵轴上限 `K_max = h·ν_max − W₀` 由渲染层自算，且绘图域比引擎采样域多出 `ν_max + 100 THz` ⇒ 引擎曲线的真实右端画不到绘图右缘，直线与坐标轴错位 | 同上：纵轴上限改由**引擎曲线域**推导（`fRight = ν_max`），左端留 25% 量程画「ν < ν₀ 无光电子」区 |
+| 问题一·物理 | **一般 → 已修复** | **引擎层**：`nuMin > nuMax`（场景允许 nuMin ≤ 1500、nuMax ≥ 500）时，引擎按 `freqMin → freqMax` 直线采样 ⇒ charts 的 **x 降序**，而 `interpSeries` 依赖 x 升序，渲染层会静默插值成错误值 | `physics-core/src/models/photoelectric.ts`（`freqMax = max(freqMax, freqMin + 1 THz)`，保证 x 升序） |
+| 问题二·视觉 | **一般 → 已修复** | 3D 底座 2.8 × 1.2 世界单位，远大于器材实际占位（光源 −1.3 ~ 泡右端 0.52）⇒ 画面上是一块大黑板压着一只小泡 | `visualization/src/components/simulation3d/equipment/phototube.ts`（底座改 1.78 × 0.72，居中于器材下方） |
+| 问题二·视觉 | **一般 → 已修复** | 3D 依赖「轨迹包围盒」自动取景：引擎轨迹是 (0,0) 占位点 ⇒ 装置在画面里过小 | `photoelectricRig.ts`：新增 `framing` 显式取景（视距 4.35） |
+| 问题二·视觉 | **一般 → 已修复** | 3D 未设 `ownParticles` ⇒ 舞台按 (0,0) 占位轨迹画了默认球的**投影线**，在光电管下方留下一条无意义的竖线 | `photoelectricRig.ts`：`ownParticles: true` |
+| 问题三·实验作用 | **严重 → 已修复** | 引擎 charts 的 `x_t` 通道（**截止电压 U_c–ν 直线**，斜率 h/e = 普朗克常量测定）**完全没有被画出来** —— 而这正是本实验的第二个结论 | `photoelectricScenes.ts`：右上新增 U_c–ν 小图（引擎 x_t） |
+| 问题三·实验作用 | **严重 → 已修复** | 2D 板书只有一根直线 + 一条阈值线，看不出「光电管 / 光电流」，也没有给出本实验最关键的结论：**光强只影响光电流大小，不影响光电子最大初动能 E_k** | 同上：新增光电管示意（K 阴极 / A 阳极 / 入射光束 / 光电子）+ 实时读数 + 状态条 + 「光强 ↑ ⇒ 光电流 ↑，但 E_k 不变」对比图 + 底部结论条 |
+| 问题三·实验作用 | **一般 → 已修复** | `utils/photoelectricSweep.ts` 这个「演示时钟」同时自算了 E_k / U_c / ν₀ / emitting —— 演示映射与物理计算混在一起，引擎改公式时它不会跟着变 | `visualization/src/utils/photoelectricSweep.ts` 收窄为**只做「时间 → 当前频率 ν」**；物理量全部改由 2D / 3D 各自的 readouts 从引擎取 |
+
+**修复后（引擎实测）**：默认 W₀ = 2.30 eV ⇒ `thresholdFrequency_THz = 556.1375`、
+`h_over_e = 4.135667696e-15 V·s`；演示时钟 t = 0 落在 ν = 700 THz（> ν₀）⇒
+`E_k = 0.595 eV`、`U_c = 0.595 V`；t = 4 s 回落到 300 THz ⇒ `E_k = 0`、`U_c = 0`（红限以下不逸出）。
+2D 板书同时给出 E_k–ν 直线与 U_c–ν 直线、工作点、「斜率 h/e = 4.136e-15 V·s（普朗克常量测定）」
+与光强/光电流对比图；3D 标牌 `W₀ = 2.30 eV | 极限频率 ν₀ = 556 THz | U_c = 0.60 V` 全部来自引擎。
+
+**契约保障**：`physics-core/tests/unit/photoelectric.test.ts` 新增 **2 条**
+（freqMin > freqMax 时曲线 x 仍升序 / 曲线覆盖 [ν₀, ν_max] 且末点与解析式一致）；
+`visualization/tests/rendering/scene-rig-physics.test.ts` 新增 **7 条**
+（3D rig 读数 == 引擎 maxValues / E_k 与 U_c 走引擎 charts 插值 / ν < ν₀ 时 E_k = U_c = 0 且不逸出 /
+2D 板书读数 == 引擎且两条曲线都有数据 / 板书必须画出截止电压通道与光电管与实验结论 /
+ownParticles + 显式取景）；
+`visualization/tests/accuracy/single-source-contract.test.ts` 更新旧用例并新增
+（不得有 maxValues 强转 / 不得直接读 result.charts / 演示映射不得再自算物理量 / 旧板书残留不得复活）。
+
+

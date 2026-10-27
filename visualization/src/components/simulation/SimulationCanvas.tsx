@@ -58,11 +58,11 @@ import {
     drawFissionChainScene
 } from '../../rendering/nuclearScenes';
 import {
-    drawPhotoelectricScene,
     drawBlackBodyScene,
     drawElectronDiffractionScene,
     drawMicroDeformationScene
 } from '../../rendering/waveParticleDualityScenes';
+import { drawPhotoelectricScene } from '../../rendering/photoelectricScenes';
 import { drawBohrScene, drawBohrOrbitScene } from '../../rendering/atomicModelScenes';
 import {
     drawRadioactiveScene,
