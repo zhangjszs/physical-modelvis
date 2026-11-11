@@ -1,13 +1,13 @@
 # STATE
-- 更新时间：2026-11-11T14:09:47Z
-- 当前任务：#166 第 1 步「规格文档入库」已完成（不领取整单，标签维持 needs-info）；#166 主体实现维持 needs-info（D68 默认窗口 2026-11-09 已过、无用户答复，待 Planner 转正拆 ready）；#44 维持 blocked（parked）；今日可执行队列已清空
+- 更新时间：2026-11-11T14:58:00Z
+- 当前任务：#166 第 1 步「规格文档入库」已完成（不领取整单，标签维持 needs-info）；#166 主体实现维持 needs-info（D68 默认窗口已过、无用户答复，待 Planner 转正拆 ready）；#44 维持 blocked（parked）；#167 auto-discovered（CI Playwright 安装步骤无重试，DNS 抖动即假红）待 Planner 定级；今日队列已清空
 - 分支：main
-- 未完成工作：无代码半成品，工作区干净（仅 `.agent/` 收尾更新待 `chore(agent)` 提交）
-- 最近提交：`e8dacb4` docs(spec): 组合实验台「选中与自由放置」交互规格 Draft v1 入库存档（Refs #166，已推送 `e2ce6fc..e8dacb4`）
+- 未完成工作：无代码半成品；远端 CI 因 GitHub runner DNS 事故全部假红（见下），待环境恢复后由 Planner rerun 或下次自然 push 自证
+- 最近提交：`e8dacb4` docs(spec) 规格入库（Refs #166）→ `8599d89` chore(agent) 状态收尾；均已推送
 - 验证结果：
-  - `git push origin main` → 退出码 0；pre-push 钩子完整 precheck（build:core → typecheck → lint → format:check → test → count:check → build:viz → check:bundle → selfcheck）全部通过，摘录「11 层: 11 PASS, 0 FAIL」「pre-push 检查通过，继续 push」
-  - 本提交为纯 docs 变更（新增 1 个 .md，457 insertions），`*.md` 不在 format 脚本覆盖内，不影响门禁口径
-  - 远端 CI run `43035594608` @ `e8dacb4` 进行中（14:08Z 触发），终态见 HANDOFF
-- 今日日报：已写（`.agent/DIARY/2026-11-11.md`）
-- 已知环境限制：npm/node 需 mise shims；本机容器对 libselinux.so.1 的版本告警为噪音（不影响命令结果）；pre-push 完整日志钩子结束后清理，证据以钩子 stdout 摘录为准
+  - 本地权威：两次 push 的 pre-push 钩子完整 precheck 全绿（typecheck/lint/format/test/count/selfcheck/build/bundle/dry-run），自检「11 层: 11 PASS, 0 FAIL」×2，未 --no-verify、未 force-push
+  - 远端 CI：`43035594608`@e8dacb4 与 `43036235696`@8599d89 **各 3 个 attempt 共 6 次全败**于「安装 Playwright Chromium」，一律 `Temporary failure resolving 'archive.ubuntu.com'`（runner 侧 apt DNS 故障）；每次 attempt 前 16 道门禁全绿；与提交无关（纯 docs/.agent 变更，ci.yml 未动，e2ce6fc 上一绿）；Deploy 被 skip 但 Pages 内容不受影响
+  - 处置：rerun 3 轮已尽力，停止硬闯；证据与运维要点全录 #167（issuecomment-6799184222）
+- 今日日报：已写（`.agent/DIARY/2026-11-11.md`，含同日追加更正节）
+- 已知环境限制：npm/node 需 mise shims；`gh run rerun` 须 `env -u GH_TOKEN`（ghu_ 集成 token 缺 actions:write，gho_ 可用）；GitHub runner DNS 事故期间 CI 必假红（本日 14:08~14:47+ 实测）；libselinux 告警为容器噪音
 - 契约 1.2 提示：未发现 `.agent/LOCK` 残留；串行不使用锁
