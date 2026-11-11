@@ -1,16 +1,13 @@
 # STATE
-- 更新时间：2026-10-25T15:20:00Z
-- 当前任务：#157（in-review）；#158（in-review）；今日可执行队列已清空；#44 维持 blocked（parked）
+- 更新时间：2026-11-11T14:09:47Z
+- 当前任务：#166 第 1 步「规格文档入库」已完成（不领取整单，标签维持 needs-info）；#166 主体实现维持 needs-info（D68 默认窗口 2026-11-09 已过、无用户答复，待 Planner 转正拆 ready）；#44 维持 blocked（parked）；今日可执行队列已清空
 - 分支：main
-- 未完成工作：无代码半成品，无未提交改动；#158 与 #157 均交付入 main 并留全同源证据，等待 Planner 验收关闭
-- 最近提交：
-  - #158：功能 `cc04ac4` + `--no-ff` merge `b0b0702dd1d40b8d4e90487adf30b86b217d8fbc`（CI `40203220445` + Deploy `40203498425` 双绿）
-  - #157 返工：功能 `6c21980` + `--no-ff` merge `a5f3d6fc7ea171a123d34e6917482c2fc09e250b`（CI `40205243947` + Deploy `40205520006` 双绿）
-  - 全程走完整 pre-push precheck，未 --no-verify、未 force-push
+- 未完成工作：无代码半成品，工作区干净（仅 `.agent/` 收尾更新待 `chore(agent)` 提交）
+- 最近提交：`e8dacb4` docs(spec): 组合实验台「选中与自由放置」交互规格 Draft v1 入库存档（Refs #166，已推送 `e2ce6fc..e8dacb4`）
 - 验证结果：
-  - #158：旧实现接触距离 -0.684115427 与位移缩水真实行为 RED；新测 `incline-contact.test.ts`（5 tests）GREEN；生产 preview 默认 30° 接触距离 0.1800000009、全程沿面位移 3.528，变角 5°/85° 与防抖窗口均贴面受支撑
-  - #157 返工：旧实现实体侵入球体与接料面穿入 0.06 真实行为 RED；新测 `vertical-contact.test.ts`（2 tests）GREEN；生产 preview 32 组字体/像素边界实测与 GPU alpha 读回 0 差异，落地球底与垫顶差约 2.24e-10
-  - 全量门禁：`npm run count:sync` 与 `npm run precheck` exit 0（199 文件吞断言扫描通过、2974 单测全绿、自检 11 层 11 PASS / 0 FAIL、首屏 11.5 kB / 70 kB）
-- 今日日报：已写（`.agent/DIARY/2026-10-25.md`）
-- 已知环境限制：npm/node 需 mise shims；改 core 后须 build；Issue 为唯一权威；既有 lint 19 warnings 与测试 stderr 未扩范围修复
+  - `git push origin main` → 退出码 0；pre-push 钩子完整 precheck（build:core → typecheck → lint → format:check → test → count:check → build:viz → check:bundle → selfcheck）全部通过，摘录「11 层: 11 PASS, 0 FAIL」「pre-push 检查通过，继续 push」
+  - 本提交为纯 docs 变更（新增 1 个 .md，457 insertions），`*.md` 不在 format 脚本覆盖内，不影响门禁口径
+  - 远端 CI run `43035594608` @ `e8dacb4` 进行中（14:08Z 触发），终态见 HANDOFF
+- 今日日报：已写（`.agent/DIARY/2026-11-11.md`）
+- 已知环境限制：npm/node 需 mise shims；本机容器对 libselinux.so.1 的版本告警为噪音（不影响命令结果）；pre-push 完整日志钩子结束后清理，证据以钩子 stdout 摘录为准
 - 契约 1.2 提示：未发现 `.agent/LOCK` 残留；串行不使用锁
