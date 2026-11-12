@@ -2767,6 +2767,71 @@ body {
     margin-top: 6px;
 }
 
+/* ========== Composition Outliner & Selection Feedback (#166 P0) ========== */
+.composition-outliner {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-top: 4px;
+    outline: none;
+    max-height: 180px;
+    overflow-y: auto;
+}
+.composition-outliner:focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+}
+.composition-outliner-row {
+    display: flex;
+    align-items: center;
+    padding: 4px 8px;
+    font-size: 12px;
+    color: var(--text);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm, 6px);
+    cursor: pointer;
+    user-select: none;
+}
+.composition-outliner-row:hover,
+.composition-outliner-row.hover {
+    background: var(--surface);
+}
+.composition-outliner-row.selected {
+    background: var(--brand-gradient);
+    color: #fff;
+    border-color: transparent;
+}
+.composition-outliner-row.focus {
+    border-color: var(--brand);
+}
+.composition-outliner-row.selected.focus {
+    outline: 2px solid var(--brand);
+    outline-offset: -2px;
+}
+.composition-outliner-name {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.composition-selection-badge {
+    position: absolute;
+    transform: translate(-50%, -100%);
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text);
+    background: var(--input-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm, 6px);
+    pointer-events: none;
+    white-space: nowrap;
+    backdrop-filter: blur(var(--glass-blur));
+    z-index: 5;
+}
+
 /* ========== Composition Playback Overlay & Direction Editor (#100) ========== */
 .composition-playback-overlay {
     position: absolute;

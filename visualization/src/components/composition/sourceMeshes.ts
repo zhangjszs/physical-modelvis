@@ -16,9 +16,12 @@ function makeTorus(radius: number, tube: number, color: number): THREE.Mesh {
 /**
  * 匀强磁场区盒体 — 半透明区域盒 (物理轴对齐: 世界宽/高/深 = 物理 x/z/y)。
  * 退化尺寸钳制到 0.05 (校验层负责红牌, 网格层不崩)。
+ * 盒面打 userData.pickRole='zone-volume' (#166 P0 S-3): Raycaster 不看材质透明度,
+ * 拾取候选栈据此把盒面降权排在所有实体之后 (容器穿透), 场方向箭头不打标保持正常优先级。
  */
 function makeZoneBox(sx: number, sy: number, sz: number): THREE.Mesh {
     const mesh = makeBox(Math.max(0.05, sx), Math.max(0.05, sz), Math.max(0.05, sy), COLOR_ZONE);
+    mesh.userData.pickRole = 'zone-volume';
     const mat = mesh.material as THREE.MeshStandardMaterial;
     mat.transparent = true;
     mat.opacity = ZONE_OPACITY;
@@ -83,14 +86,18 @@ function setAxisAlignment(group: THREE.Group, fromAxis: THREE.Vector3, toDir: Wo
     group.quaternion.setFromUnitVectors(fromAxis, target);
 }
 
-function setHighlight(group: THREE.Group, on: boolean): void {
+/** 高亮三档 (#166 P0): 选中 0.35 自发光 + 包围盒/徽标; 悬停仅 0.12 轻量反馈 (另有 grab 光标) */
+type HighlightLevel = 'off' | 'hover' | 'selected';
+const HIGHLIGHT_EMISSIVE_INTENSITY: Record<HighlightLevel, number> = { off: 0, hover: 0.12, selected: 0.35 };
+
+function setHighlight(group: THREE.Group, level: HighlightLevel): void {
     group.traverse(child => {
         const mesh = child as THREE.Mesh;
         if (!('material' in mesh) || !mesh.material) return;
         const material = mesh.material as THREE.MeshStandardMaterial;
         if (!('emissive' in material)) return;
-        material.emissive.setHex(on ? 0xffffff : 0x000000);
-        material.emissiveIntensity = on ? 0.35 : 0;
+        material.emissive.setHex(level === 'off' ? 0x000000 : 0xffffff);
+        material.emissiveIntensity = HIGHLIGHT_EMISSIVE_INTENSITY[level];
     });
 }
 
@@ -133,8 +140,8 @@ export function makeSourceMesh(placed: PlacedSource): THREE.Group {
     return group;
 }
 
-/** 参数/位置/选中态变化时原位更新网格 (不重建, 避免拖拽中闪断) */
-export function updateSourceMesh(group: THREE.Group, placed: PlacedSource, selected: boolean): void {
+/** 参数/位置/选中态变化时原位更新网格 (不重建, 避免拖拽中闪断); hovered = 悬停轻反馈 (#166 P0) */
+export function updateSourceMesh(group: THREE.Group, placed: PlacedSource, selected: boolean, hovered = false): void {
     const s = placed.source;
 
     // 点电荷电号变化 → 颜色随符号切换
@@ -202,7 +209,7 @@ export function updateSourceMesh(group: THREE.Group, placed: PlacedSource, selec
     }
 
     applyTransform(group, placed);
-    setHighlight(group, selected);
+    setHighlight(group, selected ? 'selected' : hovered ? 'hover' : 'off');
 }
 
 function applyTransform(group: THREE.Group, placed: PlacedSource): void {

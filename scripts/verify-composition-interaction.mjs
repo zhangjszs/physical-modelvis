@@ -590,6 +590,206 @@ async function runProbe() {
             throw new Error('输入框聚焦时按空格错误触发了全局回放播放（输入框焦点被吞）');
         }
         console.log('✓ 输入框焦点保护生效：在 input 内按键不吞焦点');
+        // ============ #166 P0: 器材选中与交互验收 (A-1/A-2/A-4/A-5/A-7) ============
+        // 场景重建: 清空后按列表→点击→穿透→循环→磁铁顺序构造 (每步互不干扰)
+        await resetBtn.click();
+        await delay(200);
+
+        const outliner = page.locator('.composition-outliner');
+        const outlinerRows = page.locator('.composition-outliner-row');
+        const badge = page.locator('.composition-selection-badge');
+        const addChargeBtn = page.locator('.composition-palette-grid button:has-text("点电荷")');
+        const addZoneBtn = page.locator('.composition-palette-grid button:has-text("匀强磁场区")');
+        const addMagnetBtn = page.locator('.composition-palette-grid button:has-text("条形磁铁")');
+
+        /** 徽标底中 = 器材组原点的屏幕投影坐标 (badge transform: translate(-50%, -100%)) */
+        async function badgeAnchorPoint() {
+            const rect = await badge.boundingBox();
+            if (!rect) throw new Error('名称徽标不可见, 无法定位器材屏幕位置');
+            return { x: rect.x + rect.width / 2, y: rect.y + rect.height };
+        }
+
+        // 13. 器材列表 (S-4/S-8): 行数与可读命名「类型 + 序号」, 不展示内部 id
+        await addChargeBtn.click();
+        await delay(100);
+        await addZoneBtn.click();
+        await delay(100);
+        await addCoilBtn.click();
+        await delay(100);
+        await addMagnetBtn.click();
+        await delay(200);
+        if ((await outlinerRows.count()) !== 4) {
+            throw new Error(`器材列表行数不符 (S-4), 实际: ${await outlinerRows.count()}`);
+        }
+        const rowTexts = (await outlinerRows.allInnerTexts()).map(t => t.trim());
+        const expectedNames = ['点电荷 #1', '匀强磁场区 #2', '圆形线圈 #3', '条形磁铁 #4'];
+        for (let i = 0; i < expectedNames.length; i++) {
+            if (rowTexts[i] !== expectedNames[i]) {
+                throw new Error(`器材列表可读命名不符 (S-8): 期望「${expectedNames[i]}」实际「${rowTexts[i]}」`);
+            }
+        }
+        console.log('✓ 器材列表在位: 4 行, 可读命名「类型 + 序号」不含内部 id (S-4/S-8)');
+
+        // 14. 列表点击选中 → 徽标 + 3D 高亮 + 行选中态同步 (S-7)
+        await outlinerRows.nth(1).click();
+        await delay(200);
+        const zoneBadgeText = await badge.innerText();
+        if (!zoneBadgeText.includes('匀强磁场区 #2')) {
+            throw new Error(`列表点击后徽标未同步 (S-7): ${zoneBadgeText}`);
+        }
+        const zoneRowClass = await outlinerRows.nth(1).getAttribute('class');
+        if (!(zoneRowClass ?? '').includes('selected')) {
+            throw new Error('列表选中行未呈现 selected 高亮态');
+        }
+        console.log(`✓ 列表点击选中联动: 徽标「${zoneBadgeText}」+ 行高亮同步 (S-7)`);
+
+        // 15. A-7 键盘: 列表可 Tab 聚焦, ↑/↓ 循环 + Enter 选中 + Delete 删除
+        await outliner.focus(); // focusIndex=1 (14 步 row click 设置)
+        await page.keyboard.press('ArrowDown'); // 1 → 2 (圆形线圈 #3)
+        await page.keyboard.press('ArrowDown'); // 2 → 3 (条形磁铁 #4, 末行)
+        await page.keyboard.press('Enter');
+        await delay(200);
+        const magnetBadgeText = await badge.innerText();
+        if (!magnetBadgeText.includes('条形磁铁 #4')) {
+            throw new Error(`A-7 键盘 Enter 未选中焦点行器材, 徽标: ${magnetBadgeText}`);
+        }
+        await page.keyboard.press('Delete');
+        await delay(200);
+        if ((await outlinerRows.count()) !== 3) {
+            throw new Error('A-7 键盘 Delete 未删除焦点行器材');
+        }
+        console.log('✓ A-7 键盘链路: ↓↓ 移动 + Enter 选中 + Delete 删除全部生效');
+
+        // 16. A-4 纯点击不移动不重仿真: 选中点电荷 → 3D 原点点击 + 1-2 px 抖动再点击
+        await outlinerRows.nth(0).click(); // 点电荷 #1 (默认 x=-0.27, 远离盒)
+        await delay(200);
+        const chargePt = await badgeAnchorPoint();
+        await ensurePaused(page);
+        const timeBeforeClick = await timeLabel.innerText();
+        const badgeBoxBefore = await badge.boundingBox();
+        await page.mouse.click(chargePt.x, chargePt.y);
+        await delay(200);
+        let badgeText = await badge.innerText();
+        if (!badgeText.includes('点电荷 #1')) {
+            throw new Error(`A-4 3D 点击未选中点电荷, 徽标: ${badgeText}`);
+        }
+        // 1-2 px 抖动点击 (<4 px 阈值): 器材不移动、徽标位置不变、时间标签不变
+        await page.mouse.click(chargePt.x + 2, chargePt.y + 1);
+        await delay(200);
+        badgeText = await badge.innerText();
+        if (!badgeText.includes('点电荷 #1')) {
+            throw new Error(`A-4 抖动点击后选中漂移, 徽标: ${badgeText}`);
+        }
+        const badgeBoxAfter = await badge.boundingBox();
+        if (Math.abs(badgeBoxAfter.x - badgeBoxBefore.x) > 2 || Math.abs(badgeBoxAfter.y - badgeBoxBefore.y) > 2) {
+            throw new Error(
+                `A-4 纯点击后器材位置变化 (徽标位移 Δx=${badgeBoxAfter.x - badgeBoxBefore.x}, Δy=${badgeBoxAfter.y - badgeBoxBefore.y})`
+            );
+        }
+        const timeAfterClick = await timeLabel.innerText();
+        if (timeAfterClick !== timeBeforeClick) {
+            throw new Error(`A-4 纯点击触发了回放/重仿真时序变化: ${timeBeforeClick} -> ${timeAfterClick}`);
+        }
+        console.log('✓ A-4 纯点击 (含 1-2 px 抖动): 器材位置不变、选中保持、时间标签不变');
+
+        // 17. A-2 容器穿透: 把点电荷拖进盒中心 → 点击选中电荷(穿透); 拖出后再点击 → 选中盒
+        await outlinerRows.nth(1).click(); // 选中盒 → 徽标定位盒中心 (此时 focusIndex=1)
+        await delay(200);
+        const zonePt = await badgeAnchorPoint();
+        await page.mouse.move(chargePt.x, chargePt.y);
+        await page.mouse.down();
+        await page.mouse.move(zonePt.x, zonePt.y, { steps: 8 });
+        await page.mouse.up();
+        await delay(300); // commit 重仿真 + 徽标跟随
+        await page.mouse.click(zonePt.x, zonePt.y);
+        await delay(200);
+        badgeText = await badge.innerText();
+        if (!badgeText.includes('点电荷 #1')) {
+            throw new Error(`A-2 点击盒内电荷未穿透选中实体, 徽标: ${badgeText}`);
+        }
+        // 把电荷拖离盒 (从盒中心拖到台面右上区域) → 盒内无实体 → 点击盒中心应选中盒本身
+        await page.mouse.move(zonePt.x, zonePt.y);
+        await page.mouse.down();
+        await page.mouse.move(800, 240, { steps: 8 });
+        await page.mouse.up();
+        await delay(300);
+        await page.mouse.click(zonePt.x, zonePt.y);
+        await delay(200);
+        badgeText = await badge.innerText();
+        if (!badgeText.includes('匀强磁场区 #2')) {
+            throw new Error(`A-2 无实体时点击盒中心未选中容器 (S-3), 徽标: ${badgeText}`);
+        }
+        console.log('✓ A-2 容器穿透: 盒内有电荷时点击选中电荷, 无实体时选中盒');
+
+        // 18. A-1 密集堆叠同点循环: 删线圈 → 两新电荷完全重合 → 同点点击循环候选
+        await outliner.focus(); // focusIndex=1 (17 步 row click)
+        await page.keyboard.press('ArrowDown'); // 1 → 2 (圆形线圈 #3)
+        await page.keyboard.press('Delete'); // 删线圈, 台上剩 电荷#1(右上) + 盒
+        await delay(200);
+        // 新增两个点电荷: 伪随机落点 0.25 / 0.38 (右半区, 与被拖走的器材无重叠)
+        await addChargeBtn.click();
+        await delay(100);
+        await addChargeBtn.click();
+        await delay(250);
+        if ((await outlinerRows.count()) !== 4) {
+            throw new Error(`A-1 场景构造失败: 期望 4 行 (电荷#1/盒/#5/#6), 实际 ${await outlinerRows.count()}`);
+        }
+        await outlinerRows.nth(2).click(); // 选中 #5 (@ 0.25) → 徽标定位
+        await delay(250);
+        const densePt = await badgeAnchorPoint();
+        // 把 #6 拖到 #5 正上方 (同 planeY 0.15 → 平面投影对齐 → 完全重合堆叠)
+        await outlinerRows.nth(3).click(); // 选中 #6 (@ 0.38)
+        await delay(250);
+        const charge6Pt = await badgeAnchorPoint();
+        await page.mouse.move(charge6Pt.x, charge6Pt.y);
+        await page.mouse.down();
+        await page.mouse.move(densePt.x, densePt.y, { steps: 8 });
+        await page.mouse.up();
+        await delay(300);
+        // 同点三次点击: 候选 1 → 2 → 1 循环, 徽标显示 n/m 计数 (完全重合的两球为同点候选)
+        await page.mouse.click(densePt.x, densePt.y);
+        await delay(200);
+        const pick1 = await badge.innerText();
+        if (!/· 1\/2/.test(pick1)) {
+            throw new Error(`A-1 首次点击候选计数不符 (期望「· 1/2」): ${pick1}`);
+        }
+        await page.mouse.click(densePt.x, densePt.y);
+        await delay(200);
+        const pick2 = await badge.innerText();
+        if (!/· 2\/2/.test(pick2)) {
+            throw new Error(`A-1 同点第二次点击未循环到候选 2 (期望「· 2/2」): ${pick2}`);
+        }
+        await page.mouse.click(densePt.x, densePt.y);
+        await delay(200);
+        const pick3 = await badge.innerText();
+        if (!/· 1\/2/.test(pick3)) {
+            throw new Error(`A-1 同点第三次点击未循环回候选 1 (期望「· 1/2」): ${pick3}`);
+        }
+        console.log(`✓ A-1 密集堆叠同点循环: 「${pick1}」→「${pick2}」→「${pick3}」`);
+
+        // 19. A-5 竖直朝向器材拖拽首帧高度不跳变: 条形磁铁 +Z 竖直 → 拖 10 px → 徽标高度保持
+        await addMagnetBtn.click();
+        await delay(250);
+        await outlinerRows.nth(4).click(); // 选中新磁铁 #7 (第 5 行; 伪随机 x=-0.29, 远离重合堆)
+        await delay(200);
+        await page.locator('.composition-preset-buttons button[title*="+Z"]').click();
+        await delay(250);
+        const magnetTopBefore = (await badgeAnchorPoint()).y;
+        const magnetPt = await badgeAnchorPoint();
+        await page.mouse.move(magnetPt.x, magnetPt.y);
+        await page.mouse.down();
+        await page.mouse.move(magnetPt.x + 10, magnetPt.y, { steps: 5 });
+        await delay(150); // 等 rAF 更新徽标 (拖拽首帧)
+        const magnetTopDuring = (await badgeAnchorPoint()).y;
+        if (Math.abs(magnetTopDuring - magnetTopBefore) > 4) {
+            throw new Error(
+                `A-5 竖直磁铁拖拽首帧高度跳变: Δ=${(magnetTopDuring - magnetTopBefore).toFixed(1)} px (>4 px)`
+            );
+        }
+        await page.mouse.up();
+        await delay(300);
+        console.log(`✓ A-5 竖直磁铁拖拽首帧高度稳定: Δ=${Math.abs(magnetTopDuring - magnetTopBefore).toFixed(1)} px`);
+
         // 12. 检查控制台报错
         if (consoleErrors.length > 0) {
             throw new Error(`实跑过程中捕获到控制台错误:\n${consoleErrors.join('\n')}`);

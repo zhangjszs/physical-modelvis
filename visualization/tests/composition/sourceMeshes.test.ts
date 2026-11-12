@@ -76,6 +76,35 @@ describe('sourceMeshes 组合实验台器材网格', () => {
         expect(material.emissiveIntensity).toBe(0);
     });
 
+    it('悬停高亮三态 (#166 S-6): off 0 / hover 0.12 / selected 0.35 (selected 优先于 hover)', () => {
+        const p = placed('q1', { kind: 'point-charge', charge: 1e-6, position: { x: 0, y: 0, z: 0.15 } });
+        const group = makeSourceMesh(p);
+        const material = (group.children[0] as THREE.Mesh).material as THREE.MeshStandardMaterial;
+        updateSourceMesh(group, p, false, false);
+        expect(material.emissiveIntensity).toBe(0);
+        updateSourceMesh(group, p, false, true);
+        expect(material.emissiveIntensity).toBeCloseTo(0.12, 10);
+        updateSourceMesh(group, p, true, true);
+        expect(material.emissiveIntensity).toBeCloseTo(0.35, 10);
+        updateSourceMesh(group, p, true, false);
+        expect(material.emissiveIntensity).toBeCloseTo(0.35, 10);
+    });
+
+    it('匀强磁场区盒面打 pickRole=zone-volume (#166 S-3 容器穿透); 方向箭头不打标保持正常优先级', () => {
+        const group = makeSourceMesh(
+            placed('z1', {
+                kind: 'uniform-field-zone',
+                field: { x: 0, y: 1e-3, z: 0 },
+                center: { x: 0, y: 0, z: 0.15 },
+                size: { x: 0.4, y: 0.3, z: 0.3 }
+            })
+        );
+        const box = group.children[0] as THREE.Mesh;
+        expect(box.userData.pickRole).toBe('zone-volume');
+        const arrow = group.children[1] as THREE.ArrowHelper;
+        expect(arrow.userData.pickRole).toBeUndefined();
+    });
+
     it('极板法线对齐: 局部 z 轴经四元数变换后指向法线的世界方向', () => {
         const group = makeSourceMesh(
             placed('p1', {

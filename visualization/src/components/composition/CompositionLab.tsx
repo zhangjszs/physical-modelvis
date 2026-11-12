@@ -1,5 +1,6 @@
 import { useCompositionStore, SOURCE_DEFAULTS, type SourceKind } from '../../store/compositionStore';
 import { CompositionStage } from './CompositionStage';
+import { CompositionOutliner } from './CompositionOutliner';
 import { NumberField } from '../common/NumberField';
 import { PanelSection } from '../common/PanelSection';
 import { DirectionEditor } from './DirectionEditor';
@@ -144,7 +145,7 @@ export function CompositionLab({ onExit }: { onExit: () => void }) {
             <div className="composition-stage-wrap">
                 <CompositionStage />
                 <div className="composition-tip">
-                    点击选中 · 按住拖拽布点 (0.05 m 吸附) · 松手自动重算 · 右键旋转视角
+                    点击选中 · 拖动布点 (0.05 m 吸附) · 左键空白处旋转 · 滚轮缩放 · 右键平移
                 </div>
             </div>
 
@@ -239,6 +240,8 @@ export function CompositionLab({ onExit }: { onExit: () => void }) {
                         场线由场源实时追踪, 拖拽器材时跟手刷新; 线上箭头指示 E/B 方向, 密度档位演示场线疏密。
                     </p>
                 </PanelSection>
+
+                <CompositionOutliner />
 
                 <PanelSection title="选中器材检查器">
                     {!selected && <p className="composition-empty-hint">点击场景中的器材进行编辑</p>}
