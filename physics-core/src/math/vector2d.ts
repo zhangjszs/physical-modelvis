@@ -34,7 +34,8 @@ export const Vec2 = {
 
     /** 向量模长 */
     magnitude(v: Vector2D): number {
-        return Math.sqrt(v.x * v.x + v.y * v.y);
+        // Math.hypot avoids overflow/underflow from squaring finite coordinates.
+        return Math.hypot(v.x, v.y);
     },
 
     /**

@@ -53,7 +53,8 @@ export const Vec3 = {
 
     /** 向量模长 */
     magnitude(v: Vector3D): number {
-        return Math.sqrt(Vec3.magnitudeSq(v));
+        // Squaring first may overflow/underflow even when the length is finite.
+        return Math.hypot(v.x, v.y, v.z);
     },
 
     /**
