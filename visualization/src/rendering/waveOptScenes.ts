@@ -636,113 +636,11 @@ export function drawThinFilmScene(o: WaveOptSceneOptions) {
 
 // ========== 7. 光的折射 (Snell 定律) ==========
 
-export function drawRefractionScene(o: WaveOptSceneOptions) {
-    const { ctx, width: w, height: h, isDark, params } = o;
-    clearScene(ctx, w, h, isDark);
-    drawTitle(ctx, '光的折射定律 (Snell)', w, isDark, { size: 20, y: 32 });
-
-    const n1 = params.n1 ?? 1.0;
-    const n2 = params.n2 ?? 1.5;
-    const a1 = ((params.angle ?? 30) * Math.PI) / 180;
-    const cy = h / 2;
-    const cx = w * 0.5;
-    const rayLen = h * 0.32;
-
-    // 两种介质背景
-    ctx.fillStyle = isDark ? 'rgba(56,189,248,0.10)' : 'rgba(56,189,248,0.10)';
-    ctx.fillRect(0, 0, w, cy);
-    ctx.fillStyle = isDark ? 'rgba(168,85,247,0.12)' : 'rgba(168,85,247,0.10)';
-    ctx.fillRect(0, cy, w, cy);
-    ctx.fillStyle = isDark ? '#94a3b8' : '#475569';
-    ctx.font = '13px sans-serif';
-    ctx.fillText(`介质1  n₁=${n1.toFixed(2)}`, 14, cy - 12);
-    ctx.fillText(`介质2  n₂=${n2.toFixed(2)}`, 14, cy + 22);
-
-    // 界面 + 法线
-    ctx.strokeStyle = isDark ? '#64748b' : '#94a3b8';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(0, cy);
-    ctx.lineTo(w, cy);
-    ctx.stroke();
-    ctx.setLineDash([5, 5]);
-    ctx.beginPath();
-    ctx.moveTo(cx, cy - rayLen - 20);
-    ctx.lineTo(cx, cy + rayLen + 20);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.fillStyle = mutedText(isDark);
-    ctx.fillText('法线', cx + 8, cy - rayLen - 20);
-
-    const sinA2 = (n1 / n2) * Math.sin(a1);
-    if (sinA2 > 1) {
-        // 全反射
-        const srcX = cx - Math.sin(a1) * rayLen;
-        const srcY = cy - Math.cos(a1) * rayLen;
-        drawArrow(ctx, srcX, srcY, cx, cy, ORANGE, '');
-        // 反射光线 (介质1 内, 关于界面对称)
-        const rx = cx + Math.sin(a1) * rayLen;
-        const ry = cy - Math.cos(a1) * rayLen;
-        drawArrow(ctx, cx, cy, rx, ry, RED, '');
-        const crit = (Math.asin(n2 / n1) * 180) / Math.PI;
-        drawHud(
-            ctx,
-            isDark,
-            [
-                { label: 'θ₁', value: `${((a1 * 180) / Math.PI).toFixed(0)}°` },
-                { label: 'θ₂', value: '全反射' },
-                { label: 'θc', value: `${crit.toFixed(1)}°` }
-            ],
-            {
-                boxX: 8,
-                boxY: 32,
-                boxW: 156,
-                lineH: 20,
-                borderRadius: 8,
-                bgAlpha: { dark: 0.7, light: 0.82 },
-                font: '13px sans-serif',
-                textBaseline: 'alphabetic',
-                textStartY: 54,
-                twoColumn: true,
-                valueX: 62,
-                boxH: 70
-            }
-        );
-        drawSubtitle(ctx, `n₁>n₂ 且 θ₁>θc → 发生全反射`, 20, h - 20, isDark);
-        return;
-    }
-    const a2 = Math.asin(sinA2);
-    const srcX = cx - Math.sin(a1) * rayLen;
-    const srcY = cy - Math.cos(a1) * rayLen;
-    drawArrow(ctx, srcX, srcY, cx, cy, ORANGE, '');
-    const rX = cx + Math.sin(a2) * rayLen;
-    const rY = cy + Math.cos(a2) * rayLen;
-    drawArrow(ctx, cx, cy, rX, rY, GREEN, '');
-    drawHud(
-        ctx,
-        isDark,
-        [
-            { label: 'θ₁', value: `${((a1 * 180) / Math.PI).toFixed(0)}°` },
-            { label: 'θ₂', value: `${((a2 * 180) / Math.PI).toFixed(1)}°` },
-            { label: 'n₁/n₂', value: `${(n1 / n2).toFixed(2)}` }
-        ],
-        {
-            boxX: 8,
-            boxY: 32,
-            boxW: 156,
-            lineH: 20,
-            borderRadius: 8,
-            bgAlpha: { dark: 0.7, light: 0.82 },
-            font: '13px sans-serif',
-            textBaseline: 'alphabetic',
-            textStartY: 54,
-            twoColumn: true,
-            valueX: 62,
-            boxH: 70
-        }
-    );
-    drawSubtitle(ctx, `n₁sinθ₁ = n₂sinθ₂ → sinθ₂ = (n₁/n₂)sinθ₁`, 20, h - 20, isDark);
-}
+/**
+ * 折射定律板书已迁至 `rendering/refractionScenes.ts` (#159 逐节审计 · 批次 F):
+ * 旧实现 (1) 非全反射分支不画反射光线, (2) θ₁/θ₂/临界角由渲染层自算而不读引擎,
+ * (3) 引擎的 sinθ₁-sinθ₂ 直线没画出来。
+ */
 
 function mutedText(isDark: boolean): string {
     return isDark ? '#94a3b8' : '#64748b';

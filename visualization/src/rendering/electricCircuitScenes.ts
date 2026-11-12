@@ -3,11 +3,12 @@
  *
  * 场景列表：
  *   - drawCircuitScene
- *   - drawResistanceLawScene
  *   - drawLoadVoltageScene
  *   - drawMultimeterScene
  *   - drawVernierCaliperScene
  *   - drawMicrometerScene
+ *
+ * 电阻定律板书 (drawResistanceLawScene) 已迁至 `resistanceLawScenes.ts`。
  *
  * 设计原则：纯函数 + 屏幕坐标, 零依赖 React/Zustand/CoordinateTransformer
  */
@@ -41,7 +42,6 @@ export interface ElectromagnetismSceneOptions {
     currentTime: number;
 }
 
-const GREEN = COLORS.GREEN;
 const ORANGE = COLORS.ORANGE;
 const RED = COLORS.RED;
 
@@ -93,53 +93,11 @@ export function drawCircuitScene(opts: ElectromagnetismSceneOptions): void {
     drawInfoBar(ctx, width, height, parallel ? 'R2 与 R3 并联后再与 R1、内阻串联' : 'R1、R2、R3 与内阻串联', isDark);
 }
 
-export function drawResistanceLawScene(opts: ElectromagnetismSceneOptions): void {
-    const { ctx, width, height, isDark, params, simulationResult } = opts;
-    clearScene(ctx, width, height, isDark);
-    drawTitle(ctx, '电阻定律', width, isDark, { size: 18, y: 28 });
-    const len = params['length'] ?? 1;
-    const diameterMm = params['diameter'] ?? 1;
-    const material = params['material'] ?? 0;
-    const rho = material < 0.5 ? 1.68e-8 : material < 1.5 ? 2.82e-8 : 1.1e-6;
-    const area = Math.PI * ((diameterMm * 1e-3) / 2) ** 2;
-    /**
-     * 电阻值 R: 优先读引擎 maxValues.baseResistance (#66 · B 局部)。
-     * 旧渲染内联材料电阻率, 其中铁档用 2.82e-8 (实为铝值) 与引擎 RESISTIVITY.Fe=1.0e-7
-     * 不一致 (铁档下旧画面偏小约 3.5 倍, 真漂移), 现整量消费引擎; 导线粗细/颜色示意保留。
-     * 无结果回退旧自算。
-     */
-    const mvRes = simulationResult?.diagnostics?.maxValues as { baseResistance?: number } | undefined;
-    const engR0 = mvRes?.baseResistance;
-    const resistance =
-        typeof engR0 === 'number' && Number.isFinite(engR0) && engR0 >= 0 ? engR0 : (rho * len) / Math.max(area, 1e-12);
-    const x1 = width * 0.18;
-    const x2 = width * 0.82;
-    const y = height * 0.52;
-    const thick = clamp(diameterMm * 9, 6, 28);
-    const grad = ctx.createLinearGradient(x1, y - thick, x2, y + thick);
-    grad.addColorStop(0, '#94a3b8');
-    grad.addColorStop(0.5, material < 0.5 ? '#f59e0b' : material < 1.5 ? '#cbd5e1' : '#64748b');
-    grad.addColorStop(1, '#475569');
-    ctx.strokeStyle = grad;
-    ctx.lineWidth = thick;
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(x1, y);
-    ctx.lineTo(x2, y);
-    ctx.stroke();
-    drawArrow(ctx, x1, y + 50, x2, y + 50, GREEN, 'L');
-    drawHud(
-        ctx,
-        isDark,
-        [
-            { label: 'L', value: `${len.toFixed(2)} m` },
-            { label: 'd', value: `${diameterMm.toFixed(2)} mm` },
-            { label: 'R', value: `${resistance.toFixed(3)} Ω` }
-        ],
-        { boxW: 214 }
-    );
-    drawInfoBar(ctx, width, height, 'R = rho * L / S, 长度越长电阻越大, 横截面积越大电阻越小', isDark);
-}
+/**
+ * 电阻定律板书已迁至 `rendering/resistanceLawScenes.ts` (#159 逐节审计 · 批次 E''):
+ * 旧实现只画一根导线 + 三行读数, 引擎的 3 条控制变量曲线 (R_L / R_invS / R_material)
+ * 一条都没画, 且内联了一份与引擎不一致的材料电阻率 (铁档 2.82e-8 = 铝值)。
+ */
 
 export function drawLoadVoltageScene(opts: ElectromagnetismSceneOptions): void {
     const { ctx, width, height, isDark, params, simulationResult } = opts;

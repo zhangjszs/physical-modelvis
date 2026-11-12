@@ -8,6 +8,8 @@
  */
 import type { SimulationResult } from 'physics-core';
 import { G_ACCELERATION } from './constants';
+import { readWaveMediumFromResult } from './engineExtraAccess';
+import { measurePendulumPeriod } from './pendulumMetrics';
 import {
     drawTitle,
     drawHud,
@@ -46,23 +48,30 @@ export function drawMechanicalWaveScene(opts: MechanicsSceneOptions): void {
     const cy = height * 0.5;
     const leftX = width * 0.08;
     const rightX = width * 0.92;
-    // 粒子数自适应: 每 ~11px 一个粒子, 保证小画布/高 DPR 下不浪费绘制调用
-    const particleCount = Math.max(24, Math.min(140, Math.round((rightX - leftX) / 11)));
-    const spacing = (rightX - leftX) / particleCount;
     const ampPx = Math.min(height * 0.18, amplitude * 600);
 
     drawTitle(ctx, `机械波: ${modeNames[waveMode]}`, width, isDark);
 
-    // 引擎轨迹: 9 个 tracked 质点 (x = -1, -0.5, ..., 3) + 1 条 waveSnapshot
-    // 像素映射: x ∈ [-1,3] → [leftX,rightX], 位移 → ampPx/amplitude 比例
+    // 引擎轨迹: N 个追踪质点 (数量随波长自适应, 见引擎 selectTrackedIndices) + 末尾 1 条 waveSnapshot
+    // 像素映射: 介质区间 [xStart, xEnd] → [leftX, rightX], 位移 → ampPx/amplitude 比例
     const engineTraj = simulationResult?.trajectories;
     const engineCount = Math.max(0, (engineTraj?.length ?? 0) - 1); // 去掉末尾 snapshot
-    const mapX = (xPhys: number): number => leftX + ((xPhys + 1) / 4) * (rightX - leftX);
+    // 介质几何 (区间 / 追踪点平衡位置) 取引擎 extra —— 几何事实的单一真源;
+    // 结构不符时按场景默认区间回退, 不在此处自算相位。
+    const waveMedium = readWaveMediumFromResult(simulationResult);
+    const xStart = waveMedium?.xStart ?? -1;
+    const xEnd = waveMedium?.xEnd ?? 3;
+    const xSpan = xEnd - xStart;
+    const mapX = (xPhys: number): number => leftX + ((xPhys - xStart) / xSpan) * (rightX - leftX);
     const ampScale = engineCount > 0 ? ampPx / Math.max(0.001, amplitude) : 1;
 
-    // tracked 质点平衡位置 (与引擎 x0 采样一致): -1, -0.5, ..., 3
+    // 追踪质点的平衡位置 x (m): 优先取引擎 extra.trackedX, 缺失时用轨迹首点兜底
     const engEqX: number[] = [];
-    for (let i = 0; i < engineCount; i++) engEqX.push(-1 + (4 / (9 - 1)) * i);
+    for (let i = 0; i < engineCount; i++) {
+        const fromExtra = waveMedium?.trackedX[i];
+        const fallbackX = engineTraj?.[i]?.[0]?.position.x;
+        engEqX.push(typeof fromExtra === 'number' && Number.isFinite(fromExtra) ? fromExtra : (fallbackX ?? xStart));
+    }
 
     // 传播方向箭头
     drawArrow(ctx, width * 0.4, cy - ampPx - 30, width * 0.6, cy - ampPx - 30, BLUE, '传播方向');
@@ -77,37 +86,18 @@ export function drawMechanicalWaveScene(opts: MechanicsSceneOptions): void {
         }
     }
 
+    // 画布质点**直接消费引擎追踪质点** (与 3D 舞台同一份数据) ——
+    // 早期在等间距网格上重新采样, 追踪点之间的折线被二次采样 → 波形退化成尖刺折线。
     let prevPx: number | null = null;
     let prevPy: number | null = null;
-    // 游标: 粒子 xPhys 单调递增, 区间搜索摊销 O(1)
-    let kCur = 0;
-    for (let i = 0; i < particleCount; i++) {
-        const x0 = leftX + i * spacing;
-        // 粒子覆盖引擎 tracked 范围 [-1, 3] (与引擎 x0 采样一致), 任何 λ 下插值均有效
-        const xPhys = -1 + (4 * i) / particleCount;
-        while (kCur < engPos.length - 1 && xPhys > engEqX[kCur + 1]!) kCur++;
-
-        // 引擎位移插值: 相邻 tracked 质点线性插值, 边界 clamp
-        const engDisp = (useX: boolean): number | null => {
-            if (engPos.length === 0) return null;
-            if (engPos.length === 1) {
-                const only = engPos[0]!;
-                return useX ? only.x : only.y;
-            }
-            const k = Math.min(kCur, engPos.length - 2);
-            const a = engPos[k];
-            const b = engPos[k + 1];
-            if (!a || !b) return null;
-            const span = engEqX[k + 1]! - engEqX[k]!;
-            const w = span > 0 ? (xPhys - engEqX[k]!) / span : 0;
-            return (useX ? a.x : a.y) + ((useX ? b.x : b.y) - (useX ? a.x : a.y)) * w;
-        };
-
+    for (let idx = 0; idx < engEqX.length; idx++) {
+        const xEq = engEqX[idx]!;
+        const frame = engPos[idx];
         if (waveMode === 1) {
             // 纵波: 引擎 position.x = xEq + 位移 (粒子沿传播方向振动)
-            const dispX = engDisp(true);
-            const px = dispX !== null ? mapX(dispX) : x0 + Math.sin(omega * currentTime - k * xPhys) * ampPx * 0.5;
-            const densityC = 1 - Math.abs(px - x0) * 0.006;
+            const dispX = frame ? frame.x : xEq + Math.sin(omega * currentTime - k * xEq) * amplitude;
+            const px = mapX(dispX);
+            const densityC = 1 - Math.abs(px - mapX(xEq)) * 0.006;
             ctx.fillStyle = isDark
                 ? `rgba(96,165,250,${0.5 + densityC * 0.3})`
                 : `rgba(59,130,246,${0.5 + densityC * 0.3})`;
@@ -116,25 +106,24 @@ export function drawMechanicalWaveScene(opts: MechanicsSceneOptions): void {
             ctx.fill();
         } else {
             // 横波/干涉: 引擎 position.y = -y_phys (屏幕向下), 平衡位置 x 已知
-            const dispY = engDisp(false);
-            const engEqXpx = mapX(xPhys + 1); // 平衡位置
-            const py = dispY !== null ? cy + dispY * ampScale : cy - Math.sin(omega * currentTime - k * xPhys) * ampPx;
-            const grad = ctx.createRadialGradient(engEqXpx - 1, py - 1, 1, engEqXpx, py, 5);
+            const eqXpx = mapX(xEq);
+            const py = frame ? cy + frame.y * ampScale : cy - Math.sin(omega * currentTime - k * xEq) * ampPx;
+            const grad = ctx.createRadialGradient(eqXpx - 1, py - 1, 1, eqXpx, py, 5);
             grad.addColorStop(0, '#93c5fd');
             grad.addColorStop(1, BLUE);
             ctx.fillStyle = grad;
             ctx.beginPath();
-            ctx.arc(engEqXpx, py, 5, 0, Math.PI * 2);
+            ctx.arc(eqXpx, py, 5, 0, Math.PI * 2);
             ctx.fill();
             if (prevPx !== null && prevPy !== null) {
                 ctx.strokeStyle = isDark ? 'rgba(96,165,250,0.3)' : 'rgba(59,130,246,0.25)';
                 ctx.lineWidth = 1;
                 ctx.beginPath();
                 ctx.moveTo(prevPx, prevPy);
-                ctx.lineTo(engEqXpx, py);
+                ctx.lineTo(eqXpx, py);
                 ctx.stroke();
             }
-            prevPx = engEqXpx;
+            prevPx = eqXpx;
             prevPy = py;
         }
     }
@@ -148,7 +137,8 @@ export function drawMechanicalWaveScene(opts: MechanicsSceneOptions): void {
     ctx.stroke();
     ctx.setLineDash([]);
 
-    const lambdaPx = (wavelength / (wavelength * 4)) * (rightX - leftX);
+    // 波长标尺: 像素长度按介质区间实长换算 (早期写死 "整个宽度 = 4λ", 与实际 λ 不符)
+    const lambdaPx = (wavelength / xSpan) * (rightX - leftX);
     if (lambdaPx > 30) {
         const markY = cy + ampPx + 30;
         ctx.strokeStyle = ORANGE;
@@ -185,37 +175,6 @@ export function drawMechanicalWaveScene(opts: MechanicsSceneOptions): void {
 }
 
 // ======================= Task 6: 静态验证/示意图场景 =======================
-
-interface PendTrajPoint {
-    t: number;
-    position: { x: number };
-}
-function measurePendulumPeriod(traj: PendTrajPoint[] | undefined): number | null {
-    if (!traj || traj.length < 4) return null;
-    const crossings: number[] = [];
-    for (let i = 1; i < traj.length; i++) {
-        const a = traj[i - 1];
-        const b = traj[i];
-        if (!a || !b) continue;
-        const xa = a.position.x;
-        const xb = b.position.x;
-        if (xa * xb < 0) {
-            const f = xa / (xa - xb);
-            crossings.push(a.t + f * (b.t - a.t));
-        } else if (xa === 0) {
-            crossings.push(a.t);
-        }
-    }
-    if (crossings.length >= 2) {
-        const T = (2 * (crossings[crossings.length - 1]! - crossings[0]!)) / (crossings.length - 1);
-        return T > 0 ? T : null;
-    }
-    if (crossings.length === 1) {
-        const T = 4 * crossings[0]!;
-        return T > 0 ? T : null;
-    }
-    return null;
-}
 
 export function drawBallXTimeScene(o: MechanicsSceneOptions): void {
     const { ctx, width, height, isDark, params, simulationResult, currentTime } = o;

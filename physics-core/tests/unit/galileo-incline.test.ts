@@ -147,14 +147,46 @@ describe('GalileoInclineModel', () => {
         expect(horiz.velocity.x).toBeGreaterThan(0);
     });
 
-    it('all 模式: 包含全部三段', () => {
+    it('all 模式: 物理连续的两段演示 (下滑 → 谷底水平面匀速)', () => {
         const result = model.solve(makeProblem({ angleDeg: 30, mode: 'all' }));
         const labels = result.keyframes.map(k => k.label);
         expect(labels).toContain('起点 (斜面顶端)');
         expect(labels).toContain('斜面底端 (速度最大)');
-        expect(labels).toContain('对接斜面最高点');
         expect(labels).toContain('水平面匀速 (牛顿第一定律)');
-        expect(result.keyframes).toHaveLength(4);
+        // 对接斜面是**另一条**理想实验, 只在 'docked' 模式出现 (#159 逐节审计)
+        expect(labels).not.toContain('对接斜面最高点');
+        expect(result.keyframes).toHaveLength(3);
+    });
+
+    it('all 模式: 水平面位于谷底高度, 与 horizontal 模式一致 (口径统一)', () => {
+        const L = 2;
+        const sin30 = 0.5;
+        const all = model.solve(makeProblem({ angleDeg: 30, inclineLength: L, mode: 'all' }));
+        const horiz = all.keyframes.find(k => k.label === '水平面匀速 (牛顿第一定律)')!;
+        const single = model.solve(makeProblem({ angleDeg: 30, inclineLength: L, mode: 'horizontal' }));
+        const horizSingle = single.keyframes.find(k => k.label === '水平面匀速 (牛顿第一定律)')!;
+        // 水平面高度 = 谷底高度 = L·sinθ (engine y 向下为正)
+        expect(horiz.position.y).toBeCloseTo(L * sin30, 6);
+        expect(horizSingle.position.y).toBeCloseTo(L * sin30, 6);
+        expect(horiz.position.y).toBeCloseTo(horizSingle.position.y, 6);
+    });
+
+    it('all 模式: 轨迹物理连续 —— 进入水平段后 y 恒定、速度恒为 v_end', () => {
+        const result = model.solve(makeProblem({ angleDeg: 30, inclineLength: 2, mode: 'all' }));
+        const traj = result.trajectories[0]!;
+        const tEnd = result.diagnostics.maxValues.endTime;
+        const after = traj.filter(p => p.t > tEnd + 1e-6);
+        expect(after.length).toBeGreaterThan(0);
+        const ys = after.map(p => p.position.y);
+        expect(Math.max(...ys) - Math.min(...ys)).toBeLessThan(1e-9);
+        const vs = after.map(p => Math.abs(p.velocity.x));
+        expect(vs[0]).toBeCloseTo(result.diagnostics.maxValues.maxSpeed, 4);
+    });
+
+    it('轨迹不得超出仿真时长', () => {
+        const result = model.solve(makeProblem({ angleDeg: 30, inclineLength: 2, mode: 'all' }));
+        const traj = result.trajectories[0]!;
+        expect(traj[traj.length - 1]!.t).toBeLessThanOrEqual(5 + 1e-9);
     });
 
     // ====== 图表 ======

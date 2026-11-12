@@ -129,12 +129,12 @@ export const emWaveRig: SceneRig = {
             wavelengthM: 3.0
         };
 
-        this.updateEquipment(handles as unknown as Record<string, unknown>, params);
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        this.updateEquipment(handles, params);
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        const h = handles as unknown as EmWaveHandles;
+        const h = handles as EmWaveHandles;
         const freq = num(params['frequency'] ?? params['freq'] ?? 100, 100); // MHz
         h.frequencyMHz = freq;
 
@@ -162,7 +162,7 @@ export const emWaveRig: SceneRig = {
     },
 
     onAnimate(handles, ctx) {
-        const h = handles as unknown as EmWaveHandles;
+        const h = handles as EmWaveHandles;
         if (!h.waveELine) return;
 
         const { time } = ctx;

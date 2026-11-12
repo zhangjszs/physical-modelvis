@@ -1,5 +1,13 @@
 import { useCompositionStore, SOURCE_DEFAULTS, type SourceKind } from '../../store/compositionStore';
 import { CompositionStage } from './CompositionStage';
+import { CompositionOutliner } from './CompositionOutliner';
+import { NumberField } from '../common/NumberField';
+import { PanelSection } from '../common/PanelSection';
+import { DirectionEditor } from './DirectionEditor';
+import { COMPOSITION_TEMPLATES } from './compositionTemplates';
+import type { FieldSource, Vector3D } from 'physics-core';
+
+type UniformFieldZone = Extract<FieldSource, { kind: 'uniform-field-zone' }>;
 
 /**
  * CompositionLab — 自由组合实验台 (L4 页面壳)。
@@ -12,7 +20,9 @@ const PALETTE: Array<{ kind: SourceKind; label: string }> = [
     { kind: 'point-charge', label: '＋ 点电荷' },
     { kind: 'charged-plate', label: '▬ 带电平板' },
     { kind: 'straight-wire', label: '│ 载流导线' },
-    { kind: 'circular-coil', label: '◯ 圆形线圈' }
+    { kind: 'circular-coil', label: '◯ 圆形线圈' },
+    { kind: 'bar-magnet', label: '🧲 条形磁铁' },
+    { kind: 'uniform-field-zone', label: '▦ 匀强磁场区' }
 ];
 
 /** 各类器材可在检查器编辑的数值字段 */
@@ -24,14 +34,38 @@ const EDITABLE_FIELDS: Record<SourceKind, Array<{ key: string; label: string; st
         { key: 'current', label: '电流 I (A)', step: 0.5 },
         { key: 'turns', label: '匝数 N', step: 1 },
         { key: 'radius', label: '半径 R (m)', step: 0.01 }
-    ]
+    ],
+    'bar-magnet': [
+        { key: 'magneticMoment', label: '磁矩 m (A·m²)', step: 0.5 },
+        { key: 'length', label: '长度 L (m)', step: 0.02 }
+    ],
+    // 匀强磁场区: 向量型参数 (field/size) 走下方定制编辑区, 此处留空
+    'uniform-field-zone': []
 };
+
+/** 获取器材的方向字段信息（#100 类型安全提取，零强制类型转换） */
+function getSourceDirection(source: FieldSource): { key: string; label: string; value: Vector3D } | null {
+    switch (source.kind) {
+        case 'circular-coil':
+            return { key: 'axis', label: '线圈轴向', value: source.axis };
+        case 'charged-plate':
+            return { key: 'normal', label: '极板法线', value: source.normal };
+        case 'straight-wire':
+            return { key: 'direction', label: '导线方向', value: source.direction };
+        case 'bar-magnet':
+            return { key: 'direction', label: '磁矩方向 (N极)', value: source.direction };
+        default:
+            return null;
+    }
+}
 
 const KIND_LABEL: Record<SourceKind, string> = {
     'point-charge': '点电荷',
     'charged-plate': '带电平板',
     'straight-wire': '载流导线',
-    'circular-coil': '圆形线圈'
+    'circular-coil': '圆形线圈',
+    'bar-magnet': '条形磁铁',
+    'uniform-field-zone': '匀强磁场区'
 };
 
 /** 场线密度档位 (#93): 与 fieldLineSeeds 的 FIELD_LINE_DENSITY 区间一致 */
@@ -41,20 +75,42 @@ const DENSITY_OPTIONS: Array<{ value: number; label: string; title: string }> = 
     { value: 2, label: '密', title: '2× 密度 — 演示电场线疏密对比' }
 ];
 
-function NumberField(props: { label: string; value: number; step: number; onChange: (value: number) => void }) {
+/** 匀强磁场区定制编辑区: 场强 (mT, 保方向改大小) + 三轴尺寸 (m) */
+function UniformFieldZoneEditor(props: { id: string; source: UniformFieldZone }) {
+    const updateSourceVector = useCompositionStore(s => s.updateSourceVector);
+    const { id, source } = props;
+    const sizeDims = [
+        { key: 'x', label: '尺寸 X (m)' },
+        { key: 'y', label: '尺寸 Y (m)' },
+        { key: 'z', label: '尺寸 Z (m)' }
+    ] as const;
     return (
-        <label className="composition-field">
-            <span>{props.label}</span>
-            <input
-                type="number"
-                value={props.value}
-                step={props.step}
-                onChange={e => {
-                    const parsed = Number(e.target.value);
-                    if (Number.isFinite(parsed)) props.onChange(parsed);
+        <>
+            <NumberField
+                label="场强 B (mT)"
+                step={0.1}
+                value={Math.hypot(source.field.x, source.field.y, source.field.z) * 1000}
+                onChange={v => {
+                    const mag = Math.hypot(source.field.x, source.field.y, source.field.z);
+                    const dir =
+                        mag > 0
+                            ? { x: source.field.x / mag, y: source.field.y / mag, z: source.field.z / mag }
+                            : { x: 0, y: 1, z: 0 };
+                    const t = v / 1000;
+                    updateSourceVector(id, 'field', { x: dir.x * t, y: dir.y * t, z: dir.z * t });
                 }}
             />
-        </label>
+            {sizeDims.map(dim => (
+                <NumberField
+                    key={dim.key}
+                    label={dim.label}
+                    step={0.05}
+                    value={source.size[dim.key]}
+                    onChange={v => updateSourceVector(id, 'size', { [dim.key]: v })}
+                />
+            ))}
+            <p className="composition-desc">朝向固定 +y, 盒区轴对齐 (旋转编辑随 #100 解锁)。</p>
+        </>
     );
 }
 
@@ -67,6 +123,8 @@ export function CompositionLab({ onExit }: { onExit: () => void }) {
     const validationMessage = useCompositionStore(s => s.validationMessage);
     const addSource = useCompositionStore(s => s.addSource);
     const updateSourceParams = useCompositionStore(s => s.updateSourceParams);
+    const activeTemplateId = useCompositionStore(s => s.activeTemplateId);
+    const loadTemplate = useCompositionStore(s => s.loadTemplate);
     const removeSource = useCompositionStore(s => s.removeSource);
     const setParticle = useCompositionStore(s => s.setParticle);
     const setDuration = useCompositionStore(s => s.setDuration);
@@ -80,34 +138,23 @@ export function CompositionLab({ onExit }: { onExit: () => void }) {
 
     const selected = sources.find(p => p.id === selectedId) ?? null;
 
+    const activeTemplate = COMPOSITION_TEMPLATES.find(t => t.id === activeTemplateId) ?? null;
+
     return (
-        <div className="classroom-scene" style={{ display: 'flex', gap: 12, height: '100%' }}>
-            <div style={{ flex: 1, minWidth: 0, position: 'relative' }}>
+        <div className="classroom-scene composition-layout">
+            <div className="composition-stage-wrap">
                 <CompositionStage />
-                <div
-                    style={{
-                        position: 'absolute',
-                        left: 12,
-                        top: 12,
-                        fontSize: 12,
-                        color: '#64748b',
-                        background: 'rgba(255,255,255,0.72)',
-                        borderRadius: 8,
-                        padding: '4px 10px',
-                        pointerEvents: 'none'
-                    }}
-                >
-                    点击选中 · 按住拖拽布点 (0.05 m 吸附) · 松手自动重算 · 右键旋转视角
+                <div className="composition-tip">
+                    点击选中 · 拖动布点 (0.05 m 吸附) · 左键空白处旋转 · 滚轮缩放 · 右键平移
                 </div>
             </div>
 
-            <aside className="inspector-panel" style={{ width: 300, flexShrink: 0, overflowY: 'auto' }}>
-                <div className="panel-section">
-                    <div className="panel-title">🧪 自由组合实验台</div>
-                    <button className="btn btn-sm" style={{ width: '100%' }} onClick={onExit}>
+            <aside className="inspector-panel composition-inspector">
+                <PanelSection title="🧪 自由组合实验台">
+                    <button className="btn btn-sm btn-block" onClick={onExit}>
                         ← 返回教材实验目录
                     </button>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginTop: 8 }}>
+                    <div className="composition-palette-grid">
                         {PALETTE.map(item => (
                             <button
                                 key={item.kind}
@@ -119,10 +166,36 @@ export function CompositionLab({ onExit }: { onExit: () => void }) {
                             </button>
                         ))}
                     </div>
-                </div>
+                </PanelSection>
 
-                <div className="panel-section">
-                    <div className="panel-title">带电粒子</div>
+                <PanelSection title="📋 实验模板">
+                    <div className="composition-template-grid">
+                        {COMPOSITION_TEMPLATES.map(tmpl => {
+                            const isActive = activeTemplateId === tmpl.id;
+                            return (
+                                <button
+                                    key={tmpl.id}
+                                    className={`btn btn-sm composition-template-btn${isActive ? ' active' : ''}`}
+                                    onClick={() => loadTemplate(tmpl.id)}
+                                    title={tmpl.description}
+                                >
+                                    <span className="composition-template-icon">{tmpl.icon}</span>
+                                    <span className="composition-template-name">{tmpl.name}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                    {activeTemplate ? (
+                        <div className="composition-template-goal-card">
+                            <div className="composition-template-goal-title">🎯 教学目标</div>
+                            <div className="composition-template-goal-text">{activeTemplate.teachingGoal}</div>
+                        </div>
+                    ) : (
+                        <p className="composition-desc">点击模板一键布置经典电磁实验，或在下方自由添加器材。</p>
+                    )}
+                </PanelSection>
+
+                <PanelSection title="带电粒子">
                     <NumberField
                         label="电荷量 q (C)"
                         value={particle.charge}
@@ -136,23 +209,22 @@ export function CompositionLab({ onExit }: { onExit: () => void }) {
                         onChange={v => setParticle({ mass: v })}
                     />
                     <NumberField label="仿真时长 (s)" value={duration} step={0.5} onChange={v => setDuration(v)} />
-                    <button className="btn btn-sm" style={{ width: '100%', marginTop: 6 }} onClick={resetLab}>
+                    <button className="btn btn-sm btn-block composition-reset-btn" onClick={resetLab}>
                         清空实验台
                     </button>
-                </div>
+                </PanelSection>
 
-                <div className="panel-section">
-                    <div className="panel-title">场线显示</div>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, margin: '4px 0' }}>
+                <PanelSection title="场线显示">
+                    <label className="composition-field-label">
                         <input type="checkbox" checked={showElectricFieldLines} onChange={toggleElectricFieldLines} />
                         <span>显示电场线 (E)</span>
                     </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, margin: '4px 0' }}>
+                    <label className="composition-field-label">
                         <input type="checkbox" checked={showMagneticFieldLines} onChange={toggleMagneticFieldLines} />
                         <span>显示磁场线 (B)</span>
                     </label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '4px 0' }}>
-                        <span style={{ fontSize: 13 }}>密度</span>
+                    <div className="composition-density-row">
+                        <span className="composition-density-title">密度</span>
                         {DENSITY_OPTIONS.map(opt => (
                             <button
                                 key={opt.value}
@@ -164,21 +236,21 @@ export function CompositionLab({ onExit }: { onExit: () => void }) {
                             </button>
                         ))}
                     </div>
-                    <p style={{ fontSize: 11, color: '#94a3b8', margin: '4px 0 0' }}>
+                    <p className="composition-desc">
                         场线由场源实时追踪, 拖拽器材时跟手刷新; 线上箭头指示 E/B 方向, 密度档位演示场线疏密。
                     </p>
-                </div>
+                </PanelSection>
 
-                <div className="panel-section">
-                    <div className="panel-title">选中器材检查器</div>
-                    {!selected && <p style={{ fontSize: 12, color: '#94a3b8' }}>点击场景中的器材进行编辑</p>}
+                <CompositionOutliner />
+
+                <PanelSection title="选中器材检查器">
+                    {!selected && <p className="composition-empty-hint">点击场景中的器材进行编辑</p>}
                     {selected && (
                         <>
-                            <p style={{ fontSize: 12, color: '#475569', margin: '4px 0 8px' }}>
+                            <p className="composition-selected-tag">
                                 {KIND_LABEL[selected.source.kind]} · {selected.id}
                                 <button
-                                    className="btn btn-sm"
-                                    style={{ float: 'right', color: '#dc2626' }}
+                                    className="btn btn-sm btn-danger-text"
                                     onClick={() => removeSource(selected.id)}
                                 >
                                     删除
@@ -196,34 +268,49 @@ export function CompositionLab({ onExit }: { onExit: () => void }) {
                                     onChange={v => updateSourceParams(selected.id, { [field.key]: v })}
                                 />
                             ))}
+                            {selected.source.kind === 'uniform-field-zone' && (
+                                <UniformFieldZoneEditor id={selected.id} source={selected.source} />
+                            )}
+                            {(() => {
+                                const dir = getSourceDirection(selected.source);
+                                if (!dir) return null;
+                                return (
+                                    <DirectionEditor
+                                        id={selected.id}
+                                        fieldKey={dir.key}
+                                        label={dir.label}
+                                        value={dir.value}
+                                        onChange={v => updateSourceParams(selected.id, { [dir.key]: v })}
+                                    />
+                                );
+                            })()}
                         </>
                     )}
-                </div>
+                </PanelSection>
 
-                <div className="panel-section">
-                    <div className="panel-title">状态</div>
-                    {validationMessage && <p style={{ fontSize: 12, color: '#dc2626' }}>⚠ {validationMessage}</p>}
+                <PanelSection title="状态">
+                    {validationMessage && <p className="composition-status-err">⚠ {validationMessage}</p>}
                     {!validationMessage && result && (
-                        <p style={{ fontSize: 12, color: '#16a34a' }}>
+                        <p className="composition-status-ok">
                             {result.completed
                                 ? `✓ 轨迹求解完成 (${result.trajectory.length} 帧, ${result.stepCount} 步)`
                                 : '⚠ 数值发散, 轨迹提前终止'}
                         </p>
                     )}
                     {!validationMessage && result && result.warnings.length > 0 && (
-                        <ul style={{ fontSize: 11, color: '#b45309', paddingLeft: 16 }}>
+                        <ul className="composition-warn-list">
                             {result.warnings.map((w, i) => (
                                 <li key={i}>{w}</li>
                             ))}
                         </ul>
                     )}
                     {sources.length === 0 && (
-                        <p style={{ fontSize: 12, color: '#94a3b8' }}>
+                        <p className="composition-empty-hint">
                             从上方器材面板添加场源 (默认 {Object.keys(SOURCE_DEFAULTS).length} 类: 点电荷 / 平板 / 导线
-                            / 线圈), 引擎将按叠加原理实时合成电磁场并积分粒子轨迹。
+                            / 线圈 / 条形磁铁 / 匀强磁场区), 引擎将按叠加原理实时合成电磁场并积分粒子轨迹。
                         </p>
                     )}
-                </div>
+                </PanelSection>
             </aside>
         </div>
     );

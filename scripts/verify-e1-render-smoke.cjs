@@ -8,14 +8,18 @@
  *   - 布朗 trail 分档 stroke: brownian-motion
  *
  * 验证: 切场景无 pageerror / console error, 播放 2 秒无异常。
- * 运行: node scripts/verify-e1-render-smoke.cjs (需 dev server http://localhost:3000/)
+ * 运行: node scripts/verify-e1-render-smoke.cjs (需 dev server, 默认 http://localhost:3000/, 可用 BASE_URL 覆盖)
  *   SMOKE_BROWSER_CHANNEL 浏览器渠道 (#98): 缺省 msedge (兼容现状); 置空 = Playwright 自带
  *   chromium (无 Edge 的 Linux/CI 可用); 其他值原样传给 Playwright
+ *   通道变量差异 (#106): 本脚本缺省 msedge (向后兼容), QA 巡检 QA_CHANNEL 缺省自带 chromium;
+ *   两者置空均走自带 chromium。
  */
 const { chromium } = require('playwright');
 
 // #98: 通道参数化 — `??` 而非 `||`, 让显式置空能选自带 chromium
 const CHANNEL = process.env.SMOKE_BROWSER_CHANNEL ?? 'msedge';
+// #106: BASE_URL env 化 (与 verify-guidance-smoke 同构)
+const BASE = process.env.BASE_URL ?? 'http://localhost:3000/';
 
 const SCENES = [
     '抛体运动 (平抛+斜抛)',
@@ -34,7 +38,7 @@ const SCENES = [
         if (m.type() === 'error') pageErrors.push('CONSOLE: ' + m.text());
     });
 
-    await page.goto('http://localhost:3000/', { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await page.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 60000 });
     await page.waitForSelector('.directory-scene', { timeout: 30000 });
 
     const click = async name => {

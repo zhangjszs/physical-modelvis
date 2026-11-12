@@ -10,8 +10,9 @@
  *
  * 设计原则：纯函数 + 屏幕坐标, 零依赖 React/Zustand/CoordinateTransformer
  */
-import type { SimulationResult, Vector2D } from 'physics-core';
+import type { SimulationResult } from 'physics-core';
 import { COULOMB_K, G_ACCELERATION } from './constants';
+import { readElectricFieldExtra } from './engineExtraAccess';
 import {
     COLORS,
     roundRectPath,
@@ -386,32 +387,16 @@ export function drawFaradayCupScene(opts: ElectromagnetismSceneOptions): void {
     drawInfoBar(ctx, width, height, '静电平衡时净电荷只分布在外表面，内表面电荷为零', isDark);
 }
 
-interface FieldLine {
-    points: Vector2D[];
-    sign: 1 | -1;
-}
-interface FieldSample {
-    x: number;
-    y: number;
-    ex: number;
-    ey: number;
-    magnitude: number;
-}
-interface ElectricFieldExtra {
-    fieldLines: FieldLine[];
-    samples: FieldSample[];
-    plates?: { top: number; bottom: number; left: number; right: number };
-    plateField?: number;
-}
 export function drawElectricFieldLinesScene(o: ElectromagnetismSceneOptions): void {
     const { ctx, width, height, isDark, params, simulationResult } = o;
     clearScene(ctx, width, height, isDark);
     drawTitle(ctx, '电场线分布', width, isDark, { size: 18, y: 28 });
-    if (!simulationResult || !simulationResult.extra) {
+    // 引擎 extra 须经类型谓词守卫读取 (#124: 旧写法将 extra 双重强转为 ElectricFieldExtra)
+    const extra = simulationResult ? readElectricFieldExtra(simulationResult.extra) : null;
+    if (!extra || !simulationResult) {
         placeholder(ctx, width, height, isDark);
         return;
     }
-    const extra = simulationResult.extra as unknown as ElectricFieldExtra;
     const cx = width / 2;
     const cy = height / 2;
     const scale = Math.min(width, height) * 0.4;

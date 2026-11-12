@@ -1,24 +1,22 @@
 import { useSimulationStore } from '../../store/simulationStore';
 import { formatValue } from '../../utils/unitFormat';
+import { PanelSection } from '../common/PanelSection';
 
 export function DiagnosticsPanel() {
     const simulationResult = useSimulationStore(s => s.simulationResult);
 
     if (!simulationResult) {
         return (
-            <div className="panel-section">
-                <div className="panel-title">诊断报告</div>
+            <PanelSection title="诊断报告">
                 <div className="empty-state">等待仿真运行...</div>
-            </div>
+            </PanelSection>
         );
     }
 
     const { diagnostics, meta, errors, warnings } = simulationResult;
 
     return (
-        <div className="panel-section">
-            <div className="panel-title">诊断报告</div>
-
+        <PanelSection title="诊断报告">
             {/* 求解信息 */}
             <div className="diag-group">
                 <div className="diag-item">
@@ -111,6 +109,6 @@ export function DiagnosticsPanel() {
                     <span>所有检查通过</span>
                 </div>
             )}
-        </div>
+        </PanelSection>
     );
 }

@@ -5,7 +5,7 @@
 
 ---
 
-## 0. 当前状态快照 (2026-08-11 更新)
+## 0. 当前状态快照 (2026-10-25 更新)
 
 - 分支 main,工作树干净,全部已 push
 - 阶段 A-D、E-1/4/5/6 全部完成并已提交(详见下方各阶段 ✅)
@@ -17,12 +17,22 @@
   - `b0bd171` 清理失效/一次性脚本(verify-3d-coverage.mjs 因 SCENES 重构失效、fix-scene-names/split-scenes/rewrite-time-series 等迁移工具、.scratch 草稿)
   - README 补测试数行(core 923 / viz 1159 / 2082)
   - **audit 遗留低优先级清理完成**(liquid-crystal 透射率曲线迁引擎 x_t Tarasov + capillary 常量 ρ_汞 13534/θ 汞+石蜡 150° 对齐引擎,契约测试 21→23)
-- 测试数: core 1137 (127 files) + viz 1616 (54 files) = 2753 (2026-10-09 实测) <!-- test-count -->
+- 测试数: core 1186 (129 files) + viz 2004 (76 files) = 3190 (2026-11-13 实测) <!-- test-count -->
 - `WorkbenchScene 拆分` — ProjectileScene(430 行) 拆为 components/workbench/ 组件族 (WorkbenchScene/SceneStage/InspectorPanel/DataDrawer/TextbookDirectory + useSceneRig/useCompareSimulations/useSceneSimulation)；CompareEntry 支持失败变体显式报错 (result 可空 + error)；tests/workbench/ 新增 16 例
 - `课堂教学脚本系统 (Classroom Scripts)` — 扩充至 **24 个高中高频核心实验** 的 5 阶段结构化教学全流程（目标 → 启发演示 → 变量对比 → 预测提问与错因剖析 → 结论与公式）+ `ClassroomScriptPanel` 组件 + 7 例契约测试全绿通过
 - `教材目录精讲高亮与置顶` — 在 `TextbookDirectory` 中加入 **“🌟 高中核心精讲 (24 节)”** 置顶推荐组与 `[精讲]` 勋章 Badge，极大提升老师备课选课效率
 - `高中核心精讲 (24 节) 3D 实验模块标准化升级` — 24 节核心实验 3D 真实器材建模与柔和光影、clampToGround 真实停靠、onAnimate 动态每帧物理随动；新增交互测量工具箱 `MeasurementToolbox`（悬浮标尺 + 虚拟光电门）；视角预设拓展缩放/全景居中 HUD；详见 [`docs/3D_CORE_STANDARDIZATION_SUMMARY.md`](./3D_CORE_STANDARDIZATION_SUMMARY.md)
 - `质量门禁与脚本补齐` — 根目录 `package.json` 补齐 `verify:3d` 脚本，全量 `npm run precheck` 与 9 层物理自检全部通过 (694/694 checks passed)
+- **8-11 之后的里程碑收官** (事实来源: `gh issue list --state closed` + `git log`, 各 Issue 号均 CLOSED):
+  - **M6 物理世界盒子 UI 统一与组件复用 (7/7 收官 2026-10-20)** — 复用壳抽取: PanelSection+LazyPanel (#132, merge `5252f4e`) / common/NumberField (#135, `a8dc71f`) / common/StepWizard+OverlayDrawer (#136, `10dbba9`); Design Token 切片 1-4: #138 (`9aaf3aa`) / #147 (`6d99989`) / #146 (`76019de`) / #145 (`2841124`) + 首批落地 #142 (`9e33a2a`); PanelSection 收口迁移 7 文件 (#139, `fc6c2ef`) 与窄视口遮挡修复 (#137, `d17a458`)
+  - **M7 UI 基础质量收口 (3/3 收官 2026-10-21)** — 浮层可访问性统一 (Esc 关闭+初始焦点/焦点归还+OCR 弹窗 dialog 语义, #148, merge `fc029e7`); 主题色 JS 单一真源 themeTokens 语义表 (#149, `4c07f43`) 与 SimulationCanvas/EquipmentStage 主题分支迁移 (#150, `1bdf60e`)
+  - **M8 组合实验台产品功能线+证据物料 (2+2 收官 2026-10-23)** — 器材旋转编辑+轨迹回放控制 (#100, merge `4d3ef08`); 预设实验模板一键布置 (速度选择器/质谱仪/磁聚焦/平行板偏转, #101, `8622ea0`); 收尾: 交互探针画布像素级断言强化 (#151, `9a33f58`) 与 README 演示截图更新 (#154, `8fea81a`)
+  - **CI 门禁补强** — vendor-react 懒拆保 70kB 首屏 (#140, merge `f9cd5d6`); 挂载前必需资源度量口径重建 (#141, `fedd6b5`); 4 个 headless 浏览器探针接入 CI 阻断 Deploy (#143, `b982aa0`)
+  - **M9 课堂核心场景坐标纠错 (进行中)** — #157 修复 `uniform-accelerated`（竖直运动：自由落体/上抛）默认播放静止及高度/教案坐标不一致（补 `height` 默认 20m、统一 `verticalMotionRig` 释放点/高度尺/最高点绝对与相对高度语义、同步教案/导学与先红后绿回归）
+  - **M9 #158 斜面坐标与全程支撑修复** — `inclined-plane` 板与球/轨迹共用实际引擎结果布局，XY 不再二次投影；展示板覆盖有向采样全程并留球半径法向距离，移除装饰挡板和地面夹高，a 标签读引擎。真实生产浏览器完成播放/暂停/拖时/85°变角/静止/场景往返，接触与位移测量及截图见渲染审计与 Issue #158 执行报告。
+  - **M9 #157 首次退回差距收口** — 释放参考架实体后退留全球道净空、嵌入式接料垫真实表面与落地球底共面；仅此 rig 的多行纹理自适应字宽并在变尺寸时安全更换/释放 GPU 贴图。删除文案/默认值与 userData 回显断言，保留运动契约并新增实际接触红绿；README 移除重复写死的测试总数，唯一数值由计数脚本维护。生产浏览器默认运动、落地、上抛回经释放高度及 32 组真实纹理边界已实测，证据见 Issue #157 与渲染审计。
+  - **3D 物理模型对齐 (#160, 2026-10-26)** — 用户反馈「物理模型都对不上」，定位三处根因并修复：①电磁复合场 `Ex`（平行于 v）改为 `Ey`（⊥ v），引擎重回解析速度选择路径，rig 改读真参数、标牌 `v=E/B` 由 1.00e+6 修正为 1000 m/s，3D 比例尺 0.16→0.32 让粒子从枪口走到荧光屏；②单摆 rig 改 1 单位 = 1 米（支点 = L + 0.35 m），摆线改可见细圆柱、光电门落在最低点球心高度，标牌周期改用引擎实测值（大摆角下 ≠ 2π√(L/g)）；③机械波引擎 tracked 采样改自适应（间距 ≤ λ/8，消除「9 点同相 → 波形成直线」与「λ/4 尖刺三角波」），3D rig 改自绘质点（`ownParticles`，消费引擎轨迹而非自算正弦），横向 1 单位 = 1 米、纵向放大倍数写进标牌。新增 `waveMediumView.ts` 介质采样纯函数 + `scene-rig-physics.test.ts` 16 例真实场景→引擎→rig 几何回归。
+  - **#160 取景/器材收口 (2026-10-26)** — ①装置横向原点统一到舞台中心 `STAGE_CENTER_X`（em-combined / simple-pendulum 原先贴平台左边缘，荧光屏与标牌被裁），与 orbitalRig / circularMotionRig 同口径；②三个 rig 的 `framing` 按内容包围盒重算（标牌、荧光屏、介质台架完整入画）；③电磁复合场粒子球半径 0.22→0.06（不再糊住电子枪口）、`⊗` 磁符号改为几何绘制（圆环 + 叉；文字精灵的透明区域会写深度，把精灵背后的粒子轨迹线“挖空”）、`+/−` 极性符号改用等比缩放（`makeTextSprite` 画布 384×128，横向 scale 须为纵向 3 倍，否则字符被压扁）、隐藏速度选择器不适用的「偏转电压 U」标牌；④单摆横梁补立柱与底座（不再悬空）；⑤地台由 14×8 扩到 20×14，消除斜俯视时地面边缘在画面里露出成一条白线；⑥机械波质点半径 0.055→0.024、波形线前移到质点之前、补台架支腿、传播方向箭头与 λ 标尺居中于介质；⑦2D 板书机械波改为**直接消费引擎追踪质点**（早期在等间距网格上二次采样，追踪点之间的折线被重采样 → 波形退化成尖刺），与 3D 舞台共用同一份引擎数据；⑧2D 板书单摆的周期读数改用引擎实测值（`measurePendulumPeriod`，与 3D 器材标牌同源），小角度公式值降为对照项，避免同一场景在 2D/3D 显示两个周期（契约测试 `single-source-contract.test.ts` 新增行为级用例锁定）。
 
 ---
 
@@ -46,7 +56,7 @@
 | 场景 | 状态 | 说明 |
 |---|---|---|
 | sound-waveform | ✅ 已迁 | 行波快照等效时移采样 waveform_t |
-| mechanical-wave | ✅ 已迁(+引擎 bug 修复) | 9 tracked 质点插值,横/纵/驻波 |
+| mechanical-wave | ✅ 已迁(+引擎 bug 修复) | tracked 质点插值(数量随 λ 自适应),横/纵/驻波 |
 | lc-oscillator | ✅ 已迁 | q/i/Ee/Em 读 x_t/y_t/ke_t/pe_t(键名注意!) |
 | water-diffraction | ✅ 已迁(+引擎 bug 修复) | HUD 读 maxValues,契约测试 6 例 |
 | em-wave-hertz | ✅ 已迁(+场景契约修复) | HUD 读 maxValues,补虚拟 antenna |

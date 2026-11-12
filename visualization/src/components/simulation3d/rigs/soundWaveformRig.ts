@@ -189,12 +189,12 @@ export const soundWaveformRig: SceneRig = {
             harmonic2: 0.2
         };
 
-        this.updateEquipment(handles as unknown as Record<string, unknown>, params);
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        this.updateEquipment(handles, params);
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        const h = handles as unknown as SoundWaveformHandles;
+        const h = handles as SoundWaveformHandles;
         const frequency = num(params['frequency'], 440);
         const amplitude = num(params['amplitude'], 0.8);
         const waveType = Math.round(num(params['waveType'], 0));
@@ -225,7 +225,7 @@ export const soundWaveformRig: SceneRig = {
     },
 
     onAnimate(handles, ctx) {
-        const h = handles as unknown as SoundWaveformHandles;
+        const h = handles as SoundWaveformHandles;
         if (!h.oscilloscopeScreen) return;
 
         const { time } = ctx;

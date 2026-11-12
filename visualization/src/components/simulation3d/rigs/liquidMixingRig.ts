@@ -129,15 +129,15 @@ export const liquidMixingRig: SceneRig = {
         };
         updateLiquidMixing(handles, params);
 
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        updateLiquidMixing(handles as unknown as LiquidMixingHandles, params);
+        updateLiquidMixing(handles as LiquidMixingHandles, params);
     },
 
     onAnimate(handles, ctx) {
-        const h = handles as unknown as LiquidMixingHandles;
+        const h = handles as LiquidMixingHandles;
         if (!h.tubeGroup || !h.mixedLiquid) return;
 
         // 演示动画: 前半段管子缓慢上下翻转混合，后半段混合液面明显下降

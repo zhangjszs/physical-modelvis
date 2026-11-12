@@ -3,7 +3,11 @@
  * 适用于光的折射定律、全反射、折射率测定实验
  */
 import * as THREE from 'three';
-import { makeCylinder, makeTextSprite } from '../primitives';
+import { makeCylinder, makeLabelSprite } from '../primitives';
+import type { OpticsRigReadouts } from '../rigs/opticsRig';
+
+/** 读数标牌字高 (世界单位) */
+const LABEL_GLYPH_HEIGHT = 0.1;
 
 export interface OpticalDiskHandles {
     group: THREE.Group;
@@ -106,8 +110,8 @@ export function createOpticalDisk(
     group.add(refractedBeam);
     group.add(reflectedBeam);
 
-    // 5. 角度说明标牌
-    const angleLabel = makeTextSprite('入射角 θ₁ → 折射角 θ₂', '#0f172a', 24, { x: 1.1, y: 0.22 });
+    // 5. 角度说明标牌 (字高固定, 避免长读数被压成一条线)
+    const angleLabel = makeLabelSprite('入射角 θ₁ → 折射角 θ₂', '#0f172a', 24, LABEL_GLYPH_HEIGHT);
     angleLabel.position.set(0, centerY + diskRadius + 0.3, 0);
     group.add(angleLabel);
 
@@ -124,15 +128,23 @@ export function createOpticalDisk(
     return { group, handles };
 }
 
+/**
+ * 更新分度盘上的光路。
+ *
+ * @param read 引擎读数 (θ₁ / θ₂ / 是否全反射) —— 折射角由**引擎**给出,
+ *             器材层不再自己按 Snell 定律重算 (旧版 `sinθ₂ = sinθ₁/n` 自算,
+ *             与引擎各算各的, 引擎改公式画面就漂)。
+ * @param centerY 分度盘中心高度 (世界单位)
+ * @param diskRadius 分度盘半径 (世界单位)
+ */
 export function updateOpticalDisk(
     handles: OpticalDiskHandles,
-    theta1Deg: number,
-    n = 1.5,
+    read: OpticsRigReadouts,
     centerY = 1.4,
     diskRadius = 1.6
 ): void {
-    const r1 = (theta1Deg * Math.PI) / 180;
-    // 激光器位置 (位于空气中第二象限)
+    const r1 = (read.theta1 * Math.PI) / 180;
+    // 激光器位置 (位于介质 1 第二象限)
     const laserR = diskRadius * 0.85;
     const lx = -Math.sin(r1) * laserR;
     const ly = centerY + Math.cos(r1) * laserR;
@@ -147,10 +159,9 @@ export function updateOpticalDisk(
         new THREE.Vector3(0, centerY, 0.05)
     ]);
 
-    // 折射定律 n1*sin(theta1) = n2*sin(theta2), n1=1, n2=n
-    const sinTheta2 = Math.sin(r1) / n;
-    if (sinTheta2 <= 1.0) {
-        const r2 = Math.asin(sinTheta2);
+    // 折射光线: 全反射时**不存在** (引擎 totalInternalReflection = 1)
+    if (!read.totalInternalReflection && read.theta2 !== null) {
+        const r2 = (read.theta2 * Math.PI) / 180;
         const rx = Math.sin(r2) * (diskRadius * 0.75);
         const ry = centerY - Math.cos(r2) * (diskRadius * 0.75);
 
@@ -161,11 +172,10 @@ export function updateOpticalDisk(
         ]);
         handles.refractedBeam.visible = true;
     } else {
-        // 全反射
         handles.refractedBeam.visible = false;
     }
 
-    // 反射光线
+    // 反射光线 (反射角恒等于入射角)
     const reflX = Math.sin(r1) * (diskRadius * 0.75);
     const reflY = centerY + Math.cos(r1) * (diskRadius * 0.75);
     handles.reflectedBeam.geometry.dispose();

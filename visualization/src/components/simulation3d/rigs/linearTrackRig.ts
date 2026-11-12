@@ -43,7 +43,7 @@ export const linearTrackRig: SceneRig = {
     },
 
     updateEquipment(handles, params) {
-        const h = handles as unknown as LinearRigHandles;
+        const h = handles as LinearRigHandles;
         const v0 = num(params['v0'], 0);
         const a = num(params['a'], 2);
         setLabel(h.infoLabel, `v₀=${v0.toFixed(1)}m/s, a=${a.toFixed(1)}m/s²`, '#2563eb');

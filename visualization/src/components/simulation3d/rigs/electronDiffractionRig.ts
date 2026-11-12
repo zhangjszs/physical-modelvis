@@ -73,7 +73,7 @@ export const electronDiffractionRig: SceneRig = {
     },
 
     updateEquipment(handles, params) {
-        updateElectronDiffraction(handles as unknown as ElectronDiffractionHandles, params);
+        updateElectronDiffraction(handles as ElectronDiffractionHandles, params);
     },
 
     getVisualPosition(pos) {

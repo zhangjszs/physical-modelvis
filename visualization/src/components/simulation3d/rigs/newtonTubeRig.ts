@@ -33,13 +33,13 @@ export const newtonTubeRig: SceneRig = {
         scene.add(group);
 
         const handles: NewtonTubeRigHandles = { tubeHandles, heightHandles };
-        this.updateEquipment(handles as unknown as Record<string, unknown>, params);
+        this.updateEquipment(handles, params);
 
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        const h = handles as unknown as NewtonTubeRigHandles;
+        const h = handles as NewtonTubeRigHandles;
         const withAir = num(params['withAir'], 1) > 0.5;
         const height = num(params['height'], 5);
 
@@ -67,7 +67,7 @@ export const newtonTubeRig: SceneRig = {
     },
 
     onAnimate(handles, ctx) {
-        const h = handles as unknown as NewtonTubeRigHandles;
+        const h = handles as NewtonTubeRigHandles;
         if (!h.tubeHandles) return;
 
         const { coin, feather, topY, bottomY } = h.tubeHandles;

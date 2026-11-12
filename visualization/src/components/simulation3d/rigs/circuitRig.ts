@@ -191,12 +191,12 @@ export const circuitRig: SceneRig = {
             voltageU: 10.91
         };
 
-        this.updateEquipment(handles as unknown as Record<string, unknown>, params);
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        this.updateEquipment(handles, params);
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        const h = handles as unknown as CircuitHandles;
+        const h = handles as CircuitHandles;
         const emf = num(params['emf'] ?? params['voltage'] ?? 12, 12); // V
         const r = num(params['internalR'] ?? params['r'] ?? 1.0, 1.0); // Ω
         const R = num(params['loadR'] ?? params['R'] ?? params['resistance'] ?? 10.0, 10.0); // Ω
@@ -251,7 +251,7 @@ export const circuitRig: SceneRig = {
     },
 
     onAnimate(handles, ctx) {
-        const h = handles as unknown as CircuitHandles;
+        const h = handles as CircuitHandles;
         if (!h.bulbMesh) return;
 
         const { time } = ctx;

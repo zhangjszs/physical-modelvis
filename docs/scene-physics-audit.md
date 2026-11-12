@@ -1,0 +1,245 @@
+# 全场景物理模型排查清单 (issue #159, Phase 0 v1)
+
+> 生成: join-checklist.mts（engine-dump + static-scan + rig-param-mismatch + browser-shots 自动 join）。
+> 三类判定: P1 模型出错 / P2 尺度比例 / P3 可视化充分性。严重度: 阻断/严重/一般。
+> 行数 = 注册场景数 = 123。判定/严重度/根因列由人工核对填写；自动红旗见 .scratch/scene-audit/*.json。
+
+| sceneId | 领域 | 场景名 | 引擎模型 | rig | worldScale | 参数命中 | 引擎轨迹/图表 | 探针状态 | 判定 | 严重度 | 根因/建议 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| `projectile` | 力学 | 抛体运动 (平抛+斜抛) | projectile | projectileRig | 0.16 | n/a | 1动/1条·7图 | OK | 已修复 | 87358b1 | #159 高中核心逐节复核(严重级): 3D 落点垫位置由 rig 内重解落地方程算出(与引擎 maxValues.range 两套公式), getVisualPosition 还有永远走不到的「贴地滑行」分支(引擎契约是落地即止); 地面卷尺 5 m/世界单位 与 rig WORLD_SCALE=0.16 (6.25 m/单位) 口径不一致; 2D 落到通用默认渲染器, 看不出「水平匀速+竖直匀加速=抛物线」, 无最高点/射程标注, duration 撑到 tLand+tRoll 致末段物体静止。已修: 落点改读引擎 range、卷尺口径对齐、新增 projectile 专属板书(最高点/射程/分解标注) |
+| `uniform-accelerated` | 力学 | 竖直运动（自由落体/上抛） | uniform-accelerated | verticalMotionRig | 0.16 | 3/4 | 1动/1条·5图 | OK | 已修复 | 87358b1 | #159 高中核心逐节复核(严重级): 3D 标牌在 rig 内自算 Δh=v₀y²/(2g)、H_max=h₀+Δh、t_上=v₀y/g (渲染层第二套公式, 与引擎 uniform-accelerated 脱钩); 自动取景把最高点顶出视口上沿(小球被裁掉一半); 默认 v₀y=0 ⇒ 与「自由落体」场景完全同形, 场景名承诺的「上抛→最高点→回落」在默认画面里看不到; 2D 落到通用默认渲染器无竖直运动专属板书。已修: 读数整组读引擎、新增 framing、默认改出上抛初速、新增竖直运动专属板书。附: F-A1 已修 CanvasRenderer 阴影椭圆 radiusX/Y 正下限 clamp(0.2/0.06), 回归 canvas-shadow-clamp.test.ts 3 例(先红后绿) |
+| `free-fall` | 力学 | 自由落体 | uniform-accelerated | freeFallRig | 0.16 | 1/2 | 1动/1条·5图 | OK | 已修复 | 87358b1 | #159 高中核心逐节复核(阻断级): 引擎 uniform-accelerated 不做地面约束, 落地后轨迹外推到 y=-24.1 m, 板书直接读 h₀-y 与 |v_y| ⇒ t=3 s 显示 s=44.10 m / v=29.40 m/s (超过 20 m 落高, 是穿过地面的伪读数); 3D 还摆了一条水平地面卷尺(自由落体水平位移恒 0)。已修: 板书按引擎落地时刻截断并读引擎值、卷尺改竖直 |
+| `collision` | 力学 | 碰撞 | collision-elastic | collisionRig | 0.16 | n/a | 2动/2条·3图 | OK | 已修复 | 7143cae | #159 高中核心逐节复核(严重级): 3D rig 与 2D 板书的读数与运动学曾各自重算, 与引擎 collision-elastic 的解析解存在口径差; 碰撞前后动量/能量读数未标出。已修: 读数整组改走引擎 maxValues + charts, 板书给出 m₁v₁+m₂v₂ 与 E_k 前后对照 |
+| `spring` | 力学 | 弹簧振子 | spring-oscillator | springRig | 0.16 | n/a | 1动/1条·3图 | OK | 已修复 | 7143cae | #159 高中核心逐节复核(严重级): 弹簧振子的平衡位置/能量读数曾由 rig 自算, 与引擎 spring-oscillator 的解析解脱钩; 3D 弹簧形变与刻度尺口径不一致。已修: 形变与读数同源于引擎位移, 补齐振幅/周期/能量标牌 |
+| `inclined-plane` | 力学 | 斜面运动 | inclined-plane | inclineRig | 0.16 | 1/2 | 1动/1条·3图 | OK | 已修复 | a4f9da9 | #159 高中核心逐节复核(严重级): 斜面倾角/加速度/时间读数曾由 rig 按公式自算, 与引擎 inclined-plane 解析解脱钩; 3D 斜面尺寸与刻度口径不统一。已修: 读数整组读引擎 maxValues, 3D 比例由引擎轨迹推导并导出 inclineUnitsPerMeter |
+| `circular-motion` | 力学 | 匀速圆周运动 (向心力) | uniform-circular-motion | circularMotionRig | 0.6 | n/a | 1动/1条·6图 | OK | 通过 | — | #159 高中核心逐节复核: 向心力/向心加速度/周期读数与引擎 uniform-circular-motion 自洽; worldScale=0.6 为有意偏差(注释已论证「1 m 半径→0.6 单位」使小半径圆周可见), 球径按半径等比缩放。逐项复核通过 |
+| `orbital` | 力学 | 万有引力与航天 (卫星轨道) | orbital | orbitalRig | 0.16 | n/a | 1动/1条·5图 | OK | 通过 | — | #159 高中核心逐节复核: 引擎 vOrbit=7.672594 km/s、minR=6771 km、vEscape=10.850687 km/s、orbitPeriod=5544.86 s 四项自洽; 渲染位置跟随引擎轨迹。逐项复核通过 |
+| `air-track` | 力学 | 气垫导轨测速度 | uniform-linear | airTrackRig | 0.16 | 3/3 | 1动/1条·2图 | OK | 已修复 | a4f9da9 | #159 高中核心逐节复核(严重级): 气垫导轨的刻度/光电门位置与速度读数曾按 rig 内常量算, 与引擎 uniform-linear 脱钩。已修: 读数读引擎, 导轨比例 1 单位=1 米 (导出 airTrackUnitsPerMeter), 光电门读数走真实链路 |
+| `energy-conservation` | 力学 | 机械能守恒定律 (动能↔势能) | uniform-accelerated | fallingEnergyRig | 0.16 | 1/2 | 1动/1条·5图 | OK | 已修复 | 7143cae | #159 高中核心逐节复核(严重级): 机械能守恒节的势能/动能/总能量读数曾由渲染层自算, 与引擎 uniform-accelerated 的能量输出脱钩, 画面上看不出 Ek+Ep=const 的守恒过程。已修: 能量柱与读数整组改走引擎 |
+| `momentum` | 力学 | 动量定理与反冲 | momentum | ? | 0.16 | n/a | 1动/1条·4图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `mechanical-wave` | 力学 | 机械波 (横波/纵波/干涉) | mechanical-wave | waveRig | 1 | 3/3 | 82动/82条·3图 | OK | 通过 | — | #159 高中核心逐节复核: waveSpeed=1=f·λ、λ=0.5 m、f=2 Hz 自洽; 追踪质点间距 ≤ λ/8 (早期固定 9 点间距=λ 会全部同相退化成直线); 介质跨度=介质实长(1 单位=1 米)、质点数=引擎追踪点数; 波形线顶点由追踪质点插值而来(不是自算正弦); 纵向放大受限且倍数已标注; rig 自绘质点(ownParticles)。逐项复核通过 |
+| `simple-pendulum` | 力学 | 单摆 (简谐运动) | simple-pendulum | pendulumRig | 1 | n/a | 1动/1条·5图 | OK | 通过 | — | #159 高中核心逐节复核: 1 单位=1 米、摆球到支点距离恒等于摆长 L、光电门光束落在最低点球心高度、摆线可见; 周期标牌用引擎实测值(2.007090 s)而非小角度公式冒充, 大摆角(60°) 下实测周期明显长于小角度公式。逐项复核通过 |
+| `hooke-law` | 力学 | 胡克定律 F=kx | spring-oscillator | hookeLawRig | 0.16 | 1/2 | 1动/1条·3图 | OK | 已修复 | a4f9da9 | #159 高中核心逐节复核(阻断级): 引擎 spring-oscillator 完全忽略重力(钩码停在原长附近做简谐振动, 出现负伸长) ⇒「mg/k 平衡位置」这一胡克定律核心结论在引擎里不成立; 2D 形变量被 Math.max(20, x*120) 钳死 ⇒ 钩码永远不动, 而刻度尺按 120 px/m 标到 1.667 m; 3D 形变按 0.64 单位/米 画, 与刻度尺 5.5 单位/米 差 8.6 倍, 标牌读场景不存在的 params["m"] ⇒ 显示 F=4.90N/Δx=24.5cm(真值 0.2kg/1.96N/9.8cm)。已修: 引擎新增 gravityAlongAxis/equilibriumDisplacement 绕 x_eq=mg∥/k 振动; 2D 改按引擎位置导出伸长量+量程自适应刻度; 3D 形变与刻度同源、读数读引擎 equilibriumDisplacement、补 framing |
+| `sliding-friction` | 力学 | 滑动摩擦力 f=μN | sliding-friction | slidingFrictionRig | 0.16 | 4/4 | 2动/2条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `force-composition` | 力学 | 力的合成 (平行四边形定则) | force-composition | forceCompositionRig | 0.16 | 3/3 | 1动/1条·1图 | OK | 已修复 | 7143cae | #159 高中核心逐节复核(严重级): 平行四边形定则的合力/分力读数曾自算, 与引擎 force-composition 脱钩; 2D 未把两个分力与合力的定量关系画出来。已修: 读数读引擎, 板书给出 F=F₁+F₂ 与合成角定量对照 |
+| `newton-second-law` | 力学 | 牛顿第二定律 F=ma | newton-second-law | newtonSecondLawRig | 0.16 | 2/2 | 1动/1条·5图 | OK | 已修复 | 7143cae | #159 高中核心逐节复核(严重级): F=ma 的受力/加速度读数曾由 rig 按场景参数自算, 与引擎 newton-second-law 脱钩; 2D 缺「a=F/m」定量面板。已修: 读数整组读引擎 maxValues, 补 a-F/m 定量面板与受力示意 |
+| `newton-first-law` | 力学 | 牛顿第一定律 (惯性) | uniform-linear | newtonFirstLawRig | 0.16 | 2/2 | 1动/1条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `newton-third-law` | 力学 | 牛顿第三定律 | newton-third-law | newtonThirdLawRig | 0.16 | 4/4 | 2动/2条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `ticker-timer` | 力学 | 打点计时器测瞬时速度 | ticker-timer | tickerTimerRig | 0.16 | n/a | 1动/1条·3图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `reaction-time` | 力学 | 测反应时间 | reaction-time | reactionTimeRig | 0.16 | n/a | 1动/1条·4图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `galileo-incline` | 力学 | 伽利略斜面理想实验 | galileo-incline | galileoInclineRig | 0.16 | 1/2 | 1动/1条·3图 | OK | 已修复 | a4f9da9 | #159 高中核心逐节复核(严重级): 伽利略斜面理想实验的「等时性/加速度与斜面无关」结论未在画面上定量呈现, 3D 读数自算。已修: 引擎 all 模式改为物理连续的「下滑→谷底水平面匀速」, 对接斜面由 docked 模式呈现; 读数读引擎, 板书补等时性对照 |
+| `center-of-gravity` | 力学 | 悬挂法确定重心 | center-of-gravity | centerOfGravityRig | 0.16 | 1/1 | 0动/1条·1图 | OK | 通过 | — | 通过(示意): 3D 为器械示意几何, 定量曲线与读数在 2D 板书+数据抽屉; 全量复扫 123 景 0 crash/error/空白、QA sweep 抽屉 123/123 无错、交互 0 不随动 |
+| `inertia` | 力学 | 惯性实验 (棋子/鸡蛋/小车) | inertia | ? | 0.16 | n/a | 2动/2条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `overweight` | 力学 | 超重与失重 (电梯台秤) | overweight | ? | 0.16 | n/a | 1动/1条·6图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `curve-velocity-direction` | 力学 | 曲线运动速度方向 | curve-velocity-direction | curveVelocityDirectionRig | 0.16 | 2/2 | 5动/5条·3图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `curve-condition` | 力学 | 曲线运动条件 | curve-condition | curveConditionRig | 0.16 | 3/3 | 1动/1条·5图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `motion-composition` | 力学 | 运动的合成与分解 | motion-composition | motionCompositionRig | 0.16 | 2/2 | 1动/1条·6图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `transmission-belt` | 力学 | 传动方式 (皮带/齿轮/摩擦轮/同轴) | transmission-belt | transmissionBeltRig | 0.16 | 4/4 | 2动/2条·5图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `vertical-circle` | 力学 | 竖直圆周最高点条件 | vertical-circle | verticalCircleRig | 0.16 | 4/4 | 1动/1条·6图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `centrifugal` | 力学 | 离心现象 | centrifugal | ? | 0.16 | n/a | 1动/1条·5图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `cavendish` | 力学 | 卡文迪什扭秤测 G | cavendish | ? | 0.16 | n/a | 1动/1条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `moon-earth-test` | 力学 | 月地检验 (牛顿) | moon-earth-test | orbitalRig | 0.16 | n/a | 1动/1条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `double-pendulum-sync` | 力学 | 双单摆步调比较 | double-pendulum | doublePendulumRig | 0.16 | 5/6 | 1动/1条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `forced-vibration-freq` | 力学 | 受迫振动 (频率响应) | forced-vibration | vibrationRig | 0.16 | 5/7 | 1动/1条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `resonance-curve` | 力学 | 共振曲线 (幅-频) | resonance | vibrationRig | 0.16 | 4/7 | 0动/1条·2图 | OK | 通过 | — | 通过(示意): 3D 为器械示意几何, 定量曲线与读数在 2D 板书+数据抽屉; 全量复扫 123 景 0 crash/error/空白、QA sweep 抽屉 123/123 无错、交互 0 不随动 |
+| `sound-waveform` | 力学 | 声音波形 (纯音+复合) | sound-waveform | soundWaveformRig | 0.16 | 5/5 | 1动/1条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `doppler-effect` | 力学 | 多普勒效应 (声源运动) | doppler | dopplerRig | 1 | 0/3 | 1动/1条·2图 | OK | 已修复 | — | F-A2 已修: 新建 dopplerRig(移动波源+同心波前+双观察者), 前/后 f′ 读 charts.fprime_vs_theta(548.39/459.46), 信息牌读 maxValues(v=340/λ=0.68)+「读数源自引擎」; 旧 waveRig 的 v=1.00m/s 已消除; scene-rig-physics 增 4 例 |
+| `water-diffraction` | 力学 | 水波衍射 (遇障碍物) | water-diffraction | waveOpticsRig | 0.16 | 2/8 | 1动/1条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `sound-interference` | 力学 | 声波干涉 (双喇叭) | sound-interference | soundInterferenceRig | 1 | 0/8 | 1动/1条·2图 | OK | 已修复 | — | F-A3 已修: 新建 soundInterferenceRig：双喇叭+同心波前+引擎 scan_line 强度剖面；观察点 I/I₀=0.482/λ=0.68/f=500 读 maxValues；替代误用 waveOpticsRig(光干涉)；scene-rig-physics 增 2 例 |
+| `projectile-collision` | 力学 | 平抛碰撞 (验证动量守恒) | projectile-collision | collisionRig | 0.16 | 2/4 | 1动/1条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `newton-tube` | 力学 | 牛顿管 (真空 vs 空气) | uniform-accelerated | newtonTubeRig | 0.16 | 3/3 | 1动/1条·5图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `work-energy` | 力学 | 动能定理 W = ΔEk | uniform-accelerated | workEnergyRig | 0.16 | 3/3 | 1动/1条·5图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `ball-xt` | 力学 | 小球 x-t 图像 (简谐运动) | simple-pendulum | ballXtRig | 0.16 | 4/4 | 1动/1条·5图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `electric-field` | 电磁学 | 匀强电场 | uniform-electric-field | electricFieldRig | 1 | 0/3 | 1动/1条·4图 | OK | 已修复 | 840dd7d | #159 高中核心逐节复核(阻断级): 旧默认 q=1.6e-19 C/m=1.67e-27 kg/Ey=100 N/C → a=9.58e9 m/s²、v=64 倍光速, 违反引擎 assumptions; 2D/3D 电场箭头与极板极性未按引擎 Ey 符号对齐。已修: 改用演示用宏观带电小球量级(q/m=0.1 C/kg), 极性语义与引擎一致(下板 +), 读数读引擎 |
+| `magnetic-field` | 电磁学 | 匀强磁场 | uniform-magnetic-field | magneticFieldRig | 1 | 1/4 | 1动/1条·3图 | OK | 已修复 | 840dd7d | #159 高中核心逐节复核(阻断级): 旧默认 R=1.04 mm、10 ms 绕 15248 圈 只剩静止大球; 2D/3D 画 ⊗(入纸面) 而引擎 B 恒为 +z ⇒ 应为 ⊙(出纸面)。已修: 改用演示量级 q/m=100 C/kg、统一 ⊙ 出纸面、读数读引擎 |
+| `em-combined` | 电磁学 | 电磁复合场 | em-combined-field | emCombinedRig | 1 | 3/5 | 1动/1条·4图 | OK | 已修复 | 0b8fb70 | #159 高中核心逐节复核(阻断级): 旧默认 v选择=E/B=1000 m/s 恰等于 v₀ → 粒子走平衡点直线, 复合场核心现象缺席; q/m 下 Boris 单步转角 4.79 rad ≫ π/4 数值失效; 标牌读了场景里不存在的参数名(显示 1.00e+6 m/s, 比真值大 1000 倍)。已修: 新默认 q=2e-6 C/m=2e-8 kg/Bz=0.5 T/Ey=22 N-C/v₀x=20 m/s ⇒ 走摆线(漂移 44 m/s、ω=50 rad/s、Boris 单步 0.0025 rad、0 告警), 2D/3D 同手性、⊙ 出纸面、极性下板 +、比例由引擎轨迹推导 |
+| `circuit` | 电磁学 | 直流电路分析 (串并联) | circuit | ? | 0.16 | n/a | 0动/1条·3图 | OK | 通过 | — | 通过(示意): 3D 为器械示意几何, 定量曲线与读数在 2D 板书+数据抽屉; 全量复扫 123 景 0 crash/error/空白、QA sweep 抽屉 123/123 无错、交互 0 不随动 |
+| `magnetic-force` | 电磁学 | 安培力与洛伦兹力 | magnetic-force | ampereForceRig | 0.16 | 4/8 | 1动/1条·1图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `em-induction` | 电磁学 | 电磁感应 (法拉第定律) | em-induction | emInductionRig | 1 | 0/8 | 0动/1条·2图 | OK | 已修复 | — | F-A3 已修: 新建 emInductionRig（线圈+往复磁铁），ε(t)/Φ(t) 读 charts x_t/y_t 按引擎周期插值，ε_peak=157.1V/Φ单匝=5mWb 读 maxValues；不再显安培力装置；scene-rig-physics 增 3 例 |
+| `ac-current` | 电磁学 | 交变电流与变压器 (选必二§3) | ac-current | acCurrentRig | 1 | 0/7 | 0动/1条·2图 | OK | 已修复 | — | F-A3 已修: 新建 acCurrentRig（Eₘ=311V/匝比10:1/U₂峰值=31.10V 读 maxValues；e/u₂ 读 charts x_t/y_t；旋转线圈+铁芯装置）；scene-rig-physics 增 2 例 |
+| `lc-oscillator` | 电磁学 | LC 电磁振荡 | lc-oscillator | lcOscillatorRig | 0.16 | 1/4 | 0动/1条·4图 | OK | 通过 | — | 通过(示意): 3D 为器械示意几何, 定量曲线与读数在 2D 板书+数据抽屉; 全量复扫 123 景 0 crash/error/空白 |
+| `current-balance` | 电磁学 | 电流天平 (安培力测量) | current-balance | ampereForceRig | 0.16 | 1/8 | 1动/1条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `eddy-current` | 电磁学 | 涡流现象 (阻尼摆动) | eddy-current | eddyCurrentRig | 1 | 0/8 | 1动/1条·2图 | OK | 已修复 | — | F-A3 已修: 新建 eddyCurrentRig（P=95.4mW/δ=9.35mm 读 maxValues；板温读轨迹；金属板+磁极+4 涡流环）；scene-rig-physics 增 2 例 |
+| `em-damping` | 电磁学 | 电磁阻尼/驱动 | em-damping | emDampingRig | 1 | 0/8 | 1动/1条·1图 | OK | 已修复 | — | F-A3 已修: 新建 emDampingRig（ω(t) 读 charts.angular_velocity_vs_time；τ_c=0.04ms/ω₀=100 读 maxValues；摆臂+铜盘+磁极）；scene-rig-physics 增 2 例 |
+| `mutual-inductance` | 电磁学 | 互感现象 (双线圈) | mutual-inductance | mutualInductanceRig | 1 | 0/8 | 1动/1条·2图 | OK | 已修复 | — | F-A3 已修: 新建 mutualInductanceRig（I₁/E₂ 读 charts primary_current_vs_time/secondary_emf_vs_time；M=42.4mH/E₂幅值=13.33V 读 maxValues；双线圈）；scene-rig-physics 增 2 例 |
+| `self-inductance` | 电磁学 | 自感现象 (断电自感) | self-inductance | selfInductanceRig | 1 | 0/8 | 1动/1条·2图 | OK | 已修复 | — | F-A3 已修: 新建 selfInductanceRig（断电衰减 I(t)/ε_L(t) 读 charts current_vs_time/voltage_vs_time；τ=0.05s/I₀=1.2A 读 maxValues；线圈+电源/电阻）；scene-rig-physics 增 2 例 |
+| `em-wave-communication` | 电磁学 | 电磁波发射接收 | em-wave-communication | emWaveRig | 0.16 | 0/2 | 1动/1条·4图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `em-spectrum` | 电磁学 | 电磁波谱 (频段分布) | em-spectrum | emSpectrumRig | 1 | 0/2 | 1动/1条·2图 | OK | 已修复 | — | F-A3 已修: 新建 emSpectrumRig：6 段对数频率谱带+引擎 spectrum_curve+高亮频段；范围 10~1e16Hz/λ≈533nm/E≈2.32eV 读 maxValues；替代误用 emWaveRig(赫兹波)；scene-rig-physics 增 2 例 |
+| `hall-effect` | 电磁学 | 霍尔元件 (VH-IS) | hall-effect | fieldRig | 0.16 | 1/6 | 1动/2条·3图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `reed-switch` | 电磁学 | 干簧管 (磁控开关) | reed-switch | reedSwitchRig | 0.16 | 1/1 | 1动/1条·3图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `photoresistor` | 电磁学 | 光敏电阻 (R-L特性) | photoresistor | ? | 0.16 | n/a | 1动/1条·3图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `thermistor` | 电磁学 | 热敏电阻 (R-T特性) | thermistor | ? | 0.16 | n/a | 1动/1条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `strain-gauge` | 电磁学 | 电阻应变片 (惠斯通电桥) | strain-gauge | strainGaugeRig | 0.16 | 2/2 | 1动/1条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `security-alarm` | 电磁学 | 门窗防盗报警 (磁控) | security-alarm | circuitRig | 0.16 | 0/7 | 1动/1条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `light-control-switch` | 电磁学 | 光控开关 (光敏+继电器) | light-control-switch | circuitRig | 0.16 | 0/7 | 1动/1条·3图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `capacitor-charge` | 电磁学 | 电容充放电 (RC 暂态电路) | capacitor-charge | capacitorRig | 0.16 | 1/9 | 0动/1条·6图 | OK | 通过 | — | 通过(示意): 3D 为器械示意几何, 定量曲线与读数在 2D 板书+数据抽屉; 全量复扫 123 景 0 crash/error/空白、QA sweep 抽屉 123/123 无错、交互 0 不随动 |
+| `parallel-plate-capacitor` | 电磁学 | 平行板电容器因素 (C=εr·S/4πkd) | parallel-plate-capacitor | capacitorRig | 0.16 | 2/9 | 0动/1条·6图 | OK | 通过 | — | 通过(示意): 3D 为器械示意几何, 定量曲线与读数在 2D 板书+数据抽屉; 全量复扫 123 景 0 crash/error/空白、QA sweep 抽屉 123/123 无错、交互 0 不随动 |
+| `load-voltage` | 电磁学 | 路端电压与负载 (U=E−Ir) | load-voltage | circuitRig | 0.16 | 1/7 | 0动/1条·6图 | OK | 通过 | — | 通过(示意): 3D 为器械示意几何, 定量曲线与读数在 2D 板书+数据抽屉; 全量复扫 123 景 0 crash/error/空白、QA sweep 抽屉 123/123 无错、交互 0 不随动 |
+| `resistance-law` | 电磁学 | 电阻定律 (R=ρ·L/S) | resistance-law | resistanceLawRig | 1 | 3/3 | 0动/1条·6图 | OK | 已修复 | dc85e71 | #159 高中核心逐节复核(严重级): 3D rig 自带 ρ 表 (Cu 1.7e-8 / 镍铬 1.0e-6) 与引擎 RESISTIVITY (1.68e-8/1.0e-7/1.1e-6) 不一致; 引擎 R_invS 曲线 x 降序 ⇒ interpSeries 会插错; 引擎的 3 条语义曲线(R_L/R_invS/R_material)一条都没画。已修: 引擎曲线改升序、3D 读引擎 maxValues 并直接 import RESISTIVITY、2D 新增专属板书(R-L/R-1/S/材料对比) |
+| `coulomb-force-explore` | 电磁学 | 探究电荷间作用力 (库仑定律) | coulomb-force-explore | coulombRig | 1 | 0/5 | 1动/1条·3图 | OK | 已修复 | — | F-A3 已修: 新建 coulombRig（两点同号电荷 + 斥力箭头 + 间距标尺），F 读 maxValues.F0_N=3.595 N + k 相对误差；不再显验电器；scene-rig-physics 增 2 例 |
+| `electroscope` | 电磁学 | 验电器 (箔片张角 vs 电量) | electroscope | ? | 0.16 | n/a | 1动/1条·1图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `electrostatic-induction` | 电磁学 | 静电感应 (近/远端感应电荷) | electrostatic-induction | electroscopeRig | 0.16 | 1/5 | 1动/1条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `electrostatic-shielding` | 电磁学 | 静电屏蔽 (接地 vs 不接地) | electrostatic-shielding | electroscopeRig | 0.16 | 0/5 | 0动/1条·2图 | OK | 通过 | — | 通过(示意): 3D 为器械示意几何, 定量曲线与读数在 2D 板书+数据抽屉; 全量复扫 123 景 0 crash/error/空白、QA sweep 抽屉 123/123 无错、交互 0 不随动 |
+| `faraday-cup` | 电磁学 | 法拉第圆筒 (内表面电荷=0) | faraday-cup | faradayCupRig | 0.16 | 3/3 | 0动/1条·1图 | OK | 通过 | — | 通过(示意): 3D 为器械示意几何, 定量曲线与读数在 2D 板书+数据抽屉; 全量复扫 123 景 0 crash/error/空白、QA sweep 抽屉 123/123 无错、交互 0 不随动 |
+| `ampere-force` | 电磁学 | 安培力因素 (F=BIL·sinθ) | ampere-force | ampereForceRig | 0.16 | 4/8 | 0动/1条·3图 | OK | 通过 | — | 通过(示意): 3D 为器械示意几何, 定量曲线与读数在 2D 板书+数据抽屉; 全量复扫 123 景 0 crash/error/空白、QA sweep 抽屉 123/123 无错、交互 0 不随动 |
+| `em-wave-hertz` | 电磁学 | 赫兹电磁波实验 (LC振荡+驻波) | em-wave-hertz | emWaveRig | 0.16 | 1/2 | 0动/1条·4图 | OK | 通过 | — | 通过(示意): 3D 为器械示意几何, 定量曲线与读数在 2D 板书+数据抽屉; 全量复扫 123 景 0 crash/error/空白、QA sweep 抽屉 123/123 无错、交互 0 不随动 |
+| `multimeter-tool` | 电磁学 | 多用电表 (选档读数) | multimeter | measurementToolRig | 0.16 | n/a | 0动/1条·3图 | OK | 已修复 | — | P3 已修 (#164): 补 framing(器械居中+拉近 distance<4) + ownParticles(stage 不再画占位轨迹球遮挡器械); 证据 docs/screenshots/issue-164-*-3d.png |
+| `vernier-caliper-tool` | 电磁学 | 游标卡尺读数 | vernier-caliper | measurementToolRig | 0.16 | n/a | 0动/1条·3图 | OK | 已修复 | — | P3 已修 (#164): 补 framing(器械居中+拉近 distance<4) + ownParticles(stage 不再画占位轨迹球遮挡器械); 证据 docs/screenshots/issue-164-*-3d.png |
+| `micrometer-tool` | 电磁学 | 螺旋测微器读数 | micrometer | measurementToolRig | 0.16 | n/a | 0动/1条·3图 | OK | 已修复 | — | P3 已修 (#164): 补 framing(器械居中+拉近 distance<4) + ownParticles(stage 不再画占位轨迹球遮挡器械); 证据 docs/screenshots/issue-164-*-3d.png |
+| `current-magnetic` | 电磁学 | 电流的磁场 | current-magnetic-field | fieldRig | 0.16 | 1/6 | 0动/0条·0图 | OK | 通过 | — | 通过(示意): 3D 为器械示意几何, 定量曲线与读数在 2D 板书+数据抽屉; 全量复扫 123 景 0 crash/error/空白、QA sweep 抽屉 123/123 无错、交互 0 不随动 |
+| `efield-lines` | 电磁学 | 电场线分布 | electric-field-lines | efieldLinesRig | 1 | 0/6 | 0动/0条·0图 | OK | 已修复 | — | F-A3 已修: 新建 efieldLinesRig，场线几何直接读 extra.fieldLines(点电荷/偶极/极板)、maxField 读 maxValues；不再显匀强场+霍尔；scene-rig-physics 增 2 例 |
+| `bulb-vi` | 电磁学 | 小灯泡伏安特性 | circuit | circuitRig | 0.16 | 2/7 | 0动/1条·3图 | OK | 通过 | — | 通过(示意): 3D 为器械示意几何, 定量曲线与读数在 2D 板书+数据抽屉; 全量复扫 123 景 0 crash/error/空白、QA sweep 抽屉 123/123 无错、交互 0 不随动 |
+| `refraction` | 光学 | 光的折射定律 (Snell) | refraction | opticsRig | 1 | n/a | 1动/1条·2图 | OK | 已修复 | 929aa18 | #159 高中核心逐节复核(阻断级): 引擎折射线画到法线另一侧(refractEndX 取负号 ⇒ 左下, 而入射线行进方向是右下); 3D rig 与 2D 板书均自算 θ₂/临界角不读引擎 (全反射判据 >1 vs 引擎 >=1); 2D 非全反射分支不画反射光线; 引擎 sinθ₁-sinθ₂ 直线没画; 3D 分度盘被轨迹包围盒自动取景挤到左上角且圆心有一颗无意义默认大球遮住光路; 顶部标牌被工具条遮住。已修: 引擎符号改为 +L·sinθ₂、3D/2D 整组读引擎、2D 新增专属板书(三光线 + Snell 验证直线 + 工作点)、ownParticles + 显式取景, refraction 入 charts 登记表 |
+| `interference` | 光学 | 双缝干涉 (杨氏实验) | interference | ? | 0.16 | n/a | 1动/1条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `thin-film` | 光学 | 薄膜干涉 (等厚) | thin-film | waveOpticsRig | 0.16 | 1/8 | 1动/1条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `single-slit` | 光学 | 单缝衍射 (光强分布) | single-slit | waveOpticsRig | 0.16 | 2/8 | 0动/1条·2图 | OK | 通过 | — | 通过(示意): 3D 为器械示意几何, 定量曲线与读数在 2D 板书+数据抽屉; 全量复扫 123 景 0 crash/error/空白、QA sweep 抽屉 123/123 无错、交互 0 不随动 |
+| `diffraction-grating` | 光学 | 光栅衍射 (光栅方程) | diffraction-grating | waveOpticsRig | 0.16 | 2/8 | 1动/1条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `polarization-malus` | 光学 | 偏振光 (马吕斯定律) | polarization | polarizationRig | 1 | 0/4 | 1动/1条·3图 | OK | 已修复 | — | F-A3 已修: 新建 polarizationRig：偏振片堆+光束+引擎 malus_curve；Ifinal=0.5/透射率=0.5 读 maxValues；替代误用 opticsRig(折射)；scene-rig-physics 增 2 例 |
+| `hologram` | 光学 | 全息照相 (干涉记录) | hologram | ? | 0.16 | n/a | 1动/1条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `total-internal-reflection` | 光学 | 全反射与光导 | refraction | opticsRig | 0.16 | 3/4 | 1动/1条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `gas-law` | 热学 | 理想气体状态方程 | gas-law | gasLawRig | 0.16 | 5/5 | 1动/1条·1图 | OK | 已修复 | 9defe78 | #159 高中核心逐节复核(阻断级): 3D getVisualPosition 把引擎轨迹的 x(体积 V, 单位 L) 当米用 ⇒ 22.4L→3.58 世界单位, 默认小球飘到气缸外还拖一条轨迹线(引擎轨迹是 p-V 状态点不是空间轨迹); 活塞高度只看初始体积 ⇒ 全程纹丝不动, 「压缩→压强升高」的过程完全缺席; 3D 标牌读场景参数而非引擎; 2D 等容模式横轴恒标 V/L 而引擎等容曲线是 p–T 图(查理定律被贴错轴); 2D 读 maxValues 用 as {...} 双重强转; 3D 刻度线用实心圆盘叠成黑弹簧; 顶部标牌被工具条压住。已修: ownParticles + 显式取景、活塞/气压表/气体色/分子速率全部由引擎过程插值驱动、共享 utils/gasLawProcess(V(t)/T(t) 两端线性 + p(t) 查引擎曲线, 等温 pV=const 不可线性插值)、2D 重写(横轴随 modeCode 切换)、刻度改细圆环、标牌避让工具条 |
+| `diffusion` | 热学 | 扩散现象 (浓度梯度) | diffusion | ? | 0.16 | n/a | 0动/1条·2图 | OK | 通过 | — | 通过(示意): 3D 为器械示意几何, 定量曲线与读数在 2D 板书+数据抽屉; 全量复扫 123 景 0 crash/error/空白、QA sweep 抽屉 123/123 无错、交互 0 不随动 |
+| `brownian-motion` | 热学 | 布朗运动 (微粒抖动) | brownian-motion | brownianMotionRig | 0.16 | 4/4 | 10动/10条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `oil-film` | 热学 | 油膜法测分子直径 | oil-film | oilFilmRig | 0.16 | 3/3 | 0动/1条·2图 | OK | 通过 | — | 通过(示意): 3D 为器械示意几何, 定量曲线与读数在 2D 板书+数据抽屉; 全量复扫 123 景 0 crash/error/空白、QA sweep 抽屉 123/123 无错、交互 0 不随动 |
+| `liquid-mixing` | 热学 | 液体混合 (扩散) | liquid-mixing | liquidMixingRig | 0.16 | 2/2 | 0动/1条·2图 | OK | 通过 | — | 通过(示意): 3D 为器械示意几何, 定量曲线与读数在 2D 板书+数据抽屉; 全量复扫 123 景 0 crash/error/空白、QA sweep 抽屉 123/123 无错、交互 0 不随动 |
+| `molecular-force` | 热学 | 分子力曲线 (F-r) | molecular-force | molecularForceRig | 0.16 | 2/2 | 0动/1条·2图 | OK | 通过 | — | 通过(示意): 3D 为器械示意几何, 定量曲线与读数在 2D 板书+数据抽屉; 全量复扫 123 景 0 crash/error/空白、QA sweep 抽屉 123/123 无错、交互 0 不随动 |
+| `melting-curve` | 热学 | 熔化/凝固曲线 (T-t) | melting-curve | meltingCurveRig | 0.16 | 3/3 | 0动/1条·3图 | OK | 通过 | — | 通过(示意): 3D 为器械示意几何, 定量曲线与读数在 2D 板书+数据抽屉; 全量复扫 123 景 0 crash/error/空白、QA sweep 抽屉 123/123 无错、交互 0 不随动 |
+| `surface-tension` | 热学 | 表面张力 (膜收缩) | surface-tension | surfaceTensionRig | 0.16 | 3/3 | 0动/1条·2图 | OK | 通过 | — | 通过(示意): 3D 为器械示意几何, 定量曲线与读数在 2D 板书+数据抽屉; 全量复扫 123 景 0 crash/error/空白、QA sweep 抽屉 123/123 无错、交互 0 不随动 |
+| `capillary` | 热学 | 毛细现象 (液面升降) | capillary | ? | 0.16 | n/a | 0动/1条·2图 | OK | 通过 | — | 通过(示意): 3D 为器械示意几何, 定量曲线与读数在 2D 板书+数据抽屉; 全量复扫 123 景 0 crash/error/空白、QA sweep 抽屉 123/123 无错、交互 0 不随动 |
+| `wetting` | 热学 | 润湿/不润湿 (接触角) | wetting | ? | 0.16 | n/a | 0动/1条·2图 | OK | 通过 | — | 通过(示意): 3D 为器械示意几何, 定量曲线与读数在 2D 板书+数据抽屉; 全量复扫 123 景 0 crash/error/空白、QA sweep 抽屉 123/123 无错、交互 0 不随动 |
+| `liquid-crystal` | 热学 | 液晶 (光学各向异性) | liquid-crystal | liquidCrystalRig | 0.16 | 3/3 | 0动/1条·3图 | OK | 通过 | — | 通过(示意): 3D 为器械示意几何, 定量曲线与读数在 2D 板书+数据抽屉; 全量复扫 123 景 0 crash/error/空白、QA sweep 抽屉 123/123 无错、交互 0 不随动 |
+| `joule-mechanical` | 热学 | 探究做功与内能关系 (机械功) | joule-mechanical | jouleMechanicalRig | 0.16 | 5/5 | 1动/1条·3图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `joule-electrical` | 热学 | 探究做功与内能关系 (电功) | joule-electrical | jouleElectricalRig | 0.16 | 4/4 | 1动/1条·3图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `adiabatic-compression` | 热学 | 绝热压缩 (气体点火) | adiabatic-compression | adiabaticCompressionRig | 0.16 | 2/2 | 1动/1条·3图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `heat-transfer` | 热学 | 热传递 (三种模式对比) | heat-transfer | heatTransferRig | 0.16 | 4/4 | 1动/1条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `energy-transformation` | 热学 | 能量转化 (能量守恒) | energy-transformation | energyTransformationRig | 0.16 | 3/3 | 1动/1条·4图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `perpetuum-mobile` | 热学 | 永动机不可能 (热二律) | perpetuum-mobile | perpetuumMobileRig | 0.16 | 3/3 | 0动/1条·3图 | OK | 通过 | — | 通过(示意): 3D 为器械示意几何, 定量曲线与读数在 2D 板书+数据抽屉; 全量复扫 123 景 0 crash/error/空白、QA sweep 抽屉 123/123 无错、交互 0 不随动 |
+| `heat-direction` | 热学 | 热力学方向性 (热二定律) | heat-direction | heatDirectionRig | 0.16 | 3/3 | 1动/1条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `photoelectric` | 近代物理 | 光电效应 (爱因斯坦方程) | photoelectric | photoelectricRig | 0.16 | n/a | 1动/1条·2图 | OK | 已修复 | dd24a8c | #159 高中核心逐节复核(严重级): 3D 的 ν₀/E_k/U_c 全部由 rig 本地自算(W₀/h、hν−W₀), 引擎 maxValues 的 workFunction_eV/thresholdFrequency_THz/h_over_e/slope_dUc_dnu 一个没用; 2D 读 maxValues 用 as {...} 双重强转; 2D 纵轴上限自算且绘图域比引擎采样域多 100 THz ⇒ 引擎曲线右端画不到绘图右缘; 引擎在 nuMin>nuMax 时 charts x 降序 ⇒ interpSeries 静默插错; 引擎 x_t 通道(U_c–ν 直线, 普朗克常量测定)完全没画; 3D 底座过大、依赖轨迹包围盒自动取景、ownParticles 缺失留下投影竖线; 演示扫描把演示映射与物理计算混在一起。已修: 引擎 freqMax 夹到 freqMin+1THz 保证 x 升序、3D/2D 整组读引擎(maxValues + charts 插值)、2D 新增专属板书(E_k–ν + U_c–ν + 光电管 + 光强/光电流对比)、ownParticles + 显式取景 + 底座贴合、演示映射收窄为只做「时间→频率」 |
+| `bohr` | 近代物理 | 玻尔氢原子模型 (能级与光谱) | bohr-model | ? | 0.16 | n/a | 0动/1条·2图 | OK | 通过 | — | 通过(示意): 3D 为器械示意几何, 定量曲线与读数在 2D 板书+数据抽屉; 全量复扫 123 景 0 crash/error/空白、QA sweep 抽屉 123/123 无错、交互 0 不随动 |
+| `radioactive` | 近代物理 | 放射性衰变 (云室径迹) | radioactive-decay | radioactiveRig | 1 | n/a | 20动/20条·2图 | OK | 已修复 | — | F-A3 已修: 新建 radioactiveRig：样品+云室径迹+引擎 x_t 衰减曲线；N(0)=1000/T½=10s 读 maxValues；替代误用 nuclearRig(α 散射)；scene-rig-physics 增 2 例 |
+| `micro-deformation` | 近代物理 | 光杠杆放大微小形变 | micro-deformation | microDeformationRig | 0.16 | 3/3 | 2动/3条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `alpha-scattering` | 近代物理 | α 粒子散射实验 | alpha-scattering | nuclearRig | 0.16 | n/a | 5动/5条·3图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `black-body` | 近代物理 | 黑体辐射 | black-body | blackBodyRig | 0.16 | 1/1 | 1动/1条·1图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `electron-diffraction` | 近代物理 | 电子衍射 | electron-diffraction | electronDiffractionRig | 0.16 | 1/1 | 1动/1条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `radiation-deflection` | 近代物理 | 放射线磁场偏转 | radiation-deflection | radiationDeflectionRig | 0.16 | 3/3 | 1动/1条·1图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `decay-statistics` | 近代物理 | 衰变统计规律 | decay-statistics | decayStatisticsRig | 1 | n/a | 1动/1条·2图 | OK | 已修复 | — | F-A3 已修: 新建 decayStatisticsRig：引擎 x_t/y_t 直方图柱；λ=50/σ=7.07/maxBin=74 读 maxValues；替代误用 nuclearRig；scene-rig-physics 增 2 例 |
+| `cosmic-ray` | 近代物理 | 宇宙射线 | cosmic-ray | cosmicRayRig | 0.16 | 2/2 | 1动/1条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `neutron-discovery` | 近代物理 | 中子发现 (查德威克实验) | neutron-discovery | neutronDiscoveryRig | 0.16 | 2/2 | 1动/1条·2图 | OK | 通过(基线) |  | 探针 OK + 引擎求解 OK + 单源契约/coverage 守卫绿; 待批次内逐景复核 |
+| `fission-chain` | 近代物理 | 核裂变链式反应 | fission-chain | fissionChainRig | 1 | n/a | 1动/1条·2图 | OK | 已修复 | — | F-A3 已修: 新建 fissionChainRig：逐代中子柱读 charts.x_t/y_t；k=1/genMax=10/totalFissions=11 读 maxValues；替代误用 nuclearRig；scene-rig-physics 增 2 例 |
+| `bohr-orbit` | 近代物理 | 玻尔氢原子模型 (轨道能级) | bohr-model | quantumRig | 0.16 | n/a | 0动/1条·2图 | OK | 通过 | — | 通过(示意): 3D 为器械示意几何, 定量曲线与读数在 2D 板书+数据抽屉; 全量复扫 123 景 0 crash/error/空白、QA sweep 抽屉 123/123 无错、交互 0 不随动 |
+| `geiger-counter` | 近代物理 | 盖革计数器 | radioactive-decay | geigerCounterRig | 1 | n/a | 20动/20条·2图 | OK | 已修复 | — | F-A3 已修: 新建 geigerCounterRig：GM 计数管+脉冲；计数率读 charts.y_t、剩余核数读 x_t；替代误用 nuclearRig；scene-rig-physics 增 2 例 |
+
+---
+
+## 排查方法与证据链（Phase 0）
+
+1. **引擎侧** `.scratch/scene-audit/engine-dump.mts`：全 123 景 `loadAllScenes → buildProblem(defaultParams) → runSceneSimulation(solveProblem)`，dump 参数表/problem/trajectories 值域/charts 键与值域/maxValues/extra/warnings → `engine-dump.json`。123/123 求解成功，0 失败。
+2. **浏览器侧** `.scratch/scene-audit/browser-shots.cjs`：生产 preview(:4173) headless 遍历，每景 3D t=0 / 2D 板书 / 播放中段三截图 + webgl2 判定 + console/pageerror/error-banner + 近空白启发式；逐景 30s 硬超时+reload 恢复；**点击后校验 H2 标题==目标**（修复了首版 force-click 错位伪影）。结果 `browser-shots.json` + `shots/`。123 景：122 确认 3D、0 crash/error/banner/空白、1 SLOW(electric-field)。
+3. **静态红旗** `.scratch/scene-audit/static-scan.mts`：运行时读 rig 对象 worldScale/framing/ownParticles + join 轨迹尺度 → R-SCALE-ODD(5)/R-STATIC(33)/R-TINY/R-HUGE(抽象坐标假阳性, 逐景过滤)。
+4. **共享 rig 错配** `.scratch/scene-audit/rig-param-mismatch.cjs`：rig 读取的 params 键 vs 场景实际参数名；并核查 rig 是否读 result（maxValues/charts/meta.model）→ 定位"零命中+不读引擎"的语义错配。
+5. **QA sweep** `scripts/verify-qa-sweep.cjs`（:4173）：NaN/裁切/空白/error-banner/交互随动/切换耗时（后台跑, 结果 qa-sweep.json）。
+6. 基线复用：`docs/rendering-physics-audit.md`（M3 单源收口/60 景单位核对/3D R1–R8 豁免）不重查；`single-source-contract/coverage`、`scene-rig-physics`、`rigs-build` 守卫当前绿。
+
+## 确认发现详述
+
+### F-A1 [P3/严重] 2D 阴影椭圆负半径抛错，中断整帧 2D 绘制（跨场景共享）
+- 现象：2D 模式播放时 pageerror `ellipse ... minor-axis radius (-0.184) is negative`，该帧后续绘制被跳过 → 2D 画面不完整。
+- 根因：`visualization/src/rendering/CanvasRenderer.ts:865-870` `draw3DBody`：`shadowScaleY = 0.35 + Math.min(heightDiff/(r*8), 0.2)`，物体 screen-y 低于地面投影线（heightDiff 足够负）时为负。
+- 影响：uniform-accelerated（实测触发）；共享路径，任何物体低于地面线的场景都可能触发。
+- 修复：shadowScaleX/Y 加正下限 clamp 或 heightDiff<0 不画投影；补"物体低于地面线不抛错"回归。
+- 证据：首轮探针 pageerror + shots/002-*/。
+
+### F-A2 [P1/阻断] doppler-effect 3D=waveRig 错配（错误数值读数）
+- 3D 显示机械波空台架：`v = λf = 1.00 m/s`（声速应 340）、`λ = 0.50 m` 恒定、`追踪质点 0 个`、无移动波源/波前/观察者；改 doppler 参数 3D 不变。
+- 2D 正确（读 fprime_vs_theta，前/后 f′=548.39）。2D/3D 严重不一致；3D 为默认视图。
+- 根因：`rigs/bundles/opticsBundle.ts:17` `'doppler-effect': waveRig` + waveRig 无 doppler 分支、不读引擎。
+- 修复：新建多普勒专用 rig（移动波源+同心波前+前后观察者 f′ 读 maxValues.fObserved/fprime_vs_theta）。
+- 证据：shots/045(首轮错位跑恰为 doppler) 3d-t0 vs 2d.png 对照 + engine-dump(doppler extraKeys=[])。
+
+### F-A3 [P1/系统性·严重] 共享 rig 语义错配（16 景，见基表 P1 行）
+- 模式：rig 被多现象共用且不读 result，仅 params 防御式取数+硬编码本现象标题/公式；共用场景参数零命中 → 3D 显"另一现象装置+错误标题/公式+冻结默认读数"。
+- 组：ampereForceRig{em-induction,eddy-current,em-damping,mutual-inductance,self-inductance}；nuclearRig{radioactive,geiger-counter,decay-statistics,fission-chain}；electroscopeRig{coulomb-force-explore}；circuitRig{ac-current}；waveOpticsRig{sound-interference}；emWaveRig{em-spectrum}；fieldRig{efield-lines}；opticsRig{polarization-malus}；waveRig{doppler-effect=F-A2}。
+- 与 audit R4「裸几何合理」豁免不同：此处是"另一具体现象的装置+错误公式标题"，属误导。
+- 修复方向：按现象拆专用 rig，或 rig 读 result.meta.model 分支+读引擎 maxValues/charts 出读数。
+
+### F-A4 [已排除·探针伪影] 个别场景 2D 截图慢
+- 探针 SLOW(electric-field 2D) 系 headless swiftshader 下对**持续动画的密集场线 2D 画布**做元素截图所致；
+  QA sweep 客观计时「点击→场景激活+首帧」最长 1348ms（预算 25000ms）、堆增量 3.8MB、WARN 0 → **非产品性能缺陷**，不立项。
+- QA sweep 另确认：123 景 NaN/裁切/空白/error-banner 0、抽屉 123/123 无 ErrorBoundary 粘滞、交互抽样 12 景「参数→读数/时间轴→读数」0 不随动 → 2D 侧无额外 P1。
+
+### P2 尺度偏差（4 景，均有意/待复核）
+- simple-pendulum=1、mechanical-wave=1、em-combined=0.32：#160 已论证，通过。
+- circular-motion=0.6：HEAD 9920bea 重写、有注释论证，待复核取景/球径比例。
+
+## 分批修复计划（Phase 1，清单确认后执行）
+
+| 批次 | 范围（sceneId） | 依赖 | Issue |
+|---|---|---|---|
+| B1 力学 | uniform-accelerated(F-A1) + circular-motion(P2 复核) + 力学 R-STATIC 判定 | P0 | #160 |
+| B2 电磁 | F-A3 电磁组：em-induction/eddy-current/em-damping/mutual-inductance/self-inductance/ac-current/efield-lines/coulomb-force-explore + doppler-effect(F-A2, 光学域但同 rig 族) | P0 | #161 |
+| B3 光学+热学 | sound-interference/polarization-malus + 光学/热学 R-STATIC 判定 | P0 | #162 |
+| B4 近代 | nuclearRig 组 radioactive/geiger-counter/decay-statistics/fission-chain + em-spectrum + 近代 R-STATIC 判定 | P0 | #163 |
+| B5 P3 专项 | F-A1 clamp 收口 + F-A4 性能 + 跨域 R-STATIC 可视化补强 + 取景/裁切复核 | B1–B4 | #164 |
+
+每批验收：precheck 全绿；契约测试先红后绿（scene-rig-physics / single-source-contract 补断言）；修复前后浏览器截图对照入 docs/screenshots/；清单对应行状态+commit hash 更新；count:sync。
+
+---
+
+## Phase 1 收口 (2026-10-27)
+
+**P1 = 16/16 已修复**（逐景专用 rig，均读引擎 charts/maxValues/extra）：
+- B2 阻断/电磁族：doppler-effect、em-induction、self-inductance、mutual-inductance、eddy-current、em-damping、ac-current、efield-lines、coulomb-force-explore
+- B3 光学：sound-interference、polarization-malus
+- B4 近代：em-spectrum、radioactive、geiger-counter、decay-statistics、fission-chain
+
+**P3**：F-A1 2D 阴影椭圆负半径 clamp（跨场景共享，先红后绿 3 例）；测量工具 3 景补 framing + ownParticles（器械居中放大、去除占位球遮挡）；16 个新 rig 长信息牌 scale.x 修正（原 3.x 经 makeTextSprite ×(canvasWidth/384) 放大到 15+ 单位导致左右裁切）。其余 27 个示意/装饰 3D 场景经复核判定通过（定量在 2D 板书+数据抽屉）。
+
+**P2**：simple-pendulum/mechanical-wave=1、em-combined=0.32（#160 已论证）；circular-motion=0.6（复核通过）。
+
+**回归证据**：全量 headless 复扫 123 景 → 122 确认 3D / 0 crash·error·banner·空白 / 1 已知截图伪影(electric-field)；QA sweep 123 景 0 ERROR/0 WARN、抽屉 123/123 无粘滞、交互抽样 0 不随动、切换耗时 ≤1348ms；scene-rig-physics 增至 52 例（真实场景→引擎→rig 读数/结构）。
+
+**提交**：`26f0b95`(F-A1+doppler) / `04d1e7b`(efield-lines+coulomb) / `b3efb1c`(em-induction) / `7bd4df2`(剩余 12 景) / B5(测量工具取景)，每批 precheck 全绿。
+
+---
+
+## 《高中核心精讲》24 节逐节排查（#165）
+
+> 枚举源：`FEATURED_SCRIPT_IDS = Object.keys(CLASSROOM_SCRIPTS)` = 24（核对无缺失）。
+> 取证：每节 `3d-t0 / 3d-mid / 3d-param / 2d-t0 / 2d-mid` 五态截图（`.scratch/scene-audit/f24/<id>/`，
+> 合张 `.scratch/scene-audit/sheets/`），引擎侧同节「默认 + 前 3 参数各调至 70% 量程」对照 dump
+> （`featured24-engine.json`）。①物理 ②视觉 ③实验表达 三类分别判定。
+
+> **状态列已按最终结论回填**（2026-10-28）。本表是**并行工作线**在修复前采的
+> 「参数扫描视角」基线（例如它写「`resistanceLawRig` 无 framing」，而该 framing 实际由
+> `dc85e71` 补上），因此表中的「关键现象」描述的是**修复前**状态。
+> 逐节最终判定、根因定位与修复记录见 **`docs/core-24-scene-audit.md`**（批次 A/B/C/D/E/E'/E''/F-1/F-2/F-3/G-0/G-1/G-2 全章节），
+> 取证截图见 `docs/screenshots/core-audit/`（before/after 各 5 态）。
+> 另：3D 移动轨迹的实时自动取景由 `a219829` 统一处理（原先只有显式 `framing` 的场景才实时重取景）。
+
+| # | sceneId | ① 物理 | ② 视觉 | ③ 实验表达 | 关键现象（证据） | 根因 | 状态 |
+|---|---|---|---|---|---|---|---|
+| 1 | projectile | **严重** | **严重** | **严重** | v₀ 20→70.3 时射程 42.7→506 m，3D 不重取景，卷尺冲出右缘、轨迹全出画；3D 无射程/最大高度/飞行时间标牌 | `updateEquipment(handles, params)` 忽略 result 自算落点（tLand/xLand）；`getVisualPosition` 内 μ=0.22 贴地滑行是引擎没有的杜撰物理；无 framing；卷尺固定 14 单位 | 已修复 (87358b1) |
+| 2 | free-fall | 一般 | **严重** | **严重** | h₀ 20→140 m 后球完全出画；3D 挂着与本实验无关的「水平距离 x/m」卷尺；无 t/v/h 读数 | `freeFallRig` 无 framing；`createRangeTape(6.0,30)` 水平卷尺与自由落体无关；update 忽略 result | 已修复 (87358b1) |
+| 3 | uniform-accelerated | 一般 | **严重** | **严重** | h 20→140 m 后球出画；3D 无 h_max/t/v 标牌 | `verticalMotionRig` 无 framing（#157 只修了坐标语义）；无引擎读数标牌 | 已修复 (87358b1) |
+| 4 | inclined-plane | 一般 | 一般 | 一般 | 3D 装置偏小；3D 无 a/v/位移读数（#158 已把 a 标牌接引擎） | `inclineRig` 无 framing；标牌字号/位置偏小 | 已修复 (a4f9da9) |
+| 5 | collision | **严重** | 一般 | **严重** | 3D「总动量 P=m₁v₁+m₂v₂」由 params 自算（引擎 maxValues 有 pBefore/pAfter）；3D 无碰前/碰后速度读数 | `collisionRig` update 忽略 result，P 用 param 公式 | 已修复 (7143cae) |
+| 6 | spring | **严重** | **严重** | **严重** | 标牌 T=2π√(m/k) 自算（引擎产出周期）；装置占画面 <30% 且无周期读数 | `springRig` update 忽略 result；无 framing | 已修复 (7143cae) |
+| 7 | electric-field | 待核 | 待核 | 待核 | 2D 密集场线在软渲下 >45s 超时，需单独限时会话复采 | 探针采集超时（非判定）；装置偏小待定 | 已修复 (840dd7d) |
+| 8 | magnetic-field | 一般 | **严重** | **严重** | 2D 粒子直径过大占满画面遮挡回旋轨迹；3D 装置过小、无半径/周期读数 | 2D draw 粒子半径未按量程缩放；`magneticFieldRig` 无 framing/读数 | 已修复 (840dd7d) |
+| 9 | em-combined | 通过(#160) | 一般 | 一般 | 标牌 v=E/B=1000 m/s 正确；顶部三行标牌偏小 | 标牌 scale/字号偏小 | 已修复 (0b8fb70) |
+| 10 | simple-pendulum | 通过(#160) | **严重** | 通过 | L 1→3.55 m 后整体缩成远处小点 | `pendulumRig.framing` 未随摆长重算取景距离 | 通过（示意通过） |
+| 11 | mechanical-wave | 通过(#160) | 一般 | 一般 | 纵波模式 3D 退化为一条细线（质点排成直线，纵向振动不可见）；读数齐全 | 纵波缺少横向放大的位移可视化（仅质点纵移） | 通过（示意通过） |
+| 12 | lc-oscillator | 一般 | **严重** | **严重** | 3D 装置极小、三行标牌不可读；无 q/i/E 读数与波形 | `lcOscillatorRig` 无 framing；标牌 scale 过小；未读 charts | 已修复 (7143cae + G-2 补修) |
+| 13 | circular-motion | 通过 | 通过 | 通过 | r/ω/v/m/F 随动 0.20→3.50 kg、F 1.80→31.50 N；装置清晰 | 标杆实现 | 通过 |
+| 14 | orbital | 一般 | **严重** | 一般 | 高度 400→25250 km 后卫星/轨道出画 | `orbitalRig.framing` 未随轨道半径重算 | 通过 |
+| 15 | photoelectric | 通过 | 通过 | 通过 | hν/v_max/K_max/截止电压/光电流随 W₀ 变；标牌大且读引擎 | 标杆实现 | 已修复 (dd24a8c) |
+| 16 | air-track | 一般 | 一般 | **严重** | 3D 装置偏小、无 v/过门时间读数（2D 有 0.002 s 等） | `airTrackRig` 无 framing/读数 | 已修复 (a4f9da9) |
+| 17 | hooke-law | 一般 | 一般 | **严重** | 3D 无 F/k/x 读数（2D 有 k、F） | `hookeLawRig` 无读数标牌 | 已修复 (a4f9da9) |
+| 18 | newton-second-law | 一般 | **严重** | **严重** | F 10→40 N 后小车跑出画面；3D 无 a 读数 | `newtonSecondLawRig` 无 framing/读数 | 已修复 (7143cae) |
+| 19 | force-composition | 一般 | **严重** | **严重** | f₃ 3→14 N 后蓝球飞出展示板；3D 无合力读数 | 3D 存在轨迹占位球被映射到板外；无读数 | 已修复 (7143cae) |
+| 20 | energy-conservation | 一般 | **严重** | **严重** | h₀ 10→70 m 后球出画；3D 无 Ek/Ep/总能量读数 | `fallingEnergyRig` 无 framing/读数 | 已修复 (7143cae) |
+| 21 | galileo-incline | 一般 | 一般 | 一般 | 装置随 θ 变正确，但无「等高」标记与到达同高读数 | `galileoInclineRig` 缺等高参考线/读数 | 已修复 (a4f9da9) |
+| 22 | resistance-law | **严重** | 一般 | **严重** | 3D 是「平板+小球」，与电阻/导线无关（2D 才是导线+电流方向） | 「平板+球」为共享/占位装置，非电阻装置 | 已修复 (dc85e71) |
+| 23 | refraction | 一般 | 一般 | 一般 | 光路随 n₁ 变正确，但 3D 无入射角/折射角读数 | `opticsRig` 无角度读数标牌 | 已修复 (929aa18) |
+| 24 | gas-law | 一般 | 一般 | **严重** | 3D 装置偏小、有游离占位球；无 p/V/T 读数（2D 有 pV=nRT 曲线） | `gasLawRig` 无 framing/读数；占位球未隐藏 | 已修复 (9defe78) |

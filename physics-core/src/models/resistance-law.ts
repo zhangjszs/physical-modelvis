@@ -88,6 +88,11 @@ export class ResistanceLawModel extends PhysicsModelBase {
         }
 
         // 图表 2: R-1/S (固定 L, material)
+        //
+        // x = 1/S 必须**升序**: 直径 d 从 dMax 递减到 dMin ⇒ S 递减 ⇒ 1/S 递增。
+        // (旧版按 d 升序遍历, 1/S 随之递减 —— x 降序既让曲线在图上呈「R 随 1/S 减小」
+        //  的反直觉形状, 也破坏了 charts 全局「x 升序」的约定, 使 interpSeries
+        //  的二分查找失效。)
         const R_invS: ChartSeries = {
             xLabel: '1/S (m⁻²)',
             yLabel: '电阻 R (Ω)',
@@ -98,7 +103,7 @@ export class ResistanceLawModel extends PhysicsModelBase {
         const dMinMm = dRange[0]!;
         const dMaxMm = dRange[1]!;
         for (let i = 0; i <= sampleCount; i++) {
-            const dMm = dMinMm + (dMaxMm - dMinMm) * (i / sampleCount);
+            const dMm = dMaxMm - (dMaxMm - dMinMm) * (i / sampleCount);
             const d = dMm / 1000;
             const S = Math.PI * (d / 2) ** 2;
             const R = (rho * L0) / S;

@@ -18,11 +18,15 @@
   = build:core → typecheck → lint → format:check → test → count:check → build:viz → check:bundle → selfcheck
 - **物理自检**：`npm run selfcheck`（scripts/self-check.mjs，L0–L6 + L8–L11，共 11 层，无 L7）
 - **首屏体积门禁**：`npm run check:bundle`（入口 chunks gzip ≤70kB）
+- **CI 浏览器探针门禁（#143 新增）**：`ci.yml` 包含 4 个 headless 浏览器探针（各 1 次自动重试，生产 preview 端口 :4173，失败阻断 Deploy）。
+  本地等价复跑：`npm run build:viz && (cd visualization && nohup npx vite preview --port 4173 &)` 后运行各脚本（设 `BASE_URL=http://localhost:4173/` 与 `SMOKE_BROWSER_CHANNEL=""`）
 - **测试数单一真源**：`npm run count:sync` 实跑并回写三处 `<!-- test-count -->` 标记
   （README 顶部行 + README 测试覆盖块 + docs/plan.md）；`npm run count:check` 校验漂移
 - **gh CLI**：可用（账号 zhangjszs；token scopes: gist, read:org, repo, workflow）→ issue 操作走线上，无需草稿降级
 - **PATH**：本机 npm/node 由 mise 管理，不在默认 PATH。跑任何 npm/npx/node 前先
   `export PATH="$HOME/.local/share/mise/shims:$PATH"`（pre-push 钩子有兜底，手动跑脚本时需要）
 - **部署**：GitHub Pages `https://zhangjszs.github.io/physical-modelvis/`（deploy.yml，CI 成功后 workflow_run 触发）
+- **中文字体（2026-10-10 新增）**：用户级字体目录已装 Noto Sans CJK SC（Regular/Bold），`fc-list :lang=zh` 可见。
+  headless Chromium 截图（`scripts/capture-screenshots.mjs`，#97）依赖系统中文字体，缺失时中文渲染为方块（脚本启动会警告提示）
 
 探测于 2026-10-01T11:47:39Z，agent `qoder-20261001T114739Z`

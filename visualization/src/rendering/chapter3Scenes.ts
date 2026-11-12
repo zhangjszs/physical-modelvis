@@ -99,6 +99,14 @@ function drawForceArrow(
  *   平衡时：mg = kx  →  x = mg/k
  *   弹簧弹力：F = kx (方向向上)
  *   重力：G = mg (方向向下)
+ *
+ * 单一真源 (#159 逐节审计·问题一/问题二):
+ *   - 伸长量 x(t) 由**引擎位置**导出 (锚点 (0,0), 轴向 (0,−1), 原长 L0=0.1 m
+ *     → x = −pos.y − L0), 不再由渲染层自算。
+ *   - 平衡伸长量 x_eq 读引擎 `maxValues.equilibriumDisplacement` (= mg/k)。
+ *   - 刻度尺量程随 x_eq 自适应, 像素/米比例与画出的弹簧形变**同源**:
+ *     旧实现固定 120 px/m, 又对伸长量取 `Math.max(20, …)` —— 9.8 cm 的形变
+ *     只有 11.76 px 被钳到 20 px, 钩码**永远不动**; 刻度尺却标到 1.667 m。
  */
 export function drawHookeLawScene(opts: Chapter3SceneOptions): void {
     const { ctx, width, height, isDark, params, simulationResult, currentTime } = opts;
@@ -108,18 +116,30 @@ export function drawHookeLawScene(opts: Chapter3SceneOptions): void {
     const weightCount = Math.max(1, params['weightCount'] ?? 4);
     const g = params['g'] ?? G_ACCELERATION;
     const m = (massPerWeight_g / 1000) * weightCount;
-    const x_eq = (m * g) / k; // 平衡位置弹簧伸长量 (m)
+    const weight = m * g;
 
-    // 布局
-    const ceilingY = 50;
-    const springX = width * 0.55;
-    const pixelsPerMeter = 120; // 1m = 120px
+    /** 引擎弹簧原长 (m) —— 与场景 buildProblem 保持一致 */
+    const naturalLength = 0.1;
 
-    // 当前帧的弹簧伸长量
+    // 平衡伸长量: 单一真源 = 引擎 maxValues.equilibriumDisplacement (= mg/k)
+    const mv = simulationResult?.diagnostics?.maxValues;
+    const engineEq = mv ? mv['equilibriumDisplacement'] : undefined;
+    const xEq = typeof engineEq === 'number' ? engineEq : k > 0 ? weight / k : 0;
+
+    // 当前帧伸长量: 由引擎位置导出 (锚点 (0,0), 轴向 (0,−1))
     const frame = getFrame(simulationResult, currentTime);
-    const currentX = frame ? frame.position.x : x_eq;
-    const extensionPx = Math.max(20, currentX * pixelsPerMeter);
+    const currentX = frame ? Math.max(0, -frame.position.y - naturalLength) : xEq;
+
+    // 布局: 刻度尺量程与像素比例同源, 覆盖 0 ~ 2.2·x_eq (最大过冲 ≈ 2·x_eq)
+    const ceilingY = 56;
+    const springX = width * 0.52;
+    const rulerPx = Math.max(140, Math.min(280, height * 0.42));
+    const rangeM = Math.max(0.3, xEq * 2.2);
+    const pixelsPerMeter = rulerPx / rangeM;
+    const extensionPx = Math.min(rulerPx, currentX * pixelsPerMeter);
     const blockY = ceilingY + extensionPx;
+    const blockW = 50,
+        blockH = 36;
 
     // --- 天花板 ---
     const ceilGrad = ctx.createLinearGradient(0, ceilingY - 14, 0, ceilingY);
@@ -171,27 +191,25 @@ export function drawHookeLawScene(opts: Chapter3SceneOptions): void {
     ctx.lineJoin = 'miter';
 
     // --- 钩码 (3D 方块) ---
-    const blockW = 50,
-        blockH = 36;
     draw3DBlock(ctx, springX, blockY + blockH / 2, blockW, blockH, '#3b82f6', isDark, `${m.toFixed(2)}kg`);
 
     // --- 刻度尺 (竖直，在弹簧左侧) ---
     // 标尺 X 钳制在左界内，窄画布不再越出画布左侧
-    const rulerX = Math.max(20, springX - 80);
+    const rulerX = Math.max(20, springX - 90);
     ctx.strokeStyle = isDark ? '#94a3b8' : '#475569';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.moveTo(rulerX, ceilingY);
-    ctx.lineTo(rulerX, ceilingY + 200);
+    ctx.lineTo(rulerX, ceilingY + rulerPx);
     ctx.stroke();
-    // 刻度
-    const rulerMeters = 200 / pixelsPerMeter;
-    const majorCount = Math.ceil(rulerMeters / 0.1);
+    // 刻度: 步长随量程选取, 保证至少 4 格
+    const tickStep = rangeM > 0.6 ? 0.1 : 0.05;
+    const majorCount = Math.ceil(rangeM / tickStep);
     ctx.font = '10px monospace';
     ctx.fillStyle = isDark ? '#cbd5e1' : '#475569';
     for (let i = 0; i <= majorCount; i++) {
-        const ty = ceilingY + i * 0.1 * pixelsPerMeter;
-        if (ty > ceilingY + 200) break;
+        const ty = ceilingY + i * tickStep * pixelsPerMeter;
+        if (ty > ceilingY + rulerPx + 0.5) break;
         ctx.strokeStyle = isDark ? '#94a3b8' : '#475569';
         ctx.beginPath();
         ctx.moveTo(rulerX, ty);
@@ -199,11 +217,11 @@ export function drawHookeLawScene(opts: Chapter3SceneOptions): void {
         ctx.stroke();
         ctx.textAlign = 'right';
         ctx.textBaseline = 'middle';
-        ctx.fillText(`${(i * 0.1).toFixed(1)}m`, rulerX - 4, ty);
+        ctx.fillText(`${(i * tickStep).toFixed(2)}m`, rulerX - 4, ty);
     }
     // 标记平衡位置 x_eq
-    const eqY = ceilingY + x_eq * pixelsPerMeter;
-    if (eqY <= ceilingY + 200) {
+    const eqY = ceilingY + xEq * pixelsPerMeter;
+    if (eqY <= ceilingY + rulerPx) {
         ctx.strokeStyle = '#22c55e';
         ctx.lineWidth = 1.5;
         ctx.setLineDash([4, 3]);
@@ -215,21 +233,18 @@ export function drawHookeLawScene(opts: Chapter3SceneOptions): void {
         ctx.fillStyle = '#22c55e';
         ctx.font = 'bold 11px sans-serif';
         ctx.textAlign = 'right';
-        ctx.fillText(`x=${x_eq.toFixed(3)}m`, rulerX - 6, eqY);
+        ctx.fillText(`x_eq=${(xEq * 100).toFixed(1)}cm`, rulerX - 6, eqY);
     }
-    // 尺标签
+    // 尺标签 (放在尺子下端, 避免与刻度数字重叠)
     ctx.fillStyle = isDark ? '#94a3b8' : '#64748b';
     ctx.font = 'bold 11px sans-serif';
-    ctx.save();
-    ctx.translate(rulerX - 28, ceilingY + 100);
-    ctx.rotate(-Math.PI / 2);
-    ctx.textAlign = 'center';
-    ctx.fillText('伸长量 x', 0, 0);
-    ctx.restore();
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText('伸长量 x', rulerX - 14, ceilingY + rulerPx + 16);
 
     // --- 力向量 ---
     const forceScale = 30; // 1N = 30px
-    const gravityN = m * g;
+    const gravityN = weight;
     const springForceN = k * currentX;
     // 重力 (向下，红色)
     drawForceArrow(ctx, springX, blockY + blockH, springX, blockY + blockH + gravityN * forceScale, '#ef4444', 'G=mg', {
@@ -247,7 +262,8 @@ export function drawHookeLawScene(opts: Chapter3SceneOptions): void {
         ctx,
         width,
         height,
-        `k=${k}N/m  m=${m.toFixed(2)}kg  x=${currentX.toFixed(3)}m  F=kx=${(k * currentX).toFixed(2)}N  G=mg=${gravityN.toFixed(2)}N`,
+        `k=${k}N/m  m=${m.toFixed(2)}kg  x=${currentX.toFixed(3)}m  F=kx=${springForceN.toFixed(2)}N  G=mg=${gravityN.toFixed(2)}N  ` +
+            `x_eq=mg/k=${xEq.toFixed(3)}m`,
         isDark,
         { height: 22, yOffset: 34 }
     );
@@ -256,7 +272,7 @@ export function drawHookeLawScene(opts: Chapter3SceneOptions): void {
     drawHud(ctx, isDark, [
         { label: 't', value: `${currentTime.toFixed(3)} s` },
         { label: 'x', value: `${currentX.toFixed(3)} m` },
-        { label: 'F', value: `${(k * currentX).toFixed(3)} N` }
+        { label: 'F', value: `${springForceN.toFixed(3)} N` }
     ]);
 
     if (!simulationResult) drawEmptyState(ctx, width, height, isDark);
@@ -424,20 +440,84 @@ export function drawSlidingFrictionScene(opts: Chapter3SceneOptions): void {
  * 注：本场景的"轨迹"为伪轨迹 (扫过夹角 0°→180° 的合力)，
  *     可视化只展示用户指定夹角下的静态平行四边形。
  */
-export function drawForceCompositionScene(opts: Chapter3SceneOptions): void {
-    const { ctx, width, height, isDark, params, simulationResult } = opts;
+/**
+ * 力的合成读数 — **单一真源: 引擎轨迹** (#159 逐节审计)
+ *
+ * 引擎的伪轨迹里: position = 当前夹角下的合力矢量, velocity.x = 当前扫掠夹角(°),
+ * velocity.y = 合力大小。旧的 2D 完全自算公式 (不读引擎), 3D 又把合力矢量
+ * 当成「质体」让蓝色小球沿它扫动 —— 力矢量不是物体。
+ * 现在 2D/3D 都读引擎当前帧: 合力大小与方向由引擎给出, 画面随扫掠夹角演化。
+ */
+export interface ForceCompositionReadouts {
+    f1: number;
+    f2: number;
+    /** 场景指定的夹角 (°) */
+    angleDeg: number;
+    /** 引擎当前扫掠夹角 (°) */
+    sweepAngleDeg: number;
+    /** 当前合力大小 (N) */
+    magnitude: number;
+    /** 当前合力方向角 (°, 相对 F1) */
+    directionDeg: number;
+    /** 指定夹角下的合力大小 (N) */
+    magnitudeAtAngle: number;
+    source: 'engine' | 'fallback';
+}
 
-    const F1 = params['f1'] ?? 3;
-    const F2 = params['f2'] ?? 4;
+export function forceCompositionReadouts(
+    params: Record<string, number>,
+    result: SimulationResult | null,
+    currentTime: number
+): ForceCompositionReadouts {
+    const f1 = params['f1'] ?? 3;
+    const f2 = params['f2'] ?? 4;
     const angleDeg = params['angleDeg'] ?? 90;
-    const angleRad = (angleDeg * Math.PI) / 180;
+    const rad = (angleDeg * Math.PI) / 180;
+    const magnitudeAtAngle = Math.sqrt(f1 * f1 + f2 * f2 + 2 * f1 * f2 * Math.cos(rad));
+    const frame = getFrame(result, currentTime);
+    if (frame) {
+        // 引擎: position = 合力矢量 (N), velocity = (扫掠夹角°, 合力大小)
+        const magnitude = frame.velocity.y ?? Math.hypot(frame.position.x, frame.position.y);
+        const sweepAngleDeg = frame.velocity.x ?? 0;
+        const directionDeg = magnitude > 1e-9 ? (Math.atan2(frame.position.y, frame.position.x) * 180) / Math.PI : 0;
+        return {
+            f1,
+            f2,
+            angleDeg,
+            sweepAngleDeg,
+            magnitude,
+            directionDeg,
+            magnitudeAtAngle,
+            source: 'engine'
+        };
+    }
+    return {
+        f1,
+        f2,
+        angleDeg,
+        sweepAngleDeg: angleDeg,
+        magnitude: magnitudeAtAngle,
+        directionDeg: (Math.atan2(f2 * Math.sin(rad), f1 + f2 * Math.cos(rad)) * 180) / Math.PI,
+        magnitudeAtAngle,
+        source: 'fallback'
+    };
+}
 
-    // 合力计算
+export function drawForceCompositionScene(opts: Chapter3SceneOptions): void {
+    const { ctx, width, height, isDark, params, simulationResult, currentTime } = opts;
+
+    const read = forceCompositionReadouts(params, simulationResult, currentTime);
+    const F1 = read.f1;
+    const F2 = read.f2;
+    const angleDeg = read.angleDeg;
+    // 画面随引擎扫掠夹角演化 (0° → 180°), 指定夹角的关键帧由引擎标注
+    const sweepRad = (read.sweepAngleDeg * Math.PI) / 180;
+
+    // 合力计算 (引擎权威: magnitude/directionDeg; 方向按引擎坐标系)
     const F1vec = { x: F1, y: 0 };
-    const F2vec = { x: F2 * Math.cos(angleRad), y: -F2 * Math.sin(angleRad) }; // 屏幕y向下为正，取负让F2向上
-    const Fvec = { x: F1vec.x + F2vec.x, y: F1vec.y + F2vec.y };
-    const Fmag = Math.sqrt(Fvec.x * Fvec.x + Fvec.y * Fvec.y);
-    const FangleDeg = (Math.atan2(-Fvec.y, Fvec.x) * 180) / Math.PI; // 转回数学角度
+    const F2vec = { x: F2 * Math.cos(sweepRad), y: -F2 * Math.sin(sweepRad) }; // 屏幕y向下为正，取负让F2向上
+    const Fmag = read.magnitude;
+    const FangleDeg = read.directionDeg;
 
     // 布局：共点在画面中心偏左
     const originX = width * 0.35;
@@ -456,7 +536,10 @@ export function drawForceCompositionScene(opts: Chapter3SceneOptions): void {
     // --- 平行四边形虚线 (F1 平移到 F2 端点, F2 平移到 F1 端点) ---
     const F1end = { x: originX + F1vec.x * forceScale, y: originY + F1vec.y * forceScale };
     const F2end = { x: originX + F2vec.x * forceScale, y: originY + F2vec.y * forceScale };
-    const Fend = { x: originX + Fvec.x * forceScale, y: originY + Fvec.y * forceScale };
+    const Fend = {
+        x: originX + Fmag * Math.cos((FangleDeg * Math.PI) / 180) * forceScale,
+        y: originY - Fmag * Math.sin((FangleDeg * Math.PI) / 180) * forceScale
+    };
     // F1 平移到 F2 端点
     ctx.setLineDash([5, 4]);
     ctx.strokeStyle = isDark ? 'rgba(148,163,184,0.4)' : 'rgba(100,116,139,0.3)';
@@ -477,15 +560,15 @@ export function drawForceCompositionScene(opts: Chapter3SceneOptions): void {
     ctx.strokeStyle = isDark ? '#fbbf24' : '#d97706';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.arc(originX, originY, arcR, 0, -angleRad, true);
+    ctx.arc(originX, originY, arcR, 0, -sweepRad, true);
     ctx.stroke();
     ctx.fillStyle = isDark ? '#fbbf24' : '#d97706';
     ctx.font = 'bold 13px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    const arcMidAngle = -angleRad / 2;
+    const arcMidAngle = -sweepRad / 2;
     ctx.fillText(
-        `θ=${angleDeg}°`,
+        `θ=${read.sweepAngleDeg.toFixed(0)}°`,
         originX + (arcR + 16) * Math.cos(arcMidAngle),
         originY + (arcR + 16) * Math.sin(arcMidAngle)
     );

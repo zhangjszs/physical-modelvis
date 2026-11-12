@@ -237,7 +237,7 @@ export function drawPhotoresistorScene(o: SensorSceneOptions): void {
     // (本批实测的又一双源点: T≠25℃ 时旧画面偏离引擎); 现整条消费引擎, 峰标记 E 恒在
     // 引擎采样域 [0.01, max(5E,1e4)] 内。阈值 E<5lx 昼夜判定与灯光/滑杆为示意保留。
     // 无结果回退同式 (含同源温度修正项, TEMP_COEFF 取引擎 photoresistor.ts 值 0.02)。
-    const TEMP_COEFF = 0.02; // 与引擎 photoresistor.ts 暗电阻温度系数同源 (回退分支用)
+    const TEMP_COEFF = 0.02; // 与引擎 photoresistor.ts 暗电阻温度系数同源 (回退分支 + 面板公式行共用, #125)
     const Rdark_T = Rdark * Math.exp(-TEMP_COEFF * (T - 25));
     const engCharts = simulationResult ? chartsOf(simulationResult, 'photoresistor') : undefined;
     const reSeries = engCharts?.x_t;
@@ -443,14 +443,18 @@ export function drawPhotoresistorScene(o: SensorSceneOptions): void {
     }
 
     // --- 公式 (底部) ---
+    // 面板公式与计算式严格对齐 (#125): 引擎先对暗电阻作温度修正 R_dark(T)=R_dark·exp(−0.02(T−25))
+    // 再乘照度项, 两项合写即下式; 系数直读 TEMP_COEFF (与引擎 photoresistor.ts 同源),
+    // 避免画面文字与回退式系数漂移。T=25℃ 时温度项为 1, 与旧式等价。
     const formY = h * 0.78;
     ctx.fillStyle = isDark ? '#cbd5e1' : '#1e293b';
     ctx.font = 'bold 13px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('R(E) = R_dark · exp(−k·E)', w / 2 + 80, formY);
+    ctx.fillText(`R(E,T) = R_dark · exp(−k·E − ${TEMP_COEFF}(T−25))`, w / 2 + 80, formY);
     ctx.fillStyle = isDark ? '#94a3b8' : '#475569';
     ctx.font = '12px sans-serif';
-    ctx.fillText(`R_dark=${Rdark.toExponential(0)} Ω  k=${k}  T=${T}°C`, w / 2 + 80, formY + 20);
+    // R_dark 入参是 25℃ 暗电阻 (公式里的温度项负责把它折算到当前 T), 标注温度基准免误读
+    ctx.fillText(`R_dark(25℃)=${Rdark.toExponential(0)} Ω  k=${k}  T=${T}°C`, w / 2 + 80, formY + 20);
     ctx.fillText(`当前 R = ${R >= 1e3 ? (R / 1e3).toFixed(1) + ' kΩ' : R.toFixed(0) + ' Ω'}`, w / 2 + 80, formY + 38);
 
     // HUD
@@ -472,7 +476,8 @@ export function drawPhotoresistorScene(o: SensorSceneOptions): void {
         ctx,
         w,
         h,
-        `R(E)=R_dark·exp(-kE)  E=${E}lx  R=${R >= 1e6 ? (R / 1e6).toFixed(2) + 'M' : R >= 1e3 ? (R / 1e3).toFixed(1) + 'k' : R.toFixed(0)}Ω`,
+        // 同上方公式行: 与计算式对齐的温度项 (#125)
+        `R(E,T)=R_dark·exp(-kE-${TEMP_COEFF}(T-25))  E=${E}lx  R=${R >= 1e6 ? (R / 1e6).toFixed(2) + 'M' : R >= 1e3 ? (R / 1e3).toFixed(1) + 'k' : R.toFixed(0)}Ω`,
         isDark,
         { height: 22, yOffset: 34 }
     );

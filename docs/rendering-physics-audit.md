@@ -126,7 +126,7 @@ heat-direction / adiabatic-compression / energy-transformation / load-voltage / 
 | `projectile-collision` | 读 `diagnostics.maxValues` (OP/OM/ON/tFall/v1After/v2After/pBefore/pAfter) | 碰后速度/动量面板/HUD 不再自算解析公式; 回退保留 |
 | `inertia` | 读引擎双轨迹 `getFrame(sim, t, 0/1)` (上下物体), 像素映射 `x·scale+cx, groundY−y·scale` | 回退原 shake 自算 |
 | `sound-waveform` | 读 `charts.waveform_t` (x 轴 ms), 行波快照等效时移 `t_eng=(t−x/vPx) mod duration` 二分插值, `vPx=ω/k` | 与原 sin(kx−ωt) 恒等; 回退保留 |
-| `mechanical-wave` | 9 tracked 质点 (x=−1..3) 间线性插值驱动 60 粒子, `engineCount=trajs.length−1` 去掉末尾 snapshot | **附带修复引擎干涉公式 bug** (见下); 回退保留 |
+| `mechanical-wave` | tracked 质点 (数量随 λ 自适应, 间距 ≤ λ/8; x=−1..3) 间线性插值驱动画布粒子, `engineCount=trajs.length−1` 去掉末尾 snapshot | **附带修复引擎干涉公式 bug** (见下); 2026-10-26 追加: 原固定 9 点间距 = 0.5 m = 默认 λ → 全部同相 → 波形退化为直线, 改为自适应采样 (λ/4 仍呈尖刺三角波 → λ/8); 回退保留 |
 | `lc-oscillator` | 读 `charts.x_t/y_t/ke_t/pe_t` (μC/mA/μJ, x 轴 μs, 覆盖 2T), `interp()` 二分插值 + mod 2e6; q/i/Ee/Em 与 Q/I 曲线数组均改引擎 | 键名≠语义名 (q_t/i_t/Ee_t/Em_t), 类型强转访问; 回退保留 |
 
 ### 引擎 bug 修复:mechanical-wave 干涉方向
@@ -141,7 +141,7 @@ heat-direction / adiabatic-compression / energy-transformation / load-voltage / 
 | 场景 | 断言 |
 |------|------|
 | sound-waveform | 复合音谐波成分 (峰值间距≠T); 时域波形与行波快照等效时移一致 |
-| mechanical-wave | 9 tracked 质点轨迹; snapshot 起伏; 干涉驻波节点/波腹 (λ=0.4) |
+| mechanical-wave | tracked 质点轨迹 (间距 ≤ λ/8, 索引取自 extra.trackedX); snapshot 起伏; 干涉驻波节点/波腹 (λ=0.4) |
 | lc-oscillator | q(0)=1μC, i(0)≈0, q/i 90° 相位差, 能量守恒 Ee+Em=Q₀²/2C |
 
 core 测试数 881 → 917 (机械波单测重构 + 断言补齐), viz 393 → 402。
@@ -670,3 +670,22 @@ grep -oE "scene\('[a-z0-9-]+'\)" visualization/tests/accuracy/single-source-cont
 - **F1 · `double-slit` 为幻影 sceneId（✅ #59 已修）**:B-静态清单登记的 `double-slit` 在 `visualization/src` 中**无对应 `id:'double-slit'` 场景**;真实「双缝干涉」场景 id 为 `interference`(已列于 B-数值)。故 B 类「61 个唯一场景」实际含 1 个不存在的 id(真实唯一 sceneId = 60),且 `doubleSlitIntensity` 仅是 `rendering/constants.ts` 的绘图辅助函数名。→ 建议修正 B-静态清单(以 `interference` 计/去重)与并集计数口径（→ issue #59）。**#59 已执行**：从 B-静态清单移除 `double-slit`，B-静态 37→36、并集 61→60，分类统计表与去重说明同步。
 - **F2 · 引擎 `ParameterSpec.unit` 记号 split(可自动化模式)**:引擎侧角度单位串存在 `'deg'`(13 处:polarization/doppler/hologram/wetting/single-slit/water-diffraction/double-pendulum/thin-film)与 `'°'`(17 处)并存;长度单位 `'um'`(diffraction-grating/hologram)与 `'μm'` 并存。场景侧统一用 `'°'`/`'μm'`。**纯 UI 记号差异,无数值/换算影响**(同为度 / 同为微米、buildProblem 不换算)。因属可正则检出的模式 → 记为潜在门禁候选,是否收口交规划者判定（→ issue #60）。
 - **F3 · surface-tension σ_水三方取值不一致 + headline 值自算(单源缺口)**:① `rendering/constants.ts` 单一真源 `SIGMA_WATER_20C=0.0728`(IAPWS,仅 `renderers.test.ts` L3 断言使用),② 引擎 `surface-tension.ts` 硬编码 `sigma0=0.072`,③ 渲染 `drawSurfaceTensionScene` 亦硬编码 `sigma0=0.072` **并自算 `F=2σ(L/100)` 展示 headline σ/F,未消费引擎 `forceCurve` charts**(仅底部 σ-T 曲线读 `charts.y_t`)。②=③(0.072)但≠①(0.0728),三者约 1% 偏差;温度模型亦不同(②加法 β=1.5e-4 vs ③①乘法 −0.002·σ₀)。`drawCapillaryScene` 亦硬编码 0.072 复现同模式。→ 属常量取值不一致 + 有引擎数据却自算,违单源约定（→ issue #58）。
+
+## 3D 风格统一复核 (2026-10-15): 外科式收口 — 123 场景
+
+一次性脚本 `.scratch/scan-3d-unified.mjs` 对 `SCENE_TO_MODULE` 全 123 sceneId 静态扫描 8 面红旗(R1–R8), 结论与本审计 **阶段 D 第 493-494 行**一致: **视觉统一到 projectile 基准在仓库口径中已基本达成**, 多数红旗为**有意为之且被测试锁死的场景差异**, 不追求字面"空集"。
+
+- **实际修复(2 处真正 R3 缺口, commit `1b28b29`)**: `springRig`(弹簧自由端每帧接振子球心 X) + `newtonSecondLawRig`(细线随小车缩短、砝码随悬挂段下降, 补 onAnimate)。clean 12→14。门禁全绿: rigs-build 137/137、accuracy+workbench 942/942、precheck exit 0(11 层 PASS)。
+- **R1/R6 豁免(归一化正确, 改动即回归)**: orbital/moon-earth(`2.0/rOrbit` 归一化, `rigs-build.test.ts` L115-125 硬断言 `|p.x|<10`)、vertical-circle(1 世界单位=1 米贴合圆环)、newton-tube(竖直管归一化)。
+- **R2 豁免(无地面接触语义)**: orbital/moon-earth、simple-pendulum(悬空, 已显式 false)、vertical-circle/centrifugal/circular-motion(环轨球在 pivot 高度)、三类测量工具(无落体球)。
+- **R3 豁免(静态/参数驱动, 无需每帧接 ballPos)**: 场向箭头(electric-field/efield-lines/current-magnetic/hall-effect)、hooke-law(F=kx 静态)、force-composition(结点固定)、uniform-accelerated(静态参考线)。
+- **R4 整体豁免(99)**: em/modern/optics/induction 抽象场景无 `equipment/` 实物对应物(场线/粒子/能级/波形/黑体谱/分子/传感器), 裸几何合理。
+- **R5**: resistance-law 缺标牌 → 可读性增强项(非硬约束), 后续可选。
+- **R7**: cavendish 软命中 — `onAnimate` 用 `ctx.time` 算悬丝扭转装饰包络(扭秤无 trajectory), 非引擎自算, 不违单源; 豁免。
+- **浏览器实测覆盖(一次性 headless harness, 非门禁)**: 遍历教材目录去重 123 个 sceneId, 逐景判 `canvas.getContext('webgl2')` — **123/123 均为 3D 首帧, 0 CRASH / 0 ERROR**(主扫 107 + 折叠侧栏滚动不可达的 16 景补测)。产物 `.scratch/unify-3d/browser-coverage{,-rest}.json`(gitignored)。
+- **未 push 之前**: 本轮 2 处 rig 修复 + 本审计段已 push 至 main。
+- **M9 课堂核心场景坐标纠错 — #157 `uniform-accelerated` 竖直运动修复 (2026-10-25)**: 补齐初始高度参数 `height` (m, 默认 20, 范围 1–200, 步长 1) 并写入 `buildProblem` 初始 `y`；显示名统一为「竖直运动（自由落体/上抛）」。`verticalMotionRig` 的释放点 (`getOrigin` / `launcherBase` / `releaseLabel`)、高度标尺 (`heightRuler`)、最高点 (`apexMarker` / `apexLabel`) 与球/残影/轨迹统一采用 `BALL_RADIUS + y * WORLD_SCALE` 真实物理映射，严格区分相对上升高度 $\Delta h = v_{0y}^2/(2g)$ ($v_{0y}>0$) 与绝对最高点高度 $H_{\max} = h_0 + \Delta h$，$v_{0y} \le 0$ 不再出现虚增最高点或负上升时间；同步课堂教案与导学说明。
+- **M9 — #158 `inclined-plane` 板面接触与全程支撑 (2026-10-25)**：`inclineRig` 将引擎笛卡尔 XY 仅等比缩放/平移，再沿法向偏移半板厚与球半径，不再对 x 二次投影。面板 build/update 共用几何，长度覆盖真实完整采样的有向沿面范围（含负位移），移除无碰撞语义的红挡板及地面夹高。`EquipmentStage` 仅透传本次引擎结果上下文，a 标牌读取引擎加速度（静止为 0）。真实生产浏览器默认板长 4.128 world，主球到板上表面距离 0.1800000009 world；完整 Float32 轨迹距离范围 0.1799998733–0.1800001282，t0→3 切向位移 3.528 world。回归覆盖 5°/30°/85°、build/update/变角、静止、减速与有向负位移；初始/中段/末段截图：`docs/screenshots/issue-158-t{0,1.5,3}.png`。
+- **M9 — #157 首次退回后的几何与标牌收口 (2026-10-25)**：侧臂/实体圆柱退至 z=-0.6，实际球道最小净空约 0.12 world；接料垫嵌入地面，使实际顶面 y≈0（Float32 误差 -2.24e-10），与既定球底、主轨迹及残影接触面一致。局部多行标牌按真实字宽分配纹理，近重合的释放/最高点读数共用一牌；纹理尺寸变化时替换 CanvasTexture 并释放旧 GPU 资源，避免参数变化后 GPU 仍采旧字。同尺寸只更新纹理。移除为测试添加的 userData 文本回显与文案/默认值断言；新增真实实体净空和实际垫面距离红绿回归。生产浏览器 32 组高度/初速/重力参数的真实字形与像素边界均不裁切；默认与变参后直接读回 GPU 字形 alpha，与实际 canvas 不同像素数为 0。截图及边界纹理：`docs/screenshots/issue-157-*.png`。引擎、主球/轨迹/残影的既定高度映射不变。
+
+> 完整例外论证见会话产物 `.scratch/unify-3d/FINAL.md`(gitignored, 不入库)。

@@ -1,10 +1,13 @@
 # STATE
-
-- 更新时间：2026-10-09T23:20:00+08:00
-- 当前 Issue：#95（in-review；阴影贴图设备能力三档自适应，feat `ba0bd6f` / Merge `b692154`）——同轮 in-review 积压 5：#107 / #110 / #93 / #94 / #95
-- 分支：main（临时分支 `agent/issue-95-shadow-adaptive` 已删；工作树干净）
-- 未完成工作：无（#95 已合回推送，执行报告在 issue）
-- 最近提交：`b692154` Merge #95（feat `ba0bd6f`）
-- 已知环境限制：端口 3000 dev server 本棒临时占用（收尾已停）；冒烟脚本 `SMOKE_BROWSER_CHANNEL=''`（本机无 msedge）；OCR 真实上游凭证不在本机（用 mock）
-- 测试数真值：core 1137 / viz 1616 / total 2753（#95 后 count:sync 已回写三处标记）
-- 下一棒队首：#96（场景参数初值脱网格治理，P3）
+- 更新时间：2026-11-13（本地日期；当日会话收尾中）
+- 当前任务：#166 P0 期「选中改造」**已完成 → in-review**（用户 2026-11-13 会话答复确认 D68=A；Planner 缺位 2 天，Executor 代行领取，依据见 issuecomment-6828730790）；P1 期（B-* 可控放置）未开工待 Planner 拆期；#44 blocked·parked / #167 auto-discovered 待定级维持
+- 分支：main（merge `0c754e0`，任务分支 `agent/issue-166-p0-selection` 已合并删除）
+- 未完成工作：无代码半成品；探针浏览器实跑环境阻塞（本机 chromium libatspi 符号崩溃），断言待 CI 复核；push 触发的远端 CI run 终态待下一棒复核
+- 最近提交：`0c754e0` Merge #166 P0 ← `c049509` feat(composition) #166 P0 器材选中改造（+823/−39，14 文件，含探针扩展与 count 回写）
+- 验证结果：
+  - 本地权威：完整 precheck 双绿（提交前 + push pre-push 钩子）——typecheck / lint 0 错误（19 既有 warning）/ format / test 3185（viz 2004 + core 1181，新增 27）/ count:sync 回写 / build / bundle / publish dry-run / 自检「11 层: 11 PASS, 0 FAIL」
+  - 探针：`verify-composition-interaction.mjs` 扩展 A-1/A-2/A-4/A-5/A-7 断言后本地实跑**环境阻塞**（chromium headless shell 启动崩 `libatspi.so.0: undefined symbol`，NO_AT_BRIDGE=1 无效、无系统浏览器）；DOM 面已由 compositionOutliner.test.tsx（jsdom 5 用例）+ picking.test.ts（18 用例）补位
+  - 远端：push `0c754e0` 触发的新 CI run 终态未确认（提交时运行中；判读指引：失败先看步骤是否「安装 Playwright Chromium」）
+- 今日日报：已写（`.agent/DIARY/2026-11-13.md`）
+- 已知环境限制：npm/node 需 mise shims；`gh` 写操作须 `env -u GH_TOKEN`；**本机 chromium headless 不可用（libatspi 崩溃，探针类本地实跑受限）**；libselinux 告警为容器噪音
+- 契约 1.2 提示：未发现 `.agent/LOCK` 残留；串行不使用锁

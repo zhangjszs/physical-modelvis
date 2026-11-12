@@ -151,12 +151,12 @@ export const centerOfGravityRig: SceneRig = {
             suspensionPoint: new THREE.Vector2(0, 0)
         };
 
-        this.updateEquipment(handles as unknown as Record<string, unknown>, params);
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        this.updateEquipment(handles, params);
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        const h = handles as unknown as CenterOfGravityHandles;
+        const h = handles as CenterOfGravityHandles;
         const shapeType = Math.round(num(params['shapeType'], 0));
         h.shapeType = shapeType;
 
@@ -274,7 +274,7 @@ export const centerOfGravityRig: SceneRig = {
     },
 
     onAnimate(handles, ctx) {
-        const h = handles as unknown as CenterOfGravityHandles;
+        const h = handles as CenterOfGravityHandles;
         if (!h.plateGroup) return;
 
         const { time } = ctx;

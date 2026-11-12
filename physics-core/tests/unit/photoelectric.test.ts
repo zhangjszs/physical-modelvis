@@ -90,4 +90,38 @@ describe('PhotoelectricModel', () => {
         expect(r.explanation.summary).toContain('W₀=');
         expect(r.explanation.summary).toContain('ν₀=');
     });
+
+    it('占位轨迹覆盖 timeConfig 时长，供 2D/3D 播放时间轴使用', () => {
+        const r = model.solve(makeProblem()); // duration 1, sampleCount 10
+        const trajectory = r.trajectories[0]!;
+        expect(trajectory).toHaveLength(11);
+        expect(trajectory[0]!.t).toBe(0);
+        expect(trajectory[trajectory.length - 1]!.t).toBeCloseTo(1, 9);
+        // 轨迹只是时间基准，不是电子确定轨迹：所有位置保持在阴极原点
+        expect(trajectory.every(p => p.position.x === 0 && p.position.y === 0)).toBe(true);
+    });
+});
+
+describe('PhotoelectricModel · 曲线 x 必须升序 (#159 批次 F-2)', () => {
+    it('freqMin > freqMax 时曲线仍是升序 (旧版直接采样 ⇒ x 降序, 渲染 interpSeries 会静默插错)', () => {
+        const result = model.solve(makeProblem({ workFunction: 2.3, freqMinTHz: 1500, freqMaxTHz: 500 }));
+        for (const key of ['x_t', 'y_t'] as const) {
+            const pts = result.charts[key]!.points;
+            expect(pts.length).toBeGreaterThan(1);
+            for (let i = 1; i < pts.length; i++) {
+                expect(pts[i]!.x).toBeGreaterThan(pts[i - 1]!.x);
+            }
+        }
+    });
+
+    it('正常区间下曲线覆盖 [ν₀, ν_max] 且末点与解析式一致', () => {
+        const result = model.solve(makeProblem({ workFunction: 2.3, freqMinTHz: 300, freqMaxTHz: 1500 }));
+        const ek = result.charts.y_t!.points;
+        const uc = result.charts.x_t!.points;
+        expect(ek[0]!.x).toBeGreaterThanOrEqual(result.diagnostics.maxValues.thresholdFrequency_THz! - 1);
+        expect(ek[ek.length - 1]!.x).toBeCloseTo(1500, 3);
+        // E_k (eV) 与 U_c (V) 数值相同 (E_k = e·U_c)
+        expect(uc[uc.length - 1]!.y).toBeCloseTo(ek[ek.length - 1]!.y, 4);
+        expect(ek[ek.length - 1]!.y).toBeCloseTo(4.135667696e-3 * 1500 - 2.3, 3);
+    });
 });

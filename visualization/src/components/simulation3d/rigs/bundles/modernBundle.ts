@@ -5,6 +5,10 @@
 import type { SceneRig } from '../../EquipmentStage';
 import { quantumRig } from '../quantumRig';
 import { nuclearRig } from '../nuclearRig';
+import { radioactiveRig } from '../radioactiveRig';
+import { geigerCounterRig } from '../geigerCounterRig';
+import { decayStatisticsRig } from '../decayStatisticsRig';
+import { fissionChainRig } from '../fissionChainRig';
 import { blackBodyRig } from '../blackBodyRig';
 import { cosmicRayRig } from '../cosmicRayRig';
 import { electronDiffractionRig } from '../electronDiffractionRig';
@@ -36,8 +40,8 @@ export default {
     photoelectric: photoelectricRig,
     bohr: quantumRig,
     'bohr-orbit': quantumRig,
-    radioactive: nuclearRig,
-    'geiger-counter': nuclearRig,
+    radioactive: radioactiveRig,
+    'geiger-counter': geigerCounterRig,
     diffusion: diffusionRig,
     'brownian-motion': brownianMotionRig,
     'oil-film': oilFilmRig,
@@ -54,8 +58,8 @@ export default {
     'perpetuum-mobile': perpetuumMobileRig,
     'heat-direction': heatDirectionRig,
     'alpha-scattering': nuclearRig,
-    'decay-statistics': nuclearRig,
-    'fission-chain': nuclearRig,
+    'decay-statistics': decayStatisticsRig,
+    'fission-chain': fissionChainRig,
     'black-body': blackBodyRig,
     'cosmic-ray': cosmicRayRig,
     'electron-diffraction': electronDiffractionRig,

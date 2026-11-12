@@ -70,7 +70,7 @@ describe('#82 charts 类型化访问层', () => {
 
     it('登记表: 每个登记模型至少 1 个键', () => {
         // 「登记键 ⊆ charts 协议键」由 chart-registry.ts 的 `satisfies { [M in ModelType]?: readonly ChartKey[] }`
-        // 在编译期保证 (引擎 typecheck 纳入 tests, #83) —— 此处不重复枚举 113 键 (即 #82 排除的全量 schema 化)。
+        // 在编译期保证 (引擎 typecheck 纳入 tests, #83) —— 此处不重复枚举 104 个 charts 协议键 (即 #82 排除的全量 schema 化; #120 订正旧「113 键」)。
         // 运行时反向守卫「模型实际产出 ⊆ 登记」在 visualization/tests/accuracy/typed-charts.test.ts 全场景探针。
         for (const [model, keys] of Object.entries(MODEL_CHART_KEYS)) {
             expect(keys.length, `${model} 登记键数 ≥ 1`).toBeGreaterThanOrEqual(1);

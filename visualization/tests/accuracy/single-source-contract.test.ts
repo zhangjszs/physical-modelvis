@@ -26,6 +26,10 @@ import { readEngineOrbitRadii, readEngineBohrLevels } from '../../src/rendering/
 import { readEngineDiffusionCoeff, readEngineBrownianCoeff } from '../../src/rendering/molecularKineticScenes';
 import { readEngineAlphaK } from '../../src/rendering/nuclearScenes';
 import { readEngineVerticalCircle } from '../../src/rendering/chapter5Scenes';
+import { readWaveMediumFromResult } from '../../src/rendering/engineExtraAccess';
+import { drawSimplePendulumScene } from '../../src/rendering/chapter7Scenes';
+import { measurePendulumPeriod } from '../../src/rendering/pendulumMetrics';
+import { createRecordingCanvas } from '../utils/canvasMock';
 
 /** 取渲染源码中某导出函数的完整函数体 (到下一个 export function 为止) — 源码契约断言用 */
 function renderFn(file: string, fnName: string): string {
@@ -108,6 +112,35 @@ describe('L1-migration: 渲染单一真源契约 (orbital / pendulum / vertical-
         expect(Math.abs(TEngine - TSmall) / TSmall).toBeGreaterThan(0.05);
         // theta_t 图表单位是度
         expect(Math.abs(theta[0]!.y)).toBeCloseTo(60, 0);
+    });
+
+    it('simple-pendulum: 2D 板书周期读数必须用引擎实测值 (θ₀=60° 时与小角度公式明显不同)', () => {
+        const sc = scene('simple-pendulum');
+        const params: Record<string, number> = { length: 1, angle: 60, mass: 1, g: 9.8, damping: 0, duration: 20 };
+        const { result, error } = runSceneSimulation(sc, params);
+        expect(error).toBeNull();
+
+        // 引擎端: 实测周期由轨迹过零测得, 大摆角下明显长于小角度公式
+        const measured = measurePendulumPeriod(result!.trajectories[0]);
+        expect(measured, '轨迹应可测出周期').not.toBeNull();
+        const tSmall = 2 * Math.PI * Math.sqrt(1 / 9.8);
+        expect(Math.abs(measured! - tSmall) / tSmall).toBeGreaterThan(0.05);
+
+        // 渲染端: 画面上的周期读数必须是实测值 (公式值仅作对照, 不得冒充读数)
+        const { ctx, texts } = createRecordingCanvas({ width: 900, height: 600 });
+        drawSimplePendulumScene({
+            ctx,
+            width: 900,
+            height: 600,
+            isDark: true,
+            params,
+            simulationResult: result!,
+            currentTime: 0
+        });
+        const shown = texts.join('\n');
+        expect(shown, '画面标注周期来源').toContain('引擎实测');
+        expect(shown, '画面周期读数为引擎实测值').toContain(`${measured!.toFixed(3)} s`);
+        expect(shown, '小角度公式值仅作对照展示').toContain(`2π√(L/g) = ${tSmall.toFixed(3)}s`);
     });
 
     it('vertical-circle: 引擎速度在最高点 < 最低点 (机械能守恒), 渲染 HUD 用当前速度', () => {
@@ -196,7 +229,7 @@ describe('L1-migration: 渲染单一真源契约 (orbital / pendulum / vertical-
         return omega / k;
     }
 
-    it('mechanical-wave: 引擎 9 个 tracked 质点轨迹, 渲染粒子位置必须跟随引擎 (横波)', () => {
+    it('mechanical-wave: 引擎追踪质点按波长自适应 (间距 ≤ λ/8), 渲染粒子位置必须跟随引擎 (横波)', () => {
         const sc = scene('mechanical-wave');
         const params: Record<string, number> = {
             waveMode: 0,
@@ -209,10 +242,19 @@ describe('L1-migration: 渲染单一真源契约 (orbital / pendulum / vertical-
         expect(error).toBeNull();
 
         const trajs = result!.trajectories;
-        // 9 个 tracked 质点 + 1 条 waveSnapshot
-        expect(trajs.length).toBeGreaterThanOrEqual(10);
+        // 追踪质点数随波长自适应 + 末尾 1 条 waveSnapshot
+        // (早期固定 9 点: 间距 = 介质总长/8 = 0.5 m = 默认 λ → 全部同相 → 波形退化为直线)
+        const medium = readWaveMediumFromResult(result!)!;
+        expect(medium).not.toBeNull();
+        expect(medium.trackedCount).toBe(trajs.length - 1);
+        expect(medium.trackedCount).toBeGreaterThan(9);
+        for (let i = 1; i < medium.trackedX.length; i++) {
+            const gap = medium.trackedX[i]! - medium.trackedX[i - 1]!;
+            expect(gap).toBeGreaterThan(0);
+            expect(gap).toBeLessThanOrEqual(medium.wavelength / 8 + 1e-9);
+        }
         // 每个 tracked 质点轨迹覆盖整个时长且位移在 [-A, A] 内
-        for (let i = 0; i < 9; i++) {
+        for (let i = 0; i < medium.trackedCount; i++) {
             const t = trajs[i]!;
             expect(t.length).toBeGreaterThan(50);
             const maxDisp = Math.max(...t.map(p => Math.abs(p.position.y)));
@@ -232,8 +274,9 @@ describe('L1-migration: 渲染单一真源契约 (orbital / pendulum / vertical-
 
     it('mechanical-wave: 干涉模式引擎含驻波 — tracked 质点波节振幅≈0, 波腹≈2A', () => {
         const sc = scene('mechanical-wave');
-        // λ=0.4: 波节 x=(2n+1)λ/4 = 0.1, 0.3, 0.5, ...; tracked x: -1, -0.5, 0, 0.5, 1, ...
-        //   x=0.5 (trajs[3]) 波节, x=0 (trajs[2]) 波腹
+        // λ=0.4: 干涉叠加 y = 2A·sin(ωt)·cos(kx) → 波节 x=(2n+1)λ/4 = 0.1, 0.3, 0.5, ...
+        //   波腹 x = nλ/2 = 0, 0.4, 0.8, ...
+        // 波节/波腹的追踪索引由引擎 extra.trackedX 给出 (不写死索引, 随采样规则自适应)
         const params: Record<string, number> = {
             waveMode: 2,
             amplitude: 0.1,
@@ -245,9 +288,14 @@ describe('L1-migration: 渲染单一真源契约 (orbital / pendulum / vertical-
         expect(error).toBeNull();
 
         const trajs = result!.trajectories;
-        const nodeAmp = Math.max(...trajs[3]!.map(p => Math.abs(p.position.y)));
+        const medium = readWaveMediumFromResult(result!)!;
+        const nodeIdx = medium.trackedX.findIndex(x => Math.abs(x - 0.1) < 1e-6);
+        const antinodeIdx = medium.trackedX.findIndex(x => Math.abs(x) < 1e-6);
+        expect(nodeIdx).toBeGreaterThanOrEqual(0);
+        expect(antinodeIdx).toBeGreaterThanOrEqual(0);
+        const nodeAmp = Math.max(...trajs[nodeIdx]!.map(p => Math.abs(p.position.y)));
         expect(nodeAmp).toBeLessThan(0.02);
-        const antinodeAmp = Math.max(...trajs[2]!.map(p => Math.abs(p.position.y)));
+        const antinodeAmp = Math.max(...trajs[antinodeIdx]!.map(p => Math.abs(p.position.y)));
         expect(antinodeAmp).toBeGreaterThan(0.15);
     });
 
@@ -944,8 +992,8 @@ describe('L1-migration: 渲染单一真源契约 (#20 收尾: 核/热/竖直圆/
         });
         expect(error).toBeNull();
         const mv = result!.diagnostics.maxValues as Record<string, number>;
-        // 独立复算: buildProblem 已换算 r=1e-6m, η=1e-3Pa·s; 引擎 kB=1.381e-23
-        const expected = (1.381e-23 * 300) / (6 * Math.PI * 1e-3 * 1e-6);
+        // 独立复算: buildProblem 已换算 r=1e-6m, η=1e-3Pa·s; 引擎 kB 取真源 (#109)
+        const expected = (PHYSICS_CONSTANTS.kB.value * 300) / (6 * Math.PI * 1e-3 * 1e-6);
         expect(mv.diffusionCoeff).toBeCloseTo(expected, 16);
     });
 
@@ -1211,11 +1259,14 @@ describe('L1-migration: 渲染单一真源契约 (M3 批次 1: 光学波动 + �
     });
 
     it('photoelectric: Ek-ν 直线读引擎 y_t, ν₀/K_max 读引擎 (源码契约)', () => {
-        const fn = renderFn('waveParticleDualityScenes.ts', 'drawPhotoelectricScene');
-        expect(fn, 'Ek-ν 直线读引擎 y_t (经 #82 chartsOf)').toContain("chartsOf(simulationResult, 'photoelectric')");
-        expect(fn, 'ν₀ 读引擎 maxValues').toContain('mvPhoto?.thresholdFrequency_THz ??');
-        expect(fn, 'K_max 由引擎序列插值').toContain('kAt(nuMax)');
-        expect(fn, '直线由引擎点列驱动').toContain('ekSeries?.points');
+        // 板书已迁至 src/rendering/photoelectricScenes.ts (#159 逐节审计 · 批次 F-2)
+        const fn = renderFn('photoelectricScenes.ts', 'drawPhotoelectricScene');
+        const readouts = renderFn('photoelectricScenes.ts', 'photoelectricReadouts');
+        expect(fn, 'Ek-ν 直线读引擎 y_t (经 chartOf → getChart)').toContain("chartOf(simulationResult, 'y_t')");
+        expect(fn, 'ν₀ 读引擎 maxValues').toContain('thresholdFrequency_THz');
+        expect(readouts, 'ν₀ 读引擎 thresholdFrequency_THz').toContain("engValue(result, 'thresholdFrequency_THz')");
+        expect(readouts, 'K_max 由引擎序列插值').toContain('interp(ekChart, sweep.nu)');
+        expect(fn, '直线由引擎点列驱动').toContain('ekChart.points');
     });
 });
 
@@ -1431,11 +1482,29 @@ describe('L1-migration: 渲染单一真源契约 (M3 批次 4: 气体分子/静�
     });
 
     it('gas-law: 过程曲线/动点 P 读引擎 x_t 插值, R 读 maxValues.R, 相位 sweep 示意保留 (源码契约)', () => {
+        // 板书已重写为引擎驱动版 (#159 逐节审计 · 批次 F-3 气体定律):
+        //   曲线走 getChart; 压强走**共享过程插值** utils/gasLawProcess.ts
+        //   (等温 pV=const ⇒ p 对 V 是双曲线, 两端线性插值会画错)
         const fn = renderFn('gasThermalScenes.ts', 'drawGasLawScene');
-        expect(fn, '曲线走引擎 chartsOf').toContain("chartsOf(simulationResult, 'gas-law')");
-        expect(fn, '动点 P 走引擎插值').toContain('interpSeries(engCurve');
-        expect(fn, 'R 读引擎 maxValues.R').toContain('mvGas?.R');
-        expect(fn, '相位示意性质有注释记录').toContain('示意');
+        const readouts = renderFn('gasThermalScenes.ts', 'gasLawReadouts');
+        const boardSrc = readFileSync(resolve(__dirname, '../../src/rendering/gasThermalScenes.ts'), 'utf-8');
+        const utilSrc = readFileSync(resolve(__dirname, '../../src/utils/gasLawProcess.ts'), 'utf-8');
+        const rigSrc = readFileSync(resolve(__dirname, '../../src/components/simulation3d/rigs/gasLawRig.ts'), 'utf-8');
+
+        expect(fn, '曲线走引擎 getChart').toContain("getChart(simulationResult, 'gas-law', 'x_t')");
+        expect(fn, '板书走统一读数出口').toContain('gasLawReadouts');
+        expect(readouts, 'R 读引擎 maxValues.R').toContain('state.R');
+        expect(readouts, '模式读引擎 modeCode (经共享插值)').toContain('state.mode');
+        expect(utilSrc, '过程插值压强查引擎曲线').toContain("getChart(result, 'gas-law', 'x_t')");
+        expect(utilSrc, '模式读引擎 modeCode').toContain("'modeCode'");
+        expect(utilSrc, '不得有 maxValues 强转').not.toMatch(/maxValues\s+as\s/);
+        expect(boardSrc, '不得有 maxValues 强转').not.toMatch(/maxValues\s+as\s/);
+        expect(boardSrc, '不得直接读 result.charts').not.toMatch(/result\??\.charts\[/);
+        expect(rigSrc, '3D rig 走共享过程插值').toContain('gasLawProcessState');
+        // 旧版用局部变量 hGas 按 V0 直接定活塞高度 (全程不动) —— 该变量名不得复活
+        expect(rigSrc, '3D rig 不得本地按 V0 算活塞高度 (旧版全程不动)').not.toMatch(/\bhGas\b/);
+        expect(rigSrc, '3D rig 活塞高度由共享插值给出').toContain('GAS_MAX_H');
+        expect(rigSrc, '3D rig 引擎轨迹是状态点 ⇒ ownParticles').toContain('ownParticles: true');
     });
 
     it('liquid-mixing: 终体积/收缩量与独立复算一致 (摩尔分数加权, 50/50mL→≈97.71mL)', () => {
@@ -1555,10 +1624,65 @@ describe('L1-migration: 渲染单一真源契约 (M3 批次 5: 电路 + 测量�
         expect(interpSeries(rSeries, 1)).toBeCloseTo(mv.baseResistance ?? 0, 5);
     });
 
-    it('resistance-law: HUD 电阻读引擎 maxValues.baseResistance, 导线示意保留 (源码契约)', () => {
-        const fn = renderFn('electricCircuitScenes.ts', 'drawResistanceLawScene');
-        expect(fn, 'R 读引擎 baseResistance').toContain('mvRes?.baseResistance');
-        expect(fn, '导线示意性质有注释记录').toContain('示意');
+    it('resistance-law: HUD 电阻读引擎 maxValues.baseResistance, 三条控制变量曲线读引擎 charts (源码契约)', () => {
+        // 板书已迁至 src/rendering/resistanceLawScenes.ts (#159 逐节审计 · 批次 E'')
+        const fn = renderFn('resistanceLawScenes.ts', 'drawResistanceLawScene');
+        const readouts = renderFn('resistanceLawScenes.ts', 'resistanceLawReadouts');
+
+        expect(fn, '板书走统一读数出口').toContain('resistanceLawReadouts');
+        expect(fn, '曲线走 chartPoints 出口').toContain('chartPoints');
+        expect(readouts, 'R 读引擎 baseResistance').toContain("eng('baseResistance')");
+        expect(readouts, '电阻率读引擎 resistivity').toContain("eng('resistivity')");
+        expect(readouts, '三条曲线走 chartOf 出口').toContain('chartOf');
+        expect(readouts, 'R-L 曲线').toContain('R_L');
+        expect(readouts, 'R-1/S 曲线').toContain('R_invS');
+        expect(readouts, '材料对比曲线').toContain('R_material');
+        // getChart 是类型化访问层入口 (在 chartOf 里), 整个文件不得绕过它直接读 charts
+        const fileSrc = readFileSync(resolve(__dirname, '../../src/rendering/resistanceLawScenes.ts'), 'utf-8');
+        expect(fileSrc, '曲线走 getChart 访问层').toContain('getChart');
+        expect(fileSrc, '不得直接读 result.charts').not.toMatch(/result\??\.charts\[/);
+        // 旧的「as {...} 强转 + 内联电阻率表」不得复活
+        expect(readouts, '不得有 maxValues 强转').not.toMatch(/maxValues\s+as\s/);
+        expect(readouts, '不得内联第二份电阻率表').not.toContain('2.82e-8');
+    });
+
+    it('photoelectric: 板书与 3D rig 整组读引擎 maxValues/charts, 不得本地重算 ν₀ 与 E_k (源码契约)', () => {
+        const readouts = renderFn('photoelectricScenes.ts', 'photoelectricReadouts');
+        const board = renderFn('photoelectricScenes.ts', 'drawPhotoelectricScene');
+        const boardSrc = readFileSync(resolve(__dirname, '../../src/rendering/photoelectricScenes.ts'), 'utf-8');
+        const rigSrc = readFileSync(
+            resolve(__dirname, '../../src/components/simulation3d/rigs/photoelectricRig.ts'),
+            'utf-8'
+        );
+        const sweepSrc = readFileSync(resolve(__dirname, '../../src/utils/photoelectricSweep.ts'), 'utf-8');
+
+        // —— 2D 板书 ——
+        expect(readouts, 'W₀ 读引擎 workFunction_eV').toContain("engValue(result, 'workFunction_eV')");
+        expect(readouts, 'ν₀ 读引擎 thresholdFrequency_THz').toContain("engValue(result, 'thresholdFrequency_THz')");
+        expect(readouts, 'h/e 读引擎 h_over_e').toContain("engValue(result, 'h_over_e')");
+        expect(readouts, '曲线走 chartOf 出口').toContain('chartOf');
+        expect(readouts, '不得有 maxValues 强转').not.toMatch(/maxValues\s+as\s/);
+        expect(boardSrc, '曲线走 getChart 访问层').toContain('getChart');
+        expect(boardSrc, '不得直接读 result.charts').not.toMatch(/result\??\.charts\[/);
+        expect(board, '板书走统一读数出口').toContain('photoelectricReadouts');
+        expect(board, '必须同时画截止电压 U_c–ν 通道').toContain("'x_t'");
+
+        // —— 3D rig ——
+        expect(rigSrc, '3D rig 读引擎 workFunction_eV').toContain("engValue(result, 'workFunction_eV')");
+        expect(rigSrc, '3D rig 读引擎 thresholdFrequency_THz').toContain("engValue(result, 'thresholdFrequency_THz')");
+        expect(rigSrc, '3D rig 曲线走 getChart 访问层').toContain('getChart');
+        expect(rigSrc, '3D rig 不得直接读 result.charts').not.toMatch(/result\??\.charts\[/);
+        expect(rigSrc, '3D rig 不得有 maxValues 强转').not.toMatch(/maxValues\s+as\s/);
+
+        // —— 演示映射只做「时间 → 频率」, 不得再自算物理量 ——
+        expect(sweepSrc, '演示映射不再返回物理判据 (E_k/U_c/ν₀/emitting/hν)').not.toMatch(
+            /^\s*(Ek|Uc|nu0|emitting|hNu)\s*:/m
+        );
+
+        // —— 旧板书残留不得复活 ——
+        const legacySrc = readFileSync(resolve(__dirname, '../../src/rendering/waveParticleDualityScenes.ts'), 'utf-8');
+        expect(legacySrc, '旧板书已迁出, 不得保留 maxValues 强转').not.toMatch(/maxValues\s+as\s/);
+        expect(legacySrc, '旧板书已迁出').not.toContain('drawPhotoelectricScene');
     });
 
     it('vernier-caliper-tool: 主尺/K/量化读数与独立复算一致 (23.4mm@20 分度→23+8×0.05)', () => {

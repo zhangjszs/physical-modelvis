@@ -133,12 +133,12 @@ export const verticalCircleRig: SceneRig = {
             modelType
         };
 
-        this.updateEquipment(handles as unknown as Record<string, unknown>, params);
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        this.updateEquipment(handles, params);
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        const h = handles as unknown as VerticalCircleHandles;
+        const h = handles as VerticalCircleHandles;
         const r = num(params['length'], 1.0);
         const modelType = Math.round(num(params['modelType'], 0));
         const v0 = num(params['initialSpeed'], 7.5);
@@ -171,7 +171,7 @@ export const verticalCircleRig: SceneRig = {
     },
 
     onAnimate(handles, ctx) {
-        const h = handles as unknown as VerticalCircleHandles;
+        const h = handles as VerticalCircleHandles;
         if (!h.centerHub) return;
 
         const ballPos = ctx.ballPos; // 3D 世界坐标

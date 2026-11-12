@@ -156,15 +156,15 @@ export const jouleMechanicalRig: SceneRig = {
         };
         updateJM(handles, params);
 
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        updateJM(handles as unknown as JouleMechHandles, params);
+        updateJM(handles as JouleMechHandles, params);
     },
 
     onAnimate(handles, ctx) {
-        const h = handles as unknown as JouleMechHandles;
+        const h = handles as JouleMechHandles;
         if (!h.spindleGroup || !h.weightLeft) return;
 
         // 重锤下落驱动叶片旋转循环 (周期 4s)

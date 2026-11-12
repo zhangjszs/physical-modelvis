@@ -51,6 +51,17 @@ export const inclined_planeScene: SceneConfig = {
             description: '沿斜面向上的初速度'
         },
         {
+            name: 'inclineLength',
+            label: '斜面长度 L',
+            unit: 'm',
+            value: 6,
+            min: 1,
+            max: 20,
+            step: 0.5,
+            default: 6,
+            description: '斜面沿坡面的长度 (物体滑到底端即停)'
+        },
+        {
             name: 'duration',
             label: '模拟时长',
             unit: 's',
@@ -68,9 +79,22 @@ export const inclined_planeScene: SceneConfig = {
         const mu = params['mu'] ?? 0;
         const v0 = params['v0'] ?? 0;
         const duration = params['duration'] ?? 3;
+        const inclineLength = params['inclineLength'] ?? 6;
         const thetaRad = (thetaDeg * Math.PI) / 180;
-        const v0x = v0 * Math.cos(thetaRad);
+        /**
+         * 初速度分解 (#159 逐节审计·问题一·严重)
+         *
+         * 旧实现写 `v0x = v0·cosθ, v0y = v0·sinθ` —— x 分量符号反了。
+         * 引擎的下滑方向是 (cosθ, −sinθ), 于是引擎算出的沿斜面初速度
+         *   v∥ = v0x·cosθ − v0y·sinθ = v0·(cos²θ − sin²θ) = v0·cos2θ
+         * θ=30° 时只有 0.5·v0 且方向朝下 (与「沿斜面向上的初速度」相反),
+         * θ=45° 时变成 0, θ=60° 时符号翻转 —— 物理直接讲错。
+         * 现在按「沿斜面向上」正确分解: 方向 = (−cosθ, +sinθ)。
+         */
+        const v0x = -v0 * Math.cos(thetaRad);
         const v0y = v0 * Math.sin(thetaRad);
+        // 物体初始位于斜面顶端: 斜面底端在 (L·cosθ, 0), 顶端高 L·sinθ
+        const startY = inclineLength * Math.sin(thetaRad);
         return {
             id: `inclined-plane-${Date.now()}`,
             title: '斜面运动',
@@ -79,12 +103,12 @@ export const inclined_planeScene: SceneConfig = {
                 {
                     id: 'block',
                     mass: { value: m, unit: 'kg' },
-                    position: { x: 0, y: 0 },
+                    position: { x: 0, y: startY },
                     velocity: { x: v0x, y: v0y }
                 }
             ],
             constraints: {
-                inclinedPlane: { angle: thetaDeg, frictionCoefficient: mu }
+                inclinedPlane: { angle: thetaDeg, frictionCoefficient: mu, inclineLength }
             },
             environment: {
                 gravity: { enabled: true, value: 9.8 }

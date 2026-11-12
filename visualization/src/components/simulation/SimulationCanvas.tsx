@@ -4,7 +4,8 @@ import { CoordinateTransformer } from '../../rendering/CoordinateTransformer';
 import { CanvasRenderer } from '../../rendering/CanvasRenderer';
 import { setupHiDPICanvas } from '../../rendering/dpr';
 import { COLORS } from '../../utils/colorMap';
-import { findFrameIndex, interpolateFrame, getTotalDuration } from '../../utils/frameUtils';
+import { getThemeTokens } from '../../utils/themeTokens';
+import { findFrameIndex, interpolateFrame, getPlaybackDuration } from '../../utils/frameUtils';
 import type { TrajectoryPoint, SimulationResult } from 'physics-core';
 import type { Vec2 } from '../../types/visualization';
 import {
@@ -19,7 +20,6 @@ import {
     type TimerChannel
 } from '../../rendering/props';
 import { getBlockedGateIndices, getTimerDisplayValue, type PhotogateMeasurement } from '../../utils/photogate';
-import { woodTexture, metalTexture } from '../../rendering/textureFactory';
 import {
     drawHookeLawScene,
     drawSlidingFrictionScene,
@@ -39,7 +39,6 @@ import {
     drawDopplerScene,
     drawSingleSlitScene,
     drawThinFilmScene,
-    drawRefractionScene,
     drawInterferenceScene,
     drawDiffractionGratingScene,
     drawPolarizationMalusScene,
@@ -59,11 +58,11 @@ import {
     drawFissionChainScene
 } from '../../rendering/nuclearScenes';
 import {
-    drawPhotoelectricScene,
     drawBlackBodyScene,
     drawElectronDiffractionScene,
     drawMicroDeformationScene
 } from '../../rendering/waveParticleDualityScenes';
+import { drawPhotoelectricScene } from '../../rendering/photoelectricScenes';
 import { drawBohrScene, drawBohrOrbitScene } from '../../rendering/atomicModelScenes';
 import {
     drawRadioactiveScene,
@@ -106,6 +105,11 @@ import {
 import { drawSecurityAlarmScene, drawLightControlSwitchScene } from '../../rendering/sensorApplicationScenes';
 import {
     drawFreeFallScene,
+    drawVerticalMotionScene,
+    drawProjectileScene,
+    drawInclinedPlaneScene,
+    drawCollisionScene,
+    drawSpringScene,
     drawGalileoInclineScene,
     drawReactionTimeScene,
     drawTickerTimerScene,
@@ -144,14 +148,20 @@ import {
 } from '../../rendering/electrostaticFieldScenes';
 import { drawParallelPlateCapacitorScene, drawCapacitorChargeScene } from '../../rendering/electrostaticEnergyScenes';
 import {
+    drawElectricFieldScene,
+    drawMagneticFieldScene,
+    drawEMCombinedScene
+} from '../../rendering/chargedParticleScenes';
+import {
     drawCircuitScene,
-    drawResistanceLawScene,
     drawLoadVoltageScene,
     drawMultimeterScene,
     drawVernierCaliperScene,
     drawMicrometerScene,
     drawBulbVIScene
 } from '../../rendering/electricCircuitScenes';
+import { drawResistanceLawScene } from '../../rendering/resistanceLawScenes';
+import { drawRefractionScene } from '../../rendering/refractionScenes';
 import {
     drawMagneticForceScene,
     drawAmpereForceScene,
@@ -181,15 +191,6 @@ function countPastPoints(points: TrajectoryPoint[], t: number): number {
     }
     return lo;
 }
-
-const SCENES_2D_CUSTOM_BG = new Set([
-    'electric-field',
-    'magnetic-field',
-    'em-combined',
-    'collision',
-    'spring',
-    'inclined-plane'
-]);
 
 /** 第三章「相互作用——力」场景集合：完整自定义渲染，不走标准轨迹/物体绘制流程 */
 const SCENES_CHAPTER3 = new Set(['hooke-law', 'sliding-friction', 'force-composition', 'newton-third-law']);
@@ -274,7 +275,17 @@ const SCENES_THERMAL = new Set([
 /** 基础力学实验场景集合：自由落体/斜面/惯性/牛顿定律等完整教学图 */
 const SCENES_MECHANICS = new Set([
     'free-fall',
+    // #159 逐节审计: 抛体 / 竖直运动 改为专属板书 (屏幕坐标系自定义渲染),
+    // 必须落在「完整自定义渲染」集合里, 否则 switch 分支不会执行, 且 autoFit 会与
+    // 板书自己的比例尺打架。
+    'projectile',
+    'uniform-accelerated',
     'galileo-incline',
+    // #159 逐节审计: 斜面/碰撞/弹簧改为专属板书 (器材与物体共用同一屏幕映射),
+    // 旧实现是「静态装饰件 + 通用轨迹通道真实物体」的双表示。
+    'inclined-plane',
+    'collision',
+    'spring',
     'reaction-time',
     'ticker-timer',
     'transmission-belt',
@@ -320,7 +331,10 @@ const SCENES_ELECTROMAGNETISM = new Set([
     'em-wave-hertz',
     'eddy-current',
     'em-wave-communication',
-    'em-spectrum'
+    'em-spectrum',
+    'electric-field',
+    'magnetic-field',
+    'em-combined'
 ]);
 
 /** 可视化缺口补建 8 场景集合 (Stage K) */
@@ -334,586 +348,6 @@ const SCENES_GAP = new Set([
     'ball-xt',
     'geiger-counter'
 ]);
-
-/** 绘制匀强电场线（渐变发光箭头，方向向上） */
-function drawElectricField(
-    ctx: CanvasRenderingContext2D,
-    _transformer: CoordinateTransformer,
-    width: number,
-    height: number,
-    isDark: boolean
-) {
-    const spacing = 60;
-    const baseColor = isDark ? ([251, 191, 36] as const) : ([234, 179, 8] as const);
-
-    for (let x = spacing / 2; x < width; x += spacing) {
-        const startY = height - 30;
-        const endY = 30;
-        ctx.strokeStyle = `rgba(${baseColor[0]},${baseColor[1]},${baseColor[2]},${isDark ? 0.12 : 0.15})`;
-        ctx.lineWidth = 6;
-        ctx.beginPath();
-        ctx.moveTo(x, startY);
-        ctx.lineTo(x, endY + 12);
-        ctx.stroke();
-        const grad = ctx.createLinearGradient(x, startY, x, endY);
-        grad.addColorStop(0, `rgba(${baseColor[0]},${baseColor[1]},${baseColor[2]},0.2)`);
-        grad.addColorStop(0.5, `rgba(${baseColor[0]},${baseColor[1]},${baseColor[2]},${isDark ? 0.55 : 0.65})`);
-        grad.addColorStop(1, `rgba(${baseColor[0]},${baseColor[1]},${baseColor[2]},${isDark ? 0.55 : 0.65})`);
-        ctx.strokeStyle = grad;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(x, startY);
-        ctx.lineTo(x, endY + 12);
-        ctx.stroke();
-        ctx.fillStyle = `rgba(${baseColor[0]},${baseColor[1]},${baseColor[2]},${isDark ? 0.6 : 0.7})`;
-        ctx.beginPath();
-        ctx.moveTo(x, endY);
-        ctx.lineTo(x - 7, endY + 14);
-        ctx.lineTo(x, endY + 9);
-        ctx.lineTo(x + 7, endY + 14);
-        ctx.closePath();
-        ctx.fill();
-    }
-
-    ctx.font = 'bold 13px sans-serif';
-    ctx.textAlign = 'right';
-    const lx = width - 12,
-        ly = 24;
-    const eLabel = 'E';
-    const tm = ctx.measureText(eLabel);
-    const arrowW = 18;
-    ctx.fillStyle = isDark ? 'rgba(15,23,42,0.7)' : 'rgba(255,255,255,0.8)';
-    ctx.fillRect(lx - tm.width - arrowW - 6, ly - 12, tm.width + arrowW + 10, 18);
-    ctx.fillStyle = `rgb(${baseColor[0]},${baseColor[1]},${baseColor[2]})`;
-    ctx.fillText(eLabel, lx - arrowW, ly);
-    {
-        const ax = lx - arrowW + tm.width + 4,
-            ay = ly - 9;
-        ctx.strokeStyle = `rgb(${baseColor[0]},${baseColor[1]},${baseColor[2]})`;
-        ctx.lineWidth = 2;
-        ctx.lineCap = 'round';
-        ctx.beginPath();
-        ctx.moveTo(ax + 5, ay + 12);
-        ctx.lineTo(ax + 5, ay);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(ax + 5, ay);
-        ctx.lineTo(ax + 1, ay + 5);
-        ctx.lineTo(ax + 9, ay + 5);
-        ctx.closePath();
-        ctx.fillStyle = `rgb(${baseColor[0]},${baseColor[1]},${baseColor[2]})`;
-        ctx.fill();
-    }
-}
-
-/** 绘制匀强磁场符号（⊗ 画成圆圈+叉号，更精致） */
-function drawMagneticField(
-    ctx: CanvasRenderingContext2D,
-    _transformer: CoordinateTransformer,
-    width: number,
-    height: number,
-    isDark: boolean
-) {
-    const spacing = 70;
-    const r = 10;
-    const lineColor = isDark ? 'rgba(168,85,247,0.55)' : 'rgba(147,51,234,0.5)';
-    const circleColor = isDark ? 'rgba(168,85,247,0.3)' : 'rgba(147,51,234,0.25)';
-
-    for (let x = spacing / 2; x < width; x += spacing) {
-        for (let y = spacing / 2; y < height; y += spacing) {
-            ctx.strokeStyle = circleColor;
-            ctx.lineWidth = 1.2;
-            ctx.beginPath();
-            ctx.arc(x, y, r, 0, Math.PI * 2);
-            ctx.stroke();
-            ctx.strokeStyle = lineColor;
-            ctx.lineWidth = 1.5;
-            const d = r * 0.55;
-            ctx.beginPath();
-            ctx.moveTo(x - d, y - d);
-            ctx.lineTo(x + d, y + d);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(x + d, y - d);
-            ctx.lineTo(x - d, y + d);
-            ctx.stroke();
-        }
-    }
-
-    ctx.font = 'bold 13px sans-serif';
-    ctx.textAlign = 'right';
-    ctx.textBaseline = 'top';
-    ctx.fillStyle = lineColor;
-    ctx.fillText('B (垂直纸面向里)', width - 12, 12);
-    ctx.textBaseline = 'alphabetic';
-}
-
-/** 绘制碰撞场景：两物体 3D 方块 + 阴影 + 高光 + 精致箭头 */
-function drawCollisionScene(
-    ctx: CanvasRenderingContext2D,
-    _transformer: CoordinateTransformer,
-    width: number,
-    height: number,
-    isDark: boolean,
-    params: Record<string, number>
-) {
-    const m1 = params['m1'] ?? 1;
-    const m2 = params['m2'] ?? 1;
-    const v1 = params['v1'] ?? 5;
-    const v2 = params['v2'] ?? 0;
-    const e = params['e'] ?? 1;
-    const labelColor = isDark ? '#e2e8f0' : '#1e293b';
-    const subColor = isDark ? '#94a3b8' : '#64748b';
-
-    const size1 = Math.max(24, Math.min(64, 18 + m1 * 5));
-    const size2 = Math.max(24, Math.min(64, 18 + m2 * 5));
-    const cy = height / 2;
-
-    function draw3DBox(cx: number, cy2: number, sz: number, baseHex: string) {
-        const x = cx - sz / 2,
-            y = cy2 - sz / 2;
-        ctx.fillStyle = isDark ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.12)';
-        ctx.fillRect(x + 4, y + 4, sz, sz);
-        const metalTex = metalTexture(sz, sz, baseHex, isDark);
-        ctx.save();
-        roundRectPath(ctx, x, y, sz, sz, 4);
-        ctx.clip();
-        ctx.drawImage(metalTex, x, y, sz, sz);
-        ctx.restore();
-        ctx.strokeStyle = darkenHex(baseHex, 50);
-        ctx.lineWidth = 1;
-        ctx.globalAlpha = 0.3;
-        roundRectPath(ctx, x, y, sz, sz, 4);
-        ctx.stroke();
-        ctx.globalAlpha = 1;
-        ctx.fillStyle = 'rgba(255,255,255,0.15)';
-        roundRectPath(ctx, x + 3, y + 3, sz - 6, sz * 0.3, 3);
-        ctx.fill();
-    }
-
-    function drawArrow2(x1: number, y1: number, x2: number, y2: number, color: string) {
-        const dx = x2 - x1,
-            dy = y2 - y1;
-        const len = Math.sqrt(dx * dx + dy * dy);
-        if (len < 3) return;
-        const angle = Math.atan2(dy, dx);
-        const headLen = Math.min(12, len * 0.3);
-        const grad = ctx.createLinearGradient(x1, y1, x2, y2);
-        grad.addColorStop(0, color + '66');
-        grad.addColorStop(1, color);
-        ctx.strokeStyle = grad;
-        ctx.lineWidth = 2.5;
-        ctx.lineCap = 'round';
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2 - headLen * 0.6 * Math.cos(angle), y2 - headLen * 0.6 * Math.sin(angle));
-        ctx.stroke();
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.moveTo(x2, y2);
-        ctx.lineTo(x2 - headLen * Math.cos(angle - 0.38), y2 - headLen * Math.sin(angle - 0.38));
-        ctx.lineTo(x2 - headLen * 0.45 * Math.cos(angle), y2 - headLen * 0.45 * Math.sin(angle));
-        ctx.lineTo(x2 - headLen * Math.cos(angle + 0.38), y2 - headLen * Math.sin(angle + 0.38));
-        ctx.closePath();
-        ctx.fill();
-    }
-
-    draw3DBox(width * 0.25, cy, size1, '#3b82f6');
-    ctx.fillStyle = labelColor;
-    ctx.font = 'bold 12px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(`m1=${m1}kg`, width * 0.25, cy + size1 / 2 + 18);
-    ctx.fillStyle = subColor;
-    ctx.font = '11px sans-serif';
-    ctx.fillText(`v1=${v1}m/s`, width * 0.25, cy + size1 / 2 + 33);
-
-    draw3DBox(width * 0.7, cy, size2, '#ef4444');
-    ctx.fillStyle = labelColor;
-    ctx.font = 'bold 12px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(`m2=${m2}kg`, width * 0.7, cy + size2 / 2 + 18);
-    ctx.fillStyle = subColor;
-    ctx.font = '11px sans-serif';
-    ctx.fillText(`v2=${v2}m/s`, width * 0.7, cy + size2 / 2 + 33);
-
-    // 速度箭头按可用宽度归一化并钳制，大速度不再溢出画布
-    const maxV = Math.max(Math.abs(v1), Math.abs(v2), 1);
-    const vPixelScale = Math.min(4, (width * 0.16) / maxV);
-    if (v1 !== 0) {
-        const x1 = width * 0.25 + size1 / 2 + 5;
-        drawArrow2(x1, cy, Math.max(10, Math.min(width - 10, x1 + v1 * vPixelScale)), cy, '#3b82f6');
-    }
-    if (v2 !== 0) {
-        const x1 = width * 0.7 + size2 / 2 + 5;
-        drawArrow2(x1, cy, Math.max(10, Math.min(width - 10, x1 + v2 * vPixelScale)), cy, '#ef4444');
-    }
-
-    const typeLabel = e >= 0.99 ? '弹性碰撞' : e < 0.01 ? '完全非弹性碰撞' : '非弹性碰撞';
-    const labelText = `${typeLabel} (e=${e})`;
-    ctx.font = '12px sans-serif';
-    ctx.textAlign = 'center';
-    const tw = ctx.measureText(labelText).width;
-    ctx.fillStyle = isDark ? 'rgba(15,23,42,0.7)' : 'rgba(255,255,255,0.8)';
-    roundRectPath(ctx, width / 2 - tw / 2 - 8, height - 34, tw + 16, 22, 4);
-    ctx.fill();
-    ctx.fillStyle = subColor;
-    ctx.fillText(labelText, width / 2, height - 18);
-}
-
-/** 绘制弹簧振子场景：金属墙壁 + 立体弹簧线圈 + 3D 滑块 + 平衡位置 */
-function drawSpringScene(
-    ctx: CanvasRenderingContext2D,
-    _transformer: CoordinateTransformer,
-    width: number,
-    height: number,
-    isDark: boolean,
-    params: Record<string, number>
-) {
-    const k = params['k'] ?? 10;
-    const m = params['m'] ?? 1;
-    const A = params['A'] ?? 0.5;
-    const damping = params['damping'] ?? 0;
-    const labelColor = isDark ? '#e2e8f0' : '#1e293b';
-    const subColor = isDark ? '#94a3b8' : '#64748b';
-    const cy = height / 2;
-    const anchorX = 60;
-    const blockW = 44;
-    const blockH = 34;
-    const eqX = width * 0.5;
-    // 振幅按画布可用宽度钳制，大 A 时滑块/弹簧不再越出右界
-    const maxOff = Math.max(0, width - 30 - blockW / 2 - eqX);
-    const blockX = eqX + Math.max(-maxOff, Math.min(maxOff, A * 200));
-
-    const wallGrad = ctx.createLinearGradient(anchorX - 14, 0, anchorX, 0);
-    wallGrad.addColorStop(0, isDark ? '#334155' : '#94a3b8');
-    wallGrad.addColorStop(1, isDark ? '#475569' : '#cbd5e1');
-    ctx.fillStyle = wallGrad;
-    ctx.fillRect(anchorX - 14, cy - 55, 14, 110);
-    ctx.strokeStyle = isDark ? 'rgba(100,116,139,0.25)' : 'rgba(0,0,0,0.08)';
-    ctx.lineWidth = 1;
-    for (let i = -10; i < 120; i += 6) {
-        ctx.beginPath();
-        ctx.moveTo(anchorX - 14, cy - 55 + i);
-        ctx.lineTo(anchorX - 4, cy - 55 + i + 10);
-        ctx.stroke();
-    }
-
-    const coils = 14;
-    const springLen = blockX - blockW / 2 - anchorX;
-    const amplitude = Math.max(6, Math.min(14, 10 * (springLen / 200)));
-    ctx.strokeStyle = isDark ? 'rgba(34,211,238,0.15)' : 'rgba(8,145,178,0.12)';
-    ctx.lineWidth = 5;
-    ctx.beginPath();
-    ctx.moveTo(anchorX, cy);
-    for (let i = 0; i <= coils; i++) {
-        const px = anchorX + (springLen * i) / coils;
-        const py = cy + (i % 2 === 0 ? -amplitude : amplitude);
-        ctx.lineTo(px, i === 0 || i === coils ? cy : py);
-    }
-    ctx.stroke();
-    const springGrad = ctx.createLinearGradient(anchorX, cy - amplitude, anchorX, cy + amplitude);
-    springGrad.addColorStop(0, isDark ? '#67e8f9' : '#06b6d4');
-    springGrad.addColorStop(0.5, isDark ? '#22d3ee' : '#0891b2');
-    springGrad.addColorStop(1, isDark ? '#06b6d4' : '#0e7490');
-    ctx.strokeStyle = springGrad;
-    ctx.lineWidth = 2.5;
-    ctx.lineJoin = 'round';
-    ctx.beginPath();
-    ctx.moveTo(anchorX, cy);
-    for (let i = 0; i <= coils; i++) {
-        const px = anchorX + (springLen * i) / coils;
-        const py = cy + (i % 2 === 0 ? -amplitude : amplitude);
-        ctx.lineTo(px, i === 0 || i === coils ? cy : py);
-    }
-    ctx.stroke();
-    ctx.lineJoin = 'miter';
-
-    const bx = blockX - blockW / 2,
-        by = cy - blockH / 2;
-    ctx.fillStyle = isDark ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.12)';
-    roundRectPath(ctx, bx + 3, by + 3, blockW, blockH, 4);
-    ctx.fill();
-    const blockTex = metalTexture(blockW, blockH, '#3b82f6', isDark);
-    ctx.save();
-    roundRectPath(ctx, bx, by, blockW, blockH, 4);
-    ctx.clip();
-    ctx.drawImage(blockTex, bx, by, blockW, blockH);
-    ctx.restore();
-    ctx.fillStyle = 'rgba(255,255,255,0.15)';
-    roundRectPath(ctx, bx + 3, by + 3, blockW - 6, blockH * 0.3, 3);
-    ctx.fill();
-    ctx.fillStyle = labelColor;
-    ctx.font = 'bold 12px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(`m=${m}kg`, blockX, cy + blockH / 2 + 18);
-
-    ctx.setLineDash([5, 4]);
-    ctx.strokeStyle = isDark ? 'rgba(34,211,238,0.35)' : 'rgba(8,145,178,0.35)';
-    ctx.lineWidth = 1.2;
-    ctx.beginPath();
-    ctx.moveTo(eqX, cy - 65);
-    ctx.lineTo(eqX, cy + 65);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.fillStyle = subColor;
-    ctx.font = '11px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('平衡位置', eqX, cy - 70);
-
-    const infoText = `k=${k}N/m  A=${A}m${damping > 0 ? `  阻尼=${damping}` : ''}`;
-    ctx.font = '11px sans-serif';
-    ctx.textAlign = 'center';
-    const tw = ctx.measureText(infoText).width;
-    ctx.fillStyle = isDark ? 'rgba(15,23,42,0.7)' : 'rgba(255,255,255,0.8)';
-    roundRectPath(ctx, width / 2 - tw / 2 - 8, height - 34, tw + 16, 22, 4);
-    ctx.fill();
-    ctx.fillStyle = subColor;
-    ctx.fillText(infoText, width / 2, height - 18);
-}
-
-/**
- * 绘制斜面场景：教科书标准"左竖右斜"楔体 + 3D 滑块 + 角度标注
- */
-function drawInclinedPlaneScene(
-    ctx: CanvasRenderingContext2D,
-    _transformer: CoordinateTransformer,
-    width: number,
-    height: number,
-    isDark: boolean,
-    params: Record<string, number>
-) {
-    const thetaDeg = params['theta'] ?? 30;
-    const m = params['m'] ?? 1;
-    const mu = params['mu'] ?? 0;
-    const labelColor = isDark ? '#e2e8f0' : '#1e293b';
-    const subColor = isDark ? '#94a3b8' : '#64748b';
-    const thetaRad = (thetaDeg * Math.PI) / 180;
-
-    const baseLen = width * 0.65;
-    const wallH = baseLen * Math.tan(thetaRad);
-    const bottomRight = { x: width * 0.82, y: height * 0.82 };
-    const bottomLeft = { x: bottomRight.x - baseLen, y: bottomRight.y };
-    const topLeft = { x: bottomLeft.x, y: bottomRight.y - wallH };
-
-    ctx.fillStyle = isDark ? 'rgba(0,0,0,0.22)' : 'rgba(0,0,0,0.10)';
-    ctx.beginPath();
-    ctx.moveTo(topLeft.x + 5, topLeft.y + 5);
-    ctx.lineTo(bottomLeft.x + 5, bottomLeft.y + 5);
-    ctx.lineTo(bottomRight.x + 5, bottomRight.y + 5);
-    ctx.closePath();
-    ctx.fill();
-
-    const wedgeW = bottomRight.x - bottomLeft.x;
-    const wedgeH = bottomRight.y - topLeft.y;
-    const woodTex = woodTexture(Math.max(64, wedgeW), Math.max(64, wedgeH), isDark ? '#7c5e3c' : '#b07c4f', isDark);
-    ctx.save();
-    ctx.beginPath();
-    ctx.moveTo(topLeft.x, topLeft.y);
-    ctx.lineTo(bottomLeft.x, bottomLeft.y);
-    ctx.lineTo(bottomRight.x, bottomRight.y);
-    ctx.closePath();
-    ctx.clip();
-    ctx.drawImage(woodTex, bottomLeft.x, topLeft.y, wedgeW, wedgeH);
-    ctx.restore();
-
-    ctx.strokeStyle = isDark ? '#64748b' : '#94a3b8';
-    ctx.lineWidth = 1.8;
-    ctx.beginPath();
-    ctx.moveTo(topLeft.x, topLeft.y);
-    ctx.lineTo(bottomLeft.x, bottomLeft.y);
-    ctx.lineTo(bottomRight.x, bottomRight.y);
-    ctx.closePath();
-    ctx.stroke();
-
-    ctx.strokeStyle = isDark ? 'rgba(100,116,139,0.18)' : 'rgba(0,0,0,0.08)';
-    ctx.lineWidth = 1;
-    for (let i = 0; i < wallH; i += 7) {
-        ctx.beginPath();
-        ctx.moveTo(bottomLeft.x - 8, topLeft.y + i);
-        ctx.lineTo(bottomLeft.x, topLeft.y + i + 7);
-        ctx.stroke();
-    }
-
-    const arcR = 45;
-    const startAngle = Math.PI;
-    const slopeAngleFromBR = Math.atan2(topLeft.y - bottomRight.y, topLeft.x - bottomRight.x);
-    // 取从水平底边(startAngle)到斜面边的最小扫角(=θ)，避免 anticlockwise=true 画出 330° 优角
-    const minorSweep = (((slopeAngleFromBR - startAngle) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
-    const midAngle = startAngle + minorSweep / 2;
-    ctx.fillStyle = isDark ? 'rgba(251,191,36,0.10)' : 'rgba(217,119,6,0.08)';
-    ctx.beginPath();
-    ctx.moveTo(bottomRight.x, bottomRight.y);
-    ctx.arc(bottomRight.x, bottomRight.y, arcR, startAngle, slopeAngleFromBR, false);
-    ctx.closePath();
-    ctx.fill();
-    ctx.strokeStyle = isDark ? '#fbbf24' : '#d97706';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.arc(bottomRight.x, bottomRight.y, arcR, startAngle, slopeAngleFromBR, false);
-    ctx.stroke();
-    ctx.fillStyle = isDark ? '#fbbf24' : '#d97706';
-    ctx.font = 'bold 13px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(
-        `\u03B8=${thetaDeg}\u00B0`,
-        bottomRight.x + (arcR + 22) * Math.cos(midAngle),
-        bottomRight.y + (arcR + 22) * Math.sin(midAngle)
-    );
-    ctx.textBaseline = 'alphabetic';
-
-    const t = 0.45;
-    const slopeCenterX = bottomRight.x + t * (topLeft.x - bottomRight.x);
-    const slopeCenterY = bottomRight.y + t * (topLeft.y - bottomRight.y);
-    const blockW = 38;
-    const blockH = 24;
-
-    ctx.save();
-    ctx.translate(slopeCenterX, slopeCenterY);
-    ctx.rotate(thetaRad);
-    ctx.fillStyle = 'rgba(0,0,0,0.18)';
-    roundRectPath(ctx, -blockW / 2 + 3, -blockH + 3, blockW, blockH, 4);
-    ctx.fill();
-    const bGrad = ctx.createLinearGradient(-blockW / 2, -blockH, blockW / 2, 0);
-    bGrad.addColorStop(0, '#60a5fa');
-    bGrad.addColorStop(0.5, '#3b82f6');
-    bGrad.addColorStop(1, '#1d4ed8');
-    ctx.fillStyle = bGrad;
-    roundRectPath(ctx, -blockW / 2, -blockH, blockW, blockH, 4);
-    ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,0.20)';
-    roundRectPath(ctx, -blockW / 2 + 3, -blockH + 3, blockW - 6, blockH * 0.35, 3);
-    ctx.fill();
-    ctx.restore();
-
-    const labelOffX = slopeCenterX + Math.sin(thetaRad) * (blockH + 12);
-    const labelOffY = slopeCenterY - Math.cos(thetaRad) * (blockH + 12);
-    ctx.fillStyle = labelColor;
-    ctx.font = 'bold 12px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(`m=${m}kg`, labelOffX, labelOffY);
-
-    if (mu > 0) {
-        const infoText = `\u03BC=${mu}`;
-        ctx.font = '11px sans-serif';
-        ctx.textAlign = 'center';
-        const tw = ctx.measureText(infoText).width;
-        ctx.fillStyle = isDark ? 'rgba(15,23,42,0.7)' : 'rgba(255,255,255,0.8)';
-        roundRectPath(ctx, width / 2 - tw / 2 - 8, height - 34, tw + 16, 22, 4);
-        ctx.fill();
-        ctx.fillStyle = subColor;
-        ctx.fillText(infoText, width / 2, height - 18);
-    }
-}
-
-/** 绘制电磁复合场：渐变电场线 + 精致磁场符号 */
-function drawEMCombinedField(
-    ctx: CanvasRenderingContext2D,
-    _transformer: CoordinateTransformer,
-    width: number,
-    height: number,
-    isDark: boolean
-) {
-    const spacing = 60;
-    const eColor = isDark ? ([251, 191, 36] as const) : ([234, 179, 8] as const);
-    for (let y = spacing / 2; y < height; y += spacing) {
-        const startX = 30;
-        const endX = width - 30;
-        ctx.strokeStyle = `rgba(${eColor[0]},${eColor[1]},${eColor[2]},0.1)`;
-        ctx.lineWidth = 5;
-        ctx.beginPath();
-        ctx.moveTo(startX, y);
-        ctx.lineTo(endX, y);
-        ctx.stroke();
-        const grad = ctx.createLinearGradient(startX, y, endX, y);
-        grad.addColorStop(0, `rgba(${eColor[0]},${eColor[1]},${eColor[2]},0.2)`);
-        grad.addColorStop(0.4, `rgba(${eColor[0]},${eColor[1]},${eColor[2]},${isDark ? 0.5 : 0.6})`);
-        grad.addColorStop(1, `rgba(${eColor[0]},${eColor[1]},${eColor[2]},${isDark ? 0.5 : 0.6})`);
-        ctx.strokeStyle = grad;
-        ctx.lineWidth = 1.8;
-        ctx.beginPath();
-        ctx.moveTo(startX, y);
-        ctx.lineTo(endX, y);
-        ctx.stroke();
-        ctx.fillStyle = `rgba(${eColor[0]},${eColor[1]},${eColor[2]},${isDark ? 0.55 : 0.65})`;
-        ctx.beginPath();
-        ctx.moveTo(endX, y);
-        ctx.lineTo(endX - 12, y - 5);
-        ctx.lineTo(endX - 7, y);
-        ctx.lineTo(endX - 12, y + 5);
-        ctx.closePath();
-        ctx.fill();
-    }
-    ctx.font = 'bold 13px sans-serif';
-    ctx.textAlign = 'left';
-    ctx.fillStyle = `rgb(${eColor[0]},${eColor[1]},${eColor[2]})`;
-    ctx.fillText('E', 12, 20);
-    {
-        const arrowX = 26,
-            arrowY = 16;
-        ctx.strokeStyle = `rgb(${eColor[0]},${eColor[1]},${eColor[2]})`;
-        ctx.lineWidth = 2;
-        ctx.lineCap = 'round';
-        ctx.beginPath();
-        ctx.moveTo(arrowX, arrowY);
-        ctx.lineTo(arrowX + 14, arrowY);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(arrowX + 14, arrowY);
-        ctx.lineTo(arrowX + 9, arrowY - 4);
-        ctx.lineTo(arrowX + 9, arrowY + 4);
-        ctx.closePath();
-        ctx.fillStyle = `rgb(${eColor[0]},${eColor[1]},${eColor[2]})`;
-        ctx.fill();
-    }
-
-    const bSpacing = 70;
-    const bR = 9;
-    const bLineColor = isDark ? 'rgba(168,85,247,0.5)' : 'rgba(147,51,234,0.45)';
-    const bCircleColor = isDark ? 'rgba(168,85,247,0.25)' : 'rgba(147,51,234,0.2)';
-    for (let x = bSpacing; x < width; x += bSpacing) {
-        for (let y = bSpacing; y < height; y += bSpacing) {
-            ctx.strokeStyle = bCircleColor;
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.arc(x, y, bR, 0, Math.PI * 2);
-            ctx.stroke();
-            ctx.strokeStyle = bLineColor;
-            ctx.lineWidth = 1.3;
-            const d = bR * 0.5;
-            ctx.beginPath();
-            ctx.moveTo(x - d, y - d);
-            ctx.lineTo(x + d, y + d);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(x + d, y - d);
-            ctx.lineTo(x - d, y + d);
-            ctx.stroke();
-        }
-    }
-    ctx.font = 'bold 13px sans-serif';
-    ctx.textAlign = 'right';
-    ctx.textBaseline = 'top';
-    ctx.fillStyle = bLineColor;
-    ctx.fillText('B', width - 28, 12);
-    {
-        const cx = width - 14,
-            cy = 18,
-            cr = 7;
-        ctx.strokeStyle = bLineColor;
-        ctx.lineWidth = 1.3;
-        ctx.beginPath();
-        ctx.arc(cx, cy, cr, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(cx - cr * 0.55, cy - cr * 0.55);
-        ctx.lineTo(cx + cr * 0.55, cy + cr * 0.55);
-        ctx.moveTo(cx + cr * 0.55, cy - cr * 0.55);
-        ctx.lineTo(cx - cr * 0.55, cy + cr * 0.55);
-        ctx.stroke();
-    }
-    ctx.textBaseline = 'alphabetic';
-}
 
 /**
  * 绘制气垫导轨测速度实验场景。
@@ -934,6 +368,7 @@ function drawAirTrackScene(
     const trackLength = params['trackLength'] ?? 1.5;
     const x1 = params['x1'] ?? 0.3;
     const x2 = params['x2'] ?? 0.8;
+    const tokens = getThemeTokens(isDark);
     const flagWidth = params['flagWidth'] ?? 0.02;
     const mass = params['mass'] ?? 0.2;
 
@@ -1043,12 +478,12 @@ function drawAirTrackScene(
         channels
     });
 
-    ctx.fillStyle = isDark ? '#e2e8f0' : '#1e293b';
+    ctx.fillStyle = tokens.readoutText;
     ctx.font = 'bold 14px monospace';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
     ctx.fillText(`t = ${currentTime.toFixed(4)} s`, 16, 18);
-    ctx.fillStyle = isDark ? '#94a3b8' : '#64748b';
+    ctx.fillStyle = tokens.text3;
     ctx.font = '12px monospace';
     ctx.fillText(`v = ${gliderV.toFixed(3)} m/s`, 16, 38);
     ctx.fillText(`Δx = ${flagWidth.toFixed(3)} m`, 16, 56);
@@ -1132,7 +567,6 @@ export function SimulationCanvas() {
     const isElectromagnetism = SCENES_ELECTROMAGNETISM.has(currentScene);
     const isGap = SCENES_GAP.has(currentScene);
     const isModern = SCENES_MODERN.has(currentScene);
-    const hasCustom2DBackground = SCENES_2D_CUSTOM_BG.has(currentScene);
 
     // 标准轨迹场景: 背景 + 网格 + 坐标轴 + 地面 + 完整轨迹 全部缓存到离屏层, 每帧仅一次 drawImage
     const isCustomScene =
@@ -1255,40 +689,11 @@ export function SimulationCanvas() {
 
         const ctx = canvas.getContext('2d')!;
         const { w: cssW, h: cssH } = logicalSizeRef.current;
+        const tokens = getThemeTokens(isDark);
 
         // 标准轨迹场景: 背景 / 网格 / 坐标轴 / 自定义背景 / 地面 / 完整轨迹 全部烘焙到离屏层,
         // 每帧仅需一次 drawImage 合成. 跳过低级的逐帧 clear / grid / axes 绘制.
         const skipStaticDraws = usesStaticLayer;
-
-        // 自定义 2D 背景 (电场 / 磁场 / 碰撞 / 弹簧 / 斜面): 静态路径烘焙进离屏层,
-        // 非静态路径 (gap 等自定义场景 / 无轨迹空状态) 直接绘制到主 canvas.
-        let extraStaticDraw: ((c: CanvasRenderingContext2D) => void) | undefined;
-        let extraSig = '';
-        // 注意: 这里有意使用 if/else 而非 switch(currentScene), 避免被
-        // renderer-routing 自检正则误识别为主路由 switch (它匹配最近的 switch).
-        if (!is3DScene && hasCustom2DBackground) {
-            const drawBg = (c: CanvasRenderingContext2D) => {
-                if (currentScene === 'electric-field') {
-                    drawElectricField(c, transformer, cssW, cssH, isDark);
-                } else if (currentScene === 'magnetic-field') {
-                    drawMagneticField(c, transformer, cssW, cssH, isDark);
-                } else if (currentScene === 'em-combined') {
-                    drawEMCombinedField(c, transformer, cssW, cssH, isDark);
-                } else if (currentScene === 'collision') {
-                    drawCollisionScene(c, transformer, cssW, cssH, isDark, parameters);
-                } else if (currentScene === 'spring') {
-                    drawSpringScene(c, transformer, cssW, cssH, isDark, parameters);
-                } else if (currentScene === 'inclined-plane') {
-                    drawInclinedPlaneScene(c, transformer, cssW, cssH, isDark, parameters);
-                }
-            };
-            if (usesStaticLayer) {
-                extraStaticDraw = drawBg;
-                extraSig = JSON.stringify(parameters);
-            } else {
-                drawBg(ctx);
-            }
-        }
 
         if (!skipStaticDraws) {
             renderer.clear(cssW, cssH);
@@ -1520,6 +925,21 @@ export function SimulationCanvas() {
                 case 'free-fall':
                     drawFreeFallScene(sceneOpts);
                     break;
+                case 'uniform-accelerated':
+                    drawVerticalMotionScene(sceneOpts);
+                    break;
+                case 'projectile':
+                    drawProjectileScene(sceneOpts);
+                    break;
+                case 'inclined-plane':
+                    drawInclinedPlaneScene(sceneOpts);
+                    break;
+                case 'collision':
+                    drawCollisionScene(sceneOpts);
+                    break;
+                case 'spring':
+                    drawSpringScene(sceneOpts);
+                    break;
                 case 'galileo-incline':
                     drawGalileoInclineScene(sceneOpts);
                     break;
@@ -1631,6 +1051,15 @@ export function SimulationCanvas() {
                 case 'em-spectrum':
                     drawEmSpectrumScene(sceneOpts);
                     break;
+                case 'electric-field':
+                    drawElectricFieldScene(sceneOpts);
+                    break;
+                case 'magnetic-field':
+                    drawMagneticFieldScene(sceneOpts);
+                    break;
+                case 'em-combined':
+                    drawEMCombinedScene(sceneOpts);
+                    break;
                 case 'parallel-plate-capacitor':
                     drawParallelPlateCapacitorScene(sceneOpts);
                     break;
@@ -1678,7 +1107,7 @@ export function SimulationCanvas() {
         }
 
         if (!simulationResult) {
-            ctx.fillStyle = isDark ? '#64748b' : '#94a3b8';
+            ctx.fillStyle = tokens.canvasEmptyText;
             ctx.font = '16px sans-serif';
             ctx.textAlign = 'center';
             ctx.fillText('点击「运行仿真」开始', cssW / 2, cssH / 2);
@@ -1724,10 +1153,27 @@ export function SimulationCanvas() {
 
         const isCircular = currentScene === 'circular-motion';
         const circularCenter = { x: 0, y: 0 };
-        const circularRadius = parameters['radius'] ?? 1.0;
-        const circularOmega = parameters['omega'] ?? 3.0;
+        // 单一真源：圆锥摆的 effective radius / centripetalForce 由引擎 maxValues 给出；
+        // 场景参数只在结果未就绪时兜底（此前 2D 直接用 UI radius，与引擎轨迹半径不一致）。
+        const circularMv = simulationResult?.diagnostics?.maxValues;
+        const engineRadius = typeof circularMv?.['radius'] === 'number' ? circularMv['radius'] : undefined;
+        const engineSpeed = typeof circularMv?.['maxSpeed'] === 'number' ? circularMv['maxSpeed'] : undefined;
+        const engineForce =
+            typeof circularMv?.['centripetalForce'] === 'number' ? circularMv['centripetalForce'] : undefined;
+        const engineAcc =
+            typeof circularMv?.['maxAcceleration'] === 'number' ? circularMv['maxAcceleration'] : undefined;
+        const circularRadius = engineRadius ?? parameters['radius'] ?? 1.0;
+        const circularOmega =
+            engineSpeed !== undefined && circularRadius > 0
+                ? engineSpeed / circularRadius
+                : (parameters['omega'] ?? 3.0);
+        const circularForce =
+            engineForce ?? (parameters['mass'] ?? 0.2) * circularRadius * circularOmega * circularOmega;
+        const circularAcc = engineAcc ?? circularRadius * circularOmega * circularOmega;
+        // 2D 板书的球径/球高随有效半径缩放：小半径圆锥摆不再出现「球比圈大」或球飞出视口
+        const circularBallRadius = Math.min(0.12, Math.max(0.005, circularRadius * 0.12));
         const circularPivotH = is3DScene ? 1.2 : 0;
-        const circularBallH = is3DScene ? 0.35 : 0;
+        const circularBallH = is3DScene ? Math.min(0.35, Math.max(0.05, circularRadius * 0.6)) : 0;
 
         // 完整轨迹位置数组: points 引用跨帧稳定, 缓存复用避免每帧 map 分配
         if (!allPositionsCacheRef.current || allPositionsCacheRef.current.points !== points) {
@@ -1747,8 +1193,8 @@ export function SimulationCanvas() {
                     points,
                     COLORS.trajectory,
                     skipGround,
-                    extraStaticDraw,
-                    extraSig,
+                    undefined,
+                    '',
                     (positions, color) => renderer.draw3DCircularTrajectory(positions, color, circularBallH)
                 );
             } else {
@@ -1765,8 +1211,8 @@ export function SimulationCanvas() {
                     points,
                     COLORS.trajectory,
                     skipGround,
-                    extraStaticDraw,
-                    extraSig
+                    undefined,
+                    ''
                 );
                 // 随播放增长的轨迹是动态的, 每帧重绘 (从缓存层之上合成).
                 // 用二分求已播放点数量并传 endIndex, 避免每帧 filter+map 分配新数组.
@@ -1861,14 +1307,13 @@ export function SimulationCanvas() {
                 const label = '小球';
                 renderer.drawCircularBody3D(
                     frame.position,
-                    0.12,
+                    circularBallRadius,
                     bodyColor,
                     visibleLayers.bodyLabels ? label : undefined,
                     circularBallH
                 );
-                const mass = parameters['mass'] ?? 0.2;
-                const centripetalForce = mass * circularOmega * circularOmega * circularRadius;
-                const centripetalAcc = circularOmega * circularOmega * circularRadius;
+                const centripetalForce = circularForce;
+                const centripetalAcc = circularAcc;
                 renderer.drawCircularForceVectors(
                     circularCenter,
                     frame.position,
@@ -1892,12 +1337,11 @@ export function SimulationCanvas() {
                       : is3DScene
                         ? ''
                         : '物体';
-                renderer.drawBody(frame.position, isCircular ? 0.12 : 0.15, bodyColor, label);
+                renderer.drawBody(frame.position, isCircular ? circularBallRadius : 0.15, bodyColor, label);
 
                 if (isCircular) {
-                    const mass = parameters['mass'] ?? 0.2;
-                    const centripetalForce = mass * circularOmega * circularOmega * circularRadius;
-                    const centripetalAcc = circularOmega * circularOmega * circularRadius;
+                    const centripetalForce = circularForce;
+                    const centripetalAcc = circularAcc;
                     renderer.drawCircularForceVectors(
                         circularCenter,
                         frame.position,
@@ -1947,20 +1391,20 @@ export function SimulationCanvas() {
             const yText = `y = ${frame.position.y.toFixed(2)} m`;
             const hasLabels = visibleLayers.bodyLabels;
             const panelH = hasLabels ? 64 : 28;
-            ctx.fillStyle = isDark ? 'rgba(15,23,42,0.75)' : 'rgba(255,255,255,0.85)';
+            ctx.fillStyle = tokens.canvasHudBgStrong;
             roundRectPath(ctx, 8, 10, 200, panelH, 6);
             ctx.fill();
-            ctx.strokeStyle = is3DScene ? (isDark ? 'rgba(56,189,248,0.3)' : 'rgba(59,130,246,0.2)') : 'transparent';
+            ctx.strokeStyle = is3DScene ? tokens.canvasHudBorder : 'transparent';
             ctx.lineWidth = 1;
             roundRectPath(ctx, 8, 10, 200, panelH, 6);
             ctx.stroke();
-            ctx.fillStyle = isDark ? '#e2e8f0' : '#1e293b';
+            ctx.fillStyle = tokens.readoutText;
             ctx.font = 'bold 14px monospace';
             ctx.textAlign = 'left';
             ctx.fillText(timeText, 16, 30);
             if (hasLabels) {
                 ctx.font = '12px monospace';
-                ctx.fillStyle = isDark ? '#94a3b8' : '#64748b';
+                ctx.fillStyle = tokens.text3;
                 ctx.fillText(xText, 16, 50);
                 ctx.fillText(yText, 16, 68);
             }
@@ -1978,7 +1422,6 @@ export function SimulationCanvas() {
         isAirTrack,
         isChapter3,
         isChapter2,
-        hasCustom2DBackground,
         isWaveOpt,
         isEmEquip,
         isNuclear,
@@ -2008,7 +1451,7 @@ export function SimulationCanvas() {
 
             if (isPlayingRef.current && simulationResultRef.current) {
                 const trajectories = simulationResultRef.current.trajectories;
-                const totalDuration = getTotalDuration(trajectories);
+                const totalDuration = getPlaybackDuration(trajectories);
                 const newTime = currentTimeRef.current + delta * playbackSpeedRef.current;
                 if (newTime >= totalDuration) {
                     setCurrentTime(totalDuration);
@@ -2031,7 +1474,7 @@ export function SimulationCanvas() {
                         fctx.font = '11px monospace';
                         fctx.textAlign = 'right';
                         fctx.textBaseline = 'top';
-                        fctx.fillStyle = isDarkRef.current ? 'rgba(148,163,184,0.85)' : 'rgba(71,85,105,0.85)';
+                        fctx.fillStyle = getThemeTokens(isDarkRef.current).canvasCompareOverlayText;
                         fctx.fillText(`${Math.round(fpsRef.current)} FPS`, w - 10, 8);
                         fctx.restore();
                     }
@@ -2058,7 +1501,11 @@ export function SimulationCanvas() {
         }
 
         const isCircular3D = currentScene === 'circular-motion';
-        const probeBallH = isCircular3D ? 0.35 : 0;
+        const probeRadius =
+            typeof simulationResult?.diagnostics?.maxValues?.['radius'] === 'number'
+                ? simulationResult.diagnostics.maxValues['radius']
+                : (parameters['radius'] ?? 1.0);
+        const probeBallH = isCircular3D ? Math.min(0.35, Math.max(0.05, probeRadius * 0.6)) : 0;
 
         function physToScreen(pos: { x: number; y: number }): { x: number; y: number } {
             const r = getRenderer();
@@ -2194,22 +1641,4 @@ function roundRectPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: n
     ctx.lineTo(x, y + r);
     ctx.arcTo(x, y, x + r, y, r);
     ctx.closePath();
-}
-
-function hexToRgb(hex: string): [number, number, number] {
-    const h = hex.replace('#', '');
-    const full =
-        h.length === 3
-            ? h
-                  .split('')
-                  .map(c => c + c)
-                  .join('')
-            : h;
-    return [parseInt(full.slice(0, 2), 16), parseInt(full.slice(2, 4), 16), parseInt(full.slice(4, 6), 16)];
-}
-
-function darkenHex(hex: string, amount: number): string {
-    const [r, g, b] = hexToRgb(hex);
-    const clamp = (v: number) => Math.max(0, Math.min(255, Math.round(v)));
-    return '#' + [r - amount, g - amount, b - amount].map(v => clamp(v).toString(16).padStart(2, '0')).join('');
 }

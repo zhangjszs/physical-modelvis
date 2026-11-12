@@ -81,5 +81,13 @@ export const PHYSICS_CONSTANTS = {
      *
      * #58 一并收录, 供引擎 surface-tension/capillary 与渲染层引用 (消除内联 0.487 双源)。
      */
-    sigmaMercury20C: q(0.487, 'N/m', 'σ_水银')
+    sigmaMercury20C: q(0.487, 'N/m', 'σ_水银'),
+
+    /**
+     * 维恩位移常数 b (m·K) — 维恩位移定律 λ_max·T = b
+     *
+     * 教材口径 2.898×10⁻³ m·K (CODATA 为 2.897771955×10⁻³)。
+     * 与引擎 black-body 及 3D blackBodyRig 现有取值一致 (零数值漂移, #109)。
+     */
+    bWien: q(2.898e-3, 'm·K', 'b')
 } as const;

@@ -5,7 +5,7 @@ import { PHYSICS_CONSTANTS } from '../units/constants.js';
 /**
  * 可组合场源层 — "拖拽自由组合电磁实验"的物理地基。
  *
- * 每种器材 (点电荷 / 极板 / 导线 / 线圈) 实现为一个场源描述,
+ * 每种器材 (点电荷 / 极板 / 导线 / 线圈 / 条形磁铁 / 匀强磁场区) 实现为一个场源描述,
  * 任意布置的场源集合通过 total*Field 在空间任意点解析求和 (叠加原理)。
  * 上层的组合实验只需维护"场景里放了哪些源", 不再为每种布置写专用模型。
  *
@@ -72,6 +72,41 @@ export type MagneticFieldSource =
           readonly axis: Vector3D;
           /** 圆环分段数 (毕奥-萨伐尔求和精度), 默认 96 */
           readonly segments?: number;
+      }
+    /**
+     * 条形磁铁 (磁偶极子模型): 3D 磁偶极闭式场
+     * B = (μ₀ / 4π) · [3(m·r̂)r̂ - m] / r³
+     * 遮蔽半径内无奇点爆炸 (返回零场)。
+     */
+    | {
+          readonly kind: 'bar-magnet';
+          /** 磁偶极矩大小 (A·m²), 正数 */
+          readonly magneticMoment: number;
+          /** 磁铁中心 */
+          readonly center: Vector3D;
+          /** 磁矩方向 / N极朝向 (内部归一化) */
+          readonly direction: Vector3D;
+          /** 特征长度 (m), 默认 0.2 */
+          readonly length?: number;
+          /** 遮蔽半径 (m), 默认 0.02 (小于此半径返回零场) */
+          readonly shieldingRadius?: number;
+      }
+    /**
+     * 匀强磁场区 (有界区域常量场, #114): 盒区内 B 恒等于 field, 域外严格零场。
+     *
+     * 边界约定 (硬边界 + 追踪越界即停): 边界上 (|d| ≤ half) 视为域内;
+     * 域外场严格为零, 场线追踪 (traceFieldLine) 跨出边界后因零场自然终止
+     * (中性点停止分支), 无需过渡带 — "匀强"的教学演示点不被边界平滑模糊。
+     * 盒区轴对齐 (长方体边与物理坐标轴平行); 朝向固定 +y, 旋转随 #100 解锁。
+     */
+    | {
+          readonly kind: 'uniform-field-zone';
+          /** 盒区内恒定磁感应强度矢量 (T), 大小即场强 (默认 +y 方向) */
+          readonly field: Vector3D;
+          /** 盒区中心 */
+          readonly center: Vector3D;
+          /** 盒区三轴全尺寸 (m, x/y/z), 须全为正数 */
+          readonly size: Vector3D;
       };
 
 /** 任意场源 */
@@ -111,6 +146,31 @@ export function straightWireMagneticField(
     return Vec3.scale(Vec3.cross(d, rhoPerp), (PHYSICS_CONSTANTS.mu0.value * current) / (2 * Math.PI * rho2));
 }
 
+/**
+ * 线圈毕奥-萨伐尔分段的角度三角函数查找表 (#119)。
+ *
+ * 第 k 段边界角 θ_k = 2πk/segments 的 cos/sin 仅取决于 segments, 与电流/匝数/半径/
+ * 圆心/轴向/场点无关, 故按 segments 缓存复用。表值以 `Math.cos((2*Math.PI*k)/segments)`
+ * 计算, 与逐段内联调用位等价 (零漂移), 仅将热循环内的 4×segments 次三角调用降为一次性预计算。
+ * segments 为场景配置常量 (默认 96), 不同取值数量有限, 缓存规模可控。
+ */
+const COIL_TRIG_CACHE = new Map<number, { readonly cos: number[]; readonly sin: number[] }>();
+function coilTrigTable(segments: number): { readonly cos: number[]; readonly sin: number[] } {
+    let table = COIL_TRIG_CACHE.get(segments);
+    if (table === undefined) {
+        const cos = new Array<number>(segments + 1);
+        const sin = new Array<number>(segments + 1);
+        for (let k = 0; k <= segments; k++) {
+            const th = (2 * Math.PI * k) / segments;
+            cos[k] = Math.cos(th);
+            sin[k] = Math.sin(th);
+        }
+        table = { cos, sin };
+        COIL_TRIG_CACHE.set(segments, table);
+    }
+    return table;
+}
+
 /** 圆形线圈磁场 (T, 毕奥-萨伐尔分段求和)。场点恰在导线环上时跳过该段贡献。 */
 export function circularCoilMagneticField(
     current: number,
@@ -127,32 +187,114 @@ export function circularCoilMagneticField(
     const u = Vec3.normalize(Vec3.cross(a, helper));
     const v = Vec3.cross(a, u);
 
+    // 基向量与圆心/场点拆成标量分量, 使下方热循环零临时对象分配 (#119)。
+    // 运算顺序与旧 Vec3 版逐项对应, 数值等价 (对拍误差 ≤1e-12, 实测为 0), 行为无变更。
+    const ux = u.x;
+    const uy = u.y;
+    const uz = u.z;
+    const vx = v.x;
+    const vy = v.y;
+    const vz = v.z;
+    const cx = center.x;
+    const cy = center.y;
+    const cz = center.z;
+    const px = at.x;
+    const py = at.y;
+    const pz = at.z;
+
     let bx = 0;
     let by = 0;
     let bz = 0;
     const prefactor = (PHYSICS_CONSTANTS.mu0.value * current * turns) / (4 * Math.PI);
+    const eps2 = FIELD_SOURCE_EPS * FIELD_SOURCE_EPS;
+    // #119: 常规整数段数走角度三角函数缓存表 (位等价于逐段 Math.cos/sin, 消除热循环三角调用);
+    // 非常规段数 (非整数/≤0/超大) 回退逐段计算, 保证任意输入下数值行为不变。
+    const table = Number.isInteger(segments) && segments >= 1 && segments <= 1024 ? coilTrigTable(segments) : undefined;
+    const cosT = table?.cos;
+    const sinT = table?.sin;
     for (let k = 0; k < segments; k++) {
-        const th1 = (2 * Math.PI * k) / segments;
-        const th2 = (2 * Math.PI * (k + 1)) / segments;
-        const p1 = Vec3.add(
-            center,
-            Vec3.add(Vec3.scale(u, radius * Math.cos(th1)), Vec3.scale(v, radius * Math.sin(th1)))
-        );
-        const p2 = Vec3.add(
-            center,
-            Vec3.add(Vec3.scale(u, radius * Math.cos(th2)), Vec3.scale(v, radius * Math.sin(th2)))
-        );
-        const dl = Vec3.sub(p2, p1);
-        const r = Vec3.sub(at, p1);
-        const r2 = Vec3.magnitudeSq(r);
-        if (r2 < FIELD_SOURCE_EPS * FIELD_SOURCE_EPS) continue;
-        // dB = μ₀I·N/(4π) · dl⃗ × r⃗ / r³
-        const contrib = Vec3.scale(Vec3.cross(dl, r), prefactor / (r2 * Math.sqrt(r2)));
-        bx += contrib.x;
-        by += contrib.y;
-        bz += contrib.z;
+        // p = center + u·(radius·cosθ) + v·(radius·sinθ)  (与 Vec3.add/scale 同序)
+        const rc1 = radius * (cosT ? cosT[k] : Math.cos((2 * Math.PI * k) / segments));
+        const rs1 = radius * (sinT ? sinT[k] : Math.sin((2 * Math.PI * k) / segments));
+        const rc2 = radius * (cosT ? cosT[k + 1] : Math.cos((2 * Math.PI * (k + 1)) / segments));
+        const rs2 = radius * (sinT ? sinT[k + 1] : Math.sin((2 * Math.PI * (k + 1)) / segments));
+        const p1x = cx + (ux * rc1 + vx * rs1);
+        const p1y = cy + (uy * rc1 + vy * rs1);
+        const p1z = cz + (uz * rc1 + vz * rs1);
+        const p2x = cx + (ux * rc2 + vx * rs2);
+        const p2y = cy + (uy * rc2 + vy * rs2);
+        const p2z = cz + (uz * rc2 + vz * rs2);
+        // dl = p2 - p1;  r = at - p1
+        const dlx = p2x - p1x;
+        const dly = p2y - p1y;
+        const dlz = p2z - p1z;
+        const rx = px - p1x;
+        const ry = py - p1y;
+        const rz = pz - p1z;
+        const r2 = rx * rx + ry * ry + rz * rz;
+        if (r2 < eps2) continue;
+        // dB = μ₀I·N/(4π) · dl⃗ × r⃗ / r³  (叉积分量与 Vec3.cross 同序)
+        const inv = prefactor / (r2 * Math.sqrt(r2));
+        bx += (dly * rz - dlz * ry) * inv;
+        by += (dlz * rx - dlx * rz) * inv;
+        bz += (dlx * ry - dly * rx) * inv;
     }
     return { x: bx, y: by, z: bz };
+}
+
+/**
+ * 条形磁铁 (磁偶极子) 磁场 (T)。
+ * B = (μ₀ / 4π) · [3(m⃗·r̂)r̂ - m⃗] / r³
+ * 场点在遮蔽半径内 (距中心 < shieldingRadius) 返回零场, 避免奇点发散。
+ */
+export function barMagnetMagneticField(
+    magneticMoment: number,
+    center: Vector3D,
+    direction: Vector3D,
+    at: Vector3D,
+    shieldingRadius = 0.02
+): Vector3D {
+    const d = Vec3.normalize(direction);
+    const rVec = Vec3.sub(at, center);
+    const r2 = Vec3.magnitudeSq(rVec);
+    const effShield = shieldingRadius > 0 ? shieldingRadius : FIELD_SOURCE_EPS;
+    if (r2 < effShield * effShield) return Vec3.zero();
+
+    const r = Math.sqrt(r2);
+    const mDotR = magneticMoment * Vec3.dot(d, rVec);
+    const factor = PHYSICS_CONSTANTS.mu0.value / (4 * Math.PI) / (r2 * r2 * r);
+    const term1 = Vec3.scale(rVec, 3 * mDotR);
+    const term2 = Vec3.scale(d, r2 * magneticMoment);
+    return Vec3.scale(Vec3.sub(term1, term2), factor);
+}
+
+/**
+ * 匀强磁场区磁场 (T, #114): 盒区内恒等于 field, 域外零场 (硬边界语义)。
+ * 尺寸任一轴非正/非有限时返回零场 (非法描述由 validateComposition 拦截, 此处不抛)。
+ */
+export function uniformFieldZoneMagneticField(
+    field: Vector3D,
+    center: Vector3D,
+    size: Vector3D,
+    at: Vector3D
+): Vector3D {
+    if (
+        !(size.x > 0) ||
+        !(size.y > 0) ||
+        !(size.z > 0) ||
+        !Number.isFinite(size.x + size.y + size.z) ||
+        !Number.isFinite(field.x + field.y + field.z) ||
+        !Number.isFinite(center.x + center.y + center.z) ||
+        !Number.isFinite(at.x + at.y + at.z)
+    ) {
+        return Vec3.zero();
+    }
+    const inside =
+        Math.abs(at.x - center.x) <= size.x / 2 &&
+        Math.abs(at.y - center.y) <= size.y / 2 &&
+        Math.abs(at.z - center.z) <= size.z / 2;
+    if (!inside) return Vec3.zero();
+    return { x: field.x, y: field.y, z: field.z };
 }
 
 /** 叠加全部场源的合电场 (N/C)。磁场源自动忽略。 */
@@ -189,6 +331,16 @@ export function totalMagneticField(sources: readonly FieldSource[], at: Vector3D
             bz += b.z;
         } else if (s.kind === 'circular-coil') {
             const b = circularCoilMagneticField(s.current, s.turns, s.radius, s.center, s.axis, at, s.segments);
+            bx += b.x;
+            by += b.y;
+            bz += b.z;
+        } else if (s.kind === 'bar-magnet') {
+            const b = barMagnetMagneticField(s.magneticMoment, s.center, s.direction, at, s.shieldingRadius);
+            bx += b.x;
+            by += b.y;
+            bz += b.z;
+        } else if (s.kind === 'uniform-field-zone') {
+            const b = uniformFieldZoneMagneticField(s.field, s.center, s.size, at);
             bx += b.x;
             by += b.y;
             bz += b.z;

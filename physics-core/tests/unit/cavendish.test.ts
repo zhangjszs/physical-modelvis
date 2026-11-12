@@ -1,11 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { CavendishModel } from '../../src/models/cavendish.js';
+import { PHYSICS_CONSTANTS } from '../../src/units/constants.js';
 import type { PhysicsProblem } from '../../src/types/problem.js';
 
 const model = new CavendishModel();
 
-/** G 标准值（N·m²/kg²） */
-const G_STD = 6.674e-11;
+/** G 标准值（N·m²/kg²） — 引用单一真源 (#109) */
+const G_STD = PHYSICS_CONSTANTS.G.value;
 
 function makeProblem(
     overrides: {

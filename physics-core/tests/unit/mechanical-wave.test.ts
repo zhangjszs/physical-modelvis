@@ -1,8 +1,21 @@
 import { describe, it, expect } from 'vitest';
 import { MechanicalWaveModel } from '../../src/models/mechanical-wave.js';
+import type { WaveMediumExtra } from '../../src/models/mechanical-wave.js';
 import type { PhysicsProblem } from '../../src/types/problem.js';
 
 const model = new MechanicalWaveModel();
+
+/**
+ * 读取引擎附加的介质结构 (守卫式访问, 避免 `as unknown as` 双重强转)。
+ * 追踪质点索引随采样规则自适应, 断言必须按平衡位置 x 定位, 不能写死下标。
+ */
+function readWaveMedium(result: { extra?: Record<string, unknown> }): WaveMediumExtra | null {
+    const value = result.extra?.['waveMedium'];
+    if (!value || typeof value !== 'object') return null;
+    const medium = value as Partial<WaveMediumExtra>;
+    if (!Array.isArray(medium.trackedX) || typeof medium.trackedCount !== 'number') return null;
+    return medium as WaveMediumExtra;
+}
 
 function makeProblem(
     overrides: {
@@ -132,13 +145,19 @@ describe('MechanicalWaveModel', () => {
             })
         );
         // 驻波: y = 2A·sin(ωt)·cos(kx), 波节在 x=(2n+1)λ/4, λ=0.4 → x=0.1, 0.3, 0.5, ...
-        // tracked 质点 x: -1, -0.5, 0, 0.5, 1, 1.5, 2, 2.5, 3
-        //   x=0.5 (trajs[3]) 是波节: 时间域振幅≈0
-        const nodeTraj = r.trajectories[3]!;
+        // 追踪质点的平衡位置由引擎给出 (extra.waveMedium.trackedX), 索引随采样规则自适应,
+        // 因此按平衡位置 x 定位波节/波腹, 不写死 trajectories 下标
+        const medium = readWaveMedium(r)!;
+        expect(medium).not.toBeNull();
+        const nodeIdx = medium.trackedX.findIndex(x => Math.abs(x - 0.1) < 1e-6);
+        const antinodeIdx = medium.trackedX.findIndex(x => Math.abs(x) < 1e-6);
+        expect(nodeIdx).toBeGreaterThanOrEqual(0);
+        expect(antinodeIdx).toBeGreaterThanOrEqual(0);
+        const nodeTraj = r.trajectories[nodeIdx]!;
         const nodeAmp = Math.max(...nodeTraj.map(p => Math.abs(p.position.y)));
         expect(nodeAmp).toBeLessThan(0.02);
-        //   x=0 (trajs[2]) 是波腹: 振幅可达 2A=0.2
-        const antinodeTraj = r.trajectories[2]!;
+        //   x=0 是波腹: 振幅可达 2A=0.2
+        const antinodeTraj = r.trajectories[antinodeIdx]!;
         const antinodeAmp = Math.max(...antinodeTraj.map(p => Math.abs(p.position.y)));
         expect(antinodeAmp).toBeGreaterThan(0.15);
     });

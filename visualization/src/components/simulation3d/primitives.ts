@@ -65,6 +65,35 @@ export function makeSphere(
 // 文字精灵（中文标注）
 // ---------------------------------------------------------------------------
 
+const TEXT_CANVAS_HEIGHT = 128;
+const TEXT_CANVAS_MIN_WIDTH = 384;
+const TEXT_FONT_FAMILY = '"Microsoft YaHei", "PingFang SC", sans-serif';
+const TEXT_PADDING_X = 24;
+
+function textFont(fontSize: number): string {
+    return `600 ${fontSize}px ${TEXT_FONT_FAMILY}`;
+}
+
+function measureTextWidth(ctx: CanvasRenderingContext2D, text: string, fontSize: number): number {
+    ctx.font = textFont(fontSize);
+    return ctx.measureText(text).width;
+}
+
+function drawCenteredText(
+    canvas: HTMLCanvasElement,
+    ctx: CanvasRenderingContext2D,
+    text: string,
+    color: string,
+    fontSize: number,
+    y: number
+): void {
+    ctx.font = textFont(fontSize);
+    ctx.fillStyle = color;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, canvas.width / 2, y);
+}
+
 export function makeTextSprite(
     text: string,
     color = '#334155',
@@ -73,34 +102,193 @@ export function makeTextSprite(
 ): THREE.Sprite {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d')!;
-    canvas.width = 384;
-    canvas.height = 128;
-    ctx.font = `600 ${fontSize}px "Microsoft YaHei", "PingFang SC", sans-serif`;
-    ctx.fillStyle = color;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+    const textWidth = measureTextWidth(ctx, text, fontSize);
+    const needed = Math.ceil(textWidth + TEXT_PADDING_X * 2);
+    // 1.5 倍余量吸收数值位数变化；宽度一旦确定不再修改（见 updateTextSprite 注释）
+    const width = Math.max(TEXT_CANVAS_MIN_WIDTH, Math.ceil((needed * 1.5) / 64) * 64);
+    canvas.width = width;
+    canvas.height = TEXT_CANVAS_HEIGHT;
 
     const texture = new THREE.CanvasTexture(canvas);
     texture.colorSpace = THREE.SRGBColorSpace;
     const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
     const sprite = new THREE.Sprite(material);
-    sprite.scale.set(scale.x, scale.y, 1);
+    // 保持调用方传入的横向像素比例：画布越宽，sprite 越宽，字形大小不变
+    sprite.scale.set(scale.x * (width / TEXT_CANVAS_MIN_WIDTH), scale.y, 1);
+    sprite.userData.textFontSize = fontSize;
+    sprite.userData.textWidth = textWidth;
+    // 保留当前文字原文 —— 契约测试要断言「标牌读数 == 引擎输出」,
+    // 过去只能靠肉眼读贴图, 现在可在测试里直接读 userData.text。
+    sprite.userData.text = text;
+    drawCenteredText(canvas, ctx, text, color, fontSize, canvas.height / 2);
+    texture.needsUpdate = true;
     return sprite;
 }
 
-/** 复用已有 sprite 的 canvas，更新文字（避免重复创建纹理） */
+/** 复用已有 sprite 的 canvas，更新文字（避免重复创建纹理；长文本首次超宽时重建纹理） */
 export function updateTextSprite(sprite: THREE.Sprite, text: string, color = '#334155', fontSize = 40): void {
-    const canvas = (sprite.material as THREE.SpriteMaterial).map?.image as HTMLCanvasElement | undefined;
+    const material = sprite.material as THREE.SpriteMaterial;
+    const canvas = material.map?.image as HTMLCanvasElement | undefined;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d')!;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    sprite.userData.textFontSize = fontSize;
+
+    // CanvasTexture 创建后再修改 canvas.width 会使后续 needsUpdate 不再上传（数值永远停在
+    // 第一次扩容那一刻）。因此扩容时必须重建纹理并释放旧纹理，而不是只改画布尺寸。
+    const textWidth = measureTextWidth(ctx, text, fontSize);
+    const needed = Math.ceil(textWidth + TEXT_PADDING_X * 2);
+    sprite.userData.textWidth = textWidth;
+    // 保留当前文字原文 (契约测试读标牌数值用, 见 makeTextSprite 同处注释)
+    sprite.userData.text = text;
+    if (needed > canvas.width) {
+        const factor = needed / canvas.width;
+        canvas.width = needed;
+        sprite.scale.x *= factor;
+        const oldTexture = material.map;
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.colorSpace = THREE.SRGBColorSpace;
+        material.map = texture;
+        material.needsUpdate = true;
+        oldTexture?.dispose();
+    }
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.font = `600 ${fontSize}px "Microsoft YaHei", "PingFang SC", sans-serif`;
-    ctx.fillStyle = color;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(text, canvas.width / 2, canvas.height / 2);
-    (sprite.material as THREE.SpriteMaterial).map!.needsUpdate = true;
+    drawCenteredText(canvas, ctx, text, color, fontSize, canvas.height / 2);
+    material.map!.needsUpdate = true;
+}
+
+/** 按创建时记录的字号重绘单行标牌（供 rigs/params.ts 的 setLabel 复用扩宽能力） */
+export function redrawTextSprite(sprite: THREE.Sprite, text: string, color = '#334155'): void {
+    const fontSize = typeof sprite.userData.textFontSize === 'number' ? sprite.userData.textFontSize : 24;
+    updateTextSprite(sprite, text, color, fontSize);
+}
+
+/**
+ * 按目标**字高** (世界单位) 重设文字精灵尺寸。
+ *
+ * `makeTextSprite` 的 scale.x 随文本长度放大 (长文本 → 画布变宽 → sprite 变宽)，
+ * 一条 60 字的读数会撑成横贯画面的巨幅字带 (旧电场/磁场 rig 的读数条就是这样
+ * 出框的)。本函数固定字高, 文字变长时标牌等比变宽 —— 版面宽度仍由文本长度
+ * 决定, 但字不会被压扁, 也不会因数字位数变化而忽大忽小。
+ *
+ * 必须在每次 `setLabel` / `updateTextSprite` 之后调用 (换文本会重建贴图)。
+ */
+export function setSpriteGlyphHeight(sprite: THREE.Sprite, glyphHeight: number): void {
+    const material = sprite.material as THREE.SpriteMaterial;
+    const canvas = material.map?.image as HTMLCanvasElement | undefined;
+    if (!canvas || canvas.width === 0 || canvas.height === 0) return;
+    const fontSize = typeof sprite.userData.textFontSize === 'number' ? sprite.userData.textFontSize : 24;
+    // 画布像素 → 世界单位的比例: 世界高 = 画布高 × scale.y
+    const scaleY = (glyphHeight * canvas.height) / fontSize;
+    // 保持像素不变形: 世界宽/画布宽 = 世界高/画布高
+    sprite.scale.set((scaleY * canvas.width) / canvas.height, scaleY, 1);
+}
+
+/**
+ * 创建**字高已锁定**的文字精灵 (读数标牌专用)。
+ *
+ * 背景 (#159 逐节审计 · 批次 E' 电磁复合场):
+ *   `setSpriteGlyphHeight` 只在「文本发生变化后」才会被调用, 而 rig 里常见的
+ *   `setLabelOnce` 写法是「文本未变就直接 return」—— 于是**用最终文本创建**的
+ *   标牌永远拿不到字高修正, 保持 `makeTextSprite` 的初始 scale.y = 0.1,
+ *   字高只剩 22/128 × 0.1 ≈ 0.017 世界单位 (屏幕约 2~3 px), 文字被压成一条线。
+ *
+ *   本函数把「创建 + 锁定字高」合成一步, 消除这条依赖调用顺序的隐式契约;
+ *   后续换文本时仍需再调一次 `setSpriteGlyphHeight` (换文本会重建贴图)。
+ *
+ * @param glyphHeight 目标字高 (世界单位)
+ */
+export function makeLabelSprite(text: string, color: string, fontSize: number, glyphHeight: number): THREE.Sprite {
+    const sprite = makeTextSprite(text, color, fontSize, { x: 3, y: 0.1 });
+    setSpriteGlyphHeight(sprite, glyphHeight);
+    return sprite;
+}
+
+/**
+ * 读取精灵当前的实际字高 (世界单位) —— 供契约测试断言「标牌没有被压扁」。
+ */
+export function spriteGlyphHeight(sprite: THREE.Sprite): number {
+    const material = sprite.material as THREE.SpriteMaterial;
+    const canvas = material.map?.image as HTMLCanvasElement | undefined;
+    if (!canvas || canvas.height === 0) return 0;
+    const fontSize = typeof sprite.userData.textFontSize === 'number' ? sprite.userData.textFontSize : 24;
+    return (sprite.scale.y * fontSize) / canvas.height;
+}
+
+export interface TextPanelOptions {
+    /** 面板标题（加粗、主题色） */
+    title?: string;
+    color?: string;
+    titleColor?: string;
+    fontSize?: number;
+    lineHeight?: number;
+    /** 面板世界高度；缺省按 24px 字号约 0.0055 world/px 换算，保证可读 */
+    worldHeight?: number;
+    background?: string;
+    borderColor?: string;
+    padding?: number;
+}
+
+function roundRectPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {
+    const radius = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + w - radius, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+    ctx.lineTo(x + w, y + h - radius);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+    ctx.lineTo(x + radius, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
+    ctx.closePath();
+}
+
+/**
+ * 多行说明/图例面板（半透明底板 + 自动换行宽度）。
+ * 用于光电效应等需要成段解释的关键要素标注，避免多个单行标牌相互遮挡。
+ */
+export function makeTextPanelSprite(lines: string[], opts: TextPanelOptions = {}): THREE.Sprite {
+    const color = opts.color ?? '#334155';
+    const titleColor = opts.titleColor ?? '#1d4ed8';
+    const fontSize = opts.fontSize ?? 22;
+    const lineHeight = opts.lineHeight ?? Math.round(fontSize * 1.45);
+    const padding = opts.padding ?? 18;
+    const background = opts.background ?? 'rgba(248,250,252,0.94)';
+    const borderColor = opts.borderColor ?? 'rgba(148,163,184,0.7)';
+
+    const allLines = opts.title ? [opts.title, ...lines] : lines;
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d')!;
+    ctx.font = textFont(fontSize);
+    const maxWidth = allLines.reduce((max, line) => Math.max(max, ctx.measureText(line).width), 0);
+    canvas.width = Math.max(160, Math.ceil(maxWidth + padding * 2));
+    canvas.height = Math.ceil(allLines.length * lineHeight + padding * 2);
+
+    roundRectPath(ctx, 0.5, 0.5, canvas.width - 1, canvas.height - 1, 10);
+    ctx.fillStyle = background;
+    ctx.fill();
+    ctx.strokeStyle = borderColor;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    allLines.forEach((line, i) => {
+        const isTitle = Boolean(opts.title) && i === 0;
+        ctx.font = textFont(fontSize);
+        ctx.fillStyle = isTitle ? titleColor : color;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(line, canvas.width / 2, padding + lineHeight * (i + 0.5));
+    });
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true }));
+    const worldHeight = opts.worldHeight ?? canvas.height * 0.0055;
+    sprite.scale.set((worldHeight * canvas.width) / canvas.height, worldHeight, 1);
+    sprite.userData.textFontSize = fontSize;
+    return sprite;
 }
 
 // ---------------------------------------------------------------------------
@@ -178,8 +366,10 @@ export interface Environment {
 }
 
 export function createEnvironment(scene: THREE.Scene, bgColor = 0xf8fafc, shadowTier?: ShadowQualityTier): Environment {
+    // 地面/背景墙要足够大: 斜俯视相机会看到平面的边界, 边缘露出会在画面里变成一条
+    // 斜切的白线 (看着像凭空出现的一道坎), 故把地台从 14×8 扩到 20×14。
     const ground = new THREE.Mesh(
-        new THREE.PlaneGeometry(14, 8),
+        new THREE.PlaneGeometry(20, 14),
         new THREE.MeshStandardMaterial({ color: 0xeef6ff, roughness: 0.82, metalness: 0.02 })
     );
     ground.rotation.x = -Math.PI / 2;
@@ -187,14 +377,14 @@ export function createEnvironment(scene: THREE.Scene, bgColor = 0xf8fafc, shadow
     ground.receiveShadow = true;
     scene.add(ground);
 
-    const grid = new THREE.GridHelper(14, 14, 0xcbd5e1, 0xe5edf7);
+    const grid = new THREE.GridHelper(20, 20, 0xcbd5e1, 0xe5edf7);
     grid.position.set(3.6, 0.014, 0);
     (grid.material as THREE.Material).transparent = true;
     (grid.material as THREE.Material).opacity = 0.26;
     scene.add(grid);
 
     const wall = new THREE.Mesh(
-        new THREE.PlaneGeometry(14, 4),
+        new THREE.PlaneGeometry(20, 4),
         new THREE.MeshStandardMaterial({ color: bgColor, roughness: 0.9, metalness: 0 })
     );
     wall.position.set(3.6, 2, -3.05);

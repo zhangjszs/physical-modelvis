@@ -71,7 +71,7 @@ export const faradayCupRig: SceneRig = {
     },
 
     updateEquipment(handles, params) {
-        updateFaraday(handles as unknown as FaradayHandles, params);
+        updateFaraday(handles as FaradayHandles, params);
     },
 
     getVisualPosition(pos) {

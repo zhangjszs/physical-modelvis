@@ -191,15 +191,15 @@ export const brownianMotionRig: SceneRig = {
         };
         updateBrownian(handles, params);
 
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        updateBrownian(handles as unknown as BrownianHandles, params);
+        updateBrownian(handles as BrownianHandles, params);
     },
 
     onAnimate(handles, ctx) {
-        const h = handles as unknown as BrownianHandles;
+        const h = handles as BrownianHandles;
         if (!h.pollenMeshes || !h.pollenPositions) return;
 
         const T = num(ctx.params['liquidTemp'], 300);

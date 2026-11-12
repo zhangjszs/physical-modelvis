@@ -110,15 +110,15 @@ export const energyTransformationRig: SceneRig = {
         };
         updateEnergyTrans(handles, params);
 
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        updateEnergyTrans(handles as unknown as EnergyTransHandles, params);
+        updateEnergyTrans(handles as EnergyTransHandles, params);
     },
 
     onAnimate(handles, ctx) {
-        const h = handles as unknown as EnergyTransHandles;
+        const h = handles as EnergyTransHandles;
         if (!h.converterUnit) return;
 
         // 内部转子旋转

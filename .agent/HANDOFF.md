@@ -2,59 +2,51 @@
 
 > 每轮结束**整体重写**（不追加）。给下一棒看：本轮做了什么、留了什么、下一步做什么。
 
-## 本轮（2026-10-09 · `executor-deepseek-20261009b` · 执行者）· #95
+## 本轮概要
 
-### 本轮一件事（已入 main 推送，报告在 issue，in-review 待验收）
+本轮（2026-11-13 · Execution Agent，单会话）在用户答复确认 D68 = A（会话内「好的，执行吧」= 上轮日报预注册默认）后，完成 **#166 P0 期「选中改造」全部交付**并转 in-review：
 
-**#95 3D 阴影贴图自适应分辨率**（feat `ba0bd6f` / Merge `b692154`）：
-
-- 新增 `visualization/src/components/simulation3d/shadowQuality.ts`：档位→`{mapSize, radius}` 预设
-  （低 512²/r1 · 中 1024²/r2 · 高 2048²/r4）；`detectShadowQualityTier` 按
-  `navigator.hardwareConcurrency` 分档（≥8 high / 5–7 medium / ≤4 low，信号缺失→medium = M2.6 基线兜底）；
-  radius 与 mapSize 等比例（three r185 PCF radius 以纹素计，世界空间模糊半径恒定）。
-- `createEnvironment`（primitives.ts）与 `CompositionStage` 两处固定 1024² 硬编码收口到
-  `applyShadowQuality`；shadow camera ±8 / bias / PCF 算法不动。
-- dev-only：`?shadowTier=` URL 覆盖通道 + `window.__physvisShadowQuality` 探针（#81 同型模式，生产 tree-shake）。
-- 新增 17 单测；测试数 2736→**2753**；precheck 全绿（本地 + pre-push 两遍）。
-- 验证：3d-smoke exit 0（默认档 high）· 分档 perf 探针三档耗时/堆持平（max 766/748/682ms，堆 Δ1.81MB）·
-  官方 qa-sweep 30 场景 exit 0（ERROR 0，WARN 5 均为播放计时类、与本单无关）· 档位生效探针三档报值全对 +
-  像素 diff（同档噪声 1px vs 跨档 604–1314px 集中在舞台区）· 组合实验台冒烟零报错。
+| 事项 | 内容 | 结论 |
+|---|---|---|
+| D68 用户答复 | 用户会话答复确认按默认 A 执行；记录于 [issuecomment-6828730790](https://github.com/zhangjszs/physical-modelvis/issues/166#issuecomment-6828730790) | 已确认 |
+| #166 P0 实现 | 拾取候选栈/同点循环/容器穿透 + 4px 点击拖拽分离 + hover/包围盒/名称徽标 + 器材列表 + 文案修正（commit `c049509`，merge `0c754e0` @ main 已推送） | 完成 → in-review |
+| 执行报告 | 1.7 字段全量（含 4 条歧义处理）：[issuecomment-6829483557](https://github.com/zhangjszs/physical_modelvis/issues/166#issuecomment-6829483557) | 已留 |
+| 探针扩展 | A-1/A-2/A-4/A-5/A-7 场景断言写入 verify-composition-interaction.mjs | 已交付，本地实跑受阻（见下） |
 
 ## 已完成
 
-- #95：阴影 mapSize 固定 1024² 改设备能力三档驱动，M2.6 护栏不回退 · `ba0bd6f`（merge `b692154`）· 验证全绿
+1. **#166 P0（in-review）**：picking.ts 纯逻辑 + CompositionStage 交互改造 + CompositionOutliner 器材列表 + store hoverId + zone 盒 pickRole + 高亮三态 + 提示文案；+27 测试（picking 18 / outliner 5 / store 2 / sourceMeshes 2）；count:sync 回写 3185。
+2. 流程代行声明（Planner 缺位 2 天、用户直接授权 → Executor 代行 needs-info→in-progress→in-review 转移）已全程记录于 Issue comment，供 Planner 验收时复核。
 
 ## 未完成 / 进行中（下一棒最优先看这里）
 
-- **无进行中**。in-review 积压 **5**（#107 / #110 / #93 / #94 / #95）待 Planner 验收。
-- 验收后队首 = **#96**（场景参数初值脱网格治理：61/571 处 default 吸附漂移 + default-on-grid 静态门禁，P3）
-  → #97 → #109 → #106。若 Planner 据 #94 先立实施单，按新队列领。
+- **#166 P1 期（B-* 可控放置：ghost 预览/合法性三色/自动避让/边界夹取/高度 z/撤销重做/Alt 候选菜单/聚焦）未开工**——按规格 §7.3 拆期是 Planner 职责，Executor 不自行开工。
+- **探针浏览器实跑（环境阻塞）**：本机 chromium headless shell 启动崩 `libatspi.so.0: undefined symbol: g_onceinit_leave_pointer`（容器 glib 不兼容；NO_AT_BRIDGE=1 无效、无系统浏览器）。探针扩展的断言代码在位，**建议验收路径**：① 看 push `0c754e0` 触发的 CI（4 个 headless 探针在 GitHub runner 上跑）；② 或在有浏览器的机器 `npm run build:viz && node scripts/verify-composition-interaction.mjs`。DOM/逻辑面已由 jsdom 组件测试补位。
+- push 触发的远端 CI run 终态未确认（判读指引：失败先看步骤是否「安装 Playwright Chromium」，沿 #167 事故判读纪律）。
+- #44 blocked·parked、#167 待定级，均勿动。
 
 ## 验证情况
 
-- #95：本地 precheck + pre-push 钩子 precheck 两遍全绿；CI @ `b692154` 本棒收尾时 in_progress，下一棒可复核。
-- 分档证据工具与原始输出在 `.scratch/`（gitignore，未提交）：`shadow-perf-probe.cjs`、
-  `shadow-tier-verify.cjs`、`shadow-shot-diff.cjs`、`composition-smoke.cjs` + 对应 JSON/截图；
-  issue #95 评论已贴全量数据与结论。
-- 未跑：QA 全量巡检（123 场景）——#95 不涉及其场景集参数/读数路径，理由已写入 issue 报告。
+1. 本地权威双绿：完整 precheck（提交前）+ pre-push 钩子（push 时）——typecheck / lint 0 错误（19 既有 warning 维持）/ format / **test 3185 全绿**（viz 2004 + core 1181）/ count / build:viz / bundle ≤70kB / publish dry-run / 自检「11 层: 11 PASS, 0 FAIL」。
+2. 探针：本地实跑环境阻塞（如上）；未 --no-verify、未 force-push。
+3. 未执行项：远端 CI 终态确认（运行中）；探针像素断言（本地无可用浏览器）。
 
 ## 风险与注意事项
 
-- **#95 high 档 2048²（16MB）未在低端真机验证**：本机 24 核工作站三档全绿；核数分界 4/8 为工程经验值，
-  预设表集中于 `SHADOW_QUALITY_PRESETS` 可单点调整（如收到低端设备反馈）。
-- **dev 探针与 URL 通道**：`window.__physvisShadowQuality` / `?shadowTier=` 仅 dev 构建存在
-  （`import.meta.env.DEV` 守卫，生产 tree-shake）；QA 切档核验可复用。
-- 端口 3000 本棒临时占用（已停）；冒烟脚本用 `SMOKE_BROWSER_CHANNEL=''`（本机无 msedge）。
+1. **验收依赖 CI 探针**：P0 的浏览器面证据在 GitHub runner 的 4 个 headless 探针 + 扩展后的组合台探针（后者 CI 不自动跑，需手动或 QA 巡检路径）。
+2. A-1 探针用「两电荷完全重合」等价极端化（P0 无可控落点）——验收时如不认可该等价，可另行在有浏览器环境复测。
+3. 既有噪音维持：19 个 lint warnings、jsdom stderr、libselinux 容器告警。
+4. 流程瑕疵提示：本轮 Executor 在用户直接授权下代行了 Planner 的转正/领取动作（记录在案）；Planner 验收时可认可或纠正（D67 先例：记录不追溯）。
 
 ## 给下一棒的第一步建议
 
-- 先查 in-review 是否已被 Planner 清（5 单）；然后按 PLAN 领 **#96**。
-  #96 要点：门禁**优先并入既有 `parameter-ranges.test.ts` 的 it**（免测试数漂移）；default 数值零变化、
-  只动 min/step；红向还原**用反向 sed、禁用 `git checkout`**（#60 教训）；每处改动在执行报告列清单。
+1. Planner：① 验收 #166 P0（输入：本日报 + issuecomment-6829483557 + CI 探针结果）；② 通过后按规格 §7.3 拆 P1 期 ready；③ D68 已获用户答复，DECISIONS.md pending 记录转正；④ #167 定级维持待办。
+2. Executor（队列更新后）：领取 #166 P1 第一期任务。
+
+## 今日日报
+
+- 已写入 `.agent/DIARY/2026-11-13.md`
 
 ## 给 Planner 的信号
 
-- **in-review 积压 5**：#107 / #110 / #93 / #94 / #95（报告均含逐条验收核对与证据链）。
-- **#95 无后续 Issue 需求**；shadow camera ±8 自适应被 issue 明确排除（如需另立单）。
-  探针/URL 通道是否在 AGENTS.md / docs 留痕由 Planner 定。
-- 本轮 auto-discovered 立单 0/3；无新增决策事项。
+- **需要 Planner 介入**：① 验收 #166 P0（in-review）；② 拆 P1 期队列；③ D68 转正入 DECISIONS.md；④ #167 定级。本轮为用户直接授权下的代行执行，全程留痕，请复核流程瑕疵处理方式。

@@ -54,6 +54,47 @@ describe('compositionStore 组合实验台状态', () => {
         expect(result).toBe(good); // 校验失败保留最近有效结果
     });
 
+    it('updateSourceParams 支持方向类字段 (线圈 axis / 极板 normal / 导线与磁铁 direction) 且触发重仿真与场线刷新', () => {
+        // 线圈 axis
+        useCompositionStore.getState().addSource('circular-coil');
+        const coilId = useCompositionStore.getState().sources[0]!.id;
+        const res1 = useCompositionStore.getState().result;
+        const rev1 = useCompositionStore.getState().fieldLineRevision;
+
+        useCompositionStore.getState().updateSourceParams(coilId, { axis: { x: 1, y: 0, z: 0 } });
+        expect(useCompositionStore.getState().sources[0]!.source).toMatchObject({
+            axis: { x: 1, y: 0, z: 0 }
+        });
+        expect(useCompositionStore.getState().result).not.toBe(res1);
+        expect(useCompositionStore.getState().fieldLineRevision).toBe(rev1 + 1);
+
+        // 极板 normal
+        useCompositionStore.getState().addSource('charged-plate');
+        const plateId = useCompositionStore.getState().sources[1]!.id;
+        useCompositionStore.getState().updateSourceParams(plateId, { normal: { x: 0, y: 0, z: 1 } });
+        expect(useCompositionStore.getState().sources[1]!.source).toMatchObject({
+            normal: { x: 0, y: 0, z: 1 }
+        });
+
+        // 导线 direction
+        useCompositionStore.getState().addSource('straight-wire');
+        const wireId = useCompositionStore.getState().sources[2]!.id;
+        useCompositionStore.getState().updateSourceParams(wireId, { direction: { x: 1, y: 0, z: 0 } });
+        expect(useCompositionStore.getState().sources[2]!.source).toMatchObject({
+            direction: { x: 1, y: 0, z: 0 }
+        });
+
+        // 条形磁铁 direction
+        useCompositionStore.getState().addSource('bar-magnet');
+        const magnetId = useCompositionStore.getState().sources[3]!.id;
+        useCompositionStore.getState().updateSourceParams(magnetId, { direction: { x: 0, y: 0, z: 1 } });
+        expect(useCompositionStore.getState().sources[3]!.source).toMatchObject({
+            direction: { x: 0, y: 0, z: 1 }
+        });
+
+        expect(useCompositionStore.getState().validationMessage).toBeNull();
+    });
+
     it('粒子参数非法 → validationMessage; 合法后恢复', () => {
         useCompositionStore.getState().addSource('point-charge');
         useCompositionStore.getState().setParticle({ mass: 0 });
@@ -72,14 +113,63 @@ describe('compositionStore 组合实验台状态', () => {
         expect(selectedId).toBeNull();
     });
 
-    it('四类器材默认参数全部通过引擎校验 (可添加即可用)', () => {
-        for (const kind of Object.keys(SOURCE_DEFAULTS) as Array<keyof typeof SOURCE_DEFAULTS>) {
+    it('select 纯选中 (#166 S-5): 不动 sources/result 引用/fieldLineRevision (A-4 store 面)', () => {
+        useCompositionStore.getState().addSource('point-charge');
+        const id = useCompositionStore.getState().sources[0]!.id;
+        const before = useCompositionStore.getState().result;
+        const revision = useCompositionStore.getState().fieldLineRevision;
+        useCompositionStore.getState().select(id);
+        expect(useCompositionStore.getState().selectedId).toBe(id);
+        useCompositionStore.getState().select(null);
+        expect(useCompositionStore.getState().selectedId).toBeNull();
+        // 纯选中/取消选中: 位置不变、结果引用不变、场线版本不变
+        expect(useCompositionStore.getState().result).toBe(before);
+        expect(useCompositionStore.getState().fieldLineRevision).toBe(revision);
+    });
+
+    it('hover 纯 UI (#166 S-6): setHover 不重仿真、不自增 fieldLineRevision; 悬停被删器材时自动清空', () => {
+        useCompositionStore.getState().addSource('point-charge');
+        useCompositionStore.getState().addSource('straight-wire');
+        const q1 = useCompositionStore.getState().sources[0]!.id;
+        const w1 = useCompositionStore.getState().sources[1]!.id;
+        const before = useCompositionStore.getState().result;
+        const revision = useCompositionStore.getState().fieldLineRevision;
+
+        useCompositionStore.getState().setHover(w1);
+        expect(useCompositionStore.getState().hoverId).toBe(w1);
+        useCompositionStore.getState().setHover(null);
+        expect(useCompositionStore.getState().hoverId).toBeNull();
+        expect(useCompositionStore.getState().result).toBe(before);
+        expect(useCompositionStore.getState().fieldLineRevision).toBe(revision);
+
+        // 删除正被悬停的器材 → 悬停指向自动清空 (不残留失效 id)
+        useCompositionStore.getState().setHover(q1);
+        useCompositionStore.getState().removeSource(q1);
+        expect(useCompositionStore.getState().hoverId).toBeNull();
+    });
+
+    it('各类器材默认参数全部通过引擎校验 (可添加即可用)', () => {
+        const kinds = Object.keys(SOURCE_DEFAULTS) as Array<keyof typeof SOURCE_DEFAULTS>;
+        for (const kind of kinds) {
             useCompositionStore.getState().addSource(kind);
         }
         const { sources, validationMessage, result } = useCompositionStore.getState();
-        expect(sources).toHaveLength(4);
+        expect(sources).toHaveLength(kinds.length);
         expect(validationMessage).toBeNull();
         expect(result).not.toBeNull();
+    });
+
+    it('updateSourceVector 合并式更新向量参数并重仿真 (匀强磁场区三轴尺寸)', () => {
+        useCompositionStore.getState().addSource('uniform-field-zone');
+        const id = useCompositionStore.getState().sources[0]!.id;
+        useCompositionStore.getState().updateSourceVector(id, 'size', { x: 0.5 });
+        const source = useCompositionStore.getState().sources[0]!.source;
+        expect(source.kind).toBe('uniform-field-zone');
+        if (source.kind === 'uniform-field-zone') {
+            expect(source.size).toMatchObject({ x: 0.5, y: 0.3, z: 0.3 });
+        }
+        expect(useCompositionStore.getState().validationMessage).toBeNull();
+        expect(useCompositionStore.getState().result).not.toBeNull();
     });
 
     it('场线开关默认 E 开 / B 关, toggle 可翻转', () => {
@@ -141,5 +231,96 @@ describe('compositionStore 组合实验台状态', () => {
 
         // 密度由渲染层直接订阅 (与 E/B 开关同款即时重画), 不走 sources 版本号
         expect(useCompositionStore.getState().fieldLineRevision).toBe(revision0);
+    });
+    it('loadTemplate 针对每个模板成功加载且 result.completed 为 true，场源数量精确匹配 3/3/2/1 与激活 ID 正确', () => {
+        const store = useCompositionStore.getState();
+        const expectedSourceCounts: ReadonlyArray<{ id: string; count: number }> = [
+            { id: 'velocity-selector', count: 3 },
+            { id: 'mass-spectrometer', count: 3 },
+            { id: 'electric-deflection', count: 2 },
+            { id: 'magnetic-focusing', count: 1 }
+        ];
+
+        for (const { id: tid, count } of expectedSourceCounts) {
+            store.resetLab();
+            expect(useCompositionStore.getState().sources).toHaveLength(0);
+
+            store.loadTemplate(tid);
+            const s = useCompositionStore.getState();
+            expect(s.activeTemplateId).toBe(tid);
+            expect(s.sources).toHaveLength(count);
+            expect(s.result).not.toBeNull();
+            expect(s.result!.completed).toBe(true);
+            expect(s.result!.trajectory.length).toBeGreaterThan(50);
+            expect(s.validationMessage).toBeNull();
+        }
+    });
+
+    it('loadTemplate 走单次 commit: 一次性替换并重仿真，fieldLineRevision 仅自增 1', () => {
+        const store = useCompositionStore.getState();
+        store.resetLab();
+        const rev0 = useCompositionStore.getState().fieldLineRevision;
+
+        // 加载包含 3 个场源的模板
+        store.loadTemplate('velocity-selector');
+        const s = useCompositionStore.getState();
+        expect(s.sources).toHaveLength(3);
+        // fieldLineRevision 仅自增 1 (单次 commit 约定，绝非逐器材累加)
+        expect(s.fieldLineRevision).toBe(rev0 + 1);
+        expect(s.result?.completed).toBe(true);
+    });
+
+    it('loadTemplate 后仅选中器材保持激活；实际拖动移动 + commit / 添加器材 / 修改参数 / 清空实验台均清除 activeTemplateId', () => {
+        const store = useCompositionStore.getState();
+        store.loadTemplate('magnetic-focusing');
+        expect(useCompositionStore.getState().activeTemplateId).toBe('magnetic-focusing');
+        const coilId = useCompositionStore.getState().sources[0]!.id;
+
+        // 仅选中器材或取消选中，保持模板激活
+        store.select(coilId);
+        expect(useCompositionStore.getState().selectedId).toBe(coilId);
+        expect(useCompositionStore.getState().activeTemplateId).toBe('magnetic-focusing');
+        store.select(null);
+        expect(useCompositionStore.getState().activeTemplateId).toBe('magnetic-focusing');
+
+        // 传相同坐标 (未发生真实位移) 保持模板激活
+        store.moveSource(coilId, { x: 0, y: 0, z: 0.25 });
+        expect(useCompositionStore.getState().activeTemplateId).toBe('magnetic-focusing');
+
+        // 真实拖动移动 + commit 松手后清除 activeTemplateId 并触发重仿真
+        const prevResult = useCompositionStore.getState().result;
+        store.moveSource(coilId, { x: 0.25, y: 0.1, z: 0.25 });
+        expect(useCompositionStore.getState().activeTemplateId).toBeNull();
+        store.commit();
+        expect(useCompositionStore.getState().activeTemplateId).toBeNull();
+        expect(useCompositionStore.getState().result).not.toBe(prevResult);
+
+        // 改粒子参数
+        store.loadTemplate('velocity-selector');
+        expect(useCompositionStore.getState().activeTemplateId).toBe('velocity-selector');
+        store.setParticle({ charge: 2e-4 });
+        expect(useCompositionStore.getState().activeTemplateId).toBeNull();
+
+        // 加器材
+        store.loadTemplate('velocity-selector');
+        store.addSource('point-charge');
+        expect(useCompositionStore.getState().activeTemplateId).toBeNull();
+
+        // 清空
+        store.loadTemplate('velocity-selector');
+        store.resetLab();
+        expect(useCompositionStore.getState().activeTemplateId).toBeNull();
+    });
+
+    it('loadTemplate 传入非法 ID 时静默忽略，不破坏现有状态', () => {
+        const store = useCompositionStore.getState();
+        store.resetLab();
+        store.addSource('bar-magnet');
+        const sBefore = useCompositionStore.getState();
+
+        store.loadTemplate('non-existent-template-id');
+        const sAfter = useCompositionStore.getState();
+        expect(sAfter.sources).toHaveLength(sBefore.sources.length);
+        expect(sAfter.activeTemplateId).toBeNull();
     });
 });

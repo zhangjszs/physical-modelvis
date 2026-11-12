@@ -168,34 +168,36 @@ describe('#27 约束字段守卫', () => {
     });
 
     describe('守卫工具函数', () => {
+        // 字段名用真实约束字段 'current' (HallEffectConstraint.current) —— #120 C3 将守卫 field 参数
+        // 收窄为 ConstraintFieldName 后, 合成名 'a' 不再合法; 改用真实字段名保持守卫行为测试不变。
         it('requireConstraintNumber: 正常返回数值', () => {
-            expect(requireConstraintNumber({ a: 1.5 }, 'a', 'test')).toBe(1.5);
+            expect(requireConstraintNumber({ current: 1.5 }, 'current', 'test')).toBe(1.5);
         });
 
         it('requireConstraintNumber: 字段缺失 → MISSING_CONSTRAINT_FIELD', () => {
-            expect(() => requireConstraintNumber({}, 'a', 'test')).toThrow(/缺少必需字段 "a"/);
+            expect(() => requireConstraintNumber({}, 'current', 'test')).toThrow(/缺少必需字段 "current"/);
         });
 
         it('requireConstraintNumber: 值非有限 → INVALID_CONSTRAINT_FIELD', () => {
-            expect(() => requireConstraintNumber({ a: Number.NaN }, 'a', 'test')).toThrow(/必须是有限数/);
-            expect(() => requireConstraintNumber({ a: Infinity }, 'a', 'test')).toThrow(PhysicsError);
+            expect(() => requireConstraintNumber({ current: Number.NaN }, 'current', 'test')).toThrow(/必须是有限数/);
+            expect(() => requireConstraintNumber({ current: Infinity }, 'current', 'test')).toThrow(PhysicsError);
         });
 
         it('requireConstraintNumber: 值非 number 类型 → 拒绝', () => {
             expect(() =>
-                requireConstraintNumber({ a: 'x' } as unknown as Record<string, unknown>, 'a', 'test')
+                requireConstraintNumber({ current: 'x' } as unknown as Record<string, unknown>, 'current', 'test')
             ).toThrow(PhysicsError);
         });
 
         it('requireConstraintNumber: constraints 为 undefined → MISSING_CONSTRAINT', () => {
-            expect(() => requireConstraintNumber(undefined, 'a', 'test')).toThrow(/未提供/);
+            expect(() => requireConstraintNumber(undefined, 'current', 'test')).toThrow(/未提供/);
         });
 
         it('optionalConstraintNumber: 缺失/非法时回落到 fallback', () => {
-            expect(optionalConstraintNumber({ a: 2 }, 'a', 9)).toBe(2);
-            expect(optionalConstraintNumber({}, 'a', 9)).toBe(9);
-            expect(optionalConstraintNumber({ a: Number.NaN }, 'a', 9)).toBe(9);
-            expect(optionalConstraintNumber(undefined, 'a', 9)).toBe(9);
+            expect(optionalConstraintNumber({ current: 2 }, 'current', 9)).toBe(2);
+            expect(optionalConstraintNumber({}, 'current', 9)).toBe(9);
+            expect(optionalConstraintNumber({ current: Number.NaN }, 'current', 9)).toBe(9);
+            expect(optionalConstraintNumber(undefined, 'current', 9)).toBe(9);
         });
     });
 });

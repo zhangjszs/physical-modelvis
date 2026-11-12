@@ -110,7 +110,13 @@ export class RefractionModel extends PhysicsModelBase {
         const reflectEndX = normalX + L * Math.sin(reflectThetaRad);
         const reflectEndY = interfaceY + L * Math.cos(reflectThetaRad);
         // 折射光线：仅在非全反射时存在
-        const refractEndX = totalInternalReflection ? NaN : normalX - L * Math.sin(theta2Rad);
+        //
+        // 方向推导 (勿改符号): 入射线自 incidentStart = (−L·sinθ₁, +L·cosθ₁) 射向原点,
+        // 行进方向 = (+sinθ₁, −cosθ₁) —— 向右下方。折射线沿同一侧继续向下, 只因
+        // 折射率增大而**向法线偏折**, 故 refractEnd 必须取 **+L·sinθ₂** (右下方)。
+        // 旧版写成 −L·sinθ₂ ⇒ 折射线跑到法线另一侧 (左下方), 与入射线不共面成同一光路,
+        // 物理上不成立 (折射线只能落在入射线的同一侧)。
+        const refractEndX = totalInternalReflection ? NaN : normalX + L * Math.sin(theta2Rad);
         const refractEndY = totalInternalReflection ? NaN : interfaceY - L * Math.cos(theta2Rad);
 
         // 关键帧 (静态模型仅供演示, 构造单一帧)

@@ -81,11 +81,11 @@ export const wettingRig: SceneRig = {
         };
         updateWetting(handles, params);
 
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        updateWetting(handles as unknown as WettingHandles, params);
+        updateWetting(handles as WettingHandles, params);
     },
 
     getVisualPosition(pos) {

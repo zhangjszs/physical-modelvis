@@ -49,6 +49,33 @@ npm run precheck
 - **Test Coverage** — 每个 exported 函数至少 1 positive + 1 edge-case 测试
 - **Rendering Contract** — scene `parameters[].name` 与 `buildProblem` 配套
 
+## 第一次贡献
+
+如果你是第一次参与本项目，按以下路径走通：
+
+1. **克隆并安装**（npm workspaces 一次性装齐全部子包）：
+   ```bash
+   git clone https://github.com/zhangjszs/physical-modelvis.git
+   cd physical-modelvis
+   npm install
+   npm run build:core
+   ```
+
+2. **跑通本地门禁**（与 CI 等价，确认环境无问题）：
+   ```bash
+   npm run precheck
+   ```
+   全部通过即环境就绪。
+
+3. **找任务**：查看 GitHub Issues 中 `ready-for-agent` 标签的开放单，或阅读仓库内 `.agent/TASKS.md` 今日队列了解当前优先级；也可联系维护者认领适合你的任务。
+
+4. **创建分支并提交**：
+   - 分支命名：`agent/issue-<N>-<short-slug>`（例：`agent/issue-126-rig-generic`）
+   - 提交信息使用 [Conventional Commits](https://www.conventionalcommits.org/)，正文包含 `Refs #<N>`
+   - 示例：`feat(rendering): add bar magnet rig` + 正文 `Refs #113`
+
+5. **推送并发起 PR**：推送分支后 GitHub 会提示创建 PR，填写模板检查清单。pre-push 钩子会自动运行全量门禁。
+
 ## 参与贡献流程
 
 1. **查阅文档**：在开始前，请先通读 [docs/README.md](./docs/README.md) 和 [docs/DEVELOPMENT_GUIDE.md](./docs/DEVELOPMENT_GUIDE.md)。

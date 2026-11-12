@@ -114,15 +114,15 @@ export const heatTransferRig: SceneRig = {
         };
         updateHeatTransfer(handles, params);
 
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        updateHeatTransfer(handles as unknown as HeatTransferHandles, params);
+        updateHeatTransfer(handles as HeatTransferHandles, params);
     },
 
     onAnimate(handles, ctx) {
-        const h = handles as unknown as HeatTransferHandles;
+        const h = handles as HeatTransferHandles;
         if (!h.fluxArrows || h.fluxArrows.length === 0) return;
 
         // 热流箭头动态脉动波

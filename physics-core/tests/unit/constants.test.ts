@@ -36,7 +36,8 @@ const CODATA: Array<{
     { key: 'sigmaSB', value: 5.670374419e-8, unit: 'W/(m²·K⁴)', symbol: 'σ', exact: true },
     { key: 'Na', value: 6.02214076e23, unit: 'mol⁻¹', symbol: 'N_A', exact: true },
     { key: 'neutronMass', value: 1.67492749804e-27, unit: 'kg', symbol: 'n' },
-    { key: 'R', value: 8.314, unit: 'J/(mol·K)', symbol: 'R' }
+    { key: 'R', value: 8.314, unit: 'J/(mol·K)', symbol: 'R' },
+    { key: 'bWien', value: 2.898e-3, unit: 'm·K', symbol: 'b' }
 ];
 
 describe('L0: 物理常数完整性', () => {
@@ -68,8 +69,8 @@ describe('L0: 物理常数完整性', () => {
         }
     });
 
-    it('新增常数 h, kB 等已存在', () => {
-        for (const key of ['h', 'kB', 'sigmaSB', 'Na', 'neutronMass', 'R'] as const) {
+    it('新增常数 h, kB, bWien 等已存在', () => {
+        for (const key of ['h', 'kB', 'sigmaSB', 'Na', 'neutronMass', 'R', 'bWien'] as const) {
             expect(PHYSICS_CONSTANTS[key], `${key} 已注册`).toBeDefined();
         }
     });

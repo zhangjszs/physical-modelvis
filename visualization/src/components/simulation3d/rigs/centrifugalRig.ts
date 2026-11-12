@@ -143,12 +143,12 @@ export const centrifugalRig: SceneRig = {
             mu: 0.5
         };
 
-        this.updateEquipment(handles as unknown as Record<string, unknown>, params);
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        this.updateEquipment(handles, params);
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        const h = handles as unknown as CentrifugalHandles;
+        const h = handles as CentrifugalHandles;
         const r = num(params['radius'], 0.3);
         const omega = num(params['angularSpeed'], 5);
         const mu = num(params['frictionCoeff'], 0.5);
@@ -187,7 +187,7 @@ export const centrifugalRig: SceneRig = {
     },
 
     onAnimate(handles, ctx) {
-        const h = handles as unknown as CentrifugalHandles;
+        const h = handles as CentrifugalHandles;
         if (!h.discGroup || !h.block) return;
 
         const omega = h.omega;

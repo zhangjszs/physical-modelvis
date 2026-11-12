@@ -24,13 +24,13 @@ export class BlackBodyModel extends PhysicsModelBase {
         const c = problem.constraints?.blackBody;
         if (!c) throw new Error('black-body 需要 blackBody 约束');
         const T = c.temperature;
-        // h / σ 取 units/constants.js 单一真源 (#108 收敛原内联截断值);
-        // kB / cLight / bWien 维持原状 (kB 另见 #108 普查: 引擎另 1 处 + 渲染 1 处, 待 planner 立单; bWien 暂无真源条目)
+        // h / σ / kB / bWien 取 units/constants.js 单一真源 (#108 / #109 收敛原内联截断值);
+        // cLight=3e8 维持原状 (3e8 不设模式避免误伤, #109 裁定)
         const h = PHYSICS_CONSTANTS.h.value,
-            kB = 1.381e-23,
+            kB = PHYSICS_CONSTANTS.kB.value,
             cLight = 3e8,
             sigma = PHYSICS_CONSTANTS.sigmaSB.value,
-            bWien = 2.898e-3;
+            bWien = PHYSICS_CONSTANTS.bWien.value;
         const fMin = c.freqMin ?? 1e12;
         const fMax = c.freqMax ?? 5e15;
         const N = c.sampleCount ?? 200;

@@ -142,15 +142,15 @@ export const surfaceTensionRig: SceneRig = {
         };
         updateST(handles, params);
 
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        updateST(handles as unknown as SurfaceTensionHandles, params);
+        updateST(handles as SurfaceTensionHandles, params);
     },
 
     onAnimate(handles, ctx) {
-        const h = handles as unknown as SurfaceTensionHandles;
+        const h = handles as SurfaceTensionHandles;
         if (!h.sliderGroup || !h.filmMesh) return;
 
         // 动态拉膜缓慢上升模拟

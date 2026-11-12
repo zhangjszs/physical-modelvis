@@ -222,7 +222,8 @@ export function drawCurrentBalanceScene(opts: EmEquipSceneOptions): void {
         if (traj0 && traj0.length > 0) {
             // 时间插值找当前倾角
             const t = currentTime;
-            const total = (simulationResult.meta as unknown as { duration?: number }).duration ?? 5;
+            // meta.duration 已在引擎类型层声明为可选 (#124: 旧写法为双重强转); 引擎未产出时回退场景默认 5 s
+            const total = simulationResult.meta.duration ?? 5;
             let idx = Math.floor((t / total) * (traj0.length - 1));
             idx = Math.max(0, Math.min(traj0.length - 1, idx));
             const ang = traj0[idx]!.position.y;
@@ -1176,7 +1177,8 @@ export function drawSelfInductanceScene(opts: EmEquipSceneOptions): void {
         const traj0 = simulationResult.trajectories[0];
         if (traj0 && traj0.length > 0) {
             const t = currentTime;
-            const total = (simulationResult.meta as unknown as { duration?: number }).duration ?? 0.5;
+            // meta.duration 已在引擎类型层声明为可选 (#124: 旧写法为双重强转); 引擎未产出时回退断电自感默认 0.5 s
+            const total = simulationResult.meta.duration ?? 0.5;
             let idx = Math.floor((t / total) * (traj0.length - 1));
             idx = Math.max(0, Math.min(traj0.length - 1, idx));
             iNow = traj0[idx]!.position.y;

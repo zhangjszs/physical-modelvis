@@ -42,6 +42,7 @@ cd visualization && npm run dev
 - **Windows PowerShell 环境**:`npx` 需写 `npx.cmd`;`rg` 不可用(用 grep 工具);PowerShell 引号转义用反引号。
 - **husky pre-push 钩子**会运行完整 `precheck`,任何门禁失败都会阻止 push(跳过:`git push --no-verify`)。
 - **引擎 charts 键名与语义名不同,须用类型化访问层 (#82)**:读 charts 一律走 `chartsOf(simulationResult, model)` / `getChart(...)`,键名以 `physics-core/src/types/chart-registry.ts` 的 `MODEL_CHART_KEYS` 行内注释为准(如 lc-oscillator 的 `x_t/y_t/ke_t/pe_t` 语义是 q/i/Ee/Em)。写错键名 tsc 直接报错;**禁止新添 `as unknown as Record<...>` 强转**;新模型产出键需入登记表(运行时真实性探针会拦)。迁移前先读模型源码确认 charts 键名与单位。
+- **读 SimulationResult.extra/.meta 须走守卫式访问层 (#124)**:读 `extra` 一律走 `visualization/src/rendering/engineExtraAccess.ts` 的 `readElectricFieldExtra(result)` / `readMagFieldExtra(result)`(运行时类型谓词守卫,脏数据安全返回 null); 读 `.meta` 直接访问类型字段(引擎现状不产出 `duration` 故为可选)。与 #82 charts 访问层并列构成「渲染层读引擎结果必须走类型化层」双柱约定;**禁止新添 `as unknown as ElectricFieldExtra` / `as unknown as MetaShape` 等双重强转**;新场源类型需扩展 `engineExtraAccess.ts` 添加对应 read 函数(契约由 `typed-extra.test.ts` 红绿守卫)。
 - **场景切换竞态(3D)**:3D 场景切换时需按场景缓存 rig(避免卸载/重建竞态),见 `EquipmentStage.tsx` 的 `rigReady` + `sceneRigCache` 机制。
 - **vitest 路径过滤语法**:`npx.cmd vitest run tests/unit/foo.test.ts` (单文件);多个用 `npx.cmd vitest run -t "keyword"` (按测试名筛选)。
 
@@ -50,14 +51,21 @@ cd visualization && npm run dev
 GitHub Actions 流水线，配置文件位于 `.github/workflows/`。
 
 ### CI 流水线 (`ci.yml`)
-触发：push 到 main、PR 到 main。顺序执行 7 道质量门禁：
+触发：push 到 main、PR 到 main。顺序执行 9 道质量门禁（约 4–6 分钟）：
 1. **TypeScript 类型检查** — `tsc --noEmit`（physics-core + visualization，含 OCR server）
 2. **ESLint 静态分析** — typescript-eslint recommended 规则集
 3. **Prettier 格式检查** — `format:check`
 4. **单元测试** — physics-core + visualization 各自 `vitest run`
 5. **11 层物理自检** — `node scripts/self-check.mjs`（LAYERS 数组 = L0-L6 + L8 Boris 数值积分 + L9 跨场景数值鲁棒性 + L10 输出 NaN 扫描 + L11 渲染层常量单一真源；无 L7）
 6. **构建** — physics-core → visualization（带 `VITE_BASE_PATH` 子路径）
-7. **首屏包体积门禁** — `node scripts/check-bundle-size.mjs`（入口 chunks gzip ≤70kB，现状约 63kB）
+7. **首屏包体积门禁** — `node scripts/check-bundle-size.mjs`（入口 chunks gzip ≤70kB；现状门禁入口 9.7kB，挂载前必需资源约 68.8kB，口径差异见脚本注释与 verify-first-frame-smoke.cjs）
+8. **physics-core 发布 dry-run 门禁** — `node scripts/check-publish-dryrun.mjs`（#107）
+9. **4 个 headless 浏览器探针** — 生产构建 preview（`:4173`，含子路径），各带 1 次自动重试；阻断 Deploy：
+   - 首帧与体积度量 (`scripts/verify-first-frame-smoke.cjs`)
+   - 双视口抽屉遮挡 (`scripts/verify-overlay-drawer-smoke.cjs`)
+   - Portal 令牌继承 (`scripts/verify-portal-tokens.mjs`)
+   - 导学全流程 (`scripts/verify-guidance-smoke.cjs`)
+   - 本地等价运行：`npm run build:viz && cd visualization && nohup npx vite preview --port 4173 &` 后执行各探针（设 `BASE_URL=http://localhost:4173/` 与 `SMOKE_BROWSER_CHANNEL=""`）
 
 ### 部署流水线 (`deploy.yml`)
 触发：CI 在 main 分支成功完成后自动触发（`workflow_run`）。
@@ -110,20 +118,27 @@ visualization/         — React 可视化前端
     guidance/          — 引导面板 (GuidancePanel)
     ocr/               — OCR 面板与工具函数
     workbench/         — 课堂工作台 (WorkbenchScene 壳 + SceneStage 舞台 + InspectorPanel 检查器 + DataDrawer 抽屉 + TextbookDirectory 目录 + useSceneRig/useCompareSimulations/useSceneSimulation hooks)
+    composition/       — 组合实验台 (CompositionLab 面板 + CompositionStage 舞台 + DirectionEditor 朝向编辑 + compositionTemplates 预设模板 + fieldLines 场线)
   src/scenes/          — 场景配置 + buildProblem (sceneRegistry.ts + guidance.ts 引导映射)
   src/scenes/scenes/   — 场景定义按领域拆分子目录 (mechanics/electromagnetism/modern/optics/thermodynamics, index.ts 聚合) — 新增场景放到对应领域子目录, 并注册到 sceneRegistry.ts
   src/rendering/       — Canvas 2D 渲染器 (按物理领域分文件)
   src/adapters/        — physics-core 适配器 (runSceneSimulation)
   src/store/           — Zustand 状态管理
+    compositionStore.ts — 组合实验台状态机 (器材源增删/拖动吸附/朝向编辑/回放与模板激活)
   src/utils/           — 工具函数 (exportCsv 等)
   server/              — OCR 后端代理 (Express + Anthropic API, ocr-utils.ts)
   tests/accuracy/      — 渲染单一真源契约测试 (single-source-contract.test.ts)
   tests/rendering/     — 渲染单元测试 (rigs-build, equipment-stage)
   tests/guidance/      — 引导系统测试
   tests/ocr/           — OCR 测试
+  tests/composition/   — 组合实验台测试 (store / 模板 / 回放 / 朝向编辑 / 场线 / 场线种子 / 坐标 / 器材网格 sourceMeshes)
+  tests/workbench/     — 课堂工作台 hook 测试 (useSceneRig / useCompareSimulations / useSceneSimulation)
+  tests/charts/        — React hooks 调用顺序守卫测试 (hook-order)
+  tests/utils/         — 测试工具 (canvasMock 录制型 ctx 及其自测)
 
 experiments/           — 人教版高中物理实验整理 (176 个实验, 6 册教材)
 scripts/               — 验证脚本 (self-check.mjs L0-L6 + L8-L11 物理自检, verify-*.cjs 冒烟测试)
+  verify-composition-interaction.mjs — 组合实验台交互探针 (画布像素比对+倍速推进比, 手动运行)
 ```
 
 ## Key Patterns

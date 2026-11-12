@@ -3,7 +3,7 @@ import type { FieldSource, Vector3D, CompositionParticle, CompositionSimResult, 
 import { simulateComposition, validateComposition } from 'physics-core';
 import { snapVector } from '../utils/compositionCoords';
 import { FIELD_LINE_DENSITY, clampFieldLineDensity } from '../components/composition/fieldLineSeeds';
-
+import { getCompositionTemplate } from '../components/composition/compositionTemplates';
 /**
  * 组合实验台状态 (L4) — 器材布置 + 粒子 + 自动重仿真。
  *
@@ -45,6 +45,30 @@ export const SOURCE_DEFAULTS: Record<SourceKind, { source: FieldSource; height: 
             axis: { x: 0, y: 1, z: 0 }
         },
         height: 0.15
+    },
+    'bar-magnet': {
+        source: {
+            kind: 'bar-magnet',
+            magneticMoment: 5,
+            center: { x: 0, y: 0, z: 0.15 },
+            direction: { x: 0, y: 1, z: 0 },
+            length: 0.2
+        },
+        height: 0.15
+    },
+    /**
+     * 匀强磁场区默认: B = 1mT 沿 +y (朝向固定, #114), 盒 0.4×0.3×0.3m。
+     * 1mT 为演示量级 — 显著大于导线/线圈在盒尺度上的杂散场 (μT 级),
+     * 粒子偏转与场线走向肉眼可辨, 又不至于让 Boris 步数爆炸。
+     */
+    'uniform-field-zone': {
+        source: {
+            kind: 'uniform-field-zone',
+            field: { x: 0, y: 1e-3, z: 0 },
+            center: { x: 0, y: 0, z: 0.15 },
+            size: { x: 0.4, y: 0.3, z: 0.3 }
+        },
+        height: 0.15
     }
 };
 
@@ -63,6 +87,13 @@ let nextId = 1;
 interface CompositionState {
     sources: PlacedSource[];
     selectedId: string | null;
+    /**
+     * 悬停器材 id (#166 P0 S-6): 3D hover 与器材列表行 hover 的双向联动字段。
+     * 纯 UI 状态 — 写入不触发重仿真、不自增 fieldLineRevision (规格 §6.1)。
+     */
+    hoverId: string | null;
+    /** 当前激活的预设实验模板 ID (null = 空白台或已自定义) */
+    activeTemplateId: string | null;
     particle: CompositionParticle;
     duration: number;
     sampleCount: number;
@@ -85,15 +116,21 @@ interface CompositionState {
     moveSource: (id: string, position: Vector3D) => void;
     /** 拖拽结束/外部修改后重仿真 */
     commit: () => void;
-    updateSourceParams: (id: string, patch: Record<string, number>) => void;
+    updateSourceParams: (id: string, patch: Record<string, unknown>) => void;
+    /** 更新器材的向量型参数 (匀强磁场区的 field/size; 合并式更新 + 重仿真) */
+    updateSourceVector: (id: string, key: 'size' | 'field', patch: Partial<Vector3D>) => void;
     removeSource: (id: string) => void;
     select: (id: string | null) => void;
+    /** 设置悬停器材 (null = 移出); 纯 UI, 不触发重仿真/场线刷新 */
+    setHover: (id: string | null) => void;
     setParticle: (patch: Partial<CompositionParticle>) => void;
     setDuration: (duration: number) => void;
     toggleElectricFieldLines: () => void;
     toggleMagneticFieldLines: () => void;
     /** 设置场线密度倍率 (夹取到档位区间, #93) */
     setFieldLineDensity: (density: number) => void;
+    /** 加载预设实验模板 (单次 commit 替换场源/粒子/时长/场线并重仿真) */
+    loadTemplate: (id: string) => void;
     resetLab: () => void;
 }
 
@@ -119,6 +156,7 @@ function recompute(state: CompositionState): Partial<CompositionState> {
 export const useCompositionStore = create<CompositionState>((set, get) => ({
     sources: [],
     selectedId: null,
+    hoverId: null,
     particle: { ...PARTICLE_DEFAULT },
     duration: DURATION_DEFAULT,
     sampleCount: SAMPLE_COUNT_DEFAULT,
@@ -128,6 +166,7 @@ export const useCompositionStore = create<CompositionState>((set, get) => ({
     showMagneticFieldLines: false,
     fieldLineDensity: FIELD_LINE_DENSITY.default,
     fieldLineRevision: 0,
+    activeTemplateId: null,
 
     addSource: (kind, position) => {
         const def = SOURCE_DEFAULTS[kind];
@@ -138,6 +177,7 @@ export const useCompositionStore = create<CompositionState>((set, get) => ({
             const next: Partial<CompositionState> = {
                 sources: [...s.sources, { id, source: placed }],
                 selectedId: id,
+                activeTemplateId: null,
                 fieldLineRevision: s.fieldLineRevision + 1
             };
             return { ...next, ...recompute({ ...get(), ...next } as CompositionState) };
@@ -145,15 +185,26 @@ export const useCompositionStore = create<CompositionState>((set, get) => ({
     },
 
     moveSource: (id, position) => {
-        set(s => ({
-            sources: s.sources.map(p =>
-                p.id === id ? { ...p, source: applyPosition(p.source, snapVector(position)) } : p
-            ),
-            fieldLineRevision: s.fieldLineRevision + 1
-        }));
+        set(s => {
+            const nextPos = snapVector(position);
+            let changed = false;
+            const sources = s.sources.map(p => {
+                if (p.id !== id) return p;
+                const cur = getSourcePosition(p.source);
+                if (cur.x === nextPos.x && cur.y === nextPos.y && cur.z === nextPos.z) return p;
+                changed = true;
+                return { ...p, source: applyPosition(p.source, nextPos) };
+            });
+            if (!changed) return s;
+            return {
+                sources,
+                activeTemplateId: null,
+                fieldLineRevision: s.fieldLineRevision + 1
+            };
+        });
     },
 
-    commit: () => set(s => recompute(s)),
+    commit: () => set(s => ({ activeTemplateId: null, ...recompute(s) })),
 
     updateSourceParams: (id, patch) => {
         set(s => {
@@ -161,6 +212,21 @@ export const useCompositionStore = create<CompositionState>((set, get) => ({
                 sources: s.sources.map(p =>
                     p.id === id ? { ...p, source: { ...p.source, ...patch } as FieldSource } : p
                 ),
+                activeTemplateId: null,
+                fieldLineRevision: s.fieldLineRevision + 1
+            };
+            return { ...next, ...recompute({ ...get(), ...next } as CompositionState) };
+        });
+    },
+
+    updateSourceVector: (id, key, patch) => {
+        set(s => {
+            const next: Partial<CompositionState> = {
+                sources: s.sources.map(p => {
+                    if (p.id !== id || p.source.kind !== 'uniform-field-zone') return p;
+                    return { ...p, source: { ...p.source, [key]: { ...p.source[key], ...patch } } as FieldSource };
+                }),
+                activeTemplateId: null,
                 fieldLineRevision: s.fieldLineRevision + 1
             };
             return { ...next, ...recompute({ ...get(), ...next } as CompositionState) };
@@ -172,6 +238,8 @@ export const useCompositionStore = create<CompositionState>((set, get) => ({
             const next: Partial<CompositionState> = {
                 sources: s.sources.filter(p => p.id !== id),
                 selectedId: s.selectedId === id ? null : s.selectedId,
+                hoverId: s.hoverId === id ? null : s.hoverId,
+                activeTemplateId: null,
                 fieldLineRevision: s.fieldLineRevision + 1
             };
             return { ...next, ...recompute({ ...get(), ...next } as CompositionState) };
@@ -179,10 +247,11 @@ export const useCompositionStore = create<CompositionState>((set, get) => ({
     },
 
     select: id => set({ selectedId: id }),
+    setHover: id => set({ hoverId: id }),
 
     setParticle: patch => {
         set(s => {
-            const next: Partial<CompositionState> = { particle: { ...s.particle, ...patch } };
+            const next: Partial<CompositionState> = { particle: { ...s.particle, ...patch }, activeTemplateId: null };
             return { ...next, ...recompute({ ...get(), ...next } as CompositionState) };
         });
     },
@@ -190,7 +259,7 @@ export const useCompositionStore = create<CompositionState>((set, get) => ({
     setDuration: duration => {
         if (!Number.isFinite(duration) || duration <= 0) return;
         set(() => {
-            const next: Partial<CompositionState> = { duration };
+            const next: Partial<CompositionState> = { duration, activeTemplateId: null };
             return { ...next, ...recompute({ ...get(), ...next } as CompositionState) };
         });
     },
@@ -199,10 +268,39 @@ export const useCompositionStore = create<CompositionState>((set, get) => ({
     toggleMagneticFieldLines: () => set(s => ({ showMagneticFieldLines: !s.showMagneticFieldLines })),
     setFieldLineDensity: density => set({ fieldLineDensity: clampFieldLineDensity(density) }),
 
+    loadTemplate: id => {
+        const template = getCompositionTemplate(id);
+        if (!template) return;
+        set(s => {
+            const placedSources: PlacedSource[] = template.sources.map(src => ({
+                id: `${src.kind}-${nextId++}`,
+                source: JSON.parse(JSON.stringify(src))
+            }));
+            const next: Partial<CompositionState> = {
+                sources: placedSources,
+                selectedId: null,
+                activeTemplateId: template.id,
+                particle: {
+                    ...template.particle,
+                    position: { ...template.particle.position },
+                    velocity: { ...template.particle.velocity }
+                },
+                duration: template.duration,
+                sampleCount: template.sampleCount ?? SAMPLE_COUNT_DEFAULT,
+                showElectricFieldLines: template.showElectricFieldLines ?? true,
+                showMagneticFieldLines: template.showMagneticFieldLines ?? false,
+                fieldLineRevision: s.fieldLineRevision + 1
+            };
+            return { ...next, ...recompute({ ...get(), ...next } as CompositionState) };
+        });
+    },
+
     resetLab: () => {
         set(s => ({
             sources: [],
             selectedId: null,
+            hoverId: null,
+            activeTemplateId: null,
             particle: { ...PARTICLE_DEFAULT },
             duration: DURATION_DEFAULT,
             result: null,
@@ -213,6 +311,20 @@ export const useCompositionStore = create<CompositionState>((set, get) => ({
 }));
 
 /** 把新位置写进场源对应的位置字段 (kind 决定字段名), 方向字段保持不变 */
+function getSourcePosition(source: FieldSource): Vector3D {
+    switch (source.kind) {
+        case 'point-charge':
+            return source.position;
+        case 'straight-wire':
+            return source.point;
+        case 'charged-plate':
+        case 'circular-coil':
+        case 'bar-magnet':
+        case 'uniform-field-zone':
+            return source.center;
+    }
+}
+
 function applyPosition(source: FieldSource, position: Vector3D): FieldSource {
     switch (source.kind) {
         case 'point-charge':
@@ -222,6 +334,10 @@ function applyPosition(source: FieldSource, position: Vector3D): FieldSource {
         case 'straight-wire':
             return { ...source, point: position };
         case 'circular-coil':
+            return { ...source, center: position };
+        case 'bar-magnet':
+            return { ...source, center: position };
+        case 'uniform-field-zone':
             return { ...source, center: position };
     }
 }

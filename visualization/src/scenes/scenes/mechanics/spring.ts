@@ -68,6 +68,16 @@ export const springScene: SceneConfig = {
         const A = params['A'] ?? 0.5;
         const damping = params['damping'] ?? 0;
         const duration = params['duration'] ?? 5;
+        /**
+         * 弹簧原长 (#159 逐节审计·问题一)
+         *
+         * 旧配置 `naturalLength: 0` + 物体初始位置 `(A, 0)`:
+         * 引擎的弹簧长度 = |x| 会**穿过固定端变成负值** —— 振子从 x=+A 荡到
+         * x=−A, 也就是从固定端「荡」到墙的另一侧, 物理上不成立。
+         * 现在给弹簧留出原长 L₀ = A + 0.25, 物体初始位于 (L₀+A, 0):
+         * 振子在 [L₀−A, L₀+A] = [0.25, 2A+0.25] 之间振动, 始终在墙的右侧。
+         */
+        const naturalLength = A + 0.25;
         return {
             id: `spring-${Date.now()}`,
             title: '弹簧振子',
@@ -76,12 +86,12 @@ export const springScene: SceneConfig = {
                 {
                     id: 'block',
                     mass: { value: m, unit: 'kg' },
-                    position: { x: A, y: 0 },
+                    position: { x: naturalLength + A, y: 0 },
                     velocity: { x: 0, y: 0 }
                 }
             ],
             constraints: {
-                spring: { springConstant: k, naturalLength: 0, anchorPoint: { x: 0, y: 0 } }
+                spring: { springConstant: k, naturalLength, anchorPoint: { x: 0, y: 0 } }
             },
             environment: damping > 0 ? { airResistance: { enabled: true, coefficient: damping } } : {},
             timeConfig: makeTimeSeries(duration, 1000, 0.001)

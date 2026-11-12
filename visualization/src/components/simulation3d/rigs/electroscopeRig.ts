@@ -151,12 +151,12 @@ export const electroscopeRig: SceneRig = {
             targetAngle: 0.3
         };
 
-        this.updateEquipment(handles as unknown as Record<string, unknown>, params);
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        this.updateEquipment(handles, params);
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        const h = handles as unknown as ElectroscopeHandles;
+        const h = handles as ElectroscopeHandles;
         const charge = num(params['charge'] ?? params['chargeC'] ?? params['q'], 5); // μC 或相对电荷
         const shielded = (params['shielded'] ?? params['shield'] ?? 0) === 1;
 
@@ -197,7 +197,7 @@ export const electroscopeRig: SceneRig = {
     },
 
     onAnimate(handles, ctx) {
-        const h = handles as unknown as ElectroscopeHandles;
+        const h = handles as ElectroscopeHandles;
         if (!h.foilL || !h.foilR) return;
 
         const { time } = ctx;

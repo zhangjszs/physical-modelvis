@@ -38,7 +38,7 @@ export const galileo_inclineScene: SceneConfig = {
             max: 3,
             step: 1,
             default: 3,
-            description: '0=单斜面 1=对接斜面 2=水平面外推 3=三段完整演示'
+            description: '0=单斜面 1=对接斜面(回到原高) 2=水平面外推 3=连续演示(下滑→谷底水平面)'
         },
         {
             name: 'gravity',
@@ -55,11 +55,11 @@ export const galileo_inclineScene: SceneConfig = {
             name: 'duration',
             label: '模拟时长',
             unit: 's',
-            value: 5,
+            value: 2.5,
             min: 1,
             max: 15,
             step: 0.5,
-            default: 5,
+            default: 2.5,
             description: '仿真的总时长'
         }
     ],

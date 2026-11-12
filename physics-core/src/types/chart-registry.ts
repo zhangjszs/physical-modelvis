@@ -103,7 +103,10 @@ export const MODEL_CHART_KEYS = {
     ],
     // —— M3 批次 4: 气体分子 / 静能 / 核 (#65) ——
     'gas-law': [
-        'x_t' // 过程曲线 (等温/等压/等容 p-V 等)
+        // 过程曲线: y 恒为压强 p(kPa); **x 的语义随过程模式变化** ——
+        //   等温/等压 x = 体积 V(L), 等容 x = 温度 T(K)。
+        //   渲染层必须按 maxValues.modeCode 切换横轴标签 (等容画的是 p–T 图)。
+        'x_t'
     ],
     'liquid-mixing': [
         'x_t', // 混合温度-时间
@@ -139,6 +142,11 @@ export const MODEL_CHART_KEYS = {
         'R_L', // R-L 直线
         'R_invS', // R-1/S 直线
         'R_material' // 材料比较 (Cu/Fe/Nichrome)
+    ],
+    // —— #159 高中核心逐节复核 · 批次 F: 折射 (#159 Phase 2) ——
+    refraction: [
+        'x_t', // sinθ₁-sinθ₂ 直线 (Snell 定律验证, 语义主通道)
+        'y_t' // θ₁-θ₂ 关系曲线 (语义主通道)
     ],
     'vernier-caliper': [
         'x_t', // 读数演示辅助曲线

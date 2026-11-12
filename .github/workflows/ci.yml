@@ -12,6 +12,9 @@ permissions:
 jobs:
   ci:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SMOKE_BROWSER_CHANNEL: ""
     steps:
       - uses: actions/checkout@v5
 
@@ -66,6 +69,107 @@ jobs:
 
       - name: physics-core 发布 dry-run 门禁 (#107, 不发布/不触网/无 token)
         run: node scripts/check-publish-dryrun.mjs
+
+      - name: 安装 Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: 启动生产构建 preview 服务（后台）
+        run: nohup npx vite preview --port 4173 --strictPort > /tmp/vite-preview.log 2>&1 &
+        working-directory: visualization
+        env:
+          VITE_BASE_PATH: /${{ github.event.repository.name }}/
+
+      - name: 等待 preview 服务就绪
+        run: |
+          echo "探测目标 BASE_URL: $BASE_URL"
+          for i in $(seq 1 60); do
+            if curl -sf "$BASE_URL" > /dev/null; then
+              echo "preview 服务已就绪（第 $i 次探测）"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "!! preview 服务 60 次探测后仍未就绪"
+          tail -40 /tmp/vite-preview.log
+          exit 1
+        env:
+          BASE_URL: http://localhost:4173/${{ github.event.repository.name }}/
+
+      - name: "浏览器探针 (1/4): 生产构建首帧与体积度量"
+        run: |
+          echo "运行环境: BASE_URL=$BASE_URL, SMOKE_BROWSER_CHANNEL='$SMOKE_BROWSER_CHANNEL'"
+          if node scripts/verify-first-frame-smoke.cjs; then
+            echo "✅ 首帧探针: 首次通过"
+          else
+            echo "⚠️ 首帧探针: 首次失败，等待 1 秒后执行第 1 次重试..."
+            sleep 1
+            if node scripts/verify-first-frame-smoke.cjs; then
+              echo "✅ 首帧探针: 重试后通过"
+            else
+              echo "❌ 首帧探针: 重试后仍然失败"
+              exit 1
+            fi
+          fi
+        env:
+          BASE_URL: http://localhost:4173/${{ github.event.repository.name }}/
+
+      - name: "浏览器探针 (2/4): 双视口抽屉与遮挡防回归"
+        run: |
+          echo "运行环境: BASE_URL=$BASE_URL, SMOKE_BROWSER_CHANNEL='$SMOKE_BROWSER_CHANNEL'"
+          if node scripts/verify-overlay-drawer-smoke.cjs; then
+            echo "✅ 双视口抽屉探针: 首次通过"
+          else
+            echo "⚠️ 双视口抽屉探针: 首次失败，等待 1 秒后执行第 1 次重试..."
+            sleep 1
+            if node scripts/verify-overlay-drawer-smoke.cjs; then
+              echo "✅ 双视口抽屉探针: 重试后通过"
+            else
+              echo "❌ 双视口抽屉探针: 重试后仍然失败"
+              exit 1
+            fi
+          fi
+        env:
+          BASE_URL: http://localhost:4173/${{ github.event.repository.name }}/
+
+      - name: "浏览器探针 (3/4): 暗/亮主题 Portal 设计令牌继承"
+        run: |
+          echo "运行环境: BASE_URL=$BASE_URL, SMOKE_BROWSER_CHANNEL='$SMOKE_BROWSER_CHANNEL'"
+          if node scripts/verify-portal-tokens.mjs; then
+            echo "✅ Portal 令牌探针: 首次通过"
+          else
+            echo "⚠️ Portal 令牌探针: 首次失败，等待 1 秒后执行第 1 次重试..."
+            sleep 1
+            if node scripts/verify-portal-tokens.mjs; then
+              echo "✅ Portal 令牌探针: 重试后通过"
+            else
+              echo "❌ Portal 令牌探针: 重试后仍然失败"
+              exit 1
+            fi
+          fi
+        env:
+          BASE_URL: http://localhost:4173/${{ github.event.repository.name }}/
+
+      - name: "浏览器探针 (4/4): 实验导学全流程冒烟"
+        run: |
+          echo "运行环境: BASE_URL=$BASE_URL, SMOKE_BROWSER_CHANNEL='$SMOKE_BROWSER_CHANNEL'"
+          if node scripts/verify-guidance-smoke.cjs; then
+            echo "✅ 导学全流程探针: 首次通过"
+          else
+            echo "⚠️ 导学全流程探针: 首次失败，等待 1 秒后执行第 1 次重试..."
+            sleep 1
+            if node scripts/verify-guidance-smoke.cjs; then
+              echo "✅ 导学全流程探针: 重试后通过"
+            else
+              echo "❌ 导学全流程探针: 重试后仍然失败"
+              exit 1
+            fi
+          fi
+        env:
+          BASE_URL: http://localhost:4173/${{ github.event.repository.name }}/
+
+      - name: 输出 preview 服务日志（仅失败时）
+        if: failure()
+        run: tail -60 /tmp/vite-preview.log || true
 
       - name: 上传构建产物
         uses: actions/upload-artifact@v7

@@ -114,12 +114,12 @@ export const fieldRig: SceneRig = {
             hallVoltage: 2.5
         };
 
-        this.updateEquipment(handles as unknown as Record<string, unknown>, params);
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        this.updateEquipment(handles, params);
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        const h = handles as unknown as FieldHandles;
+        const h = handles as FieldHandles;
         const Ey = num(params['Ey'] ?? params['E'], NaN);
         const Bz = num(params['Bz'] ?? params['B'], NaN);
 
@@ -170,7 +170,7 @@ export const fieldRig: SceneRig = {
     },
 
     onAnimate(handles, ctx) {
-        const h = handles as unknown as FieldHandles;
+        const h = handles as FieldHandles;
         if (!h.fieldArrows) return;
 
         const { time } = ctx;

@@ -133,15 +133,15 @@ export const jouleElectricalRig: SceneRig = {
         };
         updateJE(handles, params);
 
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        updateJE(handles as unknown as JouleElecHandles, params);
+        updateJE(handles as JouleElecHandles, params);
     },
 
     onAnimate(handles, ctx) {
-        const h = handles as unknown as JouleElecHandles;
+        const h = handles as JouleElecHandles;
         if (!h.coil) return;
 
         // 电热丝发热辉光轻微脉动

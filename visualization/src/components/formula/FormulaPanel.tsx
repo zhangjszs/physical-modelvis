@@ -823,21 +823,21 @@ const FORMULA_MAP: Record<string, FormulaDef> = {
         ]
     },
     photoresistor: {
-        title: '光敏电阻 (R-L 特性曲线)',
+        title: '光敏电阻 (R-E 指数特性)',
         formulas: [
             {
                 name: '照度-电阻特性',
-                formula: 'R = R₀ · (E/E₀)^{−α}',
-                variables: 'E: 照度(lx), α: 灵敏度指数(0.5-1), R₀: E₀ 时的电阻'
+                formula: 'R(E,T) = R_dark · exp(−k·E − 0.02(T−25))',
+                variables: 'E: 照度(lx), R_dark: 25℃暗电阻(Ω), k: 光照灵敏度系数, T: 温度(℃)'
             },
+            { name: '灵敏度', formula: 'k = |d(ln R) / dE|', variables: 'k 越大, 照度-电阻曲线越陡, 灵敏度越高' },
             { name: '欧姆定律', formula: 'I = V / R', variables: 'R 随照度变化, 故 I 随照度变化' },
-            { name: '电功率', formula: 'P = V² / R', variables: '外加电压恒定时功率与照度正相关' },
-            { name: '相对变化率', formula: '(R₀ − R) / R₀ = 1 − (E/E₀)^{−α}', variables: '光照越强电阻变化越大' }
+            { name: '电功率', formula: 'P = V² / R', variables: '外加电压恒定时功率与照度正相关' }
         ],
         tips: [
-            '光敏电阻 (LDR) 阻值随光照增强而减小',
+            '光敏电阻 (LDR) 阻值随光照增强而指数衰减',
             '常用材料: 硫化镉(CdS)、硒化镉(CdSe)',
-            'α 越大, 照度-电阻曲线越陡, 灵敏度越高',
+            '引擎与画布均使用指数式模型, 温度项 0.02 与 TEMP_COEFF 同源',
             '光敏电阻响应速度较慢, 不适用于高频场合'
         ]
     },

@@ -79,12 +79,12 @@ export const fallingEnergyRig: SceneRig = {
 
         updateEnergy(handles, h0);
 
-        return { group: new THREE.Group(), handles: handles as unknown as Record<string, unknown> };
+        return { group: new THREE.Group(), handles };
     },
 
     updateEquipment(handles, params) {
         const h0 = num(params['h0'] ?? params['height'], 5);
-        updateEnergy(handles as unknown as FallingEnergyHandles, h0);
+        updateEnergy(handles as FallingEnergyHandles, h0);
     },
 
     getVisualPosition(pos, _params) {

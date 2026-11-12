@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { SimulationState, VisibleLayers, GraphType } from '../types/visualization';
 import { loadAllScenes, getDefaultParams } from '../scenes/sceneRegistry';
-import { getTotalDuration, findFrameIndex } from '../utils/frameUtils';
+import { getPlaybackDuration, findFrameIndex } from '../utils/frameUtils';
 
 const DEFAULT_LAYERS: VisibleLayers = {
     axes: true,
@@ -142,7 +142,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
         const { simulationResult } = get();
         if (!simulationResult) return;
         const trajectories = simulationResult.trajectories;
-        const totalDuration = getTotalDuration(trajectories);
+        const totalDuration = getPlaybackDuration(trajectories);
         const clamped = Math.max(0, Math.min(t, totalDuration));
         // 二分查找 O(log n) — 与 findFrameIndex 保持一致, 避免每帧 O(n) 线性扫描
         const idx = findFrameIndex(trajectories, clamped);

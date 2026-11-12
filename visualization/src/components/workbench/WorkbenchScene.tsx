@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { lazy, Suspense } from 'react';
+import { lazy, useState } from 'react';
 import { useSimulationStore } from '../../store/simulationStore';
-import { ErrorBoundary } from '../common/ErrorBoundary';
+import { LazyPanel } from '../common/LazyPanel';
+import { OverlayDrawer } from '../common/OverlayDrawer';
 import { ExportDataButton } from '../export/ExportDataButton';
 import { PlaybackControls } from '../controls/PlaybackControls';
 import { TextbookDirectory } from './TextbookDirectory';
@@ -82,41 +82,21 @@ export function WorkbenchScene() {
 
             <InspectorPanel onRunSimulation={runSimulation} />
 
-            {formulaOpen && (
-                <div className="formula-drawer-overlay" onClick={() => setFormulaOpen(false)}>
-                    <aside className="formula-drawer" onClick={e => e.stopPropagation()} aria-label="公式推导">
-                        <div className="formula-drawer-head">
-                            <div>
-                                <span>按需讲解</span>
-                                <h3>公式推导</h3>
-                            </div>
-                            <button className="btn btn-sm" onClick={() => setFormulaOpen(false)}>
-                                关闭
-                            </button>
-                        </div>
-                        <ErrorBoundary
-                            label="公式推导"
-                            fallback={
-                                <div className="panel-section">
-                                    <div className="panel-title">公式说明</div>
-                                    <div style={{ padding: 12, color: '#94a3b8', fontSize: 12 }}>加载失败</div>
-                                </div>
-                            }
-                        >
-                            <Suspense
-                                fallback={
-                                    <div className="panel-section">
-                                        <div className="panel-title">公式说明</div>
-                                        <div style={{ padding: 12, color: '#94a3b8', fontSize: 12 }}>加载中...</div>
-                                    </div>
-                                }
-                            >
-                                <FormulaPanel />
-                            </Suspense>
-                        </ErrorBoundary>
-                    </aside>
-                </div>
-            )}
+            <OverlayDrawer
+                open={formulaOpen}
+                onClose={() => setFormulaOpen(false)}
+                title="公式推导"
+                headerBadge={<span>按需讲解</span>}
+                overlayClassName="formula-drawer-overlay"
+                panelClassName="formula-drawer"
+                headerClassName="formula-drawer-head"
+                closeClassName="btn btn-sm"
+                closeText="关闭"
+            >
+                <LazyPanel label="公式推导" title="公式说明">
+                    <FormulaPanel />
+                </LazyPanel>
+            </OverlayDrawer>
         </div>
     );
 }

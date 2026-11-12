@@ -44,7 +44,10 @@ export class PhotoelectricModel extends PhysicsModelBase {
         const nu0_THz = nu0 / 1e12;
 
         const freqMin = (pc.freqMinTHz ?? Math.max(0.9 * nu0_THz, 0.1)) * 1e12;
-        const freqMax = (pc.freqMaxTHz ?? 2.5 * Math.max(nu0_THz, 2)) * 1e12;
+        // 频率上限必须严格大于下限: 场景允许 nuMin > nuMax (nuMin≤1500, nuMax≥500),
+        // 直接采样会得到 **x 降序** 的曲线 —— 渲染层的 interpSeries 按 x 升序二分查找,
+        // 降序曲线会被静默插值成错误值。统一夹到 freqMin + 1 THz 保证 x 升序。
+        const freqMax = Math.max((pc.freqMaxTHz ?? 2.5 * Math.max(nu0_THz, 2)) * 1e12, freqMin + 1e12);
 
         // U_c-ν 图：U_c = (h·ν − W₀)/e (ν ≥ ν₀), 否则无光电子
         const Uc_nu: ChartSeries = {
@@ -101,10 +104,18 @@ export class PhotoelectricModel extends PhysicsModelBase {
             }
         ];
 
-        // 模拟轨迹 (1 点)
-        const trajectory: TrajectoryPoint[] = [
-            { t: 0, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 }, kineticEnergy: 0, potentialEnergy: 0 }
-        ];
+        // 模拟轨迹：光电效应是量子统计过程，不存在单电子确定轨迹。
+        // 这里输出一条静止在阴极原点的占位轨迹，但覆盖 timeConfig 时长，
+        // 为 2D/3D 演示、播放控件和时间轴提供连续时间基准（不参与任何物理计算）。
+        const duration = Math.max(0, problem.timeConfig.duration);
+        const sampleCount = Math.max(1, problem.timeConfig.sampleCount ?? 100);
+        const trajectory: TrajectoryPoint[] = Array.from({ length: sampleCount + 1 }, (_, i) => ({
+            t: (duration * i) / sampleCount,
+            position: { x: 0, y: 0 },
+            velocity: { x: 0, y: 0 },
+            kineticEnergy: 0,
+            potentialEnergy: 0
+        }));
 
         const warnings: string[] = [];
         if (W0_eV < 2) warnings.push('逸出功较小, 低频光也能发生光电效应');

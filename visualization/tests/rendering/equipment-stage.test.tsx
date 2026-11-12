@@ -17,6 +17,9 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { EquipmentStage, type SceneRig } from '../../src/components/simulation3d/EquipmentStage';
 import { useSimulationStore } from '../../src/store/simulationStore';
+import { verticalMotionRig } from '../../src/components/simulation3d/rigs/verticalMotionRig';
+import { uniform_acceleratedScene } from '../../src/scenes/scenes/mechanics/uniform-accelerated';
+import { runSceneSimulation } from '../../src/adapters/physicsCoreAdapter';
 import type { SimulationResult } from 'physics-core';
 
 /** 最小可用的 SimulationResult (仅含轨迹, 用于触发 getVisualPosition 路径) */
@@ -33,8 +36,17 @@ function minimalResult(): SimulationResult {
 
 vi.mock('three', async importOriginal => {
     const actual = await importOriginal<typeof import('three')>();
+    /** 记录场景实例，供背景/雾效令牌断言 */
+    class SceneMock extends actual.Scene {
+        static readonly instances: InstanceType<typeof actual.Scene>[] = [];
+        constructor() {
+            super();
+            SceneMock.instances.push(this);
+        }
+    }
     return {
         ...actual,
+        Scene: SceneMock,
         WebGLRenderer: class {
             domElement = document.createElement('canvas');
             shadowMap = { enabled: false, type: 0 };
@@ -130,6 +142,7 @@ class ResizeObserverStub {
 
 beforeEach(() => {
     globalThis.ResizeObserver = ResizeObserverStub as unknown as typeof ResizeObserver;
+    (THREE.Scene as unknown as { instances: THREE.Scene[] }).instances.length = 0;
 });
 
 afterEach(() => {
@@ -152,6 +165,26 @@ describe('EquipmentStage 行为', () => {
         expect(rig.updateEquipment).toHaveBeenCalledTimes(1);
         const received = rig.updateEquipment.mock.calls[0]![0] as Record<string, unknown>;
         expect(received).toBe(rig.builtHandles[0]);
+    });
+
+    it('3D 场景背景与雾效由主题令牌派生（暗/亮切换不重建 Scene）', () => {
+        useSimulationStore.setState({ theme: 'dark' });
+        render(<EquipmentStage rig={makeMockRig('theme')} renderer={makeFakeRenderer()} />);
+
+        const scenes = (THREE.Scene as unknown as { instances: THREE.Scene[] }).instances;
+        const scene = scenes[scenes.length - 1]!;
+        expect(scene.background).toBeInstanceOf(THREE.Color);
+        expect((scene.background as THREE.Color).getHex()).toBe(0x0b1020);
+        expect(scene.fog).toBeInstanceOf(THREE.Fog);
+        expect((scene.fog as THREE.Fog).color.getHex()).toBe(0x0b1020);
+
+        act(() => {
+            useSimulationStore.setState({ theme: 'light' });
+        });
+        // 主题切换只改既有 Scene，不重建
+        expect(scenes[scenes.length - 1]).toBe(scene);
+        expect((scene.background as THREE.Color).getHex()).toBe(0xf8fafc);
+        expect((scene.fog as THREE.Fog).color.getHex()).toBe(0xf8fafc);
     });
 
     it('参数变化时 updateEquipment 收到最新参数', () => {
@@ -219,11 +252,11 @@ describe('EquipmentStage 行为', () => {
 let rafQueue: FrameRequestCallback[] = [];
 let frameTime = 0;
 
-function flushFrames(count: number) {
+function flushFrames(count: number, stepMs = 16) {
     for (let i = 0; i < count; i++) {
         const callbacks = rafQueue;
         rafQueue = [];
-        frameTime += 16;
+        frameTime += stepMs;
         callbacks.forEach(cb => cb(frameTime));
     }
 }
@@ -310,5 +343,179 @@ describe('暂停时按需渲染 (#79)', () => {
         });
         flushFrames(5);
         expect(renderSpy.mock.calls.length).toBeGreaterThanOrEqual(5);
+    });
+
+    it('autoAnimate rig: 暂停时仍逐帧渲染并推进演示时钟 (光电效应类讲解装置)', () => {
+        const rig = makeMockRig('auto-animate') as SceneRig & { autoAnimate?: boolean; onAnimate?: unknown };
+        rig.autoAnimate = true;
+        const onAnimate = vi.fn();
+        rig.onAnimate = onAnimate;
+        const fakeRenderer = makeFakeRenderer();
+        const renderSpy = vi.spyOn(fakeRenderer, 'render');
+        render(<EquipmentStage rig={rig} renderer={fakeRenderer} />);
+        act(() => {
+            useSimulationStore.getState().setSimulationResult(minimalResult());
+        });
+        flushFrames(1);
+        renderSpy.mockClear();
+        onAnimate.mockClear();
+        flushFrames(5);
+        expect(renderSpy).toHaveBeenCalledTimes(5);
+        expect(onAnimate).toHaveBeenCalledTimes(5);
+        const firstTime = (onAnimate.mock.calls[0]![1] as { time: number }).time;
+        const lastTime = (onAnimate.mock.calls[4]![1] as { time: number }).time;
+        expect(lastTime).toBeGreaterThan(firstTime);
+    });
+});
+
+// ---------------------------------------------------------------------------
+// 布局尺寸变化补帧 (#111 症状 B) — renderer.setSize 无条件重置 canvas bitmap;
+// 暂停态开数据抽屉挤压舞台时不清脏会永久空白。本回调模拟 StageRenderer.setSize
+// 之后同帧到达的 EquipmentStage 自身 RO 通知（canvas 样式 100% 跟随舞台）。
+// ---------------------------------------------------------------------------
+
+describe('布局尺寸变化补帧 (#111)', () => {
+    let roCallback: ResizeObserverCallback | null = null;
+
+    class ROControllable {
+        constructor(cb: ResizeObserverCallback) {
+            roCallback = cb;
+        }
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+    }
+
+    function fireResize() {
+        act(() => {
+            roCallback!([], ROControllable as unknown as ResizeObserver);
+        });
+    }
+
+    beforeEach(() => {
+        roCallback = null;
+        globalThis.ResizeObserver = ROControllable as unknown as typeof ResizeObserver;
+        rafQueue = [];
+        frameTime = 0;
+        vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
+            rafQueue.push(cb);
+            return rafQueue.length;
+        });
+        vi.stubGlobal('cancelAnimationFrame', () => {});
+    });
+
+    afterEach(() => {
+        vi.unstubAllGlobals();
+    });
+
+    function mountPausedStage() {
+        const rig = makeMockRig('resize-test');
+        const fakeRenderer = makeFakeRenderer();
+        const renderSpy = vi.spyOn(fakeRenderer, 'render');
+        render(<EquipmentStage rig={rig} renderer={fakeRenderer} />);
+        act(() => {
+            useSimulationStore.getState().setSimulationResult(minimalResult());
+        });
+        return renderSpy;
+    }
+
+    it('暂停时布局尺寸变化: 恰好补一帧, 之后不再持续渲染 (#79 语义保持)', () => {
+        const renderSpy = mountPausedStage();
+        flushFrames(1);
+        expect(renderSpy).toHaveBeenCalledTimes(1);
+        renderSpy.mockClear();
+        // 60 帧静默：无变化无渲染（#79 回归锚点）
+        flushFrames(60);
+        expect(renderSpy).not.toHaveBeenCalled();
+        // 抽屉开合式布局变化 → 补一帧
+        fireResize();
+        flushFrames(1);
+        expect(renderSpy).toHaveBeenCalledTimes(1);
+        // 之后恢复静默，不持续渲染
+        flushFrames(60);
+        expect(renderSpy).toHaveBeenCalledTimes(1);
+    });
+});
+
+describe('#157 EquipmentStage + verticalMotionRig 播放/暂停/拖时间条/重置与落地停靠回归', () => {
+    beforeEach(() => {
+        rafQueue = [];
+        frameTime = 0;
+        vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
+            rafQueue.push(cb);
+            return rafQueue.length;
+        });
+        vi.stubGlobal('cancelAnimationFrame', () => {});
+    });
+
+    afterEach(() => {
+        vi.unstubAllGlobals();
+    });
+
+    it('默认参数 (height=20, v0y=0, g=9.8): 播放推进、暂停拖动时间条、落地截断与重置回 0s 球心位置均与引擎一致', () => {
+        const params = { height: 20, v0y: 0, g: 9.8, duration: 3 };
+        const { result, error } = runSceneSimulation(uniform_acceleratedScene, params);
+        expect(error).toBeNull();
+        expect(result).not.toBeNull();
+
+        useSimulationStore.setState({
+            parameters: params,
+            simulationResult: result,
+            currentTime: 0,
+            isPlaying: false,
+            playbackSpeed: 1
+        });
+
+        const fakeRenderer = makeFakeRenderer();
+        render(<EquipmentStage rig={verticalMotionRig} renderer={fakeRenderer} />);
+        flushFrames(1);
+
+        const sceneInstances = (THREE.Scene as unknown as { instances: THREE.Scene[] }).instances;
+        const stageScene = sceneInstances[sceneInstances.length - 1]!;
+        // 主球是半径 0.22 的 SphereGeometry Mesh
+        const mainBall = stageScene.children.find((obj): obj is THREE.Mesh => {
+            if (!(obj instanceof THREE.Mesh) || !(obj.geometry instanceof THREE.SphereGeometry)) return false;
+            return Math.abs(obj.geometry.parameters.radius - 0.22) < 1e-4;
+        });
+        expect(mainBall).toBeDefined();
+
+        // t = 0: 释放点 y = 0.22 + 20 * 0.16 = 3.42
+        expect(mainBall!.position.y).toBeCloseTo(3.42, 5);
+
+        // 开始播放并推进 0.5s (10 帧 × 50ms)，随后暂停补一帧同步
+        act(() => {
+            useSimulationStore.getState().play();
+        });
+        flushFrames(10, 50);
+        expect(useSimulationStore.getState().currentTime).toBeCloseTo(0.5, 5);
+        act(() => {
+            useSimulationStore.getState().pause();
+        });
+        flushFrames(1);
+        // t = 0.5s: y = 20 - 0.5 * 9.8 * 0.25 = 18.775m -> visualY = 0.22 + 18.775 * 0.16 = 3.224
+        expect(mainBall!.position.y).toBeCloseTo(0.22 + 18.775 * 0.16, 4);
+
+        // 暂停态拖动时间条到 t = 1.0s
+        act(() => {
+            useSimulationStore.getState().pause();
+            useSimulationStore.getState().setCurrentTime(1.0);
+        });
+        flushFrames(1);
+        // t = 1.0s: y = 20 - 4.9 = 15.1m -> visualY = 0.22 + 15.1 * 0.16 = 2.636
+        expect(mainBall!.position.y).toBeCloseTo(0.22 + 15.1 * 0.16, 4);
+
+        // 拖动时间条到落地后 t = 2.5s (> 2.0203s): 停靠在地面接触面 0.22
+        act(() => {
+            useSimulationStore.getState().setCurrentTime(2.5);
+        });
+        flushFrames(1);
+        expect(mainBall!.position.y).toBeCloseTo(0.22, 6);
+
+        // 重置回 t = 0s: 球心回到初始高度 3.42
+        act(() => {
+            useSimulationStore.getState().setCurrentTime(0);
+        });
+        flushFrames(1);
+        expect(mainBall!.position.y).toBeCloseTo(3.42, 5);
     });
 });

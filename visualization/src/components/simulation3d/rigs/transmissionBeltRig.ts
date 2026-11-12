@@ -113,12 +113,12 @@ export const transmissionBeltRig: SceneRig = {
             mode: 0
         };
 
-        this.updateEquipment(handles as unknown as Record<string, unknown>, params);
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        this.updateEquipment(handles, params);
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        const h = handles as unknown as TransmissionHandles;
+        const h = handles as TransmissionHandles;
         const r1 = num(params['r1'], 0.1);
         const r2 = num(params['r2'], 0.2);
         const mode = Math.round(num(params['mode'], 0));
@@ -183,7 +183,7 @@ export const transmissionBeltRig: SceneRig = {
     },
 
     onAnimate(handles, ctx) {
-        const h = handles as unknown as TransmissionHandles;
+        const h = handles as TransmissionHandles;
         if (!h.wheel1Group || !h.wheel2Group) return;
 
         const omega1 = num(ctx.params['omega1'], 10);

@@ -108,15 +108,15 @@ export const perpetuumMobileRig: SceneRig = {
         };
         updatePM(handles, params);
 
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        updatePM(handles as unknown as PerpetuumHandles, params);
+        updatePM(handles as PerpetuumHandles, params);
     },
 
     onAnimate(handles, ctx) {
-        const h = handles as unknown as PerpetuumHandles;
+        const h = handles as PerpetuumHandles;
         if (!h.flywheel) return;
 
         // 飞轮连续旋转

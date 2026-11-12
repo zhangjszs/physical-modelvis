@@ -7,9 +7,9 @@
  * 设计原则：纯函数 + 屏幕坐标, 零依赖 React/Zustand/CoordinateTransformer
  */
 import type { SimulationResult } from 'physics-core';
-import { chartsOf } from 'physics-core';
-import { GAS_CONSTANT_R } from './constants';
-import { clearScene, drawTitle, drawHud, drawInfoBar, interpSeries } from './renderingUtils';
+import { getChart } from 'physics-core';
+import { clearScene, drawTitle, drawInfoBar, mutedColor, textColor } from './renderingUtils';
+import { gasLawProcessState, type GasLawMode } from '../utils/gasLawProcess';
 
 export interface ThermalSceneOptions {
     ctx: CanvasRenderingContext2D;
@@ -21,151 +21,147 @@ export interface ThermalSceneOptions {
     currentTime: number;
 }
 
+const MODE_LABEL: Record<GasLawMode, string> = {
+    0: '等温过程',
+    1: '等压过程',
+    2: '等容过程'
+};
+
+const MODE_FORMULA: Record<GasLawMode, string> = {
+    0: 'pV = const (玻意耳定律)',
+    1: 'V/T = const (盖-吕萨克定律)',
+    2: 'p/T = const (查理定律)'
+};
+
+const MODE_COLOR: Record<GasLawMode, string> = {
+    0: '#3b82f6',
+    1: '#f59e0b',
+    2: '#ef4444'
+};
+
+/** 2D 板书读数 — 单一真源: 引擎 maxValues + 引擎 charts + 共享过程插值 */
+export interface GasLawReadouts {
+    source: 'engine' | 'fallback';
+    mode: GasLawMode;
+    modeLabel: string;
+    modeFormula: string;
+    /** 引擎物质的量 (mol) */
+    moles: number;
+    /** 引擎气体常数 R (J/(mol·K)) */
+    R: number;
+    /** 当前体积 (L) */
+    volume_L: number;
+    /** 当前压强 (kPa) */
+    pressure_kPa: number;
+    /** 当前温度 (K) */
+    temperature_K: number;
+    /** 引擎初态 */
+    initial: { volume_L: number; pressure_kPa: number; temperature_K: number };
+    /** 引擎终态 */
+    final: { volume_L: number; pressure_kPa: number; temperature_K: number };
+    /** 压强是否取自引擎过程曲线 */
+    pressureFromEngineCurve: boolean;
+    /** 引擎过程曲线点数 (0 = 引擎没给曲线) */
+    curvePoints: number;
+    /** 横轴语义: 等容过程引擎曲线 x = 温度, 其余 x = 体积 */
+    xIsTemperature: boolean;
+}
+
+export function gasLawReadouts(
+    params: Record<string, number>,
+    result: SimulationResult | null | undefined,
+    time: number
+): GasLawReadouts {
+    const state = gasLawProcessState(result, params, time);
+    const chart = result ? getChart(result, 'gas-law', 'x_t') : undefined;
+    return {
+        source: state.source,
+        mode: state.mode,
+        modeLabel: MODE_LABEL[state.mode],
+        modeFormula: MODE_FORMULA[state.mode],
+        moles: state.moles,
+        R: state.R,
+        volume_L: state.volume_L,
+        pressure_kPa: state.pressure_kPa,
+        temperature_K: state.temperature_K,
+        initial: state.initial,
+        final: state.final,
+        pressureFromEngineCurve: state.pressureFromEngineCurve,
+        curvePoints: chart?.points.length ?? 0,
+        xIsTemperature: state.mode === 2
+    };
+}
+
+/**
+ * 理想气体状态方程专属板书。
+ *
+ * 画面结构:
+ *   - 左: 过程曲线 (引擎 x_t) + 初态/终态标记 + 当前状态动点;
+ *   - 右: 气缸 + 活塞示意 (体积随过程变化) + 实时读数 + 状态条;
+ *   - 底部: 过程结论信息条。
+ *
+ * 等容过程特别处理: 引擎过程曲线的 x 是**温度 T (K)** 而不是体积 (p-T 图),
+ * 横轴标签与初末态坐标必须跟着换, 否则会出现「横轴标 V/L 却画的是 p-T 直线」。
+ */
 export function drawGasLawScene(o: ThermalSceneOptions): void {
     const { ctx, width: w, height: h, isDark, params, simulationResult, currentTime } = o;
     clearScene(ctx, w, h, isDark);
-    drawTitle(ctx, '理想气体状态方程  pV = nRT', w, isDark, { size: 18, y: 28 });
+    drawTitle(ctx, '理想气体状态方程 pV = nRT', w, isDark, { size: 18, y: 24 });
 
-    const n = params['n'] ?? 1;
-    const modeNum = params['modeG'] ?? 0;
-    const mode: 'isothermal' | 'isobaric' | 'isochoric' =
-        modeNum === 1 ? 'isobaric' : modeNum === 2 ? 'isochoric' : 'isothermal';
-    const p0 = params['p0'] ?? 101.3; // kPa
-    const V0 = params['V0'] ?? 22.4; // L
-    const T0 = params['T0'] ?? 273.15; // K
-    const mvGas = simulationResult?.diagnostics?.maxValues as
-        { R?: number; finalPressurePa?: number; finalVolumeM3?: number; finalTemperatureK?: number } | undefined;
-    /**
-     * 气体常数 R: 优先读引擎 maxValues.R (真源 PHYSICS_CONSTANTS.R, 教材口径 8.314);
-     * 旧渲染独用的 GAS_CONSTANT_R=8.314 为另一处独立定义、与引擎同值无差,
-     * 本批结构上归一到引擎单一来源; 无引擎结果回退旧定义。
-     */
-    const engR = mvGas?.R;
-    const R = typeof engR === 'number' && Number.isFinite(engR) && engR > 0 ? engR : GAS_CONSTANT_R;
+    const read = gasLawReadouts(params, simulationResult, currentTime);
+    const color = MODE_COLOR[read.mode];
 
-    const modeLabel = mode === 'isothermal' ? '等温过程' : mode === 'isobaric' ? '等压过程' : '等容过程';
-    const modeColor = mode === 'isothermal' ? '#3b82f6' : mode === 'isobaric' ? '#f59e0b' : '#ef4444';
+    // ===== 左: 过程曲线 (引擎 x_t) =====
+    const chart = simulationResult ? getChart(simulationResult, 'gas-law', 'x_t') : undefined;
+    const pts = chart?.points ?? [];
 
-    // 过程变量取值范围
-    const Vmin = V0 * 0.4;
-    const Vmax = V0 * 1.6;
-    const Tmin = T0 * 0.5;
-    const Tmax = T0 * 1.5;
+    const plotX = 58;
+    const plotY = 56;
+    const plotW = w * 0.44;
+    const plotH = h - plotY - 128;
 
-    // 动画相位 0..1 (演示 sweep, 非引擎时间 — 相位本身为示意, 相位处的物理量取自引擎)
-    const phase = Math.sin(currentTime * 1.2) * 0.5 + 0.5;
+    // 横轴取值: 等容 → 温度 (K), 其余 → 体积 (L)
+    const curX = read.xIsTemperature ? read.temperature_K : read.volume_L;
+    const initX = read.xIsTemperature ? read.initial.temperature_K : read.initial.volume_L;
+    const finalX = read.xIsTemperature ? read.final.temperature_K : read.final.volume_L;
 
-    /**
-     * 过程曲线消费引擎 (#65 · B 局部): 引擎 gas-law 模型 x_t 即过程曲线
-     * (等温/等压: x=V(L)/y=p(kPa), 与本画布坐标同单位; 等容: x=T(K)/y=p(kPa))。
-     * 无引擎结果回退旧自算采样。
-     */
-    const engCharts = simulationResult ? chartsOf(simulationResult, 'gas-law') : undefined;
-    const engCurve = engCharts?.x_t;
-    const hasEngCurve = !!engCurve && engCurve.points.length >= 2;
-
-    // 当前状态点 (V_m, P_m, T_m): V/T 沿演示 sweep 窗取值, P 由引擎曲线插值;
-    // 等温 T 取输入回显 (读 param 即等价, D24), 等压/等容 T 由状态方程/相位给出。
-    let Vm: number, Pm: number, Tm: number;
-    if (hasEngCurve && engCurve) {
-        if (mode === 'isothermal') {
-            Vm = Vmin + phase * (Vmax - Vmin);
-            const pEng = interpSeries(engCurve, Vm);
-            Pm = Number.isFinite(pEng) ? pEng : (p0 * V0) / Vm;
-            Tm = T0;
-        } else if (mode === 'isobaric') {
-            Vm = Vmin + phase * (Vmax - Vmin);
-            const pEng = interpSeries(engCurve, Vm);
-            Pm = Number.isFinite(pEng) ? pEng : p0;
-            Tm = (Pm * Vm) / (n * R);
-        } else {
-            Tm = Tmin + phase * (Tmax - Tmin);
-            Vm = V0;
-            const pEng = interpSeries(engCurve, Tm);
-            Pm = Number.isFinite(pEng) ? pEng : (p0 * Tm) / T0;
-        }
-    } else if (mode === 'isothermal') {
-        Vm = Vmin + phase * (Vmax - Vmin);
-        Pm = (p0 * V0) / Vm;
-        Tm = (Pm * Vm) / (n * R);
-    } else if (mode === 'isobaric') {
-        Vm = Vmin + phase * (Vmax - Vmin);
-        Pm = p0;
-        Tm = (Pm * Vm) / (n * R);
-    } else {
-        Tm = Tmin + phase * (Tmax - Tmin);
-        Vm = V0;
-        Pm = (p0 * Tm) / T0;
-    }
-
-    // 采样过程曲线
-    const curve: Array<{ V: number; P: number }> = [];
-    if (hasEngCurve && engCurve) {
-        if (mode === 'isochoric') {
-            // 引擎等容曲线 x=T(K): 取画布 T 窗内采样点, V 恒 V0 (P-V 图上为垂直线)
-            for (const pt of engCurve.points) {
-                if (pt.x >= Tmin && pt.x <= Tmax) curve.push({ V: V0, P: pt.y });
-            }
-        } else {
-            // 等温/等压: 引擎点 x=V(L)/y=p(kPa) 与画布同单位, 整条采用
-            for (const pt of engCurve.points) curve.push({ V: pt.x, P: pt.y });
-        }
-    }
-    if (curve.length < 2) {
-        curve.length = 0;
-        const N = 64;
-        for (let i = 0; i <= N; i++) {
-            const t = i / N;
-            if (mode === 'isothermal') {
-                const V = Vmin + t * (Vmax - Vmin);
-                curve.push({ V, P: (p0 * V0) / V });
-            } else if (mode === 'isobaric') {
-                const V = Vmin + t * (Vmax - Vmin);
-                curve.push({ V, P: p0 });
-            } else {
-                const T = Tmin + t * (Tmax - Tmin);
-                curve.push({ V: V0, P: (p0 * T) / T0 });
-            }
-        }
-    }
-
-    // 轴范围 (含当前点), 带边距
+    let xLo = Infinity;
+    let xHi = -Infinity;
     let pLo = Infinity;
     let pHi = -Infinity;
-    let vLo = Infinity;
-    let vHi = -Infinity;
-    for (const pt of curve) {
-        if (pt.P < pLo) pLo = pt.P;
-        if (pt.P > pHi) pHi = pt.P;
-        if (pt.V < vLo) vLo = pt.V;
-        if (pt.V > vHi) vHi = pt.V;
+    for (const pt of pts) {
+        if (pt.x < xLo) xLo = pt.x;
+        if (pt.x > xHi) xHi = pt.x;
+        if (pt.y < pLo) pLo = pt.y;
+        if (pt.y > pHi) pHi = pt.y;
     }
-    pLo = Math.min(pLo, Pm);
-    pHi = Math.max(pHi, Pm);
-    vLo = Math.min(vLo, Vm);
-    vHi = Math.max(vHi, Vm);
+    xLo = Math.min(xLo, initX, curX);
+    xHi = Math.max(xHi, finalX, curX);
+    pLo = Math.min(pLo, read.pressure_kPa);
+    pHi = Math.max(pHi, read.pressure_kPa);
+    if (!Number.isFinite(xLo) || !Number.isFinite(pLo)) {
+        xLo = 0;
+        xHi = 1;
+        pLo = 0;
+        pHi = 1;
+    }
+    if (xHi - xLo < 1e-6) {
+        xLo -= 1;
+        xHi += 1;
+    }
     if (pHi - pLo < 1e-6) {
         pLo -= 1;
         pHi += 1;
     }
-    if (vHi - vLo < 1e-6) {
-        vLo -= 1;
-        vHi += 1;
-    }
-    const pMargin = (pHi - pLo) * 0.15;
-    const vMargin = (vHi - vLo) * 0.15;
-    pLo -= pMargin;
-    pHi += pMargin;
-    vLo -= vMargin;
-    vHi += vMargin;
+    const xPad = (xHi - xLo) * 0.12;
+    const pPad = (pHi - pLo) * 0.14;
+    xLo -= xPad;
+    xHi += xPad;
+    pLo = Math.max(0, pLo - pPad);
+    pHi += pPad;
 
-    // ===== 左侧 P–V 图 =====
-    const plotX = 64;
-    const plotY = 64;
-    const plotW = w * 0.5 - 30;
-    const plotH = h - 150;
-    const VX = (V: number) => plotX + ((V - vLo) / (vHi - vLo)) * plotW;
-    const PY = (P: number) => plotY + plotH - ((P - pLo) / (pHi - pLo)) * plotH;
+    const VX = (x: number) => plotX + ((x - xLo) / (xHi - xLo)) * plotW;
+    const PY = (p: number) => plotY + plotH - ((p - pLo) / (pHi - pLo)) * plotH;
 
     // 坐标轴
     ctx.strokeStyle = isDark ? '#475569' : '#94a3b8';
@@ -176,60 +172,112 @@ export function drawGasLawScene(o: ThermalSceneOptions): void {
     ctx.lineTo(plotX + plotW, plotY + plotH);
     ctx.stroke();
 
-    ctx.fillStyle = isDark ? '#94a3b8' : '#64748b';
-    ctx.font = '12px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('V / L', plotX + plotW / 2, plotY + plotH + 26);
-    ctx.save();
-    ctx.translate(plotX - 38, plotY + plotH / 2);
-    ctx.rotate(-Math.PI / 2);
-    ctx.fillText('p / kPa', 0, 0);
-    ctx.restore();
-    ctx.textAlign = 'left';
+    // 网格 + 纵轴刻度
+    ctx.strokeStyle = isDark ? 'rgba(148,163,184,0.15)' : 'rgba(100,116,139,0.12)';
+    ctx.lineWidth = 1;
+    ctx.fillStyle = mutedColor(isDark);
+    ctx.font = '10px sans-serif';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    for (let i = 0; i <= 4; i++) {
+        const pv = pLo + ((pHi - pLo) / 4) * i;
+        const gy = PY(pv);
+        ctx.beginPath();
+        ctx.moveTo(plotX, gy);
+        ctx.lineTo(plotX + plotW, gy);
+        ctx.stroke();
+        ctx.fillText(pv.toFixed(0), plotX - 6, gy);
+    }
 
-    // 曲线
-    ctx.strokeStyle = modeColor;
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    curve.forEach((pt, i) => {
-        const x = VX(pt.V);
-        const y = PY(pt.P);
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-    });
-    ctx.stroke();
+    // 过程曲线 (引擎)
+    if (pts.length >= 2) {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        pts.forEach((pt, i) => {
+            const px = VX(pt.x);
+            const py = PY(pt.y);
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+        });
+        ctx.stroke();
+    }
 
-    // 当前状态动点
-    const mx = VX(Vm);
-    const my = PY(Pm);
-    ctx.fillStyle = modeColor;
+    // 初态 / 终态标记 (引擎 maxValues)
+    const marker = (mx: number, my: number, label: string, dotColor: string): void => {
+        ctx.fillStyle = dotColor;
+        ctx.beginPath();
+        ctx.arc(VX(mx), PY(my), 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = isDark ? '#0f172a' : '#ffffff';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.fillStyle = dotColor;
+        ctx.font = '10px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(label, VX(mx), PY(my) - 7);
+    };
+    marker(initX, read.initial.pressure_kPa, '初态', '#64748b');
+    marker(finalX, read.final.pressure_kPa, '终态', color);
+
+    // 当前状态动点 (演示过程)
+    ctx.fillStyle = color;
     ctx.globalAlpha = 0.25;
     ctx.beginPath();
-    ctx.arc(mx, my, 12, 0, Math.PI * 2);
+    ctx.arc(VX(curX), PY(read.pressure_kPa), 12, 0, Math.PI * 2);
     ctx.fill();
     ctx.globalAlpha = 1;
     ctx.beginPath();
-    ctx.arc(mx, my, 5, 0, Math.PI * 2);
+    ctx.arc(VX(curX), PY(read.pressure_kPa), 5, 0, Math.PI * 2);
     ctx.fill();
 
-    // ===== 右侧气缸 + 活塞 =====
-    const cylX = w * 0.64;
-    const cylW = 130;
-    const cylTop = 70;
-    const cylBot = h - 96;
-    const cylH = cylBot - cylTop;
+    // 轴标题
+    ctx.fillStyle = mutedColor(isDark);
+    ctx.font = '11px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText(read.xIsTemperature ? '温度 T (K)' : '体积 V (L)', plotX + plotW / 2, plotY + plotH + 18);
+    ctx.save();
+    ctx.translate(plotX - 40, plotY + plotH / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText('压强 p (kPa)', 0, 0);
+    ctx.restore();
 
-    // 气体温度归一 (用于颜色)
-    const tNorm = Math.max(0, Math.min(1, (Tm - Tmin) / (Tmax - Tmin)));
+    // 过程说明 (等容模式特别提示横轴换了)
+    ctx.fillStyle = textColor(isDark);
+    ctx.font = 'bold 11px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText(`${read.modeLabel} · ${read.modeFormula}`, plotX, plotY + plotH + 30);
+    ctx.fillStyle = mutedColor(isDark);
+    ctx.font = '10px sans-serif';
+    ctx.fillText(
+        read.xIsTemperature ? '等容过程用 p–T 图 (V 恒定), 横轴为温度' : '等温/等压过程用 p–V 图, 横轴为体积',
+        plotX,
+        plotY + plotH + 46
+    );
+
+    // ===== 右: 气缸 + 活塞 + 读数 =====
+    const colX = w * 0.55;
+    const cylX = colX;
+    const cylW = Math.min(130, w * 0.17);
+    const cylTop = 96;
+    const cylBot = h - 150;
+    const cylH = Math.max(120, cylBot - cylTop);
+
+    // 体积上限 → 活塞最高位置 (初态体积映射到 0.82 高度, 终态按比例)
+    const vRef = Math.max(read.initial.volume_L, read.final.volume_L);
+    const gasRatio = vRef > 0 ? read.volume_L / vRef : 0;
+    const gasH = cylH * (0.12 + 0.7 * gasRatio);
+    const pistonY = cylBot - gasH;
+
+    // 气体颜色随温度
+    const tSpan = Math.max(1e-6, read.final.temperature_K - read.initial.temperature_K);
+    const tNorm = Math.max(0, Math.min(1, (read.temperature_K - read.initial.temperature_K) / tSpan));
     const gasR = Math.round(59 + tNorm * 180);
     const gasG = Math.round(130 - tNorm * 70);
     const gasB = Math.round(246 - tNorm * 180);
-    const gasColor = `rgb(${gasR},${gasG},${gasB})`;
-
-    // 气体高度 ∝ Vm
-    const vNorm = Math.max(0, Math.min(1, (Vm - Vmin) / (Vmax - Vmin)));
-    const gasH = cylH * (0.18 + 0.74 * vNorm);
-    const pistonY = cylBot - gasH;
 
     // 气缸壁
     ctx.strokeStyle = isDark ? '#64748b' : '#475569';
@@ -242,8 +290,8 @@ export function drawGasLawScene(o: ThermalSceneOptions): void {
     ctx.stroke();
 
     // 气体
-    ctx.fillStyle = gasColor;
-    ctx.globalAlpha = 0.55;
+    ctx.fillStyle = `rgb(${gasR},${gasG},${gasB})`;
+    ctx.globalAlpha = 0.6;
     ctx.fillRect(cylX + 2, pistonY, cylW - 4, gasH - 2);
     ctx.globalAlpha = 1;
 
@@ -255,8 +303,8 @@ export function drawGasLawScene(o: ThermalSceneOptions): void {
     ctx.strokeRect(cylX - 6, pistonY - 14, cylW + 12, 14);
 
     // 压强箭头 (向下压活塞), 长度 ∝ p
-    const pNorm = Math.max(0, Math.min(1, (Pm - pLo) / (pHi - pLo)));
-    const arrowLen = 12 + pNorm * 40;
+    const pNorm = Math.max(0, Math.min(1, (read.pressure_kPa - pLo) / (pHi - pLo)));
+    const arrowLen = 14 + pNorm * 44;
     ctx.strokeStyle = '#ef4444';
     ctx.fillStyle = '#ef4444';
     ctx.lineWidth = 2;
@@ -276,45 +324,65 @@ export function drawGasLawScene(o: ThermalSceneOptions): void {
         ctx.fill();
     }
 
-    // 右侧状态文本
-    const txtX = cylX + cylW + 26;
-    ctx.fillStyle = isDark ? '#e2e8f0' : '#1e293b';
-    ctx.font = 'bold 13px monospace';
+    // 读数文本
+    const tx = cylX + cylW + 18;
     ctx.textAlign = 'left';
-    ctx.fillText(`n    = ${n.toFixed(2)} mol`, txtX, cylTop + 10);
-    ctx.fillStyle = modeColor;
-    ctx.fillText(modeLabel, txtX, cylTop + 32);
-    ctx.fillStyle = isDark ? '#e2e8f0' : '#1e293b';
-    ctx.fillText(`p    = ${Pm.toFixed(1)} kPa`, txtX, cylTop + 54);
-    ctx.fillText(`V    = ${Vm.toFixed(1)} L`, txtX, cylTop + 74);
-    ctx.fillText(`T    = ${Tm.toFixed(0)} K`, txtX, cylTop + 94);
+    ctx.textBaseline = 'top';
     ctx.font = '11px monospace';
-    ctx.fillStyle = isDark ? '#94a3b8' : '#64748b';
-    const lhs = Pm * Vm;
-    const rhs = n * R * Tm;
-    ctx.fillText(`pV   = ${lhs.toFixed(0)} J`, txtX, cylTop + 120);
-    ctx.fillText(`nRT  = ${rhs.toFixed(0)} J`, txtX, cylTop + 138);
+    ctx.fillStyle = textColor(isDark);
+    ctx.fillText(`n   = ${read.moles.toFixed(2)} mol`, tx, cylTop + 4);
+    ctx.fillStyle = color;
+    ctx.font = 'bold 11px sans-serif';
+    ctx.fillText(read.modeLabel, tx, cylTop + 24);
+    ctx.font = '11px monospace';
+    ctx.fillStyle = textColor(isDark);
+    ctx.fillText(`p   = ${read.pressure_kPa.toFixed(1)} kPa`, tx, cylTop + 44);
+    ctx.fillText(`V   = ${read.volume_L.toFixed(1)} L`, tx, cylTop + 62);
+    ctx.fillText(`T   = ${read.temperature_K.toFixed(0)} K`, tx, cylTop + 80);
+    ctx.font = '10px monospace';
+    ctx.fillStyle = mutedColor(isDark);
+    ctx.fillText(`pV  = ${(read.pressure_kPa * read.volume_L).toFixed(0)} J`, tx, cylTop + 104);
+    ctx.fillText(`nRT = ${(read.moles * read.R * read.temperature_K).toFixed(0)} J`, tx, cylTop + 120);
+    ctx.fillText(`R   = ${read.R.toFixed(3)} J/(mol·K)`, tx, cylTop + 136);
 
-    // HUD (左上): 初始条件
-    drawHud(
-        ctx,
-        isDark,
-        [
-            { label: 'n', value: `${n.toFixed(2)} mol` },
-            { label: 'mode', value: `${modeNum}` },
-            { label: 'p₀', value: `${p0.toFixed(1)} kPa` },
-            { label: 'V₀', value: `${V0.toFixed(1)} L` },
-            { label: 'T₀', value: `${T0.toFixed(0)} K` }
-        ],
-        { boxW: 200, lineH: 16 }
+    // 初态 → 终态 提示
+    ctx.fillStyle = mutedColor(isDark);
+    ctx.font = '10px sans-serif';
+    ctx.fillText(
+        `初态 V=${read.initial.volume_L.toFixed(1)}L p=${read.initial.pressure_kPa.toFixed(1)}kPa T=${read.initial.temperature_K.toFixed(0)}K`,
+        cylX,
+        cylBot + 12
+    );
+    ctx.fillText(
+        `终态 V=${read.final.volume_L.toFixed(1)}L p=${read.final.pressure_kPa.toFixed(1)}kPa T=${read.final.temperature_K.toFixed(0)}K`,
+        cylX,
+        cylBot + 27
     );
 
-    // 信息条
+    // 状态条
+    const barY = cylBot + 46;
+    ctx.fillStyle = 'rgba(59,130,246,0.16)';
+    ctx.fillRect(cylX, barY, w - cylX - 14, 20);
+    ctx.fillStyle = color;
+    ctx.font = 'bold 11px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(
+        read.mode === 0
+            ? '等温压缩: V ↓ ⇒ p ↑ (pV = const)'
+            : read.mode === 1
+              ? '等压冷却: T ↓ ⇒ V ↓ (V/T = const)'
+              : '等容冷却: T ↓ ⇒ p ↓ (p/T = const)',
+        cylX + 6,
+        barY + 10
+    );
+
+    // ===== 结论信息条 =====
     const info =
-        mode === 'isothermal'
-            ? '等温: pV = 常数, 体积增大则压强减小'
-            : mode === 'isobaric'
-              ? '等压: V/T = 常数, 温度升高则体积膨胀 (盖-吕萨克定律)'
-              : '等容: p/T = 常数, 温度升高则压强增大 (查理定律)';
-    drawInfoBar(ctx, w, h, info, isDark, { height: 22, yOffset: 34 });
+        read.mode === 0
+            ? `等温过程: pV = 常数 —— 体积减半 (${read.initial.volume_L.toFixed(1)}L → ${read.final.volume_L.toFixed(1)}L), 压强翻倍 (${read.initial.pressure_kPa.toFixed(1)} → ${read.final.pressure_kPa.toFixed(1)} kPa), 温度不变`
+            : read.mode === 1
+              ? `等压过程: V/T = 常数 —— 压强不变 (${read.initial.pressure_kPa.toFixed(1)} kPa), 体积减半 ⇒ 温度减半 (${read.initial.temperature_K.toFixed(0)} → ${read.final.temperature_K.toFixed(0)} K)`
+              : `等容过程: p/T = 常数 —— 体积不变 (${read.initial.volume_L.toFixed(1)}L), 温度减半 ⇒ 压强减半 (${read.initial.pressure_kPa.toFixed(1)} → ${read.final.pressure_kPa.toFixed(1)} kPa)`;
+    drawInfoBar(ctx, w, h, info, isDark, { height: 24, yOffset: 30 });
 }

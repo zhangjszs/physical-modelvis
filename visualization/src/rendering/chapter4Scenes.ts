@@ -145,15 +145,28 @@ export function drawNewtonSecondLawScene(opts: MechanicsSceneOptions): void {
     let x: number;
     let aVal: number;
     let fNet: number;
+    /**
+     * 像素/米比例由引擎总位移决定 (#159 逐节审计·问题二)
+     *
+     * 旧实现固定 28 px/m: 默认参数下总位移 62.5 m → 1750 px 远超画布,
+     * 小车在 t≈2.9 s 后被 `clamp` 钉在右缘「冻结」约 36% 的时长。
+     * 现在按引擎 `maxValues.displacement` 自适应, 全程行程完整可见。
+     */
+    const maxDisp = simulationResult?.diagnostics?.maxValues?.displacement ?? 0;
+    const pixelsPerMeter = Math.min(28, (width - 220) / Math.max(0.5, maxDisp));
     if (frame) {
-        x = clamp(width * 0.18 + frame.position.x * 28, 80, width - 100);
+        x = clamp(width * 0.18 + frame.position.x * pixelsPerMeter, 80, width - 100);
         aVal = interpSeries(simulationResult?.charts.a_t, currentTime);
         fNet = interpSeries(simulationResult?.charts.F_t, currentTime);
     } else {
         const netF = mu > 0 && Math.abs(force) <= fK ? 0 : force - Math.sign(force || 1) * fK;
         aVal = netF / Math.max(0.001, mass);
         fNet = netF;
-        x = clamp(width * 0.18 + (v0 * currentTime + 0.5 * aVal * currentTime * currentTime) * 28, 80, width - 100);
+        x = clamp(
+            width * 0.18 + (v0 * currentTime + 0.5 * aVal * currentTime * currentTime) * pixelsPerMeter,
+            80,
+            width - 100
+        );
     }
 
     drawTitle(ctx, '牛顿第二定律: F = ma', width, isDark);

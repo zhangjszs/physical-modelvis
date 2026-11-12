@@ -1,10 +1,11 @@
 import type { PhysicsProblem } from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
+import { PHYSICS_CONSTANTS } from '../units/constants.js';
 import { PhysicsModelBase } from './base.js';
 
-/** 万有引力常量标准值 */
-const G_STANDARD = 6.674e-11;
+/** 万有引力常量标准值 — 引用 units/constants.js 单一真源 (#109) */
+const G_STANDARD = PHYSICS_CONSTANTS.G.value;
 
 /**
  * 卡文迪什扭秤 — 必修二 第三章 §3 实验 (测量万有引力常量 G)

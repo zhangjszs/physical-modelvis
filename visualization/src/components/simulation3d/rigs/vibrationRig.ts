@@ -166,12 +166,12 @@ export const vibrationRig: SceneRig = {
             resAmp: 0.2
         };
 
-        this.updateEquipment(handles as unknown as Record<string, unknown>, params);
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        this.updateEquipment(handles, params);
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        const h = handles as unknown as VibrationHandles;
+        const h = handles as VibrationHandles;
         const mass = num(params['mass'], 1);
         const k = num(params['k'], 100);
         const beta = num(params['beta'], 0.3);
@@ -223,7 +223,7 @@ export const vibrationRig: SceneRig = {
     },
 
     onAnimate(handles, ctx) {
-        const h = handles as unknown as VibrationHandles;
+        const h = handles as VibrationHandles;
         if (!h.oscillatorMass) return;
 
         const { time } = ctx;

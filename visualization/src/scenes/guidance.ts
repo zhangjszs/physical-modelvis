@@ -75,24 +75,24 @@ const CURATED: Record<string, Omit<SceneGuidance, 'sceneId'>> = {
         ]
     },
     'uniform-accelerated': {
-        goal: '研究竖直方向的匀变速直线运动规律',
+        goal: '研究竖直运动（自由落体/竖直上抛/下抛）的匀变速直线运动规律',
         steps: [
             {
-                title: '认识场景',
-                action: '观察竖直上抛/下抛物体的初始状态',
-                observe: '物体只受重力，加速度恒为 g',
-                paramFocus: ['v0y', 'g']
+                title: '认识场景与自由下落',
+                action: '在默认初始高度 h=20 m、v₀y=0 下播放，或调节 height 与 v₀y 观察自由落体/下抛',
+                observe: 'v₀y=0 时小球从释放高度 h 自由加速下落；物体只受重力，加速度恒为 g 竖直向下',
+                paramFocus: ['height', 'v0y', 'g']
             },
             {
-                title: '竖直上抛',
-                action: '设 v₀y>0 播放，观察上升与回落过程',
-                observe: '上升减速、下落加速；最高点速度为零',
-                paramFocus: ['v0y']
+                title: '竖直上抛与高度关系',
+                action: '设 v₀y>0 播放，观察从释放高度 h 上升至最高点 H_max = h + v₀y²/(2g) 再回落落地',
+                observe: '上升减速、最高点速度为零；从释放点到最高点与回到释放高度 h 具有对称性',
+                paramFocus: ['height', 'v0y']
             },
             {
                 title: '图表验证',
-                action: '查看 v-t 图',
-                observe: 'v-t 为一条直线（斜率为 -g），穿过 t 轴即最高点'
+                action: '查看 v-t 与位移-时间图',
+                observe: 'v-t 图为斜率恒定的直线；上抛时速度减为零对应最高点，随后反向加速下落'
             }
         ]
     },
@@ -223,19 +223,19 @@ const CURATED: Record<string, Omit<SceneGuidance, 'sceneId'>> = {
                 title: '认识场景',
                 action: '同时调节电场与磁场参数',
                 observe: '两场力叠加，可作直线、圆周或螺旋运动',
-                paramFocus: ['Ex', 'Bz']
+                paramFocus: ['Ey', 'Bz']
             },
             {
                 title: '速度选择器',
                 action: '调节 v₀ 使 qE = qvB，播放',
                 observe: '粒子做匀速直线运动（仅当 v₀ = E/B）',
-                paramFocus: ['Ex', 'Bz', 'v0x']
+                paramFocus: ['Ey', 'Bz', 'v0x']
             },
             {
                 title: '磁偏转',
-                action: '撤去电场（E=0），播放',
+                action: '撤去电场（Ey=0），播放',
                 observe: '粒子做匀速圆周运动，轨迹为完整圆弧',
-                paramFocus: ['Ex', 'Bz']
+                paramFocus: ['Ey', 'Bz']
             }
         ]
     },

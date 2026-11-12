@@ -1,0 +1,818 @@
+[
+  {
+    "sceneId": "projectile",
+    "name": "抛体运动 (平抛+斜抛)",
+    "shots": [
+      {
+        "file": "projectile-3d-param-before.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      }
+    ],
+    "issues": [],
+    "paramChange": {
+      "min": 1,
+      "max": 100,
+      "cur": 20,
+      "target": 30.7,
+      "label": "初速度 v₀"
+    },
+    "stageText": "3D透视\n立面(X-Y)\n俯视\n纵深\n➕\n➖\n🎯\n📏 移动测量尺\n⏱️ 光电门测速仪",
+    "errors": []
+  },
+  {
+    "sceneId": "free-fall",
+    "name": "自由落体",
+    "shots": [
+      {
+        "file": "free-fall-3d-param-before.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      }
+    ],
+    "issues": [],
+    "paramChange": {
+      "min": 1,
+      "max": 200,
+      "cur": 20,
+      "target": 60.699999999999996,
+      "label": "初始高度 h"
+    },
+    "stageText": "3D透视\n立面(X-Y)\n俯视\n纵深\n➕\n➖\n🎯\n📏 移动测量尺\n⏱️ 光电门测速仪",
+    "errors": []
+  },
+  {
+    "sceneId": "uniform-accelerated",
+    "name": "竖直运动（自由落体/上抛）",
+    "shots": [
+      {
+        "file": "uniform-accelerated-3d-param-before.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      }
+    ],
+    "issues": [],
+    "paramChange": {
+      "min": 1,
+      "max": 200,
+      "cur": 20,
+      "target": 60.699999999999996,
+      "label": "初始高度 h"
+    },
+    "stageText": "3D透视\n立面(X-Y)\n俯视\n纵深\n➕\n➖\n🎯\n📏 移动测量尺\n⏱️ 光电门测速仪",
+    "errors": []
+  },
+  {
+    "sceneId": "inclined-plane",
+    "name": "斜面运动",
+    "shots": [
+      {
+        "file": "inclined-plane-3d-param-before.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      }
+    ],
+    "issues": [],
+    "paramChange": {
+      "min": 0.1,
+      "max": 100,
+      "cur": 1,
+      "target": 30.07,
+      "label": "质量 m"
+    },
+    "stageText": "3D透视\n立面(X-Y)\n俯视\n纵深\n➕\n➖\n🎯\n📏 移动测量尺\n⏱️ 光电门测速仪",
+    "errors": []
+  },
+  {
+    "sceneId": "collision",
+    "name": "碰撞",
+    "shots": [
+      {
+        "file": "collision-3d-param-before.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      }
+    ],
+    "issues": [],
+    "paramChange": {
+      "min": 0.1,
+      "max": 100,
+      "cur": 1,
+      "target": 30.07,
+      "label": "物体1质量 m₁"
+    },
+    "stageText": "3D透视\n立面(X-Y)\n俯视\n纵深\n➕\n➖\n🎯\n📏 移动测量尺\n⏱️ 光电门测速仪",
+    "errors": []
+  },
+  {
+    "sceneId": "spring",
+    "name": "弹簧振子",
+    "shots": [
+      {
+        "file": "spring-3d-param-before.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      }
+    ],
+    "issues": [],
+    "paramChange": {
+      "min": 0.1,
+      "max": 100,
+      "cur": 1,
+      "target": 30.07,
+      "label": "质量 m"
+    },
+    "stageText": "3D透视\n立面(X-Y)\n俯视\n纵深\n➕\n➖\n🎯\n📏 移动测量尺\n⏱️ 光电门测速仪",
+    "errors": []
+  },
+  {
+    "sceneId": "electric-field",
+    "name": "匀强电场",
+    "shots": [
+      {
+        "file": "electric-field-3d-param-before.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      }
+    ],
+    "issues": [],
+    "paramChange": {
+      "min": -100,
+      "max": 100,
+      "cur": 5,
+      "target": -40,
+      "label": "水平初速度 vx₀"
+    },
+    "stageText": "3D透视\n立面(X-Y)\n俯视\n纵深\n➕\n➖\n🎯\n📏 移动测量尺\n⏱️ 光电门测速仪",
+    "errors": []
+  },
+  {
+    "sceneId": "magnetic-field",
+    "name": "匀强磁场",
+    "shots": [
+      {
+        "file": "magnetic-field-3d-param-before.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      }
+    ],
+    "issues": [],
+    "paramChange": {
+      "min": 0,
+      "max": 100000,
+      "cur": 1000,
+      "target": 30000,
+      "label": "水平初速度 vx₀"
+    },
+    "stageText": "3D透视\n立面(X-Y)\n俯视\n纵深\n➕\n➖\n🎯\n📏 移动测量尺\n⏱️ 光电门测速仪",
+    "errors": []
+  },
+  {
+    "sceneId": "em-combined",
+    "name": "电磁复合场",
+    "shots": [
+      {
+        "file": "em-combined-3d-param-before.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      }
+    ],
+    "issues": [],
+    "paramChange": {
+      "min": -10,
+      "max": 10,
+      "cur": 1.6,
+      "target": -4,
+      "label": "电荷量 q"
+    },
+    "stageText": "3D透视\n立面(X-Y)\n俯视\n纵深\n➕\n➖\n🎯\n📏 移动测量尺\n⏱️ 光电门测速仪",
+    "errors": []
+  },
+  {
+    "sceneId": "simple-pendulum",
+    "name": "单摆 (简谐运动)",
+    "shots": [
+      {
+        "file": "simple-pendulum-3d-param-before.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      }
+    ],
+    "issues": [],
+    "paramChange": {
+      "min": 0.2,
+      "max": 5,
+      "cur": 1,
+      "target": 1.64,
+      "label": "摆长 L"
+    },
+    "stageText": "3D透视\n立面(X-Y)\n俯视\n纵深\n➕\n➖\n🎯\n📏 移动测量尺\n⏱️ 光电门测速仪",
+    "errors": []
+  },
+  {
+    "sceneId": "mechanical-wave",
+    "name": "机械波 (横波/纵波/干涉)",
+    "shots": [
+      {
+        "file": "mechanical-wave-3d-param-before.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      }
+    ],
+    "issues": [],
+    "paramChange": {
+      "min": 0,
+      "max": 2,
+      "cur": 0,
+      "target": 0.6,
+      "label": "模式 (0=横波 1=纵波 2=干涉)"
+    },
+    "stageText": "3D透视\n立面(X-Y)\n俯视\n纵深\n➕\n➖\n🎯\n📏 移动测量尺\n⏱️ 光电门测速仪",
+    "errors": []
+  },
+  {
+    "sceneId": "lc-oscillator",
+    "name": "LC 电磁振荡",
+    "shots": [
+      {
+        "file": "lc-oscillator-3d-param-before.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      }
+    ],
+    "issues": [],
+    "paramChange": {
+      "min": 1,
+      "max": 1000000,
+      "cur": 100,
+      "target": 300000.7,
+      "label": "电容 C"
+    },
+    "stageText": "3D透视\n立面(X-Y)\n俯视\n纵深\n➕\n➖\n🎯\n📏 移动测量尺\n⏱️ 光电门测速仪",
+    "errors": []
+  },
+  {
+    "sceneId": "circular-motion",
+    "name": "匀速圆周运动 (向心力)",
+    "shots": [
+      {
+        "file": "circular-motion-3d-param-before.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      }
+    ],
+    "issues": [],
+    "paramChange": {
+      "min": 0.01,
+      "max": 5,
+      "cur": 0.2,
+      "target": 1.5070000000000001,
+      "label": "小球质量 m"
+    },
+    "stageText": "3D透视\n立面(X-Y)\n俯视\n纵深\n➕\n➖\n🎯\n📏 移动测量尺\n⏱️ 光电门测速仪",
+    "errors": []
+  },
+  {
+    "sceneId": "orbital",
+    "name": "万有引力与航天 (卫星轨道)",
+    "shots": [
+      {
+        "file": "orbital-3d-param-before.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      }
+    ],
+    "issues": [],
+    "paramChange": {
+      "min": 200,
+      "max": 36000,
+      "cur": 400,
+      "target": 10940,
+      "label": "轨道高度 h"
+    },
+    "stageText": "3D透视\n立面(X-Y)\n俯视\n纵深\n➕\n➖\n🎯\n📏 移动测量尺\n⏱️ 光电门测速仪",
+    "errors": []
+  },
+  {
+    "sceneId": "photoelectric",
+    "name": "光电效应 (爱因斯坦方程)",
+    "shots": [
+      {
+        "file": "photoelectric-3d-param-before.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      }
+    ],
+    "issues": [],
+    "paramChange": {
+      "min": 1,
+      "max": 6,
+      "cur": 2.3,
+      "target": 4.5,
+      "label": "逸出功 W₀"
+    },
+    "stageText": "3D透视\n立面(X-Y)\n俯视\n纵深\n➕\n➖\n🎯\n📏 移动测量尺\n⏱️ 光电门测速仪",
+    "errors": []
+  },
+  {
+    "sceneId": "air-track",
+    "name": "气垫导轨测速度",
+    "shots": [
+      {
+        "file": "air-track-3d-param-before.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      }
+    ],
+    "issues": [],
+    "paramChange": {
+      "min": 0.05,
+      "max": 2,
+      "cur": 0.2,
+      "target": 0.635,
+      "label": "滑块质量 m"
+    },
+    "stageText": "3D透视\n立面(X-Y)\n俯视\n纵深\n➕\n➖\n🎯\n📏 移动测量尺\n⏱️ 光电门测速仪",
+    "errors": []
+  },
+  {
+    "sceneId": "hooke-law",
+    "name": "胡克定律 F=kx",
+    "shots": [
+      {
+        "file": "hooke-law-3d-param-before.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      }
+    ],
+    "issues": [],
+    "paramChange": {
+      "min": 1,
+      "max": 200,
+      "cur": 20,
+      "target": 60.699999999999996,
+      "label": "劲度系数 k"
+    },
+    "stageText": "3D透视\n立面(X-Y)\n俯视\n纵深\n➕\n➖\n🎯\n📏 移动测量尺\n⏱️ 光电门测速仪",
+    "errors": []
+  },
+  {
+    "sceneId": "newton-second-law",
+    "name": "牛顿第二定律 F=ma",
+    "shots": [
+      {
+        "file": "newton-second-law-3d-param-before.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      }
+    ],
+    "issues": [],
+    "paramChange": {
+      "min": -100,
+      "max": 100,
+      "cur": 10,
+      "target": -40,
+      "label": "合外力 F"
+    },
+    "stageText": "3D透视\n立面(X-Y)\n俯视\n纵深\n➕\n➖\n🎯\n📏 移动测量尺\n⏱️ 光电门测速仪",
+    "errors": []
+  },
+  {
+    "sceneId": "force-composition",
+    "name": "力的合成 (平行四边形定则)",
+    "shots": [
+      {
+        "file": "force-composition-3d-param-before.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      }
+    ],
+    "issues": [],
+    "paramChange": {
+      "min": 0,
+      "max": 20,
+      "cur": 3,
+      "target": 6,
+      "label": "分力 F₁"
+    },
+    "stageText": "3D透视\n立面(X-Y)\n俯视\n纵深\n➕\n➖\n🎯\n📏 移动测量尺\n⏱️ 光电门测速仪",
+    "errors": []
+  },
+  {
+    "sceneId": "energy-conservation",
+    "name": "机械能守恒定律 (动能↔势能)",
+    "shots": [
+      {
+        "file": "energy-conservation-3d-param-before.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      }
+    ],
+    "issues": [],
+    "paramChange": {
+      "min": 1,
+      "max": 100,
+      "cur": 10,
+      "target": 30.7,
+      "label": "释放高度 h"
+    },
+    "stageText": "3D透视\n立面(X-Y)\n俯视\n纵深\n➕\n➖\n🎯\n📏 移动测量尺\n⏱️ 光电门测速仪",
+    "errors": []
+  },
+  {
+    "sceneId": "galileo-incline",
+    "name": "伽利略斜面理想实验",
+    "shots": [
+      {
+        "file": "galileo-incline-3d-param-before.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      }
+    ],
+    "issues": [],
+    "paramChange": {
+      "min": 5,
+      "max": 90,
+      "cur": 30,
+      "target": 64.5,
+      "label": "斜面倾角 θ"
+    },
+    "stageText": "3D透视\n立面(X-Y)\n俯视\n纵深\n➕\n➖\n🎯\n📏 移动测量尺\n⏱️ 光电门测速仪",
+    "errors": []
+  },
+  {
+    "sceneId": "resistance-law",
+    "name": "电阻定律 (R=ρ·L/S)",
+    "shots": [
+      {
+        "file": "resistance-law-3d-param-before.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      }
+    ],
+    "issues": [],
+    "paramChange": {
+      "min": 0.01,
+      "max": 100,
+      "cur": 1,
+      "target": 30.006999999999998,
+      "label": "导线长度 L"
+    },
+    "stageText": "3D透视\n立面(X-Y)\n俯视\n纵深\n➕\n➖\n🎯\n📏 移动测量尺\n⏱️ 光电门测速仪",
+    "errors": []
+  },
+  {
+    "sceneId": "refraction",
+    "name": "光的折射定律 (Snell)",
+    "shots": [
+      {
+        "file": "refraction-3d-param-before.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      }
+    ],
+    "issues": [],
+    "paramChange": {
+      "min": 1,
+      "max": 2.5,
+      "cur": 1,
+      "target": 1.45,
+      "label": "介质 1 折射率 n₁"
+    },
+    "stageText": "3D透视\n立面(X-Y)\n俯视\n纵深\n➕\n➖\n🎯\n📏 移动测量尺\n⏱️ 光电门测速仪",
+    "errors": []
+  },
+  {
+    "sceneId": "gas-law",
+    "name": "理想气体状态方程",
+    "shots": [
+      {
+        "file": "gas-law-3d-param-before.png",
+        "health": {
+          "canvases": [
+            {
+              "width": 826,
+              "height": 690,
+              "cssWidth": 826,
+              "cssHeight": 690,
+              "blank": false,
+              "uniqueColors": 1,
+              "nonTransparentRatio": 0,
+              "readbackAvailable": false
+            }
+          ],
+          "bannerVisible": false
+        }
+      }
+    ],
+    "issues": [],
+    "paramChange": {
+      "min": 0.1,
+      "max": 10,
+      "cur": 1,
+      "target": 3.0700000000000003,
+      "label": "物质的量 n"
+    },
+    "stageText": "3D透视\n立面(X-Y)\n俯视\n纵深\n➕\n➖\n🎯\n📏 移动测量尺\n⏱️ 光电门测速仪",
+    "errors": []
+  }
+]

@@ -82,6 +82,14 @@ export interface SimulationResult {
         readonly computationTime: number;
         readonly timestamp: string;
         readonly version: string;
+        /**
+         * 仿真总时长 (s) — 可选元数据 (#124 类型层声明)。
+         * 引擎当前**不产出**该字段 (统一由 `models/base.ts` 的 `makeMeta` 构造五字段)，
+         * 声明在此是为了让渲染层「读到就用、读不到用场景默认时长」的兜底口径受编译期检查，
+         * 避免调用方以双重强转绕过类型系统。
+         * 若将来模型需产出整体时长，应在 `makeMeta` 统一回填并同步本行注释。
+         */
+        readonly duration?: number;
     };
     readonly trajectories: TrajectoryPoint[][];
     readonly keyframes: Keyframe[];

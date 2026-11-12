@@ -125,16 +125,18 @@ export const CLASSROOM_SCRIPTS: Record<string, ClassroomScript> = {
 
     'uniform-accelerated': {
         sceneId: 'uniform-accelerated',
-        title: '匀变速直线运动的规律',
+        title: '竖直运动（自由落体与竖直上抛）规律',
         subtitle: '必修第一册 · 匀变速直线运动的研究',
-        goal: '掌握匀变速直线运动的速度-时间关系与位移-时间关系，理解 v-t 图像斜率代表加速度、面积代表位移。',
-        demoParams: { v0y: 20, g: 9.8 },
-        demoNote: '初速度竖直向上 20 m/s，加速度竖直向下 9.8 m/s²。观察对称的上升与下落过程。',
+        goal: '掌握竖直方向匀变速直线运动的速度-时间关系与位移-时间关系，区分初始释放高度 h₀、相对上升高度 Δh 与最高点离地高度 H_max。',
+        demoParams: { height: 20, v0y: 20, g: 9.8 },
+        demoNote:
+            '从初始高度 h₀=20 m 处以初速度 v₀y=20 m/s 竖直上抛（设 v₀y=0 即自由落体），加速度竖直向下 g=9.8 m/s²。观察上升至最高点、对称回落经过释放高度及最终落地的过程。',
         compareFocus: {
             paramName: 'v0y',
             range: [10, 30],
             count: 3,
-            description: '改变初速度 v₀y（10~30 m/s），对比最大上升高度 H ∝ v₀² 与上升时间 t ∝ v₀。'
+            description:
+                '改变初速度 v₀y（10~30 m/s），对比相对释放点的最大上升高度 Δh = v₀y²/(2g)（最高点离地高度 H_max = h₀ + Δh）与上升时间 t_上 = v₀y/g。'
         },
         quizzes: [
             {
@@ -153,7 +155,7 @@ export const CLASSROOM_SCRIPTS: Record<string, ClassroomScript> = {
         conclusion: {
             takeaways: [
                 'v-t 图像的斜率表示加速度 a；图像与时间轴围成的面积表示位移 x。',
-                '竖直上抛运动具有时间对称性（t_上 = t_下）与速率对称性（v_上 = v_下）。'
+                '从指定高度 h₀ 竖直上抛时，“上升至最高点”与“从最高点回到释放高度 h₀”具有时间对称性（t_上 = t_回释放点 = v₀y/g）与速率对称性，而非到地面全过程等时对称。'
             ],
             formulas: [
                 '速度公式: v = v_0 + a t',
@@ -276,13 +278,14 @@ export const CLASSROOM_SCRIPTS: Record<string, ClassroomScript> = {
         title: '带电粒子在匀强电场中的偏转',
         subtitle: '选择性必修第一册 / 第三册 · 静电场及其应用',
         goal: '掌握带电粒子在电场中的类平抛运动规律，理解电场力做功与电势能转化的物理过程。',
-        demoParams: { v0x: 10, Ey: 200, charge: 1.6, mass: 1.67 },
-        demoNote: '质子以 10 m/s 垂直电场线射入匀强电场（200 N/C），做匀变速曲线运动。',
+        demoParams: { v0x: 6, Ey: 20, charge: 2, mass: 2 },
+        demoNote:
+            '带电小球（q = 2×10⁻⁸ C，m = 2×10⁻⁷ kg）以 6 m/s 垂直电场线射入 20 N/C 匀强电场，做类平抛运动：水平前进 9 m，竖直偏转 2.25 m（a = qE/m = 2 m/s²）。',
         compareFocus: {
             paramName: 'Ey',
-            range: [50, 400],
+            range: [2, 40],
             count: 4,
-            description: '调节场强 Ey（50~400 N/C），对比粒子射出电场时的侧移量 y ∝ Ey。'
+            description: '调节场强 Ey（2~40 N/C），对比粒子射出电场时的侧移量 y ∝ Ey。'
         },
         quizzes: [
             {
@@ -312,13 +315,14 @@ export const CLASSROOM_SCRIPTS: Record<string, ClassroomScript> = {
         title: '带电粒子在匀强磁场中的圆周运动',
         subtitle: '选择性必修第二册 · 磁场与洛伦兹力',
         goal: '掌握左手定则判断洛伦兹力方向，掌握粒子在磁场中做匀速圆周运动的轨道半径与周期公式。',
-        demoParams: { v0x: 1000, Bz: 0.01, charge: 1.6, mass: 1.67 },
-        demoNote: '质子以 1000 m/s 垂直射入 0.01 T 匀强磁场，洛伦兹力提供向心力，做完整圆周运动。',
+        demoParams: { v0x: 35, Bz: 0.3, charge: 2, mass: 2 },
+        demoNote:
+            '带电小球（q = 2×10⁻⁶ C，m = 2×10⁻⁸ kg）以 35 m/s 垂直射入 0.3 T 匀强磁场（B ⊙ 出纸面），洛伦兹力提供向心力：回旋半径 R = mv/(qB) ≈ 1.17 m，周期 T = 2πm/(qB) ≈ 0.21 s。',
         compareFocus: {
             paramName: 'Bz',
-            range: [0.005, 0.05],
+            range: [0.1, 2],
             count: 4,
-            description: '改变磁感应强度 Bz（0.005~0.05 T），验证轨道半径 r ∝ 1/B。'
+            description: '改变磁感应强度 Bz（0.1~2 T），验证轨道半径 r ∝ 1/B。'
         },
         quizzes: [
             {
@@ -349,14 +353,14 @@ export const CLASSROOM_SCRIPTS: Record<string, ClassroomScript> = {
         title: '速度选择器与电磁复合场',
         subtitle: '选择性必修第二册 · 复合场中的粒子运动',
         goal: '理解电场力与磁场力的矢量合成，掌握速度选择器原理与正交复合场中的平衡条件。',
-        demoParams: { v0x: 1000, v0y: 0, Ex: 100, Bz: 0.1, charge: 1.6, mass: 1.67 },
+        demoParams: { v0x: 20, v0y: 0, Ey: 22, Bz: 0.5, charge: 2, mass: 2 },
         demoNote:
-            '场强 Ex=100 N/C，磁感应强度 Bz=0.1 T。当初速度 v₀=1000 m/s 时，电场力与洛伦兹力恰好平衡，沿直线匀速穿过。',
+            '带电小球（q=2×10⁻⁶ C，m=2×10⁻⁸ kg）以 20 m/s 射入复合场（E=22 N/C 向上、B=0.5 T ⊙ 出纸面）。速度选择速度 v=E/B=44 m/s ≠ 20 m/s ⇒ 粒子走摆线被偏转，4.9 m 行程内拱起约 0.96 m；把 v₀ 调到 44 m/s 即「被选中」直线通过。',
         compareFocus: {
             paramName: 'v0x',
-            range: [500, 2000],
+            range: [10, 44],
             count: 4,
-            description: '改变入射速度 v₀x（500~2000 m/s），观察偏离直线轨迹（v > E/B 或 v < E/B 发生偏转）。'
+            description: '改变入射速度 v₀x（10~44 m/s），观察偏离直线轨迹（v₀ = E/B = 44 m/s 时直线通过）。'
         },
         quizzes: [
             {
@@ -789,7 +793,8 @@ export const CLASSROOM_SCRIPTS: Record<string, ClassroomScript> = {
         subtitle: '必修第一册 · 牛顿第一定律',
         goal: '领悟“实验事实 + 逻辑外推”的科学研究方法，理解力是改变物体运动状态的原因而非维持运动的原因。',
         demoParams: { angleDeg: 30, inclineLength: 2, mode: 3 },
-        demoNote: '小球从左侧斜面滚下，在右侧对接斜面上升至相同高度；当右侧倾角趋于 0° 时，小球将永远匀速运动。',
+        demoNote:
+            '小球从左侧斜面滑下 (a=g·sinθ, 倾角越小加速度越小、越便于测量)；到达谷底后在水平面上永远匀速运动（牛顿第一定律）。切换到「对接斜面」模式可见小球滚上另一斜面回到原高（机械能守恒）。',
         compareFocus: {
             paramName: 'angleDeg',
             range: [10, 60],

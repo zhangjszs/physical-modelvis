@@ -79,6 +79,95 @@ describe('composition 组合实验层', () => {
             expect(v1.valid).toBe(false);
             expect(v2.valid).toBe(false);
         });
+
+        it('条形磁铁校验: 合法通过; 磁矩 ≤ 0 / 长度 ≤ 0 / 零方向向量被拦截', () => {
+            const validExp: CompositionExperiment = {
+                sources: [
+                    {
+                        kind: 'bar-magnet',
+                        magneticMoment: 5,
+                        center: ZERO3,
+                        direction: Vec3.create(0, 1, 0),
+                        length: 0.2
+                    }
+                ],
+                particle: { charge: 1, mass: 1, position: ZERO3, velocity: ZERO3 },
+                duration: 1
+            };
+            expect(validateComposition(validExp).valid).toBe(true);
+
+            const vZeroM = validateComposition({
+                ...validExp,
+                sources: [{ kind: 'bar-magnet', magneticMoment: 0, center: ZERO3, direction: Vec3.create(0, 1, 0) }]
+            });
+            expect(vZeroM.valid).toBe(false);
+            expect(vZeroM.errors.some(e => e.param === 'sources[0].magneticMoment')).toBe(true);
+
+            const vBadLen = validateComposition({
+                ...validExp,
+                sources: [
+                    {
+                        kind: 'bar-magnet',
+                        magneticMoment: 5,
+                        center: ZERO3,
+                        direction: Vec3.create(0, 1, 0),
+                        length: -0.1
+                    }
+                ]
+            });
+            expect(vBadLen.valid).toBe(false);
+            expect(vBadLen.errors.some(e => e.param === 'sources[0].length')).toBe(true);
+
+            const vZeroDir = validateComposition({
+                ...validExp,
+                sources: [{ kind: 'bar-magnet', magneticMoment: 5, center: ZERO3, direction: ZERO3 }]
+            });
+            expect(vZeroDir.valid).toBe(false);
+        });
+
+        it('匀强磁场区校验: 合法通过; 非正尺寸 / 非有限场强被拦截', () => {
+            const validExp: CompositionExperiment = {
+                sources: [
+                    {
+                        kind: 'uniform-field-zone',
+                        field: Vec3.create(0, 1e-3, 0),
+                        center: ZERO3,
+                        size: Vec3.create(0.4, 0.3, 0.3)
+                    }
+                ],
+                particle: { charge: 1, mass: 1, position: ZERO3, velocity: ZERO3 },
+                duration: 1
+            };
+            expect(validateComposition(validExp).valid).toBe(true);
+
+            const vBadSize = validateComposition({
+                ...validExp,
+                sources: [
+                    {
+                        kind: 'uniform-field-zone',
+                        field: Vec3.create(0, 1e-3, 0),
+                        center: ZERO3,
+                        size: Vec3.create(0.4, 0, 0.3)
+                    }
+                ]
+            });
+            expect(vBadSize.valid).toBe(false);
+            expect(vBadSize.errors.some(e => e.param === 'sources[0].size')).toBe(true);
+
+            const vBadField = validateComposition({
+                ...validExp,
+                sources: [
+                    {
+                        kind: 'uniform-field-zone',
+                        field: Vec3.create(0, Number.NaN, 0),
+                        center: ZERO3,
+                        size: Vec3.create(0.4, 0.3, 0.3)
+                    }
+                ]
+            });
+            expect(vBadField.valid).toBe(false);
+            expect(vBadField.errors.some(e => e.param === 'sources[0].field')).toBe(true);
+        });
     });
 
     describe('compositionFieldAt 场求值器', () => {

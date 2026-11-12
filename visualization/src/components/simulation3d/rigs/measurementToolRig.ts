@@ -3,7 +3,7 @@
  * 以 3D 方式展示测量工具本身，被测物体居中
  */
 import * as THREE from 'three';
-import { SceneRig } from '../EquipmentStage';
+import { SceneRig, SceneFraming } from '../EquipmentStage';
 import { makeBox, makeCylinder, makeTextSprite } from '../primitives';
 
 const WORLD_SCALE = 0.16;
@@ -11,6 +11,13 @@ const WORLD_SCALE = 0.16;
 /** 游标卡尺 */
 export const vernierCaliperRig: SceneRig = {
     worldScale: WORLD_SCALE,
+    // 静态器械：不生成默认轨迹球/轨迹线（否则占位轨迹球会挡住卡尺）
+    ownParticles: true,
+    // 几何建在世界原点 (非 STAGE_CENTER_X)，无轨迹包围盒可自动居中 → 显式取景到器械实际位置
+    framing(): SceneFraming {
+        const target: [number, number, number] = [0.3, 0.1, 0];
+        return { target, position: [target[0] + 0.35, target[1] + 0.7, 2.6], distance: 3.0 };
+    },
     buildEquipment(scene, _params) {
         // 外测量爪
         const jaw1 = makeBox(0.6, 0.06, 0.15, 0x94a3b8, 0.3, 0.3);
@@ -55,6 +62,11 @@ export const vernierCaliperRig: SceneRig = {
 /** 螺旋测微器 */
 export const micrometerRig: SceneRig = {
     worldScale: WORLD_SCALE,
+    ownParticles: true,
+    framing(): SceneFraming {
+        const target: [number, number, number] = [0.2, 0.15, 0];
+        return { target, position: [target[0] + 0.35, target[1] + 0.7, 2.6], distance: 3.0 };
+    },
     buildEquipment(scene, _params) {
         // 尺架（U 形）
         const frame = makeBox(0.08, 0.6, 0.15, 0x64748b, 0.4, 0.2);
@@ -103,6 +115,11 @@ export const micrometerRig: SceneRig = {
 /** 多用电表 */
 export const multimeterRig: SceneRig = {
     worldScale: WORLD_SCALE,
+    ownParticles: true,
+    framing(): SceneFraming {
+        const target: [number, number, number] = [0, 0.1, 0];
+        return { target, position: [target[0] + 0.35, target[1] + 0.7, 2.5], distance: 2.8 };
+    },
     buildEquipment(scene, _params) {
         // 表身
         const body = makeBox(0.6, 0.8, 0.15, 0xfbbf24, 0.4, 0.15);

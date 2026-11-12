@@ -26,7 +26,10 @@ body {
 }
 
 /* ========== Theme & Design Tokens ========== */
-.app {
+/* 设计令牌定义在 :root 而非 .app：使 createPortal 到 document.body 的浮层
+   （OCR 弹窗 / 导学面板）同样继承令牌；亮色主题通过 <html class="light"> 镜像
+   （见 App.tsx useEffect），令 body 级 portal 在暗/亮双主题下均正确取色（#118）。 */
+:root {
     /* 布局变量 */
     --sidebar-w: 240px;
     --canvas-min-h: 380px;
@@ -54,16 +57,37 @@ body {
     --err: #ef4444;
     --info: var(--brand);
 
-    /* 圆角尺度（柔和现代化） */
+    /* 语义底色与遮罩（#130 规范 §2.1） */
+    --surface: #1e293b;
+    --overlay-bg: rgba(0, 0, 0, 0.5);
+
+    /* 间距尺度（#130 规范 §2.2） */
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 12px;
+    --space-lg: 16px;
+    --space-xl: 24px;
+
+    /* 圆角尺度（柔和现代化，#130 规范 §2.3） */
+    --radius-xs: 4px;
     --radius-sm: 8px;
     --radius-md: 12px;
     --radius-lg: 18px;
     --radius-pill: 999px;
 
-    /* 阴影尺度（深底友好） */
+    /* 阴影尺度（深底友好，#130 规范 §2.4） */
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
     --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.28);
     --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.38);
+    --shadow-drawer: -20px 0 60px rgba(0, 0, 0, 0.3);
+
+    /* 文字层级（#130 规范 §2.5） */
+    --text-h1: 18px;
+    --text-h2: 15px;
+    --text-h3: 12px;
+    --text-body: 13px;
+    --text-small: 11px;
+    --text-mono: 12px;
 
     /* 焦点环 */
     --ring: rgba(59, 130, 246, 0.4);
@@ -84,6 +108,61 @@ body {
     /* 输入框 / 文本域玻璃底色（按主题切换） */
     --input-bg: rgba(15, 23, 42, 0.45);
 
+    /* 图表与仪器主题令牌（#149 主题单一真源） */
+    --chart-grid: #1e293b;
+    --chart-marker: #f59e0b;
+    --tooltip-bg: #1e293b;
+    --tooltip-border: #334155;
+    --tooltip-text: #e2e8f0;
+    --readout-text: #e2e8f0;
+    --readout-param-bg: rgba(15, 23, 42, 0.5);
+    --readout-divider: #334155;
+    --readout-uniform-bg: rgba(34, 197, 94, 0.15);
+    --readout-nonuniform-bg: rgba(245, 158, 11, 0.15);
+    --photogate-card-bg: rgba(15, 23, 42, 0.6);
+    --photogate-card-blocked-bg: rgba(239, 68, 68, 0.12);
+    --photogate-card-border: #334155;
+    --photogate-pill-bg: rgba(0, 0, 0, 0.4);
+    --photogate-tube-bg: #020617;
+    --photogate-tube-border: #1e293b;
+    --photogate-tube-muted: #64748b;
+    --photogate-cyan: #22d3ee;
+    --photogate-time-blocked: #fca5a5;
+
+    /* 2D 画布与 3D 舞台主题令牌（#150 主题单一真源 · 深色） */
+    --canvas-hud-bg: rgba(15, 23, 42, 0.7);
+    --canvas-hud-bg-strong: rgba(15, 23, 42, 0.75);
+    --canvas-hud-border: rgba(56, 189, 248, 0.3);
+    --canvas-shadow-strong: rgba(0, 0, 0, 0.3);
+    --canvas-shadow-soft: rgba(0, 0, 0, 0.22);
+    --canvas-empty-text: #64748b;
+    --canvas-compare-overlay-text: rgba(148, 163, 184, 0.85);
+    --canvas-efield-accent: #fbbf24;
+    --canvas-efield-glow: rgba(251, 191, 36, 0.12);
+    --canvas-efield-gradient: rgba(251, 191, 36, 0.55);
+    --canvas-efield-arrow: rgba(251, 191, 36, 0.6);
+    --canvas-emfield-gradient: rgba(251, 191, 36, 0.5);
+    --canvas-emfield-arrow: rgba(251, 191, 36, 0.55);
+    --canvas-bfield-line: rgba(168, 85, 247, 0.55);
+    --canvas-bfield-circle: rgba(168, 85, 247, 0.3);
+    --canvas-bfield-line-soft: rgba(168, 85, 247, 0.5);
+    --canvas-bfield-circle-soft: rgba(168, 85, 247, 0.25);
+    --canvas-wall-grad-from: #334155;
+    --canvas-wall-grad-to: #475569;
+    --canvas-wall-hatch: rgba(100, 116, 139, 0.25);
+    --canvas-spring-glow: rgba(34, 211, 238, 0.15);
+    --canvas-spring-light: #67e8f9;
+    --canvas-spring-mid: #22d3ee;
+    --canvas-spring-dark: #06b6d4;
+    --canvas-spring-guide: rgba(34, 211, 238, 0.35);
+    --canvas-wedge-hatch: rgba(100, 116, 139, 0.18);
+    --canvas-wedge-edge: #64748b;
+    --canvas-wood: #7c5e3c;
+    --canvas-angle-fill: rgba(251, 191, 36, 0.1);
+    --canvas-angle-stroke: #fbbf24;
+    --stage3d-bg: #0b1020;
+}
+.app {
     height: 100vh;
     max-height: 100vh;
     overflow: hidden;
@@ -92,7 +171,7 @@ body {
     background: var(--bg);
     color: var(--text);
 }
-.app.light {
+:root.light {
     --bg: #eef2fb;
     --bg2: #ffffff;
     --bg3: #f1f5f9;
@@ -108,6 +187,7 @@ body {
     --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.08);
     --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.1);
     --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.16);
+    --shadow-drawer: -20px 0 60px rgba(15, 23, 42, 0.16);
     --ring: rgba(37, 99, 235, 0.28);
     --ring-strong: rgba(37, 99, 235, 0.45);
 
@@ -118,6 +198,76 @@ body {
     --glass-border-hover: rgba(30, 41, 59, 0.22);
     --glow-brand: 0 8px 26px rgba(37, 99, 235, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.6);
     --input-bg: rgba(255, 255, 255, 0.72);
+
+    /* 语义底色与遮罩覆盖（浅色，#130 规范 §2.1） */
+    --surface: #ffffff;
+    --overlay-bg: rgba(15, 23, 42, 0.3);
+    --ok: #16a34a;
+    --warn: #b45309;
+    --err: #dc2626;
+
+    /* 图表与仪器主题令牌（#149 主题单一真源 · 浅色） */
+    --chart-grid: #e2e8f0;
+    --chart-marker: #b45309;
+    --tooltip-bg: #ffffff;
+    --tooltip-border: #e2e8f0;
+    --tooltip-text: #1e293b;
+    --readout-text: #1e293b;
+    --readout-param-bg: rgba(241, 245, 249, 0.8);
+    --readout-divider: #cbd5e1;
+    --readout-uniform-bg: rgba(34, 197, 94, 0.1);
+    --readout-nonuniform-bg: rgba(245, 158, 11, 0.1);
+    --photogate-card-bg: rgba(15, 23, 42, 0.85);
+    --photogate-card-blocked-bg: rgba(239, 68, 68, 0.08);
+    --photogate-card-border: #1e293b;
+    --photogate-pill-bg: rgba(255, 255, 255, 0.1);
+    --photogate-tube-bg: #000000;
+    --photogate-tube-border: #0f172a;
+    --photogate-tube-muted: #64748b;
+    --photogate-cyan: #22d3ee;
+    --photogate-time-blocked: #fca5a5;
+
+    /* 2D 画布与 3D 舞台主题令牌（#150 主题单一真源 · 浅色） */
+    --canvas-hud-bg: rgba(255, 255, 255, 0.8);
+    --canvas-hud-bg-strong: rgba(255, 255, 255, 0.85);
+    --canvas-hud-border: rgba(59, 130, 246, 0.2);
+    --canvas-shadow-strong: rgba(0, 0, 0, 0.12);
+    --canvas-shadow-soft: rgba(0, 0, 0, 0.1);
+    --canvas-empty-text: #94a3b8;
+    --canvas-compare-overlay-text: rgba(71, 85, 105, 0.85);
+    --canvas-efield-accent: #eab308;
+    --canvas-efield-glow: rgba(234, 179, 8, 0.15);
+    --canvas-efield-gradient: rgba(234, 179, 8, 0.65);
+    --canvas-efield-arrow: rgba(234, 179, 8, 0.7);
+    --canvas-emfield-gradient: rgba(234, 179, 8, 0.6);
+    --canvas-emfield-arrow: rgba(234, 179, 8, 0.65);
+    --canvas-bfield-line: rgba(147, 51, 234, 0.5);
+    --canvas-bfield-circle: rgba(147, 51, 234, 0.25);
+    --canvas-bfield-line-soft: rgba(147, 51, 234, 0.45);
+    --canvas-bfield-circle-soft: rgba(147, 51, 234, 0.2);
+    --canvas-wall-grad-from: #94a3b8;
+    --canvas-wall-grad-to: #cbd5e1;
+    --canvas-wall-hatch: rgba(0, 0, 0, 0.08);
+    --canvas-spring-glow: rgba(8, 145, 178, 0.12);
+    --canvas-spring-light: #06b6d4;
+    --canvas-spring-mid: #0891b2;
+    --canvas-spring-dark: #0e7490;
+    --canvas-spring-guide: rgba(8, 145, 178, 0.35);
+    --canvas-wedge-hatch: rgba(0, 0, 0, 0.08);
+    --canvas-wedge-edge: #94a3b8;
+    --canvas-wood: #b07c4f;
+    --canvas-angle-fill: rgba(217, 119, 6, 0.08);
+    --canvas-angle-stroke: #d97706;
+    --stage3d-bg: #f8fafc;
+}
+
+@keyframes photogate-flash {
+    from {
+        box-shadow: 0 0 0 rgba(239, 68, 68, 0);
+    }
+    to {
+        box-shadow: 0 0 10px rgba(239, 68, 68, 0.6);
+    }
 }
 
 /* ========== 玻璃拟态工具类 ========== */
@@ -264,10 +414,10 @@ body {
 
 /* ========== Panel Section ========== */
 .panel-section {
-    margin-bottom: 16px;
+    margin-bottom: var(--space-lg);
 }
 .panel-title {
-    font-size: 12px;
+    font-size: var(--text-h3);
     font-weight: 600;
     color: var(--accent);
     text-transform: uppercase;
@@ -299,7 +449,7 @@ body {
     margin-bottom: 4px;
 }
 .param-label {
-    font-size: 13px;
+    font-size: var(--text-body);
     font-weight: 600;
     color: var(--text);
 }
@@ -319,6 +469,14 @@ body {
     height: 4px;
     cursor: pointer;
 }
+.param-slider:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--ring);
+}
+.param-slider:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
 .param-input {
     width: 64px;
     padding: 4px 6px;
@@ -331,16 +489,64 @@ body {
     text-align: center;
     transition: all 0.15s;
 }
-.param-input:focus {
+.param-input:hover {
+    border-color: var(--glass-border-hover);
+}
+.param-input:focus,
+.param-input:focus-visible {
     outline: none;
     border-color: var(--accent);
     box-shadow: 0 0 0 3px var(--ring);
 }
+.param-input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
 .param-desc {
-    font-size: 11px;
+    font-size: var(--text-small);
     color: var(--text3);
     margin-top: 2px;
     line-height: 1.4;
+}
+
+/* ========== Composition Field (组合实验台输入) ========== */
+.composition-field {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: var(--space-sm);
+    font-size: var(--text-body);
+    color: var(--text2);
+}
+.composition-field span {
+    font-size: var(--text-body);
+    color: var(--text2);
+}
+.composition-field input {
+    width: 80px;
+    padding: 4px 6px;
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    background: var(--input-bg);
+    color: var(--text);
+    font-size: 12px;
+    font-family: monospace;
+    text-align: right;
+    transition: all 0.15s;
+}
+.composition-field input:hover {
+    border-color: var(--glass-border-hover);
+}
+.composition-field input:focus,
+.composition-field input:focus-visible {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--ring);
+}
+.composition-field input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 .param-actions {
     display: flex;
@@ -372,6 +578,8 @@ body {
     border-color: var(--glass-border);
     color: var(--text2);
     border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.15s;
 }
 .btn-preset:hover {
     background: var(--accent);
@@ -379,6 +587,17 @@ body {
     border-color: var(--accent);
     transform: none;
     box-shadow: none;
+}
+.btn-preset:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--ring);
+}
+.btn-preset:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+    pointer-events: none;
 }
 
 /* ========== Buttons ========== */
@@ -400,11 +619,16 @@ body {
     transform: translateY(-1px);
     box-shadow: var(--shadow-md);
 }
+.btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--ring);
+}
 .btn:disabled {
     opacity: 0.4;
     cursor: not-allowed;
     transform: none;
     box-shadow: none;
+    pointer-events: none;
 }
 .btn-primary {
     background: var(--brand-gradient);
@@ -444,6 +668,15 @@ body {
     color: #fff;
     border-color: transparent;
     box-shadow: var(--glow-brand);
+}
+.btn-block {
+    width: 100%;
+}
+.btn-flex {
+    flex: 1;
+}
+.btn-danger-text {
+    color: var(--err);
 }
 
 /* ========== Playback Controls ========== */
@@ -719,7 +952,7 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.6);
+    background: var(--overlay-bg);
     z-index: 1000;
     display: flex;
     align-items: center;
@@ -936,18 +1169,18 @@ body {
 .guidance-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.45);
+    background: var(--overlay-bg);
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 200;
+    z-index: 1000;
 }
 .guidance-panel {
     width: 460px;
     max-width: 92vw;
     max-height: 80vh;
     overflow-y: auto;
-    background: var(--surface, #1e293b);
+    background: var(--surface);
     border: 1px solid rgba(123, 47, 255, 0.35);
     border-radius: 12px;
     padding: 18px 20px;
@@ -1081,7 +1314,7 @@ body {
     top: calc(100% + 6px);
     right: 0;
     min-width: 160px;
-    background: var(--surface, #1e293b);
+    background: var(--surface);
     border: 1px solid rgba(123, 47, 255, 0.3);
     border-radius: 8px;
     padding: 6px;
@@ -1119,7 +1352,7 @@ body {
     position: fixed;
     inset: 0;
     z-index: 1000;
-    background: rgba(0, 0, 0, 0.6);
+    background: var(--overlay-bg);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1581,6 +1814,26 @@ body {
     align-items: center;
     margin-bottom: 12px;
 }
+.inspector-collapse-btn,
+.inspector-reopen-btn {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--glass-bg-strong);
+    color: var(--text2);
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 5px 10px;
+    white-space: nowrap;
+}
+.inspector-collapse-btn:hover,
+.inspector-reopen-btn:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+}
 .inspector-tabs {
     display: flex;
     gap: 4px;
@@ -1609,7 +1862,7 @@ body {
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 .app.dark .inspector-tab-btn.active {
-    background: #1e293b;
+    background: var(--surface);
     color: #60a5fa;
 }
 .stage-mode-badge {
@@ -1662,13 +1915,13 @@ body {
     color: #2563eb;
     background: #eff6ff;
     border: 1px solid #bfdbfe;
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
     margin-left: 6px;
     flex-shrink: 0;
 }
 .app.dark .badge-script {
     color: #93c5fd;
-    background: #1e293b;
+    background: var(--surface);
     border-color: #1e3a8a;
 }
 .directory-header {
@@ -1697,7 +1950,9 @@ body {
     border: 1px solid var(--glass-border);
     border-radius: 7px;
     outline: none;
-    transition: border-color 0.15s, box-shadow 0.15s;
+    transition:
+        border-color 0.15s,
+        box-shadow 0.15s;
 }
 .directory-search-input:focus {
     border-color: var(--accent);
@@ -1832,6 +2087,20 @@ body {
 .stage-viewport {
     flex: 1;
     min-height: 0;
+    /*
+     * 2D 画布高度 (#159 逐节审计 · 全局遗留项 G-0):
+     *   本容器不是 flex 容器, `.canvas-wrapper` 的 `flex: 1` 完全失效 ——
+     *   2D 画布只拿到 `--canvas-min-h` (380 px), 而舞台视口高 ~690 px,
+     *   课堂上约 40% 的画面高度被浪费, 且 2D 板书与 3D 视口不等高。
+     *
+     *   本轮**有意不改** (带理由豁免): 改成纵向 flex 后画布确实填满舞台,
+     *   但全部 24 节的 2D 板书里, 16 节是按 393 px 高度写的定像素版式 ——
+     *   画布变高后它们内容缩在顶部、出现脱节的辅助线 (如 newton-second-law
+     *   的地面线脱到画面中央), 反而比原来更差。
+     *   正确做法是逐节重排这 16 张板书的版式 (按 h 比例推导) 并重新逐节取证,
+     *   属于独立批次, 不应夹带在「24 节物理/视觉逐节复核」里静默生效。
+     *   本轮新增的 photoelectric / gas-law 板书已按 h 比例编写, 两种高度都成立。
+     */
     border: 1px solid rgba(148, 163, 184, 0.26);
     border-radius: 16px;
     overflow: hidden;
@@ -1955,7 +2224,9 @@ body {
     color: var(--text2);
     background: transparent;
     cursor: pointer;
-    transition: background 0.15s, color 0.15s;
+    transition:
+        background 0.15s,
+        color 0.15s;
 }
 .view-hud-btn:hover {
     background: rgba(37, 99, 235, 0.12);
@@ -2039,7 +2310,7 @@ body {
     z-index: 900;
     display: flex;
     justify-content: flex-end;
-    background: rgba(15, 23, 42, 0.18);
+    background: var(--overlay-bg);
     backdrop-filter: blur(4px);
 }
 .formula-drawer {
@@ -2051,7 +2322,7 @@ body {
     backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
     -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
     border-left: 1px solid var(--glass-border);
-    box-shadow: -20px 0 60px rgba(15, 23, 42, 0.2);
+    box-shadow: var(--shadow-drawer);
 }
 .formula-drawer-head {
     display: flex;
@@ -2070,12 +2341,31 @@ body {
     .classroom-inspector {
         position: fixed;
         right: 16px;
-        top: 84px;
+        /* #137: 窄视口避开顶部工具栏 (.stage-toolbar bottom ≈ 122px)，保证 .stage-actions 按钮真实可点击 */
+        top: 136px;
         z-index: 80;
         width: min(320px, calc(100vw - 32px));
-        max-height: calc(100vh - 110px);
+        /* top(136px) + max-height 留出底部 16px 安全距离，与 right: 16px 对齐 */
+        max-height: calc(100vh - 152px);
         border: 1px solid var(--border);
         border-radius: 14px;
+        box-shadow: var(--shadow-lg);
+    }
+    .inspector-collapse-btn {
+        display: inline-flex;
+    }
+    /* 窄视口默认收起：检查器不再覆盖 3D 舞台，只保留一个可重新展开的胶囊按钮 */
+    .classroom-inspector.collapsed {
+        width: auto;
+        max-height: none;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        box-shadow: none;
+        overflow: visible;
+    }
+    .classroom-inspector.collapsed .inspector-reopen-btn {
+        display: inline-flex;
         box-shadow: var(--shadow-lg);
     }
 }
@@ -2164,13 +2454,13 @@ body {
     font-weight: 700;
     color: #2563eb;
     background: #eff6ff;
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
     margin-bottom: 4px;
     letter-spacing: 0.5px;
 }
 .app.dark .script-badge {
     color: #60a5fa;
-    background: #1e293b;
+    background: var(--surface);
 }
 .script-title {
     margin: 0;
@@ -2216,7 +2506,7 @@ body {
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 .app.dark .stepper-btn.active {
-    background: #1e293b;
+    background: var(--surface);
     color: #60a5fa;
 }
 .step-content {
@@ -2262,6 +2552,438 @@ body {
     border-radius: 8px;
     font-size: 11px;
     color: var(--text2);
+}
+
+/* ========== Compare Panel Controls (参数对比控件) ========== */
+.compare-row {
+    margin-bottom: var(--space-sm);
+}
+.compare-label {
+    display: block;
+    font-size: var(--text-small);
+    color: var(--text2);
+    margin-bottom: 4px;
+}
+.compare-select {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    background: var(--input-bg);
+    color: var(--text);
+    font-size: 12px;
+    outline: none;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.compare-select:hover {
+    border-color: var(--glass-border-hover);
+}
+.compare-select:focus,
+.compare-select:focus-visible {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--ring);
+}
+.compare-select:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+.compare-range-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.compare-number {
+    flex: 1;
+    padding: 4px 6px;
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    background: var(--input-bg);
+    color: var(--text);
+    font-size: 12px;
+    font-family: monospace;
+    text-align: center;
+    transition: all 0.15s;
+}
+.compare-number:hover {
+    border-color: var(--glass-border-hover);
+}
+.compare-number:focus,
+.compare-number:focus-visible {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--ring);
+}
+.compare-number:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+.compare-range-sep {
+    color: var(--text3);
+    font-size: 12px;
+}
+.compare-slider {
+    width: 100%;
+    accent-color: var(--accent);
+    height: 4px;
+    cursor: pointer;
+}
+.compare-slider:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--ring);
+}
+.compare-slider:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* ========== Composition Lab Styles (自由组合实验台样式) ========== */
+.composition-layout {
+    display: flex;
+    gap: var(--space-md);
+    height: 100%;
+}
+.composition-stage-wrap {
+    flex: 1;
+    min-width: 0;
+    position: relative;
+}
+.composition-tip {
+    position: absolute;
+    left: 12px;
+    top: 12px;
+    font-size: 12px;
+    color: var(--text3);
+    background: var(--input-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    padding: 4px 10px;
+    pointer-events: none;
+    backdrop-filter: blur(var(--glass-blur));
+}
+.composition-inspector {
+    width: 300px;
+    flex-shrink: 0;
+    overflow-y: auto;
+}
+.composition-palette-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-top: 8px;
+}
+.composition-template-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-top: 4px;
+}
+.composition-template-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px 8px;
+    font-size: var(--text-small);
+}
+.composition-template-btn.active {
+    background: var(--brand-gradient);
+    color: #fff;
+    border-color: transparent;
+}
+.composition-template-icon {
+    font-size: 13px;
+    line-height: 1;
+}
+.composition-template-name {
+    font-size: 12px;
+}
+.composition-template-goal-card {
+    background: var(--surface);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm, 6px);
+    padding: 8px 10px;
+    margin-top: 8px;
+}
+.composition-template-goal-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text2);
+    margin-bottom: 3px;
+}
+.composition-template-goal-text {
+    font-size: 12px;
+    color: var(--text);
+    line-height: 1.45;
+}
+.composition-field-label {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-size: var(--text-body);
+    margin: 4px 0;
+    color: var(--text);
+}
+.composition-density-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 4px 0;
+}
+.composition-density-title {
+    font-size: var(--text-body);
+    color: var(--text);
+}
+.composition-desc {
+    font-size: var(--text-small);
+    color: var(--text3);
+    margin: 4px 0 0;
+    line-height: 1.4;
+}
+.composition-empty-hint {
+    font-size: 12px;
+    color: var(--text3);
+    line-height: 1.5;
+}
+.composition-selected-tag {
+    font-size: 12px;
+    color: var(--text2);
+    margin: 4px 0 8px;
+}
+.composition-status-err {
+    font-size: 12px;
+    color: var(--err);
+}
+.composition-status-ok {
+    font-size: 12px;
+    color: var(--ok);
+}
+.composition-warn-list {
+    font-size: var(--text-small);
+    color: var(--warn);
+    padding-left: 16px;
+}
+.composition-reset-btn {
+    margin-top: 6px;
+}
+
+/* ========== Composition Outliner & Selection Feedback (#166 P0) ========== */
+.composition-outliner {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-top: 4px;
+    outline: none;
+    max-height: 180px;
+    overflow-y: auto;
+}
+.composition-outliner:focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+}
+.composition-outliner-row {
+    display: flex;
+    align-items: center;
+    padding: 4px 8px;
+    font-size: 12px;
+    color: var(--text);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm, 6px);
+    cursor: pointer;
+    user-select: none;
+}
+.composition-outliner-row:hover,
+.composition-outliner-row.hover {
+    background: var(--surface);
+}
+.composition-outliner-row.selected {
+    background: var(--brand-gradient);
+    color: #fff;
+    border-color: transparent;
+}
+.composition-outliner-row.focus {
+    border-color: var(--brand);
+}
+.composition-outliner-row.selected.focus {
+    outline: 2px solid var(--brand);
+    outline-offset: -2px;
+}
+.composition-outliner-name {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.composition-selection-badge {
+    position: absolute;
+    transform: translate(-50%, -100%);
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text);
+    background: var(--input-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm, 6px);
+    pointer-events: none;
+    white-space: nowrap;
+    backdrop-filter: blur(var(--glass-blur));
+    z-index: 5;
+}
+
+/* ========== Composition Playback Overlay & Direction Editor (#100) ========== */
+.composition-playback-overlay {
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+    z-index: 10;
+    pointer-events: auto;
+}
+.composition-direction-editor {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--glass-border);
+}
+.composition-direction-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+.composition-direction-label {
+    font-size: var(--text-body);
+    font-weight: 500;
+    color: var(--text);
+}
+.composition-vector-readout {
+    font-size: 11px;
+    font-family: monospace;
+    color: var(--text3);
+}
+.composition-axis-select {
+    background: var(--glass-bg);
+    color: var(--text);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-xs);
+    padding: 3px 6px;
+    font-size: var(--text-small);
+    outline: none;
+    max-width: 170px;
+}
+.composition-axis-select:focus {
+    border-color: var(--accent);
+}
+.composition-preset-row {
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+}
+.composition-preset-buttons {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+/* ========== MeasurementToolbox Photogate Gate Colors ========== */
+.interactive-photogate.gate-a .gate-u-shape {
+    border-color: var(--accent2);
+}
+.interactive-photogate.gate-a .gate-badge {
+    background: var(--accent2);
+}
+.gate-card-a {
+    color: var(--accent2);
+}
+.interactive-photogate.gate-b .gate-u-shape {
+    border-color: var(--warn);
+}
+.interactive-photogate.gate-b .gate-badge {
+    background: var(--warn);
+}
+.gate-card-b {
+    color: var(--warn);
+}
+
+/* ========== OCR Panel Component Styles ========== */
+.ocr-trigger-btn {
+    background: rgba(251, 191, 36, 0.15);
+    border-color: rgba(251, 191, 36, 0.3);
+    color: var(--warn);
+}
+.ocr-tab-row {
+    display: flex;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-md);
+}
+.ocr-dropzone-icon {
+    font-size: 36px;
+    opacity: 0.6;
+}
+.ocr-dropzone-text {
+    font-size: var(--text-body);
+    color: var(--text2);
+}
+.ocr-preview-img {
+    max-width: 100%;
+    max-height: 200px;
+    border-radius: var(--radius-sm);
+}
+.btn-remove-preview {
+    margin-top: 8px;
+    color: var(--err);
+}
+.ocr-btn-row {
+    display: flex;
+    gap: var(--space-sm);
+    margin-top: 12px;
+}
+.ocr-variant-section {
+    margin-top: 12px;
+    border-top: 1px dashed var(--glass-border);
+    padding-top: 12px;
+}
+.ocr-textarea {
+    width: 100%;
+    background: var(--input-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    padding: 10px;
+    color: var(--text);
+    font-size: var(--text-body);
+    resize: vertical;
+    box-sizing: border-box;
+}
+.ocr-warning-desc {
+    color: var(--warn);
+}
+.ocr-assumption-desc {
+    font-size: 12px;
+    opacity: 0.7;
+    color: var(--text2);
+}
+.ocr-backend-status {
+    font-size: var(--text-body);
+}
+.ocr-backend-status.status-checking {
+    color: var(--text3);
+}
+.ocr-backend-status.status-connected {
+    color: var(--ok);
+}
+.ocr-backend-status.status-disconnected {
+    color: var(--err);
+}
+.ocr-action-btn {
+    width: 100%;
+    margin-top: 12px;
+}
+.ocr-analyze-btn {
+    width: 100%;
+    margin-top: 8px;
 }
 .step-actions {
     display: flex;
@@ -2442,7 +3164,7 @@ body {
 }
 
 .app.dark .tool-btn:hover {
-    background: #1e293b;
+    background: var(--surface);
     border-color: #60a5fa;
     box-shadow: 0 6px 18px rgba(96, 165, 250, 0.25);
 }
@@ -2478,7 +3200,9 @@ body {
     font-size: 11px;
     font-weight: bold;
     color: #ca8a04;
-    transition: transform 0.15s, border-color 0.15s;
+    transition:
+        transform 0.15s,
+        border-color 0.15s;
     z-index: 28;
 }
 
@@ -2588,7 +3312,9 @@ body {
     }
     to {
         opacity: 1;
-        box-shadow: 0 0 10px #ef4444, 0 0 16px #f87171;
+        box-shadow:
+            0 0 10px #ef4444,
+            0 0 16px #f87171;
     }
 }
 
@@ -2612,7 +3338,9 @@ body {
 
 .gate-status-led.active {
     background: #ef4444;
-    box-shadow: 0 0 10px #ef4444, 0 0 18px #ef4444;
+    box-shadow:
+        0 0 10px #ef4444,
+        0 0 18px #ef4444;
 }
 
 .gate-badge {
@@ -2759,5 +3487,3 @@ body {
     font-weight: 700;
     font-size: 12px;
 }
-
-

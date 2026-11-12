@@ -72,13 +72,13 @@ export const projectileScene: SceneConfig = {
         const v0y = v0 * Math.sin(angleRad);
         const disc = v0y * v0y + 2 * g * h0;
         const tLand = g > 0 ? (v0y + Math.sqrt(Math.max(0, disc))) / g : 5;
-        const tRoll = Math.min(2.5, v0x / (0.22 * g));
-        const totalMotionTime = tLand + tRoll;
+        // 时长取「飞行时间」而非「飞行 + 滑行」: 引擎的 projectile 模型契约是
+        // 「落地即止」(tEnd = min(tLand, duration)), 轨迹在落点终止。
+        // 旧实现把 duration 撑到 tLand + tRoll, 时间轴末段物体静止不动 ——
+        // 动画时间轴与物理时间不一致 (#159 逐节审计 · 问题三)。
         const customDuration = params['duration'];
         const duration =
-            customDuration && customDuration !== 5
-                ? customDuration
-                : Math.max(1.0, Math.ceil(totalMotionTime * 20) / 20);
+            customDuration && customDuration !== 5 ? customDuration : Math.max(1.0, Math.ceil(tLand * 20) / 20);
         return {
             id: `projectile-${Date.now()}`,
             title: '抛体运动',

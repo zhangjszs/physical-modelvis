@@ -1,6 +1,7 @@
 import type { PhysicsProblem } from '../types/problem.js';
 import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, ExplanationStep } from '../types/result.js';
 import type { ParameterSpec } from '../types/common.js';
+import { PHYSICS_CONSTANTS } from '../units/constants.js';
 import { PhysicsModelBase } from './base.js';
 
 /**
@@ -47,7 +48,8 @@ export class BrownianMotionModel extends PhysicsModelBase {
         const dt = bc.dt ?? 0.01;
         const nParticles = bc.nParticles ?? 1;
 
-        const kB = 1.381e-23; // J/K
+        // 引用 units/constants.js 单一真源 (#109)
+        const kB = PHYSICS_CONSTANTS.kB.value; // J/K
         // Stokes-Einstein 扩散系数
         const D = (kB * T) / (6 * Math.PI * eta * r);
 

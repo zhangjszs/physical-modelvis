@@ -153,12 +153,12 @@ export const waveOpticsRig: SceneRig = {
             sceneType: 'interference'
         };
 
-        this.updateEquipment(handles as unknown as Record<string, unknown>, params);
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        this.updateEquipment(handles, params);
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        const h = handles as unknown as WaveOpticsHandles;
+        const h = handles as WaveOpticsHandles;
         const wavelength = num(params['wavelength'] ?? params['lambda'], 632.8); // nm
         const slitWidth = num(params['slitWidth'] ?? params['slitDist'] ?? params['spacing'] ?? params['d'], 0.15); // mm
         const distance = num(params['distance'] ?? params['L'], 1.5); // m
@@ -221,7 +221,7 @@ export const waveOpticsRig: SceneRig = {
     },
 
     onAnimate(handles, ctx) {
-        const h = handles as unknown as WaveOpticsHandles;
+        const h = handles as WaveOpticsHandles;
         if (!h.fringeGroup) return;
 
         const { time } = ctx;

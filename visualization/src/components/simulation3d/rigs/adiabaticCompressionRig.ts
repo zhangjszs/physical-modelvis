@@ -123,15 +123,15 @@ export const adiabaticCompressionRig: SceneRig = {
         };
         updateAdiabatic(handles, params);
 
-        return { group, handles: handles as unknown as Record<string, unknown> };
+        return { group, handles };
     },
 
     updateEquipment(handles, params) {
-        updateAdiabatic(handles as unknown as AdiabaticHandles, params);
+        updateAdiabatic(handles as AdiabaticHandles, params);
     },
 
     onAnimate(handles, ctx) {
-        const h = handles as unknown as AdiabaticHandles;
+        const h = handles as AdiabaticHandles;
         if (!h.pistonGroup || !h.gasMesh) return;
 
         // 快速下压循环 (周期 3.0s: 2.2s 缓慢复位, 0.3s 极速下压压缩, 0.5s 闪燃停留)

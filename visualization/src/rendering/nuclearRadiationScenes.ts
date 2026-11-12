@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 近代物理场景渲染模块 — 选必三 第五章 原子核与粒子
  *
  * 场景列表：
@@ -23,7 +23,7 @@ import {
     roundRectPath,
     drawInfoBar
 } from './renderingUtils';
-import { E_CHARGE } from './constants';
+import { E_CHARGE, ELECTRON_MASS } from './constants';
 
 export interface ModernSceneOptions {
     ctx: CanvasRenderingContext2D;
@@ -210,7 +210,7 @@ export function drawRadiationDeflectionScene(o: ModernSceneOptions): void {
     const typeName = pt === 1 ? 'β⁻(电子)' : pt === 2 ? 'γ(光子)' : 'α(氦核)';
     const K_J = K_MeV * 1e6 * E_CHARGE;
     const q = pt === 1 ? -E_CHARGE : pt === 2 ? 0 : 2 * E_CHARGE;
-    const m = pt === 1 ? 9.109e-31 : pt === 2 ? 0 : 4 * 1.6605e-27;
+    const m = pt === 1 ? ELECTRON_MASS : pt === 2 ? 0 : 4 * 1.6605e-27;
     const color = pt === 1 ? COL.green : pt === 2 ? COL.gray : COL.orange;
 
     const fieldX = w * 0.3,

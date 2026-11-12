@@ -58,7 +58,8 @@ export const photoelectricScene: SceneConfig = {
             ],
             constraints: { photoelectric: { workFunction, freqMinTHz, freqMaxTHz } },
             environment: {},
-            timeConfig: makeTimeSeries(1, 10, 0.1)
+            // 6s 演示时间轴：与 3D 装置的频率扫描周期一致，2D 板书播放时同步扫频
+            timeConfig: makeTimeSeries(6, 120)
         };
     }
 };

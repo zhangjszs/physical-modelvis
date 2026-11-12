@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 热学场景渲染模块 — 选必三 第一章 分子动理论
  *
  * 场景列表：
@@ -22,6 +22,7 @@ import {
     drawMiniChart,
     drawThermalArrow
 } from './renderingUtils';
+import { K_BOLTZMANN } from './constants';
 
 export interface ThermalSceneOptions {
     ctx: CanvasRenderingContext2D;
@@ -236,7 +237,7 @@ export function drawBrownianScene(o: ThermalSceneOptions): void {
     const T = params['liquidTemp'] ?? 300;
     const eta = params['fluidViscosity'] ?? 1.0;
     const nParts = params['nParticles'] ?? 10;
-    const kB = 1.381e-23; // 与引擎 brownian-motion.ts 同值 (Stokes-Einstein), 回退公式零漂移
+    const kB = K_BOLTZMANN; // 与引擎 brownian-motion.ts 同值 (Stokes-Einstein), 引用单一真源 (#109)
     /**
      * 扩散系数 D: 优先读引擎 maxValues.diffusionCoeff (Stokes-Einstein),
      * 无引擎结果回退本地公式 (kB·T/(6πηr), η/r 单位换算与 buildProblem 一致)。
