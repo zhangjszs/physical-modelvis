@@ -113,6 +113,41 @@ describe('compositionStore 组合实验台状态', () => {
         expect(selectedId).toBeNull();
     });
 
+    it('select 纯选中 (#166 S-5): 不动 sources/result 引用/fieldLineRevision (A-4 store 面)', () => {
+        useCompositionStore.getState().addSource('point-charge');
+        const id = useCompositionStore.getState().sources[0]!.id;
+        const before = useCompositionStore.getState().result;
+        const revision = useCompositionStore.getState().fieldLineRevision;
+        useCompositionStore.getState().select(id);
+        expect(useCompositionStore.getState().selectedId).toBe(id);
+        useCompositionStore.getState().select(null);
+        expect(useCompositionStore.getState().selectedId).toBeNull();
+        // 纯选中/取消选中: 位置不变、结果引用不变、场线版本不变
+        expect(useCompositionStore.getState().result).toBe(before);
+        expect(useCompositionStore.getState().fieldLineRevision).toBe(revision);
+    });
+
+    it('hover 纯 UI (#166 S-6): setHover 不重仿真、不自增 fieldLineRevision; 悬停被删器材时自动清空', () => {
+        useCompositionStore.getState().addSource('point-charge');
+        useCompositionStore.getState().addSource('straight-wire');
+        const q1 = useCompositionStore.getState().sources[0]!.id;
+        const w1 = useCompositionStore.getState().sources[1]!.id;
+        const before = useCompositionStore.getState().result;
+        const revision = useCompositionStore.getState().fieldLineRevision;
+
+        useCompositionStore.getState().setHover(w1);
+        expect(useCompositionStore.getState().hoverId).toBe(w1);
+        useCompositionStore.getState().setHover(null);
+        expect(useCompositionStore.getState().hoverId).toBeNull();
+        expect(useCompositionStore.getState().result).toBe(before);
+        expect(useCompositionStore.getState().fieldLineRevision).toBe(revision);
+
+        // 删除正被悬停的器材 → 悬停指向自动清空 (不残留失效 id)
+        useCompositionStore.getState().setHover(q1);
+        useCompositionStore.getState().removeSource(q1);
+        expect(useCompositionStore.getState().hoverId).toBeNull();
+    });
+
     it('各类器材默认参数全部通过引擎校验 (可添加即可用)', () => {
         const kinds = Object.keys(SOURCE_DEFAULTS) as Array<keyof typeof SOURCE_DEFAULTS>;
         for (const kind of kinds) {

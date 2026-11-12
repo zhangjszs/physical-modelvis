@@ -87,6 +87,11 @@ let nextId = 1;
 interface CompositionState {
     sources: PlacedSource[];
     selectedId: string | null;
+    /**
+     * 悬停器材 id (#166 P0 S-6): 3D hover 与器材列表行 hover 的双向联动字段。
+     * 纯 UI 状态 — 写入不触发重仿真、不自增 fieldLineRevision (规格 §6.1)。
+     */
+    hoverId: string | null;
     /** 当前激活的预设实验模板 ID (null = 空白台或已自定义) */
     activeTemplateId: string | null;
     particle: CompositionParticle;
@@ -116,6 +121,8 @@ interface CompositionState {
     updateSourceVector: (id: string, key: 'size' | 'field', patch: Partial<Vector3D>) => void;
     removeSource: (id: string) => void;
     select: (id: string | null) => void;
+    /** 设置悬停器材 (null = 移出); 纯 UI, 不触发重仿真/场线刷新 */
+    setHover: (id: string | null) => void;
     setParticle: (patch: Partial<CompositionParticle>) => void;
     setDuration: (duration: number) => void;
     toggleElectricFieldLines: () => void;
@@ -149,6 +156,7 @@ function recompute(state: CompositionState): Partial<CompositionState> {
 export const useCompositionStore = create<CompositionState>((set, get) => ({
     sources: [],
     selectedId: null,
+    hoverId: null,
     particle: { ...PARTICLE_DEFAULT },
     duration: DURATION_DEFAULT,
     sampleCount: SAMPLE_COUNT_DEFAULT,
@@ -230,6 +238,7 @@ export const useCompositionStore = create<CompositionState>((set, get) => ({
             const next: Partial<CompositionState> = {
                 sources: s.sources.filter(p => p.id !== id),
                 selectedId: s.selectedId === id ? null : s.selectedId,
+                hoverId: s.hoverId === id ? null : s.hoverId,
                 activeTemplateId: null,
                 fieldLineRevision: s.fieldLineRevision + 1
             };
@@ -238,6 +247,7 @@ export const useCompositionStore = create<CompositionState>((set, get) => ({
     },
 
     select: id => set({ selectedId: id }),
+    setHover: id => set({ hoverId: id }),
 
     setParticle: patch => {
         set(s => {
@@ -289,6 +299,7 @@ export const useCompositionStore = create<CompositionState>((set, get) => ({
         set(s => ({
             sources: [],
             selectedId: null,
+            hoverId: null,
             activeTemplateId: null,
             particle: { ...PARTICLE_DEFAULT },
             duration: DURATION_DEFAULT,

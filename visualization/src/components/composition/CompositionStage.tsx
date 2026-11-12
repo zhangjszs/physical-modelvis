@@ -6,6 +6,15 @@ import { useCompositionStore } from '../../store/compositionStore';
 import { makeSourceMesh, updateSourceMesh } from './sourceMeshes';
 import { buildFieldLines, fieldArrowPlacements, effectiveFieldLineDensity } from './fieldLines';
 import type { FieldKind } from './fieldLineSeeds';
+import {
+    buildPickStack,
+    resolvePick,
+    movedPastThreshold,
+    sourceDisplayName,
+    type PickCandidate,
+    type PickHitInput,
+    type PickCycleState
+} from './picking';
 import { makeArrow, makeLine, disposeObject } from '../simulation3d/primitives';
 import { applyShadowQuality } from '../simulation3d/shadowQuality';
 import { physicsToWorld, worldToPhysics, snapVector } from '../../utils/compositionCoords';
@@ -14,13 +23,16 @@ import { physicsToWorld, worldToPhysics, snapVector } from '../../utils/composit
  * CompositionStage — 组合实验台的 3D 交互舞台 (L4) + 场线渲染 (L5)。
  *
  * 沿用 3D 引擎的 build-once / mutate-via-refs / render-in-rAF 模式:
- * - 器材网格随 store 的 sources/selectedId 对账 (增/删/原位更新)
+ * - 器材网格随 store 的 sources/selectedId/hoverId 对账 (增/删/原位更新)
  * - 轨迹线随 result 重建, 粒子小球在 rAF 里沿引擎轨迹循环播放
  * - 场线只依赖 sources, 订阅 fieldLineRevision 后按 100ms 节流重建,
  *   拖拽中实时跟手 (E/B 色系区分; 闭环 3 枚 / 开放线 1 枚方向箭头);
  *   密度档位 #93: 拖拽中封顶 1× 保跟手, 松手恢复配置档 (2× 全量重追踪较贵)
- * - 指针交互: 点击选中, 按住拖拽 (水平面投影 + 0.05m 网格吸附),
- *   拖拽期间关闭 OrbitControls, 松手 commit 重仿真
+ * - 指针交互 (#166 P0): 点击选中 (候选栈 + 同点循环 + 容器穿透), 按住拖动
+ *   (4 px 阈值区分点击/拖拽 — 纯点击不移动不重仿真; 水平面投影 + 0.05m 网格吸附,
+ *   拖拽平面高度取器材组原点, 不取命中子网格), 悬停 grab 光标 + 轻量高亮,
+ *   选中态 = 自发光 + BoxHelper 包围盒 + DOM 名称徽标 (与器材列表行同步)。
+ *   拖拽期间关闭 OrbitControls, 松手 commit 重仿真。
  */
 
 /** 电场线 / 磁场线色系 (与轨迹蓝、器材色区分) */
@@ -36,11 +48,18 @@ const FIELD_ARROW_LENGTH = 0.12;
 const FIELD_ARROW_HEAD_LENGTH = 0.07;
 const FIELD_ARROW_HEAD_WIDTH = 0.045;
 
-interface DragState {
+/** 选中包围盒颜色 (高对比琥珀, 与场线/器材色区分) */
+const SELECTION_BOX_COLOR = 0xf59e0b;
+
+/** 按住的候选拖拽 — 4 px 阈值内视为纯点击 (S-5), 跨过后才真正拖动 */
+interface PendingDrag {
     readonly id: string;
-    /** 拖拽平面的世界高度 (保持器材原物理 z) */
+    readonly startX: number;
+    readonly startY: number;
+    /** 拖拽平面的世界高度 = 器材组原点 y (A-5: 不取命中子网格的世界坐标) */
     readonly planeY: number;
-    moved: boolean;
+    /** 是否已跨过阈值进入真实拖拽 (只有真实拖拽松手才 commit) */
+    started: boolean;
 }
 
 const SPEED_OPTIONS = [0.25, 0.5, 1, 1.5, 2] as const;
@@ -119,7 +138,7 @@ export function CompositionStage() {
 
         // 拖拽状态提前声明 — rebuildFieldLines 需要它判断拖拽期密度封顶 (#93),
         // 初始重建发生在下方赋值之前, 不可放到拖拽段再声明 (TDZ)
-        let drag: DragState | null = null;
+        let pendingDrag: PendingDrag | null = null;
 
         const rebuildFieldLines = () => {
             for (const child of [...fieldLinesGroup.children]) {
@@ -130,7 +149,7 @@ export function CompositionStage() {
                 useCompositionStore.getState();
             // 拖拽中封顶 1× (#93 性能护栏): 2× 重场景全量重追踪约 260ms (Node 实测),
             // 连续指针事件会持续过载; 松手后 onPointerUp 恢复配置档位。
-            const density = effectiveFieldLineDensity(fieldLineDensity, drag !== null);
+            const density = effectiveFieldLineDensity(fieldLineDensity, pendingDrag !== null);
             const sourceList = sources.map(p => p.source);
             const kinds: FieldKind[] = [];
             if (showElectricFieldLines) kinds.push('electric');
@@ -177,16 +196,81 @@ export function CompositionStage() {
         particleBall.visible = false;
         scene.add(particleBall);
 
-        // --- 对账: store sources/selectedId → 网格增删改 ---
+        // --- 对账: store sources/selectedId/hoverId → 网格增删改 + 选中包围盒 ---
         const meshes = new Map<string, THREE.Group>();
+
+        // 选中包围盒 (S-7): BoxHelper 跟随器材, 深度测试关闭 → 被遮挡器材选中时轮廓仍可见 (A-3)
+        let selectionBox: THREE.BoxHelper | null = null;
+        let selectionBoxTarget: THREE.Object3D | null = null;
+        const updateSelectionBox = () => {
+            const { selectedId } = useCompositionStore.getState();
+            const target = selectedId !== null ? (meshes.get(selectedId) ?? null) : null;
+            if (target !== selectionBoxTarget) {
+                if (selectionBox !== null) {
+                    scene.remove(selectionBox);
+                    selectionBox.geometry.dispose();
+                    (selectionBox.material as THREE.Material).dispose();
+                    selectionBox = null;
+                }
+                selectionBoxTarget = target;
+                if (target !== null) {
+                    selectionBox = new THREE.BoxHelper(target, SELECTION_BOX_COLOR);
+                    const lineMat = selectionBox.material as THREE.LineBasicMaterial;
+                    lineMat.depthTest = false;
+                    selectionBox.renderOrder = 999;
+                    scene.add(selectionBox);
+                }
+            }
+            if (selectionBox !== null) selectionBox.update();
+        };
+
+        // 名称徽标 (S-7/S-8): DOM overlay, 每帧把选中器材原点投影到屏幕坐标 (build-once)
+        const badge = document.createElement('div');
+        badge.className = 'composition-selection-badge';
+        badge.style.display = 'none';
+        container.appendChild(badge);
+        /** 最近一次点击循环的候选计数 (n/m), 供徽标显示「点电荷 #3 · 2/3」 */
+        let lastPickCount: { index: number; total: number } | null = null;
+        const badgeWorld = new THREE.Vector3();
+        const updateSelectionBadge = () => {
+            const { selectedId, sources } = useCompositionStore.getState();
+            const mesh = selectedId !== null ? meshes.get(selectedId) : undefined;
+            const placed = selectedId !== null ? (sources.find(p => p.id === selectedId) ?? null) : null;
+            if (!mesh || !placed) {
+                if (badge.style.display !== 'none') {
+                    badge.style.display = 'none';
+                    badge.textContent = '';
+                }
+                return;
+            }
+            mesh.getWorldPosition(badgeWorld);
+            const projected = badgeWorld.clone().project(camera);
+            if (projected.z < -1 || projected.z > 1) {
+                badge.style.display = 'none';
+                return;
+            }
+            const rect = renderer.domElement.getBoundingClientRect();
+            const x = (projected.x * 0.5 + 0.5) * rect.width;
+            const y = (-projected.y * 0.5 + 0.5) * rect.height;
+            const cycleTag =
+                lastPickCount !== null && lastPickCount.total > 1
+                    ? ` · ${lastPickCount.index + 1}/${lastPickCount.total}`
+                    : '';
+            const text = `${sourceDisplayName(placed)}${cycleTag}`;
+            if (badge.textContent !== text) badge.textContent = text;
+            badge.style.display = 'block';
+            badge.style.left = `${x}px`;
+            badge.style.top = `${y}px`;
+        };
+
         const reconcile = () => {
-            const { sources, selectedId } = useCompositionStore.getState();
+            const { sources, selectedId, hoverId } = useCompositionStore.getState();
             const alive = new Set<string>();
             for (const placed of sources) {
                 alive.add(placed.id);
                 const existing = meshes.get(placed.id);
                 if (existing) {
-                    updateSourceMesh(existing, placed, placed.id === selectedId);
+                    updateSourceMesh(existing, placed, placed.id === selectedId, placed.id === hoverId);
                 } else {
                     const mesh = makeSourceMesh(placed);
                     meshes.set(placed.id, mesh);
@@ -203,6 +287,7 @@ export function CompositionStage() {
                     meshes.delete(id);
                 }
             }
+            updateSelectionBox();
             dirtyRef.current = true;
         };
         reconcile();
@@ -305,11 +390,12 @@ export function CompositionStage() {
             }
         });
 
-        // --- 拖拽交互 ---
+        // --- 指针交互 (#166 P0): 点击选中(候选栈/同点循环/容器穿透) + 4 px 阈值拖拽 + hover ---
         const raycaster = new THREE.Raycaster();
         const pointer = new THREE.Vector2();
         const dragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-        // (drag 声明提前到 rebuildFieldLines 之前 — #93 拖拽期密度封顶需要)
+        // (pendingDrag 声明提前到 rebuildFieldLines 之前 — #93 拖拽期密度封顶需要)
+        let pickCycle: PickCycleState | null = null;
 
         const setPointerNdc = (event: PointerEvent) => {
             const rect = renderer.domElement.getBoundingClientRect();
@@ -326,49 +412,132 @@ export function CompositionStage() {
             return null;
         };
 
+        /** 命中对象沿父链解析拾取角色: zone-volume = 匀强磁场区盒面 (容器, 候选栈降权) */
+        const findPickRole = (hit: THREE.Object3D): 'source' | 'zone-volume' => {
+            let node: THREE.Object3D | null = hit;
+            while (node) {
+                if (node.userData.pickRole === 'zone-volume') return 'zone-volume';
+                node = node.parent;
+            }
+            return 'source';
+        };
+
+        const toPickHits = (hits: THREE.Intersection[]): PickHitInput[] =>
+            hits.map(h => ({
+                sourceId: findSourceId(h.object),
+                pickRole: findPickRole(h.object),
+                distance: h.distance
+            }));
+
+        const raycastPickStack = (): PickCandidate[] => {
+            const hits = raycaster.intersectObjects(sourcesGroup.children, true);
+            return buildPickStack(toPickHits(hits), useCompositionStore.getState().sources);
+        };
+
         const onPointerDown = (event: PointerEvent) => {
+            // 只响应主键/触摸: 右键平移、滚轮缩放留给 OrbitControls (提示文案 §4.3.6)
+            if (event.button !== 0) return;
             setPointerNdc(event);
             raycaster.setFromCamera(pointer, camera);
-            const hits = raycaster.intersectObjects(sourcesGroup.children, true);
-            const hit = hits[0];
-            const id = hit ? findSourceId(hit.object) : null;
-            if (id && hit) {
-                useCompositionStore.getState().select(id);
-                const worldY = hit.object.getWorldPosition(new THREE.Vector3()).y;
-                drag = { id, planeY: worldY, moved: false };
-                dragPlane.constant = -worldY;
+            const stack = raycastPickStack();
+            const resolution = resolvePick(
+                stack,
+                { x: event.clientX, y: event.clientY },
+                pickCycle,
+                useCompositionStore.getState().selectedId
+            );
+            const picked = resolution.picked;
+            if (picked !== null) {
+                useCompositionStore.getState().select(picked.id);
+                pickCycle = resolution.cycle;
+                lastPickCount = { index: resolution.cycle!.index, total: stack.length };
+                // 拖拽平面高度取器材组原点 (A-5): 命中子网格 (磁铁半段/盒箭头) 带局部偏移, 会造成首帧高度跳变
+                const mesh = meshes.get(picked.id);
+                const planeY = mesh !== undefined ? mesh.position.y : 0;
+                pendingDrag = { id: picked.id, startX: event.clientX, startY: event.clientY, planeY, started: false };
+                dragPlane.constant = -planeY;
+                // 命中器材即抢占本轮指针 (纯点击也短暂禁 OrbitControls, 松手恢复);
+                // 空白处不抢占 → 左键旋转视角
                 controls.enabled = false;
                 renderer.domElement.setPointerCapture(event.pointerId);
             } else {
                 useCompositionStore.getState().select(null);
+                pickCycle = null;
+                lastPickCount = null;
+            }
+        };
+
+        // hover 反馈 (S-6): rAF 合并每帧最多一次射线检测; 不与拖拽同时跑 (§6.3)
+        let hoverRaf = 0;
+        let hoverPointerEvent: PointerEvent | null = null;
+        const scheduleHover = (event: PointerEvent) => {
+            hoverPointerEvent = event;
+            if (hoverRaf !== 0) return;
+            hoverRaf = requestAnimationFrame(() => {
+                hoverRaf = 0;
+                const ev = hoverPointerEvent;
+                if (ev === null || pendingDrag !== null) return;
+                setPointerNdc(ev);
+                raycaster.setFromCamera(pointer, camera);
+                const stack = raycastPickStack();
+                const topId = stack.length > 0 ? stack[0]!.id : null;
+                if (topId !== useCompositionStore.getState().hoverId) {
+                    useCompositionStore.getState().setHover(topId);
+                    renderer.domElement.style.cursor = topId !== null ? 'grab' : '';
+                }
+            });
+        };
+
+        const onPointerLeave = () => {
+            hoverPointerEvent = null;
+            if (useCompositionStore.getState().hoverId !== null) {
+                useCompositionStore.getState().setHover(null);
+                renderer.domElement.style.cursor = '';
             }
         };
 
         const onPointerMove = (event: PointerEvent) => {
-            if (!drag) return;
-            setPointerNdc(event);
-            raycaster.setFromCamera(pointer, camera);
-            const hitPoint = new THREE.Vector3();
-            if (!raycaster.ray.intersectPlane(dragPlane, hitPoint)) return;
-            const physics = worldToPhysics({ x: hitPoint.x, y: drag.planeY, z: hitPoint.z });
-            useCompositionStore.getState().moveSource(drag.id, snapVector(physics));
-            drag.moved = true;
-            dirtyRef.current = true;
+            if (pendingDrag !== null) {
+                if (!pendingDrag.started) {
+                    // 4 px 阈值内视为纯点击: 不移动、不重仿真 (S-5 / A-4)
+                    if (
+                        !movedPastThreshold(
+                            { x: pendingDrag.startX, y: pendingDrag.startY },
+                            { x: event.clientX, y: event.clientY }
+                        )
+                    ) {
+                        return;
+                    }
+                    pendingDrag.started = true;
+                }
+                setPointerNdc(event);
+                raycaster.setFromCamera(pointer, camera);
+                const hitPoint = new THREE.Vector3();
+                if (!raycaster.ray.intersectPlane(dragPlane, hitPoint)) return;
+                const physics = worldToPhysics({ x: hitPoint.x, y: pendingDrag.planeY, z: hitPoint.z });
+                useCompositionStore.getState().moveSource(pendingDrag.id, snapVector(physics));
+                dirtyRef.current = true;
+            } else {
+                scheduleHover(event);
+            }
         };
 
         const onPointerUp = (event: PointerEvent) => {
-            const wasMoved = drag?.moved ?? false;
-            drag = null;
+            const wasDrag = pendingDrag?.started ?? false;
+            pendingDrag = null;
             controls.enabled = true;
-            if (wasMoved) useCompositionStore.getState().commit();
-            // 拖拽期间密度封顶 1× 时, 松手立即全量重建恢复配置档位 (#93)
-            if (useCompositionStore.getState().fieldLineDensity > 1) {
-                if (fieldLineTimer !== null) {
-                    window.clearTimeout(fieldLineTimer);
-                    fieldLineTimer = null;
+            // 只有跨过阈值的真实拖拽才 commit 重仿真; 纯点击不触发 (A-4)
+            if (wasDrag) {
+                useCompositionStore.getState().commit();
+                // 拖拽期间密度封顶 1× 时, 松手立即全量重建恢复配置档位 (#93)
+                if (useCompositionStore.getState().fieldLineDensity > 1) {
+                    if (fieldLineTimer !== null) {
+                        window.clearTimeout(fieldLineTimer);
+                        fieldLineTimer = null;
+                    }
+                    rebuildFieldLines();
+                    lastFieldLineBuild = performance.now();
                 }
-                rebuildFieldLines();
-                lastFieldLineBuild = performance.now();
             }
             if (renderer.domElement.hasPointerCapture(event.pointerId)) {
                 renderer.domElement.releasePointerCapture(event.pointerId);
@@ -379,6 +548,7 @@ export function CompositionStage() {
         renderer.domElement.addEventListener('pointerdown', onPointerDown);
         renderer.domElement.addEventListener('pointermove', onPointerMove);
         renderer.domElement.addEventListener('pointerup', onPointerUp);
+        renderer.domElement.addEventListener('pointerleave', onPointerLeave);
 
         // --- 尺寸自适应 ---
         const resize = () => {
@@ -402,6 +572,10 @@ export function CompositionStage() {
             const dt = Math.min((ts - lastTs) / 1000, 0.05);
             lastTs = ts;
             controls.update();
+
+            // 选中反馈跟随 (相机转动/拖拽移动时): 包围盒 + 名称徽标 (成本一次 AABB + 一次投影)
+            updateSelectionBox();
+            updateSelectionBadge();
 
             const playing = isPlayingRef.current;
             const hasTraj = trajectory.length > 1;
@@ -430,6 +604,7 @@ export function CompositionStage() {
         // --- 清理 ---
         return () => {
             cancelAnimationFrame(raf);
+            if (hoverRaf !== 0) cancelAnimationFrame(hoverRaf);
             if (fieldLineTimer !== null) window.clearTimeout(fieldLineTimer);
             if (observer) observer.disconnect();
             unsubscribeStore();
@@ -438,6 +613,13 @@ export function CompositionStage() {
             renderer.domElement.removeEventListener('pointerdown', onPointerDown);
             renderer.domElement.removeEventListener('pointermove', onPointerMove);
             renderer.domElement.removeEventListener('pointerup', onPointerUp);
+            renderer.domElement.removeEventListener('pointerleave', onPointerLeave);
+            badge.remove();
+            if (selectionBox !== null) {
+                scene.remove(selectionBox);
+                selectionBox.geometry.dispose();
+                (selectionBox.material as THREE.Material).dispose();
+            }
             controls.dispose();
             scene.traverse(child => {
                 const m = child as THREE.Mesh;
