@@ -1,13 +1,13 @@
 # STATE
-- 更新时间：2026-11-11T14:58:00Z
-- 当前任务：#166 第 1 步「规格文档入库」已完成（不领取整单，标签维持 needs-info）；#166 主体实现维持 needs-info（D68 默认窗口已过、无用户答复，待 Planner 转正拆 ready）；#44 维持 blocked（parked）；#167 auto-discovered（CI Playwright 安装步骤无重试，DNS 抖动即假红）待 Planner 定级；今日队列已清空
-- 分支：main
-- 未完成工作：无代码半成品；远端 CI 因 GitHub runner DNS 事故全部假红（见下），待环境恢复后由 Planner rerun 或下次自然 push 自证
-- 最近提交：`e8dacb4` docs(spec) 规格入库（Refs #166）→ `8599d89` chore(agent) 状态收尾；均已推送
+- 更新时间：2026-11-12T15:15:51Z
+- 当前任务：无（空队列轮次：D67 唯一动作已于 11-11 完成；Issue 实拉无 ready——#166 needs-info 待 D68 转正、#44 blocked·parked、#167 auto-discovered 待定级；无半成品可恢复）
+- 分支：main（`2bc6aa8`，已与远端同步）
+- 未完成工作：无代码半成品；本轮收尾 push 触发的 CI run 终态留下一棒复核（同构变更 8599d89 已验证会绿，预期绿）
+- 最近提交：`2bc6aa8` chore(agent) CI 假红事故处置记录（上一棒终态，已推送）
 - 验证结果：
-  - 本地权威：两次 push 的 pre-push 钩子完整 precheck 全绿（typecheck/lint/format/test/count/selfcheck/build/bundle/dry-run），自检「11 层: 11 PASS, 0 FAIL」×2，未 --no-verify、未 force-push
-  - 远端 CI：`43035594608`@e8dacb4 与 `43036235696`@8599d89 **各 3 个 attempt 共 6 次全败**于「安装 Playwright Chromium」，一律 `Temporary failure resolving 'archive.ubuntu.com'`（runner 侧 apt DNS 故障）；每次 attempt 前 16 道门禁全绿；与提交无关（纯 docs/.agent 变更，ci.yml 未动，e2ce6fc 上一绿）；Deploy 被 skip 但 Pages 内容不受影响
-  - 处置：rerun 3 轮已尽力，停止硬闯；证据与运维要点全录 #167（issuecomment-6799184222）
-- 今日日报：已写（`.agent/DIARY/2026-11-11.md`，含同日追加更正节）
-- 已知环境限制：npm/node 需 mise shims；`gh run rerun` 须 `env -u GH_TOKEN`（ghu_ 集成 token 缺 actions:write，gho_ 可用）；GitHub runner DNS 事故期间 CI 必假红（本日 14:08~14:47+ 实测）；libselinux 告警为容器噪音
+  - 现场核查：`git fetch/pull --rebase` up to date；`gh issue list` 与 TASKS.md 镜像一致（无新 ready）
+  - **runner 已恢复**：`gh run list` 显示 2026-11-12T00:56:17Z QA 场景巡检 success（与假红共用 Playwright 安装步骤）
+  - CI 复绿：`env -u GH_TOKEN gh run rerun 43035594608 --failed` 与同法 `43036235696`（均 exit 0）→ **双双 success**（15:15Z 前后复核）；连锁触发 Deploy `43245301041` / `43245602954` 亦双 success——CI→Deploy→Pages 整链路复绿，main 全绿，上一棒遗留环境阻塞项解除
+- 今日日报：已建 `.agent/DIARY/2026-11-12.md`（rerun 终态以追加行补全）
+- 已知环境限制：npm/node 需 mise shims；`gh run rerun` 须 `env -u GH_TOKEN`（ghu_ 集成 token 缺 actions:write，hosts.yml gho_ 可用，本轮已复核）；libselinux 告警为容器噪音
 - 契约 1.2 提示：未发现 `.agent/LOCK` 残留；串行不使用锁
