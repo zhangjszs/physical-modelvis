@@ -1,13 +1,15 @@
 # STATE
-- 更新时间：2026-11-12T15:15:51Z
+- 更新时间：2026-11-12T15:24:00Z
 - 当前任务：无（空队列轮次：D67 唯一动作已于 11-11 完成；Issue 实拉无 ready——#166 needs-info 待 D68 转正、#44 blocked·parked、#167 auto-discovered 待定级；无半成品可恢复）
-- 分支：main（`2bc6aa8`，已与远端同步）
-- 未完成工作：无代码半成品；本轮收尾 push 触发的 CI run 终态留下一棒复核（同构变更 8599d89 已验证会绿，预期绿）
-- 最近提交：`2bc6aa8` chore(agent) CI 假红事故处置记录（上一棒终态，已推送）
+- 分支：main（`2d484ce` + 终态追加收尾小提交，均已推送）
+- 未完成工作：无代码半成品；第二次收尾 push 触发的 CI run 预期绿（同构 `.agent` 变更已三次验证），留下一棒顺手复核
+- 最近提交：`2d484ce` chore(agent) 2026-11-12 空队列轮次收尾（CI 假红 rerun 双绿 + Deploy 连锁复绿）
 - 验证结果：
   - 现场核查：`git fetch/pull --rebase` up to date；`gh issue list` 与 TASKS.md 镜像一致（无新 ready）
   - **runner 已恢复**：`gh run list` 显示 2026-11-12T00:56:17Z QA 场景巡检 success（与假红共用 Playwright 安装步骤）
-  - CI 复绿：`env -u GH_TOKEN gh run rerun 43035594608 --failed` 与同法 `43036235696`（均 exit 0）→ **双双 success**（15:15Z 前后复核）；连锁触发 Deploy `43245301041` / `43245602954` 亦双 success——CI→Deploy→Pages 整链路复绿，main 全绿，上一棒遗留环境阻塞项解除
-- 今日日报：已建 `.agent/DIARY/2026-11-12.md`（rerun 终态以追加行补全）
+  - CI 复绿：`env -u GH_TOKEN gh run rerun 43035594608 --failed` 与同法 `43036235696`（均 exit 0）→ **双双 success**；连锁 Deploy `43245301041` / `43245602954` 亦双 success
+  - 本轮 push：`2d484ce` 触发 CI run `43246378520` → **success**（3m32s）+ 连锁 Deploy `43247028394` → **success**；「runner 恢复后 main push 会绿」自证完成，main 全绿
+  - 本地权威：`2d484ce` push 的 pre-push 钩子完整 precheck **全绿**（build/typecheck/lint/format/test/count/build:viz/check:bundle/selfcheck，自检「11 层: 11 PASS, 0 FAIL」，未 --no-verify）
+- 今日日报：已建 `.agent/DIARY/2026-11-12.md`（含 rerun 终态 + push 终态与更正两节追加）
 - 已知环境限制：npm/node 需 mise shims；`gh run rerun` 须 `env -u GH_TOKEN`（ghu_ 集成 token 缺 actions:write，hosts.yml gho_ 可用，本轮已复核）；libselinux 告警为容器噪音
 - 契约 1.2 提示：未发现 `.agent/LOCK` 残留；串行不使用锁
