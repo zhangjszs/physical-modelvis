@@ -1,7 +1,8 @@
 # TASKS（GitHub Issue 本地镜像）
 
 > Planner 整体重写 · 2026-11-06 · D67。GitHub Issues 可读写，为唯一权威；Executor 先改 Issue，再同步本文件状态。
-> 开放 2 单：needs-info 1（#166）+ blocked 1（#44）；ready / in-progress / in-review / P0 = 0，P1 = 1（#166，未过 ready 门禁）。
+> Executor 状态同步 · 2026-11-13：**D68 用户已答复（会话内确认「好的，执行吧」= 按预注册默认 A）**，#166 领取执行 P0 期后转 **in-review**（执行报告见 issuecomment-6829483557）；#44 / #167 维持原状。
+> 开放 3 单：#166 in-review + #44 blocked·parked + #167 auto-discovered 待定级。
 > ready 对应 `ready-for-agent`，done 对应 CLOSED；parked 只是冻结属性，不是第二生命周期。
 
 ## 本轮验收与来源
@@ -22,10 +23,12 @@
 - 动作：将未跟踪的 `docs/composition-selection-placement-spec.md` **原样** `docs:` 提交入库（单独 commit），保护草稿不丢失；不改内容、不加标签转移、不开始实现。
 - 其余范围（P0 选中改造 → P1 可控放置，A-1~A-7 / B-1~B-10 验收）等 D68 用户确认后由 Planner 转 ready。
 
-### 2. #166 · 主体实现（阻塞，禁止开工）
+### 2. #166 · 主体实现 — P0 期已交付，**in-review**（2026-11-13）
 
-- needs-info：规格 §8 七问（高度语义 / 有意重叠 / 触屏地位 / 多选 / 撤销范围 / 命名 / 容器拾取）待用户拍板。
-- 用户确认后 Planner 下一轮按 §7.3 分期拆 ready 并过 4.2 七门禁；在此之前不改 `compositionStore` / `CompositionStage` / `CompositionLab`。
+- Issue：[#166](https://github.com/zhangjszs/physical_modelvis/issues/166)；状态：**in-review**；优先级：P1。
+- 2026-11-13 用户答复确认 D68 = A（按规格 Draft v1 执行，§8 七问按自带建议）；Executor 代行领取（Planner 缺位 2 天，用户直接授权，领取依据见 issuecomment-6828730790）。
+- **P0 期完成**：候选栈/同点循环/容器穿透、4px 点击拖拽分离（A-4）、悬停/包围盒/名称徽标、器材列表（S-4/S-8/A-7）、提示文案修正。commit `c049509`（merge `0c754e0` @ main，已推送）；precheck 全绿（viz 2004 + core 1181 = 3185，+27 测试）；探针浏览器实跑因本机 chromium libatspi 崩溃记为环境阻塞（CI 复跑）。执行报告：issuecomment-6829483557。
+- **P1 期（B-* 可控放置：ghost/自动避让/撤销/高度/Alt 菜单/聚焦）未开工**，待 Planner 拆期。
 
 ## 冻结 / 不可领取
 

@@ -1,15 +1,13 @@
 # STATE
-- 更新时间：2026-11-12T15:24:00Z
-- 当前任务：无（空队列轮次：D67 唯一动作已于 11-11 完成；Issue 实拉无 ready——#166 needs-info 待 D68 转正、#44 blocked·parked、#167 auto-discovered 待定级；无半成品可恢复）
-- 分支：main（`2d484ce` + 终态追加收尾小提交，均已推送）
-- 未完成工作：无代码半成品；第二次收尾 push 触发的 CI run 预期绿（同构 `.agent` 变更已三次验证），留下一棒顺手复核
-- 最近提交：`2d484ce` chore(agent) 2026-11-12 空队列轮次收尾（CI 假红 rerun 双绿 + Deploy 连锁复绿）
+- 更新时间：2026-11-13（本地日期；当日会话收尾中）
+- 当前任务：#166 P0 期「选中改造」**已完成 → in-review**（用户 2026-11-13 会话答复确认 D68=A；Planner 缺位 2 天，Executor 代行领取，依据见 issuecomment-6828730790）；P1 期（B-* 可控放置）未开工待 Planner 拆期；#44 blocked·parked / #167 auto-discovered 待定级维持
+- 分支：main（merge `0c754e0`，任务分支 `agent/issue-166-p0-selection` 已合并删除）
+- 未完成工作：无代码半成品；探针浏览器实跑环境阻塞（本机 chromium libatspi 符号崩溃），断言待 CI 复核；push 触发的远端 CI run 终态待下一棒复核
+- 最近提交：`0c754e0` Merge #166 P0 ← `c049509` feat(composition) #166 P0 器材选中改造（+823/−39，14 文件，含探针扩展与 count 回写）
 - 验证结果：
-  - 现场核查：`git fetch/pull --rebase` up to date；`gh issue list` 与 TASKS.md 镜像一致（无新 ready）
-  - **runner 已恢复**：`gh run list` 显示 2026-11-12T00:56:17Z QA 场景巡检 success（与假红共用 Playwright 安装步骤）
-  - CI 复绿：`env -u GH_TOKEN gh run rerun 43035594608 --failed` 与同法 `43036235696`（均 exit 0）→ **双双 success**；连锁 Deploy `43245301041` / `43245602954` 亦双 success
-  - 本轮 push：`2d484ce` 触发 CI run `43246378520` → **success**（3m32s）+ 连锁 Deploy `43247028394` → **success**；「runner 恢复后 main push 会绿」自证完成，main 全绿
-  - 本地权威：`2d484ce` push 的 pre-push 钩子完整 precheck **全绿**（build/typecheck/lint/format/test/count/build:viz/check:bundle/selfcheck，自检「11 层: 11 PASS, 0 FAIL」，未 --no-verify）
-- 今日日报：已建 `.agent/DIARY/2026-11-12.md`（含 rerun 终态 + push 终态与更正两节追加）
-- 已知环境限制：npm/node 需 mise shims；`gh run rerun` 须 `env -u GH_TOKEN`（ghu_ 集成 token 缺 actions:write，hosts.yml gho_ 可用，本轮已复核）；libselinux 告警为容器噪音
+  - 本地权威：完整 precheck 双绿（提交前 + push pre-push 钩子）——typecheck / lint 0 错误（19 既有 warning）/ format / test 3185（viz 2004 + core 1181，新增 27）/ count:sync 回写 / build / bundle / publish dry-run / 自检「11 层: 11 PASS, 0 FAIL」
+  - 探针：`verify-composition-interaction.mjs` 扩展 A-1/A-2/A-4/A-5/A-7 断言后本地实跑**环境阻塞**（chromium headless shell 启动崩 `libatspi.so.0: undefined symbol`，NO_AT_BRIDGE=1 无效、无系统浏览器）；DOM 面已由 compositionOutliner.test.tsx（jsdom 5 用例）+ picking.test.ts（18 用例）补位
+  - 远端：push `0c754e0` 触发的新 CI run 终态未确认（提交时运行中；判读指引：失败先看步骤是否「安装 Playwright Chromium」）
+- 今日日报：已写（`.agent/DIARY/2026-11-13.md`）
+- 已知环境限制：npm/node 需 mise shims；`gh` 写操作须 `env -u GH_TOKEN`；**本机 chromium headless 不可用（libatspi 崩溃，探针类本地实跑受限）**；libselinux 告警为容器噪音
 - 契约 1.2 提示：未发现 `.agent/LOCK` 残留；串行不使用锁
