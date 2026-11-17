@@ -91,6 +91,10 @@ describe('CompositionLab 选中器材检查器与方向更新集成', () => {
         const { container } = render(<CompositionLab onExit={() => {}} />);
 
         expect(screen.getByText('线圈轴向')).toBeDefined();
+        const selectedTag = container.querySelector('.composition-selected-tag');
+        expect(selectedTag).not.toBeNull();
+        expect(selectedTag!.textContent).toContain('圆形线圈 #1');
+        expect(selectedTag!.textContent).not.toContain('circular-coil-1');
         const numberInput = container.querySelector('.composition-direction-editor input[type="number"]');
         expect(numberInput).not.toBeNull();
 

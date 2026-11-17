@@ -5,6 +5,7 @@ import { NumberField } from '../common/NumberField';
 import { PanelSection } from '../common/PanelSection';
 import { DirectionEditor } from './DirectionEditor';
 import { COMPOSITION_TEMPLATES } from './compositionTemplates';
+import { KIND_LABEL, sourceDisplayName } from './picking';
 import type { FieldSource, Vector3D } from 'physics-core';
 
 type UniformFieldZone = Extract<FieldSource, { kind: 'uniform-field-zone' }>;
@@ -58,15 +59,6 @@ function getSourceDirection(source: FieldSource): { key: string; label: string; 
             return null;
     }
 }
-
-const KIND_LABEL: Record<SourceKind, string> = {
-    'point-charge': '点电荷',
-    'charged-plate': '带电平板',
-    'straight-wire': '载流导线',
-    'circular-coil': '圆形线圈',
-    'bar-magnet': '条形磁铁',
-    'uniform-field-zone': '匀强磁场区'
-};
 
 /** 场线密度档位 (#93): 与 fieldLineSeeds 的 FIELD_LINE_DENSITY 区间一致 */
 const DENSITY_OPTIONS: Array<{ value: number; label: string; title: string }> = [
@@ -248,7 +240,7 @@ export function CompositionLab({ onExit }: { onExit: () => void }) {
                     {selected && (
                         <>
                             <p className="composition-selected-tag">
-                                {KIND_LABEL[selected.source.kind]} · {selected.id}
+                                {sourceDisplayName(selected)}
                                 <button
                                     className="btn btn-sm btn-danger-text"
                                     onClick={() => removeSource(selected.id)}

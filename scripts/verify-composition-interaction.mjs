@@ -660,9 +660,15 @@ async function runProbe() {
         }
         console.log('✓ A-7 键盘链路: ↓↓ 移动 + Enter 选中 + Delete 删除全部生效');
 
-        // 16. A-4 纯点击不移动不重仿真: 选中点电荷 → 3D 原点点击 + 1-2 px 抖动再点击
-        await outlinerRows.nth(0).click(); // 点电荷 #1 (默认 x=-0.27, 远离盒)
+        // 16. A-4 纯点击不移动不重仿真: 先把点电荷 #1 (默认 x=-0.27 落于盒 [-0.34, 0.06] 内) 拖到盒外左侧空地, 再测 3D 点击 + 1-2 px 抖动
+        await outlinerRows.nth(0).click(); // 点电荷 #1
         await delay(200);
+        const chargeInitialPt = await badgeAnchorPoint();
+        await page.mouse.move(chargeInitialPt.x, chargeInitialPt.y);
+        await page.mouse.down();
+        await page.mouse.move(chargeInitialPt.x - 280, chargeInitialPt.y, { steps: 10 });
+        await page.mouse.up();
+        await delay(300);
         const chargePt = await badgeAnchorPoint();
         await ensurePaused(page);
         const timeBeforeClick = await timeLabel.innerText();
@@ -673,8 +679,11 @@ async function runProbe() {
         if (!badgeText.includes('点电荷 #1')) {
             throw new Error(`A-4 3D 点击未选中点电荷, 徽标: ${badgeText}`);
         }
-        // 1-2 px 抖动点击 (<4 px 阈值): 器材不移动、徽标位置不变、时间标签不变
-        await page.mouse.click(chargePt.x + 2, chargePt.y + 1);
+        // 1-2 px 抖动按压松手 (<4 px 阈值): 器材不移动、徽标位置不变、时间标签不变
+        await page.mouse.move(chargePt.x, chargePt.y);
+        await page.mouse.down();
+        await page.mouse.move(chargePt.x + 2, chargePt.y + 1, { steps: 2 });
+        await page.mouse.up();
         await delay(200);
         badgeText = await badge.innerText();
         if (!badgeText.includes('点电荷 #1')) {
@@ -692,7 +701,16 @@ async function runProbe() {
         }
         console.log('✓ A-4 纯点击 (含 1-2 px 抖动): 器材位置不变、选中保持、时间标签不变');
 
-        // 17. A-2 容器穿透: 把点电荷拖进盒中心 → 点击选中电荷(穿透); 拖出后再点击 → 选中盒
+        // 17. A-2 容器穿透: 先将默认相邻的圆形线圈 #3 (x=-0.01, R=0.15 会穿过盒心 x=-0.14) 移开, 再把点电荷拖进盒中心 → 点击选中电荷(穿透); 拖出后再点击 → 选中盒
+        await outlinerRows.nth(2).click(); // 圆形线圈 #3
+        await delay(200);
+        const coilInitialPt = await badgeAnchorPoint();
+        await page.mouse.move(coilInitialPt.x, coilInitialPt.y);
+        await page.mouse.down();
+        await page.mouse.move(coilInitialPt.x + 200, coilInitialPt.y + 60, { steps: 8 });
+        await page.mouse.up();
+        await delay(300);
+
         await outlinerRows.nth(1).click(); // 选中盒 → 徽标定位盒中心 (此时 focusIndex=1)
         await delay(200);
         const zonePt = await badgeAnchorPoint();

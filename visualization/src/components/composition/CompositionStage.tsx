@@ -8,9 +8,11 @@ import { buildFieldLines, fieldArrowPlacements, effectiveFieldLineDensity } from
 import type { FieldKind } from './fieldLineSeeds';
 import {
     buildPickStack,
+    decidePointerDownPick,
     resolvePick,
     movedPastThreshold,
     sourceDisplayName,
+    PICK_LINE_THRESHOLD_M,
     type PickCandidate,
     type PickHitInput,
     type PickCycleState
@@ -58,6 +60,8 @@ interface PendingDrag {
     readonly startY: number;
     /** 拖拽平面的世界高度 = 器材组原点 y (A-5: 不取命中子网格的世界坐标) */
     readonly planeY: number;
+    /** 同点重复点击暂不切换, 原地松手再循环到下一候选 (防止想拖动已选器材时先切走) */
+    readonly cycleOnClick: boolean;
     /** 是否已跨过阈值进入真实拖拽 (只有真实拖拽松手才 commit) */
     started: boolean;
 }
@@ -230,7 +234,9 @@ export function CompositionStage() {
         badge.style.display = 'none';
         container.appendChild(badge);
         /** 最近一次点击循环的候选计数 (n/m), 供徽标显示「点电荷 #3 · 2/3」 */
-        let lastPickCount: { index: number; total: number } | null = null;
+        let lastPickCount: { id: string; index: number; total: number } | null = null;
+        let pickCycle: PickCycleState | null = null;
+        let prevSourceIdsKey = '';
         const badgeWorld = new THREE.Vector3();
         const updateSelectionBadge = () => {
             const { selectedId, sources } = useCompositionStore.getState();
@@ -253,7 +259,7 @@ export function CompositionStage() {
             const x = (projected.x * 0.5 + 0.5) * rect.width;
             const y = (-projected.y * 0.5 + 0.5) * rect.height;
             const cycleTag =
-                lastPickCount !== null && lastPickCount.total > 1
+                lastPickCount !== null && lastPickCount.id === selectedId && lastPickCount.total > 1
                     ? ` · ${lastPickCount.index + 1}/${lastPickCount.total}`
                     : '';
             const text = `${sourceDisplayName(placed)}${cycleTag}`;
@@ -265,6 +271,12 @@ export function CompositionStage() {
 
         const reconcile = () => {
             const { sources, selectedId, hoverId } = useCompositionStore.getState();
+            const sourceIdsKey = sources.map(p => p.id).join('\0');
+            if (sourceIdsKey !== prevSourceIdsKey) {
+                prevSourceIdsKey = sourceIdsKey;
+                pickCycle = null;
+                lastPickCount = null;
+            }
             const alive = new Set<string>();
             for (const placed of sources) {
                 alive.add(placed.id);
@@ -392,16 +404,17 @@ export function CompositionStage() {
 
         // --- 指针交互 (#166 P0): 点击选中(候选栈/同点循环/容器穿透) + 4 px 阈值拖拽 + hover ---
         const raycaster = new THREE.Raycaster();
+        raycaster.params.Line.threshold = PICK_LINE_THRESHOLD_M;
         const pointer = new THREE.Vector2();
         const dragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-        // (pendingDrag 声明提前到 rebuildFieldLines 之前 — #93 拖拽期密度封顶需要)
-        let pickCycle: PickCycleState | null = null;
+        // (pendingDrag 与 pickCycle 声明已提前, 避免 TDZ)
 
-        const setPointerNdc = (event: PointerEvent) => {
+        const setPointerNdcFromClient = (clientX: number, clientY: number) => {
             const rect = renderer.domElement.getBoundingClientRect();
-            pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-            pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+            pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+            pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
         };
+        const setPointerNdc = (event: PointerEvent) => setPointerNdcFromClient(event.clientX, event.clientY);
 
         const findSourceId = (hit: THREE.Object3D): string | null => {
             let node: THREE.Object3D | null = hit;
@@ -440,31 +453,45 @@ export function CompositionStage() {
             setPointerNdc(event);
             raycaster.setFromCamera(pointer, camera);
             const stack = raycastPickStack();
-            const resolution = resolvePick(
+            const decision = decidePointerDownPick(
                 stack,
                 { x: event.clientX, y: event.clientY },
                 pickCycle,
                 useCompositionStore.getState().selectedId
             );
-            const picked = resolution.picked;
-            if (picked !== null) {
-                useCompositionStore.getState().select(picked.id);
-                pickCycle = resolution.cycle;
-                lastPickCount = { index: resolution.cycle!.index, total: stack.length };
-                // 拖拽平面高度取器材组原点 (A-5): 命中子网格 (磁铁半段/盒箭头) 带局部偏移, 会造成首帧高度跳变
-                const mesh = meshes.get(picked.id);
-                const planeY = mesh !== undefined ? mesh.position.y : 0;
-                pendingDrag = { id: picked.id, startX: event.clientX, startY: event.clientY, planeY, started: false };
-                dragPlane.constant = -planeY;
-                // 命中器材即抢占本轮指针 (纯点击也短暂禁 OrbitControls, 松手恢复);
-                // 空白处不抢占 → 左键旋转视角
-                controls.enabled = false;
-                renderer.domElement.setPointerCapture(event.pointerId);
-            } else {
+            if (decision.action === 'clear') {
                 useCompositionStore.getState().select(null);
                 pickCycle = null;
                 lastPickCount = null;
+                return;
             }
+            let activeId: string;
+            let cycleOnClick = false;
+            if (decision.action === 'defer-cycle') {
+                activeId = decision.activeId;
+                cycleOnClick = true;
+            } else {
+                activeId = decision.picked.id;
+                useCompositionStore.getState().select(activeId);
+                pickCycle = decision.cycle;
+                lastPickCount = { id: activeId, index: decision.cycle.index, total: stack.length };
+            }
+            // 拖拽平面高度取器材组原点 (A-5): 命中子网格 (磁铁半段/盒箭头) 带局部偏移, 会造成首帧高度跳变
+            const mesh = meshes.get(activeId);
+            const planeY = mesh !== undefined ? mesh.position.y : 0;
+            pendingDrag = {
+                id: activeId,
+                startX: event.clientX,
+                startY: event.clientY,
+                planeY,
+                cycleOnClick,
+                started: false
+            };
+            dragPlane.constant = -planeY;
+            // 命中器材即抢占本轮指针 (纯点击也短暂禁 OrbitControls, 松手恢复);
+            // 空白处不抢占 → 左键旋转视角
+            controls.enabled = false;
+            renderer.domElement.setPointerCapture(event.pointerId);
         };
 
         // hover 反馈 (S-6): rAF 合并每帧最多一次射线检测; 不与拖拽同时跑 (§6.3)
@@ -523,11 +550,14 @@ export function CompositionStage() {
         };
 
         const onPointerUp = (event: PointerEvent) => {
-            const wasDrag = pendingDrag?.started ?? false;
+            const pending = pendingDrag;
+            const wasDrag = pending?.started ?? false;
             pendingDrag = null;
             controls.enabled = true;
             // 只有跨过阈值的真实拖拽才 commit 重仿真; 纯点击不触发 (A-4)
             if (wasDrag) {
+                pickCycle = null;
+                lastPickCount = null;
                 useCompositionStore.getState().commit();
                 // 拖拽期间密度封顶 1× 时, 松手立即全量重建恢复配置档位 (#93)
                 if (useCompositionStore.getState().fieldLineDensity > 1) {
@@ -537,6 +567,26 @@ export function CompositionStage() {
                     }
                     rebuildFieldLines();
                     lastFieldLineBuild = performance.now();
+                }
+            } else if (pending?.cycleOnClick) {
+                setPointerNdcFromClient(pending.startX, pending.startY);
+                raycaster.setFromCamera(pointer, camera);
+                const stack = raycastPickStack();
+                const resolution = resolvePick(
+                    stack,
+                    { x: pending.startX, y: pending.startY },
+                    pickCycle,
+                    useCompositionStore.getState().selectedId
+                );
+                if (resolution.picked !== null) {
+                    useCompositionStore.getState().select(resolution.picked.id);
+                    pickCycle = resolution.cycle;
+                    lastPickCount = resolution.cycle
+                        ? { id: resolution.picked.id, index: resolution.cycle.index, total: stack.length }
+                        : null;
+                } else {
+                    pickCycle = null;
+                    lastPickCount = null;
                 }
             }
             if (renderer.domElement.hasPointerCapture(event.pointerId)) {
