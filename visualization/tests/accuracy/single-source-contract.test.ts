@@ -1070,16 +1070,20 @@ describe('L1-migration: 渲染单一真源契约 (#34: 竖直圆临界值模型�
         return s!;
     }
 
-    it('vertical-circle: 杆模型临界为 0 且恒通过, 绳模型为 √(g·L) (引擎端独立复算)', () => {
+    it('vertical-circle: 杆模型临界为 0 且底端需 √(4gL), 绳模型为 √(g·L) 且底端需 √(5gL) (引擎端独立复算)', () => {
         const sc = scene('vertical-circle');
-        // 杆 + 低速: vMin=0, passesTop=true
-        const rod = runSceneSimulation(sc, { modelType: 1, length: 1, mass: 1, initialSpeed: 1, duration: 5 });
-        expect(rod.error).toBeNull();
-        const mvRod = rod.result!.diagnostics.maxValues as Record<string, number>;
-        expect(mvRod.vMin).toBe(0);
-        const flagsRod = rod.result!.diagnostics.flags as Record<string, boolean>;
-        expect(flagsRod.passesTop).toBe(true);
-        // 绳 + 同参数: vMin=√(9.8·1)≈3.13, passesTop=false
+        // 杆 + 低速: vMin=0, 1 < √(4·9.8) → passesTop=false
+        const rodSlow = runSceneSimulation(sc, { modelType: 1, length: 1, mass: 1, initialSpeed: 1, duration: 5 });
+        expect(rodSlow.error).toBeNull();
+        const mvRodSlow = rodSlow.result!.diagnostics.maxValues as Record<string, number>;
+        expect(mvRodSlow.vMin).toBe(0);
+        const flagsRodSlow = rodSlow.result!.diagnostics.flags as Record<string, boolean>;
+        expect(flagsRodSlow.passesTop).toBe(false);
+        // 杆 + 足够速度: 7²=49 > 4·9.8=39.2 → passesTop=true
+        const rodFast = runSceneSimulation(sc, { modelType: 1, length: 1, mass: 1, initialSpeed: 7, duration: 5 });
+        expect(rodFast.error).toBeNull();
+        expect((rodFast.result!.diagnostics.flags as Record<string, boolean>).passesTop).toBe(true);
+        // 绳 + 低速: vMin=√(9.8·1)≈3.13, passesTop=false
         const rope = runSceneSimulation(sc, { modelType: 0, length: 1, mass: 1, initialSpeed: 1, duration: 5 });
         expect(rope.error).toBeNull();
         const mvRope = rope.result!.diagnostics.maxValues as Record<string, number>;
@@ -1090,8 +1094,22 @@ describe('L1-migration: 渲染单一真源契约 (#34: 竖直圆临界值模型�
 
     it('vertical-circle: 临界/通过性读取消耗引擎表, 空结果回退不崩 (渲染消费端)', () => {
         const sc = scene('vertical-circle');
-        const { result } = runSceneSimulation(sc, { modelType: 1, length: 1, mass: 1, initialSpeed: 1, duration: 5 });
-        expect(readEngineVerticalCircle(result)).toEqual({ vMin: 0, passesTop: true });
+        const { result: resSlow } = runSceneSimulation(sc, {
+            modelType: 1,
+            length: 1,
+            mass: 1,
+            initialSpeed: 1,
+            duration: 5
+        });
+        expect(readEngineVerticalCircle(resSlow)).toEqual({ vMin: 0, passesTop: false });
+        const { result: resFast } = runSceneSimulation(sc, {
+            modelType: 1,
+            length: 1,
+            mass: 1,
+            initialSpeed: 7,
+            duration: 5
+        });
+        expect(readEngineVerticalCircle(resFast)).toEqual({ vMin: 0, passesTop: true });
         expect(readEngineVerticalCircle(null)).toEqual({ vMin: null, passesTop: null });
         expect(readEngineVerticalCircle({ charts: {} } as never)).toEqual({ vMin: null, passesTop: null });
         expect(readEngineVerticalCircle({ diagnostics: { maxValues: { vMin: NaN }, flags: {} } } as never)).toEqual({

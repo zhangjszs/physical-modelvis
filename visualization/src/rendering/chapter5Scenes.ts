@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 力学场景渲染模块 — 第五章 曲线运动
  *
  * 场景列表：
@@ -646,41 +646,60 @@ export function drawProjectileCollisionScene(opts: MechanicsSceneOptions): void 
 export function drawVerticalCircleScene(opts: MechanicsSceneOptions): void {
     const { ctx, width, height, isDark, params, simulationResult, currentTime } = opts;
     const length = params['length'] ?? 1;
+    const safeLen = Math.max(0.1, length);
     const mass = params['mass'] ?? 0.2;
     const v0 = params['initialSpeed'] ?? 5;
     const g = G_ACCELERATION;
     const r = Math.min(width, height) * 0.27;
     const cx = width * 0.52;
     const cy = height * 0.5;
-    const omega = v0 / Math.max(0.1, length);
+    const omega = v0 / safeLen;
     /**
      * 临界值与通过性: 优先读引擎 (maxValues.vMin / flags.passesTop),
-     * 无引擎结果回退模型相关的本地公式 (杆恒通过, 绳/环为 √(g·L))。
+     * 无引擎结果回退模型相关的本地公式 (杆底端需 √(4gL), 绳/环底端需 √(5gL) 且最高点 √(gL))。
      * 回退 g=9.8 与引擎默认值一致 (场景无 gravity 参数, 见 #34)。
      */
     const modelTypeIdx = Math.round(params['modelType'] ?? 0);
     const isRod = modelTypeIdx === 1;
     const engineVC = readEngineVerticalCircle(simulationResult);
-    const critical = engineVC.vMin ?? (isRod ? 0 : Math.sqrt(g * length));
-    const topOk = engineVC.passesTop ?? v0 >= critical;
+    const critical = engineVC.vMin ?? (isRod ? 0 : Math.sqrt(g * safeLen));
+    const v0MinFallback = Math.sqrt((isRod ? 4 : 5) * g * safeLen);
+    const topOk = engineVC.passesTop ?? v0 >= v0MinFallback - 1e-9;
 
-    // 物体位置: 优先用引擎轨迹 (机械能守恒 v²=v₀²−2gr(1−cosθ), 非匀速)
-    // 引擎圆心在 (0,r), θ=0 为最低点; 映射到屏幕圆 (cx,cy)
+    // 物体位置: 优先用引擎轨迹 (RK4 + 脱轨斜抛, 机械能守恒)
+    // 引擎圆心在 (0,r), θ=0 为最低点 (0,0); Canvas y 向下为正, 直接线性映射
     const frame = getFrame(simulationResult, currentTime);
     /**
-     * 回退角 angle=ω·t (匀速) 仅在无引擎结果时使用, 豁免单一真源 (见 #20)。
-     * 有引擎时位置/速度均取 frame (非匀速, 能量守恒); 回退为教学占位,
+     * 回退角 angle=π/2 - ω·t (最低点出发逆时针) 仅在无引擎结果时使用, 豁免单一真源 (见 #20)。
+     * 有引擎时位置/速度均取 frame (含脱轨抛体); 回退为教学占位,
      * 与引擎变速轨迹不等价已有 HUD 速度 (frame.velocity) 作区分。
      */
-    const angle = -Math.PI / 2 + omega * currentTime;
+    const angle = Math.PI / 2 - omega * currentTime;
     let x: number;
     let y: number;
     let speed = v0;
+    let normalForce: number | null = null;
+    let detached = false;
     if (frame) {
-        const thetaEng = Math.atan2(frame.position.y - length, frame.position.x);
-        x = cx + r * Math.cos(thetaEng);
-        y = cy + r * Math.sin(thetaEng);
+        x = cx + (frame.position.x / safeLen) * r;
+        y = cy - ((frame.position.y - safeLen) / safeLen) * r;
         speed = Math.hypot(frame.velocity.x, frame.velocity.y);
+        if (frame.acceleration) {
+            const fcX = mass * frame.acceleration.x;
+            const fcY = mass * (frame.acceleration.y + g);
+            const rx = frame.position.x;
+            const ry = frame.position.y - safeLen;
+            const distPhys = Math.hypot(rx, ry);
+            detached = !isRod && Math.hypot(fcX, fcY) < 1e-4 && distPhys < safeLen - 1e-3;
+            if (distPhys > 1e-6) {
+                normalForce = (-fcX * rx - fcY * ry) / distPhys;
+                if (!isRod && (detached || normalForce < 0)) {
+                    normalForce = 0;
+                }
+            } else {
+                normalForce = 0;
+            }
+        }
     } else {
         x = cx + r * Math.cos(angle);
         y = cy + r * Math.sin(angle);
@@ -702,13 +721,31 @@ export function drawVerticalCircleScene(opts: MechanicsSceneOptions): void {
     ctx.font = 'bold 12px sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(topOk ? '可通过最高点' : '最高点速度不足', cx, cy - r - 30);
-    ctx.strokeStyle = isDark ? '#cbd5e1' : '#334155';
-    ctx.beginPath();
-    ctx.moveTo(cx, cy);
-    ctx.lineTo(x, y);
-    ctx.stroke();
+    if (modelTypeIdx !== 2) {
+        if (detached) ctx.setLineDash([4, 4]);
+        ctx.strokeStyle = isDark ? '#cbd5e1' : '#334155';
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
     drawBlock(ctx, x, y, 30, 30, ORANGE, isDark, `${mass}kg`);
-    drawArrow(ctx, x, y, cx, cy, BLUE, 'Fn');
+    const dxCenter = cx - x;
+    const dyCenter = cy - y;
+    const distScreen = Math.hypot(dxCenter, dyCenter);
+    const forceLabel = modelTypeIdx === 0 ? 'T' : 'Fn';
+    if (normalForce !== null) {
+        if (Math.abs(normalForce) > 1e-4 && distScreen > 1e-4) {
+            const sign = normalForce >= 0 ? 1 : -1;
+            const arrowLen = Math.min(r * 0.9, Math.max(24, (Math.abs(normalForce) / Math.max(0.05, mass * g)) * 36));
+            const ux = (dxCenter / distScreen) * sign;
+            const uy = (dyCenter / distScreen) * sign;
+            drawArrow(ctx, x, y, x + ux * arrowLen, y + uy * arrowLen, BLUE, forceLabel);
+        }
+    } else {
+        drawArrow(ctx, x, y, cx, cy, BLUE, forceLabel);
+    }
     drawArrow(ctx, x + 26, y - 10, x + 26, y + 50, RED, 'mg');
     drawHud(ctx, isDark, [
         { label: 'v', value: `${speed.toFixed(2)} m/s` },
@@ -716,7 +753,10 @@ export function drawVerticalCircleScene(opts: MechanicsSceneOptions): void {
         { label: 'v_top_min', value: `${critical.toFixed(2)} m/s` },
         { label: 'L', value: `${length.toFixed(2)} m` }
     ]);
-    drawInfoBar(ctx, width, height, `最高点轻绳模型: v >= sqrt(gR) = ${critical.toFixed(2)}m/s`, isDark);
+    const infoMsg = isRod
+        ? `最高点轻杆模型: 最低点 v₀ ≥ √(4gR) = ${Math.sqrt(4 * g * safeLen).toFixed(2)}m/s, 最高点 v_min = 0 m/s`
+        : `${modelTypeIdx === 2 ? '圆环轨道模型' : '最高点轻绳模型'}: 最低点 v₀ ≥ √(5gR), 最高点 v ≥ √(gR) = ${critical.toFixed(2)}m/s`;
+    drawInfoBar(ctx, width, height, infoMsg, isDark);
 }
 
 export function drawCentrifugalScene(opts: MechanicsSceneOptions): void {

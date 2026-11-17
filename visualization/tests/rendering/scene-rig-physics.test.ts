@@ -51,6 +51,11 @@ import {
     pivotHeight,
     type PendulumHandles
 } from '../../src/components/simulation3d/rigs/pendulumRig';
+import {
+    verticalCircleRig,
+    type VerticalCircleHandles
+} from '../../src/components/simulation3d/rigs/verticalCircleRig';
+import { drawVerticalCircleScene } from '../../src/rendering/chapter5Scenes';
 import { BASE_Y, waveRig, type WaveHandles } from '../../src/components/simulation3d/rigs/waveRig';
 import { dopplerRig, dopplerReadouts, type DopplerHandles } from '../../src/components/simulation3d/rigs/dopplerRig';
 import {
@@ -1914,5 +1919,111 @@ describe('LC 电磁振荡 3D 取景 (#165)', () => {
         const visibleHeight = 0.828 * (framing.distance ?? 0);
         const topEdge = framing.target[1] + visibleHeight / 2;
         expect(topEdge).toBeGreaterThan(0.85 + 0.4);
+    });
+});
+
+describe('#172 竖直圆周运动 (3D rig + 2D 板书) 物理一致性回归', () => {
+    beforeAll(async () => {
+        await loadAllScenes();
+    });
+
+    it('3D rig 标牌: 圆环按单向 √(5gR)/√(gR) 判据 (不再误用杆模型), 杆按 √(4gR) 判据', () => {
+        const sc = getSceneSync('vertical-circle')!;
+        // 圆环 v₀ = 6.64 (< √(5*9.8) ≈ 7.00, > √(4*9.8) ≈ 6.26): 旧版误判为通过且显示 v_top≥0
+        const ringParams = { modelType: 2, length: 1, mass: 1, initialSpeed: Math.sqrt(4.5 * 9.8), duration: 5 };
+        const ringSim = runSceneSimulation(sc, ringParams);
+        expect(ringSim.error).toBeNull();
+        const ringScene = new THREE.Scene();
+        const ringBuilt = verticalCircleRig.buildEquipment(ringScene, ringParams, ringSim.result);
+        const rh = ringBuilt.handles as VerticalCircleHandles;
+        expect(rh.critLabel.userData.text).toContain('无法越过最高点');
+        expect(rh.critLabel.userData.text).toContain('√(gR)');
+
+        // 杆 v₀ = 5 (< √(4*9.8) ≈ 6.26): 不通过最高点
+        const rodSlowParams = { modelType: 1, length: 1, mass: 1, initialSpeed: 5, duration: 5 };
+        const rodSlowSim = runSceneSimulation(sc, rodSlowParams);
+        const rodSlowScene = new THREE.Scene();
+        const rodSlowBuilt = verticalCircleRig.buildEquipment(rodSlowScene, rodSlowParams, rodSlowSim.result);
+        const rsh = rodSlowBuilt.handles as VerticalCircleHandles;
+        expect(rsh.critLabel.userData.text).toContain('无法越过最高点');
+        expect(rsh.critLabel.userData.text).toContain('√(4gR)');
+    });
+
+    it('3D onAnimate: 绳/环脱离抛体阶段隐藏张力/正压力箭头, 不再硬套圆周公式', () => {
+        const sc = getSceneSync('vertical-circle')!;
+        const ropeParams = { modelType: 0, length: 1, mass: 1, initialSpeed: Math.sqrt(3 * 9.8), duration: 4 };
+        const sim = runSceneSimulation(sc, ropeParams);
+        const res = sim.result!;
+        const detKf = res.keyframes.find(k => k.label === '脱离圆周')!;
+        expect(detKf).toBeDefined();
+
+        const tTest = detKf.t + 0.05;
+        const built = verticalCircleRig.buildEquipment(new THREE.Scene(), ropeParams, res);
+        const rh = built.handles as VerticalCircleHandles;
+        const traj = res.trajectories[0]!;
+        const idx = traj.findIndex(p => p.t >= tTest);
+        const ballPt = traj[Math.max(0, idx)]!;
+        const ballPos = verticalCircleRig.getVisualPosition(ballPt.position, ropeParams, res);
+        verticalCircleRig.onAnimate!(rh, {
+            time: tTest,
+            ballPos,
+            params: ropeParams,
+            result: res,
+            velocity: ballPt.velocity
+        });
+        expect(rh.arrowTension.visible).toBe(false);
+        expect(rh.arrowFn.visible).toBe(false);
+
+        // 同参数切换为圆环模型: 脱离期间 arrowFn 同样隐藏
+        const ringParams = { ...ropeParams, modelType: 2 };
+        const ringBuilt = verticalCircleRig.buildEquipment(new THREE.Scene(), ringParams, res);
+        const ringH = ringBuilt.handles as VerticalCircleHandles;
+        verticalCircleRig.onAnimate!(ringH, {
+            time: tTest,
+            ballPos,
+            params: ringParams,
+            result: res,
+            velocity: ballPt.velocity
+        });
+        expect(ringH.arrowFn.visible).toBe(false);
+    });
+
+    it('2D 板书: 坐标 y 轴与引擎一致 (最低点画在圆底部而非镜像到顶部), 且脱离时不画张力箭头', () => {
+        const sc = getSceneSync('vertical-circle')!;
+        const params = { modelType: 0, length: 1, mass: 1, initialSpeed: Math.sqrt(3 * 9.8), duration: 4 };
+        const { result } = runSceneSimulation(sc, params);
+        const res = result!;
+        const cy = 700 * 0.5;
+
+        // t=0 在最低点: 滑块标签 "1kg" 应画在 y > cy (圆下半部)
+        const c0 = createRecordingCanvas({ width: 1100, height: 700 });
+        drawVerticalCircleScene({
+            ctx: c0.ctx,
+            width: 1100,
+            height: 700,
+            isDark: true,
+            params,
+            simulationResult: res,
+            currentTime: 0
+        });
+        const labelCall0 = c0.filter('fillText').find(call => String(call.args[0]) === '1kg');
+        expect(labelCall0).toBeDefined();
+        expect(Number(labelCall0!.args[2])).toBeGreaterThan(cy + 50);
+
+        // 脱离抛体期间: 不得绘制向心拉力标签 "T"
+        const detKf = res.keyframes.find(k => k.label === '脱离圆周')!;
+        const cDet = createRecordingCanvas({ width: 1100, height: 700 });
+        drawVerticalCircleScene({
+            ctx: cDet.ctx,
+            width: 1100,
+            height: 700,
+            isDark: true,
+            params,
+            simulationResult: res,
+            currentTime: detKf.t + 0.05
+        });
+        const detTexts = cDet.texts;
+        expect(detTexts).not.toContain('T');
+        expect(detTexts).toContain('mg');
     });
 });
