@@ -82,9 +82,11 @@ export class ProjectileCollisionModel extends PhysicsModelBase {
         const v1After = ((m1 - e * m2) / (m1 + m2)) * v1;
         const v2After = (((1 + e) * m1) / (m1 + m2)) * v1;
 
-        // 碰后射程
-        const OM = Math.abs(v1After) * tFall;
-        const ON = Math.abs(v2After) * tFall;
+        // 碰后带符号水平位移 (以入射方向为正，反弹向左为负) 与距离绝对值
+        const OM_signed = v1After * tFall;
+        const ON_signed = v2After * tFall;
+        const OM = Math.abs(OM_signed);
+        const ON = Math.abs(ON_signed);
 
         // 动量守恒验证
         const pBefore = m1 * v1;
@@ -115,6 +117,7 @@ export class ProjectileCollisionModel extends PhysicsModelBase {
         });
 
         const collisionPoint = { x: 0, y: h }; // 碰撞点 (以轨道末端为原点)
+        const collisionKind = e >= 1 - 1e-6 ? '完全弹性' : e <= 1e-6 ? '完全非弹性' : '非弹性';
 
         const keyframes: Keyframe[] = [
             {
@@ -129,36 +132,39 @@ export class ProjectileCollisionModel extends PhysicsModelBase {
                 t: 0,
                 position: collisionPoint,
                 velocity: { x: v1, y: 0 },
-                description: `完全弹性(e=${e}), 碰前动量 p=${pBefore.toFixed(3)} kg*m/s`
+                description: `${collisionKind}(e=${e}), 碰前动量 p=${pBefore.toFixed(3)} kg*m/s, 动能损失 ΔEk=${KEloss.toFixed(4)} J`
             },
             {
                 label: '入射球碰后落点 (OM)',
                 t: tFall,
-                position: { x: OM, y: 0 },
+                position: { x: OM_signed, y: 0 },
                 velocity: { x: v1After, y: -g * tFall },
-                description: `碰后速度 v1'=${v1After.toFixed(3)}m/s, 射程 OM=${OM.toFixed(3)}m`
+                description: `碰后速度 v1'=${v1After.toFixed(3)}m/s, 带符号水平位移 Δx₁=${OM_signed.toFixed(3)}m (距离 |OM|=${OM.toFixed(3)}m)`
             },
             {
                 label: '被撞球碰后落点 (ON)',
                 t: tFall,
-                position: { x: ON, y: 0 },
+                position: { x: ON_signed, y: 0 },
                 velocity: { x: v2After, y: -g * tFall },
-                description: `碰后速度 v2'=${v2After.toFixed(3)}m/s, 射程 ON=${ON.toFixed(3)}m`
+                description: `碰后速度 v2'=${v2After.toFixed(3)}m/s, 带符号水平位移 Δx₂=${ON_signed.toFixed(3)}m (距离 |ON|=${ON.toFixed(3)}m)`
             }
         ];
 
-        // 图表: 射程标记图 (静态示意图)
+        // 图表: 射程标记图 (带符号水平坐标，反弹落点在负半轴)
+        const minX = Math.min(0, OM_signed, ON_signed) * 1.1;
+        const maxX = Math.max(OP, OM_signed, ON_signed) * 1.1;
         const rangeDiagram: ChartSeries = {
-            xLabel: '落点水平距离 (m)',
+            xLabel: '落点水平位移 Δx (m, 反弹为负)',
             yLabel: '标记',
             xUnit: 'm',
             yUnit: '',
             points: [
+                { x: minX, y: 0 },
                 { x: 0, y: 0 },
                 { x: OP, y: 2 },
-                { x: OM, y: 1.5 },
-                { x: ON, y: 1 },
-                { x: Math.max(OP, OM, ON) * 1.1, y: 0 }
+                { x: OM_signed, y: 1.5 },
+                { x: ON_signed, y: 1 },
+                { x: maxX, y: 0 }
             ]
         };
 
@@ -198,9 +204,9 @@ export class ProjectileCollisionModel extends PhysicsModelBase {
             },
             {
                 order: 4,
-                description: '动量守恒验证',
-                formula: 'm1*OP = m1*OM + m2*ON',
-                calculation: `${m1.toFixed(2)}*${OP.toFixed(3)} = ${(m1 * OP).toFixed(4)}; ${m1.toFixed(2)}*${OM.toFixed(3)} + ${m2.toFixed(2)}*${ON.toFixed(3)} = ${(m1 * OM + m2 * ON).toFixed(4)}; 相对误差=${(momentumRelErr * 100).toFixed(3)}%`
+                description: '动量守恒验证 (带符号水平位移)',
+                formula: 'm1*OP = m1*OM_signed + m2*ON_signed',
+                calculation: `${m1.toFixed(2)}*${OP.toFixed(3)} = ${(m1 * OP).toFixed(4)}; ${m1.toFixed(2)}*(${OM_signed.toFixed(3)}) + ${m2.toFixed(2)}*(${ON_signed.toFixed(3)}) = ${(m1 * OM_signed + m2 * ON_signed).toFixed(4)}; 相对误差=${(momentumRelErr * 100).toFixed(3)}%`
             },
             {
                 order: 5,
@@ -241,6 +247,8 @@ export class ProjectileCollisionModel extends PhysicsModelBase {
                     OP,
                     OM,
                     ON,
+                    OM_signed,
+                    ON_signed,
                     tFall,
                     v1,
                     v1After,
@@ -258,7 +266,7 @@ export class ProjectileCollisionModel extends PhysicsModelBase {
                 rangeCheck: { withinRange: warnings.length === 0, warnings }
             },
             explanation: {
-                summary: `平抛动量守恒: m1=${m1}kg, m2=${m2}kg, v1=${v1}m/s, e=${e}; OP=${OP.toFixed(3)}m, OM=${OM.toFixed(3)}m, ON=${ON.toFixed(3)}m; 动量相对误差 ${(momentumRelErr * 100).toFixed(4)}%`,
+                summary: `平抛动量守恒 (${collisionKind}): m1=${m1}kg, m2=${m2}kg, v1=${v1}m/s, e=${e}; OP=${OP.toFixed(3)}m, Δx₁(OM_signed)=${OM_signed.toFixed(3)}m (|OM|=${OM.toFixed(3)}m), Δx₂(ON_signed)=${ON_signed.toFixed(3)}m; 动量相对误差 ${(momentumRelErr * 100).toFixed(4)}%`,
                 steps,
                 formulas: [
                     {

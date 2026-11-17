@@ -505,6 +505,8 @@ export function drawProjectileCollisionScene(opts: MechanicsSceneOptions): void 
               OP?: number;
               OM?: number;
               ON?: number;
+              OM_signed?: number;
+              ON_signed?: number;
               tFall?: number;
               v1After?: number;
               v2After?: number;
@@ -516,8 +518,10 @@ export function drawProjectileCollisionScene(opts: MechanicsSceneOptions): void 
     const engV1After = maxVals?.v1After ?? v1After;
     const engV2After = maxVals?.v2After ?? v2After;
     const OP = maxVals?.OP ?? v1 * engT;
-    const OM = maxVals?.OM ?? engV1After * engT;
-    const ON = maxVals?.ON ?? engV2After * engT;
+    const OM = maxVals?.OM ?? Math.abs(engV1After) * engT;
+    const ON = maxVals?.ON ?? Math.abs(engV2After) * engT;
+    const OM_signed = maxVals?.OM_signed ?? engV1After * engT;
+    const ON_signed = maxVals?.ON_signed ?? engV2After * engT;
     const fallScale = 150 / Math.max(0.01, tableH);
 
     const groundY = height - 50;
@@ -598,8 +602,8 @@ export function drawProjectileCollisionScene(opts: MechanicsSceneOptions): void 
         }
 
         const opX = collisionX + OP * 40;
-        const omX = collisionX + OM * 40;
-        const onX = collisionX + ON * 40;
+        const omX = collisionX + OM_signed * 40;
+        const onX = collisionX + ON_signed * 40;
 
         ctx.setLineDash([3, 3]);
         ctx.strokeStyle = isDark ? 'rgba(148,163,184,0.3)' : 'rgba(100,116,139,0.2)';
@@ -609,7 +613,7 @@ export function drawProjectileCollisionScene(opts: MechanicsSceneOptions): void 
             ctx.moveTo(x, groundY - 5);
             ctx.lineTo(x, groundY + 5);
             ctx.stroke();
-            const labels = ['OP', 'OM', 'ON'];
+            const labels = ['OP', OM_signed < 0 ? 'OM(反)' : 'OM', 'ON'];
             const colors = [PURPLE, BLUE, RED];
             ctx.fillStyle = colors[i]!;
             ctx.font = 'bold 11px sans-serif';
@@ -637,7 +641,13 @@ export function drawProjectileCollisionScene(opts: MechanicsSceneOptions): void 
         { label: "v₂'", value: `${engV2After.toFixed(2)} m/s` },
         { label: 't_fall', value: `${engT.toFixed(3)} s` }
     ]);
-    drawInfoBar(ctx, width, height, `m₁=${m1}kg  m₂=${m2}kg  v₁=${v1}m/s  e=${e}  h=${tableH}m`, isDark);
+    drawInfoBar(
+        ctx,
+        width,
+        height,
+        `m₁=${m1}kg m₂=${m2}kg v₁=${v1}m/s e=${e} h=${tableH}m | OP=${OP.toFixed(2)}m Δx₁=${OM_signed.toFixed(2)}m(|OM|=${OM.toFixed(2)}) Δx₂=${ON_signed.toFixed(2)}m(|ON|=${ON.toFixed(2)})`,
+        isDark
+    );
     if (!simulationResult) drawEmptyState(ctx, width, height, isDark);
 }
 

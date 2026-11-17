@@ -55,7 +55,8 @@ import {
     verticalCircleRig,
     type VerticalCircleHandles
 } from '../../src/components/simulation3d/rigs/verticalCircleRig';
-import { drawVerticalCircleScene } from '../../src/rendering/chapter5Scenes';
+import { collisionRig, type CollisionHandles } from '../../src/components/simulation3d/rigs/collisionRig';
+import { drawVerticalCircleScene, drawProjectileCollisionScene } from '../../src/rendering/chapter5Scenes';
 import { BASE_Y, waveRig, type WaveHandles } from '../../src/components/simulation3d/rigs/waveRig';
 import { dopplerRig, dopplerReadouts, type DopplerHandles } from '../../src/components/simulation3d/rigs/dopplerRig';
 import {
@@ -2025,5 +2026,49 @@ describe('#172 竖直圆周运动 (3D rig + 2D 板书) 物理一致性回归', (
         const detTexts = cDet.texts;
         expect(detTexts).not.toContain('T');
         expect(detTexts).toContain('mg');
+    });
+});
+
+describe('#173 平抛碰撞带符号位移与 2D/3D 落点一致性', () => {
+    beforeAll(async () => {
+        await loadAllScenes();
+    });
+
+    it('m₂ > m₁ 反弹时 2D 落点标记 OM(反) 位于碰撞点左侧, 3D 标牌消费负向 Δx₁', () => {
+        const sc = getSceneSync('projectile-collision')!;
+        const params = { m1: 0.1, m2: 0.2, v1Initial: 2, tableHeight: 0.8, restitution: 1, gravity: 9.8, duration: 5 };
+        const { result, error } = runSceneSimulation(sc, params);
+        expect(error).toBeNull();
+        const res = result!;
+        const mv = res.diagnostics.maxValues as Record<string, number>;
+        expect(mv.OM_signed).toBeLessThan(0);
+
+        const width = 1000;
+        const collisionX = width * 0.5;
+        const c = createRecordingCanvas({ width, height: 600 });
+        drawProjectileCollisionScene({
+            ctx: c.ctx,
+            width,
+            height: 600,
+            isDark: true,
+            params,
+            simulationResult: res,
+            currentTime: 0.6
+        });
+
+        const fillCalls = c.filter('fillText');
+        const omCall = fillCalls.find(call => String(call.args[0]).startsWith('OM'));
+        const onCall = fillCalls.find(call => String(call.args[0]) === 'ON');
+        expect(omCall).toBeDefined();
+        expect(onCall).toBeDefined();
+        expect(Number(omCall!.args[1])).toBeCloseTo(collisionX + mv.OM_signed! * 40, 4);
+        expect(Number(omCall!.args[1])).toBeLessThan(collisionX);
+        expect(Number(onCall!.args[1])).toBeCloseTo(collisionX + mv.ON_signed! * 40, 4);
+        expect(Number(onCall!.args[1])).toBeGreaterThan(collisionX);
+
+        const built = collisionRig.buildEquipment(new THREE.Scene(), params, res);
+        const h = built.handles as CollisionHandles;
+        expect(h.infoLabel.userData.text).toContain(mv.OM_signed!.toFixed(2));
+        expect(h.infoLabel.userData.text).toContain(mv.ON_signed!.toFixed(2));
     });
 });
