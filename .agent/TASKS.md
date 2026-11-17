@@ -1,6 +1,6 @@
 # TASKS（GitHub Issue 本地镜像）
 
-> Planner 整体重写 · 2026-11-17 · D73。GitHub Issues（26 开放单）为唯一权威；Executor 先改 Issue，再同步本文件状态。
+> Planner 整体重写 · 2026-11-17 · D73·续。GitHub Issues（26 开放单）为唯一权威；Executor 先改 Issue，再同步本文件状态。
 > 基线：`main @ 460711d`（代码至 `670b1ee` PR #168），precheck 全绿（3190 tests = physics-core 1186 + visualization 2004），CI/Deploy/QA 最近全绿；未见 `.agent/LOCK` 残留。
 > 标签约定：`ready-for-agent` 仅挂于今日队列可执行单；`priority:P1` 严格收敛至 5 项。
 
@@ -11,7 +11,7 @@
   - 认可已交付部分：`e8dacb4` 规格入库、`picking.ts` + 18 单测、`CompositionOutliner.tsx` + 5 单测、`compositionStore.ts` `hoverId` + 2 单测、`sourceMeshes.ts` `pickRole` + 2 单测、`CompositionStage.tsx` P0 改造；本轮实跑 `tests/composition/` **11 files / 120 passed**，CI `43259143205` / `43276337540` 全绿。
   - 未满足差距：① 本环境实测 Playwright Chromium 可正常启动（`LAUNCH_OK`），但实跑 `node scripts/verify-composition-interaction.mjs` 在第 13 步（line 628）失败：`期望「点电荷 #1」实际「点电荷 #17」`（`resetLab()` 未重置 `nextId = 1`），导致 A-1/A-2/A-4/A-5/A-7 端到端断言未跑通；② `CompositionLab.tsx:251` 检查器仍显示 `{selected.id}` 而非 `sourceDisplayName(selected)`。
   - **拆期**：`#166` 收口为仅 P0；P1（B-1～B-9 可控放置）拆出至新单 **#191**。
-- **决策与 Milestone 治理**：D68=A 正式转正；新建 **M10（8 单）** 与 **M11（13 单）**；新建 pending **D69–D72**（`#179`、`#181`、`#167`、`#171/#191/#189` 排程）；依契约 4.3 将暂不入今日队列的原 P1 调为 P2。
+- **决策与 Milestone 治理**：D68=A、**D69=A、D70=A、D71=A（1.10 授权 `ci.yml`/`qa-sweep.yml` 安装步 3 次退避重试）、D72=A（M10→M11→#191→#171→#189）全部确认生效，pending 清零**；新建 **M10（8 单）** 与 **M11（13 单）**；依契约 4.3 将暂不入今日队列的原 P1 调为 P2。
 
 ---
 
@@ -73,9 +73,9 @@
 | Issue | 标题 | 状态 / 标签 | 备注 |
 | --- | --- | --- | --- |
 | [#178](https://github.com/zhangjszs/physical-modelvis/issues/178) | 摩擦轮接触传动反向旋转 | `open` · `priority:P2`, `area:engine`, `area:render` | `friction` `direction=-1` 与 2D/3D 切向速度对齐 |
-| [#179](https://github.com/zhangjszs/physical-modelvis/issues/179) | 光控开关 `threshold` 失效与 `L=0` NaN | **needs-info** · `priority:P2`, `area:engine`, `area:render` | 见 **D69** pending（推荐/默认 A） |
+| [#179](https://github.com/zhangjszs/physical-modelvis/issues/179) | 光控开关 `threshold` 失效与 `L=0` NaN | `open` · `priority:P2`, `area:engine`, `area:render` | **D69=A 已确认**：以 `V_B>=VbeOn` 为真源，移除无效阈值滑块改示 `L_crit`，校准暗阻与 `L=0` 上限 |
 | [#180](https://github.com/zhangjszs/physical-modelvis/issues/180) | 静电感应近远端电荷守恒与张角量纲 | `open` · `priority:P2`, `area:engine`, `area:render` | 硬不变量 `q_near + q_far = 0`（孤立中性导体） |
-| [#181](https://github.com/zhangjszs/physical-modelvis/issues/181) | 双缝干涉薄膜预设无相移效应 | **needs-info** · `priority:P2`, `area:engine`, `area:render` | 见 **D70** pending（推荐/默认 A） |
+| [#181](https://github.com/zhangjszs/physical-modelvis/issues/181) | 双缝干涉薄膜预设无相移效应 | `open` · `priority:P2`, `area:engine`, `area:render` | **D70=A 已确认**：改为单缝插薄片 `Δ=(n-1)t` 移条纹并改名「单缝加薄片」，更新测试 |
 | [#182](https://github.com/zhangjszs/physical-modelvis/issues/182) | 薄膜干涉两界面反射相对相变（半波损失） | `open` · `priority:P2`, `area:engine`, `area:render` | Fresnel 幅反射系数符号 + 传播相位 |
 | [#185](https://github.com/zhangjszs/physical-modelvis/issues/185) | β 射线负电荷半径归零修复 | `open` · `priority:P2`, `area:engine`, `area:render` | `r = p/(|q|B)` + `sign(q)` 偏转方向 + 相对论动量 |
 | [#186](https://github.com/zhangjszs/physical-modelvis/issues/186) | 衰变统计试验次数 `nTrials` 生效 | `open` · `priority:P2`, `area:engine`, `area:render` | `nTrials` 控制 Poisson 抽样次数 |
@@ -90,8 +90,8 @@
 
 ## 后置产品线、待决与冻结项（5 单）
 
-- **#191** · `[P2] 实现组合实验台「可控放置」交互改造（#166 P1 期：B-1~B-9）`：**blocked** · `priority:P2` · `type:feature` · `area:render`。依赖 `#166` P0 收口及 **D72** 排程确认。
-- **#171** · `[P1][Sandbox M0] 固定平抛实验作为可编辑的沙盒预设装配`：**needs-info + blocked** · `priority:P2` · `type:feature` · `area:engine, area:render`。依赖物理核心稳定与 **D72** 排程，届时由 Planner 先出 Phase A RFC 设计拆解。
-- **#189** · `[P2][UI/UX Redesign] PHYSVIS // WORLD ENGINE 改版`：**blocked** · `priority:P2` · `type:feature` · `area:render`。依赖物理修复收口与 **D72** 排程，合并前需 owner 人工预览认可。
-- **#167** · `CI「安装 Playwright Chromium」遇 runner DNS 抖动加固`：**needs-info** · `priority:P3` · `type:chore` · `area:ci`。已摘 `auto-discovered`；涉 1.10 红线邻接，见 **D71** pending。
+- **#191** · `[P2] 实现组合实验台「可控放置」交互改造（#166 P1 期：B-1~B-9）`：**blocked** · `priority:P2` · `type:feature` · `area:render`。依赖 `#166` P0 收口及 M10/M11 收口（**D72=A 已定**：#191 → #171 → #189）。
+- **#171** · `[P1][Sandbox M0] 固定平抛实验作为可编辑的沙盒预设装配`：**blocked** · `priority:P2` · `type:feature` · `area:engine, area:render`。已摘 `needs-info`（**D72=A 已定**），依赖 M10/M11 及 #191 收口后由 Planner 出 Phase A RFC 设计拆解再转 ready。
+- **#189** · `[P2][UI/UX Redesign] PHYSVIS // WORLD ENGINE 改版`：**blocked** · `priority:P2` · `type:feature` · `area:render`。依赖物理修复收口及 **D72=A** 顺位，合并前需 owner 人工预览认可。
+- **#167** · `CI「安装 Playwright Chromium」遇 runner DNS 抖动加固`：`open` · `priority:P3` · `type:chore` · `area:ci`。已摘 `auto-discovered` 与 `needs-info`（**D71=A 已授权 1.10 局部范围**：仅给 `ci.yml`/`qa-sweep.yml` 安装步加 3 次退避重试），后置排期。
 - **#44** · `[P2] 暂缓 React 19 迁移`：**blocked + parked** · `priority:P2` · `type:chore` · `area:ci`。D44=B 冻结维持，勿动。

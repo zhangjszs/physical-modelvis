@@ -4,7 +4,7 @@
 > 旧答案与现状明显冲突时，可确认一次"是否仍然有效"。
 > 本文件曾随 `6214cbd` 开源化清理被误删，2026-10-02 规划者从 `d0d9e37` 恢复（D1–D4 原文保留），此后新增 D5+。
 
-> **当前有效结论（2026-11-17，D73）**：#166 P0 验收部分通过退回 `in-progress`（补 `resetLab()` 重置 `nextId=1`、检查器 `sourceDisplayName` 并实跑通过 `verify-composition-interaction.mjs`）；P1（B-1~B-9）拆至 #191（P2 blocked）。新建 Milestone **M10（8 单：#166/#169/#172/#173/#190 + Wave 2 #174/#175/#177）** 与 **M11（13 单）**；今日队列 5 项（`#166` 返工 + `#169/#172/#173/#190` `ready-for-agent`），P1 总数严格=5。D68 已确认转正（A）；新增 pending：D69（#179 光控阈值二选一）、D70（#181 双缝薄膜预设二选一）、D71（#167 CI Playwright 重试，红线 1.10）、D72（M10/M11 后 #166 P1 / #171 / #189 顺序）。D44=B / D61=A / D62=A / D31 与真实发布红线维持。历史队列不可当作当前指令。
+> **当前有效结论（2026-11-17，D73·续）**：用户同日答复「需要我拍板的事情，全部按照推荐的来」→ **D69=A、D70=A、D71=A（1.10 授权 ci.yml/qa-sweep.yml 单步安装加 3 次退避重试）、D72=A（M10→M11→#191→#171→#189）全部转正生效，pending 清零**。#166 P0 退回 `in-progress` 收口探针，P1 拆至 #191（P2 blocked）；新建 Milestone **M10（8 单）** 与 **M11（13 单）**；今日队列 5 项（`#166` 返工 + `#169/#172/#173/#190` `ready-for-agent`），P1 总数=5。D44=B / D61=A / D62=A / D68=A / D31 与真实发布红线维持。历史队列不可当作当前指令。
 
 ---
 
@@ -1268,48 +1268,38 @@ eslint tests 目录 `no-explicit-any` 降 warn）与 `36aed93`（移除 scripts/
 
 ---
 
-## D69 · #179 光控开关 (`light-control-switch`) `threshold` 与分压电路双真源冲突（pending，第 1 天询问 2026-11-17）
+## D69（已确认）· #179 光控开关 (`light-control-switch`) `threshold` 与分压电路双真源冲突
 
-- **调查结论**：`light-control-switch` 场景同时暴露 `threshold`（触发阈值 1–1000 lx）与电路参数（`R_fix`、`E_supply`）；但模型 [light-control-switch.ts:86-106](file:///home/kerwin/coding/physical_modelvis/physics-core/src/models/light-control-switch.ts#L86-L106) 完全忽略 `threshold`（仅用于关键帧文案），仅按 `vB >= 0.7V` 判定；且默认 `Rdark=1e6, Rfix=10k, E=12V` 使实际翻转点落于 ~37,650 lx（1000 lx 室内仍亮灯），`L=0` 时因 `Infinity/(Infinity+Rfix)` 输出 `NaN` 熄灯。
-- **方案**：
-  - **A（推荐）**：以分压电路 `V_B >= VbeOn` 为唯一开关真源，移除无效独立 `threshold` 输入滑块改为展示电路计算出的真实临界照度 $L_{\text{crit}}$，校准 `R_LDR` 参考点使默认 `R_fix=10kΩ` 在 ~10 lx 附近翻转，并设有限暗阻上限防 `L=0` 出现 `NaN`。影响：消除假滑块，学生通过调 `R_fix` 理解阈值调节，改动限于该场景参数契约与单测。
-  - **B**：保留 `threshold` 滑块作为目标临界照度权威，由 `threshold` 反算等效 `R_fix`（或直接以 `L <= threshold` 判亮并重标 `VbeOn`）。影响：保留原有 5 滑块名，但与手动调 `R_fix` 耦合或削弱分压原理真实性。
-- **推荐 / 默认**：推荐 **A**；默认 **A**（若 3 天无答复转正按 A 执行；不放进本轮 ready）。
-- **承接**：#179（M11 · `needs-info`）。
+- **日期 / 用户决定**：2026-11-17 提问 → 同日用户答复「全部按照推荐的来」→ **D69 = A（已确认）**。
+- **调查结论**：`light-control-switch` 场景同时暴露 `threshold`（触发阈值 1–1000 lx）与电路参数（`R_fix`、`E_supply`）；但模型 [light-control-switch.ts:86-106](file:///home/kerwin/coding/physical_modelvis/physics-core/src/models/light-control-switch.ts#L86-L106) 完全忽略 `threshold`（仅用于关键帧文案），仅按 `vB >= 0.7V` 判定；且默认 `Rdark=1e6, Rfix=10k, E=12V` 使实际翻转点落于 ~37,650 lx，`L=0` 时输出 `NaN`。
+- **已确认方案 A**：以分压电路 `V_B >= VbeOn` 为唯一开关真源，移除无效独立 `threshold` 输入滑块改为展示电路计算出的真实临界照度 $L_{\text{crit}}$，校准 `R_LDR` 参考点使默认 `R_fix=10kΩ` 在 ~10 lx 附近翻转，并设有限暗阻上限防 `L=0` 出现 `NaN`。（未采纳 B：保留耦合/假滑块。）
+- **承接**：#179（M11 · 摘 `needs-info`，待 M11 顺位转 ready）。
 
-## D70 · #181 杨氏双缝干涉 (`interference`) 中「薄膜干涉」参数与预设去向（pending，第 1 天询问 2026-11-17）
+## D70（已确认）· #181 杨氏双缝干涉 (`interference`) 中「薄膜干涉」参数与预设去向
 
-- **调查结论**：`interference` 场景包含 `filmThickness` / `filmN` 与 `薄膜干涉` 预设；但模型 [interference.ts:59-88](file:///home/kerwin/coding/physical_modelvis/physics-core/src/models/interference.ts#L59-L88) 计算的是反射双程光程差 $2nd$（与独立 `thin-film` #182 重复，且被 `interference.test.ts:104-114` 锁定），屏幕光强曲线 `intensityCurve` 却完全不使用薄膜参数（条纹零变化）。
-- **方案**：
-  - **A（推荐）**：改为杨氏双缝经典题型**「单缝前插透明薄片」**——附加单程光程差 $\Delta_{\text{opt}}=(n-1)t$，使屏幕光强曲线真实平移，2D/3D 在一缝前绘制薄片，预设改名为「单缝加薄片」，更新 `interference.test.ts` 中反射式断言（反射薄膜统一归 #182）。影响：保留参数与预设教学价值且物理自洽。
-  - **B**：从 `interference` 场景移除 `filmThickness` / `filmN` 与 `薄膜干涉` 预设，聚焦纯杨氏双缝，反射薄膜统一由 `thin-film` 场景承担。影响：界面更简洁，但会删去现有参数和预设。
-- **推荐 / 默认**：推荐 **A**；默认 **A**（若 3 天无答复转正按 A 执行；不放进本轮 ready）。
-- **承接**：#181（M11 · `needs-info`）。
+- **日期 / 用户决定**：2026-11-17 提问 → 同日用户答复「全部按照推荐的来」→ **D70 = A（已确认）**。
+- **调查结论**：`interference` 场景包含 `filmThickness` / `filmN` 与 `薄膜干涉` 预设；但模型 [interference.ts:59-88](file:///home/kerwin/coding/physical_modelvis/physics-core/src/models/interference.ts#L59-L88) 计算的是反射双程光程差 $2nd$（与独立 `thin-film` #182 重复，且被 `interference.test.ts:104-114` 锁定），屏幕光强曲线 `intensityCurve` 完全不使用薄膜参数。
+- **已确认方案 A**：改为杨氏双缝经典题型**「单缝前插透明薄片」**——附加单程光程差 $\Delta_{\text{opt}}=(n-1)t$，使屏幕光强曲线真实平移，2D/3D 在一缝前绘制薄片，预设改名为「单缝加薄片」，更新 `interference.test.ts` 中反射式断言（反射薄膜统一归 #182）。（未采纳 B：删除两参数及预设。）
+- **承接**：#181（M11 · 摘 `needs-info`，待 M11 顺位转 ready）。
 
-## D71 · #167 CI/QA Workflow Playwright 安装步是否加网络退避重试（pending，第 1 天询问 2026-11-17 · 红线 1.10 邻接）
+## D71（已确认 · 获 1.10 授权）· #167 CI/QA Workflow Playwright 安装步网络退避重试
 
-- **调查结论**：2026-11-11 的 2 次 CI 失败为 GitHub runner 临时 apt DNS 抖动，已于 11-12 自愈，此后主干 CI 与最近 5 次 `QA 场景巡检` 全部 success。调整 `.github/workflows/ci.yml` / `qa-sweep.yml` 邻接契约 1.10「主要 CI/CD 流程变化」边界。
-- **方案**：
-  - **A（推荐）**：授权仅在 `ci.yml` 与 `qa-sweep.yml` 的 `安装 Playwright Chromium` 步骤加 3 次退避重试（不改触发器、预算与门禁语义），以 `P3` 后置实施。
-  - **B**：不改 workflow 文件，关闭 #167（偶发 runner 抖动遇红 rerun 处理）。
-- **推荐 / 默认**：推荐 **A**；红线守则：未获用户明确批准绝不自行实施、不放进 `ready`；若 3 天无答复则按 **B（不改 CI）** 关闭 #167。
-- **承接**：#167（`needs-info`, `priority:P3`）。
+- **日期 / 用户决定**：2026-11-17 提问 → 同日用户答复「全部按照推荐的来」→ **D71 = A（已确认，用户明确放行 1.10 红线局部范围）**。
+- **调查结论**：2026-11-11 的 2 次 CI 失败为 GitHub runner 临时 apt DNS 抖动，已于 11-12 自愈，此后主干 CI 与最近 5 次 `QA 场景巡检` 全部 success。
+- **已确认方案 A（严格边界）**：授权仅在 `.github/workflows/ci.yml` 与 `.github/workflows/qa-sweep.yml` 的 `安装 Playwright Chromium` 步骤加 3 次网络退避重试（`APT::Retries` / 重试包装）；**明确禁止**改动触发器、预算、门禁语义与 4 探针数量，以 `P3` 后置实施。（未采纳 B：不加重试关闭。）
+- **承接**：#167（`priority:P3`, `area:ci`，摘 `needs-info`）。
 
-## D72 · 物理缺陷修复后的产品线排程顺序：#166 P1 vs #171 Sandbox M0 vs #189 UI/UX 改版（pending，第 1 天询问 2026-11-17）
+## D72（已确认）· 物理缺陷修复后的产品线排程顺序
 
-- **调查结论**：当前积压 20 个物理真源缺陷（#169–#190 中除 #171/#189）与 3 个大型产品能力项：#191（#166 P1 组合台可控放置 B-1~B-9）、#171（Sandbox M0 共享器材契约 + 平抛纵切，建议先出 RFC）、#189（PHYSVIS // WORLD ENGINE 赛博实验室视觉改版，正文注明待 P1 物理稳态后再开展）。
-- **方案**：
-  - **A（推荐）**：先集中收口 **M10（8 单核心力学+沙盒状态）→ M11（13 单其余物理缺陷）**，随后按 **#191（#166 P1 收尾既有沙盒交互）→ #171（Sandbox M0 阶段 A 设计 + 平抛纵切）→ #189（UI/UX 改版）** 依次推进。影响：避免在物理真源未修好前反复改 UI/沙盒契约。
-  - **B**：M10 核心 8 单完成后即插入 #171（Sandbox M0 RFC 与平抛纵切），与 M11 物理修复交替推进，最后做 #189。
-  - **C**：优先推进 #189 UI/UX 改版，再推进 #171 与 #191。
-- **推荐 / 默认**：推荐 **A**；默认 **A**（当前先推进 M10 不依赖 D72 立即答复；3 天无答复按 A 转正）。
-- **承接**：PLAN 路线图、#171、#189、#191。
+- **日期 / 用户决定**：2026-11-17 提问 → 同日用户答复「全部按照推荐的来」→ **D72 = A（已确认）**。
+- **已确认方案 A**：先集中收口 **M10（8 单核心力学+沙盒状态）→ M11（13 单其余物理缺陷）**，随后按 **#191（#166 P1 收尾既有沙盒交互）→ #171（Sandbox M0 阶段 A 设计 + 平抛纵切）→ #189（UI/UX 赛博改版）** 依次推进。（未采纳 B/C。）
+- **承接**：PLAN 路线图、#191、#171（摘 `needs-info`，维持 `blocked`）、#189。
 
 ---
 
-## D73 · 2026-11-17 Planner 收口与全量分拣：#166 部分通过退回 in-progress、拆 P1 至 #191、建 M10/M11、队列 5 单（P1=5）
+## D73 · 2026-11-17 Planner 收口与全量分拣（含同日续：D69–D72 全部按推荐转正）
 
-- **日期 / 决策者**：2026-11-17；Planner 依验收、队列治理与契约 6.1 低风险设计定型权限决定（不触 1.10 红线）。
+- **日期 / 决策者**：2026-11-17；Planner 依验收、队列治理与契约 6.1 低风险设计定型权限决定，同日续录用户对 D69–D72 全部采纳推荐项 A 的答复。
 - **同步与昨日现场**：`git fetch --all --prune` 确认 `HEAD 460711d == origin/main`（`670b1ee` + 空队列收尾提交）；工作区存在会话前未暂存 `mise.toml`（`node = "22"` → `"24"`），按契约保留未动；无 `.agent/LOCK`；已读 `2026-11-17`/`13`/`12` 日报、`STATE`/`HANDOFF`/`ENV`。
 - **#166 P0 验收结论（部分通过 → `in-progress`，[验收 comment](https://github.com/zhangjszs/physical-modelvis/issues/166#issuecomment-6951283793)）**：
   - 已通过认可：`e8dacb4` 规格入库、`picking.ts` + 18 单测、`CompositionOutliner.tsx` + 5 单测、`compositionStore.ts` `hoverId` + 2 单测、`sourceMeshes.ts` `pickRole` + 2 单测、`CompositionStage.tsx` P0 交互改造；本轮实跑 `tests/composition/` **11 files / 120 passed**，远端 CI `43259143205` / `43276337540` 全绿。
@@ -1317,7 +1307,7 @@ eslint tests 目录 `no-explicit-any` 降 warn）与 `36aed93`（移除 scripts/
   - 拆期：#166 范围收口为 **仅 P0 收口**；P1 期（B-1~B-9 可控放置）拆分至 **#191**（`priority:P2, blocked`）。
 - **Milestone 与 4.3 优先级治理**：
   - 新建 Milestone 4 **M10 核心物理真源与沙盒缺陷修复**（8 单：Wave 1 `#166/#169/#172/#173/#190`；Wave 2 `#174/#175/#177`）与 Milestone 5 **M11 电磁/光学/热学/近代物理缺陷修复**（13 单：`#170/#176/#178–#188`）。
-  - 依契约 4.3「P1 数量约等于今日队列长度、禁止堆满 P1」：保持 `priority:P1` **仅 5 单**（今日队列 `#166/#169/#172/#173/#190`）；其余原标 P1 的物理缺陷与 `#171` 统一调为 `priority:P2` 按 M10 Wave 2 / M11 / 后置有序推进；`#167` 定级 `priority:P3`（摘 `auto-discovered`，挂 `needs-info` D71）；`#44` 维持 `blocked · parked`（D44=B）。
+  - 依契约 4.3「P1 数量约等于今日队列长度、禁止堆满 P1」：保持 `priority:P1` **仅 5 单**（今日队列 `#166/#169/#172/#173/#190`）；其余原标 P1 的物理缺陷与 `#171` 统一调为 `priority:P2` 按 M10 Wave 2 / M11 / 后置有序推进；`#167` 定级 `priority:P3`（摘 `auto-discovered`）；`#44` 维持 `blocked · parked`（D44=B）。
 - **契约 6.1 低风险设计定型（无需打扰用户，已写入对应 Issue 评论）**：
   - **#169（斜面）**：`v0 > 0`（沿斜面向上）起始置于斜面底端 `s0 = inclineLength` 以便完整演示上滑/驻留/下滑，到顶端 `s=0` 或底端 `s=L` 截断止步；`v0 <= 0` 保留顶端 `s0=0`；2D/3D 斜面板按完整 `[0, L]` 渲染且 2D 标题消费瞬时加速度 `a(t)`。
   - **#172（竖直圆周）**：约束积分自洽 `v = r|dθ/dt|`；`rod` 需 `v0 >= sqrt(4gr)` 才过顶（同步更新 `vertical-circle.test.ts:68-71`）；保留 `physics-core` 对 `ring` 单侧约束（`vMin = sqrt(gr)`）既定契约，修正 `verticalCircleRig.ts` 错误按 `sqrt(4gr)` 判定及硬编码 `g=9.8`/自算拉力，统一消费引擎真源并对齐 `N(θ)` 符号。
@@ -1326,14 +1316,11 @@ eslint tests 目录 `no-explicit-any` 降 warn）与 `36aed93`（移除 scripts/
   - **#180（静电感应，入 M11）**：按模型既定「孤立中性导体」前提把 `q_near + q_far = 0` 设为硬不变量，规范感应比例与箔片物理张角区间。
   - **#183（液体混合，入 M11）**：保留 `min=0` 空白容器语义，`VTotal === 0` 时 `contractionPercent=0` 禁出 `NaN`，并明确展示「无液体，收缩率不适用」。
   - **#190（组合台失败清结果）**：排在 `#166` 合入 `main` 后执行；所有失败/无效分支清 `result: null`、处理无效 `setDuration`、舞台同步停播并更新 `compositionStore.test.ts:45-55` 旧断言。
-- **今日 Pending 汇总（共 4 项，见 D69–D72）**：D69（#179 光控阈值）、D70（#181 双缝薄膜）、D71（#167 CI Playwright 重试，红线 1.10）、D72（物理缺陷收口后产品线顺序）。
+- **今日 Pending 复核**：**pending 清零（0 项）**——D69/D70/D71/D72 均已获用户明确答复按推荐 A 执行；工作区未暂存 `mise.toml` 与两条远端已合并旧分支按契约保留不动，留待用户自行处理。
 - **本轮验证界限**：只读验收与复核（`git show`、实跑 `vitest tests/composition/` 11/11 120 tests 绿、实跑 `verify-composition-interaction.mjs` 复现第 13 步失败并查明根因）；未修改任何业务代码、测试或 Executor 所属文件。
 
 ---
 
 ## 待用户确认（pending 索引，2026-11-17）
 
-- **D69**（第 1 天询问 2026-11-17）：`#179` 光控开关 `threshold` 滑块语义（推荐 A：移除无效独立阈值改显示电路临界照度 + 校准默认分压；默认 A）
-- **D70**（第 1 天询问 2026-11-17）：`#181` 双缝干涉「薄膜干涉」预设去向（推荐 A：改为单缝前插薄片 $\Delta=(n-1)t$ 并更新光强曲线与单测；默认 A）
-- **D71**（第 1 天询问 2026-11-17 · 红线 1.10）：`#167` CI/QA Workflow Playwright 安装步是否加 3 次退避重试（推荐 A；**不自动实施**，3 天无答复按 B 不改 CI 关闭）
-- **D72**（第 1 天询问 2026-11-17）：M10/M11 物理缺陷收口后的产品主线顺序（推荐 A：`#191` → `#171` → `#189`；默认 A）
+- **无 pending。**（D68=A、D69=A、D70=A、D71=A、D72=A 均已转正；`#44` 按 D44=B 维持 `blocked · parked`。）
