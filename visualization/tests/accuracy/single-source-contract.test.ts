@@ -823,19 +823,22 @@ describe('L1-migration: 渲染单一真源契约 (后续迁移场景)', () => {
             expect(mv.v2After).toBeCloseTo(v2After, 10);
             expect(mv.OM).toBeCloseTo(Math.abs(v1After) * tFall, 10);
             expect(mv.ON).toBeCloseTo(Math.abs(v2After) * tFall, 10);
-            // 动量守恒: 速度式与射程式同源 (m1>m2 → v1After>0, 不反弹, 射程等式成立)
+            expect(mv.OM_signed).toBeCloseTo(v1After * tFall, 10);
+            expect(mv.ON_signed).toBeCloseTo(v2After * tFall, 10);
+            // 动量守恒: 速度式与带符号位移式严格同源 (含 m2>m1 反弹场景)
             expect(mv.pBefore).toBeCloseTo(mv.pAfter!, 10);
-            expect(p.m1 * mv.OP!).toBeCloseTo(p.m1 * mv.OM! + p.m2 * mv.ON!, 10);
+            expect(p.m1 * mv.OP!).toBeCloseTo(p.m1 * mv.OM_signed! + p.m2 * mv.ON_signed!, 10);
         };
-        // 参数化两组: 全弹性 + 半弹性, 覆盖 e / m / v / h 依赖
+        // 参数化三组: 全弹性 / 半弹性 / m2>m1 反弹
         verify({ m1: 0.2, m2: 0.1, v1: 2, h: 0.8, e: 1 });
         verify({ m1: 0.3, m2: 0.1, v1: 3, h: 1.25, e: 0.5 });
+        verify({ m1: 0.1, m2: 0.2, v1: 2, h: 0.8, e: 1 });
     });
 
     it('projectile-collision: 渲染层仍读 diagnostics.maxValues 且保留回退 (源码契约)', () => {
         const fn = renderFn('chapter5Scenes.ts', 'drawProjectileCollisionScene');
         expect(fn, '读引擎 maxValues').toContain('simulationResult?.diagnostics?.maxValues');
-        for (const key of ['tFall', 'v1After', 'v2After', 'OP', 'OM', 'ON']) {
+        for (const key of ['tFall', 'v1After', 'v2After', 'OP', 'OM', 'ON', 'OM_signed', 'ON_signed']) {
             // `?? ` 一并锁定: 读引擎 + 保留回退, 缺任一侧即红
             expect(fn, `渲染需消费 maxValues.${key} 并保留回退`).toContain(`maxVals?.${key} ??`);
         }
