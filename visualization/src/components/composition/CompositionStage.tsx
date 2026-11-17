@@ -20,6 +20,7 @@ import {
 import { makeArrow, makeLine, disposeObject } from '../simulation3d/primitives';
 import { applyShadowQuality } from '../simulation3d/shadowQuality';
 import { physicsToWorld, worldToPhysics, snapVector } from '../../utils/compositionCoords';
+import { syncStageTrajectoryResult } from './stageTrajectory';
 
 /**
  * CompositionStage — 组合实验台的 3D 交互舞台 (L4) + 场线渲染 (L5)。
@@ -332,33 +333,19 @@ export function CompositionStage() {
 
         const rebuildTrajectory = () => {
             const { result } = useCompositionStore.getState();
-            trajectory = result?.trajectory ?? [];
-            const dur = trajectory.length > 1 ? trajectory[trajectory.length - 1]!.t : 1;
-            trajectoryDurationLocal = dur;
-            setTrajectoryDuration(dur);
-            setHasTrajectory(trajectory.length > 1);
-            if (trajectory.length > 1) {
-                const positions = new Float32Array(trajectory.length * 3);
-                trajectory.forEach((p, i) => {
-                    const w = physicsToWorld(p.position);
-                    positions[i * 3] = w.x;
-                    positions[i * 3 + 1] = w.y;
-                    positions[i * 3 + 2] = w.z;
-                });
-                trajectoryLine.geometry.dispose();
-                trajectoryLine.geometry = new THREE.BufferGeometry();
-                trajectoryLine.geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-                trajectoryLine.visible = true;
-                particleBall.visible = true;
-                playheadRef.current = 0;
-                setCurrentTime(0);
-                updateParticleBall(0);
-                dirtyRef.current = true;
-            } else {
-                trajectoryLine.visible = false;
-                particleBall.visible = false;
-                dirtyRef.current = true;
-            }
+            const synced = syncStageTrajectoryResult(result, {
+                trajectoryLine,
+                particleBall,
+                isPlayingRef,
+                playheadRef,
+                dirtyRef,
+                setTrajectoryDuration,
+                setHasTrajectory,
+                setIsPlaying,
+                setCurrentTime
+            });
+            trajectory = synced.trajectory;
+            trajectoryDurationLocal = synced.duration;
         };
         rebuildTrajectory();
         const unsubscribeResult = useCompositionStore.subscribe((state, prev) => {
@@ -719,7 +706,9 @@ export function CompositionStage() {
 
             if (e.code === 'Space' || e.key === ' ') {
                 e.preventDefault();
-                togglePlay();
+                if ((useCompositionStore.getState().result?.trajectory.length ?? 0) > 1) {
+                    togglePlay();
+                }
             } else if (e.code === 'Delete' || e.key === 'Delete') {
                 const { selectedId, removeSource } = useCompositionStore.getState();
                 if (selectedId) {

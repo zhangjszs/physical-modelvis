@@ -52,7 +52,10 @@ describe('CompositionStage 轨迹回放控制与交互', () => {
         const { container } = render(<CompositionStage />);
 
         expect(screen.getByTitle('重置到起点')).toBeDefined();
-        expect(screen.getByTitle('暂停 (空格)')).toBeDefined();
+        // 空白台尚无轨迹 (result=null), 回放处于停止状态 (播放按钮禁用, 非暂停态)
+        const playBtn = screen.getByTitle('播放 (空格)') as HTMLButtonElement;
+        expect(playBtn).toBeDefined();
+        expect(playBtn.disabled).toBe(true);
 
         const slider = container.querySelector('.timeline-slider') as HTMLInputElement;
         expect(slider).not.toBeNull();
@@ -183,5 +186,37 @@ describe('CompositionStage 轨迹回放控制与交互', () => {
             await delay(30);
         });
         expect(renderCount).toBeGreaterThan(countAfter);
+    });
+
+    it('合法轨迹播放中遇到参数校验失败 (mass=0) 立即停播归零并禁用回放, 恢复合法后重新启用 (#190)', () => {
+        useCompositionStore.getState().addSource('point-charge');
+        const { container } = render(<CompositionStage />);
+
+        const slider = container.querySelector('.timeline-slider') as HTMLInputElement;
+        expect(slider.disabled).toBe(false);
+        expect(screen.getByTitle('暂停 (空格)')).toBeDefined();
+
+        // 推到 t=0.80s
+        fireEvent.change(slider, { target: { value: '0.8' } });
+        expect(screen.getByText('0.80s')).toBeDefined();
+
+        // 将粒子质量设为 0 → result=null → 停止播放、时间归零、控件禁用
+        act(() => {
+            useCompositionStore.getState().setParticle({ mass: 0 });
+        });
+        const playBtn = screen.getByTitle('播放 (空格)') as HTMLButtonElement;
+        expect(playBtn.disabled).toBe(true);
+        expect(slider.disabled).toBe(true);
+        expect(screen.getByText('0.00s')).toBeDefined();
+
+        // 非法状态下按空格不得重新激活播放
+        fireEvent.keyDown(window, { code: 'Space', key: ' ' });
+        expect(screen.getByTitle('播放 (空格)')).toBeDefined();
+
+        // 恢复合法质量 → 重算有效轨迹 → 回放控件重新启用
+        act(() => {
+            useCompositionStore.getState().setParticle({ mass: 2e-7 });
+        });
+        expect(slider.disabled).toBe(false);
     });
 });
