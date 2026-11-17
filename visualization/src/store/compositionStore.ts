@@ -296,6 +296,7 @@ export const useCompositionStore = create<CompositionState>((set, get) => ({
     },
 
     resetLab: () => {
+        nextId = 1;
         set(s => ({
             sources: [],
             selectedId: null,

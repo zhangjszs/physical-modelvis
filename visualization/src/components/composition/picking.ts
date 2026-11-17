@@ -80,6 +80,9 @@ export interface ScreenPoint {
 /** 同点判定容差 (px) — 与点击/拖拽阈值一致 (#166 P0) */
 export const PICK_POINT_TOLERANCE_PX = 4;
 
+/** 射线命中 Line (如匀强区 ArrowHelper 箭杆) 的世界容差 (m) — 覆盖 three.js 默认 1m 的巨大误命中球 */
+export const PICK_LINE_THRESHOLD_M = 0.03;
+
 /** 两屏幕点是否视为同一点 (欧氏距离 ≤ tolerance) */
 export function isSamePoint(a: ScreenPoint, b: ScreenPoint, tolerance: number = PICK_POINT_TOLERANCE_PX): boolean {
     return Math.hypot(a.x - b.x, a.y - b.y) <= tolerance;
@@ -138,6 +141,37 @@ export function resolvePick(
         picked,
         cycle: { screenX: point.x, screenY: point.y, ids: stack.map(c => c.id), index }
     };
+}
+
+/**
+ * pointerdown 阶段拾取决策 (区分「同点循环点选」与「拖拽已选中候选」):
+ * - 命中空: 清空选中与循环状态
+ * - 同点重复按下且当前选中项仍在候选栈中: 暂不切换选中 (defer-cycle),
+ *   若用户随后拖动 >4 px 则直接拖动当前选中项; 仅在原地松手 (<4 px) 时再调用 resolvePick 循环到下一候选
+ * - 首次按下或换点按下: 立即选中候选 1 (若随后拖动, 拖动候选 1)
+ */
+export type PointerDownPickDecision =
+    | { readonly action: 'clear' }
+    | { readonly action: 'defer-cycle'; readonly activeId: string }
+    | { readonly action: 'pick'; readonly picked: PickCandidate; readonly cycle: PickCycleState };
+
+export function decidePointerDownPick(
+    stack: readonly PickCandidate[],
+    point: ScreenPoint,
+    cycle: PickCycleState | null,
+    selectedId: string | null
+): PointerDownPickDecision {
+    if (stack.length === 0) return { action: 'clear' };
+    if (
+        cycle !== null &&
+        isSamePoint(point, { x: cycle.screenX, y: cycle.screenY }) &&
+        selectedId !== null &&
+        stack.some(c => c.id === selectedId)
+    ) {
+        return { action: 'defer-cycle', activeId: selectedId };
+    }
+    const resolution = resolvePick(stack, point, cycle, selectedId);
+    return { action: 'pick', picked: resolution.picked!, cycle: resolution.cycle! };
 }
 
 /** 器材类型的中文可读名 (S-8: 列表与徽标使用「类型 + 序号」, 不展示内部完整 id) */

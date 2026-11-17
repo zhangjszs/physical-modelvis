@@ -323,4 +323,21 @@ describe('compositionStore 组合实验台状态', () => {
         expect(sAfter.sources).toHaveLength(sBefore.sources.length);
         expect(sAfter.activeTemplateId).toBeNull();
     });
+
+    it('resetLab 重置器材序号计数器: 加载模板与增删后清空再添加仍从 #1 起编', () => {
+        const store = useCompositionStore.getState();
+        store.loadTemplate('velocity-selector'); // 消耗 3 个序号
+        store.addSource('point-charge'); // 消耗第 4 个序号
+        const fourthId = useCompositionStore.getState().sources[3]!.id;
+        store.removeSource(fourthId);
+
+        store.resetLab();
+        store.addSource('point-charge');
+        const placed = useCompositionStore.getState().sources[0]!;
+        expect(placed.id).toBe('point-charge-1');
+        expect(placed.source.kind).toBe('point-charge');
+        if (placed.source.kind === 'point-charge') {
+            expect(placed.source.position.x).toBeCloseTo(-0.27, 6);
+        }
+    });
 });

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
     buildPickStack,
+    decidePointerDownPick,
     resolvePick,
     isSamePoint,
     movedPastThreshold,
@@ -222,5 +223,37 @@ describe('sourceDisplayName 可读命名 (S-8)', () => {
 
     it('id 尾段非数字时只显示类型名', () => {
         expect(sourceDisplayName({ id: 'bar-magnet-custom', source: makeSource('bar-magnet') })).toBe('条形磁铁');
+    });
+});
+
+describe('decidePointerDownPick 区分同点循环与拖拽已选候选', () => {
+    const localSources = [
+        placedAt('q1', 'point-charge', 0),
+        placedAt('q2', 'point-charge', 1),
+        placedAt('q3', 'point-charge', 2)
+    ];
+    const stackOf = () => buildPickStack([hit('q1', 1), hit('q2', 1)], localSources);
+
+    it('空白按下返回 clear; 首次或换点按下立即选中候选 1', () => {
+        expect(decidePointerDownPick([], P(10, 10), null, 'q1')).toEqual({ action: 'clear' });
+        const first = decidePointerDownPick(stackOf(), P(50, 50), null, null);
+        expect(first.action).toBe('pick');
+        if (first.action === 'pick') {
+            expect(first.picked.id).toBe('q1');
+        }
+    });
+
+    it('同点再次按下且当前选中项在候选栈中: defer-cycle 保持当前选中以支持直接拖拽', () => {
+        const first = decidePointerDownPick(stackOf(), P(50, 50), null, null);
+        expect(first.action).toBe('pick');
+        if (first.action !== 'pick') return;
+
+        // 用户原地再次按下准备拖动 q1 或纯点击循环到 q2 → pointerdown 暂保留 q1
+        const secondDown = decidePointerDownPick(stackOf(), P(51, 50), first.cycle, 'q1');
+        expect(secondDown).toEqual({ action: 'defer-cycle', activeId: 'q1' });
+
+        // 若外部 (如列表) 把选中改到不在候选栈中的 q3, 同点按下直接从候选 1 重起
+        const outside = decidePointerDownPick(stackOf(), P(51, 50), first.cycle, 'q3');
+        expect(outside.action).toBe('pick');
     });
 });
