@@ -97,7 +97,7 @@ interface CompositionState {
     particle: CompositionParticle;
     duration: number;
     sampleCount: number;
-    /** 最近一次重仿真的结果 (校验失败时保留旧结果) */
+    /** 最近一次重仿真的结果 (校验或求解失败时清空为 null) */
     result: CompositionSimResult | null;
     /** 校验/求解的当前问题 (null = 状态健康) */
     validationMessage: string | null;
@@ -143,13 +143,13 @@ function recompute(state: CompositionState): Partial<CompositionState> {
     };
     const validation: ValidationResult = validateComposition(experiment);
     if (!validation.valid) {
-        return { validationMessage: validation.errors.map(e => e.message).join('; ') };
+        return { result: null, validationMessage: validation.errors.map(e => e.message).join('; ') };
     }
     try {
         const result = simulateComposition(experiment);
         return { result, validationMessage: null };
     } catch (err) {
-        return { validationMessage: err instanceof Error ? err.message : String(err) };
+        return { result: null, validationMessage: err instanceof Error ? err.message : String(err) };
     }
 }
 
@@ -257,7 +257,14 @@ export const useCompositionStore = create<CompositionState>((set, get) => ({
     },
 
     setDuration: duration => {
-        if (!Number.isFinite(duration) || duration <= 0) return;
+        if (!Number.isFinite(duration) || duration <= 0) {
+            set({
+                activeTemplateId: null,
+                result: null,
+                validationMessage: '仿真时长必须为大于 0 的有限数值'
+            });
+            return;
+        }
         set(() => {
             const next: Partial<CompositionState> = { duration, activeTemplateId: null };
             return { ...next, ...recompute({ ...get(), ...next } as CompositionState) };

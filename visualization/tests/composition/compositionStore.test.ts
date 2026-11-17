@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import * as physicsCore from 'physics-core';
 import { useCompositionStore, SOURCE_DEFAULTS } from '../../src/store/compositionStore';
 
 /**
@@ -42,7 +43,7 @@ describe('compositionStore 组合实验台状态', () => {
         expect(useCompositionStore.getState().result).not.toBe(before);
     });
 
-    it('updateSourceParams 重仿真; 非法参数给红牌且保留旧结果', () => {
+    it('updateSourceParams 重仿真; 非法参数清除旧结果并给红牌', () => {
         useCompositionStore.getState().addSource('circular-coil');
         const good = useCompositionStore.getState().result;
         expect(good).not.toBeNull();
@@ -51,7 +52,7 @@ describe('compositionStore 组合实验台状态', () => {
         const { sources, result, validationMessage } = useCompositionStore.getState();
         expect(sources[0]!.source).toMatchObject({ radius: -1 });
         expect(validationMessage).toContain('半径');
-        expect(result).toBe(good); // 校验失败保留最近有效结果
+        expect(result).toBeNull();
     });
 
     it('updateSourceParams 支持方向类字段 (线圈 axis / 极板 normal / 导线与磁铁 direction) 且触发重仿真与场线刷新', () => {
@@ -338,6 +339,73 @@ describe('compositionStore 组合实验台状态', () => {
         expect(placed.source.kind).toBe('point-charge');
         if (placed.source.kind === 'point-charge') {
             expect(placed.source.position.x).toBeCloseTo(-0.27, 6);
+        }
+    });
+
+    it('合法 → mass=0 清空旧 result → 恢复质量重出新结果 (#190)', () => {
+        const store = useCompositionStore.getState();
+        store.loadTemplate('velocity-selector');
+        const firstResult = useCompositionStore.getState().result;
+        expect(firstResult).not.toBeNull();
+
+        store.setParticle({ mass: 0 });
+        expect(useCompositionStore.getState().validationMessage).toContain('质量');
+        expect(useCompositionStore.getState().result).toBeNull();
+
+        store.setParticle({ mass: 2e-7 });
+        const recovered = useCompositionStore.getState();
+        expect(recovered.validationMessage).toBeNull();
+        expect(recovered.result).not.toBeNull();
+        expect(recovered.result).not.toBe(firstResult);
+    });
+
+    it('场源零向量 / 负尺寸等非法参数清空旧 result, 恢复合法后重新生成 (#190)', () => {
+        const store = useCompositionStore.getState();
+        store.addSource('uniform-field-zone');
+        const id = useCompositionStore.getState().sources[0]!.id;
+        expect(useCompositionStore.getState().result).not.toBeNull();
+
+        store.updateSourceVector(id, 'size', { x: -0.2 });
+        expect(useCompositionStore.getState().result).toBeNull();
+        expect(useCompositionStore.getState().validationMessage).not.toBeNull();
+
+        store.updateSourceVector(id, 'size', { x: 0.4 });
+        expect(useCompositionStore.getState().validationMessage).toBeNull();
+        expect(useCompositionStore.getState().result).not.toBeNull();
+    });
+
+    it('setDuration 非法值 (0 / 负数 / NaN) 清空 result 并写入 validationMessage, 恢复后重算 (#190)', () => {
+        const store = useCompositionStore.getState();
+        store.addSource('point-charge');
+        expect(useCompositionStore.getState().result).not.toBeNull();
+
+        for (const bad of [0, -1, Number.NaN]) {
+            store.setDuration(2);
+            expect(useCompositionStore.getState().result).not.toBeNull();
+            store.setDuration(bad);
+            expect(useCompositionStore.getState().result).toBeNull();
+            expect(useCompositionStore.getState().validationMessage).toContain('时长');
+        }
+
+        store.setDuration(1.5);
+        expect(useCompositionStore.getState().validationMessage).toBeNull();
+        expect(useCompositionStore.getState().result).not.toBeNull();
+    });
+
+    it('simulateComposition 抛出异常时清空旧 result 并反馈错误 (#190)', () => {
+        const store = useCompositionStore.getState();
+        store.addSource('point-charge');
+        expect(useCompositionStore.getState().result).not.toBeNull();
+
+        const spy = vi.spyOn(physicsCore, 'simulateComposition').mockImplementationOnce(() => {
+            throw new Error('模拟求解数值发散');
+        });
+        try {
+            store.commit();
+            expect(useCompositionStore.getState().result).toBeNull();
+            expect(useCompositionStore.getState().validationMessage).toBe('模拟求解数值发散');
+        } finally {
+            spy.mockRestore();
         }
     });
 });
