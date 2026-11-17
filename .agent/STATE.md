@@ -1,13 +1,13 @@
 # STATE
-- 更新时间：2026-11-13（本地日期；当日会话收尾中）
-- 当前任务：#166 P0 期「选中改造」**已完成 → in-review**（用户 2026-11-13 会话答复确认 D68=A；Planner 缺位 2 天，Executor 代行领取，依据见 issuecomment-6828730790）；P1 期（B-* 可控放置）未开工待 Planner 拆期；#44 blocked·parked / #167 auto-discovered 待定级维持
-- 分支：main（merge `0c754e0`，任务分支 `agent/issue-166-p0-selection` 已合并删除）
-- 未完成工作：无代码半成品；探针浏览器实跑环境阻塞（本机 chromium libatspi 符号崩溃），断言待 CI 复核；push 触发的远端 CI run 终态待下一棒复核
-- 最近提交：`0c754e0` Merge #166 P0 ← `c049509` feat(composition) #166 P0 器材选中改造（+823/−39，14 文件，含探针扩展与 count 回写）
+- 更新时间：2026-11-17T22:18:46+08:00
+- 当前任务：无（空队列轮次：`ready-for-agent` = 0，无 `in-progress` 现场；#166 P0 维持 `in-review`，#44 维持 `blocked · parked`，#167 维持 `auto-discovered`，2026-11-17 新建 #169–#190 共 22 单均为未转 `ready` 的 `open` 单）
+- 分支：`main`（已 fast-forward 同步至 `origin/main` `670b1ee`，合入 PR #168）
+- 未完成工作：无代码半成品；工作区另有会话前已存在的未暂存改动 `mise.toml`（`node = "22"` → `"24"`），按契约 §2.1.4/§9 未触碰
+- 最近提交：`670b1ee` Merge pull request #168 from zhangjszs/agent/issue-96-default-on-grid（上一轮 `.agent/` 提交为 `d756bf8`）
 - 验证结果：
-  - 本地权威：完整 precheck 双绿（提交前 + push pre-push 钩子）——typecheck / lint 0 错误（19 既有 warning）/ format / test 3185（viz 2004 + core 1181，新增 27）/ count:sync 回写 / build / bundle / publish dry-run / 自检「11 层: 11 PASS, 0 FAIL」
-  - 探针：`verify-composition-interaction.mjs` 扩展 A-1/A-2/A-4/A-5/A-7 断言后本地实跑**环境阻塞**（chromium headless shell 启动崩 `libatspi.so.0: undefined symbol`，NO_AT_BRIDGE=1 无效、无系统浏览器）；DOM 面已由 compositionOutliner.test.tsx（jsdom 5 用例）+ picking.test.ts（18 用例）补位
-  - 远端：push `0c754e0` 触发的新 CI run 终态未确认（提交时运行中；判读指引：失败先看步骤是否「安装 Playwright Chromium」）
-- 今日日报：已写（`.agent/DIARY/2026-11-13.md`）
-- 已知环境限制：npm/node 需 mise shims；`gh` 写操作须 `env -u GH_TOKEN`；**本机 chromium headless 不可用（libatspi 崩溃，探针类本地实跑受限）**；libselinux 告警为容器噪音
+  - `npm run precheck` → 退出码 0（于 `670b1ee` 实跑：build:core / typecheck / lint 0 errors & 19 既有 warnings / format:check / sweep:test 208 文件 0 处吞断言 / test 3190 全绿 = core 1186 (129 files) + viz 2004 (76 files) / count:check 3 处标记一致 / build:viz / check:bundle 首屏 11.8 kB ≤ 70 kB / check:publish dry-run / selfcheck 11 层 11 PASS, 0 FAIL）
+  - 远端状态：`670b1ee` CI `43276337540`、Deploy `43276988887` 及最近 5 次每日 `QA 场景巡检`（含 `43999592087` @ `2026-11-17T01:58:59Z`）均 `success`
+  - 未执行：本地 Playwright 浏览器探针（本轮无代码变更且无 ready 任务；历史记录本机 chromium headless libatspi 崩溃限制本轮未复测）
+- 今日日报：已写（`.agent/DIARY/2026-11-17.md`）
+- 已知环境限制：npm/node 需 mise shims（当前 `v24.22.3` / npm `11.19.1`）；工作区存在未提交 `mise.toml`（`node = "22"` → `"24"`）；2026-11-13 记录本机 chromium headless libatspi 崩溃（本轮未复测）
 - 契约 1.2 提示：未发现 `.agent/LOCK` 残留；串行不使用锁
