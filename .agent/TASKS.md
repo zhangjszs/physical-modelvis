@@ -19,7 +19,7 @@
 
 ### 1. #166 · 组合实验台 P0 探针闭环与检查器显示名统一（返工收口）
 
-- Issue：[#166](https://github.com/zhangjszs/physical-modelvis/issues/166)；Milestone：M10；状态：**in-progress**；优先级：**priority:P1**（`area:render`, `type:feature`）。
+- Issue：[#166](https://github.com/zhangjszs/physical-modelvis/issues/166)；Milestone：M10；状态：**in-review**（2026-11-17 返工合并 `81c3064`）；优先级：**priority:P1**（`area:render`, `type:feature`）。
 - 返工范围（仅剩 2 项差距）：
   1. `compositionStore.ts` `resetLab()` 重置 `nextId = 1`（补单测），并本机实跑 `node scripts/verify-composition-interaction.mjs` 验证全流程（含 A-1/A-2/A-4/A-5/A-7）绿且零 console error。
   2. `CompositionLab.tsx:251` 将 `{KIND_LABEL[selected.source.kind]} · {selected.id}` 统一为 `{sourceDisplayName(selected)}`。
@@ -27,7 +27,7 @@
 
 ### 2. #169 · 修复斜面实验上滑初速度、动摩擦方向与有限斜面边界
 
-- Issue：[#169](https://github.com/zhangjszs/physical-modelvis/issues/169)；Milestone：M10；状态：**ready-for-agent**；优先级：**priority:P1**（`area:engine`, `area:render`, `type:bug`）。
+- Issue：[#169](https://github.com/zhangjszs/physical-modelvis/issues/169)；Milestone：M10；状态：**in-review**（2026-11-17 合并 `604fe5c`）；优先级：**priority:P1**（`area:engine`, `area:render`, `type:bug`）。
 - Planner 4.2 门禁定型（详见 Issue 最新评论）：
   - UI `v0 > 0`（沿斜面向上）时滑块起始置于斜面**底端** `s0 = inclineLength`，到顶端 `s = 0` 或返回底端 `s = inclineLength` 截断止步；`v0 <= 0` 保留顶端 `s0 = 0`。
   - 分段解析：`vAlong < 0` 用 `a_up = g(sinθ + μcosθ)`；过零时检查 `staticCanHold`（`tanθ ≤ μ` 驻留，否则切换 `a_down = g(sinθ - μcosθ)`），保持位移/速度连续。
@@ -35,7 +35,7 @@
 
 ### 3. #172 · 修复竖直圆周运动学自洽与杆/绳/环临界及 3D 真源
 
-- Issue：[#172](https://github.com/zhangjszs/physical_modelvis/issues/172)；Milestone：M10；状态：**ready-for-agent**；优先级：**priority:P1**（`area:engine`, `area:render`, `type:bug`）。
+- Issue：[#172](https://github.com/zhangjszs/physical_modelvis/issues/172)；Milestone：M10；状态：**in-review**（已合入 `66af132` @ `main`，提交执行报告）；优先级：**priority:P1**（`area:engine`, `area:render`, `type:bug`）。
 - Planner 4.2 门禁定型（详见 Issue 最新评论）：
   - 细步长约束积分求解 `dθ/dt = ω`、`dω/dt = -(g/r)sinθ`，使 `v = r|ω|` 自洽且机械能守恒。
   - `rod` 仅在 `v₀ ≥ √(4gr)` 时过顶（同步更正 `vertical-circle.test.ts:68-71`）；`rope` 与 `ring` 保持单侧约束 `vMin = √(gr)` / `v₀_crit = √(5gr)`（`2gr < v₀² < 5gr` 在 `cosθ_det = (2gr-v₀²)/(3gr)` 脱轨平抛，`v₀² ≤ 2gr` 摆动）。
@@ -43,14 +43,14 @@
 
 ### 4. #173 · 修复平抛碰撞反弹带符号位移与非弹性文案
 
-- Issue：[#173](https://github.com/zhangjszs/physical_modelvis/issues/173)；Milestone：M10；状态：**ready-for-agent**；优先级：**priority:P1**（`area:engine`, `area:render`, `type:bug`）。
+- Issue：[#173](https://github.com/zhangjszs/physical_modelvis/issues/173)；Milestone：M10；状态：**in-review**（已合入 `d5db38e` @ `main`，提交执行报告）；优先级：**priority:P1**（`area:engine`, `area:render`, `type:bug`）。
 - Planner 4.2 门禁定型（详见 Issue 最新评论）：
   - 区分绝对距离与带符号水平位移 `OM_signed = v1After * tFall`；关键帧、`rangeDiagram`、动量代数和 `m₁·OP = m₁·OM_signed + m₂·ON_signed` 与 2D/3D 落点全部采用带符号结果。
   - 修正 `碰撞瞬间` 关键帧在 `e < 1` 时错标「完全弹性」的文案；补 `m₂ > m₁` 反弹与 `e=0/0.5/1` 单测。
 
 ### 5. #190 · 组合实验台参数校验/求解失败后清除旧轨迹与回放状态
 
-- Issue：[#190](https://github.com/zhangjszs/physical_modelvis/issues/190)；Milestone：M10；状态：**ready-for-agent**（**顺序在 #166 合入 `main` 之后**）；优先级：**priority:P1**（`area:render`, `type:bug`）。
+- Issue：[#190](https://github.com/zhangjszs/physical_modelvis/issues/190)；Milestone：M10；状态：**in-review**（已合入 `8a09ec0` @ `main`，提交执行报告）；优先级：**priority:P1**（`area:render`, `type:bug`）。
 - Planner 4.2 门禁定型（详见 Issue 最新评论）：
   - `compositionStore.ts` `recompute` 所有失败/异常分支返回 `{ result: null, validationMessage }`；无效 `setDuration` 同步清 `result` 与报错（不静默忽略）。
   - `CompositionStage.tsx` 当 `trajectory.length <= 1` 时停止播放态并复位 `currentTime = 0`。

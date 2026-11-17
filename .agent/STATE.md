@@ -1,13 +1,9 @@
 # STATE
-- 更新时间：2026-11-17T22:18:46+08:00
-- 当前任务：无（空队列轮次：`ready-for-agent` = 0，无 `in-progress` 现场；#166 P0 维持 `in-review`，#44 维持 `blocked · parked`，#167 维持 `auto-discovered`，2026-11-17 新建 #169–#190 共 22 单均为未转 `ready` 的 `open` 单）
-- 分支：`main`（已 fast-forward 同步至 `origin/main` `670b1ee`，合入 PR #168）
-- 未完成工作：无代码半成品；工作区另有会话前已存在的未暂存改动 `mise.toml`（`node = "22"` → `"24"`），按契约 §2.1.4/§9 未触碰
-- 最近提交：`670b1ee` Merge pull request #168 from zhangjszs/agent/issue-96-default-on-grid（上一轮 `.agent/` 提交为 `d756bf8`）
-- 验证结果：
-  - `npm run precheck` → 退出码 0（于 `670b1ee` 实跑：build:core / typecheck / lint 0 errors & 19 既有 warnings / format:check / sweep:test 208 文件 0 处吞断言 / test 3190 全绿 = core 1186 (129 files) + viz 2004 (76 files) / count:check 3 处标记一致 / build:viz / check:bundle 首屏 11.8 kB ≤ 70 kB / check:publish dry-run / selfcheck 11 层 11 PASS, 0 FAIL）
-  - 远端状态：`670b1ee` CI `43276337540`、Deploy `43276988887` 及最近 5 次每日 `QA 场景巡检`（含 `43999592087` @ `2026-11-17T01:58:59Z`）均 `success`
-  - 未执行：本地 Playwright 浏览器探针（本轮无代码变更且无 ready 任务；历史记录本机 chromium headless libatspi 崩溃限制本轮未复测）
-- 今日日报：已写（`.agent/DIARY/2026-11-17.md`）
-- 已知环境限制：npm/node 需 mise shims（当前 `v24.22.3` / npm `11.19.1`）；工作区存在未提交 `mise.toml`（`node = "22"` → `"24"`）；2026-11-13 记录本机 chromium headless libatspi 崩溃（本轮未复测）
+- 更新时间：2026-11-18T00:42:00+08:00
+- 当前任务：无（M10 Wave 1 今日队列 5 项 #166 / #169 / #172 / #173 / #190 已全部完成并转 `in-review`）
+- 分支：`main`（与 `origin/main` 同步至 `8a09ec0`；所有任务临时分支已删除）
+- 未完成工作：无进行中任务；待 Planner 验收今日 5 个 `in-review` Issue 并排期 M10 Wave 2（#174 / #175 / #177）
+- 最近提交：`8a09ec0` Merge branch 'agent/issue-190-composition-invalid-reset' (Refs #190)
+- 今日日报：已写入 `.agent/DIARY/2026-11-18.md`（并按追加式规则于 `.agent/DIARY/2026-11-17.md` 末尾补记跨日会话记录）
+- 已知环境限制：npm/node 需 mise shims（当前 `v24.22.3` / npm `11.19.1`）；本机 Playwright Chromium 可用（`verify-composition-interaction.mjs` 全程 0 error 通过）；工作区保留用户既有的未暂存 `mise.toml` 改动（未触碰）
 - 契约 1.2 提示：未发现 `.agent/LOCK` 残留；串行不使用锁
