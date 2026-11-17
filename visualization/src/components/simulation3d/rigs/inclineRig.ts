@@ -74,8 +74,12 @@ function geometryFor(params: Record<string, number>, result?: SimulationResult |
     const theta = resultTheta ?? num(params['theta'] ?? params['angle'], 30);
     const rad = (theta * Math.PI) / 180;
     const scale = scaleFor(params, result);
-    let min = 0;
-    let max = 0;
+    const lengthM = inclineLengthMeters(params, result);
+    // 完整斜面 [0, L] 两端: 顶端 (0, L·sinθ) 与底端 (L·cosθ, 0) — 避免上滑或静止时斜面板随轨迹访问区间缩窄
+    const alongTop = alongMeters({ x: 0, y: lengthM * Math.sin(rad) }, rad) * scale;
+    const alongBottom = alongMeters({ x: lengthM * Math.cos(rad), y: 0 }, rad) * scale;
+    let min = Math.min(alongTop, alongBottom);
+    let max = Math.max(alongTop, alongBottom);
     for (const point of result?.trajectories[0] ?? []) {
         const along = alongMeters(point.position, rad) * scale;
         min = Math.min(min, along);
