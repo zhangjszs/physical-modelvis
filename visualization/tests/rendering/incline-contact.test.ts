@@ -85,12 +85,17 @@ describe('#158 真实引擎采样与斜面板接触', () => {
             { theta: 30, mu: 0, v0: 0 },
             { theta: 30, mu: 1, v0: 0 },
             { theta: 5, mu: 1, v0: 10 },
-            { theta: 30, mu: 0, v0: -10 }
+            { theta: 30, mu: 0, v0: -10 },
+            { theta: 30, mu: 0.2, v0: 4 },
+            { theta: 30, mu: 1, v0: 4 },
+            { theta: 30, mu: 0.2, v0: 12 }
         ]) {
             const { params, result } = simulate(overrides);
             inclineRig.updateEquipment(built.handles, params, result);
             scene.updateMatrixWorld(true);
             const bounds = panel.geometry.boundingBox!;
+            // #169: 即使静摩擦持住 (mu=1, v0=0) 或仅上滑局部区段，斜面板仍覆盖完整 [0, L]
+            expect(panel.scale.x).toBeGreaterThanOrEqual(3.2);
             const tangent = new THREE.Vector3(1, 0, 0).transformDirection(panel.matrixWorld);
             const initial = inclineRig.getVisualPosition(result.trajectories[0]![0]!.position, params, result);
             const origin = inclineRig.getOrigin(params, result);

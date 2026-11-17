@@ -164,4 +164,133 @@ describe('InclinedPlaneModel', () => {
         expect(v.valid).toBe(false);
         expect(v.errors.some(e => e.code === 'MODEL_MISMATCH')).toBe(true);
     });
+
+    it('#169 上滑初速度不被静摩擦瞬间清零: θ=30°, μ=1, v₀=+2 m/s (沿斜面向上)', () => {
+        const theta = 30;
+        const rad = (theta * Math.PI) / 180;
+        const L = 6;
+        const g = 9.8;
+        const mu = 1;
+        const problem: PhysicsProblem = {
+            id: 'up-hold',
+            model: 'inclined-plane',
+            bodies: [
+                {
+                    id: 'block',
+                    mass: { value: 1, unit: 'kg' },
+                    position: { x: L * Math.cos(rad), y: 0 },
+                    velocity: { x: -2 * Math.cos(rad), y: 2 * Math.sin(rad) }
+                }
+            ],
+            constraints: { inclinedPlane: { angle: theta, frictionCoefficient: mu, inclineLength: L } },
+            environment: { gravity: { enabled: true, value: g } },
+            timeConfig: { duration: 2, sampleCount: 400 }
+        };
+        const r = model.solve(problem);
+        const aUp = g * (Math.sin(rad) + mu * Math.cos(rad)); // ≈ 13.387 m/s²
+        const tPeak = 2 / aUp;
+        // t=0 保持初速向上 (-2 m/s), 绝不被静摩擦清零
+        expect(r.charts.v_t!.points[0]!.y).toBeCloseTo(-2, 6);
+        expect(r.charts.a_t!.points[0]!.y).toBeCloseTo(aUp, 5);
+        // 停下前处于减速上滑
+        const midAscent = r.charts.v_t!.points.find(p => p.x > 0.05 && p.x < tPeak - 0.02)!;
+        expect(midAscent.y).toBeLessThan(0);
+        expect(midAscent.y).toBeCloseTo(-2 + aUp * midAscent.x, 4);
+        // 停下后 tanθ ≤ μ 静摩擦持住, 速度/加速度归零
+        const afterStop = r.charts.v_t!.points.filter(p => p.x > tPeak + 0.02);
+        expect(afterStop.length).toBeGreaterThan(10);
+        for (const pt of afterStop) {
+            expect(pt.y).toBeCloseTo(0, 6);
+        }
+        expect(r.keyframes.some(k => k.label === '停下')).toBe(true);
+    });
+
+    it('#169 上滑减速过零后摩擦换向折返下滑: θ=30°, μ=0.2, v₀=+2 m/s', () => {
+        const theta = 30;
+        const rad = (theta * Math.PI) / 180;
+        const L = 6;
+        const g = 9.8;
+        const mu = 0.2;
+        const problem: PhysicsProblem = {
+            id: 'up-reverse',
+            model: 'inclined-plane',
+            bodies: [
+                {
+                    id: 'block',
+                    mass: { value: 1, unit: 'kg' },
+                    position: { x: L * Math.cos(rad), y: 0 },
+                    velocity: { x: -2 * Math.cos(rad), y: 2 * Math.sin(rad) }
+                }
+            ],
+            constraints: { inclinedPlane: { angle: theta, frictionCoefficient: mu, inclineLength: L } },
+            environment: { gravity: { enabled: true, value: g } },
+            timeConfig: { duration: 2, sampleCount: 1000 }
+        };
+        const r = model.solve(problem);
+        const aUp = g * (Math.sin(rad) + mu * Math.cos(rad)); // ≈ 6.5974
+        const aDown = g * (Math.sin(rad) - mu * Math.cos(rad)); // ≈ 3.2026
+        const tPeak = 2 / aUp;
+        // 上滑期加速度 = aUp
+        expect(r.charts.a_t!.points[1]!.y).toBeCloseTo(aUp, 5);
+        // 折返期 (tPeak < t < tBottom) 加速度切换为 aDown 且速度变正
+        const descentPt = r.charts.v_t!.points.find(p => p.x > tPeak + 0.05 && p.x < tPeak + 0.3)!;
+        const descentIdx = r.charts.v_t!.points.indexOf(descentPt);
+        expect(descentPt.y).toBeCloseTo(aDown * (descentPt.x - tPeak), 4);
+        expect(r.charts.a_t!.points[descentIdx]!.y).toBeCloseTo(aDown, 5);
+        // 数值导数 dx/dt ≈ v (含跨越最高点 tPeak 连续区间; 仅排除到达底端瞬时碰撞停步的断点)
+        const tBottom = tPeak + Math.sqrt((2 * (L - (L - 4 / (2 * aUp)))) / aDown);
+        for (let i = 1; i < r.charts.x_t!.points.length - 1; i++) {
+            const tMid = r.charts.x_t!.points[i]!.x;
+            if (Math.abs(tMid - tBottom) < 0.01) continue;
+            const dx = r.charts.x_t!.points[i + 1]!.y - r.charts.x_t!.points[i - 1]!.y;
+            const dt = r.charts.x_t!.points[i + 1]!.x - r.charts.x_t!.points[i - 1]!.x;
+            const vMid = r.charts.v_t!.points[i]!.y;
+            expect(Math.abs(dx / dt - vMid)).toBeLessThan(0.01);
+        }
+        expect(r.keyframes.some(k => k.label === '最高点折返')).toBe(true);
+        expect(r.keyframes.some(k => k.label === '到达底端')).toBe(true);
+        // 末态停在底端 (L·cosθ, 0)
+        const last = r.trajectories[0]![r.trajectories[0]!.length - 1]!;
+        expect(last.position.x).toBeCloseTo(L * Math.cos(rad), 5);
+        expect(last.position.y).toBeCloseTo(0, 5);
+    });
+
+    it('#169 有限斜面顶端边界截断: 高速上滑到达 s=0 停在顶端不飞出', () => {
+        const theta = 30;
+        const rad = (theta * Math.PI) / 180;
+        const L = 6;
+        const g = 9.8;
+        const mu = 0.2;
+        const v0 = 12;
+        const problem: PhysicsProblem = {
+            id: 'up-top-clamp',
+            model: 'inclined-plane',
+            bodies: [
+                {
+                    id: 'block',
+                    mass: { value: 1, unit: 'kg' },
+                    position: { x: L * Math.cos(rad), y: 0 },
+                    velocity: { x: -v0 * Math.cos(rad), y: v0 * Math.sin(rad) }
+                }
+            ],
+            constraints: { inclinedPlane: { angle: theta, frictionCoefficient: mu, inclineLength: L } },
+            environment: { gravity: { enabled: true, value: g } },
+            timeConfig: { duration: 3, sampleCount: 600 }
+        };
+        const r = model.solve(problem);
+        const last = r.trajectories[0]![r.trajectories[0]!.length - 1]!;
+        expect(last.position.x).toBeCloseTo(0, 5);
+        expect(last.position.y).toBeCloseTo(L * Math.sin(rad), 5);
+        expect(Math.hypot(last.velocity.x, last.velocity.y)).toBeCloseTo(0, 6);
+        expect(r.keyframes.some(k => k.label === '到达顶端')).toBe(true);
+        expect(r.warnings.some(w => w.includes('顶端'))).toBe(true);
+        // 全程位移不得越出 [0, L]
+        const inclineDir = { x: Math.cos(rad), y: -Math.sin(rad) };
+        const topPos = { x: 0, y: L * Math.sin(rad) };
+        for (const p of r.trajectories[0]!) {
+            const s = (p.position.x - topPos.x) * inclineDir.x + (p.position.y - topPos.y) * inclineDir.y;
+            expect(s).toBeGreaterThanOrEqual(-1e-6);
+            expect(s).toBeLessThanOrEqual(L + 1e-6);
+        }
+    });
 });

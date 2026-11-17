@@ -716,13 +716,18 @@ export function inclinePlaneReadouts(
     const theta = (thetaDeg * Math.PI) / 180;
     const cosT = Math.cos(theta);
     const sinT = Math.sin(theta);
-    const acceleration = G_ACCELERATION * (sinT - friction * cosT);
+    const v0Up = params['v0'] ?? 0;
+    const fallbackAccel =
+        v0Up > 0 ? G_ACCELERATION * (sinT + friction * cosT) : G_ACCELERATION * (sinT - friction * cosT);
 
     const frame = getFrame(result, currentTime);
     if (frame) {
         const startY = inclineLength * sinT;
         const s = frame.position.x * cosT - (frame.position.y - startY) * sinT;
         const v = frame.velocity.x * cosT - frame.velocity.y * sinT;
+        const acceleration = frame.acceleration
+            ? frame.acceleration.x * cosT - frame.acceleration.y * sinT
+            : fallbackAccel;
         return {
             thetaDeg,
             friction,
@@ -735,14 +740,24 @@ export function inclinePlaneReadouts(
             source: 'engine'
         };
     }
+    const sFallback =
+        v0Up > 0
+            ? Math.max(
+                  0,
+                  Math.min(
+                      inclineLength,
+                      inclineLength - v0Up * currentTime + 0.5 * fallbackAccel * currentTime * currentTime
+                  )
+              )
+            : Math.min(inclineLength, 0.5 * fallbackAccel * currentTime * currentTime);
     return {
         thetaDeg,
         friction,
         mass,
         inclineLength,
-        acceleration,
-        s: Math.min(inclineLength, 0.5 * acceleration * currentTime * currentTime),
-        v: acceleration * currentTime,
+        acceleration: fallbackAccel,
+        s: sFallback,
+        v: -v0Up + fallbackAccel * currentTime,
         atBottom: false,
         source: 'fallback'
     };
@@ -949,7 +964,7 @@ export function drawInclinedPlaneScene(opts: MechanicsSceneOptions): void {
         y: topLeft.y + s * sinT * scale
     });
 
-    drawTitle(ctx, `斜面运动: a = g(sinθ − μcosθ) = ${a.toFixed(2)} m/s²`, width, isDark);
+    drawTitle(ctx, `斜面运动: 瞬时加速度 a = ${a.toFixed(2)} m/s²`, width, isDark);
 
     // —— 楔形 (木质斜面板) ——
     const tokens = getThemeTokens(isDark);
@@ -1084,7 +1099,7 @@ export function drawInclinedPlaneScene(opts: MechanicsSceneOptions): void {
         ctx,
         width,
         height,
-        `θ=${thetaDeg}°  μ=${mu}  m=${m}kg  L=${L.toFixed(1)}m  a=g(sinθ−μcosθ)=${a.toFixed(2)}m/s²  ` +
+        `θ=${thetaDeg}°  μ=${mu}  m=${m}kg  L=${L.toFixed(1)}m  a=${a.toFixed(2)}m/s²  ` +
             `s=${s.toFixed(2)}m  v=${vAlong.toFixed(2)}m/s`,
         isDark
     );

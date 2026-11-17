@@ -64,7 +64,11 @@ import { airTrackUnitsPerMeter, airTrackWorldX } from '../../src/components/simu
 import { galileoInclineRig, type GalileoHandles } from '../../src/components/simulation3d/rigs/galileoInclineRig';
 import { inclineRig, inclineUnitsPerMeter } from '../../src/components/simulation3d/rigs/inclineRig';
 import type { InclinedPlaneHandles } from '../../src/components/simulation3d/equipment/inclinedPlane';
-import { galileoInclineReadouts, inclinePlaneReadouts } from '../../src/rendering/chapter1Scenes';
+import {
+    galileoInclineReadouts,
+    inclinePlaneReadouts,
+    drawInclinedPlaneScene
+} from '../../src/rendering/chapter1Scenes';
 import { computePhotogateMeasurements } from '../../src/utils/photogate';
 import { collisionReadouts, springReadouts } from '../../src/rendering/chapter1Scenes';
 import { forceCompositionReadouts } from '../../src/rendering/chapter3Scenes';
@@ -1177,6 +1181,51 @@ describe('#159 高中核心·斜面运动: 初速度分解与「滑到底端即�
         const visual = inclineRig.getVisualPosition(later, params, result).sub(initial);
         const engineDelta = new THREE.Vector3(later.x - first.x, later.y - first.y, 0);
         expect(visual.dot(tangent)).toBeCloseTo(engineDelta.dot(tangent) * inclineUnitsPerMeter(params, result), 6);
+    });
+
+    it('#169 上滑初速度从底端起滑，2D 读数与标题消费当前时刻瞬时加速度 (不写死 g(sinθ-μcosθ))', () => {
+        const { params, result } = simulate('inclined-plane', { theta: 30, mu: 0.2, v0: 4, duration: 3 });
+        const theta = (30 * Math.PI) / 180;
+        const L = params['inclineLength']!;
+        const first = result.trajectories[0]![0]!;
+        // v0 > 0 从斜面底端 (L·cosθ, 0) 出发
+        expect(first.position.x).toBeCloseTo(L * Math.cos(theta), 6);
+        expect(first.position.y).toBeCloseTo(0, 6);
+
+        const aUp = 9.8 * (Math.sin(theta) + 0.2 * Math.cos(theta));
+        const aDown = 9.8 * (Math.sin(theta) - 0.2 * Math.cos(theta));
+        const tPeak = 4 / aUp; // ≈ 0.606s
+
+        // 上滑期读到 aUp, 折返期读到 aDown
+        const readUp = inclinePlaneReadouts(params, result, 0.2);
+        expect(readUp.acceleration).toBeCloseTo(aUp, 4);
+        expect(readUp.v).toBeLessThan(0);
+
+        const readDown = inclinePlaneReadouts(params, result, tPeak + 0.2);
+        expect(readDown.acceleration).toBeCloseTo(aDown, 4);
+        expect(readDown.v).toBeGreaterThan(0);
+
+        // 2D 标题不写死公式, 反映当前时刻瞬时加速度
+        const { ctx, texts } = createRecordingCanvas();
+        const origGetContext = HTMLCanvasElement.prototype.getContext;
+        HTMLCanvasElement.prototype.getContext = function (this: HTMLCanvasElement, _type: string) {
+            return createRecordingCanvas({ width: this.width || 256, height: this.height || 256 }).ctx as never;
+        } as typeof HTMLCanvasElement.prototype.getContext;
+        try {
+            drawInclinedPlaneScene({
+                ctx,
+                width: 800,
+                height: 600,
+                isDark: false,
+                params,
+                simulationResult: result,
+                currentTime: 0.2
+            });
+        } finally {
+            HTMLCanvasElement.prototype.getContext = origGetContext;
+        }
+        expect(texts.some(t => t.includes(aUp.toFixed(2)))).toBe(true);
+        expect(texts.some(t => t.includes('g(sinθ'))).toBe(false);
     });
 });
 

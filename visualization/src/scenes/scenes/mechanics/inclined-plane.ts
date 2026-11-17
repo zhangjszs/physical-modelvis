@@ -93,8 +93,10 @@ export const inclined_planeScene: SceneConfig = {
          */
         const v0x = -v0 * Math.cos(thetaRad);
         const v0y = v0 * Math.sin(thetaRad);
-        // 物体初始位于斜面顶端: 斜面底端在 (L·cosθ, 0), 顶端高 L·sinθ
-        const startY = inclineLength * Math.sin(thetaRad);
+        // UI v0 > 0 (沿斜面向上) 从底端 (L·cosθ, 0) 起滑, 使「上滑→最高点驻留或折返」完整留在 [0, L] 内;
+        // v0 <= 0 保留从斜面顶端 (0, L·sinθ) 出发的既有行为
+        const startPos =
+            v0 > 0 ? { x: inclineLength * Math.cos(thetaRad), y: 0 } : { x: 0, y: inclineLength * Math.sin(thetaRad) };
         return {
             id: `inclined-plane-${Date.now()}`,
             title: '斜面运动',
@@ -103,7 +105,7 @@ export const inclined_planeScene: SceneConfig = {
                 {
                     id: 'block',
                     mass: { value: m, unit: 'kg' },
-                    position: { x: 0, y: startY },
+                    position: startPos,
                     velocity: { x: v0x, y: v0y }
                 }
             ],
