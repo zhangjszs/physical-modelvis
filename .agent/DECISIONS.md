@@ -4,7 +4,7 @@
 > 旧答案与现状明显冲突时，可确认一次"是否仍然有效"。
 > 本文件曾随 `6214cbd` 开源化清理被误删，2026-10-02 规划者从 `d0d9e37` 恢复（D1–D4 原文保留），此后新增 D5+。
 
-> **当前有效结论（2026-11-17，D73·续）**：用户同日答复「需要我拍板的事情，全部按照推荐的来」→ **D69=A、D70=A、D71=A（1.10 授权 ci.yml/qa-sweep.yml 单步安装加 3 次退避重试）、D72=A（M10→M11→#191→#171→#189）全部转正生效，pending 清零**。#166 P0 退回 `in-progress` 收口探针，P1 拆至 #191（P2 blocked）；新建 Milestone **M10（8 单）** 与 **M11（13 单）**；今日队列 5 项（`#166` 返工 + `#169/#172/#173/#190` `ready-for-agent`），P1 总数=5。D44=B / D61=A / D62=A / D68=A / D31 与真实发布红线维持。历史队列不可当作当前指令。
+> **当前有效结论（2026-11-19，D74–D76）**：**M10 Wave 1 全部 5 单（`#166/#169/#172/#173/#190`）经独立复核通过并 CLOSED（M10 进度 5 / 8）**；**M10 Wave 2 全部 3 单（`#174/#175/#177`）已完成 4.2 门禁定型并升为 `priority:P1` + `ready-for-agent`**，组成今日队列（P1 总数 = 3）；2026-11-18 新录入 12 个 `needs-triage` 缺陷（`#192–#203`）已全量核实分拣，收编入新建 Milestone **M12（12 单，全 `priority:P2`）**。**新增 pending 2 项（第 1 天询问）**：**D74**（工作区 3 处未暂存改动处置，当前 `collisionRig.ts`/`chapter5Scenes.ts` 导致 `format:check` 失败并阻断 `.husky/pre-push`，默认 A：由用户自行清理）与 **D75**（M12 与 `#191/#171/#189` 排程顺位，默认 A：`M10 → M11 → M12 → #191 → #171 → #189`）。D44=B / D61=A / D62=A / D68=A / D69=A / D70=A / D71=A / D72=A / D31 与真实发布红线维持。历史队列不可当作当前指令。
 
 ---
 
@@ -1321,6 +1321,49 @@ eslint tests 目录 `no-explicit-any` 降 warn）与 `36aed93`（移除 scripts/
 
 ---
 
-## 待用户确认（pending 索引，2026-11-17）
+## D74（pending · 第 1 天询问）· 工作区 3 处未暂存改动处置（阻断 `pre-push`）
 
-- **无 pending。**（D68=A、D69=A、D70=A、D71=A、D72=A 均已转正；`#44` 按 D44=B 维持 `blocked · parked`。）
+- **日期**：2026-11-19（第 1 天询问）
+- **调查结论**：当前 `main @ 9b0ad1a` 领先 `origin/main @ e6e05f8` 1 个 `.agent/` 提交（本轮规划提交后再增 1 个）；工作区保留 3 处未暂存改动：
+  1. `mise.toml`（`node = "22"` → `"24"`，mtime `2026-11-17 21:24`，对齐 CI node 24）；
+  2. `visualization/src/components/simulation3d/rigs/collisionRig.ts`（mtime `2026-11-18 00:45:39`，仅 3 处 Prettier 折行/多余括号差异）；
+  3. `visualization/src/rendering/chapter5Scenes.ts`（mtime `2026-11-18 00:45:38`，行首新增 UTF-8 BOM `\ufeff` 及一处类型块缩进减 2 空格）。
+  后两份 `.ts` 改动使 `npm run format:check` 退出码 1，直接导致 `.husky/pre-push` 拦截全部 `git push`（Agent 严守契约 §1.9 / §9，绝不 `--no-verify`、不代回退也不代提交用户工作区文件）。
+- **可选方案与影响**：
+  - **A（推荐 · 默认）**：用户自行丢弃两份纯格式/BOM 脏改动（`git checkout -- visualization/src/components/simulation3d/rigs/collisionRig.ts visualization/src/rendering/chapter5Scenes.ts`）并自行决定是否提交 `mise.toml`，立刻解除 `pre-push` 阻塞。
+  - **B**：用户明确授权 Executor 在下轮开工前代为回退上述两份 00:45 格式/BOM 脏文件，同时继续保留 `mise.toml` 原样。
+- **推荐 / 默认**：推荐 A；默认 A（用户不回复时，Agent 严格不碰工作区 3 文件，本地 `.agent/` 提交暂留待推；Executor 开工可正常建分支但 `pre-push` 仍会被脏树拦截直至清理）。
+
+## D75（pending · 第 1 天询问）· 新增 M12（`#192–#203`，12 单）与产品线 `#191/#171/#189` 排程顺位
+
+- **日期**：2026-11-19（第 1 天询问）
+- **调查结论**：2026-11-18 新录入 12 个 `needs-triage` 缺陷，均附源码与实跑证据且与既有 M10/M11 无重复：5 个引擎物理缺陷（`#192` 熔化曲线默认无平台/2D 单位错、`#193` 离心现象加速度开方致动能暴涨 292 倍、`#194` 绝热压缩忽略压缩比与单位错、`#195` 玻尔巴尔末系倒序与未插值模板、`#196` 宇宙射线 1500m 跳变与 30km 爆炸）+ 7 个 3D Rig/2D 参数失配与误绑（`#197` 三场景误绑无关 Rig、`#198` 静电屏蔽三控件失效、`#199` 电路 Rig 漏读阻值、`#200` 电容 Rig 单位差 10⁴ 与漏读 `epsilonR`、`#201` 多普勒 2D 遗留、`#202` 波动光学 Rig 漏读与量纲错、`#203` 霍尔/双摆/滑摩/电子衍射细节）。已全部摘 `needs-triage`、收编为 **Milestone M12（12 单，全 `priority:P2`）**。按 D72=A 原序列 `M10 → M11 → #191 → #171 → #189`，需确认 M12 相对产品线的顺位。
+- **可选方案与影响**：
+  - **A（推荐 · 默认）**：延续 D72=A「先清零实证缺陷、再扩产品功能」原则，按 **M10 → M11 → M12 → #191 → #171 → #189** 串行收口（课堂物理与 3D 实验台零硬伤后再进可控放置与沙盒重构；代价是 `#191` 顺延 1 个里程碑）。
+  - **B**：仅将 5 个引擎物理硬伤（`#192–#196`）紧接 M11 清完即切 `#191`，7 个 3D Rig/2D 单（`#197–#203`）后置到 `#191` 之后（较早启动组合台 P1，但全息/报警/电生磁/静电屏蔽/电路等 3D 实验台持续失效）。
+  - **C**：M10 收官后先穿插 `#191`，再回头处理 M11 与 M12。
+- **推荐 / 默认**：推荐 A；默认 A（当前优先清完 M10 Wave 2 不受阻塞；3 天无答复则默认 A 转正）。
+
+## D76 · 2026-11-19 每日规划：M10 Wave 1 5/5 验收关闭 + M10 Wave 2 3 单 4.2 定型入队 + M12 全量分拣
+
+- **日期 / 决策者**：2026-11-19；Planner 依验收、队列治理与契约 6.1 低风险设计定型权限执行。
+- **同步与昨日现场**：`git fetch --all --prune` 确认 `main @ 9b0ad1a`（领先 `origin/main @ e6e05f8` 1 个 Executor 空队列收尾提交，0 behind）；已读 `.agent/DIARY/2026-11-18.md`（含 Wave 1 全清空与空队列巡检两段）、`2026-11-17.md`、`2026-11-13.md` 及 `STATE`/`HANDOFF`/`ENV`；无 `.agent/LOCK`；工作区 3 处未暂存改动保持未动（见 D74）。
+- **M10 Wave 1 独立验收（5/5 全部通过 → CLOSED，M10 进度 0/8 → 5/8）**：
+  - **#166**（`bd3692e` / `81c3064`）：`resetLab` 重置 `nextId=1`、`CompositionLab` 改 `sourceDisplayName(selected)`、`picking.ts` 线拾取 0.03m 与 `decidePointerDownPick` 延后同点循环；本轮独立复跑 `tests/composition/`（12/12, 129 passed）与 `node scripts/verify-composition-interaction.mjs`（`COMPOSITION INTERACTION VERIFICATION OK`，0 console error）；CI `44117730429` / Deploy `44118420016` / QA `44430900298` 全绿 → CLOSED。
+  - **#169**（`a569999` / `604fe5c`）：分段解析支持底端上滑 `aUp`、过零静持/折返 `aDown`、`[0, L]` 双端截断、3D 全板长与 2D 瞬时加速度；独立复跑 `inclined-plane.test.ts`（18 passed）、`incline-contact.test.ts`（5 passed）、`scene-rig-physics.test.ts`（140 passed）全绿；CI `44120353889` / Deploy `44121141477` / QA 全绿 → CLOSED。
+  - **#172**（`7752f96` / `66af132`）：`vertical-circle-integrator.ts` 细步长 RK4 积分与 `cosθ_det=(2gr-v₀²)/(3gr)` 脱轨斜抛、修正 `rod` `v₀≥√(4gr)`、对齐 `ring` 单侧约束与 2D/3D 真源；独立复跑 `vertical-circle.test.ts`（23 passed）、`single-source-contract.test.ts`（91 passed）、`scene-rig-physics.test.ts`（140 passed）全绿；CI `44123600779` / Deploy `44124415101` / QA 全绿 → CLOSED。
+  - **#173**（`7e555e2` / `d5db38e`）：引入 `OM_signed`/`ON_signed`（保留 `OM`/`ON` 距离绝对值兼容），关键帧、`range_diagram`、动量公式与 2D/3D 统一带符号落点，修正非弹性文案；独立复跑 `projectile-collision.test.ts`（7 passed）、`single-source-contract.test.ts`（91 passed）、`scene-rig-physics.test.ts`（140 passed）全绿；CI `44125368835` / Deploy `44126065673` / QA 全绿 → CLOSED。
+  - **#190**（`4287dcc` / `8a09ec0`）：`compositionStore` 失败/异常及无效 `setDuration` 统一清 `result: null`；新增 `stageTrajectory.ts` 停播归零并守卫空格快捷键；独立复跑 `tests/composition/`（129 passed）与 `verify-composition-interaction.mjs` 全绿；CI `44127860671` / Deploy `44128694288` / QA 全绿 → CLOSED。
+- **M10 Wave 2 4.2 门禁定型（今日队列 3 单：`#174 → #175 → #177`，均转 `priority:P1` + `ready-for-agent`）**：
+  - **#174（牛顿管）**：定型新增专用 `NewtonTubeModel`（`modelType: 'newton-tube'`，登记 `chart-registry.ts` `MODEL_CHART_KEYS`，不污染 `uniform-accelerated`），`y=H → 0` 坐标系，双体轨迹 `trajectories[0]=coin`（自由落体触地即止）/`trajectories[1]=feather`（真空同落，空气线性阻力 $v_t=1.6\text{ m/s}$ 解析解触地即止），2D/3D 全面改读双体引擎轨迹并取消时间归一化与经验式。
+  - **#175（卫星轨道）**：定型 `centralRadius` 不可穿透边界首次触地二分/插值截断（不改安全轨道）、`flags.impacted` 与 `触地碰撞` 关键帧、2D/3D 坠地分支改绘截断路径并标明坠地告警。
+  - **#177（牛顿第三定律）**：定型保持 `allowMotion` 参数，`allowMotion=1` 改自由双体内力运动（`a_A=-F_AB/m_A, a_B=F_AB/m_B`，总动量守恒、`F_AB<0` 相向至接触截断停于质心不穿透），2D/3D 消费双体轨迹并更正文案与 `newton-third-law.test.ts:58-72`。
+- **新单治理与队列卫生**：12 个 `needs-triage`（`#192–#203`）全量摘标签、新建 Milestone M12 承接并将 `#192–#199` 依契约 4.3 降为 `priority:P2`（全仓 P1 严格收敛为今日队列 3 单），注明 `#198` 排 `#180` 后、`#202` 排 `#181/#188` 后防同文件冲突；全仓无重复单、无超时 `in-progress`、无长期饥饿 P3/P4 需清理（`#167` 为 11-17 刚定级 D71 授权项，未满两个里程碑；`#44` 按 D44=B 维持 `blocked · parked`）。
+- **Executor 信号回应**：2026-11-18 两段日报信号（Wave 1 验收 + 空队列需下发 Wave 2 + 脏文件阻断 `pre-push`）已全部回应。
+
+---
+
+## 待用户确认（pending 索引，2026-11-19）
+
+- **D74** | 2026-11-19 | 工作区 3 处未暂存改动（`mise.toml`、`collisionRig.ts`、`chapter5Scenes.ts`）阻断 `pre-push` | A 用户手动回退两 `.ts` 脏改动并自决 `mise.toml` / B 授权 Executor 代回退两 `.ts` 脏改动 | 推荐 A | 默认 A | pending（第 1 天询问）
+- **D75** | 2026-11-19 | 新增 12 单 M12（`#192–#203`）与产品线 `#191/#171/#189` 排程顺位 | A `M10→M11→M12→#191→#171→#189` / B 仅先修 `#192–#196` 后切 `#191` / C M10 后先插 `#191` | 推荐 A | 默认 A | pending（第 1 天询问）

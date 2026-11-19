@@ -1,97 +1,98 @@
 # TASKS（GitHub Issue 本地镜像）
 
-> Planner 整体重写 · 2026-11-17 · D73·续。GitHub Issues（26 开放单）为唯一权威；Executor 先改 Issue，再同步本文件状态。
-> 基线：`main @ 460711d`（代码至 `670b1ee` PR #168），precheck 全绿（3190 tests = physics-core 1186 + visualization 2004），CI/Deploy/QA 最近全绿；未见 `.agent/LOCK` 残留。
-> 标签约定：`ready-for-agent` 仅挂于今日队列可执行单；`priority:P1` 严格收敛至 5 项。
+> Planner 整体重写 · 2026-11-19 · D74–D76。GitHub Issues（33 开放单）为唯一权威；Executor 先改 Issue，再同步本文件状态。
+> 基线：`main @ 9b0ad1a`（领先 `origin/main @ e6e05f8` 1 个 Executor 空队列收尾提交；本轮规划再追加 1 个 `.agent/` 提交），代码至 `8a09ec0`（Wave 1 全部合入），测试真值 **3214 = physics-core 1196 + visualization 2018**，远端 CI `44129200526` / Deploy `44129943335` / QA `44430900298`（2026-11-19）全绿；未见 `.agent/LOCK` 残留。
+> 标签约定：`ready-for-agent` 仅挂于今日队列 3 单；`priority:P1` 严格收敛为今日队列 3 单；`needs-triage` / `in-review` / `in-progress` 均已清零。
 
-## 本轮验收与治理摘要（2026-11-17）
+## 本轮验收与治理摘要（2026-11-19）
 
-- **昨日日报核查**：已读 `.agent/DIARY/2026-11-17.md`、`2026-11-13.md`、`2026-11-12.md` 与 `STATE.md` / `HANDOFF.md` / `ENV.md`。昨日（11-17）Execution 为空队列守规收尾，实跑 `npm run precheck` 全绿并向 Planner 发出 `#166` / `#167` / `#169–#190` 分拣信号，本轮全部响应。
-- **#166 P0 验收 → 部分通过，退回 `in-progress`（[验收 comment](https://github.com/zhangjszs/physical-modelvis/issues/166#issuecomment-6951283793)）**：
-  - 认可已交付部分：`e8dacb4` 规格入库、`picking.ts` + 18 单测、`CompositionOutliner.tsx` + 5 单测、`compositionStore.ts` `hoverId` + 2 单测、`sourceMeshes.ts` `pickRole` + 2 单测、`CompositionStage.tsx` P0 改造；本轮实跑 `tests/composition/` **11 files / 120 passed**，CI `43259143205` / `43276337540` 全绿。
-  - 未满足差距：① 本环境实测 Playwright Chromium 可正常启动（`LAUNCH_OK`），但实跑 `node scripts/verify-composition-interaction.mjs` 在第 13 步（line 628）失败：`期望「点电荷 #1」实际「点电荷 #17」`（`resetLab()` 未重置 `nextId = 1`），导致 A-1/A-2/A-4/A-5/A-7 端到端断言未跑通；② `CompositionLab.tsx:251` 检查器仍显示 `{selected.id}` 而非 `sourceDisplayName(selected)`。
-  - **拆期**：`#166` 收口为仅 P0；P1（B-1～B-9 可控放置）拆出至新单 **#191**。
-- **决策与 Milestone 治理**：D68=A、**D69=A、D70=A、D71=A（1.10 授权 `ci.yml`/`qa-sweep.yml` 安装步 3 次退避重试）、D72=A（M10→M11→#191→#171→#189）全部确认生效，pending 清零**；新建 **M10（8 单）** 与 **M11（13 单）**；依契约 4.3 将暂不入今日队列的原 P1 调为 P2。
-
----
-
-## 今日队列（2026-11-17，共 5 项 · 全部属 M10 Wave 1）
-
-### 1. #166 · 组合实验台 P0 探针闭环与检查器显示名统一（返工收口）
-
-- Issue：[#166](https://github.com/zhangjszs/physical-modelvis/issues/166)；Milestone：M10；状态：**in-review**（2026-11-17 返工合并 `81c3064`）；优先级：**priority:P1**（`area:render`, `type:feature`）。
-- 返工范围（仅剩 2 项差距）：
-  1. `compositionStore.ts` `resetLab()` 重置 `nextId = 1`（补单测），并本机实跑 `node scripts/verify-composition-interaction.mjs` 验证全流程（含 A-1/A-2/A-4/A-5/A-7）绿且零 console error。
-  2. `CompositionLab.tsx:251` 将 `{KIND_LABEL[selected.source.kind]} · {selected.id}` 统一为 `{sourceDisplayName(selected)}`。
-- 先完成后合入 `main`，再交回 `in-review`。
-
-### 2. #169 · 修复斜面实验上滑初速度、动摩擦方向与有限斜面边界
-
-- Issue：[#169](https://github.com/zhangjszs/physical-modelvis/issues/169)；Milestone：M10；状态：**in-review**（2026-11-17 合并 `604fe5c`）；优先级：**priority:P1**（`area:engine`, `area:render`, `type:bug`）。
-- Planner 4.2 门禁定型（详见 Issue 最新评论）：
-  - UI `v0 > 0`（沿斜面向上）时滑块起始置于斜面**底端** `s0 = inclineLength`，到顶端 `s = 0` 或返回底端 `s = inclineLength` 截断止步；`v0 <= 0` 保留顶端 `s0 = 0`。
-  - 分段解析：`vAlong < 0` 用 `a_up = g(sinθ + μcosθ)`；过零时检查 `staticCanHold`（`tanθ ≤ μ` 驻留，否则切换 `a_down = g(sinθ - μcosθ)`），保持位移/速度连续。
-  - `inclineRig.ts` `geometryFor` 渲染完整 `[0, L]` 斜面板；2D `drawInclinedPlaneScene` 标题消费当前时刻瞬时加速度 `a(t)`。
-
-### 3. #172 · 修复竖直圆周运动学自洽与杆/绳/环临界及 3D 真源
-
-- Issue：[#172](https://github.com/zhangjszs/physical_modelvis/issues/172)；Milestone：M10；状态：**in-review**（已合入 `66af132` @ `main`，提交执行报告）；优先级：**priority:P1**（`area:engine`, `area:render`, `type:bug`）。
-- Planner 4.2 门禁定型（详见 Issue 最新评论）：
-  - 细步长约束积分求解 `dθ/dt = ω`、`dω/dt = -(g/r)sinθ`，使 `v = r|ω|` 自洽且机械能守恒。
-  - `rod` 仅在 `v₀ ≥ √(4gr)` 时过顶（同步更正 `vertical-circle.test.ts:68-71`）；`rope` 与 `ring` 保持单侧约束 `vMin = √(gr)` / `v₀_crit = √(5gr)`（`2gr < v₀² < 5gr` 在 `cosθ_det = (2gr-v₀²)/(3gr)` 脱轨平抛，`v₀² ≤ 2gr` 摆动）。
-  - 修正 `verticalCircleRig.ts`（`ring` 误判 `√(4gr)`、硬编码 `g=9.8` 与自算拉力），2D/3D 统一消费引擎帧与 `N(θ)` 符号。
-
-### 4. #173 · 修复平抛碰撞反弹带符号位移与非弹性文案
-
-- Issue：[#173](https://github.com/zhangjszs/physical_modelvis/issues/173)；Milestone：M10；状态：**in-review**（已合入 `d5db38e` @ `main`，提交执行报告）；优先级：**priority:P1**（`area:engine`, `area:render`, `type:bug`）。
-- Planner 4.2 门禁定型（详见 Issue 最新评论）：
-  - 区分绝对距离与带符号水平位移 `OM_signed = v1After * tFall`；关键帧、`rangeDiagram`、动量代数和 `m₁·OP = m₁·OM_signed + m₂·ON_signed` 与 2D/3D 落点全部采用带符号结果。
-  - 修正 `碰撞瞬间` 关键帧在 `e < 1` 时错标「完全弹性」的文案；补 `m₂ > m₁` 反弹与 `e=0/0.5/1` 单测。
-
-### 5. #190 · 组合实验台参数校验/求解失败后清除旧轨迹与回放状态
-
-- Issue：[#190](https://github.com/zhangjszs/physical_modelvis/issues/190)；Milestone：M10；状态：**in-review**（已合入 `8a09ec0` @ `main`，提交执行报告）；优先级：**priority:P1**（`area:render`, `type:bug`）。
-- Planner 4.2 门禁定型（详见 Issue 最新评论）：
-  - `compositionStore.ts` `recompute` 所有失败/异常分支返回 `{ result: null, validationMessage }`；无效 `setDuration` 同步清 `result` 与报错（不静默忽略）。
-  - `CompositionStage.tsx` 当 `trajectory.length <= 1` 时停止播放态并复位 `currentTime = 0`。
-  - 同步更新 `compositionStore.test.ts:45-55` 旧断言（`toBe(good)` → `toBeNull()`）并补非法输入与恢复回归。
+- **昨日日报核查**：已读 `.agent/DIARY/2026-11-18.md`（Wave 1 全清空 + 晚间空队列巡检两段）、`2026-11-17.md`、`2026-11-13.md` 与 `STATE.md` / `HANDOFF.md` / `ENV.md`，全部信号已响应。
+- **M10 Wave 1 独立验收（5 / 5 全部通过 → CLOSED，M10 进度 0/8 → 5/8）**：
+  - **#166**（`bd3692e` / `81c3064`）：`resetLab` 重置 `nextId=1`、`CompositionLab` 改 `sourceDisplayName(selected)`、线拾取 `0.03m` 与 `decidePointerDownPick`；独立重跑 `tests/composition/`（12/12, 129 passed）+ `verify-composition-interaction.mjs`（`COMPOSITION INTERACTION VERIFICATION OK`，0 console error）→ **通过并关闭**（[验收 comment](https://github.com/zhangjszs/physical-modelvis/issues/166#issuecomment-7012534146)）。
+  - **#169**（`a569999` / `604fe5c`）：斜面分段上滑/静持/折返、`[0, L]` 双端截断、3D 全板长与 2D 瞬时加速度；独立重跑 `inclined-plane.test.ts`（18）+ `incline-contact.test.ts`（5）+ `scene-rig-physics.test.ts`（140）全绿 → **通过并关闭**（[验收 comment](https://github.com/zhangjszs/physical-modelvis/issues/169#issuecomment-7012537443)）。
+  - **#172**（`7752f96` / `66af132`）：`vertical-circle-integrator.ts` RK4 积分与脱轨斜抛、`rod` `v₀≥√(4gr)`、`ring` 单侧约束与 2D/3D 真源；独立重跑 `vertical-circle.test.ts`（23）+ `single-source-contract.test.ts`（91）+ `scene-rig-physics.test.ts`（140）全绿 → **通过并关闭**（[验收 comment](https://github.com/zhangjszs/physical-modelvis/issues/172#issuecomment-7012540368)）。
+  - **#173**（`7e555e2` / `d5db38e`）：`OM_signed`/`ON_signed` 带符号落点、动量代数和、非弹性文案与 2D/3D 落点；独立重跑 `projectile-collision.test.ts`（7）+ `single-source-contract.test.ts`（91）+ `scene-rig-physics.test.ts`（140）全绿 → **通过并关闭**（[验收 comment](https://github.com/zhangjszs/physical-modelvis/issues/173#issuecomment-7012543183)）。
+  - **#190**（`4287dcc` / `8a09ec0`）：校验/求解失败与非法时长清 `result: null`、`stageTrajectory.ts` 停播归零与空格守卫；独立重跑 `tests/composition/`（129）+ `verify-composition-interaction.mjs` 全绿 → **通过并关闭**（[验收 comment](https://github.com/zhangjszs/physical-modelvis/issues/190#issuecomment-7012546443)）。
+- **队列治理与新单分拣**：
+  - M10 Wave 2 全部 3 单（`#174/#175/#177`）补齐 4.2 Ready 门禁定型，升为 `priority:P1` + `ready-for-agent`。
+  - 2026-11-18 新建 12 个 `needs-triage`（`#192–#203`）全量核实无重复，摘 `needs-triage`、依契约 4.3 收敛为 `priority:P2`，新建 **[Milestone 6 (M12)](https://github.com/zhangjszs/physical-modelvis/milestone/6)** 承接。
+  - 新增 2 项 pending（第 1 天询问）：**D74**（工作区 3 处未暂存改动阻断 `pre-push`）与 **D75**（M12 与产品线排程顺位，默认 A）。
 
 ---
 
-## M10 Wave 2（待排入下一批 ready，暂保持 `open` · `priority:P2`）
+## 今日队列（2026-11-19，共 3 项 · 全部属 M10 Wave 2 · `ready-for-agent`）
 
-| Issue | 标题 | 标签 | 关键备注 |
-| --- | --- | --- | --- |
-| [#174](https://github.com/zhangjszs/physical-modelvis/issues/174) | 牛顿管空气/真空与双体 2D/3D 同源 | `priority:P2`, `type:bug`, `area:engine`, `area:render` | 新增专用模型时须登记 `chart-registry.ts` |
-| [#175](https://github.com/zhangjszs/physical-modelvis/issues/175) | 卫星轨道地球半径碰撞截断 | `priority:P2`, `type:bug`, `area:engine`, `area:render` | `centralRadius` 首次触地插值截断 + `impact` 诊断 |
-| [#177](https://github.com/zhangjszs/physical-modelvis/issues/177) | 牛顿第三定律自由双体内力动量守恒 | `priority:P2`, `type:bug`, `area:engine`, `area:render` | Planner 已定型（6.1）：`allowMotion=1` 改为自由双体（`a_A=-F/m_A, a_B=F/m_B`），更正 `newton-third-law.test.ts:58-72` |
+### 1. #174 · 牛顿管空气/真空双体物理真源与 2D/3D 同源修复
+
+- Issue：[#174](https://github.com/zhangjszs/physical-modelvis/issues/174)；Milestone：M10（5/8）；状态：**ready-for-agent**；优先级：**priority:P1**（`area:engine`, `area:render`, `type:bug`）。
+- Planner 4.2 门禁定型（详见 [最新评论](https://github.com/zhangjszs/physical-modelvis/issues/174#issuecomment-7012556907)）：
+  - 新增专用模型 `NewtonTubeModel`（`modelType: 'newton-tube'`，同步注册并登记 `chart-registry.ts` `MODEL_CHART_KEYS`，不污染 `uniform-accelerated`）。
+  - 双体契约（`y=H → 0`）：`trajectories[0]`=硬币（自由落体触地即止）；`trajectories[1]`=羽毛（真空与硬币同落；空气采用线性阻力解析解 $v_t=1.6\text{ m/s}$、$\tau=v_t/g$ 触地即止，确保任意时刻羽毛绝不领先硬币）。
+  - 2D（`chapter2Scenes.ts`）移除 `drop/maxDrop` 归一化与 `1-exp(-3t/duration)`，3D（`newtonTubeRig.ts`）移除自算 `vTerminal*t*0.45`，双端均消费引擎双体轨迹并补齐单测与集成测试。
+
+### 2. #175 · 卫星轨道地球半径不可穿透边界碰撞截断与 2D/3D 对齐
+
+- Issue：[#175](https://github.com/zhangjszs/physical-modelvis/issues/175)；Milestone：M10（5/8）；状态：**ready-for-agent**；优先级：**priority:P1**（`area:engine`, `area:render`, `type:bug`）。
+- Planner 4.2 门禁定型（详见 [最新评论](https://github.com/zhangjszs/physical-modelvis/issues/175#issuecomment-7012559250)）：
+  - `orbital.ts` 消费 `centralRadius`：当 `r <= centralRadius` 时二分/二次插值求首次触地时刻/位置/末速度并立即截断积分，产出 `flags.impacted`、`触地碰撞` 关键帧与告警（不影响安全圆/椭圆轨道，明确无大气阻力）。
+  - 2D（`chapter6Scenes.ts`）与 3D（`orbitalRig.ts`）在 `impacted=true` 时按截断引擎轨迹绘线并展示坠地告警，不再画穿地闭合椭圆；补全 `velocityFactor=0.5/1/1.5` 及边界回归。
+
+### 3. #177 · 牛顿第三定律自由双体内力动量守恒与 2D/3D 同源修复
+
+- Issue：[#177](https://github.com/zhangjszs/physical-modelvis/issues/177)；Milestone：M10（5/8）；状态：**ready-for-agent**；优先级：**priority:P1**（`area:engine`, `area:render`, `type:bug`）。
+- Planner 4.2 门禁定型（详见 [最新评论](https://github.com/zhangjszs/physical-modelvis/issues/177#issuecomment-7012561263)）：
+  - 维持 `allowMotion` 参数契约：`allowMotion=1` 改为光滑水平面自由双体内力运动（`a_A=-F_AB/m_A, a_B=F_AB/m_B`，总动量守恒、`F_AB<0` 相向至接触停于质心不穿透），更新 `conservedQuantities`、`explanation` 与 `newton-third-law.test.ts:58-72`。
+  - 2D（`chapter3Scenes.ts`）与 3D（`newtonThirdLawRig.ts`）消费双体轨迹真源并移除「共同加速」错误文案与单向硬编码公式。
 
 ---
 
 ## M11 电磁 / 光学 / 热学 / 近代物理缺陷修复（13 单 · 0 / 13）
 
-| Issue | 标题 | 状态 / 标签 | 备注 |
+> [Milestone 5](https://github.com/zhangjszs/physical-modelvis/milestone/5) · 均保持 `open` · `priority:P2`，待 M10 8/8 收官后按批次过 4.2 门禁转 `ready`。
+
+| Issue | 标题 | 标签 | 备注 |
 | --- | --- | --- | --- |
-| [#178](https://github.com/zhangjszs/physical-modelvis/issues/178) | 摩擦轮接触传动反向旋转 | `open` · `priority:P2`, `area:engine`, `area:render` | `friction` `direction=-1` 与 2D/3D 切向速度对齐 |
-| [#179](https://github.com/zhangjszs/physical-modelvis/issues/179) | 光控开关 `threshold` 失效与 `L=0` NaN | `open` · `priority:P2`, `area:engine`, `area:render` | **D69=A 已确认**：以 `V_B>=VbeOn` 为真源，移除无效阈值滑块改示 `L_crit`，校准暗阻与 `L=0` 上限 |
-| [#180](https://github.com/zhangjszs/physical-modelvis/issues/180) | 静电感应近远端电荷守恒与张角量纲 | `open` · `priority:P2`, `area:engine`, `area:render` | 硬不变量 `q_near + q_far = 0`（孤立中性导体） |
-| [#181](https://github.com/zhangjszs/physical-modelvis/issues/181) | 双缝干涉薄膜预设无相移效应 | `open` · `priority:P2`, `area:engine`, `area:render` | **D70=A 已确认**：改为单缝插薄片 `Δ=(n-1)t` 移条纹并改名「单缝加薄片」，更新测试 |
-| [#182](https://github.com/zhangjszs/physical-modelvis/issues/182) | 薄膜干涉两界面反射相对相变（半波损失） | `open` · `priority:P2`, `area:engine`, `area:render` | Fresnel 幅反射系数符号 + 传播相位 |
-| [#185](https://github.com/zhangjszs/physical-modelvis/issues/185) | β 射线负电荷半径归零修复 | `open` · `priority:P2`, `area:engine`, `area:render` | `r = p/(|q|B)` + `sign(q)` 偏转方向 + 相对论动量 |
-| [#186](https://github.com/zhangjszs/physical-modelvis/issues/186) | 衰变统计试验次数 `nTrials` 生效 | `open` · `priority:P2`, `area:engine`, `area:render` | `nTrials` 控制 Poisson 抽样次数 |
-| [#187](https://github.com/zhangjszs/physical-modelvis/issues/187) | AM 调制采样低于 Nyquist 导致混叠 | `open` · `priority:P2`, `area:engine`, `area:render` | 短时细节 vs 长时包络/抗混叠策略 |
-| [#170](https://github.com/zhangjszs/physical-modelvis/issues/170) | 弹簧振子平衡位置关键帧速度文本误用 `v0` | `open` · `priority:P2`, `area:engine` | 消费 `cur.velocity` 模长 |
-| [#176](https://github.com/zhangjszs/physical-modelvis/issues/176) | 卡文迪什/微小形变光杠杆多乘 2 | `open` · `priority:P2`, `area:engine`, `area:render` | 同根因两模型 `D·tan(2θ)` 回归 |
-| [#183](https://github.com/zhangjszs/physical-modelvis/issues/183) | 液体混合双零体积收缩率 NaN 修复 | `open` · `priority:P2`, `area:engine`, `area:render` | Planner 已定型（6.1）：保留 `min=0` 空白态，`contractionPercent=0` + N/A 文案 |
-| [#184](https://github.com/zhangjszs/physical-modelvis/issues/184) | 热传递终态关键帧 `t=0` 与温度误用环境值 | `open` · `priority:P2`, `area:engine`, `area:render` | 取 `t=tMax` 与 `T(tMax)` |
-| [#188](https://github.com/zhangjszs/physical-modelvis/issues/188) | 光栅角色散 `rad/nm` 差 1000 倍与缺级判据 | `open` · `priority:P2`, `area:engine`, `area:render` | 乘数 `1e-9` + 真实 `missingOrders` 判定 |
+| [#170](https://github.com/zhangjszs/physical-modelvis/issues/170) | 弹簧振子平衡位置关键帧速度文本误用 `v0` | `priority:P2`, `type:bug`, `area:engine` | 消费 `cur.velocity` 模长 |
+| [#176](https://github.com/zhangjszs/physical-modelvis/issues/176) | 卡文迪什/微小形变光杠杆位移多乘 2 | `priority:P2`, `type:bug`, `area:engine`, `area:render` | 同根因两模型 `D·tan(2θ)` 回归 |
+| [#178](https://github.com/zhangjszs/physical-modelvis/issues/178) | 摩擦轮接触传动反向旋转 | `priority:P2`, `type:bug`, `area:engine`, `area:render` | `friction` `direction=-1` 与 2D/3D 切向速度对齐 |
+| [#179](https://github.com/zhangjszs/physical-modelvis/issues/179) | 光控开关 `threshold` 失效与 `L=0` NaN | `priority:P2`, `type:bug`, `area:engine`, `area:render` | **D69=A 已确认**：以 `V_B>=VbeOn` 为真源，移除假滑块改示 `L_crit` |
+| [#180](https://github.com/zhangjszs/physical-modelvis/issues/180) | 静电感应近远端电荷守恒与张角量纲 | `priority:P2`, `type:bug`, `area:engine`, `area:render` | 硬不变量 `q_near + q_far = 0`（孤立中性导体） |
+| [#181](https://github.com/zhangjszs/physical-modelvis/issues/181) | 双缝干涉薄膜预设无相移效应 | `priority:P2`, `type:bug`, `area:engine`, `area:render` | **D70=A 已确认**：改为单缝插薄片 `Δ=(n-1)t` 移条纹并改名「单缝加薄片」 |
+| [#182](https://github.com/zhangjszs/physical-modelvis/issues/182) | 薄膜干涉两界面反射相对相变（半波损失） | `priority:P2`, `type:bug`, `area:engine`, `area:render` | Fresnel 幅反射系数符号 + 传播相位 |
+| [#183](https://github.com/zhangjszs/physical-modelvis/issues/183) | 液体混合双零体积收缩率 NaN 修复 | `priority:P2`, `type:bug`, `area:engine`, `area:render` | Planner 已定型：保留 `min=0` 空白态，`contractionPercent=0` + N/A 文案 |
+| [#184](https://github.com/zhangjszs/physical-modelvis/issues/184) | 热传递终态关键帧 `t=0` 与温度误用环境值 | `priority:P2`, `type:bug`, `area:engine`, `area:render` | 取 `t=tMax` 与 `T(tMax)` |
+| [#185](https://github.com/zhangjszs/physical-modelvis/issues/185) | β 射线负电荷半径归零修复 | `priority:P2`, `type:bug`, `area:engine`, `area:render` | `r = p/(|q|B)` + `sign(q)` 偏转方向 + 相对论动量 |
+| [#186](https://github.com/zhangjszs/physical-modelvis/issues/186) | 衰变统计试验次数 `nTrials` 生效 | `priority:P2`, `type:bug`, `area:engine`, `area:render` | `nTrials` 控制 Poisson 抽样次数 |
+| [#187](https://github.com/zhangjszs/physical-modelvis/issues/187) | AM 调制采样低于 Nyquist 导致混叠 | `priority:P2`, `type:bug`, `area:engine`, `area:render` | 短时细节 vs 长时包络/抗混叠策略 |
+| [#188](https://github.com/zhangjszs/physical-modelvis/issues/188) | 光栅角色散 `rad/nm` 差 1000 倍与缺级判据 | `priority:P2`, `type:bug`, `area:engine`, `area:render` | 乘数 `1e-9` + 真实 `missingOrders` 判定 |
 
 ---
 
-## 后置产品线、待决与冻结项（5 单）
+## M12 物理引擎与 3D 实验台增补缺陷批（12 单 · 0 / 12）
 
-- **#191** · `[P2] 实现组合实验台「可控放置」交互改造（#166 P1 期：B-1~B-9）`：**blocked** · `priority:P2` · `type:feature` · `area:render`。依赖 `#166` P0 收口及 M10/M11 收口（**D72=A 已定**：#191 → #171 → #189）。
-- **#171** · `[P1][Sandbox M0] 固定平抛实验作为可编辑的沙盒预设装配`：**blocked** · `priority:P2` · `type:feature` · `area:engine, area:render`。已摘 `needs-info`（**D72=A 已定**），依赖 M10/M11 及 #191 收口后由 Planner 出 Phase A RFC 设计拆解再转 ready。
-- **#189** · `[P2][UI/UX Redesign] PHYSVIS // WORLD ENGINE 改版`：**blocked** · `priority:P2` · `type:feature` · `area:render`。依赖物理修复收口及 **D72=A** 顺位，合并前需 owner 人工预览认可。
-- **#167** · `CI「安装 Playwright Chromium」遇 runner DNS 抖动加固`：`open` · `priority:P3` · `type:chore` · `area:ci`。已摘 `auto-discovered` 与 `needs-info`（**D71=A 已授权 1.10 局部范围**：仅给 `ci.yml`/`qa-sweep.yml` 安装步加 3 次退避重试），后置排期。
+> [Milestone 6](https://github.com/zhangjszs/physical-modelvis/milestone/6) · 2026-11-18 审计新增，全部已摘 `needs-triage`、收敛 `priority:P2`；按 **D75 默认方案 A** 排在 M11 后清零。
+
+| Issue | 标题 | 标签 | 备注 |
+| --- | --- | --- | --- |
+| [#192](https://github.com/zhangjszs/physical-modelvis/issues/192) | `melting-curve` 默认即熔化跳过平台，2D 秒当分钟取模循环 | `priority:P2`, `type:bug`, `area:engine`, `area:render` | 补 `initialTemp < Tm` + 2D `currentTime/60` |
+| [#193](https://github.com/zhangjszs/physical-modelvis/issues/193) | `centrifugal` 滑动段对加速度开方致动能暴涨 292 倍，三套公式不互通 | `priority:P2`, `type:bug`, `area:engine`, `area:render` | 模型改切向惯性/含摩擦滑出 + 2D/3D 消费 `getFrame` |
+| [#194](https://github.com/zhangjszs/physical-modelvis/issues/194) | `adiabatic-compression` p-V 忽略 `compressionRatio`，p·V^γ 单位差 1000^γ | `priority:P2`, `type:bug`, `area:engine` | 按 `1..r_max` 生成 p-V 并统一 `kPa·L^γ` |
+| [#195](https://github.com/zhangjszs/physical-modelvis/issues/195) | `bohr-model` 巴尔末系 Hα~Hδ 倒序且说明残留 `${nHigh}→${nLow}` | `priority:P2`, `type:bug`, `area:engine` | 按 `lambdaNm` 降序命名 + 清洗模板字符串 |
+| [#196](https://github.com/zhangjszs/physical-modelvis/issues/196) | `cosmic-ray` 1500m 处通量不连续跌落，30km 指数爆炸 | `priority:P2`, `type:bug`, `area:engine` | 改为平滑连续大气通量函数（含合理标高/Pfotzer 极大） |
+| [#197](https://github.com/zhangjszs/physical-modelvis/issues/197) | `hologram` / `security-alarm` / `current-magnetic` 绑定无关 3D Rig | `priority:P2`, `type:bug`, `area:render` | 拆分专用可交互 3D Rig 并消费引擎结果 |
+| [#198](https://github.com/zhangjszs/physical-modelvis/issues/198) | `electrostatic-shielding` 在 `electroscopeRig` 三项控件全部失效 | `priority:P2`, `type:bug`, `area:render` | 接入 `externalField/cavityCharge/isGrounded`；**排 #180 后**防冲突 |
+| [#199](https://github.com/zhangjszs/physical-modelvis/issues/199) | `circuitRig` 漏读 `circuit`/`load-voltage`/`bulb-vi` 阻值与内阻参数 | `priority:P2`, `type:bug`, `area:render` | 对齐参数别名/引擎真源 + `load-voltage` 扫阻动画 |
+| [#200](https://github.com/zhangjszs/physical-modelvis/issues/200) | `capacitorRig` 把 `area(m²)` 当 `cm²` 且漏读 `epsilonR` 致介质板恒隐身 | `priority:P2`, `type:bug`, `area:render` | 修正 `m²→cm²` 与 `epsilonR` 读取并消费引擎 `C` |
+| [#201](https://github.com/zhangjszs/physical-modelvis/issues/201) | `doppler-effect` 2D 渲染器仍读错 `waveSpeed`/`frequency` | `priority:P2`, `type:bug`, `area:render` | 改读 `sourceFreq`/`soundSpeed` 并消费引擎结果 |
+| [#202](https://github.com/zhangjszs/physical-modelvis/issues/202) | `waveOpticsRig` 漏读 `slitSep`/`screenDist`/`gratingConst` 及水波量纲错位 | `priority:P2`, `type:bug`, `area:render` | 补映射/μm→mm + 拆分水波槽 Rig；**排 #181/#188 后**防冲突 |
+| [#203](https://github.com/zhangjszs/physical-modelvis/issues/203) | `fieldRig`/`doublePendulumRig`/`slidingFrictionRig` 与 `electron-diffraction` 低压负半径 | `priority:P2`, `type:bug`, `area:engine`, `area:render` | 4 项独立 3D/引擎细节修补（可合修或拆单） |
+
+---
+
+## 后置产品线、工程维护与冻结项（5 单）
+
+- **#191** · `[P2] 实现组合实验台「可控放置」交互改造（#166 P1 期：B-1~B-9）`：**blocked** · `priority:P2` · `type:feature` · `area:render`。#166 P0 已关闭；按 **D72=A / D75 默认 A** 排于 M10/M11/M12 清零后启动。
+- **#171** · `[P1][Sandbox M0] 固定平抛实验作为可编辑的沙盒预设装配`：**blocked** · `priority:P2` · `type:feature` · `area:engine, area:render`。按 D72=A 排于 #191 收口后由 Planner 出 Phase A RFC 再转 ready。
+- **#189** · `[P2][UI/UX Redesign] PHYSVIS // WORLD ENGINE 改版`：**blocked** · `priority:P2` · `type:feature` · `area:render`。按 D72=A 顺位后置，合并前需 owner 人工预览认可。
+- **#167** · `CI「安装 Playwright Chromium」遇 runner DNS 抖动加固`：`open` · `priority:P3` · `type:chore` · `area:ci`。D71=A 已授权 1.10 局部范围（仅给 `ci.yml`/`qa-sweep.yml` 安装步加 3 次退避重试），后置排期。
 - **#44** · `[P2] 暂缓 React 19 迁移`：**blocked + parked** · `priority:P2` · `type:chore` · `area:ci`。D44=B 冻结维持，勿动。

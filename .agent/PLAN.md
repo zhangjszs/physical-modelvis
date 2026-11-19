@@ -1,53 +1,51 @@
 # PLAN
 
-> Planner 当前快照 · 2026-11-17 · D73·续。任务权威：GitHub Issues；TASKS.md 为本轮整体重写镜像。
+> Planner 当前快照 · 2026-11-19 · D74–D76。任务权威：GitHub Issues（33 开放单）；TASKS.md 为本轮整体重写镜像。
 
 ## 当前方向
 
-项目在 2026-11-17 集中录入一批实证物理模型/2D-3D真源/组合台缺陷（`#169–#190` 共 22 单），由纯维护巡检切回 **「先修核心物理真源与沙盒缺陷，再演进沙盒与 UI」**。本轮已完成 `#166` P0 验收（部分通过退回 `in-progress` 收口探针，P1 拆至 `#191`）、D68 正式转正、全量 26 个开放 Issue 分拣与 P1 容量收敛，并设立 **M10（核心力学与沙盒状态，8 单）→ M11（电磁/光学/热学/近代，13 单）**。
+项目按 D72=A 保持 **「先清零实证物理真源与 2D/3D 实验台缺陷，再依次演进沙盒与 UI」**。本轮已独立验收关闭 **M10 Wave 1 全部 5 单（`#166/#169/#172/#173/#190`）**，将 M10 推进至 **5 / 8**；完成 **M10 Wave 2 全部 3 单（`#174/#175/#177`）** 的 4.2 门禁定型并下发今日可执行队列；全量分拣 2026-11-18 审计增补的 12 个缺陷（`#192–#203`）收编至新建 **M12（12 单）**。
 
-## 今日目标（2026-11-17）
+## 今日目标（2026-11-19）
 
-1. 完成 `#166` P0 探针闭环（`resetLab()` 重置 `nextId = 1` + 检查器 `sourceDisplayName` + 本机 Chromium 实跑 `verify-composition-interaction.mjs` 全绿）并合入 `main`。
-2. 推进 M10 核心力学与沙盒状态 Wave 1：`#169`（斜面）、`#172`（竖直圆周）、`#173`（平抛碰撞）、`#190`（组合台校验失败清旧轨迹，在 `#166` 合入后开工）。
+1. 完成 **M10 Wave 2 全部 3 单**（`#174` 牛顿管 → `#175` 卫星轨道 → `#177` 牛顿第三定律）并转入 `in-review`，为次日验收实现 **M10 8/8 收官**。
+2. 解除工作区 2 处 00:45 格式化/BOM 脏改动（`collisionRig.ts`、`chapter5Scenes.ts`，见 D74）对 `format:check` 与 `.husky/pre-push` 的阻断，使滞留本地的 `.agent/` 收尾与规划提交顺利推送远端。
 
-## 当前 Milestone：M10 核心物理真源与沙盒缺陷修复（进度：0 / 8）
+## 当前 Milestone：M10 核心物理真源与沙盒缺陷修复（进度：5 / 8）
 
-> [Milestone 4](https://github.com/zhangjszs/physical-modelvis/milestone/4) · 关联 8 单：Wave 1（`#166/#169/#172/#173/#190`）+ Wave 2（`#174/#175/#177`）。
+> [Milestone 4](https://github.com/zhangjszs/physical-modelvis/milestone/4) · 已完成 5 单（`#166/#169/#172/#173/#190` CLOSED）+ 剩余 Wave 2 3 单（`#174/#175/#177` `ready-for-agent`）。
 
 ### 目标与验收
 
-- 组合实验台 P0 选中交互通过真实 WebGL 浏览器端到端探针（零 console error），且校验/求解失败不再残留旧轨迹播放。
-- 斜面运动、竖直圆周、平抛碰撞、牛顿管、卫星轨道、牛顿第三定律全部完成「物理公式正确 + 2D/3D 消费引擎单一真源 + 单测/回归覆盖」。
+- 组合实验台 P0 选中交互通过真实 WebGL 浏览器探针（`#166` ✅），参数校验/求解失败清除旧轨迹并停播（`#190` ✅）。
+- 斜面运动（`#169` ✅）、竖直圆周（`#172` ✅）、平抛碰撞（`#173` ✅）、牛顿管（`#174`）、卫星轨道（`#175`）、牛顿第三定律（`#177`）全部完成「物理公式正确 + 2D/3D 消费引擎单一真源 + 单测/回归覆盖」。
 
 ### 完成信号（Success signal）
 
-- M10 全部 8 个关联 Issue 经 Planner 独立验收后 **CLOSED（8/8）**，且 `main` 上 `npm run precheck`、`verify-composition-interaction.mjs`、GitHub CI 与夜间 `QA 场景巡检` 全绿。
+- M10 全部 8 个关联 Issue 经 Planner 独立验收后 **CLOSED（8 / 8）**，且 `main` 上 `npm run precheck`、`verify-composition-interaction.mjs`、GitHub CI / Deploy 与夜间 `QA 场景巡检` 全绿。
 
 ### 明确非目标（Non-goals）
 
-- 本 Milestone 不开展 `#191`（#166 P1 可控放置）、`#171`（Sandbox M0 共享器材契约）、`#189`（UI/UX 赛博改版）；不动 `#44`（D44=B 冻结）。`#167`（D71=A 已获 1.10 授权单步重试加固）作为 `P3` 后置项，不挤占本轮 M10 队列。
+- 本 Milestone 不开展 M11（`#170/#176/#178–#188`）、M12（`#192–#203`）、`#191`（#166 P1 可控放置）、`#171`（Sandbox M0 共享器材契约）、`#189`（UI/UX 赛博改版）与 `#167`（P3 CI 安装步重试）；不动 `#44`（D44=B 冻结）。
 
-### 执行队列（2026-11-17，共 5 项 = 1 返工 `in-progress` + 4 `ready-for-agent`，P1 总数 = 5）
+### 执行队列（2026-11-19，共 3 项 · 全部属 M10 Wave 2 · `ready-for-agent`，全仓 P1 总数 = 3）
 
-1. **#166**（`in-progress` 返工收口 · `priority:P1`）：组合实验台 P0 探针闭环（`resetLab` 重置 `nextId = 1` + `CompositionLab.tsx:251` 改用 `sourceDisplayName` + 实跑 `verify-composition-interaction.mjs` 全过）
-2. **#169**（`ready-for-agent` · `priority:P1`）：修复斜面实验上滑初速度、动摩擦符号与有限斜面边界（`v0 > 0` 置底端起滑）
-3. **#172**（`ready-for-agent` · `priority:P1`）：修复竖直圆周运动学自洽与杆/绳/环临界及 3D 真源对齐
-4. **#173**（`ready-for-agent` · `priority:P1`）：修复平抛碰撞带符号水平位移 `OM_signed`、动量公式与非弹性文案
-5. **#190**（`ready-for-agent` · `priority:P1`，**必须在 #166 合入 `main` 后建分支**）：组合台参数校验/求解失败清除旧 `result` 并同步停播
+1. **#174**（`priority:P1` · `ready-for-agent`）：新增专用 `newton-tube` 双体物理模型（硬币自由落体 + 羽毛真空同落/空气线性阻力 $v_t=1.6\text{ m/s}$，落地截断，登记 `chart-registry.ts`）并让 2D/3D/HUD 统一消费双体轨迹真源
+2. **#175**（`priority:P1` · `ready-for-agent`）：为 `orbital` 接入 `centralRadius` 不可穿透边界首次触地二分插值截断（`flags.impacted` + `触地碰撞` 关键帧），2D/3D 同步绘制截断路径与坠地告警（不改安全轨道）
+3. **#177**（`priority:P1` · `ready-for-agent`）：将 `newton-third-law` 的 `allowMotion=1` 修正为自由双体内力运动（`a_A=-F_AB/m_A, a_B=F_AB/m_B`，总动量守恒，相向靠拢接触停于质心不穿透），同步 2D/3D 双体轨迹消费与测试
 
 ## 已知阻塞与依赖
 
-- **#190 → #166**：串行顺序依赖，避免并行修改 `compositionStore.ts` / `CompositionStage.tsx` 冲突。
-- **#179（D69=A 已定）/ #181（D70=A 已定）**：用户已确认按 A 执行，均已摘 `needs-info` 并锁定设计约束，随 M11 顺位转 `ready`。
-- **#167（D71=A 已授权）**：已获用户局部放行 1.10 红线（仅给 `ci.yml` / `qa-sweep.yml` Playwright 安装步加 3 次退避重试），摘 `needs-info`，作 `P3` 后置项。
-- **#191 / #171 / #189（D72=A 已定）**：按已确认顺序 **M10 → M11 → #191 → #171（先出 RFC）→ #189** 推进；当前维持 `blocked` 等待前置收口。
+- **工作区脏文件阻断 `pre-push`（D74 pending，第 1 天询问）**：`mise.toml`（`node = "22"` → `"24"`）与 2026-11-18 00:45 产生的 `visualization/src/components/simulation3d/rigs/collisionRig.ts`、`visualization/src/rendering/chapter5Scenes.ts`（格式/BOM 差异）导致 `npm run format:check` 失败并拦截 `.husky/pre-push`（按契约 Agent 不触碰且不用 `--no-verify`，本地 `.agent/` 提交暂留待清理后推送）。
+- **M12 排程顺位（D75 pending，第 1 天询问）**：2026-11-18 增补 12 单（`#192–#203`）已收编至 [Milestone 6 (M12)](https://github.com/zhangjszs/physical-modelvis/milestone/6)；默认按 **M10 → M11 → M12 → #191 → #171 → #189** 串行收口（`#198` 排 `#180` 后、`#202` 排 `#181/#188` 后防同文件冲突）。
+- **#191 / #171 / #189（D72=A）**：当前维持 `blocked` 等待前置物理缺陷清零后再按 `#191 → #171（先出 RFC）→ #189` 推进。
+- **#167（D71=A 局部授权 1.10）**：仅授权给 `ci.yml`/`qa-sweep.yml` Playwright 安装步加 3 次退避重试，作 `P3` 后置排期。
 - **#44**：`blocked · parked`（D44=B 冻结，React 19 暂缓）。
-- **工作区既有未暂存改动（契约 1.1 / 9）**：`mise.toml`（`node = "22"` → `"24"`）与两远程已合并旧分支（`origin/agent/issue-95-shadow-adaptive`、`origin/agent/issue-96-default-on-grid`）继续保留不动，由用户自行决定何时提交/清理。
+- **远程已合并旧分支**：`origin/agent/issue-95-shadow-adaptive` 与 `origin/agent/issue-96-default-on-grid` 继续按契约 §1.9 保留不代删。
 
 ## 下一阶段
 
-- M10 Wave 2（`#174` 牛顿管、`#175` 卫星轨道、`#177` 牛顿第三定律）接续合入完成 M10 → 转入 **M11（13 单）** 清理电磁/光学/热学/近代物理缺陷 → **#167**（P3 CI 安装步重试）→ 按 **D72=A** 已定顺序推进 **#191（#166 P1）→ #171（Sandbox M0 阶段 A 设计 + 平抛纵切）→ #189（UI/UX 改版）**。
+- M10 验收 8/8 收官 → **[M11（13 单）](https://github.com/zhangjszs/physical-modelvis/milestone/5)** 清理电磁/光学/热学/近代物理缺陷 → **[M12（12 单，按 D75 默认 A）](https://github.com/zhangjszs/physical-modelvis/milestone/6)** 清理增补物理引擎与 3D 实验台参数失配/误绑缺陷 → **#167**（P3 CI 安装步重试）→ 按 **D72=A** 推进 **#191（#166 P1）→ #171（Sandbox M0 阶段 A 设计 + 平抛纵切）→ #189（UI/UX 改版）**。
 
 ## 已放弃 / 暂缓的方向
 
@@ -57,4 +55,4 @@
 
 ## 给 Executor 的指令
 
-先收口 `#166` P0（`resetLab` 重置 `nextId = 1` 并本机实跑通过 `node scripts/verify-composition-interaction.mjs`）合并进 `main` 后，再按 `#169 → #172 → #173 → #190` 依次推进；每单务必核对最新 Issue 评论里的 Planner 定型约束，勿动 `mise.toml` 既有未暂存改动。
+按 `#174 → #175 → #177` 顺序领取并严格对照各 Issue 最新 Planner 4.2 定型评论实施；开工前先检查 `git status`，在用户未答复 D74 授权前勿回退或提交 `mise.toml`/`collisionRig.ts`/`chapter5Scenes.ts`（如 `pre-push` 仍被该两份脏文件阻断则按 §1.9 留本地并记录）。
