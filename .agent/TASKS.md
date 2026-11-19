@@ -1,6 +1,6 @@
 # TASKS（GitHub Issue 本地镜像）
 
-> Planner 整体重写 · 2026-11-19 · D74–D76。GitHub Issues（33 开放单）为唯一权威；Executor 先改 Issue，再同步本文件状态。
+> Planner 整体重写 · 2026-11-19 · D74–D76·续（pending 清零）。GitHub Issues（33 开放单）为唯一权威；Executor 先改 Issue，再同步本文件状态。
 > 基线：`main @ 9b0ad1a`（领先 `origin/main @ e6e05f8` 1 个 Executor 空队列收尾提交；本轮规划再追加 1 个 `.agent/` 提交），代码至 `8a09ec0`（Wave 1 全部合入），测试真值 **3214 = physics-core 1196 + visualization 2018**，远端 CI `44129200526` / Deploy `44129943335` / QA `44430900298`（2026-11-19）全绿；未见 `.agent/LOCK` 残留。
 > 标签约定：`ready-for-agent` 仅挂于今日队列 3 单；`priority:P1` 严格收敛为今日队列 3 单；`needs-triage` / `in-review` / `in-progress` 均已清零。
 
@@ -16,7 +16,7 @@
 - **队列治理与新单分拣**：
   - M10 Wave 2 全部 3 单（`#174/#175/#177`）补齐 4.2 Ready 门禁定型，升为 `priority:P1` + `ready-for-agent`。
   - 2026-11-18 新建 12 个 `needs-triage`（`#192–#203`）全量核实无重复，摘 `needs-triage`、依契约 4.3 收敛为 `priority:P2`，新建 **[Milestone 6 (M12)](https://github.com/zhangjszs/physical-modelvis/milestone/6)** 承接。
-  - 新增 2 项 pending（第 1 天询问）：**D74**（工作区 3 处未暂存改动阻断 `pre-push`）与 **D75**（M12 与产品线排程顺位，默认 A）。
+  - 用户同日答复「都安推荐的来」→ **D74=A**（由用户自行清理工作区 3 处未暂存改动，Agent 严格不碰）与 **D75=A**（排程正式确立为 `M10 → M11 → M12 → #191 → #171 → #189`）全部转正生效，**pending 清零**。
 
 ---
 
@@ -70,7 +70,7 @@
 
 ## M12 物理引擎与 3D 实验台增补缺陷批（12 单 · 0 / 12）
 
-> [Milestone 6](https://github.com/zhangjszs/physical-modelvis/milestone/6) · 2026-11-18 审计新增，全部已摘 `needs-triage`、收敛 `priority:P2`；按 **D75 默认方案 A** 排在 M11 后清零。
+> [Milestone 6](https://github.com/zhangjszs/physical-modelvis/milestone/6) · 2026-11-18 审计新增，全部已摘 `needs-triage`、收敛 `priority:P2`；按 **D75=A（已确认）** 排在 M11 后清零。
 
 | Issue | 标题 | 标签 | 备注 |
 | --- | --- | --- | --- |
@@ -91,7 +91,7 @@
 
 ## 后置产品线、工程维护与冻结项（5 单）
 
-- **#191** · `[P2] 实现组合实验台「可控放置」交互改造（#166 P1 期：B-1~B-9）`：**blocked** · `priority:P2` · `type:feature` · `area:render`。#166 P0 已关闭；按 **D72=A / D75 默认 A** 排于 M10/M11/M12 清零后启动。
+- **#191** · `[P2] 实现组合实验台「可控放置」交互改造（#166 P1 期：B-1~B-9）`：**blocked** · `priority:P2` · `type:feature` · `area:render`。#166 P0 已关闭；按 **D72=A / D75=A（已确认）** 排于 M10/M11/M12 清零后启动。
 - **#171** · `[P1][Sandbox M0] 固定平抛实验作为可编辑的沙盒预设装配`：**blocked** · `priority:P2` · `type:feature` · `area:engine, area:render`。按 D72=A 排于 #191 收口后由 Planner 出 Phase A RFC 再转 ready。
 - **#189** · `[P2][UI/UX Redesign] PHYSVIS // WORLD ENGINE 改版`：**blocked** · `priority:P2` · `type:feature` · `area:render`。按 D72=A 顺位后置，合并前需 owner 人工预览认可。
 - **#167** · `CI「安装 Playwright Chromium」遇 runner DNS 抖动加固`：`open` · `priority:P3` · `type:chore` · `area:ci`。D71=A 已授权 1.10 局部范围（仅给 `ci.yml`/`qa-sweep.yml` 安装步加 3 次退避重试），后置排期。

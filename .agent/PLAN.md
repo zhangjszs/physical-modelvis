@@ -1,6 +1,6 @@
 # PLAN
 
-> Planner 当前快照 · 2026-11-19 · D74–D76。任务权威：GitHub Issues（33 开放单）；TASKS.md 为本轮整体重写镜像。
+> Planner 当前快照 · 2026-11-19 · D74–D76·续（pending 清零）。任务权威：GitHub Issues（33 开放单）；TASKS.md 为本轮整体重写镜像。
 
 ## 当前方向
 
@@ -36,8 +36,8 @@
 
 ## 已知阻塞与依赖
 
-- **工作区脏文件阻断 `pre-push`（D74 pending，第 1 天询问）**：`mise.toml`（`node = "22"` → `"24"`）与 2026-11-18 00:45 产生的 `visualization/src/components/simulation3d/rigs/collisionRig.ts`、`visualization/src/rendering/chapter5Scenes.ts`（格式/BOM 差异）导致 `npm run format:check` 失败并拦截 `.husky/pre-push`（按契约 Agent 不触碰且不用 `--no-verify`，本地 `.agent/` 提交暂留待清理后推送）。
-- **M12 排程顺位（D75 pending，第 1 天询问）**：2026-11-18 增补 12 单（`#192–#203`）已收编至 [Milestone 6 (M12)](https://github.com/zhangjszs/physical-modelvis/milestone/6)；默认按 **M10 → M11 → M12 → #191 → #171 → #189** 串行收口（`#198` 排 `#180` 后、`#202` 排 `#181/#188` 后防同文件冲突）。
+- **工作区脏文件阻断 `pre-push`（D74=A 已确认）**：`mise.toml`（`node = "22"` → `"24"`）与 2026-11-18 00:45 产生的 `visualization/src/components/simulation3d/rigs/collisionRig.ts`、`visualization/src/rendering/chapter5Scenes.ts`（格式/BOM 差异）导致 `npm run format:check` 失败并拦截 `.husky/pre-push`。已确认由用户手动清理两份 `.ts` 脏改动并自决 `mise.toml`，Agent 严格不触碰且不用 `--no-verify`。
+- **M12 排程顺位（D75=A 已确认）**：2026-11-18 增补 12 单（`#192–#203`）已收编至 [Milestone 6 (M12)](https://github.com/zhangjszs/physical-modelvis/milestone/6)；正式按 **M10 → M11 → M12 → #191 → #171 → #189** 串行收口（`#198` 排 `#180` 后、`#202` 排 `#181/#188` 后防同文件冲突）。
 - **#191 / #171 / #189（D72=A）**：当前维持 `blocked` 等待前置物理缺陷清零后再按 `#191 → #171（先出 RFC）→ #189` 推进。
 - **#167（D71=A 局部授权 1.10）**：仅授权给 `ci.yml`/`qa-sweep.yml` Playwright 安装步加 3 次退避重试，作 `P3` 后置排期。
 - **#44**：`blocked · parked`（D44=B 冻结，React 19 暂缓）。
@@ -45,7 +45,7 @@
 
 ## 下一阶段
 
-- M10 验收 8/8 收官 → **[M11（13 单）](https://github.com/zhangjszs/physical-modelvis/milestone/5)** 清理电磁/光学/热学/近代物理缺陷 → **[M12（12 单，按 D75 默认 A）](https://github.com/zhangjszs/physical-modelvis/milestone/6)** 清理增补物理引擎与 3D 实验台参数失配/误绑缺陷 → **#167**（P3 CI 安装步重试）→ 按 **D72=A** 推进 **#191（#166 P1）→ #171（Sandbox M0 阶段 A 设计 + 平抛纵切）→ #189（UI/UX 改版）**。
+- M10 验收 8/8 收官 → **[M11（13 单）](https://github.com/zhangjszs/physical-modelvis/milestone/5)** 清理电磁/光学/热学/近代物理缺陷 → **[M12（12 单，D75=A 已确认）](https://github.com/zhangjszs/physical-modelvis/milestone/6)** 清理增补物理引擎与 3D 实验台参数失配/误绑缺陷 → **#167**（P3 CI 安装步重试）→ 按 **D72=A / D75=A** 推进 **#191（#166 P1）→ #171（Sandbox M0 阶段 A 设计 + 平抛纵切）→ #189（UI/UX 改版）**。
 
 ## 已放弃 / 暂缓的方向
 
@@ -55,4 +55,4 @@
 
 ## 给 Executor 的指令
 
-按 `#174 → #175 → #177` 顺序领取并严格对照各 Issue 最新 Planner 4.2 定型评论实施；开工前先检查 `git status`，在用户未答复 D74 授权前勿回退或提交 `mise.toml`/`collisionRig.ts`/`chapter5Scenes.ts`（如 `pre-push` 仍被该两份脏文件阻断则按 §1.9 留本地并记录）。
+按 `#174 → #175 → #177` 顺序领取并严格对照各 Issue 最新 Planner 4.2 定型评论实施；按 **D74=A** 严禁回退或提交 `mise.toml`/`collisionRig.ts`/`chapter5Scenes.ts`（如用户尚未清理导致 `pre-push` 仍被阻断，按 §1.9 留本地并记录）。
