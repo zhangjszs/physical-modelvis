@@ -663,7 +663,7 @@ export function drawForceCompositionScene(opts: Chapter3SceneOptions): void {
  *
  * 物理关系：
  *   F_AB = -F_BA  (大小相等、方向相反、作用在两个物体上)
- *   allowMotion=true: 两物体共同加速 a = F_AB / (mA + mB)
+ *   allowMotion=true: 自由双体内力各自加速 a_A = -F_AB/mA, a_B = F_AB/mB (总动量守恒)
  *   allowMotion=false: 两物体静止，仅展示力
  */
 export function drawNewtonThirdLawScene(opts: Chapter3SceneOptions): void {
@@ -676,7 +676,8 @@ export function drawNewtonThirdLawScene(opts: Chapter3SceneOptions): void {
 
     const F_AB = forceAB;
     const F_BA = -forceAB;
-    const aSystem = allowMotion ? F_AB / (massA + massB) : 0;
+    const aA = allowMotion ? -F_AB / massA : 0;
+    const aB = allowMotion ? F_AB / massB : 0;
 
     const labelColor = isDark ? '#e2e8f0' : '#1e293b';
 
@@ -766,9 +767,12 @@ export function drawNewtonThirdLawScene(opts: Chapter3SceneOptions): void {
         { dx: -50, dy: -14 }
     );
 
-    // --- 运动状态标签 ---
+    // --- 运动状态标签 (各自加速度 + 总动量, 来自引擎双体轨迹) ---
+    const vA = frameA ? frameA.velocity.x : 0;
+    const vB = frameB ? frameB.velocity.x : 0;
+    const pTotal = massA * vA + massB * vB;
     const motionLabel = allowMotion
-        ? `共同加速 a=F/(mA+mB)=${aSystem.toFixed(3)} m/s²`
+        ? `a_A=${aA.toFixed(2)}  a_B=${aB.toFixed(2)} m/s² | v_A=${vA.toFixed(2)}  v_B=${vB.toFixed(2)} m/s | P_总=${pTotal.toFixed(2)} kg·m/s (守恒)`
         : '两物体静止 (作用力与反作用力依然存在)';
     ctx.font = 'bold 12px sans-serif';
     ctx.textAlign = 'center';
@@ -796,12 +800,19 @@ export function drawNewtonThirdLawScene(opts: Chapter3SceneOptions): void {
     );
 
     // --- 左上角 HUD ---
-    const v = frameA ? frameA.velocity.x : 0;
     drawHud(ctx, isDark, [
         { label: 't', value: `${currentTime.toFixed(3)} s` },
         { label: 'F_AB', value: `${F_AB} N` },
         { label: 'F_BA', value: `${F_BA} N` },
-        ...(allowMotion ? [{ label: 'v', value: `${v.toFixed(3)} m/s` }] : [])
+        ...(allowMotion
+            ? [
+                  { label: 'a_A', value: `${aA.toFixed(2)} m/s²` },
+                  { label: 'a_B', value: `${aB.toFixed(2)} m/s²` },
+                  { label: 'v_A', value: `${vA.toFixed(3)} m/s` },
+                  { label: 'v_B', value: `${vB.toFixed(3)} m/s` },
+                  { label: 'P_总', value: `${pTotal.toFixed(3)} kg·m/s` }
+              ]
+            : [])
     ]);
 
     if (!simulationResult) drawEmptyState(ctx, width, height, isDark);

@@ -77,7 +77,8 @@ import {
 } from '../../src/rendering/chapter1Scenes';
 import { computePhotogateMeasurements } from '../../src/utils/photogate';
 import { collisionReadouts, springReadouts } from '../../src/rendering/chapter1Scenes';
-import { forceCompositionReadouts } from '../../src/rendering/chapter3Scenes';
+import { forceCompositionReadouts, drawNewtonThirdLawScene } from '../../src/rendering/chapter3Scenes';
+import { newtonThirdLawRig } from '../../src/components/simulation3d/rigs/newtonThirdLawRig';
 import { springRig, springUnitsPerMeter, springNaturalLength } from '../../src/components/simulation3d/rigs/springRig';
 import {
     forceCompositionRig,
@@ -2231,5 +2232,66 @@ describe('#175 卫星轨道触地碰撞: 2D/3D 坠地状态与截断轨迹', () 
             // EARTH_RADIUS=0.42 世界单位: 闭合椭圆近地点会穿入其内, 截断轨迹恒在外
             expect(d).toBeGreaterThan(0.42);
         }
+    });
+});
+
+describe('#177 牛顿第三定律: 2D/3D 消费双体轨迹, 自由双体内力动量守恒', () => {
+    it('正内力 (F_AB=+5N): 2D 无「共同加速」文案且展示 a_A/a_B/P_总, 3D 双传感器背向分离同源', () => {
+        const { params, result } = simulate('newton-third-law', { allowMotion: 1, forceAB: 5 });
+        // 引擎: a_A=-F/mA=-5, a_B=F/mB=2.5 (mA=1, mB=2)
+        expect(result.diagnostics.maxValues.accelA).toBeCloseTo(-5, 6);
+        expect(result.diagnostics.maxValues.accelB).toBeCloseTo(2.5, 6);
+
+        const width = 1100;
+        const height = 700;
+        const c = createRecordingCanvas({ width, height });
+        drawNewtonThirdLawScene({
+            ctx: c.ctx,
+            width,
+            height,
+            isDark: true,
+            params,
+            simulationResult: result,
+            currentTime: 1
+        });
+        expect(c.texts.some(t => t.includes('共同加速'))).toBe(false);
+        expect(c.texts.some(t => t.includes('a_A='))).toBe(true);
+        expect(c.texts.some(t => t.includes('P_总'))).toBe(true);
+
+        const built = newtonThirdLawRig.buildEquipment(new THREE.Scene(), params, result);
+        const h = built.handles as { sensorA: THREE.Group; sensorB: THREE.Group };
+        newtonThirdLawRig.onAnimate!(built.handles, { time: 1, ballPos: new THREE.Vector3(), params, result });
+        expect(h.sensorA.position.x).toBeLessThan(-0.55); // A 受 -F 向左
+        expect(h.sensorB.position.x).toBeGreaterThan(0.55); // B 受 +F 向右
+        // 3D 位移与引擎轨迹同源 (相对初始位移 × WORLD_SCALE=0.16)
+        const iA = getFrame(result, 0, 0)!;
+        const fA = getFrame(result, 1, 0)!;
+        expect(h.sensorA.position.x).toBeCloseTo(-0.55 + (fA.position.x - iA.position.x) * 0.16, 6);
+    });
+
+    it('负内力 (F_AB=-5N): 3D 双传感器相向靠拢且不穿透, 2D 展示带符号加速度', () => {
+        const { params, result } = simulate('newton-third-law', { allowMotion: 1, forceAB: -5 });
+        expect(result.diagnostics.maxValues.accelA).toBeCloseTo(5, 6);
+        expect(result.diagnostics.maxValues.accelB).toBeCloseTo(-2.5, 6);
+
+        const built = newtonThirdLawRig.buildEquipment(new THREE.Scene(), params, result);
+        const h = built.handles as { sensorA: THREE.Group; sensorB: THREE.Group };
+        newtonThirdLawRig.onAnimate!(built.handles, { time: 0.3, ballPos: new THREE.Vector3(), params, result });
+        expect(h.sensorA.position.x).toBeGreaterThan(-0.55); // A 向右靠拢
+        expect(h.sensorB.position.x).toBeLessThan(0.55); // B 向左靠拢
+        expect(h.sensorA.position.x).toBeLessThan(h.sensorB.position.x); // 不穿透
+
+        const c = createRecordingCanvas({ width: 1100, height: 700 });
+        drawNewtonThirdLawScene({
+            ctx: c.ctx,
+            width: 1100,
+            height: 700,
+            isDark: true,
+            params,
+            simulationResult: result,
+            currentTime: 0.3
+        });
+        expect(c.texts.some(t => t.includes('共同加速'))).toBe(false);
+        expect(c.texts.some(t => t.includes('a_A=5.00'))).toBe(true);
     });
 });
