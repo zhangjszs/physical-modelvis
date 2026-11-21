@@ -29,7 +29,8 @@ export class OrbitalModel extends PhysicsModelBase {
         '中心天体静止 (M ≫ m)',
         '只考虑万有引力 (忽略其他天体摄动)',
         '质点模型 (r ≫ 天体自身半径时)',
-        '经典力学 (v ≪ c)'
+        '经典力学 (v ≪ c)',
+        '未考虑大气阻力 (中心天体表面为不可穿透碰撞边界)'
     ];
     readonly applicableRange = '行星/卫星绕中心天体的运动、宇宙速度计算、开普勒定律演示';
     readonly errorSources = [
@@ -58,6 +59,9 @@ export class OrbitalModel extends PhysicsModelBase {
         // 引力参数 GM (从约束获取或默认地球)
         const oc = problem.constraints?.orbital;
         const GM = oc?.GM ?? 3.986e14; // 地球 GM (m³/s²)
+        // 中心天体不可穿透边界 (#175): centralRadius > 0 时启用触地碰撞检测与截断
+        const centralRadius = oc?.centralRadius ?? 0;
+        const impactEnabled = centralRadius > 0;
 
         // ===== Velocity Verlet 数值积分 =====
         // a(r) = −GM / r³ · r_vec
@@ -72,6 +76,10 @@ export class OrbitalModel extends PhysicsModelBase {
         let r: Vector2D = { ...r0 };
         let v: Vector2D = { ...v0 };
         let a = accel(r);
+        // 触地碰撞状态 (#175): 首次进入 r <= centralRadius 时插值截断
+        let impacted = impactEnabled && Vec2.magnitude(r0) <= centralRadius;
+        let impactTime = 0;
+        let impactSpeed = Vec2.magnitude(v0);
         let minR = Vec2.magnitude(r0);
         let maxR = minR;
         let minV = Vec2.magnitude(v0);
@@ -98,10 +106,45 @@ export class OrbitalModel extends PhysicsModelBase {
                 potentialEnergy: pe
             });
 
+            // 初始即位于边界内: 只保留 t=0 点并立即触地 (#175)
+            if (impacted) break;
+
             // Velocity Verlet 步进
             if (i < sampleCount) {
                 // r(t+dt) = r(t) + v(t)·dt + ½a(t)·dt²
-                r = Vec2.add(r, Vec2.add(Vec2.scale(v, dt), Vec2.scale(a, 0.5 * dt * dt)));
+                const rNext = Vec2.add(r, Vec2.add(Vec2.scale(v, dt), Vec2.scale(a, 0.5 * dt * dt)));
+                const rNextMag = Vec2.magnitude(rNext);
+                // 触地碰撞检测: 本步首次穿越不可穿透边界 → 二分插值求触地事件并截断
+                if (impactEnabled && rMag > centralRadius && rNextMag <= centralRadius) {
+                    let sLo = 0;
+                    let sHi = dt;
+                    for (let k = 0; k < 80; k++) {
+                        const sMid = (sLo + sHi) / 2;
+                        const pMid = Vec2.add(r, Vec2.add(Vec2.scale(v, sMid), Vec2.scale(a, 0.5 * sMid * sMid)));
+                        if (Vec2.magnitude(pMid) > centralRadius) sLo = sMid;
+                        else sHi = sMid;
+                    }
+                    const sImpact = (sLo + sHi) / 2;
+                    const posImpact = Vec2.add(
+                        r,
+                        Vec2.add(Vec2.scale(v, sImpact), Vec2.scale(a, 0.5 * sImpact * sImpact))
+                    );
+                    const velImpact = Vec2.add(v, Vec2.scale(a, sImpact));
+                    const rImpact = Math.max(1, Vec2.magnitude(posImpact));
+                    impactTime = t + sImpact;
+                    impactSpeed = Vec2.magnitude(velImpact);
+                    trajectory.push({
+                        t: impactTime,
+                        position: posImpact,
+                        velocity: velImpact,
+                        acceleration: accel(posImpact),
+                        kineticEnergy: kineticEnergy(m, impactSpeed),
+                        potentialEnergy: (-GM * m) / rImpact
+                    });
+                    impacted = true;
+                    break;
+                }
+                r = rNext;
                 const aNew = accel(r);
                 // v(t+dt) = v(t) + ½(a(t) + a(t+dt))·dt
                 v = Vec2.add(v, Vec2.scale(Vec2.add(a, aNew), 0.5 * dt));
@@ -150,13 +193,24 @@ export class OrbitalModel extends PhysicsModelBase {
         }
 
         const last = trajectory[trajectory.length - 1];
-        keyframes.push({
-            label: '模拟终点',
-            t: duration,
-            position: last.position,
-            velocity: last.velocity,
-            description: `t=${duration}s 时位置 (${(last.position.x / 1000).toFixed(1)}, ${(last.position.y / 1000).toFixed(1)}) km`
-        });
+        if (impacted) {
+            // 触地碰撞事件 (#175): 截断终点即坠地点, 不再产出「模拟终点」
+            keyframes.push({
+                label: '触地碰撞',
+                t: impactTime,
+                position: last.position,
+                velocity: last.velocity,
+                description: `卫星于 t=${impactTime.toFixed(1)}s 撞击中心天体表面 (r=${(Vec2.magnitude(last.position) / 1000).toFixed(1)}km), 触地速率 ${(impactSpeed / 1000).toFixed(2)}km/s, 轨迹已截断 (未考虑大气阻力)`
+            });
+        } else {
+            keyframes.push({
+                label: '模拟终点',
+                t: duration,
+                position: last.position,
+                velocity: last.velocity,
+                description: `t=${duration}s 时位置 (${(last.position.x / 1000).toFixed(1)}, ${(last.position.y / 1000).toFixed(1)}) km`
+            });
+        }
 
         // 宇宙速度参考
         const r0Mag = Vec2.magnitude(r0);
@@ -215,12 +269,21 @@ export class OrbitalModel extends PhysicsModelBase {
                     minR: minR / 1000,
                     maxR: maxR / 1000,
                     maxSpeed: maxV / 1000,
-                    minSpeed: minV / 1000
+                    minSpeed: minV / 1000,
+                    ...(impacted ? { impactTime, impactSpeed } : {})
                 },
-                rangeCheck: { withinRange: true, warnings: [] }
+                flags: { impacted },
+                rangeCheck: impacted
+                    ? {
+                          withinRange: false,
+                          warnings: ['卫星已撞击中心天体表面, 轨迹按触地事件截断 (未考虑大气阻力)']
+                      }
+                    : { withinRange: true, warnings: [] }
             },
             explanation: {
-                summary: `万有引力作用下轨道运动: r₀=${(r0Mag / 1000).toFixed(0)}km, 宇宙轨道速度 v=${(vOrbit / 1000).toFixed(2)}km/s, 逃逸速度 v_e=${(vEscape / 1000).toFixed(2)}km/s, 参考周期 T=${(TOrbit / 60).toFixed(1)}min`,
+                summary: impacted
+                    ? `亚轨道弹道: r₀=${(r0Mag / 1000).toFixed(0)}km, 卫星于 t=${impactTime.toFixed(1)}s 撞击中心天体表面 (未考虑大气阻力), 触地速率 ${(impactSpeed / 1000).toFixed(2)}km/s`
+                    : `万有引力作用下轨道运动: r₀=${(r0Mag / 1000).toFixed(0)}km, 宇宙轨道速度 v=${(vOrbit / 1000).toFixed(2)}km/s, 逃逸速度 v_e=${(vEscape / 1000).toFixed(2)}km/s, 参考周期 T=${(TOrbit / 60).toFixed(1)}min`,
                 steps: [
                     {
                         order: 1,
@@ -262,7 +325,7 @@ export class OrbitalModel extends PhysicsModelBase {
                 ]
             },
             errors: [],
-            warnings: []
+            warnings: impacted ? ['轨道已按触地碰撞事件截断: 中心天体表面为不可穿透边界, 未考虑大气阻力'] : []
         };
     }
 }

@@ -119,9 +119,10 @@ function openOrbitPoints(geom: OrbitVisual, result: SimulationResult | null | un
     return points;
 }
 
-function labelText(geom: OrbitVisual): string {
+function labelText(geom: OrbitVisual, impacted = false): string {
     const eText = geom.shape.closed ? geom.shape.e.toFixed(2) : `${geom.shape.e.toFixed(2)} (开放)`;
-    return `h = ${geom.hKm.toFixed(0)} km | v = ${geom.vKmS.toFixed(2)} km/s | e = ${eText} | ${geom.typeLabel}`;
+    const status = impacted ? '坠地碰撞 (轨迹已截断, 未考虑大气阻力)' : geom.typeLabel;
+    return `h = ${geom.hKm.toFixed(0)} km | v = ${geom.vKmS.toFixed(2)} km/s | e = ${eText} | ${status}`;
 }
 
 /** 参数/结果变化时重建轨道线与标牌；buildEquipment 也复用它完成初始布局 */
@@ -136,13 +137,15 @@ function applyGeometry(
     handles.center.position.copy(handles.centerPos);
     handles.centerWire.position.copy(handles.centerPos);
 
-    const points = geom.shape.closed ? closedOrbitPoints(geom) : openOrbitPoints(geom, result);
+    // #175: 触地碰撞时禁用闭合椭圆, 只画截断后的引擎轨迹 (result=null / 安全轨道保持原逻辑)
+    const impacted = Boolean(result?.diagnostics?.flags?.impacted);
+    const points = geom.shape.closed && !impacted ? closedOrbitPoints(geom) : openOrbitPoints(geom, result);
     handles.orbit.geometry.dispose();
     handles.orbit.geometry = new THREE.BufferGeometry().setFromPoints(points);
 
     handles.centerLabel.position.set(STAGE_CENTER_X, geom.centerY - EARTH_RADIUS - 0.24, 0.25);
     handles.infoLabel.position.set(STAGE_CENTER_X, geom.centerY + geom.rMaxVisual + 0.42, 0.2);
-    setLabel(handles.infoLabel, labelText(geom), '#0f172a');
+    setLabel(handles.infoLabel, labelText(geom, impacted), '#0f172a');
     // 底板按实际文字宽度缩放（画布含 1.5 倍透明余量，不能用 sprite.scale.x 直接做底板）
     const fontSize =
         typeof handles.infoLabel.userData.textFontSize === 'number' ? handles.infoLabel.userData.textFontSize : 22;

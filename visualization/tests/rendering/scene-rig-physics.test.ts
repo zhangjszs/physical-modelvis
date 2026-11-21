@@ -188,6 +188,8 @@ import {
 import { newtonTubeRig } from '../../src/components/simulation3d/rigs/newtonTubeRig';
 import type { NewtonTubeHandles } from '../../src/components/simulation3d/equipment/newtonTube';
 import { drawNewtonTubeScene } from '../../src/rendering/chapter2Scenes';
+import { drawOrbitalScene } from '../../src/rendering/chapter6Scenes';
+import { orbitalRig } from '../../src/components/simulation3d/rigs/orbitalRig';
 import { getFrame } from '../../src/rendering/renderingUtils';
 
 beforeAll(loadAllScenes);
@@ -2164,5 +2166,70 @@ describe('#174 牛顿管: 2D/3D/HUD 消费引擎双体轨迹, 空气中羽毛绝
             (builtA.handles as { tubeHandles: NewtonTubeHandles }).tubeHandles.coin.position.y,
             6
         );
+    });
+});
+
+describe('#175 卫星轨道触地碰撞: 2D/3D 坠地状态与截断轨迹', () => {
+    it('velocityFactor=0.5 亚轨道: 引擎 impacted=true, 2D 显示坠地状态且轨道线不穿入地球', () => {
+        const { params, result } = simulate('orbital', { velocityFactor: 0.5 });
+        expect(result.diagnostics.flags?.impacted).toBe(true);
+        const width = 1000;
+        const height = 700;
+        const c = createRecordingCanvas({ width, height });
+        drawOrbitalScene({
+            ctx: c.ctx,
+            width,
+            height,
+            isDark: true,
+            params,
+            simulationResult: result,
+            currentTime: 300
+        });
+        expect(c.texts.some(t => t.includes('坠地碰撞'))).toBe(true);
+        // 轨道路径线段不得画进地球圆盘 (闭合椭圆会穿心, 截断引擎轨迹不会)
+        const earthR = Math.min(width, height) * 0.1;
+        const cx = width * 0.5;
+        const cy = height * 0.5;
+        const pathPoints = c.filter('lineTo');
+        expect(pathPoints.length).toBeGreaterThan(10);
+        for (const call of pathPoints) {
+            const dx = Number(call.args[0]) - cx;
+            const dy = Number(call.args[1]) - cy;
+            expect(Math.hypot(dx, dy)).toBeGreaterThan(earthR * 0.8);
+        }
+    });
+
+    it('velocityFactor=1 圆轨道: 无坠地状态, 保持原安全轨道渲染', () => {
+        const { params, result } = simulate('orbital', { velocityFactor: 1 });
+        expect(result.diagnostics.flags?.impacted).toBeFalsy();
+        const c = createRecordingCanvas({ width: 1000, height: 700 });
+        drawOrbitalScene({
+            ctx: c.ctx,
+            width: 1000,
+            height: 700,
+            isDark: true,
+            params,
+            simulationResult: result,
+            currentTime: 300
+        });
+        expect(c.texts.some(t => t.includes('坠地碰撞'))).toBe(false);
+    });
+
+    it('3D rig: impacted 时标牌显示坠地碰撞, 轨道线为截断引擎轨迹 (不画穿心闭合椭圆)', () => {
+        const { params, result } = simulate('orbital', { velocityFactor: 0.5 });
+        const built = orbitalRig.buildEquipment(new THREE.Scene(), params, result);
+        const h = built.handles as {
+            infoLabel: THREE.Sprite;
+            orbit: THREE.Line;
+            centerPos: THREE.Vector3;
+        };
+        expect(String(h.infoLabel.userData.text)).toContain('坠地碰撞');
+        const attr = h.orbit.geometry.getAttribute('position');
+        expect(attr.count).toBeGreaterThan(10);
+        for (let i = 0; i < attr.count; i++) {
+            const d = Math.hypot(attr.getX(i) - h.centerPos.x, attr.getY(i) - h.centerPos.y);
+            // EARTH_RADIUS=0.42 世界单位: 闭合椭圆近地点会穿入其内, 截断轨迹恒在外
+            expect(d).toBeGreaterThan(0.42);
+        }
     });
 });
