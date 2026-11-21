@@ -28,7 +28,6 @@ import {
     drawHud,
     drawInfoBar,
     draw3DBlock,
-    maxOf,
     clearScene,
     drawTitle
 } from './renderingUtils';
@@ -1254,27 +1253,30 @@ export function drawNewtonTubeScene(o: Chapter2SceneOptions): void {
     ctx.fillStyle = isDark ? 'rgba(148,163,184,0.06)' : 'rgba(148,163,184,0.08)';
     ctx.fillRect(tubeLeft, tubeTop, tubeRight - tubeLeft, tubeH);
 
-    // 硬币位移 (来自模型轨迹, 物理下落距离 → 管内比例)
-    // 注意: 模型按真实 g 自由下落, 总位移 = 0.5·g·duration² 不一定等于 height 参数;
-    // 用轨迹自身最大位移归一化, 保证硬币恰好在动画结束时抵达管底, 与 height 标注一致。
-    let coinFrac = 0;
-    const traj = simulationResult?.trajectories?.[0];
-    if (traj && traj.length > 0) {
-        // 轨迹点按 t 排序; 取当前 t 的 |y| 位移
-        let best = traj[0]!;
-        for (const p of traj) {
-            if (p.t <= t) best = p;
-            else break;
+    // 硬币/羽毛下落距离 (单一真源: 引擎双体轨迹 y=H→0, 触地钳制; 无引擎结果时解析回退)
+    // getFrame 按真实物理时刻 t 取帧, 改变 duration 不会扭曲同一时刻的下落距离。
+    const gM = params['g'] ?? G_ACCELERATION;
+    const dropFromEngine = (trajectoryIndex: number): number | null => {
+        const frame = getFrame(simulationResult, t, trajectoryIndex);
+        if (!frame) return null;
+        return Math.max(0, Math.min(heightM, heightM - frame.position.y));
+    };
+    const analyticCoinDrop = Math.min(heightM, 0.5 * gM * t * t);
+    const coinDrop = dropFromEngine(0) ?? analyticCoinDrop;
+    let featherDrop = dropFromEngine(1);
+    if (featherDrop === null) {
+        if (withAir) {
+            // 解析回退: 与引擎同款线性阻力解 (v_t=1.6 m/s, τ=v_t/g)
+            const vT = 1.6;
+            const tau = vT / Math.max(1e-6, gM);
+            featherDrop = Math.min(heightM, vT * (t - tau * (1 - Math.exp(-t / tau))));
+        } else {
+            featherDrop = analyticCoinDrop;
         }
-        const drop = Math.abs(best.position.y);
-        const maxDrop = maxOf(
-            traj.map(p => Math.abs(p.position.y)),
-            1e-6
-        );
-        coinFrac = Math.max(0, Math.min(1, drop / maxDrop));
     }
-    // 羽毛: 有空气则受阻力, 终端速度有限; 真空则与硬币一致
-    const featherFrac = withAir ? 1 - Math.exp((-3 * t) / Math.max(1e-6, duration)) : coinFrac;
+
+    const coinFrac = Math.max(0, Math.min(1, coinDrop / Math.max(1e-6, heightM)));
+    const featherFrac = Math.max(0, Math.min(1, featherDrop / Math.max(1e-6, heightM)));
 
     const coinY = tubeTop + coinFrac * tubeH;
     const featherY = tubeTop + featherFrac * tubeH;
@@ -1308,8 +1310,8 @@ export function drawNewtonTubeScene(o: Chapter2SceneOptions): void {
         [
             { label: 't', value: `${t.toFixed(2)} s` },
             { label: '介质', value: withAir ? '空气' : '真空' },
-            { label: '硬币', value: `${(coinFrac * heightM).toFixed(2)} m` },
-            { label: '羽毛', value: `${(featherFrac * heightM).toFixed(2)} m` }
+            { label: '硬币', value: `${coinDrop.toFixed(2)} m` },
+            { label: '羽毛', value: `${featherDrop.toFixed(2)} m` }
         ],
         {
             boxX: 10,

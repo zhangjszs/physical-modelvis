@@ -4,7 +4,7 @@ import { makeTimeSeries } from '../../../utils/timeSeries.js';
 export const newton_tubeScene: SceneConfig = {
     id: 'newton-tube',
     name: '牛顿管 (真空 vs 空气)',
-    model: 'uniform-accelerated',
+    model: 'newton-tube',
     parameters: [
         {
             name: 'withAir',
@@ -53,15 +53,25 @@ export const newton_tubeScene: SceneConfig = {
     ],
     buildProblem: params => {
         const g = params['g'] ?? 9.8;
+        const height = params['height'] ?? 5;
         const duration = params['duration'] ?? 2;
+        const withAir = Math.round(params['withAir'] ?? 1) === 1;
         return {
             id: `newton-tube-${Date.now()}`,
             title: '牛顿管',
-            model: 'uniform-accelerated' as const,
+            model: 'newton-tube' as const,
+            // 双体契约: trajectories[0]=硬币, trajectories[1]=羽毛, 从管顶 (0, height) 同时释放
             bodies: [
-                { id: 'object', mass: { value: 1, unit: 'kg' }, position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 } }
+                { id: 'coin', mass: { value: 1, unit: 'kg' }, position: { x: 0, y: height }, velocity: { x: 0, y: 0 } },
+                {
+                    id: 'feather',
+                    mass: { value: 0.01, unit: 'kg' },
+                    position: { x: 0, y: height },
+                    velocity: { x: 0, y: 0 }
+                }
             ],
             environment: { gravity: { enabled: true, value: g } },
+            constraints: { newtonTube: { height, withAir } },
             timeConfig: makeTimeSeries(duration, 1000)
         };
     }

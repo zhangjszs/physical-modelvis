@@ -185,6 +185,10 @@ import {
     MAGNETIC_FIELD_CENTER_Y,
     type MFieldHandles
 } from '../../src/components/simulation3d/rigs/magneticFieldRig';
+import { newtonTubeRig } from '../../src/components/simulation3d/rigs/newtonTubeRig';
+import type { NewtonTubeHandles } from '../../src/components/simulation3d/equipment/newtonTube';
+import { drawNewtonTubeScene } from '../../src/rendering/chapter2Scenes';
+import { getFrame } from '../../src/rendering/renderingUtils';
 
 beforeAll(loadAllScenes);
 
@@ -2070,5 +2074,95 @@ describe('#173 平抛碰撞带符号位移与 2D/3D 落点一致性', () => {
         const h = built.handles as CollisionHandles;
         expect(h.infoLabel.userData.text).toContain(mv.OM_signed!.toFixed(2));
         expect(h.infoLabel.userData.text).toContain(mv.ON_signed!.toFixed(2));
+    });
+});
+
+describe('#174 牛顿管: 2D/3D/HUD 消费引擎双体轨迹, 空气中羽毛绝不领先硬币', () => {
+    it('空气模式 t=1s: 引擎硬币 4.9m 羽毛滞后, 3D 双体位置与 getVisualPosition(引擎帧) 同源', () => {
+        const { params, result } = simulate('newton-tube');
+        const H = params['height']!;
+        const coinFrame = getFrame(result, 1, 0)!;
+        const featherFrame = getFrame(result, 1, 1)!;
+        expect(H - coinFrame.position.y).toBeCloseTo(4.9, 2);
+        expect(H - featherFrame.position.y).toBeLessThan(H - coinFrame.position.y);
+
+        const built = newtonTubeRig.buildEquipment(new THREE.Scene(), params, result);
+        const h = built.handles as { tubeHandles: NewtonTubeHandles };
+        newtonTubeRig.onAnimate!(built.handles, { time: 1, ballPos: new THREE.Vector3(), params, result });
+        // 硬币下落更远 → 管内世界 y 更低
+        expect(h.tubeHandles.coin.position.y).toBeLessThan(h.tubeHandles.feather.position.y);
+        expect(h.tubeHandles.coin.position.y).toBeCloseTo(
+            newtonTubeRig.getVisualPosition(coinFrame.position, params).y,
+            6
+        );
+        expect(h.tubeHandles.feather.position.y).toBeCloseTo(
+            newtonTubeRig.getVisualPosition(featherFrame.position, params).y,
+            6
+        );
+    });
+
+    it('真空模式: 引擎两体同落, 3D 硬币与羽毛严格同高', () => {
+        const { params, result } = simulate('newton-tube', { withAir: 0 });
+        const coinFrame = getFrame(result, 1, 0)!;
+        const featherFrame = getFrame(result, 1, 1)!;
+        expect(featherFrame.position.y).toBeCloseTo(coinFrame.position.y, 9);
+
+        const built = newtonTubeRig.buildEquipment(new THREE.Scene(), params, result);
+        const h = built.handles as { tubeHandles: NewtonTubeHandles };
+        newtonTubeRig.onAnimate!(built.handles, { time: 1, ballPos: new THREE.Vector3(), params, result });
+        expect(h.tubeHandles.coin.position.y).toBeCloseTo(h.tubeHandles.feather.position.y, 9);
+    });
+
+    it('2D HUD 与引擎双体轨迹数值一致 (空气 t=1s 读数 = 引擎真实下落距离)', () => {
+        const { params, result } = simulate('newton-tube');
+        const H = params['height']!;
+        const width = 1000;
+        const c = createRecordingCanvas({ width, height: 600 });
+        drawNewtonTubeScene({
+            ctx: c.ctx,
+            width,
+            height: 600,
+            isDark: true,
+            params,
+            simulationResult: result,
+            currentTime: 1
+        });
+        const read = (label: string): number => {
+            const row = c.texts.find(t => t.startsWith(`${label} = `));
+            expect(row, `HUD 应包含 ${label} 行`).toBeDefined();
+            return parseFloat(row!.replace(`${label} = `, ''));
+        };
+        const coinDrop = H - getFrame(result, 1, 0)!.position.y;
+        const featherDrop = H - getFrame(result, 1, 1)!.position.y;
+        expect(read('硬币')).toBeCloseTo(coinDrop, 2);
+        expect(read('羽毛')).toBeCloseTo(featherDrop, 2);
+        expect(read('羽毛')).toBeLessThan(read('硬币'));
+    });
+
+    it('duration 改变不扭曲同一物理时刻的下落位置 (0.5s vs 5s 时长, t=0.4s)', () => {
+        const a = simulate('newton-tube', { duration: 0.5 });
+        const b = simulate('newton-tube', { duration: 5 });
+        const ya = getFrame(a.result, 0.4, 0)!.position.y;
+        const yb = getFrame(b.result, 0.4, 0)!.position.y;
+        expect(yb).toBeCloseTo(ya, 6);
+
+        const builtA = newtonTubeRig.buildEquipment(new THREE.Scene(), a.params, a.result);
+        newtonTubeRig.onAnimate!(builtA.handles, {
+            time: 0.4,
+            ballPos: new THREE.Vector3(),
+            params: a.params,
+            result: a.result
+        });
+        const builtB = newtonTubeRig.buildEquipment(new THREE.Scene(), b.params, b.result);
+        newtonTubeRig.onAnimate!(builtB.handles, {
+            time: 0.4,
+            ballPos: new THREE.Vector3(),
+            params: b.params,
+            result: b.result
+        });
+        expect((builtB.handles as { tubeHandles: NewtonTubeHandles }).tubeHandles.coin.position.y).toBeCloseTo(
+            (builtA.handles as { tubeHandles: NewtonTubeHandles }).tubeHandles.coin.position.y,
+            6
+        );
     });
 });

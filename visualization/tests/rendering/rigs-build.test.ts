@@ -154,7 +154,9 @@ describe('3D rig 契约: buildEquipment 默认参数不抛错', () => {
 
                 // getOrigin 与 getVisualPosition 初始点一致性验证
                 const origin = rig!.getOrigin(params);
-                const vp0 = rig!.getVisualPosition({ x: 0, y: 0 }, params);
+                // newton-tube 双体契约 (#174): 引擎 y=H 为管顶释放点 (y=0 为管底), 起点取 (0, height)
+                const start = sceneId === 'newton-tube' ? { x: 0, y: params['height'] ?? 5 } : { x: 0, y: 0 };
+                const vp0 = rig!.getVisualPosition(start, params);
                 expect(Number.isFinite(origin.x) && Number.isFinite(origin.y) && Number.isFinite(origin.z)).toBe(true);
                 expect(Number.isFinite(vp0.x) && Number.isFinite(vp0.y) && Number.isFinite(vp0.z)).toBe(true);
 
