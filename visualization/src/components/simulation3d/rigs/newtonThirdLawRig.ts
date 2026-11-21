@@ -7,6 +7,7 @@
 import * as THREE from 'three';
 import { SceneRig } from '../EquipmentStage';
 import { makeBox, makeCylinder, makeArrow, makeTextSprite, updateTextSprite } from '../primitives';
+import { getFrame } from '../../../rendering/renderingUtils';
 import { num } from './params';
 
 const WORLD_SCALE = 0.16;
@@ -202,7 +203,7 @@ export const newtonThirdLawRig: SceneRig = {
 
         if (h.statusLabel) {
             const motionDesc = allowMotion
-                ? `加速模式: a_A=${(absF / massA).toFixed(2)}m/s² | a_B=${(absF / massB).toFixed(2)}m/s² (质量不同但作用力绝对恒等)`
+                ? `自由双体: a_A=${(-forceAB / massA).toFixed(2)}m/s² | a_B=${(forceAB / massB).toFixed(2)}m/s² | P_总 守恒 (内力不改变质心)`
                 : `静止对拉平衡: 传感器 A 与传感器 B 示数恒定相反互抵`;
             updateTextSprite(h.statusLabel, motionDesc, '#2563eb', 18);
         }
@@ -213,17 +214,35 @@ export const newtonThirdLawRig: SceneRig = {
         if (!h.sensorA || !h.sensorB) return;
 
         const { time } = ctx;
-        const absF = Math.abs(h.forceAB);
 
-        if (h.allowMotion && absF > 1e-4) {
-            // 加速分离模式：根据牛顿第二定律反冲
-            const aA = absF / h.massA;
-            const aB = absF / h.massB;
-            const sepA = Math.min(0.8, 0.5 * aA * time * time * 0.1);
-            const sepB = Math.min(0.8, 0.5 * aB * time * time * 0.1);
+        // 单一真源 (#177): 引擎双体轨迹相对初始位移驱动两传感器,
+        // 支持正内力背向分离与负内力相向靠拢; 无引擎结果时按各自加速度解析回退
+        const initA = ctx.result ? getFrame(ctx.result, 0, 0) : null;
+        const initB = ctx.result ? getFrame(ctx.result, 0, 1) : null;
+        const frameA = ctx.result ? getFrame(ctx.result, time, 0) : null;
+        const frameB = ctx.result ? getFrame(ctx.result, time, 1) : null;
+        let dxA: number;
+        let dxB: number;
+        if (frameA && frameB && initA && initB) {
+            dxA = frameA.position.x - initA.position.x;
+            dxB = frameB.position.x - initB.position.x;
+        } else {
+            const aA = -h.forceAB / h.massA;
+            const aB = h.forceAB / h.massB;
+            dxA = 0.5 * aA * time * time;
+            dxB = 0.5 * aB * time * time;
+        }
+        // 世界位移映射并夹取在导轨内 (挡块 ±1.55)
+        const clampX = (x: number) => Math.max(-1.35, Math.min(1.35, x));
+        const xA = clampX(-0.55 + dxA * WORLD_SCALE);
+        const xB = clampX(0.55 + dxB * WORLD_SCALE);
 
-            h.sensorA.position.x = -0.55 - sepA;
-            h.sensorB.position.x = 0.55 + sepB;
+        if (h.allowMotion && Math.abs(h.forceAB) > 1e-4) {
+            h.sensorA.position.x = xA;
+            h.sensorB.position.x = xB;
+            // 作用力/反作用力箭头跟随对应受力传感器 (F_AB 作用在 B, F_BA 作用在 A)
+            h.arrowAB.position.set(xB, 0.26, 0);
+            h.arrowBA.position.set(xA, 0.26, 0);
         } else {
             // 静止或对拉轻微手抖呼吸律动（两者同步微移）
             const sway = Math.sin(time * 2.5) * 0.04;

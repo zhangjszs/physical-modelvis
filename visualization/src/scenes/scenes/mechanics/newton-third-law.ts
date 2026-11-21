@@ -41,14 +41,14 @@ export const newton_third_lawScene: SceneConfig = {
         },
         {
             name: 'allowMotion',
-            label: '运动模式 (1=加速 0=静止)',
+            label: '运动模式 (1=自由运动 0=静止)',
             unit: '',
             value: 0,
             min: 0,
             max: 1,
             step: 1,
             default: 0,
-            description: '1=两物体在光滑水平面上共同加速；0=两物体固定，仅展示力'
+            description: '1=光滑水平面自由双体在内力作用下各自加速（质心静止、总动量守恒）；0=两物体固定，仅展示力'
         },
         {
             name: 'duration',

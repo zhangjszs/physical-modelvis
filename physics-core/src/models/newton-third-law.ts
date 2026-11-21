@@ -7,27 +7,27 @@ import { PhysicsModelBase } from './base.js';
 /**
  * 牛顿第三定律模型 — 作用力与反作用力 (必修一 第三章 §5)
  *
- * 两个物体 A、B 在光滑水平面上通过细绳连接，A 用恒力 F 拉 B (或互相推)：
- *   F_AB = -F_BA  (大小相等、方向相反、作用在两个物体上)
- *
- * 模式：
- *   - allowMotion=true:  两物体在光滑水平面上加速运动 (a = F/(mA+mB))
- *   - allowMotion=false: 两物体固定 (静止状态下展示作用力与反作用力)
- *
- * 模型生成两条轨迹 (A、B 各一条)，并把 F_AB、F_BA 随时间的变化存入图表。
+ * F_AB = -F_BA (大小相等、方向相反、作用在两个物体上)。
+ * 光滑水平面自由双体相互作用 (#177 修正):
+ *   - allowMotion=false: 两物体静止, 仅展示 F_AB = -F_BA。
+ *   - allowMotion=true (无外力, 内力 F_AB 恒定):
+ *       A 受 F_BA = -F_AB → a_A = -F_AB/m_A;  B 受 F_AB → a_B = +F_AB/m_B。
+ *       系统总动量恒守恒: m_A·v_A(t) + m_B·v_B(t) ≡ m_A·v_A0 + m_B·v_B0 (质心不动/匀速)。
+ *       F_AB > 0: 互推背向分离;  F_AB < 0: 互拉相向靠拢, 相遇接触后以质心速度
+ *       v_cm 共同运动 (初速为 0 时停在质心), 绝不互相穿透。
  */
 export class NewtonThirdLawModel extends PhysicsModelBase {
     readonly name = '牛顿第三定律';
-    readonly version = '1.0.0';
+    readonly version = '1.1.0';
     readonly description = '作用力与反作用力大小相等、方向相反、作用在两个物体上';
     readonly modelType = 'newton-third-law' as const;
     readonly assumptions = [
         '两物体视为质点',
-        '接触面光滑 (无摩擦)',
+        '接触面光滑 (无摩擦、无外力)',
         '作用力恒定',
         '作用力与反作用力同时产生、同时消失'
     ];
-    readonly applicableRange = '验证 F_AB = -F_BA，适用于静止、匀速、加速运动状态';
+    readonly applicableRange = '验证 F_AB = -F_BA 与系统动量守恒，适用于静止与自由双体相互作用';
     readonly errorSources = ['弹簧测力计本身的示值误差', '运动状态下读数困难'];
     readonly requiredParameters: ParameterSpec[] = [
         { name: 'forceAB', description: 'A 对 B 的作用力 (N)', unit: 'N', required: true },
@@ -56,52 +56,73 @@ export class NewtonThirdLawModel extends PhysicsModelBase {
         const xA0 = bodies[0]!.position.x;
         const xB0 = bodies[1]!.position.x;
         const vA0 = bodies[0]!.velocity.x;
+        const vB0 = bodies[1]!.velocity.x;
 
-        // F_AB = +forceAB (A 推/拉 B 沿 +x 方向)
-        // F_BA = -forceAB (B 推/拉 A 沿 -x 方向)
         const F_AB = forceAB;
         const F_BA = -forceAB;
 
-        // 加速度 (仅当 allowMotion=true 时两物体一起加速)
-        // A 受 -F_AB 力 (反作用)，B 受 +F_AB 力，但二者用绳连接时整体加速度 a = F_AB/(mA+mB)
-        // 这里采用"绳连接整体加速"模型，更贴近课堂演示
-        const aSystem = allowMotion ? F_AB / (mA + mB) : 0;
+        // 自由双体内力加速度 (无外力, 质心加速度恒为 0)
+        const aA = allowMotion ? -F_AB / mA : 0;
+        const aB = allowMotion ? F_AB / mB : 0;
+        const vCM = (mA * vA0 + mB * vB0) / (mA + mB);
 
         const duration = problem.timeConfig.duration;
         const sampleCount = problem.timeConfig.sampleCount ?? 500;
 
-        // 解析解采样: 两体绳连接同步运动 xA=xA0+dxA, xB=xB0+dxA (公共脚手架 sampleTrajectory)
-        const trajA = sampleTrajectory({
-            sampleCount,
-            duration,
-            sampleAt: t => {
-                const v = vA0 + aSystem * t;
-                const dxA = vA0 * t + 0.5 * aSystem * t * t;
-                const xA = xA0 + dxA;
+        // 相向接触时刻 (F_AB < 0 互拉靠拢): 解 xA(t)=xB(t) 的最小正根
+        let tContact = Infinity;
+        if (allowMotion && F_AB < 0) {
+            const qa = 0.5 * (aA - aB);
+            const qb = vA0 - vB0;
+            const qc = xA0 - xB0;
+            const roots: number[] = [];
+            if (Math.abs(qa) < 1e-12) {
+                if (Math.abs(qb) > 1e-12) roots.push(-qc / qb);
+            } else {
+                const disc = qb * qb - 4 * qa * qc;
+                if (disc >= 0) {
+                    const sq = Math.sqrt(disc);
+                    roots.push((-qb - sq) / (2 * qa), (-qb + sq) / (2 * qa));
+                }
+            }
+            const positive = roots.filter(t => t > 1e-9).sort((x, y) => x - y);
+            tContact = positive[0] ?? Infinity;
+        }
+        const contactInWindow = tContact <= duration;
+        const xContact = xA0 + vA0 * tContact + 0.5 * aA * tContact * tContact;
+
+        /** 分段解析: 接触前各自匀加速, 接触后以 v_cm 共同运动 (不穿透) */
+        const stateAt = (t: number, x0: number, v0: number, a: number, m: number) => {
+            if (contactInWindow && t >= tContact) {
+                const x = xContact + vCM * (t - tContact);
                 return {
-                    position: { x: xA, y: 0 },
-                    velocity: { x: v, y: 0 },
-                    acceleration: { x: aSystem, y: 0 },
-                    kineticEnergy: kineticEnergy(mA, v),
+                    position: { x, y: 0 },
+                    velocity: { x: vCM, y: 0 },
+                    acceleration: { x: 0, y: 0 },
+                    kineticEnergy: kineticEnergy(m, Math.abs(vCM)),
                     potentialEnergy: 0
                 };
             }
+            const v = v0 + a * t;
+            const x = x0 + v0 * t + 0.5 * a * t * t;
+            return {
+                position: { x, y: 0 },
+                velocity: { x: v, y: 0 },
+                acceleration: { x: a, y: 0 },
+                kineticEnergy: kineticEnergy(m, Math.abs(v)),
+                potentialEnergy: 0
+            };
+        };
+
+        const trajA = sampleTrajectory({
+            sampleCount,
+            duration,
+            sampleAt: t => stateAt(t, xA0, vA0, aA, mA)
         });
         const trajB = sampleTrajectory({
             sampleCount,
             duration,
-            sampleAt: t => {
-                const v = vA0 + aSystem * t;
-                const dxA = vA0 * t + 0.5 * aSystem * t * t;
-                const xB = xB0 + dxA; // 绳连接：两物体同步运动
-                return {
-                    position: { x: xB, y: 0 },
-                    velocity: { x: v, y: 0 },
-                    acceleration: { x: aSystem, y: 0 },
-                    kineticEnergy: kineticEnergy(mB, v),
-                    potentialEnergy: 0
-                };
-            }
+            sampleAt: t => stateAt(t, xB0, vB0, aB, mB)
         });
 
         // 关键帧
@@ -111,25 +132,36 @@ export class NewtonThirdLawModel extends PhysicsModelBase {
                 t: 0,
                 position: { x: xA0, y: 0 },
                 velocity: { x: vA0, y: 0 },
-                description: `A (m=${mA}kg) 与 B (m=${mB}kg) 静止，A 用 ${F_AB}N 拉 B`
+                description: `A (m=${mA}kg, x=${xA0}m) 与 B (m=${mB}kg, x=${xB0}m), A 对 B 施加 ${F_AB}N`
             },
             {
                 label: '作用力与反作用力',
                 t: duration / 2,
                 position: { x: (xA0 + xB0) / 2, y: 0 },
-                velocity: { x: vA0 + aSystem * (duration / 2), y: 0 },
-                description: `F_AB=${F_AB}N, F_BA=${F_BA}N，大小相等方向相反`
-            },
-            {
-                label: '终点',
-                t: duration,
-                position: { x: xA0 + vA0 * duration + 0.5 * aSystem * duration * duration, y: 0 },
-                velocity: { x: vA0 + aSystem * duration, y: 0 },
-                description: allowMotion
-                    ? `两物体共同加速到 v=${(vA0 + aSystem * duration).toFixed(3)} m/s`
-                    : '两物体保持静止，作用力反作用力依然存在'
+                velocity: { x: vCM, y: 0 },
+                description: `F_AB=${F_AB}N, F_BA=${F_BA}N，大小相等方向相反，分别作用在 B 与 A 上`
             }
         ];
+        if (contactInWindow) {
+            keyframes.push({
+                label: '相向接触',
+                t: tContact,
+                position: { x: xContact, y: 0 },
+                velocity: { x: vCM, y: 0 },
+                description: `两体于 t=${tContact.toFixed(3)}s 在 x=${xContact.toFixed(3)}m (质心) 接触，之后以质心速度 v_cm=${vCM.toFixed(3)}m/s 共同运动，绝不穿透`
+            });
+        }
+        const lastA = trajA[trajA.length - 1]!;
+        const lastB = trajB[trajB.length - 1]!;
+        keyframes.push({
+            label: '终点',
+            t: duration,
+            position: lastA.position,
+            velocity: lastA.velocity,
+            description: allowMotion
+                ? `t=${duration}s: v_A=${lastA.velocity.x.toFixed(3)}m/s, v_B=${lastB.velocity.x.toFixed(3)}m/s, 系统总动量 P=${(mA * lastA.velocity.x + mB * lastB.velocity.x).toFixed(3)}kg·m/s (守恒)`
+                : '两物体保持静止，作用力与反作用力依然存在'
+        });
 
         // 图表：F_AB 与 F_BA 随时间变化 (互为相反数)
         const F_t: ChartSeries = {
@@ -137,14 +169,11 @@ export class NewtonThirdLawModel extends PhysicsModelBase {
             yLabel: '力',
             xUnit: 's',
             yUnit: 'N',
-            points: trajA.map((p, i) => ({
-                x: p.t,
-                y: i % 2 === 0 ? F_AB : F_AB // 恒力，曲线为水平直线
-            }))
+            points: trajA.map(p => ({ x: p.t, y: F_AB }))
         };
         const v_t: ChartSeries = {
             xLabel: '时间',
-            yLabel: '速度',
+            yLabel: '速度 (A)',
             xUnit: 's',
             yUnit: 'm/s',
             points: trajA.map(p => ({ x: p.t, y: p.velocity.x }))
@@ -157,10 +186,16 @@ export class NewtonThirdLawModel extends PhysicsModelBase {
                 { name: 'F_AB (A 对 B)', vector: { x: F_AB, y: 0 }, magnitude: Math.abs(F_AB), unit: 'N' },
                 { name: 'F_BA (B 对 A)', vector: { x: F_BA, y: 0 }, magnitude: Math.abs(F_BA), unit: 'N' }
             ],
-            netForce: { x: 0, y: 0 } // 系统内力抵消
+            netForce: { x: 0, y: 0 } // 系统内力抵消, ΣF_ext = 0
         };
 
-        // 守恒量：作用力反作用力大小相等
+        // 守恒量: 作用力=反作用力 + 系统总动量守恒
+        const p0 = mA * vA0 + mB * vB0;
+        let maxDev = 0;
+        for (let i = 0; i < trajA.length; i++) {
+            const p = mA * trajA[i]!.velocity.x + mB * trajB[i]!.velocity.x;
+            maxDev = Math.max(maxDev, Math.abs(p - p0));
+        }
         const conservedQuantities: ConservedQuantity[] = [
             {
                 name: '作用力 = 反作用力',
@@ -170,6 +205,15 @@ export class NewtonThirdLawModel extends PhysicsModelBase {
                 maxDeviation: 0,
                 tolerance: 1e-10,
                 conserved: Math.abs(Math.abs(F_AB) - Math.abs(F_BA)) < 1e-10
+            },
+            {
+                name: '系统总动量守恒',
+                law: '动量守恒 (ΣF_ext = dP/dt = 0)',
+                initialValue: p0,
+                finalValue: mA * lastA.velocity.x + mB * lastB.velocity.x,
+                maxDeviation: maxDev,
+                tolerance: 1e-9,
+                conserved: maxDev < 1e-9
             }
         ];
 
@@ -183,13 +227,15 @@ export class NewtonThirdLawModel extends PhysicsModelBase {
                 maxValues: {
                     forceAB: Math.abs(F_AB),
                     forceBA: Math.abs(F_BA),
-                    acceleration: aSystem
+                    acceleration: 0, // 系统质心加速度: 内力不改变质心运动
+                    accelA: aA,
+                    accelB: aB
                 },
                 rangeCheck: { withinRange: true, warnings: [] }
             },
             explanation: {
                 summary: allowMotion
-                    ? `A (m=${mA}kg) 与 B (m=${mB}kg) 在 ${F_AB}N 拉力下共同加速 a=F/(mA+mB)=${aSystem.toFixed(3)} m/s²，F_AB=${F_AB}N=-F_BA`
+                    ? `自由双体内力作用: a_A=-F_AB/m_A=${aA.toFixed(3)}m/s², a_B=F_AB/m_B=${aB.toFixed(3)}m/s², 系统总动量 P=${p0.toFixed(3)}kg·m/s 守恒${contactInWindow ? `, 两体于 t=${tContact.toFixed(3)}s 相向接触` : ''}`
                     : `A 与 B 静止，F_AB=${F_AB}N 与 F_BA=${F_BA}N 大小相等、方向相反`,
                 steps: [
                     {
@@ -207,11 +253,17 @@ export class NewtonThirdLawModel extends PhysicsModelBase {
                     },
                     {
                         order: 4,
-                        description: allowMotion ? '系统加速度' : '静止条件',
-                        formula: allowMotion ? 'a = F/(mA+mB)' : 'ΣF_A = 0',
+                        description: allowMotion ? '各自加速度 (牛顿第二定律)' : '静止条件',
+                        formula: allowMotion ? 'a_A = -F_AB/m_A, a_B = F_AB/m_B' : 'ΣF = 0',
                         calculation: allowMotion
-                            ? `a = ${F_AB}/(${mA}+${mB}) = ${aSystem.toFixed(3)} m/s²`
+                            ? `a_A = -${F_AB}/${mA} = ${aA.toFixed(3)} m/s², a_B = ${F_AB}/${mB} = ${aB.toFixed(3)} m/s²`
                             : '外力为零，两物体保持静止'
+                    },
+                    {
+                        order: 5,
+                        description: '系统动量守恒 (内力不改变质心运动)',
+                        formula: 'm_A·v_A + m_B·v_B = const, ΣF_ext = dP/dt = 0',
+                        calculation: `P = ${p0.toFixed(3)} kg·m/s 恒定, 质心加速度 = 0`
                     }
                 ],
                 formulas: [
@@ -227,6 +279,16 @@ export class NewtonThirdLawModel extends PhysicsModelBase {
                             '|F_AB|': { value: Math.abs(F_AB), unit: 'N' },
                             '|F_BA|': { value: Math.abs(F_BA), unit: 'N' }
                         }
+                    },
+                    {
+                        name: '各自加速度',
+                        formula: 'a_A = -F_AB/m_A, a_B = F_AB/m_B',
+                        variables: { a_A: { value: aA, unit: 'm/s²' }, a_B: { value: aB, unit: 'm/s²' } }
+                    },
+                    {
+                        name: '系统总动量守恒',
+                        formula: 'm_A·v_A + m_B·v_B = const',
+                        variables: { P: { value: p0, unit: 'kg·m/s' } }
                     },
                     { name: '同时性', formula: '同时产生、同时变化、同时消失', variables: {} },
                     { name: '系统性', formula: '作用在两个不同物体上', variables: {} }
