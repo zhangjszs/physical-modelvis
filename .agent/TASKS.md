@@ -24,7 +24,7 @@
 
 ### 1. #174 · 牛顿管空气/真空双体物理真源与 2D/3D 同源修复
 
-- Issue：[#174](https://github.com/zhangjszs/physical-modelvis/issues/174)；Milestone：M10（5/8）；状态：**ready-for-agent**；优先级：**priority:P1**（`area:engine`, `area:render`, `type:bug`）。
+- Issue：[#174](https://github.com/zhangjszs/physical-modelvis/issues/174)；Milestone：M10（5/8）；状态：**in-review**（2026-11-22 完成，commit `3e9f3cc` @ main / merge `84ac72a`，待 Planner 验收；执行报告见 [comment](https://github.com/zhangjszs/physical-modelvis/issues/174#issuecomment-7066494827)）；优先级：**priority:P1**（`area:engine`, `area:render`, `type:bug`）。
 - Planner 4.2 门禁定型（详见 [最新评论](https://github.com/zhangjszs/physical-modelvis/issues/174#issuecomment-7012556907)）：
   - 新增专用模型 `NewtonTubeModel`（`modelType: 'newton-tube'`，同步注册并登记 `chart-registry.ts` `MODEL_CHART_KEYS`，不污染 `uniform-accelerated`）。
   - 双体契约（`y=H → 0`）：`trajectories[0]`=硬币（自由落体触地即止）；`trajectories[1]`=羽毛（真空与硬币同落；空气采用线性阻力解析解 $v_t=1.6\text{ m/s}$、$\tau=v_t/g$ 触地即止，确保任意时刻羽毛绝不领先硬币）。
@@ -32,14 +32,14 @@
 
 ### 2. #175 · 卫星轨道地球半径不可穿透边界碰撞截断与 2D/3D 对齐
 
-- Issue：[#175](https://github.com/zhangjszs/physical-modelvis/issues/175)；Milestone：M10（5/8）；状态：**ready-for-agent**；优先级：**priority:P1**（`area:engine`, `area:render`, `type:bug`）。
+- Issue：[#175](https://github.com/zhangjszs/physical-modelvis/issues/175)；Milestone：M10（5/8）；状态：**in-review**（2026-11-22 完成，commit `2caf0ff` @ main，待 Planner 验收；执行报告见 [comment](https://github.com/zhangjszs/physical-modelvis/issues/175#issuecomment-7066640711)）；优先级：**priority:P1**（`area:engine`, `area:render`, `type:bug`）。
 - Planner 4.2 门禁定型（详见 [最新评论](https://github.com/zhangjszs/physical-modelvis/issues/175#issuecomment-7012559250)）：
   - `orbital.ts` 消费 `centralRadius`：当 `r <= centralRadius` 时二分/二次插值求首次触地时刻/位置/末速度并立即截断积分，产出 `flags.impacted`、`触地碰撞` 关键帧与告警（不影响安全圆/椭圆轨道，明确无大气阻力）。
   - 2D（`chapter6Scenes.ts`）与 3D（`orbitalRig.ts`）在 `impacted=true` 时按截断引擎轨迹绘线并展示坠地告警，不再画穿地闭合椭圆；补全 `velocityFactor=0.5/1/1.5` 及边界回归。
 
 ### 3. #177 · 牛顿第三定律自由双体内力动量守恒与 2D/3D 同源修复
 
-- Issue：[#177](https://github.com/zhangjszs/physical-modelvis/issues/177)；Milestone：M10（5/8）；状态：**ready-for-agent**；优先级：**priority:P1**（`area:engine`, `area:render`, `type:bug`）。
+- Issue：[#177](https://github.com/zhangjszs/physical-modelvis/issues/177)；Milestone：M10（5/8）；状态：**in-review**（2026-11-22 完成，commit `55df189` @ main / merge `8583206`，待 Planner 验收；执行报告见 [comment](https://github.com/zhangjszs/physical-modelvis/issues/177#issuecomment-7066732876)）；优先级：**priority:P1**（`area:engine`, `area:render`, `type:bug`）。
 - Planner 4.2 门禁定型（详见 [最新评论](https://github.com/zhangjszs/physical-modelvis/issues/177#issuecomment-7012561263)）：
   - 维持 `allowMotion` 参数契约：`allowMotion=1` 改为光滑水平面自由双体内力运动（`a_A=-F_AB/m_A, a_B=F_AB/m_B`，总动量守恒、`F_AB<0` 相向至接触停于质心不穿透），更新 `conservedQuantities`、`explanation` 与 `newton-third-law.test.ts:58-72`。
   - 2D（`chapter3Scenes.ts`）与 3D（`newtonThirdLawRig.ts`）消费双体轨迹真源并移除「共同加速」错误文案与单向硬编码公式。
