@@ -83,12 +83,14 @@ export function drawOrbitalScene(opts: MechanicsSceneOptions): void {
     ctx.textAlign = 'center';
     ctx.fillText('地球', cx, cy + 4);
 
-    // 完整轨道（闭合：Kepler 椭圆；开放：已积分路径）
+    // 完整轨道（闭合：Kepler 椭圆；开放/触地截断：已积分路径）
+    // #175: 触地时不再画穿透地球的闭合椭圆, 只画截断后的引擎轨迹
+    const impacted = Boolean(simulationResult?.diagnostics?.flags?.impacted);
     ctx.strokeStyle = isDark ? 'rgba(148,163,184,0.45)' : 'rgba(100,116,139,0.35)';
     ctx.lineWidth = 1.5;
     ctx.setLineDash([6, 4]);
     ctx.beginPath();
-    if (shape.closed) {
+    if (shape.closed && !impacted) {
         const N = 180;
         for (let i = 0; i <= N; i++) {
             const theta = (i / N) * Math.PI * 2;
@@ -164,13 +166,41 @@ export function drawOrbitalScene(opts: MechanicsSceneOptions): void {
     ctx.fillText(`第一宇宙速度 v₁=${v1.toFixed(2)}km/s`, 16, height - 80);
     ctx.fillText(`第二宇宙速度 v₂=${v2.toFixed(2)}km/s`, 16, height - 62);
 
-    const orbitType = !shape.closed
-        ? '逃逸轨道'
-        : vFactor > 1.01
-          ? '椭圆(近地点)'
-          : vFactor < 0.99
-            ? '椭圆(远地点)'
-            : '圆轨道';
+    const orbitType = impacted
+        ? '坠地碰撞'
+        : !shape.closed
+          ? '逃逸轨道'
+          : vFactor > 1.01
+            ? '椭圆(近地点)'
+            : vFactor < 0.99
+              ? '椭圆(远地点)'
+              : '圆轨道';
+
+    // #175: 坠地标记与告警文案 (触地点取引擎「触地碰撞」关键帧)
+    if (impacted && simulationResult) {
+        const impactKf = simulationResult.keyframes.find(k => k.label === '触地碰撞');
+        if (impactKf) {
+            const ix = cx + impactKf.position.x * pxPerMeter;
+            const iy = cy - impactKf.position.y * pxPerMeter;
+            ctx.strokeStyle = RED;
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.moveTo(ix - 8, iy - 8);
+            ctx.lineTo(ix + 8, iy + 8);
+            ctx.moveTo(ix + 8, iy - 8);
+            ctx.lineTo(ix - 8, iy + 8);
+            ctx.stroke();
+            ctx.fillStyle = RED;
+            ctx.font = 'bold 12px sans-serif';
+            ctx.textAlign = 'left';
+            ctx.fillText(
+                `⚠ 坠地碰撞 t=${impactKf.t.toFixed(1)}s (未考虑大气阻力)`,
+                Math.min(ix + 12, width - 240),
+                iy - 12
+            );
+        }
+    }
+
     drawHud(ctx, isDark, [
         { label: 'h', value: `${h_km} km` },
         { label: 'v', value: `${(v / 1000).toFixed(2)} km/s` },
@@ -181,7 +211,7 @@ export function drawOrbitalScene(opts: MechanicsSceneOptions): void {
         ctx,
         width,
         height,
-        `h=${h_km}km  v=${(v / 1000).toFixed(2)}km/s  v圆=${(vOrbit / 1000).toFixed(2)}km/s  ${orbitType}`,
+        `h=${h_km}km  v=${(v / 1000).toFixed(2)}km/s  v圆=${(vOrbit / 1000).toFixed(2)}km/s  ${orbitType}${impacted ? ' ⚠ 轨迹已截断 (未考虑大气阻力)' : ''}`,
         isDark
     );
     if (!simulationResult) drawEmptyState(ctx, width, height, isDark);

@@ -112,3 +112,85 @@ describe('OrbitalModel', () => {
         expect(res.diagnostics.maxValues.minR).toBeLessThan(r / 1000);
     });
 });
+
+describe('#175 中心天体不可穿透边界: 触地碰撞插值截断', () => {
+    const r0_200 = { x: R_EARTH + 200e3, y: 0 };
+    const speedAt = (r: number, vf: number) => Math.sqrt(GM_EARTH / r) * vf;
+
+    it('altitude=200km, velocityFactor=0.5: 首次触地即截断, 全轨迹点 r >= R-1', () => {
+        const r0 = R_EARTH + 200e3;
+        const res = model.solve(
+            makeProblem(r0_200, { x: 0, y: speedAt(r0, 0.5) }, { duration: 6000, sampleCount: 2000 })
+        );
+        const traj = res.trajectories[0]!;
+        expect(res.diagnostics.flags?.impacted).toBe(true);
+        for (const p of traj) {
+            expect(Math.hypot(p.position.x, p.position.y)).toBeGreaterThanOrEqual(R_EARTH - 1);
+        }
+        expect(res.keyframes.map(k => k.label)).toContain('触地碰撞');
+        // 触地前机械能波动 < 1%
+        const energies = traj.map(p => (p.kineticEnergy ?? 0) + (p.potentialEnergy ?? 0));
+        const mean = energies.reduce((a, e) => a + e, 0) / energies.length;
+        const fluct = (Math.max(...energies) - Math.min(...energies)) / Math.abs(mean);
+        expect(fluct).toBeLessThan(0.01);
+        // 截断: 终点即坠地点 (|r| ≈ R_EARTH), 且不再产出「模拟终点」
+        expect(Math.hypot(traj[traj.length - 1]!.position.x, traj[traj.length - 1]!.position.y)).toBeCloseTo(
+            R_EARTH,
+            -1
+        );
+        expect(res.keyframes.map(k => k.label)).not.toContain('模拟终点');
+        expect(res.diagnostics.rangeCheck.withinRange).toBe(false);
+        expect(res.warnings.length).toBeGreaterThan(0);
+    });
+
+    it('velocityFactor=1 / 1.5 (200km 与 36000km): 安全轨道不受影响, 无触地事件', () => {
+        for (const [altitude, vf] of [
+            [200e3, 1],
+            [200e3, 1.5],
+            [36000e3, 1],
+            [36000e3, 1.5]
+        ] as const) {
+            const r0 = R_EARTH + altitude;
+            const res = model.solve(
+                makeProblem({ x: r0, y: 0 }, { x: 0, y: speedAt(r0, vf) }, { duration: 6000, sampleCount: 2000 })
+            );
+            expect(res.diagnostics.flags?.impacted, `h=${altitude} vf=${vf}`).toBeFalsy();
+            expect(
+                res.keyframes.map(k => k.label),
+                `h=${altitude} vf=${vf}`
+            ).not.toContain('触地碰撞');
+            expect(res.diagnostics.rangeCheck.withinRange).toBe(true);
+        }
+    });
+
+    it('altitude=36000km, velocityFactor=0.5: 亚轨道弹道同样触地截断', () => {
+        const r0 = R_EARTH + 36000e3;
+        const res = model.solve(
+            makeProblem({ x: r0, y: 0 }, { x: 0, y: speedAt(r0, 0.5) }, { duration: 200000, sampleCount: 4000 })
+        );
+        expect(res.diagnostics.flags?.impacted).toBe(true);
+        for (const p of res.trajectories[0]!) {
+            expect(Math.hypot(p.position.x, p.position.y)).toBeGreaterThanOrEqual(R_EARTH - 1);
+        }
+    });
+
+    it('地表切触临界: 近地点恰为 R_EARTH 的弹道保持有限且不穿深', () => {
+        const r0 = R_EARTH + 200e3;
+        // r_p = r_a·v²/(2−v²) = R_EARTH 的临界切触速度因子
+        const vfCrit = Math.sqrt((2 * R_EARTH) / (r0 + R_EARTH));
+        const res = model.solve(
+            makeProblem(r0_200, { x: 0, y: speedAt(r0, vfCrit) }, { duration: 6000, sampleCount: 2000 })
+        );
+        for (const p of res.trajectories[0]!) {
+            const r = Math.hypot(p.position.x, p.position.y);
+            expect(Number.isFinite(r)).toBe(true);
+            expect(r).toBeGreaterThanOrEqual(R_EARTH - 1);
+        }
+        // 无论是否因数值误差触发截断, 触地时长/速率必须有限
+        const mv = res.diagnostics.maxValues;
+        if (res.diagnostics.flags?.impacted) {
+            expect(Number.isFinite(mv.impactTime as number)).toBe(true);
+            expect(Number.isFinite(mv.impactSpeed as number)).toBe(true);
+        }
+    });
+});
