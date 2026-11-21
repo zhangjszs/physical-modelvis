@@ -100,6 +100,8 @@ export type ModelType =
     | 'micro-deformation' // 桌面微小形变光杠杆放大法
     // 互动实验: 测反应时间 (自由落体法)
     | 'reaction-time' // 测反应时间 — 自由落体位移公式 t = √(2h/g)
+    // 牛顿管双体落体 (真空 vs 空气) — #174 专用模型, 不复用 uniform-accelerated
+    | 'newton-tube' // 牛顿管 — 硬币/羽毛双体自由落体 + 羽毛线性阻力
     // 必修一 第四章 运动和力的关系 (超重和失重)
     | 'overweight' // 超重与失重 — 电梯加速度方向演示
     // 重心实验 (悬挂法)
@@ -876,6 +878,23 @@ export interface CentrifugalConstraint {
     readonly gravity?: number;
 }
 
+/**
+ * 牛顿管约束 — 硬币/羽毛双体自由落体 (真空 vs 空气)
+ *
+ * 双体契约 (#174): `y = height` 为管顶释放点, `y = 0` 为管底地面 (触地即止)。
+ * `trajectories[0]` = 硬币 (自由落体); `trajectories[1]` = 羽毛
+ * (真空与硬币同落; 空气采用线性阻力解析解, 终端速度 v_t、τ = v_t/g,
+ * 保证任意时刻羽毛下落距离不大于硬币)。
+ */
+export interface NewtonTubeConstraint {
+    /** 管高 / 下落高度 H (m) */
+    readonly height: number;
+    /** 是否有空气 (true=羽毛受线性阻力, false=真空两体同落) */
+    readonly withAir: boolean;
+    /** 羽毛终端速度 v_t (m/s), 默认 1.6, 仅空气模式生效 */
+    readonly featherTerminalSpeed?: number;
+}
+
 /** 约束配置 */
 export interface ConstraintConfig {
     readonly inclinedPlane?: InclinedPlaneConstraint;
@@ -933,6 +952,8 @@ export interface ConstraintConfig {
     readonly verticalCircle?: VerticalCircleConstraint;
     /** 离心现象约束 — 必修二 §2 (F_实 < m·ω²·r) */
     readonly centrifugal?: CentrifugalConstraint;
+    /** 牛顿管约束 — 硬币/羽毛双体自由落体 (真空 vs 空气) */
+    readonly newtonTube?: NewtonTubeConstraint;
     /** 游标卡尺读数约束 — 必修三 实验 */
     readonly vernierCaliper?: VernierCaliperConstraint;
     /** 螺旋测微器读数约束 — 必修三 实验 */

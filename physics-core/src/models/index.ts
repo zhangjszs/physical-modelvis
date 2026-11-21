@@ -104,6 +104,7 @@ import { CosmicRayModel } from './cosmic-ray.js';
 import { NeutronDiscoveryModel } from './neutron-discovery.js';
 import { FissionChainModel } from './fission-chain.js';
 import { ProjectileCollisionModel } from './projectile-collision.js';
+import { NewtonTubeModel } from './newton-tube.js';
 import { DoublePendulumSyncModel } from './double-pendulum.js';
 import { ForcedVibrationModel } from './forced-vibration.js';
 import { ResonanceModel } from './resonance.js';
@@ -218,6 +219,7 @@ export {
     NeutronDiscoveryModel,
     FissionChainModel,
     ProjectileCollisionModel,
+    NewtonTubeModel,
     DoublePendulumSyncModel,
     ForcedVibrationModel,
     ResonanceModel,
@@ -335,6 +337,7 @@ export const MODELS: readonly PhysicsModelBase[] = [
     new NeutronDiscoveryModel(),
     new FissionChainModel(),
     new ProjectileCollisionModel(),
+    new NewtonTubeModel(),
     new DoublePendulumSyncModel(),
     new ForcedVibrationModel(),
     new ResonanceModel(),

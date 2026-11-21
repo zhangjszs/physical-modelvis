@@ -74,7 +74,11 @@ const CHANNEL_CHECKS: Partial<Record<GapId, (r: SimulationResult) => boolean>> =
         Array.isArray((r.extra as any).samples) &&
         (r.extra as any).samples.length > 0,
     'newton-tube': r =>
-        Array.isArray(r.trajectories) && r.trajectories.length > 0 && (r.trajectories[0]?.length ?? 0) > 0,
+        // #174 双体契约: 渲染器消费 trajectories[0]=硬币 + trajectories[1]=羽毛
+        Array.isArray(r.trajectories) &&
+        r.trajectories.length >= 2 &&
+        (r.trajectories[0]?.length ?? 0) > 0 &&
+        (r.trajectories[1]?.length ?? 0) > 0,
     'bulb-vi': r => !!(r.charts as any)?.vx_t?.points?.length,
     'work-energy': r => !!(r.charts as any)?.ke_t?.points?.length,
     'ball-xt': r => Array.isArray(r.trajectories) && r.trajectories.length > 0 && (r.trajectories[0]?.length ?? 0) > 0,
@@ -190,7 +194,7 @@ describe('场景行为正确性 (端到端物理自洽)', () => {
         expect(texts.some(t => t.includes('W=ΔEk') && t.includes('✓'))).toBe(true);
     });
 
-    it('牛顿管: 真实轨迹归一化 — t=0 硬币在顶(0.00 m), t=duration 到底(height m)', () => {
+    it('牛顿管: 真实物理落底而非时间归一化 — t=1s 硬币 4.90 m (旧版归一化误显 1.25 m)', () => {
         const scene = getSceneSync('newton-tube')!;
         const params = getDefaultParams('newton-tube');
         const height = params['height'] ?? 5;
@@ -209,6 +213,27 @@ describe('场景行为正确性 (端到端物理自洽)', () => {
         });
         expect(at0.texts.some(t => t.includes('硬币 = 0.00 m'))).toBe(true);
 
+        // t=1s: HUD 必须报真实自由落体距离 4.90 m, 且羽毛(空气)不领先硬币
+        const at1 = makeRecordingCtx();
+        drawNewtonTubeScene({
+            ctx: at1.ctx,
+            width: 900,
+            height: 600,
+            isDark: false,
+            params,
+            simulationResult: result,
+            currentTime: 1
+        });
+        const readDrop = (texts: string[], label: string): number => {
+            const row = texts.find(t => t.startsWith(`${label} = `));
+            expect(row, `HUD 应包含 ${label} 行`).toBeDefined();
+            return parseFloat(row!.replace(`${label} = `, ''));
+        };
+        const coinAt1 = readDrop(at1.texts, '硬币');
+        const featherAt1 = readDrop(at1.texts, '羽毛');
+        expect(coinAt1).toBeCloseTo(4.9, 2);
+        expect(featherAt1).toBeLessThan(coinAt1);
+
         const atEnd = makeRecordingCtx();
         drawNewtonTubeScene({
             ctx: atEnd.ctx,
@@ -219,7 +244,26 @@ describe('场景行为正确性 (端到端物理自洽)', () => {
             simulationResult: result,
             currentTime: duration
         });
+        // t=duration: 硬币已按真实高度触底钳制于 height m
         expect(atEnd.texts.some(t => t.includes(`硬币 = ${height.toFixed(2)} m`))).toBe(true);
+    });
+
+    it('牛顿管: 真空模式 2D/HUD 与引擎双体轨迹一致 — 两体同落同时显示 4.90 m', () => {
+        const scene = getSceneSync('newton-tube')!;
+        const params = { ...getDefaultParams('newton-tube'), withAir: 0 };
+        const result = solveProblem(scene.buildProblem(params));
+        const at1 = makeRecordingCtx();
+        drawNewtonTubeScene({
+            ctx: at1.ctx,
+            width: 900,
+            height: 600,
+            isDark: false,
+            params,
+            simulationResult: result,
+            currentTime: 1
+        });
+        expect(at1.texts.some(t => t.includes('硬币 = 4.90 m'))).toBe(true);
+        expect(at1.texts.some(t => t.includes('羽毛 = 4.90 m'))).toBe(true);
     });
 
     it('盖革计数器: t=0 时 N(t)=N0 (初始原子数)', () => {

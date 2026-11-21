@@ -197,6 +197,13 @@ export const MODEL_CHART_KEYS = {
     'sound-waveform': [
         'waveform_t', // 时域波形快照 y-x (ms 轴)
         'envelope_t' // 包络
+    ],
+    // —— #174 牛顿管双体落体 (真空 vs 空气) ——
+    'newton-tube': [
+        'x_t', // ⚠️ 键名≠语义: 硬币下落距离 d_coin(t) (m, 0→H)
+        'y_t', // ⚠️ 键名≠语义: 羽毛下落距离 d_feather(t) (m, 真空时与硬币重合)
+        'v1_t', // ⚠️ 键名≠语义: 硬币速率 (m/s, 触地后为 0)
+        'v2_t' // ⚠️ 键名≠语义: 羽毛速率 (m/s, 空气中趋于终端速度 v_t)
     ]
 } as const satisfies { [M in ModelType]?: readonly ChartKey[] };
 

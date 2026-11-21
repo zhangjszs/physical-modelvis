@@ -7,6 +7,7 @@ import { SceneRig } from '../EquipmentStage';
 import { createNewtonTube, type NewtonTubeHandles } from '../equipment/newtonTube';
 import { createHeightRuler, updateHeightRuler, type HeightRulerHandles } from '../equipment/heightRuler';
 import { updateTextSprite } from '../primitives';
+import { getFrame } from '../../../rendering/renderingUtils';
 import { num } from './params';
 
 const WORLD_SCALE = 0.16;
@@ -78,32 +79,39 @@ export const newtonTubeRig: SceneRig = {
 
         const tubeSpan = topY - bottomY - 0.08;
 
-        // 1. 硬币下落: 单一真源优先取 ctx.ballPos.y，回退到理论自由落体
-        let coinY = ctx.ballPos?.y;
-        if (coinY === undefined || !Number.isFinite(coinY)) {
-            const coinDrop = 0.5 * g * t * t;
-            const coinProgress = Math.min(1, Math.max(0, coinDrop / Math.max(1e-3, totalH)));
-            coinY = topY - 0.04 - coinProgress * tubeSpan;
-        } else {
-            // 确保在玻璃管有效活动区间内
-            coinY = Math.max(bottomY + 0.02, Math.min(topY - 0.04, coinY));
-        }
-        coin.position.y = coinY;
+        // 单一真源: 引擎双体轨迹 (y=H→0) → 真实下落距离 → 管内 [bottomY, topY] 映射。
+        // 视觉飘落微摆动仅限水平 x / rotation.z, 不改竖直物理高度。
+        const dropFromEngine = (trajectoryIndex: number): number | null => {
+            const frame = ctx.result ? getFrame(ctx.result, t, trajectoryIndex) : null;
+            if (!frame) return null;
+            return Math.max(0, Math.min(totalH, totalH - frame.position.y));
+        };
+        const toY = (drop: number): number => topY - 0.04 - (drop / Math.max(1e-3, totalH)) * tubeSpan;
 
-        // 2. 羽毛下落
+        // 1. 硬币下落 (无引擎结果时解析回退自由落体)
+        const coinDrop = dropFromEngine(0) ?? Math.min(totalH, 0.5 * g * t * t);
+        coin.position.y = toY(coinDrop);
+
+        // 2. 羽毛下落 (无引擎结果时按介质解析回退)
+        let featherDrop = dropFromEngine(1);
+        if (featherDrop === null) {
+            if (!withAir) {
+                featherDrop = coinDrop;
+            } else {
+                // 与引擎同款线性阻力解析解 (v_t=1.6 m/s, τ=v_t/g)
+                const vTerminal = 1.6;
+                const tau = vTerminal / Math.max(1e-6, g);
+                featherDrop = Math.min(totalH, vTerminal * (t - tau * (1 - Math.exp(-t / tau))));
+            }
+        }
         if (!withAir) {
             // 真空：羽毛与硬币严格同步下落 (伽利略/牛顿发现)
-            feather.position.y = coinY;
+            feather.position.y = coin.position.y;
             feather.position.x = 0.025;
             feather.rotation.z = 0.2;
         } else {
-            // 空气中：羽毛受空气阻力影响，较慢下落并伴随轻微摆动飘落
-            const vTerminal = 1.6; // 终端速度
-            const featherDrop = Math.min(totalH, vTerminal * t * 0.45);
-            const featherProgress = Math.min(1, Math.max(0, featherDrop / Math.max(1e-3, totalH)));
-            const featherY = topY - 0.04 - featherProgress * tubeSpan;
-            feather.position.y = featherY;
-            // 飘落摆动
+            feather.position.y = toY(featherDrop);
+            // 飘落摆动 (仅视觉, 不影响竖直物理高度)
             feather.position.x = 0.025 + Math.sin(t * 8) * 0.02;
             feather.rotation.z = 0.2 + Math.cos(t * 7) * 0.35;
         }
@@ -113,8 +121,9 @@ export const newtonTubeRig: SceneRig = {
         const h = num(params['height'], 5);
         const topY = 1.8;
         const bottomY = 0.16;
-        // 引擎 pos.y 轴向上为正，自由落体向下 pos.y <= 0，下落距离为 -pos.y
-        const progress = Math.min(1, Math.max(0, -pos.y / Math.max(1e-3, h)));
+        // 双体契约 (#174): 引擎 y ∈ [0, H] (y=H 管顶释放点, y=0 管底), 下落距离 = H − y
+        const drop = Math.max(0, Math.min(h, h - pos.y));
+        const progress = drop / Math.max(1e-3, h);
         const y = topY - 0.04 - progress * (topY - bottomY - 0.08);
         return new THREE.Vector3(0, y, 0);
     },
