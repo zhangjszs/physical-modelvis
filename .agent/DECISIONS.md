@@ -1356,6 +1356,43 @@ eslint tests 目录 `no-explicit-any` 降 warn）与 `36aed93`（移除 scripts/
 
 ---
 
-## 待用户确认（pending 索引，2026-11-19·续）
+## D77 · 2026-11-22 每日规划：8 单集中验收关闭（M10 8/8 收官 + M11 5/13）+ M11 Wave 2 4 单 4.2 定型入队
 
-- **无 pending。**（D74=A、D75=A 已于 2026-11-19 同日获用户确认转正；D68=A / D69=A / D70=A / D71=A / D72=A 与 D44=B 维持。）
+- **日期 / 决策者**：2026-11-22；Planner 依验收、队列治理与契约 6.1 低风险设计定型权限执行。
+- **同步与昨日现场**：`git fetch --all --prune` 确认 `main @ e7e987d` 与 `origin/main` 同步；已读 `.agent/DIARY/2026-11-22.md`（四段实录）及 `STATE`/`HANDOFF`/`ENV`；无 `.agent/LOCK`；工作区存在 6 处未暂存改动（4 处 Node `24→26` + 2 处 23:18 IDE 自动保存复发噪声），严格未触碰并记入 D78。
+- **独立验收（8 / 8 全部通过 → CLOSED）**：
+  - **M10 Wave 2（3/3，M10 达成 8/8 并关闭 Milestone 4）**：
+    - **#174**（`3e9f3cc` / `84ac72a`）：专用 `NewtonTubeModel`（登记 `MODEL_CHART_KEYS`）双体真源 + 2D/3D `getFrame`；实跑 `newton-tube.test.ts` (7/7)、`gapScenes.integration`、`scene-rig-physics`、`rigs-build`、`typed-charts` (2/2) + `selfcheck` 11/11 + 远端 CI `45037307092` / Deploy `45037587458` 全绿 → CLOSED。
+    - **#175**（`2caf0ff` / `1c80197`）：`orbital.ts` 消费 `centralRadius` 首次触地二分截断 + 2D/3D 坠地截断轨迹；实跑 `orbital.test.ts` (14/14)、`scene-rig-physics`、`three-scene-fixes` (12/12)、`single-source-contract` + `selfcheck` 11/11 + 远端 CI/Deploy 全绿 → CLOSED。
+    - **#177**（`55df189` / `8583206`）：`newton-third-law.ts` 自由双体内力动量守恒与相向接触停于质心 + 2D/3D 同源；实跑 `newton-third-law.test.ts` (12/12)、`scene-rig-physics` + `selfcheck` 11/11 + 远端 CI/Deploy 全绿 → CLOSED。
+    - **Milestone 4（M10）**：8/8 CLOSED，全部完成信号达成，已关闭。
+  - **M11 首批（5/5，M11 进度 0/13 → 5/13）**：
+    - **#170**（`5636563` / `d057d07`）：弹簧振子轴向有符号投影与帧内线性插值速度同源；实跑 `spring.test.ts` (15/15) + `selfcheck` 11/11 + CI/Deploy 全绿 → CLOSED。
+    - **#176**（`234f8c5` / `1001a1c`）：卡文迪什/微小形变统一 `D·tan(2θ) ≈ 2Dθ` 与 2D/3D `maxValues` 单一真源；实跑 `cavendish.test.ts` (15/15)、`micro-deformation.test.ts` (15/15)、`optical-lever-single-source.test.ts` (2/2) + `selfcheck` 11/11 + CI/Deploy 全绿 → CLOSED。
+    - **#178**（`42d3e7f` / `0039b51`）：外切摩擦轮 `direction=-1`、`ω₂=-(r₁/r₂)ω₁` 切点速度矢量相等与 2D/3D 对齐；实跑 `transmission-belt.test.ts` (17/17)、`transmission-belt-direction.test.ts` (2/2) + `selfcheck` 11/11 + CI/Deploy 全绿 → CLOSED。
+    - **#183**（`e644942` / `c2294ea`）：按 Planner 定型保留 `min=0` 空白态，消除 `0/0=NaN` 与 2D/3D 同源；实跑 `liquid-mixing.test.ts` (5/5)、`liquid-mixing-empty.test.ts`、`single-source-contract` + `selfcheck` 11/11 + CI/Deploy 全绿 → CLOSED。
+    - **#184**（`80bd329` / `5b525f8`）：按当前模式输出主曲线与终态 `t=tMax`、`T(tMax)`、辐射 O(N) 子步与 2D/3D 同源；实跑 `heat-transfer.test.ts` (5/5)、`heat-transfer-consistency.test.ts`、`trajectory-semantics.test.ts`、`count:check` (3260=1224+2036) + `selfcheck` 11/11 + CI/Deploy 全绿 → CLOSED。
+- **M11 Wave 2 4.2 门禁定型（今日队列 4 单：`#179 → #180 → #181 → #182`，均转 `priority:P1` + `ready-for-agent`）**：
+  - **#179（光控开关，D69=A）**：以分压 `V_B>=VbeOn` 为唯一真源、移除假 `threshold` 滑块改示只读 `L_crit`（默认校准至 ~10 lx）、`L=0` 有限暗阻防 `NaN`、同步 2D/3D 与 `single-source-contract`。
+  - **#180（静电感应）**：孤立中性导体 `q_near+q_far===0` 硬不变量入 `conservedQuantities`、量纲明确感应电荷（`μC`）与有界张角 `[0°,90°)`、2D/3D 消费引擎真源（不触碰 `#198` `electrostatic-shielding`）。
+  - **#181（双缝干涉，D70=A）**：改为单缝前插透明薄片 `Δ_opt=(n-1)t` 平移条纹（`Δy` 不变）、预设改名「单缝加薄片」、2D/3D 绘制薄片并同步平移（不触碰 `#202` 光栅/水波）。
+  - **#182（薄膜干涉）**：两界面真实 Fresnel Airy 复振幅反射率与相对半波损失 `hasRelativeHalfWave=(r1·r2)<0`、修复 2D `drawThinFilmScene` 读错 `refractiveIndex` 与硬编码「空气 n=1」并同步 3D 标牌。
+- **队列卫生**：全仓开放单收敛至 25 单；`priority:P1` 严格收敛为今日队列 4 单；无重复单、无超时 `in-progress`、无长期饥饿 P3/P4（`#167` 仅过 M10 1 个里程碑，未满 2 个）。
+
+## D78 · 2026-11-22 工作区 4 处 Node 24→26 改动与 2 处 IDE 自动保存噪声处置（pending）
+
+- **日期 / 状态**：2026-11-22；**pending（第 1 天询问）**。
+- **背景与调查结论**：
+  1. 2026-11-22 11:15 用户工作区产生 4 处未暂存改动：`.github/workflows/ci.yml`、`deploy.yml`、`qa-sweep.yml`（`node-version: 24` → `26`）与 `mise.toml`（`node = "24"` → `"26"`），本地运行时为 `node v26.13.1`。因改动触及 `.github/workflows/*.yml`（契约 §1.10 主要 CI/CD 流程红线），Agent 不可代为提交或回退。
+  2. 2026-11-22 23:18 再次触发编辑器自动保存噪声：`physics-core/src/models/heat-transfer.ts` 被重排为单行对象（mtime `23:18:32 > dist 23:14:17`，同时触发 `format:check` 与 `guard-dist-freshness` 失败）且 `visualization/src/rendering/thermodynamicLawScenes.ts` 去除 UTF-8 BOM。该噪声会拦截 `.husky/pre-push` 导致 `.agent/` 规划提交滞留本地。
+- **可选方案**：
+  - **方案 A（推荐）**：由用户自行决定是否提交 Node `24→26` 4 文件（若提交建议确认 GitHub Actions `actions/setup-node@v5` 对 Node 26 的可用性），并手动 `git restore physics-core/src/models/heat-transfer.ts visualization/src/rendering/thermodynamicLawScenes.ts`、排查编辑器自动保存/格式化冲突配置后执行 `git push`。
+  - **方案 B**：授权 Agent 仅清理两处 IDE 噪声 `.ts` 文件（恢复至 HEAD），继续保留 4 处 Node `24→26` 未暂存（`format:check` 不扫 `.yml`/`.toml`，可立即恢复 `pre-push`）。
+  - **方案 C**：全部 6 处改动均回退至 HEAD，维持 CI 与本地 `mise.toml` 在 Node 24。
+- **默认方案**：延续 D74 与契约 §1.10 / §9 约束——未获明确授权前 Agent 严禁触碰任何未暂存代码/工作流文件且不使用 `--no-verify`；CI/CD 红线部分**绝不默认转正**，仅安全推进 M11 Wave 2（`#179–#182`）开发。
+
+---
+
+## 待用户确认（pending 索引，2026-11-22）
+
+- **D78** | 2026-11-22 | 工作区 4 处 Node `24→26`（`.github/workflows/{ci,deploy,qa-sweep}.yml` + `mise.toml`，§1.10 红线）与 2 处 23:18 IDE 噪声（`heat-transfer.ts` / `thermodynamicLawScenes.ts`）处置 | A 用户自决 Node 26 并清理两 `.ts` / B 仅授权 Agent 清理两 `.ts` / C 全量回退 Node 24 | 推荐 **A** | 默认不触碰（红线不转正） | **pending（第 1 天询问）**

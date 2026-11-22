@@ -1,51 +1,58 @@
 # PLAN
 
-> Planner 当前快照 · 2026-11-19 · D74–D76·续（pending 清零）。任务权威：GitHub Issues（33 开放单）；TASKS.md 为本轮整体重写镜像。
+> Planner 当前快照 · 2026-11-22 · D77（含 pending 决策 D78）。任务权威：GitHub Issues（25 开放单）；TASKS.md 为本轮整体重写镜像。
 
 ## 当前方向
 
-项目按 D72=A 保持 **「先清零实证物理真源与 2D/3D 实验台缺陷，再依次演进沙盒与 UI」**。本轮已独立验收关闭 **M10 Wave 1 全部 5 单（`#166/#169/#172/#173/#190`）**，将 M10 推进至 **5 / 8**；完成 **M10 Wave 2 全部 3 单（`#174/#175/#177`）** 的 4.2 门禁定型并下发今日可执行队列；全量分拣 2026-11-18 审计增补的 12 个缺陷（`#192–#203`）收编至新建 **M12（12 单）**。
+项目按 D72=A / D75=A 保持 **「先清零实证物理真源与 2D/3D 实验台缺陷，再依次演进沙盒与 UI」**。本轮已独立验收关闭 **8 单 `in-review`**：**M10 Wave 2 全部 3 单（`#174/#175/#177`）** 通过关闭并正式实现 **M10 8 / 8 收官（Milestone 4 已关闭）**；**M11 首批 5 单（`#170/#176/#178/#183/#184`）** 通过关闭将 **M11 推进至 5 / 13**。本轮完成 **M11 Wave 2（电磁+光学 4 单：`#179/#180/#181/#182`）** 的 4.2 Ready 门禁定型并下发今日队列。
 
-## 今日目标（2026-11-19）
+## 今日目标（2026-11-22）
 
-1. 完成 **M10 Wave 2 全部 3 单**（`#174` 牛顿管 → `#175` 卫星轨道 → `#177` 牛顿第三定律）并转入 `in-review`，为次日验收实现 **M10 8/8 收官**。
-2. 解除工作区 2 处 00:45 格式化/BOM 脏改动（`collisionRig.ts`、`chapter5Scenes.ts`，见 D74）对 `format:check` 与 `.husky/pre-push` 的阻断，使滞留本地的 `.agent/` 收尾与规划提交顺利推送远端。
+1. 完成 **M11 Wave 2 全部 4 单**（`#179` 光控开关 → `#180` 静电感应 → `#181` 双缝单缝加薄片 → `#182` 薄膜干涉 Fresnel 相对相变）并转入 `in-review`，将 M11 推向收官前夜（剩余 Wave 3 4 单 `#185/#186/#188/#187`）。
+2. 待用户确认 **D78（工作区 4 处 Node `24→26` 未暂存改动 + 2 处 23:18 IDE 自动保存复发噪声）** 的处置，以解除 `heat-transfer.ts` 对 `format:check` / `guard-dist-freshness` 与 `.husky/pre-push` 的阻断。
 
-## 当前 Milestone：M10 核心物理真源与沙盒缺陷修复（进度：5 / 8）
+## 当前 Milestone：M11 电磁/光学/热学/近代物理缺陷修复（进度：5 / 13）
 
-> [Milestone 4](https://github.com/zhangjszs/physical-modelvis/milestone/4) · 已完成 5 单（`#166/#169/#172/#173/#190` CLOSED）+ 剩余 Wave 2 3 单（`#174/#175/#177` `ready-for-agent`）。
+> [Milestone 5](https://github.com/zhangjszs/physical-modelvis/milestone/5) · 已完成 5 单（`#170/#176/#178/#183/#184` CLOSED）+ 今日队列 Wave 2 4 单（`#179/#180/#181/#182` `ready-for-agent`）+ 剩余 Wave 3 4 单（`#185/#186/#187/#188` `open · P2`）。
+> 上一阶段 **[M10（Milestone 4）](https://github.com/zhangjszs/physical-modelvis/milestone/4)** 已于 2026-11-22 达成 **8 / 8 CLOSED** 收官。
 
 ### 目标与验收
 
-- 组合实验台 P0 选中交互通过真实 WebGL 浏览器探针（`#166` ✅），参数校验/求解失败清除旧轨迹并停播（`#190` ✅）。
-- 斜面运动（`#169` ✅）、竖直圆周（`#172` ✅）、平抛碰撞（`#173` ✅）、牛顿管（`#174`）、卫星轨道（`#175`）、牛顿第三定律（`#177`）全部完成「物理公式正确 + 2D/3D 消费引擎单一真源 + 单测/回归覆盖」。
+- 力学/热学收尾缺陷全部清零：`#170`（弹簧振子 ✅）、`#176`（卡文迪什/微小形变 ✅）、`#178`（外切摩擦轮 ✅）、`#183`（液体混合双零 ✅）、`#184`（热传递终态 ✅）。
+- 电磁与波动光学 4 单完成「物理公式正确 + 2D/3D 消费引擎单一真源 + 回归覆盖」：`#179`（光控开关 D69=A）、`#180`（静电感应硬守恒）、`#181`（双缝单缝加薄片 D70=A）、`#182`（薄膜干涉 Fresnel 相对相变）。
+- 近代物理与波动采样 4 单（Wave 3：`#185/#186/#188/#187`）在次日过 4.2 门禁后清零。
 
 ### 完成信号（Success signal）
 
-- M10 全部 8 个关联 Issue 经 Planner 独立验收后 **CLOSED（8 / 8）**，且 `main` 上 `npm run precheck`、`verify-composition-interaction.mjs`、GitHub CI / Deploy 与夜间 `QA 场景巡检` 全绿。
+- M11 全部 13 个关联 Issue 经 Planner 独立验收后 **CLOSED（13 / 13）**，且 `main` 上 `npm run precheck`、GitHub CI / Deploy 与夜间 `QA 场景巡检` 全绿。
 
 ### 明确非目标（Non-goals）
 
-- 本 Milestone 不开展 M11（`#170/#176/#178–#188`）、M12（`#192–#203`）、`#191`（#166 P1 可控放置）、`#171`（Sandbox M0 共享器材契约）、`#189`（UI/UX 赛博改版）与 `#167`（P3 CI 安装步重试）；不动 `#44`（D44=B 冻结）。
+- 本 Milestone 不开展 M12（`#192–#203`）、`#191`（#166 P1 可控放置）、`#171`（Sandbox M0 共享器材契约）、`#189`（UI/UX 赛博改版）与 `#167`（P3 CI 安装步重试）；不动 `#44`（D44=B 冻结）。
+- `#179` 不顺手改 `circuitRig` 其他电路阻值映射（归 `#199`）；`#180` 不改 `electrostatic-shielding`（归 `#198`）；`#181/#182` 不改 `waveOpticsRig` 光栅/水波衍射量纲（归 `#202`）。
 
-### 执行队列（2026-11-19，共 3 项 · 全部属 M10 Wave 2 · `ready-for-agent`，全仓 P1 总数 = 3）
+### 执行队列（2026-11-22，共 4 项 · 全部属 M11 Wave 2 · `ready-for-agent`，全仓 P1 总数 = 4）
 
-1. **#174**（`priority:P1` · `ready-for-agent`）：新增专用 `newton-tube` 双体物理模型（硬币自由落体 + 羽毛真空同落/空气线性阻力 $v_t=1.6\text{ m/s}$，落地截断，登记 `chart-registry.ts`）并让 2D/3D/HUD 统一消费双体轨迹真源
-2. **#175**（`priority:P1` · `ready-for-agent`）：为 `orbital` 接入 `centralRadius` 不可穿透边界首次触地二分插值截断（`flags.impacted` + `触地碰撞` 关键帧），2D/3D 同步绘制截断路径与坠地告警（不改安全轨道）
-3. **#177**（`priority:P1` · `ready-for-agent`）：将 `newton-third-law` 的 `allowMotion=1` 修正为自由双体内力运动（`a_A=-F_AB/m_A, a_B=F_AB/m_B`，总动量守恒，相向靠拢接触停于质心不穿透），同步 2D/3D 双体轨迹消费与测试
+1. **#179**（`priority:P1` · `ready-for-agent`）：按 D69=A 以分压 `V_B>=VbeOn` 为唯一开关真源，移除无效 `threshold` 滑块改示只读等效临界照度 `L_crit`（默认校准至 ~10 lx），对 `L=0` 设有限暗阻上限消除 `NaN`，同步 2D/3D 与 `single-source-contract`
+2. **#180**（`priority:P1` · `ready-for-agent`）：将孤立中性导体 `q_near + q_far = 0` 设为硬不变量纳入 `conservedQuantities`，改用量纲明确的感应电荷（`μC`）与有界箔片张角（`[0°, 90°)`），同步 2D/3D 消费引擎真源
+3. **#181**（`priority:P1` · `ready-for-agent`）：按 D70=A 将双缝干涉薄膜模式改为「单缝前插透明薄片」`Δ_opt=(n-1)t`，使 `intensityCurve` 与 2D/3D 条纹同步平移（保持 `Δy` 不变），预设改名「单缝加薄片」并更新 `interference.test.ts`
+4. **#182**（`priority:P1` · `ready-for-agent`）：以两界面真实 Fresnel 复振幅 Airy 反射率与相对半波损失判据 `hasRelativeHalfWave = (r1·r2)<0` 取代无条件 `+λ/2`，修复 2D `drawThinFilmScene` 读错 `refractiveIndex` 及硬编码「空气 n=1」并同步 3D 标牌
 
 ## 已知阻塞与依赖
 
-- **工作区脏文件阻断 `pre-push`（D74=A 已确认）**：`mise.toml`（`node = "22"` → `"24"`）与 2026-11-18 00:45 产生的 `visualization/src/components/simulation3d/rigs/collisionRig.ts`、`visualization/src/rendering/chapter5Scenes.ts`（格式/BOM 差异）导致 `npm run format:check` 失败并拦截 `.husky/pre-push`。已确认由用户手动清理两份 `.ts` 脏改动并自决 `mise.toml`，Agent 严格不触碰且不用 `--no-verify`。
-- **M12 排程顺位（D75=A 已确认）**：2026-11-18 增补 12 单（`#192–#203`）已收编至 [Milestone 6 (M12)](https://github.com/zhangjszs/physical-modelvis/milestone/6)；正式按 **M10 → M11 → M12 → #191 → #171 → #189** 串行收口（`#198` 排 `#180` 后、`#202` 排 `#181/#188` 后防同文件冲突）。
-- **#191 / #171 / #189（D72=A）**：当前维持 `blocked` 等待前置物理缺陷清零后再按 `#191 → #171（先出 RFC）→ #189` 推进。
+- **工作区未暂存改动与 IDE 自动保存复发（D78 pending · 第 1 天询问）**：
+  - 2026-11-22 11:15 用户工作区 4 处 Node `24→26` 改动（`.github/workflows/{ci,deploy,qa-sweep}.yml` + `mise.toml`，涉及 §1.10 CI/CD 红线）。
+  - 2026-11-22 23:18 IDE 自动保存复发导致 `physics-core/src/models/heat-transfer.ts`（格式回退且 mtime 新于 `dist/`）与 `visualization/src/rendering/thermodynamicLawScenes.ts`（去 UTF-8 BOM）再次变脏，会拦截 `format:check`、`guard-dist-freshness` 与 `.husky/pre-push`。
+  - 延续 D74 / §1.10 / §9 约束：获用户明确答复前，Agent 严格不触碰上述 6 处未暂存改动、不使用 `--no-verify`（CI/CD 红线绝不默认转正）。
+- **M12 排程顺位（D75=A 已确认）**：[Milestone 6 (M12, 12 单)](https://github.com/zhangjszs/physical-modelvis/milestone/6) 排在 M11 清零后执行（`#198` 排 `#180` 后、`#202` 排 `#181/#188` 后防同文件冲突）。
+- **#191 / #171 / #189（D72=A）**：维持 `blocked`，待 M11/M12 清零后按 `#191 → #171（先出 RFC）→ #189` 推进。
 - **#167（D71=A 局部授权 1.10）**：仅授权给 `ci.yml`/`qa-sweep.yml` Playwright 安装步加 3 次退避重试，作 `P3` 后置排期。
 - **#44**：`blocked · parked`（D44=B 冻结，React 19 暂缓）。
-- **远程已合并旧分支**：`origin/agent/issue-95-shadow-adaptive` 与 `origin/agent/issue-96-default-on-grid` 继续按契约 §1.9 保留不代删。
+- **远程已合并旧分支**：`origin/agent/issue-95-shadow-adaptive` 与 `origin/agent/issue-96-default-on-grid` 按契约 §1.9 保留不代删。
 
 ## 下一阶段
 
-- M10 验收 8/8 收官 → **[M11（13 单）](https://github.com/zhangjszs/physical-modelvis/milestone/5)** 清理电磁/光学/热学/近代物理缺陷 → **[M12（12 单，D75=A 已确认）](https://github.com/zhangjszs/physical-modelvis/milestone/6)** 清理增补物理引擎与 3D 实验台参数失配/误绑缺陷 → **#167**（P3 CI 安装步重试）→ 按 **D72=A / D75=A** 推进 **#191（#166 P1）→ #171（Sandbox M0 阶段 A 设计 + 平抛纵切）→ #189（UI/UX 改版）**。
+- M11 Wave 2（4 单）验收 → **M11 Wave 3（4 单：`#185/#186/#188/#187`）** 过 4.2 门禁收官 M11（13/13）→ **[M12（12 单，D75=A）](https://github.com/zhangjszs/physical-modelvis/milestone/6)** 清理增补物理引擎与 3D 实验台参数失配/误绑缺陷 → **#167**（P3 CI 安装步重试）→ 按 **D72=A / D75=A** 推进 **#191（#166 P1）→ #171（Sandbox M0 阶段 A 设计 + 平抛纵切）→ #189（UI/UX 改版）**。
 
 ## 已放弃 / 暂缓的方向
 
@@ -55,4 +62,4 @@
 
 ## 给 Executor 的指令
 
-按 `#174 → #175 → #177` 顺序领取并严格对照各 Issue 最新 Planner 4.2 定型评论实施；按 **D74=A** 严禁回退或提交 `mise.toml`/`collisionRig.ts`/`chapter5Scenes.ts`（如用户尚未清理导致 `pre-push` 仍被阻断，按 §1.9 留本地并记录）。
+按 `#179 → #180 → #181 → #182` 顺序领取并严格对照各 Issue 最新 Planner 4.2 定型评论实施；获用户对 **D78** 明确授权前严禁触碰工作区 6 处未暂存改动（4 处 Node `24→26` + 2 处 IDE 脏改动），若 `pre-push` 仍被阻断按 §1.9 留本地并记录，绝不用 `--no-verify`。
