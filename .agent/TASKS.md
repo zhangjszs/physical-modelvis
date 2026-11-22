@@ -52,15 +52,15 @@
 
 | Issue | 标题 | 标签 | 备注 |
 | --- | --- | --- | --- |
-| [#170](https://github.com/zhangjszs/physical-modelvis/issues/170) | 弹簧振子平衡位置关键帧速度文本误用 `v0` | `priority:P2`, `type:bug`, `area:engine` | 消费 `cur.velocity` 模长 |
-| [#176](https://github.com/zhangjszs/physical-modelvis/issues/176) | 卡文迪什/微小形变光杠杆位移多乘 2 | `priority:P2`, `type:bug`, `area:engine`, `area:render` | 同根因两模型 `D·tan(2θ)` 回归 |
-| [#178](https://github.com/zhangjszs/physical-modelvis/issues/178) | 摩擦轮接触传动反向旋转 | `priority:P2`, `type:bug`, `area:engine`, `area:render` | `friction` `direction=-1` 与 2D/3D 切向速度对齐 |
+| [#170](https://github.com/zhangjszs/physical-modelvis/issues/170) | 弹簧振子平衡位置关键帧速度文本误用 `v0` | `priority:P2`, `type:bug`, `area:engine`, `in-review` | **in-review**（2026-11-22，commit `5636563` / merge `d057d07`，消费帧内插值速度与 `velocity` 同源） |
+| [#176](https://github.com/zhangjszs/physical-modelvis/issues/176) | 卡文迪什/微小形变光杠杆位移多乘 2 | `priority:P2`, `type:bug`, `area:engine`, `area:render`, `in-review` | **in-review**（2026-11-22，commit `234f8c5` / merge `1001a1c`，两模型统一 `D·tan(2θ)` 与 2D/3D 单一真源） |
+| [#178](https://github.com/zhangjszs/physical-modelvis/issues/178) | 摩擦轮接触传动反向旋转 | `priority:P2`, `type:bug`, `area:engine`, `area:render`, `in-review` | **in-review**（2026-11-22，commit `42d3e7f` / merge `0039b51`，`friction` 反向无打滑与 2D/3D 对齐） |
 | [#179](https://github.com/zhangjszs/physical-modelvis/issues/179) | 光控开关 `threshold` 失效与 `L=0` NaN | `priority:P2`, `type:bug`, `area:engine`, `area:render` | **D69=A 已确认**：以 `V_B>=VbeOn` 为真源，移除假滑块改示 `L_crit` |
 | [#180](https://github.com/zhangjszs/physical-modelvis/issues/180) | 静电感应近远端电荷守恒与张角量纲 | `priority:P2`, `type:bug`, `area:engine`, `area:render` | 硬不变量 `q_near + q_far = 0`（孤立中性导体） |
 | [#181](https://github.com/zhangjszs/physical-modelvis/issues/181) | 双缝干涉薄膜预设无相移效应 | `priority:P2`, `type:bug`, `area:engine`, `area:render` | **D70=A 已确认**：改为单缝插薄片 `Δ=(n-1)t` 移条纹并改名「单缝加薄片」 |
 | [#182](https://github.com/zhangjszs/physical-modelvis/issues/182) | 薄膜干涉两界面反射相对相变（半波损失） | `priority:P2`, `type:bug`, `area:engine`, `area:render` | Fresnel 幅反射系数符号 + 传播相位 |
-| [#183](https://github.com/zhangjszs/physical-modelvis/issues/183) | 液体混合双零体积收缩率 NaN 修复 | `priority:P2`, `type:bug`, `area:engine`, `area:render` | Planner 已定型：保留 `min=0` 空白态，`contractionPercent=0` + N/A 文案 |
-| [#184](https://github.com/zhangjszs/physical-modelvis/issues/184) | 热传递终态关键帧 `t=0` 与温度误用环境值 | `priority:P2`, `type:bug`, `area:engine`, `area:render` | 取 `t=tMax` 与 `T(tMax)` |
+| [#183](https://github.com/zhangjszs/physical-modelvis/issues/183) | 液体混合双零体积收缩率 NaN 修复 | `priority:P2`, `type:bug`, `area:engine`, `area:render`, `in-review` | **in-review**（2026-11-22，commit `e644942` / merge `c2294ea`，`VTotal=0` 置 0 + 2D/3D 空白态「无液体，收缩率不适用」） |
+| [#184](https://github.com/zhangjszs/physical-modelvis/issues/184) | 热传递终态关键帧 `t=0` 与温度误用环境值 | `priority:P2`, `type:bug`, `area:engine`, `area:render`, `in-review` | **in-review**（2026-11-22，commit `80bd329` / merge `5b525f8`，`t=tMax` 与 `T(tMax)` 同源 + 2D/3D 一致） |
 | [#185](https://github.com/zhangjszs/physical-modelvis/issues/185) | β 射线负电荷半径归零修复 | `priority:P2`, `type:bug`, `area:engine`, `area:render` | `r = p/(|q|B)` + `sign(q)` 偏转方向 + 相对论动量 |
 | [#186](https://github.com/zhangjszs/physical-modelvis/issues/186) | 衰变统计试验次数 `nTrials` 生效 | `priority:P2`, `type:bug`, `area:engine`, `area:render` | `nTrials` 控制 Poisson 抽样次数 |
 | [#187](https://github.com/zhangjszs/physical-modelvis/issues/187) | AM 调制采样低于 Nyquist 导致混叠 | `priority:P2`, `type:bug`, `area:engine`, `area:render` | 短时细节 vs 长时包络/抗混叠策略 |
