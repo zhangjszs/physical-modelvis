@@ -1,6 +1,6 @@
 # PLAN
 
-> Planner 当前快照 · 2026-11-22 · D77（含 pending 决策 D78）。任务权威：GitHub Issues（25 开放单）；TASKS.md 为本轮整体重写镜像。
+> Planner 当前快照 · 2026-11-22 · D77–D78·续（pending 清零）。任务权威：GitHub Issues（25 开放单）；TASKS.md 为本轮整体重写镜像。
 
 ## 当前方向
 
@@ -9,7 +9,7 @@
 ## 今日目标（2026-11-22）
 
 1. 完成 **M11 Wave 2 全部 4 单**（`#179` 光控开关 → `#180` 静电感应 → `#181` 双缝单缝加薄片 → `#182` 薄膜干涉 Fresnel 相对相变）并转入 `in-review`，将 M11 推向收官前夜（剩余 Wave 3 4 单 `#185/#186/#188/#187`）。
-2. 待用户确认 **D78（工作区 4 处 Node `24→26` 未暂存改动 + 2 处 23:18 IDE 自动保存复发噪声）** 的处置，以解除 `heat-transfer.ts` 对 `format:check` / `guard-dist-freshness` 与 `.husky/pre-push` 的阻断。
+2. 按已确认 **D78=A**，由用户自决工作区 4 处 Node `24→26` 改动并手动清理 2 处 23:18 IDE 噪声（`heat-transfer.ts`、`thermodynamicLawScenes.ts`）以解除 `.husky/pre-push` 阻断；Agent 严格不触碰且不用 `--no-verify`。
 
 ## 当前 Milestone：M11 电磁/光学/热学/近代物理缺陷修复（进度：5 / 13）
 
@@ -40,10 +40,10 @@
 
 ## 已知阻塞与依赖
 
-- **工作区未暂存改动与 IDE 自动保存复发（D78 pending · 第 1 天询问）**：
+- **工作区未暂存改动与 IDE 自动保存复发（D78=A 已确认）**：
   - 2026-11-22 11:15 用户工作区 4 处 Node `24→26` 改动（`.github/workflows/{ci,deploy,qa-sweep}.yml` + `mise.toml`，涉及 §1.10 CI/CD 红线）。
-  - 2026-11-22 23:18 IDE 自动保存复发导致 `physics-core/src/models/heat-transfer.ts`（格式回退且 mtime 新于 `dist/`）与 `visualization/src/rendering/thermodynamicLawScenes.ts`（去 UTF-8 BOM）再次变脏，会拦截 `format:check`、`guard-dist-freshness` 与 `.husky/pre-push`。
-  - 延续 D74 / §1.10 / §9 约束：获用户明确答复前，Agent 严格不触碰上述 6 处未暂存改动、不使用 `--no-verify`（CI/CD 红线绝不默认转正）。
+  - 2026-11-22 23:18 IDE 自动保存复发导致 `physics-core/src/models/heat-transfer.ts`（格式回退）与 `visualization/src/rendering/thermodynamicLawScenes.ts`（去 UTF-8 BOM）再次变脏，拦截 `format:check` 与 `.husky/pre-push`。
+  - 已确认 **D78=A**：由用户自决 4 处 Node `24→26` 并手动 `git restore` 两份 `.ts` 噪声后 `git push`；Agent 严格不触碰且不使用 `--no-verify`。
 - **M12 排程顺位（D75=A 已确认）**：[Milestone 6 (M12, 12 单)](https://github.com/zhangjszs/physical-modelvis/milestone/6) 排在 M11 清零后执行（`#198` 排 `#180` 后、`#202` 排 `#181/#188` 后防同文件冲突）。
 - **#191 / #171 / #189（D72=A）**：维持 `blocked`，待 M11/M12 清零后按 `#191 → #171（先出 RFC）→ #189` 推进。
 - **#167（D71=A 局部授权 1.10）**：仅授权给 `ci.yml`/`qa-sweep.yml` Playwright 安装步加 3 次退避重试，作 `P3` 后置排期。
@@ -62,4 +62,4 @@
 
 ## 给 Executor 的指令
 
-按 `#179 → #180 → #181 → #182` 顺序领取并严格对照各 Issue 最新 Planner 4.2 定型评论实施；获用户对 **D78** 明确授权前严禁触碰工作区 6 处未暂存改动（4 处 Node `24→26` + 2 处 IDE 脏改动），若 `pre-push` 仍被阻断按 §1.9 留本地并记录，绝不用 `--no-verify`。
+按 `#179 → #180 → #181 → #182` 顺序领取并严格对照各 Issue 最新 Planner 4.2 定型评论实施；按已确认 **D78=A** 严禁触碰工作区 6 处未暂存改动（4 处 Node `24→26` + 2 处 IDE 脏改动），如用户尚未清理导致 `pre-push` 仍被阻断按 §1.9 留本地并记录，绝不用 `--no-verify`。

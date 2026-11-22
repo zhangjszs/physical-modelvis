@@ -1,6 +1,6 @@
 # TASKS（GitHub Issue 本地镜像）
 
-> Planner 整体重写 · 2026-11-22 · D77（含 pending 决策 D78）。GitHub Issues（25 开放单）为唯一权威；Executor 先改 Issue，再同步本文件状态。
+> Planner 整体重写 · 2026-11-22 · D77–D78·续（pending 清零）。GitHub Issues（25 开放单）为唯一权威；Executor 先改 Issue，再同步本文件状态。
 > 基线：`main @ e7e987d`（与 `origin/main` 同步；本轮规划追加 1 个 `.agent/` 提交），测试真值 **3260 = physics-core 1224 + visualization 2036**，`npm run selfcheck` 11/11 PASS，远端 CI `45037307092` / Deploy `45037587458` / QA `44962261661` 全绿；未见 `.agent/LOCK` 残留。
 > 标签约定：`ready-for-agent` 仅挂于今日队列 4 单（`#179/#180/#181/#182`）；`priority:P1` 严格收敛为今日队列 4 单；`needs-triage` / `in-review` / `in-progress` / `needs-info` 均已清零。
 
@@ -19,7 +19,7 @@
   - **#184**（`80bd329` / `5b525f8`）：按当前模式输出主曲线与终态 `t=tMax`、`T(tMax)`，明示 `T_env` 渐近，修正辐射 O(N) 子步与 2D/3D 同源；独立复跑 `heat-transfer.test.ts` (5/5)、`heat-transfer-consistency.test.ts`、`trajectory-semantics.test.ts`、`count:check` (3260) + `selfcheck` 11/11 + 远端 CI/Deploy 全绿 → **通过并关闭**（[验收 comment](https://github.com/zhangjszs/physical-modelvis/issues/184#issuecomment-7081295379)）。
 - **队列治理与排程**：
   - M11 Wave 2（电磁+光学 4 单：`#179/#180/#181/#182`）逐单完成 4.2 Ready 门禁定型并升为 `priority:P1` + `ready-for-agent`；其余 M11 Wave 3 4 单（`#185/#186/#187/#188`）与 M12 12 单维持 `priority:P2`。
-  - 工作区 4 处 Node `24→26` 未暂存改动（§1.10 CI/CD 红线）+ 2 处 23:18 IDE 自动保存复发噪声记入 **D78（pending · 第 1 天询问）** 待用户拍板。
+  - 用户同日答复「按照推荐的来」→ **D78=A 已确认转正**（由用户自决 4 处 Node `24→26` 并手动 `git restore` 两处 IDE 脏改动后 `git push`，Agent 严格不触碰且不用 `--no-verify`），**pending 清零**。
 
 ---
 

@@ -1379,20 +1379,16 @@ eslint tests 目录 `no-explicit-any` 降 warn）与 `36aed93`（移除 scripts/
   - **#182（薄膜干涉）**：两界面真实 Fresnel Airy 复振幅反射率与相对半波损失 `hasRelativeHalfWave=(r1·r2)<0`、修复 2D `drawThinFilmScene` 读错 `refractiveIndex` 与硬编码「空气 n=1」并同步 3D 标牌。
 - **队列卫生**：全仓开放单收敛至 25 单；`priority:P1` 严格收敛为今日队列 4 单；无重复单、无超时 `in-progress`、无长期饥饿 P3/P4（`#167` 仅过 M10 1 个里程碑，未满 2 个）。
 
-## D78 · 2026-11-22 工作区 4 处 Node 24→26 改动与 2 处 IDE 自动保存噪声处置（pending）
+## D78 · 2026-11-22 工作区 4 处 Node 24→26 改动与 2 处 IDE 自动保存噪声处置（已确认：方案 A）
 
-- **日期 / 状态**：2026-11-22；**pending（第 1 天询问）**。
+- **日期 / 状态**：2026-11-22；**已确认（方案 A）**（用户同日答复「按照推荐的来」）。
 - **背景与调查结论**：
   1. 2026-11-22 11:15 用户工作区产生 4 处未暂存改动：`.github/workflows/ci.yml`、`deploy.yml`、`qa-sweep.yml`（`node-version: 24` → `26`）与 `mise.toml`（`node = "24"` → `"26"`），本地运行时为 `node v26.13.1`。因改动触及 `.github/workflows/*.yml`（契约 §1.10 主要 CI/CD 流程红线），Agent 不可代为提交或回退。
-  2. 2026-11-22 23:18 再次触发编辑器自动保存噪声：`physics-core/src/models/heat-transfer.ts` 被重排为单行对象（mtime `23:18:32 > dist 23:14:17`，同时触发 `format:check` 与 `guard-dist-freshness` 失败）且 `visualization/src/rendering/thermodynamicLawScenes.ts` 去除 UTF-8 BOM。该噪声会拦截 `.husky/pre-push` 导致 `.agent/` 规划提交滞留本地。
-- **可选方案**：
-  - **方案 A（推荐）**：由用户自行决定是否提交 Node `24→26` 4 文件（若提交建议确认 GitHub Actions `actions/setup-node@v5` 对 Node 26 的可用性），并手动 `git restore physics-core/src/models/heat-transfer.ts visualization/src/rendering/thermodynamicLawScenes.ts`、排查编辑器自动保存/格式化冲突配置后执行 `git push`。
-  - **方案 B**：授权 Agent 仅清理两处 IDE 噪声 `.ts` 文件（恢复至 HEAD），继续保留 4 处 Node `24→26` 未暂存（`format:check` 不扫 `.yml`/`.toml`，可立即恢复 `pre-push`）。
-  - **方案 C**：全部 6 处改动均回退至 HEAD，维持 CI 与本地 `mise.toml` 在 Node 24。
-- **默认方案**：延续 D74 与契约 §1.10 / §9 约束——未获明确授权前 Agent 严禁触碰任何未暂存代码/工作流文件且不使用 `--no-verify`；CI/CD 红线部分**绝不默认转正**，仅安全推进 M11 Wave 2（`#179–#182`）开发。
+  2. 2026-11-22 23:18 再次触发编辑器自动保存噪声：`physics-core/src/models/heat-transfer.ts` 被重排为单行对象（mtime `23:18:32 > dist 23:14:17`，同时触发 `format:check` 与 `guard-dist-freshness` 失败）且 `visualization/src/rendering/thermodynamicLawScenes.ts` 去除 UTF-8 BOM。该噪声拦截 `.husky/pre-push` 导致 `.agent/` 规划提交滞留本地。
+- **用户决定（方案 A）**：由用户自行决定是否提交 4 处 Node `24→26` 改动，同时由用户手动 `git restore physics-core/src/models/heat-transfer.ts visualization/src/rendering/thermodynamicLawScenes.ts`、排查编辑器自动保存/格式化冲突配置后执行 `git push`；Agent（Planner 与 Executor）严格不触碰任何上述未暂存代码或 CI 工作流文件、不使用 `--no-verify`。
 
 ---
 
-## 待用户确认（pending 索引，2026-11-22）
+## 待用户确认（pending 索引，2026-11-22·续）
 
-- **D78** | 2026-11-22 | 工作区 4 处 Node `24→26`（`.github/workflows/{ci,deploy,qa-sweep}.yml` + `mise.toml`，§1.10 红线）与 2 处 23:18 IDE 噪声（`heat-transfer.ts` / `thermodynamicLawScenes.ts`）处置 | A 用户自决 Node 26 并清理两 `.ts` / B 仅授权 Agent 清理两 `.ts` / C 全量回退 Node 24 | 推荐 **A** | 默认不触碰（红线不转正） | **pending（第 1 天询问）**
+- **无 pending。**（D78=A 已于 2026-11-22 同日获用户确认转正；D74=A / D75=A / D68=A / D69=A / D70=A / D71=A / D72=A 与 D44=B 维持。）
