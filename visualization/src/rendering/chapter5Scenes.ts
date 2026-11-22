@@ -876,53 +876,90 @@ export function drawCentrifugalScene(opts: MechanicsSceneOptions): void {
 }
 
 export function drawTransmissionBeltScene(opts: MechanicsSceneOptions): void {
-    const { ctx, width, height, isDark, params, currentTime } = opts;
+    const { ctx, width, height, isDark, params, currentTime, simulationResult } = opts;
     const mode = Math.round(params['mode'] ?? 0);
     const r1 = params['r1'] ?? 0.2;
     const r2 = params['r2'] ?? 0.4;
     const omega1 = params['omega1'] ?? 10;
-    const omega2 = mode === 3 ? omega1 : (omega1 * r1) / Math.max(0.001, r2);
-    const left = { x: width * 0.32, y: height * 0.52 };
-    const right = { x: width * 0.68, y: height * 0.52 };
+
+    const mv = simulationResult?.diagnostics?.maxValues;
+    const readMv = (key: string): number | undefined => {
+        const v = mv?.[key];
+        return typeof v === 'number' && Number.isFinite(v) ? v : undefined;
+    };
+
+    const fallbackDir = mode === 1 || mode === 2 ? -1 : 1;
+    const direction = readMv('direction') ?? fallbackDir;
+    const omega2Signed =
+        readMv('omega2Signed') ?? (mode === 3 ? omega1 : direction * ((omega1 * r1) / Math.max(0.001, r2)));
+    const vEdge = readMv('vSurface') ?? Math.abs(omega1 * r1);
+    const dirLabel = direction < 0 ? '反向' : '同向';
+
     const rr1 = 34 + r1 * 55;
     const rr2 = 34 + r2 * 55;
+    const isContactMode = mode === 1 || mode === 2;
+    const isCoax = mode === 3;
+    const centerY = height * 0.52;
+    const left = isCoax
+        ? { x: width * 0.5, y: centerY }
+        : isContactMode
+          ? { x: width * 0.5 - rr1, y: centerY }
+          : { x: width * 0.32, y: centerY };
+    const right = isCoax
+        ? { x: width * 0.5, y: centerY }
+        : isContactMode
+          ? { x: width * 0.5 + rr2, y: centerY }
+          : { x: width * 0.68, y: centerY };
 
     drawTitle(ctx, '传动装置: v = ωr', width, isDark);
-    ctx.strokeStyle = isDark ? '#64748b' : '#475569';
-    ctx.lineWidth = mode === 1 ? 3 : 10;
-    ctx.beginPath();
-    ctx.moveTo(left.x, left.y - rr1);
-    ctx.lineTo(right.x, right.y - rr2);
-    ctx.moveTo(left.x, left.y + rr1);
-    ctx.lineTo(right.x, right.y + rr2);
-    ctx.stroke();
-    if (mode === 1) {
-        for (let i = 0; i < 16; i++) {
-            const t = i / 16;
-            const x = left.x + (right.x - left.x) * t;
-            const y = left.y - rr1 + (right.y - rr2 - (left.y - rr1)) * t;
-            drawBlock(ctx, x, y, 8, 8, ORANGE, isDark);
-        }
+
+    // 仅开口皮带模式绘制连接皮带; 外切齿轮/摩擦轮紧密接触; 同轴模式共心
+    if (mode === 0) {
+        ctx.strokeStyle = isDark ? '#64748b' : '#475569';
+        ctx.lineWidth = 8;
+        ctx.beginPath();
+        ctx.moveTo(left.x, left.y - rr1);
+        ctx.lineTo(right.x, right.y - rr2);
+        ctx.moveTo(left.x, left.y + rr1);
+        ctx.lineTo(right.x, right.y + rr2);
+        ctx.stroke();
     }
 
     const phase1 = omega1 * currentTime;
-    const phase2 = omega2 * currentTime * (mode === 1 ? -1 : 1);
-    drawWheel(ctx, left.x, left.y, rr1, phase1, BLUE, isDark, '1');
-    drawWheel(ctx, right.x, right.y, rr2, phase2, RED, isDark, '2');
-    drawArrow(ctx, left.x, left.y - rr1 - 24, left.x + 80, left.y - rr1 - 24, GREEN, 'v');
-    drawArrow(ctx, right.x, right.y - rr2 - 24, right.x + 80, right.y - rr2 - 24, GREEN, 'v');
+    const phase2 = (direction < 0 ? Math.PI : 0) + omega2Signed * currentTime;
+    if (isCoax && rr2 > rr1) {
+        drawWheel(ctx, right.x, right.y, rr2, phase2, RED, isDark, '2');
+        drawWheel(ctx, left.x, left.y, rr1, phase1, BLUE, isDark, '1');
+    } else {
+        drawWheel(ctx, left.x, left.y, rr1, phase1, BLUE, isDark, '1');
+        drawWheel(ctx, right.x, right.y, rr2, phase2, RED, isDark, '2');
+    }
+
+    // 顶部切向速度箭头方向严格对齐各自转向 (canvas y 向下: ω>0 为顺时针, 顶部向右)
+    const sign1 = omega1 >= 0 ? 1 : -1;
+    const sign2 = omega2Signed >= 0 ? 1 : -1;
+    drawArrow(ctx, left.x, left.y - rr1 - 24, left.x + 70 * sign1, left.y - rr1 - 24, GREEN, 'v₁');
+    if (!isCoax) {
+        drawArrow(ctx, right.x, right.y - rr2 - 24, right.x + 70 * sign2, right.y - rr2 - 24, GREEN, 'v₂');
+    }
+    if (isContactMode) {
+        // 外切接触点共同切向速度矢量 (两轮在此处同向无打滑)
+        const contactX = left.x + rr1;
+        drawArrow(ctx, contactX, centerY - 26 * sign1, contactX, centerY + 26 * sign1, ORANGE, 'v接触');
+    }
 
     const modeLabel = ['皮带传动', '齿轮传动', '摩擦轮传动', '同轴转动'][mode] ?? '传动';
     drawHud(ctx, isDark, [
-        { label: 'mode', value: modeLabel },
+        { label: 'mode', value: `${modeLabel} (${dirLabel})` },
         { label: 'ω1', value: `${omega1.toFixed(2)} rad/s` },
-        { label: 'ω2', value: `${omega2.toFixed(2)} rad/s` }
+        { label: 'ω2', value: `${omega2Signed.toFixed(2)} rad/s` },
+        { label: '|v|', value: `${vEdge.toFixed(2)} m/s` }
     ]);
     drawInfoBar(
         ctx,
         width,
         height,
-        `r1=${r1}m  r2=${r2}m  ${mode === 3 ? '同轴: ω1=ω2' : '无打滑: ω1r1=ω2r2'}`,
+        `r1=${r1}m  r2=${r2}m  ${isCoax ? '同轴: ω1=ω2 (同向)' : `无打滑: |ω1r1|=|ω2r2| (${dirLabel})`}`,
         isDark
     );
 }

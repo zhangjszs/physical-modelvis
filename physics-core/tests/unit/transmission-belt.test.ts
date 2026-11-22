@@ -53,10 +53,53 @@ describe('TransmissionBeltModel', () => {
         expect(r.diagnostics.maxValues.vSurface).toBeCloseTo(1.8, 6); // 6·0.3
     });
 
-    it('摩擦轮: 与皮带类似 (线速度等大, 角速度与半径反比)', () => {
-        const r = model.solve(makeProblem({ mode: 'friction', r1: 0.5, r2: 0.25, omega1: 10 }));
-        expect(r.diagnostics.maxValues.omega2).toBeCloseTo(20, 6);
-        expect(r.diagnostics.maxValues.vSurface).toBeCloseTo(5, 6);
+    it('摩擦轮: 外切接触无打滑, 线速度等大且转向相反 (#178)', () => {
+        const r = model.solve(makeProblem({ mode: 'friction', r1: 0.1, r2: 0.2, omega1: 10 }));
+        expect(r.diagnostics.maxValues.omega2).toBeCloseTo(5, 6);
+        expect(r.diagnostics.maxValues.omega2Signed).toBeCloseTo(-5, 6);
+        expect(r.diagnostics.maxValues.direction).toBe(-1);
+        expect(r.diagnostics.maxValues.vSurface).toBeCloseTo(1, 6);
+        expect(r.diagnostics.rangeCheck.withinRange).toBe(true);
+
+        // 接触点几何与全局切向速度矢量必须严格相等 (v_contact1 === v_contact2)
+        const p1_0 = r.trajectories[0]![0]!;
+        const p2_0 = r.trajectories[1]![0]!;
+        expect(p1_0.position.x).toBeCloseTo(p2_0.position.x, 9);
+        expect(p1_0.position.y).toBeCloseTo(p2_0.position.y, 9);
+        expect(p1_0.velocity.x).toBeCloseTo(p2_0.velocity.x, 9);
+        expect(p1_0.velocity.y).toBeCloseTo(p2_0.velocity.y, 9);
+        expect(p1_0.velocity.y).toBeCloseTo(1, 9); // +r1 * omega1
+
+        // 关键帧、摘要与步骤明确标明反向与带符号 ω₂
+        expect(r.keyframes[0]!.description).toContain('反向');
+        expect(r.keyframes[0]!.description).toContain('-5.00');
+        expect(r.explanation.summary).toContain('反向');
+        expect(r.explanation.steps[0]!.formula).toContain('反向');
+    });
+
+    it('四种传动模式转向与切点无打滑约束回归 (含负 ω₁, #178)', () => {
+        // 1. 开口皮带: 同向
+        const belt = model.solve(makeProblem({ mode: 'belt', r1: 0.1, r2: 0.2, omega1: 10 }));
+        expect(belt.diagnostics.maxValues.direction).toBe(1);
+        expect(belt.diagnostics.maxValues.omega2Signed).toBeCloseTo(5, 6);
+
+        // 2. 外啮合齿轮: 反向 + 切点速度一致
+        const gear = model.solve(makeProblem({ mode: 'gear', r1: 0.15, r2: 0.3, omega1: 8 }));
+        expect(gear.diagnostics.maxValues.direction).toBe(-1);
+        expect(gear.diagnostics.maxValues.omega2Signed).toBeCloseTo(-4, 6);
+        expect(gear.trajectories[0]![0]!.velocity.y).toBeCloseTo(gear.trajectories[1]![0]!.velocity.y, 9);
+
+        // 3. 外切摩擦轮负角速度输入 (omega1 = -10): omega2 = +5, 切点矢量仍一致 (无 double negate)
+        const frictionNeg = model.solve(makeProblem({ mode: 'friction', r1: 0.1, r2: 0.2, omega1: -10 }));
+        expect(frictionNeg.diagnostics.maxValues.direction).toBe(-1);
+        expect(frictionNeg.diagnostics.maxValues.omega2Signed).toBeCloseTo(5, 6);
+        expect(frictionNeg.trajectories[0]![0]!.velocity.y).toBeCloseTo(-1, 9);
+        expect(frictionNeg.trajectories[1]![0]!.velocity.y).toBeCloseTo(-1, 9);
+
+        // 4. 同轴: 同向且共角速度
+        const coax = model.solve(makeProblem({ mode: 'coax', r1: 0.1, r2: 0.2, omega1: -6 }));
+        expect(coax.diagnostics.maxValues.direction).toBe(1);
+        expect(coax.diagnostics.maxValues.omega2Signed).toBeCloseTo(-6, 6);
     });
 
     it('同轴传动: 角速度等大', () => {

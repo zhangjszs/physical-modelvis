@@ -192,37 +192,31 @@ export const transmissionBeltRig: SceneRig = {
         const t = ctx.time;
         const mode = h.mode;
 
-        // 主动轮旋转角 (绕 Z 轴旋转)
-        const angle1 = (omega1 * t) % (Math.PI * 2);
-        h.wheel1Group.rotation.z = -angle1;
+        const mv = ctx.result?.diagnostics?.maxValues;
+        const readMv = (key: string): number | undefined => {
+            const v = mv?.[key];
+            return typeof v === 'number' && Number.isFinite(v) ? v : undefined;
+        };
+        const fallbackDir = mode === 1 || mode === 2 ? -1 : 1;
+        const direction = readMv('direction') ?? fallbackDir;
+        const omega2Signed = readMv('omega2Signed') ?? (mode === 3 ? omega1 : direction * omega1 * (r1 / r2));
 
-        // 从动轮旋转角
-        let angle2 = 0;
-        let omega2 = omega1;
-        if (mode === 0) {
-            // 皮带：线速度相等，角速度 ω2 = ω1 * (r1 / r2)，同向转动
-            omega2 = omega1 * (r1 / r2);
-            angle2 = -((omega2 * t) % (Math.PI * 2));
-        } else if (mode === 1 || mode === 2) {
-            // 齿轮 / 摩擦轮：线速度相等，但反向啮合转动
-            omega2 = omega1 * (r1 / r2);
-            angle2 = (omega2 * t) % (Math.PI * 2);
-        } else {
-            // 同轴：角速度完全相等，同轴同向同步转动
-            omega2 = omega1;
-            angle2 = -angle1;
-        }
-
+        // 统一角速度映射 (omega2Signed 已含正负号, 避免 double negate):
+        // 右手系 Z 轴向外, rotation.z = -ωt 使 ω>0 为顺时针; 外切反向时 ω₂<0 → 逆时针, 接触点同向下移
+        const angle1 = -((omega1 * t) % (Math.PI * 2));
+        const angle2 = -((omega2Signed * t) % (Math.PI * 2));
+        h.wheel1Group.rotation.z = angle1;
         h.wheel2Group.rotation.z = angle2;
 
-        // 动态 HUD 随动更新线速度与角速度读数
+        // 动态 HUD 随动更新线速度与带符号角速度读数
         if (h.label) {
-            const v1 = omega1 * r1;
-            const v2 = omega2 * r2;
+            const v1 = Math.abs(omega1 * r1);
+            const v2 = Math.abs(omega2Signed * r2);
             const modeText = mode === 0 ? '皮带' : mode === 1 ? '齿轮' : mode === 2 ? '摩擦轮' : '同轴';
+            const dirText = direction < 0 ? '反向' : '同向';
             updateTextSprite(
                 h.label,
-                `[${modeText}] v₁=${v1.toFixed(2)}m/s, v₂=${v2.toFixed(2)}m/s | ω₁=${omega1.toFixed(1)}rad/s, ω₂=${omega2.toFixed(1)}rad/s`,
+                `[${modeText}·${dirText}] |v₁|=${v1.toFixed(2)}m/s, |v₂|=${v2.toFixed(2)}m/s | ω₁=${omega1.toFixed(1)}rad/s, ω₂=${omega2Signed.toFixed(1)}rad/s`,
                 '#0f172a',
                 22
             );

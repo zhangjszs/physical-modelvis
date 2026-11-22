@@ -8,14 +8,15 @@ import { sampleTrajectory } from '../physics/kinematics.js';
  * 几种传动方式模型 — 必修二 §2 (圆周运动)
  *
  * 物理原理:
- *   - 皮带传动 / 摩擦轮: v₁ = v₂ → ω₁·r₁ = ω₂·r₂ (转向相同)
- *   - 齿轮传动: v₁ = v₂ → ω₁·r₁ = ω₂·r₂ (转向相反)
- *   - 同轴传动: ω₁ = ω₂ (转向相同)
+ *   - 开口皮带传动 (belt): v₁ = v₂ → ω₁·r₁ = ω₂·r₂ (转向相同, direction = +1)
+ *   - 外切摩擦轮传动 (friction): 接触点无打滑 v_contact1 = v_contact2 → ω₂ = -(r₁/r₂)·ω₁ (转向相反, direction = -1)
+ *   - 外啮合齿轮传动 (gear): 啮合点无打滑 v_contact1 = v_contact2 → ω₂ = -(r₁/r₂)·ω₁ (转向相反, direction = -1)
+ *   - 同轴传动 (coax): ω₁ = ω₂ (转向相同, direction = +1)
  *
  * 主轴 ω(t) = ω₁ (恒定, 模型用于演示稳态传动关系)
- * 从轴按传动比推导: ω₂ = (r₁/r₂)·ω₁ (皮带/摩擦轮/齿轮) 或 ω₂ = ω₁ (同轴)
+ * 从轴带符号角速度: ω₂ = direction·(r₁/r₂)·ω₁ (皮带/摩擦轮/齿轮) 或 ω₂ = ω₁ (同轴)
  *
- * 静态演示: 两轮匀速反向 (齿轮) 或同向 (皮带/摩擦轮/同轴) 转动
+ * 静态演示: 两轮匀速反向 (齿轮/外切摩擦轮) 或同向 (开口皮带/同轴) 转动
  * 图表说明: ω-ω 关系 / r-ω 反比 / 边缘线速度 v_s 等大
  */
 export class TransmissionBeltModel extends PhysicsModelBase {
@@ -50,37 +51,43 @@ export class TransmissionBeltModel extends PhysicsModelBase {
         const dt = duration / sampleCount;
 
         const center1: Vector2D = c.center1 ?? { x: 0, y: 0 };
-        const center2: Vector2D = c.center2 ?? { x: r1 + r2 + 0.2, y: 0 };
+        const defaultCenter2: Vector2D =
+            mode === 'coax'
+                ? { x: center1.x, y: center1.y }
+                : mode === 'gear' || mode === 'friction'
+                  ? { x: center1.x + r1 + r2, y: center1.y }
+                  : { x: center1.x + r1 + r2 + 0.2, y: center1.y };
+        const center2: Vector2D = c.center2 ?? defaultCenter2;
 
-        // 计算从动轮角速度
+        // 计算从动轮带符号角速度 (ω₂ 已含正负号, 下游不得再乘 direction 避免 double negate)
         let omega2: number;
         let direction: 1 | -1; // 1=同向, -1=反向
         let modeLabel: string;
         let modeDesc: string;
         switch (mode) {
             case 'belt':
-                omega2 = (r1 / r2) * omega1;
                 direction = 1;
+                omega2 = (r1 / r2) * omega1;
                 modeLabel = '皮带传动';
-                modeDesc = '两轮边缘线速度等大，转向相同';
+                modeDesc = '开口皮带传动，两轮边缘线速度等大，转向相同';
                 break;
             case 'friction':
-                omega2 = (r1 / r2) * omega1;
-                direction = 1;
+                direction = -1;
+                omega2 = -(r1 / r2) * omega1;
                 modeLabel = '摩擦轮传动';
-                modeDesc = '靠摩擦传动，两轮边缘线速度等大，转向相同';
+                modeDesc = '外切摩擦轮接触传动，接触点无打滑，线速度等大且转向相反';
                 break;
             case 'gear':
-                omega2 = (r1 / r2) * omega1;
                 direction = -1;
+                omega2 = -(r1 / r2) * omega1;
                 modeLabel = '齿轮传动';
-                modeDesc = '啮合点线速度等大，转向相反';
+                modeDesc = '外啮合齿轮传动，啮合点无打滑，线速度等大且转向相反';
                 break;
             case 'coax':
-                omega2 = omega1;
                 direction = 1;
+                omega2 = omega1;
                 modeLabel = '同轴传动';
-                modeDesc = '共同轴，角速度等大，转向相同';
+                modeDesc = '共同转轴，角速度等大，转向相同';
                 break;
             default:
                 throw new Error(`不支持的传动模式: ${mode}`);
@@ -92,8 +99,9 @@ export class TransmissionBeltModel extends PhysicsModelBase {
         const dirLabel = direction === 1 ? '同向' : '反向';
 
         // 解析解采样: 两轮边缘点圆周运动 (公共脚手架 sampleTrajectory)
+        // 外切接触点位于两轮连线 (x 轴): 主动轮 a₁(0)=0, 从动轮 a₂(0)=π, 此时 v₁(0)=v₂(0)=(0, +r₁ω₁)
         const phi1_0 = 0;
-        const phi2_0 = direction === 1 ? 0 : Math.PI; // 齿轮反向初始角差 π
+        const phi2_0 = direction === 1 ? 0 : Math.PI;
         const traj1 = sampleTrajectory({
             sampleCount,
             duration,
@@ -122,15 +130,15 @@ export class TransmissionBeltModel extends PhysicsModelBase {
             sampleCount,
             duration,
             sampleAt: t => {
-                // 从动轮边缘
-                const a2 = phi2_0 + direction * omega2 * t;
+                // 从动轮边缘 (omega2 已带符号, 不再乘 direction)
+                const a2 = phi2_0 + omega2 * t;
                 const p2: Vector2D = {
                     x: center2.x + r2 * Math.cos(a2),
                     y: center2.y + r2 * Math.sin(a2)
                 };
                 const v2: Vector2D = {
-                    x: -r2 * direction * omega2 * Math.sin(a2),
-                    y: r2 * direction * omega2 * Math.cos(a2)
+                    x: -r2 * omega2 * Math.sin(a2),
+                    y: r2 * omega2 * Math.cos(a2)
                 };
                 const speed2 = Math.hypot(v2.x, v2.y);
                 return {
@@ -144,8 +152,8 @@ export class TransmissionBeltModel extends PhysicsModelBase {
         });
 
         // 关键帧: 起始点、1/4 周期、1/2 周期...
-        const T1 = (2 * Math.PI) / Math.abs(omega1);
-        const T2 = (2 * Math.PI) / Math.abs(omega2);
+        const T1 = Math.abs(omega1) > 1e-12 ? (2 * Math.PI) / Math.abs(omega1) : 0;
+        const T2 = Math.abs(omega2) > 1e-12 ? (2 * Math.PI) / Math.abs(omega2) : 0;
         const keyframes: Keyframe[] = [
             {
                 label: '起始点',
@@ -157,11 +165,14 @@ export class TransmissionBeltModel extends PhysicsModelBase {
         ];
 
         // 加两个 1/4 周期
-        const qPoints: Array<{ T: number; label: string }> = [
-            { T: T1 / 4, label: '主动轮 1/4 周' },
-            { T: T1 / 2, label: '主动轮 1/2 周' },
-            { T: T1, label: '主动轮 1 周' }
-        ];
+        const qPoints: Array<{ T: number; label: string }> =
+            T1 > 0
+                ? [
+                      { T: T1 / 4, label: '主动轮 1/4 周' },
+                      { T: T1 / 2, label: '主动轮 1/2 周' },
+                      { T: T1, label: '主动轮 1 周' }
+                  ]
+                : [];
         for (const q of qPoints) {
             if (q.T > duration) break;
             const idx = Math.min(sampleCount, Math.round(q.T / dt));
@@ -268,13 +279,13 @@ export class TransmissionBeltModel extends PhysicsModelBase {
         };
 
         // diagnostics
-        const gearRatioAbs = Math.abs(omega2 / omega1);
+        const gearRatioAbs = Math.abs(omega1) > 1e-12 ? Math.abs(omega2 / omega1) : mode === 'coax' ? 1 : r1 / r2;
         const radiusRatio = r1 / r2;
         const slipTolerance = 1e-9;
         const withinTolerance =
             mode === 'coax'
                 ? Math.abs(omega1 - omega2) < slipTolerance
-                : Math.abs(gearRatioAbs - 1 / radiusRatio) < slipTolerance;
+                : Math.abs(gearRatioAbs - radiusRatio) < slipTolerance;
 
         return {
             meta: this.makeMeta('analytical'),
@@ -303,6 +314,9 @@ export class TransmissionBeltModel extends PhysicsModelBase {
                 maxValues: {
                     omega1: Math.abs(omega1),
                     omega2: Math.abs(omega2),
+                    omega1Signed: omega1,
+                    omega2Signed: omega2,
+                    direction,
                     vSurface,
                     gearRatio: gearRatioAbs,
                     radiusRatio,
@@ -315,11 +329,11 @@ export class TransmissionBeltModel extends PhysicsModelBase {
                     withinRange: withinTolerance,
                     warnings: withinTolerance
                         ? []
-                        : [`实际传动比 ${gearRatioAbs.toFixed(4)} 与理论值 ${(1 / radiusRatio).toFixed(4)} 偏差过大`]
+                        : [`实际传动比 ${gearRatioAbs.toFixed(4)} 与理论值 ${radiusRatio.toFixed(4)} 偏差过大`]
                 }
             },
             explanation: {
-                summary: `${modeLabel}: ω₁=${omega1.toFixed(2)}rad/s, ω₂=${omega2.toFixed(2)}rad/s, r₁/r₂=${radiusRatio.toFixed(2)}, v=${vSurface.toFixed(2)}m/s`,
+                summary: `${modeLabel}: ω₁=${omega1.toFixed(2)}rad/s, ω₂=${omega2.toFixed(2)}rad/s (${dirLabel}), r₁/r₂=${radiusRatio.toFixed(2)}, v=${vSurface.toFixed(2)}m/s`,
                 steps:
                     mode === 'coax'
                         ? [
@@ -346,24 +360,24 @@ export class TransmissionBeltModel extends PhysicsModelBase {
                               {
                                   order: 1,
                                   description: `${modeLabel}: ${modeDesc}`,
-                                  formula: mode === 'gear' ? 'ω₁·r₁ = ω₂·r₂, 反向' : 'ω₁·r₁ = ω₂·r₂, 同向'
+                                  formula: direction === -1 ? 'ω₁·r₁ = -ω₂·r₂ (反向)' : 'ω₁·r₁ = ω₂·r₂ (同向)'
                               },
                               {
                                   order: 2,
                                   description: '角速度比',
                                   formula: '|ω₂/ω₁| = r₁/r₂',
-                                  calculation: `|ω₂/ω₁| = ${gearRatioAbs.toFixed(3)}, r₁/r₂ = ${radiusRatio.toFixed(3)}`
+                                  calculation: `|ω₂/ω₁| = ${gearRatioAbs.toFixed(3)}, r₁/r₂ = ${radiusRatio.toFixed(3)} (${dirLabel})`
                               },
                               {
                                   order: 3,
                                   description: '边缘线速度等大',
                                   formula: 'v = ω·r',
-                                  calculation: `v₁ = ${omega1.toFixed(2)}·${r1} = ${vSurface.toFixed(2)} m/s, v₂ = ${omega2.toFixed(2)}·${r2} = ${vSurface2.toFixed(2)} m/s`
+                                  calculation: `|v₁| = |${omega1.toFixed(2)}|·${r1} = ${vSurface.toFixed(2)} m/s, |v₂| = |${omega2.toFixed(2)}|·${r2} = ${vSurface2.toFixed(2)} m/s`
                               },
                               {
                                   order: 4,
                                   description: '周期',
-                                  formula: 'T = 2π/ω',
+                                  formula: 'T = 2π/|ω|',
                                   calculation: `T₁ = ${T1.toFixed(3)}s, T₂ = ${T2.toFixed(3)}s`
                               }
                           ],
