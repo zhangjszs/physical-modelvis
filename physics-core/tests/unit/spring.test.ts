@@ -143,6 +143,84 @@ describe('SpringOscillatorModel', () => {
         expect(labels).toContain('终点');
     });
 
+    describe('平衡位置关键帧速度文本与帧对象一致性 (#170)', () => {
+        function extractSpeedFromDesc(description: string): number {
+            const match = description.match(/速度\s+([0-9.]+)m\/s/);
+            expect(match).not.toBeNull();
+            return Number(match![1]);
+        }
+
+        it('无阻尼默认参数 (m=1, k=10, A=0.5, v0=0): 文本速度为 A√(k/m)≈1.5811 m/s 而非 v0=0', () => {
+            const result = model.solve(makeSpringProblem({ m: 1, k: 10, x0: 0.5, v0: 0, duration: 5, samples: 1000 }));
+            const eqKf = result.keyframes.find(kf => kf.label === '平衡位置');
+            expect(eqKf).toBeDefined();
+
+            const expectedT = Math.PI / (2 * Math.sqrt(10));
+            const expectedSpeed = 0.5 * Math.sqrt(10);
+            const frameSpeed = Math.hypot(eqKf!.velocity!.x, eqKf!.velocity!.y);
+            const textSpeed = extractSpeedFromDesc(eqKf!.description);
+
+            expect(eqKf!.t).toBeCloseTo(expectedT, 3);
+            expect(frameSpeed).toBeCloseTo(expectedSpeed, 2);
+            expect(textSpeed).toBeCloseTo(frameSpeed, 4);
+            expect(eqKf!.description).toContain(`${frameSpeed.toFixed(4)}m/s`);
+            expect(eqKf!.description).not.toContain('0.0000m/s');
+        });
+
+        it('非零初速度 (x0=0.4, v0=1.2): 经过平衡位置速度大于 |v0| 且文本与帧速度一致', () => {
+            const k = 16,
+                m = 1,
+                x0 = 0.4,
+                v0 = 1.2; // ω = 4, A = √(0.4² + 0.3²) = 0.5, v_max = Aω = 2.0
+            const result = model.solve(makeSpringProblem({ m, k, x0, v0, duration: 4, samples: 1000 }));
+            const eqKf = result.keyframes.find(kf => kf.label === '平衡位置');
+            expect(eqKf).toBeDefined();
+
+            const frameSpeed = Math.hypot(eqKf!.velocity!.x, eqKf!.velocity!.y);
+            const textSpeed = extractSpeedFromDesc(eqKf!.description);
+
+            expect(frameSpeed).toBeCloseTo(2.0, 2);
+            expect(frameSpeed).toBeGreaterThan(Math.abs(v0));
+            expect(textSpeed).toBeCloseTo(frameSpeed, 4);
+            expect(eqKf!.description).toContain(`${frameSpeed.toFixed(4)}m/s`);
+        });
+
+        it('欠阻尼振动 (damping=0.6, v0=0): 穿越平衡位置速度严格正且小于无阻尼峰值，文本与帧一致', () => {
+            const k = 10,
+                m = 1,
+                x0 = 0.5,
+                damping = 0.6;
+            const result = model.solve(makeSpringProblem({ m, k, x0, v0: 0, damping, duration: 5, samples: 1000 }));
+            const eqKf = result.keyframes.find(kf => kf.label === '平衡位置');
+            expect(eqKf).toBeDefined();
+
+            const undampedPeak = x0 * Math.sqrt(k / m);
+            const frameSpeed = Math.hypot(eqKf!.velocity!.x, eqKf!.velocity!.y);
+            const textSpeed = extractSpeedFromDesc(eqKf!.description);
+
+            expect(frameSpeed).toBeGreaterThan(0.5);
+            expect(frameSpeed).toBeLessThan(undampedPeak);
+            expect(textSpeed).toBeCloseTo(frameSpeed, 4);
+            expect(eqKf!.description).toContain(`${frameSpeed.toFixed(4)}m/s`);
+        });
+
+        it('边界: 从平衡位置以初速度出发 (x0=0, v0=1.5) 应记录后续回穿平衡位置而非 t=0', () => {
+            const k = 9,
+                m = 1,
+                v0 = 1.5; // ω = 3, 半周期 T/2 = π/3 ≈ 1.0472s
+            const result = model.solve(makeSpringProblem({ m, k, x0: 0, v0, duration: 3, samples: 1000 }));
+            const eqKf = result.keyframes.find(kf => kf.label === '平衡位置');
+            expect(eqKf).toBeDefined();
+
+            const frameSpeed = Math.hypot(eqKf!.velocity!.x, eqKf!.velocity!.y);
+            const textSpeed = extractSpeedFromDesc(eqKf!.description);
+
+            expect(eqKf!.t).toBeCloseTo(Math.PI / 3, 2);
+            expect(frameSpeed).toBeCloseTo(1.5, 2);
+            expect(textSpeed).toBeCloseTo(frameSpeed, 4);
+        });
+    });
+
     it('校验失败: 缺少弹簧约束', () => {
         const badProblem: PhysicsProblem = {
             id: 'bad',

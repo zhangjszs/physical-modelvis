@@ -147,15 +147,27 @@ export class SpringOscillatorModel extends PhysicsModelBase {
         for (let i = 1; i < trajectory.length; i++) {
             const prev = trajectory[i - 1];
             const cur = trajectory[i];
-            const prevX = Vec2.magnitude(Vec2.sub(prev.position, anchor)) - L0 - equilibriumDisplacement;
-            const curX = Vec2.magnitude(Vec2.sub(cur.position, anchor)) - L0 - equilibriumDisplacement;
-            if (prevX * curX < 0) {
+            const prevX = Vec2.dot(Vec2.sub(prev.position, anchor), axisDir) - L0 - equilibriumDisplacement;
+            const curX = Vec2.dot(Vec2.sub(cur.position, anchor), axisDir) - L0 - equilibriumDisplacement;
+            if (prevX !== 0 && (curX === 0 || prevX * curX < 0)) {
+                // 帧内线性插值定位平衡位置穿越时刻与速度, 保证 keyframe.velocity 与文本读数同源
+                const alpha = Math.abs(prevX) / (Math.abs(prevX) + Math.abs(curX));
+                const tCross = prev.t + alpha * (cur.t - prev.t);
+                const posCross = {
+                    x: prev.position.x + alpha * (cur.position.x - prev.position.x),
+                    y: prev.position.y + alpha * (cur.position.y - prev.position.y)
+                };
+                const velCross = {
+                    x: prev.velocity.x + alpha * (cur.velocity.x - prev.velocity.x),
+                    y: prev.velocity.y + alpha * (cur.velocity.y - prev.velocity.y)
+                };
+                const speedCross = Vec2.magnitude(velCross);
                 keyframes.push({
                     label: '平衡位置',
-                    t: cur.t,
-                    position: cur.position,
-                    velocity: cur.velocity,
-                    description: `振子在 t=${cur.t.toFixed(4)}s 经过平衡位置，速度 ${Math.abs(v0).toFixed(4)}m/s`
+                    t: tCross,
+                    position: posCross,
+                    velocity: velCross,
+                    description: `振子在 t=${tCross.toFixed(4)}s 经过平衡位置，速度 ${speedCross.toFixed(4)}m/s`
                 });
                 break;
             }
