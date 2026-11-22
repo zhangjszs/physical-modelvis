@@ -220,19 +220,26 @@ export function drawOrbitalScene(opts: MechanicsSceneOptions): void {
 // ======================= Task 4: 碰撞与动量场景 =======================
 
 export function drawCavendishScene(opts: MechanicsSceneOptions): void {
-    const { ctx, width, height, isDark, params } = opts;
+    const { ctx, width, height, isDark, params, simulationResult } = opts;
     const m1 = params['m1'] ?? 10;
     const m2 = params['m2'] ?? 0.5;
     const distance = params['distance'] ?? 0.1;
     const torsionConst = params['torsionConst'] ?? 1e-4;
     const mirrorDist = params['mirrorDist'] ?? 5;
 
+    const mv = simulationResult?.diagnostics?.maxValues;
+    const readMv = (key: string): number | undefined => {
+        const v = mv?.[key];
+        return typeof v === 'number' && Number.isFinite(v) ? v : undefined;
+    };
+
     const G = GRAVITATIONAL_CONSTANT;
-    const armLength = 1;
-    const F = (G * m1 * m2) / (distance * distance);
-    const tau = F * armLength;
-    const theta = tau / torsionConst;
-    const spotDisp = 2 * mirrorDist * theta;
+    const armLength = readMv('L') ?? 1;
+    const F = readMv('F') ?? (G * m1 * m2) / (distance * distance);
+    const tau = readMv('torque') ?? F * armLength;
+    const theta = readMv('theta_rad') ?? tau / torsionConst;
+    const clampedBeam = Math.sign(theta) * Math.min(Math.abs(2 * theta), Math.PI / 2 - 1e-3);
+    const spotDisp = readMv('deltaSpot_m') ?? mirrorDist * Math.tan(clampedBeam);
 
     const cx = width * 0.42;
     const cy = height * 0.48;
@@ -322,7 +329,7 @@ export function drawCavendishScene(opts: MechanicsSceneOptions): void {
     ctx.font = '12px monospace';
     ctx.textAlign = 'left';
     ctx.fillText(
-        `三级放大: 力矩τ=F·L=${tau.toExponential(2)}N·m → 扭转角θ=τ/k=${theta.toExponential(2)}rad → 光点偏移Δ=2Dθ=${spotDisp.toExponential(2)}m`,
+        `三级放大: 力矩τ=F·L=${tau.toExponential(2)}N·m → 扭转角θ=τ/k=${theta.toExponential(2)}rad → 光点偏移Δ=D·tan(2θ)=${spotDisp.toExponential(2)}m`,
         panelX + 10,
         height * 0.72 + 25
     );

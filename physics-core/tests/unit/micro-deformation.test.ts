@@ -51,13 +51,15 @@ describe('MicroDeformationModel', () => {
         expect(deltaH).toBeLessThan(1e-8);
     });
 
-    it('正例: F=100N, D=5m 时光点位移 Δs 在 nm-μm 级, 远大于 Δh', () => {
+    it('正例: F=100N, D=5m 时光点位移 Δs = D·tan(2α) ≈ 2D·α = 5nm, 远大于 Δh (#176)', () => {
         // 物理量级：Δh = F·L₀/(E·A) = 100*0.05/(1e10*1) = 5e-10 m = 0.5 nm
-        // α = 5e-10 rad, Δs = 2·D·tan(2α) ≈ 4D·α = 4·5·5e-10 = 1e-8 m = 10 nm
+        // α = 5e-10 rad, Δs = D·tan(2α) ≈ 2D·α = 2·5·5e-10 = 5e-9 m = 5 nm
         const r = model.solve(makeProblem({ pressure: 100, mirrorDist: 5 }));
         const deltaS = r.diagnostics.maxValues.deltaS as number;
-        expect(deltaS).toBeGreaterThan(1e-12);
-        expect(deltaS).toBeLessThan(1e-3);
+        const deltaSLinear = r.diagnostics.maxValues.deltaSLinear as number;
+        expect(deltaS).toBeCloseTo(5e-9, 15);
+        expect(deltaSLinear).toBeCloseTo(5e-9, 15);
+        expect(deltaS / deltaSLinear).toBeCloseTo(1, 6);
         expect(deltaS).toBeGreaterThan(r.diagnostics.maxValues.deltaH as number); // 放大成立
     });
 
@@ -80,11 +82,42 @@ describe('MicroDeformationModel', () => {
         expect(Number.isFinite(r.diagnostics.maxValues.deltaS as number)).toBe(true);
     });
 
-    it('放大倍数 k = Δs/Δh = 4D/L (线性近似)', () => {
+    it('放大倍数 k = Δs/Δh = 2D/L (线性近似, #176)', () => {
         const r = model.solve(makeProblem({ mirrorDist: 5, tableLength: 1 }));
         const k = r.diagnostics.maxValues.magnification as number;
-        // k ≈ 4×5/1 = 20 — 注意真实 k = 微小形变下的极限
-        expect(k).toBeCloseTo(20, 1);
+        // k ≈ 2×5/1 = 10
+        expect(k).toBeCloseTo(10, 4);
+        expect(r.diagnostics.maxValues.linearMagnification).toBeCloseTo(10, 6);
+        expect(r.explanation.formulas.every(f => !f.formula.includes('4D'))).toBe(true);
+    });
+
+    it('独立公式回归 (α=0.01rad, D=5m): Δs=D·tan(2α)≈0.100013m 且压力扫描与关键帧一致 (#176)', () => {
+        // Δh = F·L0/(E·1) = 1e6 * 1 / 1e8 = 0.01 m, L = 1 m → α = 0.01 rad (全部在 requiredParameters 合法范围内)
+        const r = model.solve(
+            makeProblem({ pressure: 1e6, thickness: 1, youngModulus: 1e8, tableLength: 1, mirrorDist: 5 })
+        );
+        const { alpha, deltaS, deltaSLinear } = r.diagnostics.maxValues;
+        expect(alpha).toBeCloseTo(0.01, 10);
+        expect(deltaSLinear).toBeCloseTo(0.1, 10);
+        expect(deltaS).toBeCloseTo(5 * Math.tan(0.02), 10);
+        expect(deltaS / deltaSLinear).toBeCloseTo(Math.tan(0.02) / 0.02, 8);
+        expect(r.keyframes[1]!.velocity!.y).toBeCloseTo(deltaS, 10);
+
+        // 压力扫描中点 (F=pressure) 与精确 Δs 一致
+        const dsPts = r.charts.pressure_deltaS!.points;
+        const midPt = dsPts[Math.floor(dsPts.length / 2)]!;
+        expect(midPt.y).toBeCloseTo(deltaS, 8);
+    });
+
+    it('边界: 较大倾角 (α=0.2rad, 参数极限内) 时精确 D·tan(2α) 有限且触发大角告警 (#176)', () => {
+        // Δh = 1e6 * 1 / 1e8 = 0.01 m, L = 0.05 m → α = 0.2 rad, 2α = 0.4 rad
+        const r = model.solve(
+            makeProblem({ pressure: 1e6, thickness: 1, youngModulus: 1e8, tableLength: 0.05, mirrorDist: 5 })
+        );
+        expect(Number.isFinite(r.diagnostics.maxValues.deltaS)).toBe(true);
+        expect(r.diagnostics.maxValues.deltaS).toBeCloseTo(5 * Math.tan(0.4), 10);
+        expect(r.diagnostics.maxValues.deltaSLinear).toBeCloseTo(2.0, 10);
+        expect(r.warnings.length).toBeGreaterThan(0);
     });
 
     it('生成 pressure-deltaS 和 pressure-deltaH 两个图表', () => {

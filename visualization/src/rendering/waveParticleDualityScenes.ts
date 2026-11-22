@@ -221,21 +221,38 @@ export function drawElectronDiffractionScene(o: ModernSceneOptions): void {
     );
 }
 
+function formatOpticalLength(meters: number): string {
+    const abs = Math.abs(meters);
+    if (abs === 0) return '0 m';
+    if (abs >= 1) return `${meters.toFixed(3)} m`;
+    if (abs >= 1e-3) return `${(meters * 1e3).toFixed(3)} mm`;
+    if (abs >= 1e-6) return `${(meters * 1e6).toFixed(3)} μm`;
+    if (abs >= 1e-11) return `${(meters * 1e9).toFixed(3)} nm`;
+    return `${meters.toExponential(2)} m`;
+}
+
 export function drawMicroDeformationScene(o: ModernSceneOptions): void {
-    const { ctx, width: w, height: h, isDark, params } = o;
+    const { ctx, width: w, height: h, isDark, params, simulationResult } = o;
     clearScene(ctx, w, h, isDark);
     drawTitle(ctx, '光杠杆放大微小形变', w, isDark, { size: 18, y: 28 });
 
     const F = params['pressure'] ?? 100; // N
-    const L = params['laserDist'] ?? 1; // 激光到镜面 (杠杆臂, m)
     const D = params['mirrorDist'] ?? 5; // 镜面到屏 (光程, m)
     const E = params['youngModulus'] ?? 10; // GPa
 
-    // 形变 δ (示意量级): 桌面在 F 下下沉, 与 F/E 成正比
-    const delta = (F / (E * 1e9)) * 1e-3; // m
-    const theta = delta / L; // 镜面转角 ≈ δ/L (rad)
-    const spotShift = 2 * D * theta; // 反射光斑位移 (m)
-    const amp = (2 * D) / L; // 放大倍数
+    const mv = simulationResult?.diagnostics?.maxValues;
+    const readMv = (key: string): number | undefined => {
+        const v = mv?.[key];
+        return typeof v === 'number' && Number.isFinite(v) ? v : undefined;
+    };
+
+    // 单一真源: 优先消费引擎 maxValues (#176); 无引擎结果时按同公式回退 (L0=0.05m, L=1m)
+    const tableLen = readMv('tableLength') ?? 1;
+    const delta = readMv('deltaH') ?? (F * 0.05) / (E * 1e9);
+    const theta = readMv('alpha') ?? delta / tableLen;
+    const clampedBeam = Math.sign(theta) * Math.min(Math.abs(2 * theta), Math.PI / 2 - 1e-3);
+    const spotShift = readMv('deltaS') ?? D * Math.tan(clampedBeam);
+    const amp = readMv('magnification') ?? (2 * D) / tableLen;
 
     const baseY = h * 0.62;
     const laserX = w * 0.08,
@@ -315,9 +332,9 @@ export function drawMicroDeformationScene(o: ModernSceneOptions): void {
         [
             { label: 'F', value: `${F} N` },
             { label: 'E', value: `${E} GPa` },
-            { label: 'δ (形变量)', value: `${(delta * 1e9).toFixed(3)} nm` },
+            { label: 'δ (形变量)', value: formatOpticalLength(delta) },
             { label: '放大 2D/L', value: `${amp.toFixed(1)}×` },
-            { label: '光斑位移', value: `${(spotShift * 1e3).toFixed(3)} mm` }
+            { label: '光斑位移 Δs', value: formatOpticalLength(spotShift) }
         ],
         { boxW: 230, lineH: 16 }
     );

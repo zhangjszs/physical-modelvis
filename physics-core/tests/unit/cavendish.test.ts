@@ -56,13 +56,51 @@ describe('CavendishModel', () => {
         expect(r.diagnostics.maxValues.theta_rad).toBeLessThan(1e-3);
     });
 
-    it('光点位移 Δspot = 2D·tan(2θ) 精确 ≈ 4D·θ (小角近似, θ<0.01 时 <1%)', () => {
-        // 默认 k=1e-3 使 θ ≈ 3.3e-4 rad, 小角近似 < 0.01%
+    it('光点位移 Δspot = D·tan(2θ) 精确 ≈ 2D·θ (小角极限 exact/linear → 1, #176)', () => {
+        // 默认 k=1e-3 使 θ ≈ 3.3e-5 rad, 小角近似精确/线性比趋于 1
         const r = model.solve(makeProblem());
-        const { D, theta_rad, deltaSpot_m } = r.diagnostics.maxValues;
-        const approx = 4 * D * theta_rad;
+        const { D, theta_rad, deltaSpot_m, deltaSpotLinear_m } = r.diagnostics.maxValues;
+        const expectedLinear = 2 * D * theta_rad;
+        const expectedExact = D * Math.tan(2 * theta_rad);
         expect(theta_rad).toBeLessThan(0.01);
-        expect(Math.abs(deltaSpot_m - approx) / approx).toBeLessThan(0.01);
+        expect(deltaSpotLinear_m).toBeCloseTo(expectedLinear, 12);
+        expect(deltaSpot_m).toBeCloseTo(expectedExact, 12);
+        expect(deltaSpot_m / expectedLinear).toBeCloseTo(1, 5);
+        expect(r.keyframes[1]!.velocity!.y).toBeCloseTo(deltaSpot_m, 12);
+        expect(r.explanation.formulas.some(f => f.formula.includes('D·tan(2θ) ≈ 2D·θ'))).toBe(true);
+        expect(r.explanation.formulas.every(f => !f.formula.includes('4D'))).toBe(true);
+    });
+
+    it('光杠杆精确公式边界 (D=5m, θ=0.01rad): D·tan(2θ)≈0.100013m 而非 2D·tan(2θ) (#176)', () => {
+        // 选取 k 使 θ = τ/k = 0.01 rad
+        const m1 = 10,
+            m2 = 0.5,
+            distance = 0.1,
+            armLength = 1,
+            mirrorDist = 5;
+        const tau = ((G_STD * m1 * m2) / (distance * distance)) * armLength;
+        const torsionConst = tau / 0.01;
+        const r = model.solve(makeProblem({ m1, m2, distance, torsionConst, mirrorDist, armLength }));
+        const { theta_rad, deltaSpot_m, deltaSpotLinear_m } = r.diagnostics.maxValues;
+
+        expect(theta_rad).toBeCloseTo(0.01, 10);
+        expect(deltaSpotLinear_m).toBeCloseTo(0.1, 10);
+        expect(deltaSpot_m).toBeCloseTo(5 * Math.tan(0.02), 10);
+        expect(deltaSpot_m / deltaSpotLinear_m).toBeCloseTo(Math.tan(0.02) / 0.02, 8);
+        expect(deltaSpot_m).toBeLessThan(0.11); // 绝不是多乘 2 后的 ~0.200027m
+    });
+
+    it('边界: 极大扭转角 (2θ ≥ π/2) 时截断在平面光屏几何上限并输出告警, 无 NaN/负值 (#176)', () => {
+        const m1 = 1000,
+            m2 = 10,
+            distance = 0.01,
+            armLength = 1,
+            mirrorDist = 5;
+        const torsionConst = 1e-10; // 使 θ >> π/4
+        const r = model.solve(makeProblem({ m1, m2, distance, torsionConst, mirrorDist, armLength }));
+        expect(Number.isFinite(r.diagnostics.maxValues.deltaSpot_m)).toBe(true);
+        expect(r.diagnostics.maxValues.deltaSpot_m).toBeGreaterThan(0);
+        expect(r.warnings.length).toBeGreaterThan(0);
     });
 
     it('拟合 G 与标准 G 一致 (用它求解自己)', () => {

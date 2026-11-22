@@ -18,13 +18,13 @@ const G_STANDARD = PHYSICS_CONSTANTS.G.value;
  *   三次放大:
  *     ① 力矩放大: τ = F·L              (L = 悬丝到小球距离)
  *     ② 扭转放大: θ = τ/k              (k = 扭转常数)
- *     ③ 光杠杆放大: Δspot = 2·D·θ_mirror (D = 镜面到投影屏距离, θ_mirror = θ)
- *        光点偏转角 = 2θ, 所以 Δspot = 2·D·tan(2θ) ≈ 4·D·θ (θ 小)
+ *     ③ 光杠杆放大: Δspot = D·tan(2θ_mirror) ≈ 2·D·θ_mirror (D = 镜面到投影屏距离, θ_mirror = θ)
+ *        镜面偏转 θ → 反射光偏转 2θ, 平面光屏上光斑位移 Δspot = D·tan(2θ) ≈ 2·D·θ (θ 小)
  *
  * 关键量:
  *   扭矩: τ = G·m₁·m₂/r² · L
  *   扭转角: θ = τ/k
- *   光点位移: Δspot = 2·D·θ  (或精确: 2D·tan(2θ))
+ *   光点位移: Δspot = D·tan(2θ) ≈ 2·D·θ
  *   反推 G:  G = θ·k·r² / (m₁·m₂·L)
  */
 export class CavendishModel extends PhysicsModelBase {
@@ -82,13 +82,16 @@ export class CavendishModel extends PhysicsModelBase {
         const L = c.armLength ?? r; // 半臂长，默认用 r 代替
 
         // ===== 核心静态计算 (真实值用 G 标准输入, 反推 G 后对比) =====
+        const MAX_BEAM_DEFLECTION = Math.PI / 2 - 1e-3; // 平面光屏极限: 2θ < π/2
         const F = (G_STANDARD * m1 * m2) / (r * r); // 引力
         const torque = F * L; // 力矩
         const theta = torque / k; // 扭转角 (弧度)
         const thetaDeg = (theta * 180) / Math.PI; // 扭转角 (度)
         const thetaMirror = theta; // 镜面偏转角
-        const deltaSpotLinear = 2 * D * thetaMirror; // 小角近似光点位移
-        const deltaSpotExact = 2 * D * Math.tan(2 * thetaMirror); // 精确光点位移
+        const beamAngle = 2 * thetaMirror;
+        const clampedBeamAngle = Math.sign(beamAngle) * Math.min(Math.abs(beamAngle), MAX_BEAM_DEFLECTION);
+        const deltaSpotLinear = 2 * D * thetaMirror; // 小角近似光点位移: Δspot ≈ 2Dθ
+        const deltaSpotExact = D * Math.tan(clampedBeamAngle); // 精确光点位移: Δspot = D·tan(2θ)
         const amplification = ((2 * D) / k) * L; // 总放大系数 (Δspot/F): 2D·L/k
 
         // ===== 反推 G 并与标准值比对 =====
@@ -108,12 +111,14 @@ export class CavendishModel extends PhysicsModelBase {
             const Fs = (G_STANDARD * m1s * m2) / (r * r);
             const taus = Fs * L;
             const ths = taus / k;
+            const clampedBeamS = Math.sign(ths) * Math.min(Math.abs(2 * ths), MAX_BEAM_DEFLECTION);
+            const spotS = D * Math.tan(clampedBeamS);
             tau_theta_points.push({ x: taus, y: ths });
             sweepTraj.push({
                 t,
                 position: { x: m1s, y: ths },
                 velocity: { x: Fs, y: taus },
-                acceleration: { x: ths, y: deltaSpotLinear },
+                acceleration: { x: ths, y: spotS },
                 kineticEnergy: Fs,
                 potentialEnergy: taus
             });
@@ -152,7 +157,7 @@ export class CavendishModel extends PhysicsModelBase {
         const screenDist = D * scale * 3;
         const beamEndX = screenDist; // 屏幕坐标 (沿 x 轴)
         const spotEndX = beamEndX;
-        const spotEndY = mirrorY + Math.tan(2 * theta) * screenDist;
+        const spotEndY = mirrorY + Math.tan(clampedBeamAngle) * screenDist;
 
         const staticDiagram: ChartSeries = {
             xLabel: '扭秤示意 (放大夸张)',
@@ -185,7 +190,7 @@ export class CavendishModel extends PhysicsModelBase {
                 t: duration / 2,
                 position: { x: thetaDeg, y: deltaSpotLinear },
                 velocity: { x: theta, y: deltaSpotExact },
-                description: `扭转角 θ=${theta.toExponential(3)} rad = ${thetaDeg.toExponential(3)}°, 光点位移 Δspot≈${deltaSpotLinear.toExponential(3)} m`
+                description: `扭转角 θ=${theta.toExponential(3)} rad = ${thetaDeg.toExponential(3)}°, 光点位移 Δspot=${deltaSpotExact.toExponential(3)} m (小角近似 ${deltaSpotLinear.toExponential(3)} m)`
             },
             {
                 label: '拟合 G 值',
@@ -197,6 +202,13 @@ export class CavendishModel extends PhysicsModelBase {
         ];
 
         const warnings: string[] = [];
+        if (Math.abs(beamAngle) >= MAX_BEAM_DEFLECTION) {
+            warnings.push(
+                `反射光偏转角 2θ=${beamAngle.toExponential(2)} rad 已达平面光屏几何上限 (π/2), 已按小角/平面屏边界截断`
+            );
+        } else if (Math.abs(thetaMirror) > 0.1) {
+            warnings.push(`扭转角 θ=${thetaMirror.toExponential(2)} rad 较大, 小角度近似 tan(2θ) ≈ 2θ 误差增大`);
+        }
         const steps = this.buildSteps(
             m1,
             m2,
@@ -228,6 +240,7 @@ export class CavendishModel extends PhysicsModelBase {
                     theta_rad: theta,
                     theta_deg: thetaDeg,
                     deltaSpot_m: deltaSpotExact,
+                    deltaSpotLinear_m: deltaSpotLinear,
                     D,
                     k,
                     L,
@@ -268,7 +281,7 @@ export class CavendishModel extends PhysicsModelBase {
                     },
                     {
                         name: '光杠杆放大',
-                        formula: 'Δspot = 2·D·θ ≈ 4D·θ (小角)',
+                        formula: 'Δspot = D·tan(2θ) ≈ 2D·θ (小角)',
                         variables: { D: { value: D, unit: 'm' }, θ: { value: theta, unit: 'rad' } }
                     },
                     {
@@ -311,7 +324,7 @@ export class CavendishModel extends PhysicsModelBase {
         const F_calc = `F = 6.674×10⁻¹¹ × ${m1} × ${m2} / ${r}²`;
         const torque_calc = `τ = ${F.toExponential(3)} × ${L}`;
         const theta_calc = `θ = ${torque.toExponential(3)} / ${k}`;
-        const spot_calc = `Δspot = 2 × ${D} × ${theta.toExponential(3)}`;
+        const spot_calc = `Δspot = D·tan(2θ) = ${D}·tan(${(2 * theta).toExponential(3)}) ≈ 2 × ${D} × ${theta.toExponential(3)}`;
         const G_fit_calc = `G = ${theta.toExponential(3)} × ${k} × ${r}² / (${m1} × ${m2} × ${L})`;
         return [
             {
@@ -337,10 +350,10 @@ export class CavendishModel extends PhysicsModelBase {
             },
             {
                 order: 4,
-                description: '第三次放大 — 光杠杆：镜面随悬丝偏转，反射光斑在远处屏上移动',
-                formula: 'Δspot = 2D·tan(2θ) ≈ 4D·θ',
-                calculation: `${spot_calc}; ①近似 = ${deltaSpotLinear.toExponential(3)} m, ②精确 = ${deltaSpotExact.toExponential(3)} m`,
-                result: `Δspot ≈ ${deltaSpotLinear.toExponential(3)} m — 已经可用标尺读数 (cm 级)`
+                description: '第三次放大 — 光杠杆：镜面随悬丝偏转 θ，反射光偏转 2θ，在距镜面 D 的平面光屏上移动',
+                formula: 'Δspot = D·tan(2θ) ≈ 2D·θ',
+                calculation: `${spot_calc}; ①精确 = ${deltaSpotExact.toExponential(3)} m, ②小角近似 = ${deltaSpotLinear.toExponential(3)} m`,
+                result: `Δspot = ${deltaSpotExact.toExponential(3)} m (小角近似 ${deltaSpotLinear.toExponential(3)} m)`
             },
             {
                 order: 5,

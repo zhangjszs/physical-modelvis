@@ -3,10 +3,10 @@
  * 包含：重型铸铁减震基座、透明防风圆柱玻璃罩、黄铜悬丝顶管与微调旋钮、
  * 灵敏石英/铍青铜悬丝、中央微型平面反射镜、轻质 T 形悬臂与对称小铅球 (m₂)、
  * 外部旋转引力支架与对称大铅球 (m₁)、精密半导体激光管与远端毫米刻度光屏、
- * 满足光杠杆倍率放大规律（镜偏转 θ，光束偏转 2θ，光斑位移 Δs = 2Dθ）。
+ * 满足光杠杆倍率放大规律（镜偏转 θ，光束偏转 2θ，光斑位移 Δs = D·tan(2θ) ≈ 2Dθ）。
  */
 import * as THREE from 'three';
-import { PHYSICS_CONSTANTS } from 'physics-core';
+import { PHYSICS_CONSTANTS, type SimulationResult } from 'physics-core';
 import { SceneRig } from '../EquipmentStage';
 import {
     makeBox,
@@ -56,7 +56,7 @@ export const cavendishRig: SceneRig = {
     ballRadius: 0.001, // 扭秤内双大铅球与双小铅球主导视觉
     clampToGround: true,
 
-    buildEquipment(scene, params) {
+    buildEquipment(scene, params, result) {
         const group = new THREE.Group();
 
         // 1. 重型铸铁防震基座与调平支脚
@@ -277,18 +277,31 @@ export const cavendishRig: SceneRig = {
             thetaEq: 0
         };
 
-        this.updateEquipment(handles, params);
+        this.updateEquipment(handles, params, result);
         return { group, handles };
     },
 
-    updateEquipment(handles, params) {
+    updateEquipment(handles, params, result?: SimulationResult | null) {
         const h = handles as CavendishHandles;
         const m1 = num(params['m1'], 10);
         const m2 = num(params['m2'], 0.5);
         const r = num(params['distance'], 0.1);
         const k = num(params['torsionConst'], 1e-4);
         const D = num(params['mirrorDist'], 5);
-        const L = 0.6; // 半臂长
+
+        const mv = result?.diagnostics?.maxValues;
+        const readMv = (key: string): number | undefined => {
+            const v = mv?.[key];
+            return typeof v === 'number' && Number.isFinite(v) ? v : undefined;
+        };
+
+        // 单一真源: 优先消费引擎 maxValues (#176); 无结果时按与引擎一致的公式回退
+        const L = readMv('L') ?? 1;
+        const F = readMv('F') ?? (G_CONST * m1 * m2) / Math.max(1e-4, r * r);
+        const torque = readMv('torque') ?? F * L;
+        const thetaEq = readMv('theta_rad') ?? torque / Math.max(1e-12, k);
+        const clampedBeam = Math.sign(thetaEq) * Math.min(Math.abs(2 * thetaEq), Math.PI / 2 - 1e-3);
+        const deltaSpot = readMv('deltaSpot_m') ?? D * Math.tan(clampedBeam);
 
         h.m1 = m1;
         h.m2 = m2;
@@ -296,11 +309,6 @@ export const cavendishRig: SceneRig = {
         h.torsionConst = k;
         h.mirrorDist = D;
         h.armLength = L;
-
-        // 计算真实万有引力 F = G * m1 * m2 / r²
-        const F = (G_CONST * m1 * m2) / Math.max(1e-4, r * r);
-        const torque = 2 * F * L; // 双侧力矩
-        const thetaEq = torque / Math.max(1e-12, k); // 真实平衡扭角 (rad)
         h.thetaEq = thetaEq;
 
         // 大球尺寸与位置随参数动态调整
@@ -325,12 +333,10 @@ export const cavendishRig: SceneRig = {
         h.smallBall2.geometry.dispose();
         h.smallBall2.geometry = new THREE.SphereGeometry(smallRadius, 24, 24);
 
-        const deltaSpot = 2 * D * thetaEq; // 真实物理位移 (m)
-
         if (h.infoLabel) {
             updateTextSprite(
                 h.infoLabel,
-                `大球 m₁=${m1}kg | 小球 m₂=${m2}kg | 间距 r=${r}m | 臂长 2L=1.2m`,
+                `大球 m₁=${m1}kg | 小球 m₂=${m2}kg | 间距 r=${r}m | 臂长 L=${L.toFixed(1)}m`,
                 '#0f172a',
                 22
             );
@@ -339,7 +345,7 @@ export const cavendishRig: SceneRig = {
         if (h.measureLabel) {
             updateTextSprite(
                 h.measureLabel,
-                `引力 F=${F.toExponential(3)}N | 扭角 θ=${(thetaEq * 1e6).toFixed(2)}μrad | 光斑位移 Δs=${(deltaSpot * 1e3).toFixed(2)}mm`,
+                `引力 F=${F.toExponential(3)}N | 扭角 θ=${thetaEq.toExponential(2)}rad | 光斑位移 Δs=${deltaSpot.toExponential(2)}m`,
                 '#2563eb',
                 20
             );

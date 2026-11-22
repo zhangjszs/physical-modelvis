@@ -10,7 +10,7 @@ import { PhysicsModelBase } from './base.js';
  *   桌面上压一重物，产生微小压缩形变 Δh：
  *     Δh = F·L₀ / (E·A)          (F = 压力, L₀ = 厚度, E = 杨氏模量, A = 截面积)
  *   桌面倾角 α ≈ tanα = Δh / L_table (L_table = 桌面长度)
- *   光杠杆放大：反射光点位移 Δs = 2·D·tan(2α) ≈ 4·D·α  (D = 镜面到屏距离)
+ *   光杠杆放大：反射光偏转 2α，平面光屏上光点位移 Δs = D·tan(2α) ≈ 2·D·α  (D = 镜面到屏距离)
  *
  * 这是静态分析 — 给定压力 F，计算 Δh 和 Δs。
  * 为图表能力复用，将不同 F 下的响应作为"扫过轨迹"返回。
@@ -61,12 +61,18 @@ export class MicroDeformationModel extends PhysicsModelBase {
 
         const A = 1; // 截面积标准化为 1 m²
 
-        // 核心静态计算
+        // 核心静态计算 (平面光屏极限: 2α < π/2)
+        const MAX_BEAM_DEFLECTION = Math.PI / 2 - 1e-3;
         const deltaH = (F * L0) / (E * A);
         const alpha = deltaH / L;
-        const deltaS = 2 * D * Math.tan(2 * alpha);
-        const deltaSLinear = 4 * D * alpha;
+        const beamAngle = 2 * alpha;
+        const clampedBeamAngle = Math.sign(beamAngle) * Math.min(Math.abs(beamAngle), MAX_BEAM_DEFLECTION);
+        const deltaS = D * Math.tan(clampedBeamAngle);
+        const deltaSLinear = 2 * D * alpha;
         const magnification = deltaH > 0 ? deltaS / deltaH : 0;
+        const beamAngle2 = 4 * alpha;
+        const clampedBeamAngle2 = Math.sign(beamAngle2) * Math.min(Math.abs(beamAngle2), MAX_BEAM_DEFLECTION);
+        const deltaS2 = D * Math.tan(clampedBeamAngle2);
 
         // 静态单帧轨迹
         const staticTraj: TrajectoryPoint[] = [
@@ -91,7 +97,8 @@ export class MicroDeformationModel extends PhysicsModelBase {
             const fScan = (i / sampleCount) * 2 * F;
             const dh = (fScan * L0) / (E * A);
             const al = dh / L;
-            const ds = 2 * D * Math.tan(2 * al);
+            const clampedBeamScan = Math.sign(al) * Math.min(Math.abs(2 * al), MAX_BEAM_DEFLECTION);
+            const ds = D * Math.tan(clampedBeamScan);
 
             sweepDeltaH.push({
                 t,
@@ -129,8 +136,8 @@ export class MicroDeformationModel extends PhysicsModelBase {
                 label: '2 倍压力 (上限)',
                 t: duration,
                 position: { x: 2 * F, y: -2 * deltaH },
-                velocity: { x: 2 * alpha, y: 2 * deltaS },
-                description: `F=${2 * F}N -> Δh=${formatSi(2 * deltaH)}m, Δs=${formatSi(2 * deltaS)}m (线性区)`
+                velocity: { x: 2 * alpha, y: deltaS2 },
+                description: `F=${2 * F}N -> Δh=${formatSi(2 * deltaH)}m, Δs=${formatSi(deltaS2)}m (线性区)`
             }
         ];
 
@@ -153,10 +160,11 @@ export class MicroDeformationModel extends PhysicsModelBase {
         };
 
         // 近似公式对比 (作为附加数据)
-        const approxCompare = `精确 Δs = ${deltaS.toExponential(4)} m, 近似 4D·α = ${deltaSLinear.toExponential(4)} m, 差异 ${Math.abs(deltaS - deltaSLinear).toExponential(4)} m`;
+        const approxCompare = `精确 Δs = ${deltaS.toExponential(4)} m, 近似 2D·α = ${deltaSLinear.toExponential(4)} m, 差异 ${Math.abs(deltaS - deltaSLinear).toExponential(4)} m`;
         const calcDeltaH = `Δh = F·L₀/(E·A) = ${F}×${L0}/(${E.toExponential()}×${A}) = ${deltaH.toExponential(4)} m`;
         const calcAlpha = `α = Δh/L = ${deltaH.toExponential(4)}/${L} = ${alpha.toExponential(4)} rad`;
-        const calcDeltaS = `Δs = 2D·tan(2α) = 2×${D}·tan(${(2 * alpha).toExponential(4)}) = ${deltaS.toExponential(4)} m`;
+        const calcDeltaS = `Δs = D·tan(2α) = ${D}·tan(${(2 * alpha).toExponential(4)}) = ${deltaS.toExponential(4)} m`;
+        const warnings = this.buildWarnings(deltaH, alpha, MAX_BEAM_DEFLECTION);
 
         return {
             meta: this.makeMeta('analytical'),
@@ -168,9 +176,10 @@ export class MicroDeformationModel extends PhysicsModelBase {
                 maxValues: {
                     deltaH,
                     deltaS,
+                    deltaSLinear,
                     magnification,
                     alpha,
-                    linearMagnification: (4 * D) / L,
+                    linearMagnification: (2 * D) / L,
                     youngModulus: E,
                     pressure: F,
                     thickness: L0,
@@ -179,8 +188,8 @@ export class MicroDeformationModel extends PhysicsModelBase {
                     laserDist
                 },
                 rangeCheck: {
-                    withinRange: true,
-                    warnings: this.buildWarnings(deltaH, alpha)
+                    withinRange: warnings.length === 0,
+                    warnings
                 }
             },
             explanation: {
@@ -202,22 +211,22 @@ export class MicroDeformationModel extends PhysicsModelBase {
                     {
                         order: 3,
                         description: '光路放大: 由几何与反射定律求光点位移',
-                        formula: 'α = Δh/L;  Δs = 2·D·tan(2α) ≈ 4·D·α (α 很小时)',
+                        formula: 'α = Δh/L;  Δs = D·tan(2α) ≈ 2·D·α (α 很小时)',
                         calculation: `${calcAlpha}; ${calcDeltaS}`,
-                        result: `Δs ≈ 4D·α ≈ ${(4 * D * alpha).toExponential(4)} m (线性近似)`
+                        result: `Δs ≈ 2D·α ≈ ${deltaSLinear.toExponential(4)} m (线性近似)`
                     },
                     {
                         order: 4,
                         description: '读数方法: 通过光点位移反推微小形变',
-                        formula: 'Δh ≈ Δs·L / (4D)  (用近似公式反解)',
-                        calculation: `Δh ≈ ${deltaS.toExponential(4)}×${L}/(4×${D}) = ${((deltaS * L) / (4 * D)).toExponential(4)} m`,
+                        formula: 'Δh ≈ Δs·L / (2D)  (用近似公式反解)',
+                        calculation: `Δh ≈ ${deltaS.toExponential(4)}×${L}/(2×${D}) = ${((deltaS * L) / (2 * D)).toExponential(4)} m`,
                         result: `与直接计算值 ${deltaH.toExponential(4)} m 接近`
                     },
                     {
                         order: 5,
                         description: '误差分析: 主要误差来自光路调节、温度漂移和弯曲形变叠加',
-                        formula: 'k = 4D/L (放大倍数)',
-                        calculation: `k = 4×${D}/${L} = ${((4 * D) / L).toFixed(1)}; 当前实际放大倍数 = ${magnification.toFixed(1)}`,
+                        formula: 'k = 2D/L (放大倍数)',
+                        calculation: `k = 2×${D}/${L} = ${((2 * D) / L).toFixed(1)}; 当前实际放大倍数 = ${magnification.toFixed(1)}`,
                         result: approxCompare
                     }
                 ],
@@ -239,22 +248,22 @@ export class MicroDeformationModel extends PhysicsModelBase {
                     },
                     {
                         name: '光点位移 (精确)',
-                        formula: 'Δs = 2D·tan(2α)',
+                        formula: 'Δs = D·tan(2α)',
                         variables: { D: { value: D, unit: 'm' }, '2α': { value: 2 * alpha, unit: 'rad' } }
                     },
                     {
                         name: '光点位移 (近似)',
-                        formula: 'Δs ≈ 4D·α',
+                        formula: 'Δs ≈ 2D·α',
                         variables: { D: { value: D, unit: 'm' }, α: { value: alpha, unit: 'rad' } }
                     },
                     {
                         name: '放大倍数',
-                        formula: 'k = Δs/Δh ≈ 4D/L',
+                        formula: 'k = Δs/Δh ≈ 2D/L',
                         variables: { D: { value: D, unit: 'm' }, L: { value: L, unit: 'm' } }
                     },
                     {
                         name: '形变反推',
-                        formula: 'Δh ≈ ΔsL/(4D)',
+                        formula: 'Δh ≈ ΔsL/(2D)',
                         variables: {
                             Δs: { value: deltaS, unit: 'm' },
                             L: { value: L, unit: 'm' },
@@ -270,12 +279,15 @@ export class MicroDeformationModel extends PhysicsModelBase {
                 { bodyId: 'scale', renderColor: '#fff', renderLabel: '标尺' }
             ],
             errors: [],
-            warnings: this.buildWarnings(deltaH, alpha)
+            warnings
         };
     }
 
-    private buildWarnings(deltaH: number, alpha: number): string[] {
+    private buildWarnings(deltaH: number, alpha: number, maxBeamDeflection: number): string[] {
         const warnings: string[] = [];
+        if (Math.abs(2 * alpha) >= maxBeamDeflection) {
+            warnings.push(`反射光偏转角 2α=${(2 * alpha).toExponential(2)} rad 已达平面光屏几何上限 (π/2), 已截断`);
+        }
         if (deltaH > 1e-4) {
             warnings.push(`形变 Δh=${deltaH.toExponential(2)} m 已超过 nm 级, 近似公式误差增大`);
         }
