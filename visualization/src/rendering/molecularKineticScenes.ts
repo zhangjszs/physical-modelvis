@@ -539,9 +539,14 @@ export function drawLiquidMixingScene(o: ThermalSceneOptions): void {
      * 现整量消费引擎; 量杯/分子示意保留。无结果回退旧式。
      */
     const engMix = readEngineLiquidMix(simulationResult);
+    const totalVolume = water + alcohol;
+    const isEmpty = totalVolume <= 0 || simulationResult?.diagnostics?.flags?.isEmpty === true;
     const contraction = 0.04 * Math.min(water, alcohol);
     const finalVolume = engMix?.finalVolume ?? water + alcohol - contraction;
     const deltaV = engMix?.deltaV ?? -contraction;
+    const contractionPercent = isEmpty
+        ? 0
+        : (engMix?.contractionPercent ?? (totalVolume > 0 ? (Math.abs(deltaV) / totalVolume) * 100 : 0));
     const beakerX = w * 0.36;
     const beakerY = h * 0.22;
     const beakerW = w * 0.28;
@@ -550,24 +555,32 @@ export function drawLiquidMixingScene(o: ThermalSceneOptions): void {
     ctx.lineWidth = 3;
     roundRectPath(ctx, beakerX, beakerY, beakerW, beakerH, 10);
     ctx.stroke();
-    const mix = Math.min(1, currentTime / 3);
-    const grad = ctx.createLinearGradient(beakerX, beakerY + beakerH, beakerX, beakerY);
-    grad.addColorStop(0, `rgba(59,130,246,${0.38 + mix * 0.15})`);
-    grad.addColorStop(1, `rgba(245,158,11,${0.38 - mix * 0.22})`);
-    ctx.fillStyle = grad;
-    roundRectPath(ctx, beakerX + 8, beakerY + beakerH * 0.18, beakerW - 16, beakerH * 0.74, 8);
-    ctx.fill();
-    for (let i = 0; i < 70; i++) {
-        const x = beakerX + 16 + seededRand(i) * (beakerW - 32);
-        const baseY = beakerY + beakerH * (i % 2 === 0 ? 0.32 : 0.7);
-        const y = baseY + (seededRand(i + 3) - 0.5) * beakerH * 0.28 * (0.4 + mix);
-        ctx.fillStyle = i % 2 === 0 ? '#60a5fa' : '#f59e0b';
-        ctx.globalAlpha = 0.55;
-        ctx.beginPath();
-        ctx.arc(x, y, 2.2, 0, Math.PI * 2);
+    if (isEmpty) {
+        ctx.fillStyle = isDark ? '#94a3b8' : '#64748b';
+        ctx.font = '13px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('无液体，收缩率不适用', beakerX + beakerW / 2, beakerY + beakerH / 2);
+        ctx.textAlign = 'left';
+    } else {
+        const mix = Math.min(1, currentTime / 3);
+        const grad = ctx.createLinearGradient(beakerX, beakerY + beakerH, beakerX, beakerY);
+        grad.addColorStop(0, `rgba(59,130,246,${0.38 + mix * 0.15})`);
+        grad.addColorStop(1, `rgba(245,158,11,${0.38 - mix * 0.22})`);
+        ctx.fillStyle = grad;
+        roundRectPath(ctx, beakerX + 8, beakerY + beakerH * 0.18, beakerW - 16, beakerH * 0.74, 8);
         ctx.fill();
+        for (let i = 0; i < 70; i++) {
+            const x = beakerX + 16 + seededRand(i) * (beakerW - 32);
+            const baseY = beakerY + beakerH * (i % 2 === 0 ? 0.32 : 0.7);
+            const y = baseY + (seededRand(i + 3) - 0.5) * beakerH * 0.28 * (0.4 + mix);
+            ctx.fillStyle = i % 2 === 0 ? '#60a5fa' : '#f59e0b';
+            ctx.globalAlpha = 0.55;
+            ctx.beginPath();
+            ctx.arc(x, y, 2.2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.globalAlpha = 1;
     }
-    ctx.globalAlpha = 1;
     drawHud(
         ctx,
         isDark,
@@ -575,10 +588,20 @@ export function drawLiquidMixingScene(o: ThermalSceneOptions): void {
             { label: 'Vw', value: `${water.toFixed(0)} mL` },
             { label: 'Va', value: `${alcohol.toFixed(0)} mL` },
             { label: 'Vmix', value: `${finalVolume.toFixed(1)} mL` },
-            { label: 'ΔV', value: `${deltaV.toFixed(2)} mL` }
+            { label: 'ΔV', value: `${deltaV.toFixed(2)} mL` },
+            { label: '收缩率', value: isEmpty ? '不适用' : `${contractionPercent.toFixed(2)}%` }
         ],
         { boxW: 200, lineH: 16 }
     );
-    drawInfoBar(ctx, w, h, '水和酒精混合体积小于二者之和, 说明分子间存在空隙', isDark, { height: 22, yOffset: 34 });
+    drawInfoBar(
+        ctx,
+        w,
+        h,
+        isEmpty
+            ? '无液体，收缩率不适用（请加入水或酒精后再观察混合收缩）'
+            : '水和酒精混合体积小于二者之和, 说明分子间存在空隙',
+        isDark,
+        { height: 22, yOffset: 34 }
+    );
     if (!simulationResult) drawEmptyState(ctx, w, h, isDark);
 }

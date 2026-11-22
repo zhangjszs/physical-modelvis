@@ -65,11 +65,12 @@ export class LiquidMixingModel extends PhysicsModelBase {
 
         // 收缩模型: V_final = Vw + Va * (1 - k * xW)
         // k 为收缩系数, 与水的摩尔分数成正比 (水越多, 酒精周围被水包围, 收缩越显著)
+        const isEmpty = VTotal === 0;
         const k = 0.06; // 总收缩参数 (~3% 总收缩)
         const contractionFactor = 1 - k * xW;
         const VFinal = Vw + Va * Math.max(contractionFactor, 0.9); // 防止过度收缩
         const deltaV = VFinal - VTotal;
-        const contractionPercent = (Math.abs(deltaV) / VTotal) * 100;
+        const contractionPercent = isEmpty ? 0 : (Math.abs(deltaV) / VTotal) * 100;
 
         // 组成-收缩量曲线 (扫描不同酒精比例)
         const compositionCurve: ChartSeries = {
@@ -128,12 +129,14 @@ export class LiquidMixingModel extends PhysicsModelBase {
                 t: 0,
                 position: { x: VTotal, y: VFinal },
                 velocity: { x: 0, y: 0 },
-                description: `V_final=${VFinal.toFixed(3)}mL, ΔV=${deltaV.toFixed(3)}mL (收缩 ${contractionPercent.toFixed(2)}%)`
+                description: isEmpty
+                    ? '无液体，收缩率不适用 (V_final=0.000mL, ΔV=0.000mL)'
+                    : `V_final=${VFinal.toFixed(3)}mL, ΔV=${deltaV.toFixed(3)}mL (收缩 ${contractionPercent.toFixed(2)}%)`
             }
         ];
 
         const warnings: string[] = [];
-        if (VTotal === 0) warnings.push('体积均为 0, 无法计算');
+        if (isEmpty) warnings.push('体积均为 0, 无法计算');
         if (Va > 0 && Vw === 0) warnings.push('纯酒精, 无收缩');
         if (Va === 0 && Vw > 0) warnings.push('纯水, 无收缩');
 
@@ -154,8 +157,10 @@ export class LiquidMixingModel extends PhysicsModelBase {
                 order: 3,
                 description: '体积收缩',
                 formula: 'V_final = V_w + V_a·(1 - k·x_w)',
-                calculation: `V_final = ${VFinal.toFixed(3)} mL, ΔV = ${deltaV.toFixed(3)} mL, 收缩 ${contractionPercent.toFixed(2)}%`,
-                result: '酒精分子与水分子形成氢键, 分子间隙减小'
+                calculation: isEmpty
+                    ? '无液体，收缩率不适用 (V_final = 0.000 mL, ΔV = 0.000 mL)'
+                    : `V_final = ${VFinal.toFixed(3)} mL, ΔV = ${deltaV.toFixed(3)} mL, 收缩 ${contractionPercent.toFixed(2)}%`,
+                result: isEmpty ? '无液体，收缩率不适用' : '酒精分子与水分子形成氢键, 分子间隙减小'
             }
         ];
 
@@ -178,10 +183,13 @@ export class LiquidMixingModel extends PhysicsModelBase {
                     massWater: massW,
                     massAlcohol: massA
                 },
+                flags: { isEmpty },
                 rangeCheck: { withinRange: warnings.length === 0, warnings }
             },
             explanation: {
-                summary: `酒精水混合: V_w=${Vw}mL + V_a=${Va}mL = ${VTotal}mL → ${VFinal.toFixed(3)}mL, 收缩 ${contractionPercent.toFixed(2)}%`,
+                summary: isEmpty
+                    ? '酒精水混合: V_w=0mL + V_a=0mL = 0mL（无液体，收缩率不适用）'
+                    : `酒精水混合: V_w=${Vw}mL + V_a=${Va}mL = ${VTotal}mL → ${VFinal.toFixed(3)}mL, 收缩 ${contractionPercent.toFixed(2)}%`,
                 steps,
                 formulas: [
                     {
