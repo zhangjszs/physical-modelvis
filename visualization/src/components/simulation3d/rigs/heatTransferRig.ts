@@ -3,6 +3,7 @@
  * 演示热传递的三种基本形式: 热传导 (傅里叶定律 dQ/dt = -kA·dT/dx)、热对流 (循环流动) 与热辐射 (斯忒藩-玻尔兹曼定律 E = εσT⁴)
  */
 import * as THREE from 'three';
+import type { SimulationResult } from 'physics-core';
 import { SceneRig } from '../EquipmentStage';
 import { makeBox, makeCylinder, makeArrow, makeTextSprite } from '../primitives';
 import { num, setLabel } from './params';
@@ -23,7 +24,7 @@ export const heatTransferRig: SceneRig = {
     worldScale: WORLD_SCALE,
     clampToGround: true,
 
-    buildEquipment(_scene, params) {
+    buildEquipment(_scene, params, result) {
         const group = new THREE.Group();
         const cy = 1.1;
         const barLen = 2.4;
@@ -112,13 +113,13 @@ export const heatTransferRig: SceneRig = {
             thermometerProbes,
             label
         };
-        updateHeatTransfer(handles, params);
+        updateHeatTransfer(handles, params, result);
 
         return { group, handles };
     },
 
-    updateEquipment(handles, params) {
-        updateHeatTransfer(handles as HeatTransferHandles, params);
+    updateEquipment(handles, params, result) {
+        updateHeatTransfer(handles as HeatTransferHandles, params, result);
     },
 
     onAnimate(handles, ctx) {
@@ -143,11 +144,28 @@ export const heatTransferRig: SceneRig = {
     }
 };
 
-function updateHeatTransfer(h: HeatTransferHandles, params: Record<string, number>): void {
+function updateHeatTransfer(
+    h: HeatTransferHandles,
+    params: Record<string, number>,
+    result?: SimulationResult | null
+): void {
     const mode = Math.round(num(params['mode'], 0)); // 0=传导, 1=对流, 2=辐射
     const matIndex = Math.round(num(params['medium'], 0)); // 0=铜, 1=玻璃, 2=钢, 3=聚苯乙烯
-    const Th = num(params['ambientTemp'], 350); // K
-    const Tc = num(params['initialTemp'], 300); // K
+    const Tenv = num(params['ambientTemp'], 350); // K
+    const T0 = num(params['initialTemp'], 300); // K
+    const tMax = num(params['time'], 60); // s
+
+    const mv = result?.diagnostics?.maxValues;
+    const rawFinalTemp = mv?.['finalTemp'];
+    const rawFinalTime = mv?.['finalTime'];
+    const chartPts = result?.charts?.x_t?.points;
+    const finalTemp =
+        typeof rawFinalTemp === 'number' && Number.isFinite(rawFinalTemp)
+            ? rawFinalTemp
+            : chartPts && chartPts.length > 0
+              ? chartPts[chartPts.length - 1]!.y
+              : undefined;
+    const finalTime = typeof rawFinalTime === 'number' && Number.isFinite(rawFinalTime) ? rawFinalTime : tMax;
 
     // 材料导热系数 k [W/(m*K)]
     const kValues = [401, 1.0, 50, 0.033];
@@ -180,16 +198,20 @@ function updateHeatTransfer(h: HeatTransferHandles, params: Record<string, numbe
 
     const modeName =
         mode === 0 ? `热传导 [材料: ${matName}]` : mode === 1 ? '热对流 (流体循环)' : '热辐射 (电磁波辐射)';
+    const finalInfo =
+        finalTemp !== undefined
+            ? `T(${finalTime.toFixed(0)}s)=${finalTemp.toFixed(2)}K`
+            : `ΔT=${(Tenv - T0).toFixed(0)}K`;
     const formulaInfo =
         mode === 0
-            ? `傅里叶定律: dQ/dt = -kA·(dT/dx) (k=${k}W/m·K) | 稳态温差 ΔT=${(Th - Tc).toFixed(0)}K`
+            ? `傅里叶定律 (k=${k}W/m·K)`
             : mode === 1
               ? '牛顿冷却定律: dQ/dt = hA·(T - T_env)'
               : '斯忒藩-玻尔兹曼定律: E = ε·σ·T⁴';
 
     setLabel(
         h.label,
-        `方式: ${modeName} | 热源 T_h=${Th.toFixed(0)}K  冷端 T_c=${Tc.toFixed(0)}K | ${formulaInfo}`,
+        `方式: ${modeName} | T₀=${T0.toFixed(0)}K → ${finalInfo} (渐近 T_env=${Tenv.toFixed(0)}K) | ${formulaInfo}`,
         '#0f172a'
     );
 }

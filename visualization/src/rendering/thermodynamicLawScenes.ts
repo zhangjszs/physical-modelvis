@@ -143,7 +143,7 @@ export function drawHeatTransferScene(o: ThermalSceneOptions): void {
             ctx.fillStyle = isDark ? '#cbd5e1' : '#334155';
             ctx.font = '10px sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText(`T_hot=${T0}K`, barX, barY - 14);
+            ctx.fillText(`T₀=${T0}K`, barX, barY - 14);
             ctx.fillText(`T_env=${Tenv}K`, barX + barW, barY - 14);
             ctx.textAlign = 'left';
         }
@@ -343,17 +343,33 @@ export function drawHeatTransferScene(o: ThermalSceneOptions): void {
         }
     }
 
-    // HUD
+    // HUD (消费引擎终态 T(tMax) 单一真源, 与关键帧及图表末端一致)
+    const mv = simulationResult?.diagnostics?.maxValues;
+    const chartPoints = simulationResult?.charts?.x_t?.points;
+    const rawFinalTemp = mv?.['finalTemp'];
+    const rawFinalTime = mv?.['finalTime'];
+    const finalTemp =
+        typeof rawFinalTemp === 'number' && Number.isFinite(rawFinalTemp)
+            ? rawFinalTemp
+            : chartPoints && chartPoints.length > 0
+              ? chartPoints[chartPoints.length - 1]!.y
+              : undefined;
+    const finalTime =
+        typeof rawFinalTime === 'number' && Number.isFinite(rawFinalTime) ? rawFinalTime : (params['time'] ?? 60);
+
     drawHud(
         ctx,
         isDark,
         [
             { label: 't', value: `${currentTime.toFixed(2)} s` },
-            { label: 'T0', value: `${T0} K` },
-            { label: 'Tenv', value: `${Tenv} K` },
+            { label: 'T₀', value: `${T0} K` },
+            { label: 'T_env', value: `${Tenv} K` },
+            ...(finalTemp !== undefined
+                ? [{ label: `T(${finalTime.toFixed(0)}s)`, value: `${finalTemp.toFixed(2)} K` }]
+                : []),
             { label: 'mode', value: modeLabel }
         ],
-        { boxW: 200, lineH: 16 }
+        { boxW: 210, lineH: 16 }
     );
 
     drawInfoBar(ctx, w, h, `T0=${T0}K  Tenv=${Tenv}K  mode=${modeLabel}  傅里叶/牛顿/斯忒藩-玻尔兹曼`, isDark, {

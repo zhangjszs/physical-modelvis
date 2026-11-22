@@ -68,11 +68,12 @@ function solveCoolingK(kPerMc: number, T0: number, Tenv: number, t: number): num
     return Tenv - sign * dT0 * Math.exp(-kPerMc * t);
 }
 
-/* 辐射冷却: dT/dt = - (εσA/mc)·(T^4 - T_env^4) — 分段线性化近似 */
+/* 辐射传热单步更新: dT/dt = -(εσA/mc)·(T^4 - T_env^4), 钳制在 [T0, Tenv] 避免显式欧拉过冲 */
 function stepRadiation(T: number, Tenv: number, eps: number, A: number, mc: number, dt: number): number {
     const P = eps * SIGMA * A * (Math.pow(T, 4) - Math.pow(Tenv, 4));
-    const dT = (-P * dt) / mc;
-    return T + dT;
+    const next = T + (-P * dt) / mc;
+    if (T <= Tenv) return Math.min(Tenv, Math.max(T, next));
+    return Math.max(Tenv, Math.min(T, next));
 }
 
 export class HeatTransferModel extends PhysicsModelBase {
@@ -131,31 +132,36 @@ export class HeatTransferModel extends PhysicsModelBase {
         const kMcCond = (k * A) / (mc * L); // 1/s
         const kMcConv = (h * A) / mc; // 1/s
 
-        /* ---------- x_t = T-t 三种曲线 ---------- */
+        /* ---------- x_t = T-t 三种曲线 (按当前模式输出主曲线) ---------- */
         const pointsT: Array<{ x: number; y: number; y1: number; y2: number }> = []; // y: conduction, y1: convection, y2: radiation
+        const dtStep = tMax / N;
+        const radSubSteps = 4;
+        let Tr = T0;
         for (let i = 0; i <= N; i++) {
             const t = (tMax * i) / N;
             const Tc = solveCoolingK(kMcCond, T0, Tenv, t);
             const Tv = solveCoolingK(kMcConv, T0, Tenv, t);
-            /* 辐射: 数值步进 */
-            const dt = t / N; // 步进与总步相邻
-            let Tr = T0;
-            for (let j = 0; j < i; j++) {
-                Tr = stepRadiation(Tr, Tenv, eps, A, mc, dt);
+            if (i > 0) {
+                for (let s = 0; s < radSubSteps; s++) {
+                    Tr = stepRadiation(Tr, Tenv, eps, A, mc, dtStep / radSubSteps);
+                }
             }
             pointsT.push({
-                x: parseFloat(t.toFixed(2)),
+                x: parseFloat(t.toFixed(4)),
                 y: parseFloat(Tc.toFixed(3)),
                 y1: parseFloat(Tv.toFixed(3)),
                 y2: parseFloat(Tr.toFixed(3))
             });
         }
+        const pickModeValue = (p: { y: number; y1: number; y2: number }): number =>
+            c.mode === 'conduction' ? p.y : c.mode === 'convection' ? p.y1 : p.y2;
+
         const chartT: ChartSeries = {
             xLabel: '时间 t (s)',
             yLabel: '物体温度 (K)',
             xUnit: 's',
             yUnit: 'K',
-            points: pointsT.map(p => ({ x: p.x, y: p.y }))
+            points: pointsT.map(p => ({ x: p.x, y: pickModeValue(p) }))
         };
 
         /* ---------- y_t = 传热流量 (W) ---------- */
@@ -168,7 +174,7 @@ export class HeatTransferModel extends PhysicsModelBase {
             const Qconv = h * A * (Tenv - TmidB);
             const Qrad = eps * SIGMA * A * (Math.pow(TmidC, 4) - Math.pow(Tenv, 4));
             pointsQ.push({
-                x: parseFloat(p.x.toFixed(2)),
+                x: p.x,
                 y: parseFloat(Math.abs(Qcond).toFixed(3)),
                 y1: parseFloat(Math.abs(Qconv).toFixed(3)),
                 y2: parseFloat(Math.abs(Qrad).toFixed(3))
@@ -179,10 +185,13 @@ export class HeatTransferModel extends PhysicsModelBase {
             yLabel: '传热流量 |Qdot| (W)',
             xUnit: 's',
             yUnit: 'W',
-            points: pointsQ.map(p => ({ x: p.x, y: p.y }))
+            points: pointsQ.map(p => ({ x: p.x, y: pickModeValue(p) }))
         };
 
-        /* ---------- keyframes ---------- */
+        const finalTemp = pickModeValue(pointsT[pointsT.length - 1]!);
+        const finalHeatFlux = pickModeValue(pointsQ[pointsQ.length - 1]!);
+
+        /* ---------- keyframes (时间严格单调, 终态消费当前模式引擎曲线末端 T(tMax)) ---------- */
         const modeZh = c.mode === 'conduction' ? '热传导' : c.mode === 'convection' ? '热对流' : '热辐射';
         const keyframes: Keyframe[] = [
             {
@@ -190,21 +199,27 @@ export class HeatTransferModel extends PhysicsModelBase {
                 t: 0,
                 position: { x: 0, y: T0 },
                 velocity: { x: 0, y: 0 },
-                description: `初态: T0=${T0.toFixed(1)}K, Tenv=${Tenv.toFixed(1)}K, 温差=${(Tenv - T0).toFixed(1)}K`
+                description: `初态: T₀=${T0.toFixed(1)}K, T_env=${Tenv.toFixed(1)}K, 温差=${(Tenv - T0).toFixed(1)}K`
             },
             {
                 label: '终态',
-                t: 0,
-                position: { x: tMax, y: Tenv },
+                t: tMax,
+                position: { x: tMax, y: finalTemp },
                 velocity: { x: 0, y: 0 },
-                description: `终态: t=${T0.toFixed(0)}s 后物体近似达到环境温度 (趋于 ${Tenv.toFixed(1)}K)`
+                description: `终态 (${modeZh}): t=${tMax.toFixed(1)}s 时物体温度 T=${finalTemp.toFixed(2)}K（长期渐近环境温度 T_env=${Tenv.toFixed(1)}K）`
             }
         ];
 
-        /* ---------- 示意轨迹 ---------- */
+        /* ---------- 示意轨迹 (仅保留初/终两点避免违反轨迹语义守卫 K2; 完整曲线在 charts.x_t/y_t) ---------- */
         const trajectory: TrajectoryPoint[] = [
             { t: 0, position: { x: 0, y: T0 }, velocity: { x: 0, y: 0 }, kineticEnergy: 0, potentialEnergy: 0 },
-            { t: 0, position: { x: tMax, y: Tenv }, velocity: { x: 0, y: 0 }, kineticEnergy: 0, potentialEnergy: 0 }
+            {
+                t: tMax,
+                position: { x: tMax, y: finalTemp },
+                velocity: { x: 0, y: 0 },
+                kineticEnergy: 0,
+                potentialEnergy: 0
+            }
         ];
 
         const steps: ExplanationStep[] = [
@@ -259,7 +274,12 @@ export class HeatTransferModel extends PhysicsModelBase {
                     mc_J_per_K: parseFloat(mc.toFixed(2)),
                     kMcCond_per_s: parseFloat(kMcCond.toFixed(6)),
                     kMcConv_per_s: parseFloat(kMcConv.toFixed(6)),
-                    modeCode: c.mode === 'conduction' ? 0 : c.mode === 'convection' ? 1 : 2
+                    modeCode: c.mode === 'conduction' ? 0 : c.mode === 'convection' ? 1 : 2,
+                    initialTemp: T0,
+                    ambientTemp: Tenv,
+                    finalTime: tMax,
+                    finalTemp,
+                    finalHeatFlux_W: finalHeatFlux
                 },
                 rangeCheck: { withinRange: warnings.length === 0, warnings }
             },
