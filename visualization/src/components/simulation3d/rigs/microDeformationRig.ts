@@ -3,9 +3,10 @@
  * 包含：实木/玻璃实验桌台、中央受压配重块、下压微形变下凹、
  * 双平面镜支架 (M₁ 与 M₂)、半导体激光发射器、
  * 多重反射动态激光束路、远端带毫米刻度光屏与发光光斑、
- * 严格体现光杠杆物理规律：桌面微形变倾角 θ ⇛ 反射光束偏转 2θ ⇛ 远端光斑位移 Δs = 2Dθ。
+ * 严格体现光杠杆物理规律：桌面微形变倾角 α ⇛ 反射光束偏转 2α ⇛ 远端光斑位移 Δs = D·tan(2α) ≈ 2Dα。
  */
 import * as THREE from 'three';
+import type { SimulationResult } from 'physics-core';
 import { SceneRig } from '../EquipmentStage';
 import { makeBox, makeCylinder, makeSphere, makeArrow, makeTextSprite, updateTextSprite } from '../primitives';
 import { num } from './params';
@@ -34,7 +35,7 @@ export const microDeformationRig: SceneRig = {
     worldScale: WORLD_SCALE,
     clampToGround: true,
 
-    buildEquipment(scene, params) {
+    buildEquipment(scene, params, result) {
         const group = new THREE.Group();
 
         // 1. 实木/金属实验桌台 (长 3.2m, 宽 1.0m, 台面厚度 0.08m)
@@ -183,11 +184,11 @@ export const microDeformationRig: SceneRig = {
             tiltAngle: 0
         };
 
-        this.updateEquipment(handles, params);
+        this.updateEquipment(handles, params, result);
         return { group, handles };
     },
 
-    updateEquipment(handles, params) {
+    updateEquipment(handles, params, result?: SimulationResult | null) {
         const h = handles as MicroDeformationHandles;
         const pressure = num(params['pressure'], 100);
         const youngGPa = num(params['youngModulus'], 10);
@@ -197,20 +198,25 @@ export const microDeformationRig: SceneRig = {
         h.youngModulus = youngGPa;
         h.mirrorDist = D;
 
-        // 物理微小形变理论计算：
-        // 桌面受力挠度 y ∝ F / (E * I)
-        // 镜面倾角 θ ∝ F / E
-        // 真实微小形变量级：θ ≈ 10⁻⁵ rad
-        const trueTheta = (pressure * 1e-6) / Math.max(1, youngGPa);
-        // 视觉放大演示系数 (让微观形变在 3D 画面中直观可察，微调 0 ~ 0.18 rad)
-        const visualTilt = THREE.MathUtils.clamp((pressure / (youngGPa * 10)) * 0.012, 0, 0.16);
+        const mv = result?.diagnostics?.maxValues;
+        const readMv = (key: string): number | undefined => {
+            const v = mv?.[key];
+            return typeof v === 'number' && Number.isFinite(v) ? v : undefined;
+        };
+
+        // 单一真源: 优先消费引擎 maxValues (#176); 无结果时按引擎公式 (L0=0.05m, L=1m) 回退
+        const tableLen = readMv('tableLength') ?? 1;
+        const deltaH = readMv('deltaH') ?? (pressure * 0.05) / Math.max(1e8, youngGPa * 1e9);
+        const trueTheta = readMv('alpha') ?? deltaH / tableLen;
+        const clampedBeam = Math.sign(trueTheta) * Math.min(Math.abs(2 * trueTheta), Math.PI / 2 - 1e-3);
+        const deltaSpotM = readMv('deltaS') ?? D * Math.tan(clampedBeam);
+
+        // 视觉放大演示系数 (让微观形变在 3D 画面中直观可察，微调 0 ~ 0.16 rad)
+        const visualTilt = THREE.MathUtils.clamp((pressure / (Math.max(1, youngGPa) * 10)) * 0.012, 0, 0.16);
         h.tiltAngle = visualTilt;
 
         // 平面镜 M1 随形变倾斜
         h.mirror1Group.rotation.z = visualTilt;
-
-        // 远端光斑垂直位移 Δs = 2 * D * trueTheta
-        const deltaSpotMm = 2 * D * trueTheta * 1e3; // 毫米
 
         // 视觉光斑在标尺上的垂直偏移
         const spotShiftY = visualTilt * 2.8;
@@ -241,7 +247,7 @@ export const microDeformationRig: SceneRig = {
         if (h.measureLabel) {
             updateTextSprite(
                 h.measureLabel,
-                `微小形变倾角 θ=${(trueTheta * 1e6).toFixed(2)}μrad ⇛ 光斑位移 Δs=${deltaSpotMm.toFixed(2)}mm (光学倍增放大)`,
+                `微小形变倾角 α=${trueTheta.toExponential(2)}rad ⇛ 光斑位移 Δs=${deltaSpotM.toExponential(2)}m (D·tan2α)`,
                 '#2563eb',
                 20
             );
