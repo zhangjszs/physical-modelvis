@@ -3,6 +3,7 @@
  * 演示 50mL 水与 50mL 酒精混合后总体积小于 100mL (ΔV < 0)，直接证实分子间存在间隙
  */
 import * as THREE from 'three';
+import type { SimulationResult } from 'physics-core';
 import { SceneRig } from '../EquipmentStage';
 import { makeBox, makeCylinder, makeTextSprite } from '../primitives';
 import { num, setLabel } from './params';
@@ -16,13 +17,14 @@ interface LiquidMixingHandles {
     mixedLiquid: THREE.Mesh;
     mark100Line: THREE.Mesh;
     label: THREE.Sprite;
+    isEmpty: boolean;
 }
 
 export const liquidMixingRig: SceneRig = {
     worldScale: WORLD_SCALE,
     clampToGround: true,
 
-    buildEquipment(_scene, params) {
+    buildEquipment(_scene, params, result) {
         const group = new THREE.Group();
         const cy = 1.25;
 
@@ -125,20 +127,29 @@ export const liquidMixingRig: SceneRig = {
             alcoholLayer,
             mixedLiquid,
             mark100Line,
-            label
+            label,
+            isEmpty: false
         };
-        updateLiquidMixing(handles, params);
+        updateLiquidMixing(handles, params, result);
 
         return { group, handles };
     },
 
-    updateEquipment(handles, params) {
-        updateLiquidMixing(handles as LiquidMixingHandles, params);
+    updateEquipment(handles, params, result) {
+        updateLiquidMixing(handles as LiquidMixingHandles, params, result);
     },
 
     onAnimate(handles, ctx) {
         const h = handles as LiquidMixingHandles;
         if (!h.tubeGroup || !h.mixedLiquid) return;
+
+        if (h.isEmpty) {
+            h.tubeGroup.rotation.z = 0;
+            h.waterLayer.visible = false;
+            h.alcoholLayer.visible = false;
+            h.mixedLiquid.visible = false;
+            return;
+        }
 
         // 演示动画: 前半段管子缓慢上下翻转混合，后半段混合液面明显下降
         const cycle = (ctx.time % 6.0) / 6.0;
@@ -172,18 +183,44 @@ export const liquidMixingRig: SceneRig = {
     }
 };
 
-function updateLiquidMixing(h: LiquidMixingHandles, params: Record<string, number>): void {
+function updateLiquidMixing(
+    h: LiquidMixingHandles,
+    params: Record<string, number>,
+    result?: SimulationResult | null
+): void {
     const V_water = num(params['volumeWater'], 50); // mL
     const V_alcohol = num(params['volumeAlcohol'], 50); // mL
 
     const V_sum = V_water + V_alcohol;
-    // 典型收缩率约 3.5%
-    const contraction = 0.035 * Math.min(V_water, V_alcohol) * 2;
-    const V_final = V_sum - contraction;
+    const isEmpty = V_sum <= 0 || result?.diagnostics?.flags?.isEmpty === true;
+    h.isEmpty = isEmpty;
+
+    h.waterLayer.visible = !isEmpty && V_water > 0;
+    h.alcoholLayer.visible = !isEmpty && V_alcohol > 0;
+    h.mixedLiquid.visible = !isEmpty;
+
+    if (isEmpty) {
+        setLabel(
+            h.label,
+            `水 V₁=${V_water.toFixed(0)}mL + 酒精 V₂=${V_alcohol.toFixed(0)}mL | 无液体，收缩率不适用`,
+            '#475569'
+        );
+        return;
+    }
+
+    const mv = result?.diagnostics?.maxValues;
+    const readMv = (key: string): number | undefined => {
+        const v = mv?.[key];
+        return typeof v === 'number' && Number.isFinite(v) ? v : undefined;
+    };
+    const fallbackContraction = 0.035 * Math.min(V_water, V_alcohol) * 2;
+    const V_final = readMv('finalVolume') ?? V_sum - fallbackContraction;
+    const deltaV = readMv('deltaV') ?? V_final - V_sum;
+    const contractionPct = readMv('contractionPercent') ?? (V_sum > 0 ? (Math.abs(deltaV) / V_sum) * 100 : 0);
 
     setLabel(
         h.label,
-        `水 V₁=${V_water.toFixed(0)}mL + 酒精 V₂=${V_alcohol.toFixed(0)}mL | 算术和=${V_sum.toFixed(0)}mL → 混合实际体积 V=${V_final.toFixed(1)}mL (ΔV=-${contraction.toFixed(1)}mL)`,
+        `水 V₁=${V_water.toFixed(0)}mL + 酒精 V₂=${V_alcohol.toFixed(0)}mL | 算术和=${V_sum.toFixed(0)}mL → 混合实际体积 V=${V_final.toFixed(2)}mL (ΔV=${deltaV.toFixed(2)}mL, 收缩 ${contractionPct.toFixed(2)}%)`,
         '#0f172a'
     );
 }
