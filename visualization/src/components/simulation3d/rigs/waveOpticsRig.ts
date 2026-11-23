@@ -20,6 +20,8 @@ interface WaveOpticsHandles {
     bench: THREE.Mesh;
     sourceHousing: THREE.Mesh;
     slitPlate: THREE.Group;
+    /** 单缝前透明薄片示意 (#181 interference 专用，默认隐藏) */
+    filmSlab: THREE.Mesh;
     screenBoard: THREE.Mesh;
     fringeGroup: THREE.Group;
     rayLines: THREE.Line[];
@@ -29,13 +31,21 @@ interface WaveOpticsHandles {
     slitWidth: number;
     distance: number;
     sceneType: string;
+    /** 双缝单缝加薄片状态快照 (供 2D/3D 同源校验) */
+    interferenceState?: {
+        deltaYmm: number;
+        fringeShiftMm: number;
+        filmShiftOrders: number;
+        hasFilm: boolean;
+        shiftY: number;
+    };
 }
 
 export const waveOpticsRig: SceneRig = {
     worldScale: WORLD_SCALE,
     clampToGround: true,
 
-    buildEquipment(scene, params) {
+    buildEquipment(scene, params, result) {
         const group = new THREE.Group();
 
         // 1. 精密铸铁光学导轨滑床 (长 3.6m, 宽 0.4m)
@@ -87,6 +97,20 @@ export const waveOpticsRig: SceneRig = {
         const slitRight = makeBox(0.022, 0.22, 0.1, 0x1e293b, 0.3, 0.1);
         slitRight.position.set(0, 0, 0.06);
         slitPlate.add(slitRight);
+
+        // 单缝前透明薄片示意 (置于上缝 +y 侧，仅 interference 且 t>0 && n>1 时显式)
+        const filmSlab = new THREE.Mesh(
+            new THREE.BoxGeometry(0.014, 0.12, 0.24),
+            new THREE.MeshPhysicalMaterial({
+                color: 0x38bdf8,
+                transparent: true,
+                opacity: 0.55,
+                roughness: 0.1
+            })
+        );
+        filmSlab.position.set(0.026, 0.075, 0);
+        filmSlab.visible = false;
+        slitPlate.add(filmSlab);
 
         group.add(slitPlate);
 
@@ -142,6 +166,7 @@ export const waveOpticsRig: SceneRig = {
             bench,
             sourceHousing,
             slitPlate,
+            filmSlab,
             screenBoard,
             fringeGroup,
             rayLines,
@@ -153,23 +178,14 @@ export const waveOpticsRig: SceneRig = {
             sceneType: 'interference'
         };
 
-        this.updateEquipment(handles, params);
+        this.updateEquipment(handles, params, result);
         return { group, handles };
     },
 
-    updateEquipment(handles, params) {
+    updateEquipment(handles, params, result) {
         const h = handles as WaveOpticsHandles;
+        const mv = result?.diagnostics?.maxValues as Record<string, number> | undefined;
         const wavelength = num(params['wavelength'] ?? params['lambda'], 632.8); // nm
-        const slitWidth = num(params['slitWidth'] ?? params['slitDist'] ?? params['spacing'] ?? params['d'], 0.15); // mm
-        const distance = num(params['distance'] ?? params['L'], 1.5); // m
-
-        h.wavelength = wavelength;
-        h.slitWidth = slitWidth;
-        h.distance = distance;
-
-        // 双缝干涉条纹间距公式：Δx = (L / d) * λ
-        // 纳米与毫米换算: Δx (mm) = (L(m) / d(mm)) * λ(nm) * 1e-3
-        const deltaXmm = (distance / Math.max(0.01, slitWidth)) * wavelength * 1e-3;
 
         // 光源波长对应的可见光颜色
         let lightColor = 0xef4444; // 632.8nm 红光
@@ -183,10 +199,77 @@ export const waveOpticsRig: SceneRig = {
             lightColor = 0xeab308; // 黄光
         else lightColor = 0xef4444; // 红光
 
-        // 更新发散光线颜色
         h.rayLines.forEach(line => {
             (line.material as THREE.LineBasicMaterial).color.setHex(lightColor);
         });
+
+        // #181 interference 双缝干涉 (含单缝插透明薄片相移) 专用消费引擎分支
+        const isInterference =
+            'filmThickness' in params || (mv !== undefined && 'fringeShiftMm' in mv && 'deltaYmm' in mv);
+        if (isInterference) {
+            const slitSepMm = num(params['slitSep'] ?? mv?.slitSeparationMm, 0.5);
+            const screenDistM = num(params['screenDist'] ?? mv?.screenDistanceM, 2.0);
+            const filmThicknessUm = num(params['filmThickness'], 0);
+            const filmN = num(params['filmN'], 1.38);
+            const hasFilm = filmThicknessUm > 0 && filmN > 1;
+            const deltaYmm = mv?.deltaYmm ?? (screenDistM / Math.max(0.01, slitSepMm)) * wavelength * 1e-3;
+            const fallbackOptUm = hasFilm ? (filmN - 1) * filmThicknessUm : 0;
+            const fringeShiftMm =
+                mv?.fringeShiftMm ?? (hasFilm ? ((fallbackOptUm * 1e-6 * screenDistM) / (slitSepMm * 1e-3)) * 1e3 : 0);
+            const filmShiftOrders = mv?.filmShiftOrders ?? (deltaYmm > 0 ? fringeShiftMm / deltaYmm : 0);
+
+            h.wavelength = wavelength;
+            h.slitWidth = slitSepMm;
+            h.distance = screenDistM;
+            h.sceneType = 'interference';
+            h.filmSlab.visible = hasFilm;
+
+            const visualSpacing = THREE.MathUtils.clamp(deltaYmm * 0.018, 0.02, 0.085);
+            const shiftY = hasFilm ? THREE.MathUtils.clamp(filmShiftOrders * visualSpacing, -0.32, 0.32) : 0;
+            h.interferenceState = { deltaYmm, fringeShiftMm, filmShiftOrders, hasFilm, shiftY };
+
+            h.fringeGroup.children.forEach((child, idx) => {
+                const i = idx - 7;
+                const mesh = child as THREE.Mesh;
+                const yPos = i * visualSpacing + shiftY;
+                mesh.position.y = yPos;
+                mesh.visible = Math.abs(yPos) <= 0.39;
+                const mat = mesh.material as THREE.MeshBasicMaterial;
+                mat.color.setHex(lightColor);
+                const isCenter = Math.abs(i) <= 1;
+                mat.opacity = isCenter ? 0.95 : Math.max(0.2, 0.85 - Math.abs(i) * 0.08);
+            });
+
+            if (h.statusLabel) {
+                const filmText = hasFilm ? ` | 单缝薄片 t=${filmThicknessUm.toFixed(2)}μm, n=${filmN.toFixed(2)}` : '';
+                updateTextSprite(
+                    h.statusLabel,
+                    `双缝干涉 λ=${wavelength.toFixed(0)}nm | d=${slitSepMm.toFixed(2)}mm | L=${screenDistM.toFixed(1)}m${filmText}`,
+                    '#0f172a',
+                    20
+                );
+            }
+            if (h.formulaLabel) {
+                const text = hasFilm
+                    ? `Δy=${deltaYmm.toFixed(2)}mm (不变) | 单缝薄片平移 Δx=+${fringeShiftMm.toFixed(2)}mm (${filmShiftOrders.toFixed(2)}Δy)`
+                    : `条纹间距 Δy = (L/d)·λ = ${deltaYmm.toFixed(2)}mm`;
+                updateTextSprite(h.formulaLabel, text, '#2563eb', 19);
+            }
+            return;
+        }
+
+        h.filmSlab.visible = false;
+        h.interferenceState = undefined;
+        const slitWidth = num(params['slitWidth'] ?? params['slitDist'] ?? params['spacing'] ?? params['d'], 0.15); // mm
+        const distance = num(params['distance'] ?? params['L'], 1.5); // m
+
+        h.wavelength = wavelength;
+        h.slitWidth = slitWidth;
+        h.distance = distance;
+
+        // 双缝干涉条纹间距公式：Δx = (L / d) * λ
+        // 纳米与毫米换算: Δx (mm) = (L(m) / d(mm)) * λ(nm) * 1e-3
+        const deltaXmm = (distance / Math.max(0.01, slitWidth)) * wavelength * 1e-3;
 
         // 动态排布光屏条纹：间距随 deltaX 动态缩放
         const visualSpacing = THREE.MathUtils.clamp(deltaXmm * 0.007, 0.018, 0.085);
@@ -194,6 +277,7 @@ export const waveOpticsRig: SceneRig = {
             const i = idx - 7;
             const mesh = child as THREE.Mesh;
             mesh.position.y = i * visualSpacing;
+            mesh.visible = true;
             const mat = mesh.material as THREE.MeshBasicMaterial;
             mat.color.setHex(lightColor);
             // 单缝衍射模式中央条纹最宽，两侧衰减；双缝干涉模式等间距分布

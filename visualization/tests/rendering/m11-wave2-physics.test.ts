@@ -7,8 +7,10 @@ import { loadAllScenes, getSceneSync } from '../../src/scenes/sceneRegistry';
 import { runSceneSimulation } from '../../src/adapters/physicsCoreAdapter';
 import { drawLightControlSwitchScene } from '../../src/rendering/sensorApplicationScenes';
 import { drawElectrostaticInductionScene } from '../../src/rendering/electrostaticFieldScenes';
+import { drawInterferenceScene } from '../../src/rendering/waveOptScenes';
 import { circuitRig } from '../../src/components/simulation3d/rigs/circuitRig';
 import { electroscopeRig } from '../../src/components/simulation3d/rigs/electroscopeRig';
+import { waveOpticsRig } from '../../src/components/simulation3d/rigs/waveOpticsRig';
 import { createRecordingCanvas } from '../utils/canvasMock';
 
 describe('M11 Wave 2: 2D/3D 与引擎单一真源回归', () => {
@@ -134,6 +136,64 @@ describe('M11 Wave 2: 2D/3D 与引擎单一真源回归', () => {
                 expect(h.foilL.rotation.z).toBeCloseTo(expectedRad, 5);
                 expect(h.foilR.rotation.z).toBeCloseTo(-expectedRad, 5);
             }
+        });
+    });
+
+    describe('#181 interference: 单缝前插透明薄片 2D/3D 条纹平移同源回归', () => {
+        it('预设已改名「单缝加薄片」，2D 绘制薄片并输出 Δx，3D fringeGroup 同向平移且 Δy 不变', () => {
+            const sc = getSceneSync('interference')!;
+            expect(sc).toBeDefined();
+            const filmPreset = sc.presets?.find(p => p.id === 'thin-film');
+            expect(filmPreset?.name).toBe('单缝加薄片');
+
+            const baseParams = { wavelength: 600, slitSep: 0.5, screenDist: 2.0, filmThickness: 0, filmN: 1.38 };
+            const filmParams = { wavelength: 600, slitSep: 0.5, screenDist: 2.0, filmThickness: 0.5, filmN: 1.38 };
+            const baseSim = runSceneSimulation(sc, baseParams);
+            const filmSim = runSceneSimulation(sc, filmParams);
+            expect(baseSim.error).toBeNull();
+            expect(filmSim.error).toBeNull();
+
+            const mvFilm = filmSim.result!.diagnostics.maxValues as Record<string, number>;
+            expect(mvFilm.deltaYmm).toBeCloseTo(2.4, 5);
+            expect(mvFilm.fringeShiftMm).toBeCloseTo(0.76, 5);
+
+            // 2D 渲染检查：无旧错误文案，展示薄片与 Δx=+0.76mm
+            const recFilm = createRecordingCanvas({ width: 900, height: 600 });
+            drawInterferenceScene({
+                ctx: recFilm.ctx,
+                width: 900,
+                height: 600,
+                isDark: true,
+                params: filmParams,
+                simulationResult: filmSim.result,
+                currentTime: 0
+            });
+            const joined = recFilm.texts.join(' ');
+            expect(joined).not.toContain('薄膜干涉叠加');
+            expect(joined).toContain('薄片 n=1.38');
+            expect(joined).toContain('0.76mm');
+
+            // 3D waveOpticsRig 检查：无薄片隐藏薄片且中央条纹 y=0；有薄片显示薄片且中央条纹向 +y 平移
+            const sceneBase = new THREE.Scene();
+            const builtBase = waveOpticsRig.buildEquipment(sceneBase, baseParams, baseSim.result);
+            const hBase = builtBase.handles as {
+                filmSlab: THREE.Mesh;
+                fringeGroup: THREE.Group;
+                interferenceState?: { deltaYmm: number; fringeShiftMm: number; hasFilm: boolean; shiftY: number };
+            };
+            expect(hBase.filmSlab.visible).toBe(false);
+            expect(hBase.interferenceState?.hasFilm).toBe(false);
+            expect(hBase.fringeGroup.children[7]!.position.y).toBeCloseTo(0, 6);
+
+            const sceneFilm = new THREE.Scene();
+            const builtFilm = waveOpticsRig.buildEquipment(sceneFilm, filmParams, filmSim.result);
+            const hFilm = builtFilm.handles as typeof hBase;
+            expect(hFilm.filmSlab.visible).toBe(true);
+            expect(hFilm.interferenceState?.hasFilm).toBe(true);
+            expect(hFilm.interferenceState?.deltaYmm).toBeCloseTo(2.4, 5);
+            expect(hFilm.interferenceState?.fringeShiftMm).toBeCloseTo(0.76, 5);
+            expect(hFilm.interferenceState!.shiftY).toBeGreaterThan(0);
+            expect(hFilm.fringeGroup.children[7]!.position.y).toBeCloseTo(hFilm.interferenceState!.shiftY, 6);
         });
     });
 });
