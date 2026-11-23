@@ -41,25 +41,25 @@ export const interferenceScene: SceneConfig = {
         },
         {
             name: 'filmThickness',
-            label: '薄膜厚度 (可选)',
+            label: '单缝薄片厚度 t（0=不插片）',
             unit: 'μm',
             value: 0,
             min: 0,
             max: 2,
             step: 0.01,
             default: 0,
-            description: '薄膜干涉时输入 (0=不启用薄膜模式)'
+            description: '在一侧狭缝前插入透明薄片的厚度 (0=不插片)'
         },
         {
             name: 'filmN',
-            label: '薄膜折射率',
+            label: '薄片折射率 n',
             unit: '',
             value: 1.38,
             min: 1,
             max: 2.5,
             step: 0.01,
             default: 1.38,
-            description: '薄膜材料折射率 (MgF₂=1.38, 玻璃=1.5)'
+            description: '单缝前透明薄片折射率 (MgF₂=1.38, 玻璃=1.5, n=1 无相移)'
         }
     ],
     presets: [
@@ -83,8 +83,8 @@ export const interferenceScene: SceneConfig = {
         },
         {
             id: 'thin-film',
-            name: '薄膜干涉',
-            description: 'MgF₂ 薄膜 500nm',
+            name: '单缝加薄片',
+            description: '单缝前插 MgF₂ 薄片 (t=0.5μm, n=1.38)，条纹整体向插片侧平移',
             parameters: { wavelength: 550, slitSep: 0.5, screenDist: 2.0, filmThickness: 0.5, filmN: 1.38 }
         },
         {

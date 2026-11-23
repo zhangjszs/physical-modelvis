@@ -656,69 +656,126 @@ export function drawInterferenceScene(o: WaveOptSceneOptions) {
     const lambdaNm = params.wavelength ?? 600;
     const dMm = params.slitSep ?? 0.5;
     const LM = params.screenDist ?? 2.0;
+    const filmThicknessUm = params.filmThickness ?? 0;
+    const filmN = params.filmN ?? 1.38;
+    const hasFilm = filmThicknessUm > 0 && filmN > 1;
     const lambda = lambdaNm * 1e-9;
     const d = Math.max(dMm * 1e-3, 1e-6);
     const L = LM;
     const slitX = w * 0.28;
     const screenX = slitX + 230;
-    const slitSep = dMm * 60;
+    const slitSep = clamp(dMm * 60, 14, 120);
 
-    // 条纹间距定量值读引擎 maxValues.deltaYmm (#62, Δy = λL/d 同式);
-    // 屏上条纹带与光强曲线为像素空间示意图 (纵轴是像素而非物理坐标, 引擎 x_t 为
-    // 物理坐标 mm 的远场曲线, 二者标定不同), 保留自绘。
-    const mvInterf = simulationResult?.diagnostics?.maxValues as { deltaYmm?: number } | undefined;
-    const dY = (mvInterf?.deltaYmm ?? ((lambda * L) / d) * 1e3) / 1000; // m
+    // 条纹间距与单缝薄片平移量消费引擎 maxValues (#62, #181);
+    // 屏上条纹带与光强曲线为像素空间示意图 (覆盖 5·Δy 视窗并同步平移 Δx = fringeShiftMm)
+    const mvInterf = simulationResult?.diagnostics?.maxValues as
+        | {
+              deltaYmm?: number;
+              fringeShiftMm?: number;
+              filmOpticalPathDiffUm?: number;
+              filmShiftOrders?: number;
+          }
+        | undefined;
+    const deltaYmm = mvInterf?.deltaYmm ?? ((lambda * L) / d) * 1e3;
+    const dY = deltaYmm / 1000; // m
+    const deltaOptUmFallback = hasFilm ? (filmN - 1) * filmThicknessUm : 0;
+    const filmOpticalPathDiffUm = mvInterf?.filmOpticalPathDiffUm ?? deltaOptUmFallback;
+    const fringeShiftMm = mvInterf?.fringeShiftMm ?? (hasFilm ? ((deltaOptUmFallback * 1e-6 * L) / d) * 1e3 : 0);
+    const filmShiftOrders = mvInterf?.filmShiftOrders ?? (deltaYmm > 0 ? fringeShiftMm / deltaYmm : 0);
 
     // 光源
     ctx.fillStyle = RED;
     ctx.beginPath();
     ctx.arc(28, h / 2, 8, 0, 2 * Math.PI);
     ctx.fill();
-    // 双缝
+
+    // 双缝挡板 (上缝中心 h/2 - slitSep/2，下缝中心 h/2 + slitSep/2)
+    const slitGapPx = 6;
+    const upperSlitY = h / 2 - slitSep / 2;
+    const lowerSlitY = h / 2 + slitSep / 2;
     ctx.fillStyle = isDark ? '#475569' : '#94a3b8';
-    ctx.fillRect(slitX - 3, 40, 6, h / 2 - slitSep / 2 - 40);
-    ctx.fillRect(slitX - 3, h / 2 - slitSep / 2, 6, slitSep);
-    ctx.fillRect(slitX - 3, h / 2 + slitSep / 2, 6, h - h / 2 - slitSep / 2 - 40);
-    // 屏幕 + 条纹
+    ctx.fillRect(slitX - 3, 40, 6, Math.max(0, upperSlitY - slitGapPx / 2 - 40));
+    ctx.fillRect(slitX - 3, upperSlitY + slitGapPx / 2, 6, Math.max(0, lowerSlitY - upperSlitY - slitGapPx));
+    ctx.fillRect(slitX - 3, lowerSlitY + slitGapPx / 2, 6, Math.max(0, h - 40 - (lowerSlitY + slitGapPx / 2)));
+
+    // 单缝前插透明薄片 (位于正 x 侧即上缝前，#181)
+    if (filmThicknessUm > 0) {
+        const slabX = slitX + 7;
+        const slabW = clamp(6 + filmThicknessUm * 6, 7, 18);
+        const slabH = Math.max(18, slitGapPx * 3);
+        ctx.fillStyle = isDark ? 'rgba(56,189,248,0.45)' : 'rgba(14,165,233,0.35)';
+        ctx.strokeStyle = isDark ? '#38bdf8' : '#0284c7';
+        ctx.lineWidth = 1.5;
+        ctx.fillRect(slabX, upperSlitY - slabH / 2, slabW, slabH);
+        ctx.strokeRect(slabX, upperSlitY - slabH / 2, slabW, slabH);
+        ctx.fillStyle = isDark ? '#7dd3fc' : '#0369a1';
+        ctx.font = '11px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText(
+            `薄片 n=${filmN.toFixed(2)}, t=${filmThicknessUm.toFixed(2)}μm`,
+            slabX + slabW + 4,
+            upperSlitY + 4
+        );
+    }
+
+    // 屏幕 + 条纹 (视窗 [-2.5·Δy, +2.5·Δy]，正 x 向上指向插片上缝，与引擎 Δ_total=d·x/L−Δ_opt 同号平移)
     ctx.fillStyle = isDark ? '#1e293b' : '#e2e8f0';
-    ctx.fillRect(screenX, 40, 4, h - 80);
+    ctx.fillRect(screenX, 40, 6, h - 80);
     const screenH = h - 80;
+    const windowMm = 5 * Math.max(deltaYmm, 1e-6);
     for (let py = 0; py < screenH; py++) {
-        const y = py - screenH / 2;
-        const theta = Math.atan(y / L);
-        const pathDiff = d * Math.sin(theta);
-        const I = Math.cos((Math.PI * pathDiff) / lambda) ** 2;
+        const xMm = ((screenH / 2 - py) / screenH) * windowMm;
+        const totalOrders = (xMm - fringeShiftMm) / Math.max(deltaYmm, 1e-6);
+        const I = Math.cos(Math.PI * totalOrders) ** 2;
         const r = Math.floor(255 * I);
         ctx.fillStyle = `rgb(${r},${Math.floor(r * 0.9)},${Math.floor(r * 0.3)})`;
-        ctx.fillRect(screenX, 40 + py, 4, 1);
+        ctx.fillRect(screenX, 40 + py, 6, 1);
     }
-    // 光强曲线
-    const curveW = screenX - slitX - 10;
+    // 光强曲线 I(x)
+    const curveW = screenX - slitX - 36;
     ctx.strokeStyle = ORANGE;
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     for (let py = 0; py < screenH; py++) {
-        const y = py - screenH / 2;
-        const theta = Math.atan(y / L);
-        const pathDiff = d * Math.sin(theta);
-        const I = Math.cos((Math.PI * pathDiff) / lambda) ** 2;
-        const x = slitX + 10 + I * curveW;
+        const xMm = ((screenH / 2 - py) / screenH) * windowMm;
+        const totalOrders = (xMm - fringeShiftMm) / Math.max(deltaYmm, 1e-6);
+        const I = Math.cos(Math.PI * totalOrders) ** 2;
+        const x = slitX + 30 + I * curveW;
         if (py === 0) ctx.moveTo(x, 40 + py);
         else ctx.lineTo(x, 40 + py);
     }
     ctx.stroke();
+
+    // 若发生平移，标出中央零级明纹 k=0 平移位置
+    if (hasFilm) {
+        const pyZero = screenH / 2 - (fringeShiftMm / windowMm) * screenH;
+        if (pyZero >= 0 && pyZero <= screenH) {
+            ctx.strokeStyle = isDark ? '#38bdf8' : '#0284c7';
+            ctx.setLineDash([4, 3]);
+            ctx.beginPath();
+            ctx.moveTo(slitX + 30, 40 + pyZero);
+            ctx.lineTo(screenX + 6, 40 + pyZero);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.fillStyle = isDark ? '#7dd3fc' : '#0369a1';
+            ctx.font = '11px sans-serif';
+            ctx.fillText(`k=0 (+${fringeShiftMm.toFixed(2)}mm)`, screenX + 12, 44 + pyZero);
+        }
+    }
+
     drawHud(
         ctx,
         isDark,
         [
             { label: 'λ', value: `${lambdaNm.toFixed(0)} nm` },
             { label: 'd', value: `${dMm.toFixed(2)} mm` },
-            { label: 'Δy', value: `${(dY * 1000).toFixed(2)} mm` }
+            { label: 'Δy', value: `${deltaYmm.toFixed(2)} mm` },
+            { label: 'Δx', value: `${fringeShiftMm.toFixed(2)} mm` }
         ],
         {
             boxX: 8,
             boxY: 32,
-            boxW: 156,
+            boxW: 168,
             lineH: 20,
             borderRadius: 8,
             bgAlpha: { dark: 0.7, light: 0.82 },
@@ -727,13 +784,13 @@ export function drawInterferenceScene(o: WaveOptSceneOptions) {
             textStartY: 54,
             twoColumn: true,
             valueX: 62,
-            boxH: 70
+            boxH: 90
         }
     );
     drawSubtitle(
         ctx,
-        params.filmThickness && params.filmThickness > 0
-            ? '含薄膜模式 (薄膜干涉叠加)'
+        hasFilm
+            ? `单缝加薄片: Δ_opt=(n−1)t=${(filmOpticalPathDiffUm * 1000).toFixed(0)}nm | 条纹平移 Δx=+${fringeShiftMm.toFixed(2)}mm (${filmShiftOrders.toFixed(2)}Δy) | Δy=${deltaYmm.toFixed(2)}mm`
             : `Δy = λL/d = ${dY.toExponential(2)} m`,
         20,
         h - 20,
