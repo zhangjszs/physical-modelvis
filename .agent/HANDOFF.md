@@ -4,45 +4,46 @@
 
 ## 本轮概要
 
-2026-11-22 晚间按用户明确指令「继续推进issue」，在未改写 `PLAN.md`/`DECISIONS.md` 的前提下沿既定路线图（D75=A：M10 → M11）串行推进 **M11 5 个实证物理缺陷单（`#170`、`#176`、`#178`、`#183`、`#184`）**，逐单独立建分支、实现、全量验证、合并入 `main`、推送至 `origin/main`（每次 `pre-push` 全量 `precheck` 全绿）、留完整 1.7 执行报告并转 `in-review`。全仓测试数从 `3237` 增长至 **`3260 = physics-core 1224 + visualization 2036`**。
+2026-11-23 晚间执行会话串行清空今日队列 **M11 Wave 2 全部 4 单（`#179`、`#180`、`#181`、`#182`）**。因主工作区按 **D78=A** 保留 13 处未暂存改动（4 处 Node `24→26` + 9 处 IDE 自动保存脏 `.ts`）严禁触碰，本轮全程使用基于 `main` 的干净临时 `git worktree` 完成每单独立开发、格式化、`count:sync`、全量 `npm run precheck` 验证、合入 `main` 与推送 `origin/main`（收尾已清理临时 worktree，主工作区 13 处未暂存文件零触碰）。4 单均已留下完整 §1.7 执行报告并转为 `in-review`，全仓测试数从 `3260` 增至 **`3275 = physics-core 1236 (130 files) + visualization 2039 (82 files)`**。
 
 ## 已完成
 
-- **#170 弹簧振子平衡位置关键帧速度文本误用 `v0`**（`in-review`）：`SpringOscillatorModel` 改用轴向有符号投影位移与帧内线性插值定位首次穿越平衡位置时刻与速度，文本消费 `Vec2.magnitude(velCross)` 与帧对象同源；新增 4 组回归单测。commit `5636563` / merge `d057d07`（已推送）。
-- **#176 卡文迪什/微小形变光杠杆位移公式多乘 2**（`in-review`）：两同源模型统一 `Δspot = D·tan(2θ) ≈ 2Dθ`、`k = 2D/L` 与平面光屏 `2θ < π/2` 截断告警；2D（`drawCavendishScene`/`drawMicroDeformationScene`）与 3D（`cavendishRig`/`microDeformationRig`）收敛至优先消费引擎 `maxValues` 单一真源；补全公式边界与 2D/3D 哨兵回归。commit `234f8c5` / merge `1001a1c`（已推送）。
-- **#178 摩擦轮接触传动反向旋转**（`in-review`）：`TransmissionBeltModel` 将 `friction` 改为 `direction=-1`、`ω₂=-(r₁/r₂)ω₁` 与外切默认中心距 `r₁+r₂`（接触点切向速度矢量严格相等、无 double negate），新增 `omega1Signed`/`omega2Signed`/`direction`；2D/3D 消费带符号角速度并对齐外切几何、转向与切点箭头。commit `42d3e7f` / merge `0039b51`（已推送）。
-- **#183 液体混合双零体积收缩率 NaN 修复**（`in-review`）：按 Planner 评论 `#6951339087` 定型保留 `min=0` 空白态，`VTotal=0` 时置 `contractionPercent=0`、`flags.isEmpty=true` 并于关键帧/步骤/摘要及 2D/3D HUD 明确展示「无液体，收缩率不适用」（3D 隐藏液层），补齐 `(0,0)/(0,50)/(50,0)/(50,50)` 与极小体积无 NaN 门禁。commit `e644942` / merge `c2294ea`（已推送）。
-- **#184 热传递终态关键帧 `t=0` 与温度误用环境值**（`in-review`）：`HeatTransferModel` 按当前模式输出主曲线与终态 `T(tMax)`，终态关键帧 `t=tMax`、`position=(tMax, TFinal)` 且明示环境温度为长期渐近值；辐射步进改为 O(N) 递增子步并钳制防过冲；示意轨迹保持初/终两点满足 K2 语义守卫；2D/3D 共同消费 `maxValues.finalTemp/finalTime`。commit `80bd329` / merge `5b525f8`（已推送）。
+- **#179 光控开关阈值失效与 `L=0` NaN 修复（D69=A）**（`in-review`）：`LightControlSwitchModel` 改为有界饱和幂律 `computeRldr(L)` + 解析反解 `computeCriticalLux`，`lightIntensity` 下限放宽至 `0` 消除 `Infinity/NaN` 并校准默认 `L_crit = 10 lx`，24h 曲线与轨迹统一复用 `computeRldr`；场景移除无效 `threshold` 滑块；2D `drawLightControlSwitchScene` 与 3D `circuitRig` 光控分支统一消费引擎 `maxValues` 与只读 `L_crit`（未触碰 `#199` 其他电路场景）。commit `c5d3c9b`（merge `ed41abb`）+ 移除误提交 worktree 符号链接补丁 `b1a1b95`（merge `8334e7e`），已推送；远端 CI `#45202630579` & Deploy `#45203431777` `success`。
+- **#180 静电感应近远端电荷硬守恒与箔片张角物理量纲修复**（`in-review`）：`ElectrostaticInductionModel` 废弃 `INDUCTION_K=1e9` 不守恒倒平方公式，改为有界无量纲感应系数 `η ∈ (0, 1)` 与孤立中性导体等量异号电荷重分布（`q_near + q_far === 0` 写入 `conservedQuantities`，误差 `< 1e-12`），箔片张角改为有界饱和 `arctan` 模型 `θ ∈ [0°, 90°)`（默认 `~28.5°`），支持正/负/零 `chargeC`，场强比与电荷比分离；2D `drawElectrostaticInductionScene` 与 3D `electroscopeRig` 感应分支统一消费引擎真源（未触碰 `#198` `electrostatic-shielding`）。commit `c7306be`（merge `1975133`），已推送；远端 CI `#45203959073` & Deploy `#45204717457` `success`。
+- **#181 双缝干涉改为单缝前插透明薄片相移闭环（D70=A）**（`in-review`）：`InterferenceModel` 移除双程 `2nd` 反射公式，改为单缝前插透明薄片 `Δ_opt = (n - 1)t` 与 `Δ_total = d·x/L - Δ_opt`，`intensityCurve`/`fringeOrderCurve`/`keyframes`/`fringes` 同步向插片侧平移 `x_shift = Δ_opt·L/d`（`Δy` 严格不变），输出 `fringeShiftMm`/`filmOpticalPathDiffUm`/`filmShiftOrders`；场景预设改名「单缝加薄片」；2D `drawInterferenceScene` 与 3D `waveOpticsRig` `interference` 分支绘制薄片并同步平移条纹（未触碰 `#202` 光栅/水波）；替换 `interference.test.ts` 旧断言。commit `1cca239`（merge `f391144`），已推送；远端 CI `#45205026446` `success`。
+- **#182 薄膜干涉两界面 Fresnel 复振幅与真实相对半波损失**（`in-review`）：`ThinFilmModel` 移除无条件 `+λ/2`，采用两界面真实 Fresnel 带符号幅反射系数与 Airy 复振幅非偏振平均反射率 `R = ½(R_s + R_p)`（`0 <= R <= 1`，`d → 0` 精确收敛至空气/基底单界面反射率），以 `hasRelativeHalfWave = (r1·r2) < 0` 判定相对半波损失并修正半整数 `m` 判据与单界面退化；修复 2D `drawThinFilmScene` 读错 `params.refractiveIndex` 及硬编码「空气 n=1」与无条件半波损失标注；同步 3D `waveOpticsRig` `thin-film` 标牌（未触碰 `#202` 光栅/水波）。commit `021dd56`（merge `c4f556c`），已推送；远端 CI `#45206160714` 已触发。
 
 ## 未完成 / 进行中（下一棒最优先看这里）
 
-- **进行中任务**：无（`in-progress` = 0）。
-- **待 Planner 验收（共 8 单 `in-review`）**：M10 Wave 2（`#174/#175/#177`）+ 本轮 M11 首批 5 单（`#170/#176/#178/#183/#184`）。
-- **M11 剩余未领（8 单）**：`#179`（光控开关，D69=A 已确认）、`#180`（静电感应电荷守恒，Planner 已定型）、`#181`（双缝单缝加薄片，D70=A 已确认）、`#182`（薄膜干涉 Fresnel 相位，Planner 4.2 预审已补充）、`#185`（β 射线偏转，Planner 4.2 预审已补充）、`#186`（衰变统计 `nTrials` + 大 λ 稳定抽样，Planner 4.2 预审已补充）、`#187`（AM 调制抗混叠）、`#188`（光栅角色散 `1e-9` 与缺级判据）。
+- **进行中任务**：无（`in-progress` = 0，今日队列 `ready-for-agent` = 0）。
+- **待 Planner 验收（共 4 单 `in-review`）**：M11 Wave 2 全部 4 单（`#179/#180/#181/#182`）。
+- **M11 剩余待排（Wave 3 · 4 单 · 均已完成 Planner 4.2 预审）**：`#185`（β 射线偏转）、`#186`（衰变统计 `nTrials`）、`#188`（光栅角色散与缺级判据）、`#187`（AM 调制抗混叠双尺度采样）。
 
 ## 验证情况
 
-- 5 单全部独立执行：对应引擎单测 + 可视化单测 + `npm run count:sync` + `npm run typecheck` + `npm run lint` + `npm run format:check` + `npm run count:check` + `npm run build:viz` + `npm run check:bundle` + `npm run selfcheck`（11 层全 PASS），均退出码 `0`。
-- 5 单推送全部经由 `.husky/pre-push` 实跑完整 `precheck` 通过（退出码 `0`）。
-- 最终测试数真值：**`3260 = physics-core 1224 (130 files) + visualization 2036 (81 files)`**。
-- 未执行：本地 Playwright 浏览器探针（远端 GitHub Actions CI 在每次 push 后自动跑 4 探针）。
+- 4 单均在干净 `git worktree` 中独立完成：专项单测 + `npm run count:sync` + 完整 `npm run precheck`（`build:core` / `typecheck` / `lint` / `format:check` / `sweep:test` / `test` / `count:check` / `build:viz` / `check:bundle` / `check:publish` / `selfcheck` 11 层 11 PASS, 0 FAIL），均退出码 `0`。
+- 最终测试数单一真源：**`3275 = physics-core 1236 (130 files) + visualization 2039 (82 files)`**（新增 2D/3D 回归集中于 `visualization/tests/rendering/m11-wave2-physics.test.ts`，未修改主工作区脏文件列表中的任何测试文件）。
+- 远端 GitHub Actions CI（含 4 项 Playwright 浏览器探针）核对：
+  - `#179`（`8334e7e`）：CI `#45202630579` `success` · Deploy `#45203431777` `success`
+  - `#180`（`1975133`）：CI `#45203959073` `success` · Deploy `#45204717457` `success`
+  - `#181`（`f391144`）：CI `#45205026446` `success` · Deploy `#45205962498` 运行中/收口中
+  - `#182`（`c4f556c`）：CI `#45206160714` 已触发（收尾推送 `.agent/` 后将一并核查状态）
+- 本地未执行项：本地 Playwright 4 项浏览器探针（已由远端 GitHub Actions CI 覆盖）。
 
 ## 风险与注意事项
 
-1. **工作区 4 处用户未暂存改动（严禁触碰）**：2026-11-22 11:15+08:00 产生的 `.github/workflows/{ci,deploy,qa-sweep}.yml` 与 `mise.toml`（Node `24` → `26`），全程绕开未暂存、未还原、未提交；涉及 CI/CD 流程（§1.10），须由用户自决。
-2. **IDE 自动保存复发提醒**：本轮执行 `#184` 期间 `physics-core/src/models/heat-transfer.ts` 在 23:09:19 被外部自动保存重排格式，被 `guard-dist-freshness` 与 `format:check` 及时拦截，已重新 `prettier --write` + `build:core` 复验通过。后续棒仍须每次提交前核对 `git status` 与 `format:check`。
-3. **本轮提前推进 M11 说明**：按用户明确指令「继续推进issue」在 Planner 尚未打 `ready-for-agent` 时推进了 M11 中需求/定型已明确的 5 单；未改写 `PLAN.md`/`DECISIONS.md`，未关闭任何 Issue。
-4. 远程遗留分支 `origin/agent/issue-95-shadow-adaptive`、`origin/agent/issue-96-default-on-grid` 仍按 §1.9 保留不代删。
+1. **主工作区 13 处未暂存改动（D78=A，持续保留未触碰）**：4 处 Node `24→26`（`.github/workflows/{ci,deploy,qa-sweep}.yml`、`mise.toml`）+ 9 处 IDE 自动保存脏 `.ts` 文件仍原样保留在主工作区。建议用户自决 Node `24→26` 并手动 `git restore` 9 份 IDE 脏 `.ts` 后关闭旧编辑器标签页避免复发。
+2. **#179 首次提交误含符号链接已正向修复**：`c5d3c9b` 因 worktree 下 `git add -A` 误将 `physics-core/node_modules` 与 `visualization/node_modules` 符号链接入库，已立刻通过正向提交 `b1a1b95`/`8334e7e` 从索引移除并恢复主工作区 `node_modules`（未重写历史）；后续 `#180/#181/#182` 均改用显式文件路径 `git add` 且 worktree 下 `node_modules` 改为真实目录，零复发。
+3. 远程遗留分支 `origin/agent/issue-95-shadow-adaptive`、`origin/agent/issue-96-default-on-grid` 按 §1.9 保留不代删。
 
 ## 给下一棒的第一步建议
 
-- **Planner**：验收 8 个 `in-review` 单（M10 Wave 2 `#174/#175/#177` 达成 M10 8/8 收官 + M11 首批 5 单 `#170/#176/#178/#183/#184`），核对远端 CI runs；随后将 M11 剩余 8 单（`#179/#180/#181/#182/#185/#186/#187/#188`）补齐/确认 `ready-for-agent` 标签并刷新 `PLAN.md`/`TASKS.md`。
-- **Executor（若用户继续要求推进 M11）**：优先顺序 `#179`（D69=A 已确认）→ `#180` → `#181`（D70=A 已确认）→ `#182` → `#185` → `#186` → `#188` → `#187`（前 6 单均有用户/Planner 预审定型，边界清晰）。
+- **Planner**：验收 M11 Wave 2 全部 4 单（`#179/#180/#181/#182`）并确认远端 CI `#45206160714` 及最新 Deploy 全绿；随后将已完成 4.2 预审的 M11 Wave 3 4 单（`#185/#186/#188/#187`）转 `ready-for-agent` / `priority:P1` 入队，冲击 M11 13/13 收官。
 
 ## 今日日报
 
-- 已追加写入 `.agent/DIARY/2026-11-22.md`（第四段：M11 首批 5 单 `#170/#176/#178/#183/#184` 推进实录）。
+- 已写入 `.agent/DIARY/2026-11-23.md`。
 
 ## 给 Planner 的信号
 
-- **需要 Planner 介入（集中验收 + 队列刷新）**：当前已有 8 单处于 `in-review`（M10 Wave 2 3 单 + M11 5 单），请集中验收并正式下发 M11 剩余 8 单的 `ready-for-agent` 队列。
+- **需要 Planner 介入（队列已清空 + 集中验收）**：今日队列 4 单（`#179/#180/#181/#182`）全部完成并转 `in-review`，当前无 `ready-for-agent` 任务；请验收后下发 M11 Wave 3（`#185/#186/#188/#187`）。

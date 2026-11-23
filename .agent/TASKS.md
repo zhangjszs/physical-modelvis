@@ -20,28 +20,28 @@
 
 ### 1. #179 · 光控开关阈值失效与 `L=0` NaN 修复（D69=A）
 
-- Issue：[#179](https://github.com/zhangjszs/physical-modelvis/issues/179)；Milestone：M11（5/13）；状态：**ready**（`ready-for-agent`）；优先级：**priority:P1**（`area:engine`, `area:render`, `type:bug`）。
+- Issue：[#179](https://github.com/zhangjszs/physical-modelvis/issues/179)；Milestone：M11（5/13）；状态：**in-review**（2026-11-23 已完成并推送 `c5d3c9b`/`8334e7e`，CI `#45202630579` / Deploy `#45203431777` 全绿）；优先级：**priority:P1**（`area:engine`, `area:render`, `type:bug`）。
 - Planner 4.2 门禁定型（详见 [最新评论](https://github.com/zhangjszs/physical-modelvis/issues/179#issuecomment-7081304594)）：
   - 按 D69=A 以分压 `V_B = E·R_LDR/(R_LDR+R_fix) >= VbeOn` 为唯一开关真源；放宽模型 `lightIntensity` 下限至 `0`，定义有界饱和幂律 `computeRldr(L)` 使 `L=0` 返回有限 `R_dark`（消除 `Infinity/NaN`、完全黑暗亮灯），并校准参考点使默认参数临界照度 `L_crit ≈ 10 lx`；导出只读 `criticalLux` 且 24h 曲线与 `trajectory` 复用 `computeRldr`。
   - 场景移除无效 `threshold` 滑块；2D（`sensorApplicationScenes.ts`）与 3D（`circuitRig.ts` 光控分支）消费引擎 `maxValues` 并展示 `L_crit`；更新 `single-source-contract.test.ts:599-623` 与 2D/3D 同源单测（不改其他电路场景 `#199`）。
 
 ### 2. #180 · 静电感应近远端电荷硬守恒与箔片张角物理量纲修复
 
-- Issue：[#180](https://github.com/zhangjszs/physical-modelvis/issues/180)；Milestone：M11（5/13）；状态：**ready**（`ready-for-agent`）；优先级：**priority:P1**（`area:engine`, `area:render`, `type:bug`）。
+- Issue：[#180](https://github.com/zhangjszs/physical-modelvis/issues/180)；Milestone：M11（5/13）；状态：**in-review**（2026-11-23 已完成并推送 `c7306be`/`1975133`，CI `#45203959073` / Deploy `#45204717457` 全绿）；优先级：**priority:P1**（`area:engine`, `area:render`, `type:bug`）。
 - Planner 4.2 门禁定型（详见 [最新评论](https://github.com/zhangjszs/physical-modelvis/issues/180#issuecomment-7081305550)）：
   - 孤立中性导体硬不变量 `q_near + q_far === 0`（`<1e-12`）写入 `conservedQuantities`；废弃 `INDUCTION_K=1e9` 双倒平方净电荷公式，改用量纲明确的感应电荷重分布（`μC`，`|q_near| <= |Q_C|`）与有界单调张角 `θ ∈ [0°, 90°)`，支持正/负 `chargeC` 与 `Q=0` 无 NaN，场强比与电荷比分离。
   - 2D（`drawElectrostaticInductionScene`）与 3D（`electroscopeRig` 感应场景）消费引擎真源；不改动 `electrostatic-shielding`（留给 M12 `#198` 防同文件冲突）。
 
 ### 3. #181 · 双缝干涉改为单缝前插透明薄片相移闭环（D70=A）
 
-- Issue：[#181](https://github.com/zhangjszs/physical-modelvis/issues/181)；Milestone：M11（5/13）；状态：**ready**（`ready-for-agent`）；优先级：**priority:P1**（`area:engine`, `area:render`, `type:bug`）。
+- Issue：[#181](https://github.com/zhangjszs/physical-modelvis/issues/181)；Milestone：M11（5/13）；状态：**in-review**（2026-11-23 已完成并推送 `1cca239`/`f391144`，CI `#45205026446` 全绿）；优先级：**priority:P1**（`area:engine`, `area:render`, `type:bug`）。
 - Planner 4.2 门禁定型（详见 [最新评论](https://github.com/zhangjszs/physical-modelvis/issues/181#issuecomment-7081306944)）：
   - 按 D70=A 移除双程 `2nd` 逻辑，改为单缝插透明薄片 `Δ_opt=(n-1)t`，总光程差 `d·x/L - Δ_opt`，屏幕 `intensityCurve`、`fringeOrderCurve`、`keyframes` 与 `fringes` 整体向插片侧平移 `x_shift = Δ_opt·L/d`（保持 `Δy = λL/d` 严格不变），输出 `fringeShiftMm`/`filmOpticalPathDiffUm`/`filmShiftOrders`。
   - 预设改名「单缝加薄片」；2D（`drawInterferenceScene`）与 3D（`waveOpticsRig` `interference` 分支）绘出单缝薄片并同步平移条纹；更新 `interference.test.ts:104-114` 旧断言（不改光栅/水波 `#202`）。
 
 ### 4. #182 · 薄膜干涉两界面 Fresnel 复振幅与真实相对半波损失
 
-- Issue：[#182](https://github.com/zhangjszs/physical-modelvis/issues/182)；Milestone：M11（5/13）；状态：**ready**（`ready-for-agent`）；优先级：**priority:P1**（`area:engine`, `area:render`, `type:bug`）。
+- Issue：[#182](https://github.com/zhangjszs/physical-modelvis/issues/182)；Milestone：M11（5/13）；状态：**in-review**（2026-11-23 已完成并推送 `021dd56`/`c4f556c`，CI `#45206160714` 已触发）；优先级：**priority:P1**（`area:engine`, `area:render`, `type:bug`）。
 - Planner 4.2 门禁定型（详见 [最新评论](https://github.com/zhangjszs/physical-modelvis/issues/182#issuecomment-7081307705)）：
   - 移除无条件 `+λ/2`，改用两界面真实 Fresnel 带符号幅反射系数与 Airy 复振幅反射率（正入射及倾斜 s/p 平均，保证 `0<=R<=1` 且 `d→0` 收敛到空气/基底单界面反射率 `0.04`）；以 `hasRelativeHalfWave = (r1·r2)<0` 判定相对半波损失并更新 `thicknessScan`/`wavelengthScan`/标签。
   - 修复 2D `drawThinFilmScene` 读错 `params.refractiveIndex`（改读 `refIndex`/`subsIndex` 与引擎结果）及硬编码「空气 n=1」与无条件半波损失标注；同步 3D `waveOpticsRig` `thin-film` 标牌（不改光栅/水波 `#202`）。
