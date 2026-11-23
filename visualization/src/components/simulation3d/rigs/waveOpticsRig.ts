@@ -39,6 +39,14 @@ interface WaveOpticsHandles {
         hasFilm: boolean;
         shiftY: number;
     };
+    /** 薄膜干涉状态快照 (#182, 供 2D/3D 同源校验) */
+    thinFilmState?: {
+        Rnorm: number;
+        hasRelativeHalfWave: boolean;
+        isSingleInterface: boolean;
+        isConstructive: boolean;
+        isDestructive: boolean;
+    };
 }
 
 export const waveOpticsRig: SceneRig = {
@@ -258,8 +266,94 @@ export const waveOpticsRig: SceneRig = {
             return;
         }
 
+        // #182 thin-film 薄膜干涉 (Fresnel 复振幅与相对半波损失) 专用消费引擎分支
+        const isThinFilm =
+            'refIndex' in params ||
+            'subsIndex' in params ||
+            (mv !== undefined && 'Rnorm' in mv && 'r1' in mv && 'r2' in mv);
+        if (isThinFilm) {
+            const flags = result?.diagnostics?.flags as
+                | {
+                      hasRelativeHalfWave?: boolean;
+                      isSingleInterface?: boolean;
+                      isConstructive?: boolean;
+                      isDestructive?: boolean;
+                  }
+                | undefined;
+            const nFilm = num(params['refIndex'] ?? mv?.n, 1.38);
+            const nSub = num(params['subsIndex'] ?? mv?.nSub, 1.5);
+            const thickness = num(params['thickness'] ?? mv?.d, 300);
+            const r1 = mv?.r1 ?? (1 - nFilm) / (1 + nFilm);
+            const r2 = mv?.r2 ?? (nFilm - nSub) / (nFilm + nSub);
+            const isSingleInterface = flags?.isSingleInterface ?? (Math.abs(r1) < 1e-12 || Math.abs(r2) < 1e-12);
+            const hasRelativeHalfWave = flags?.hasRelativeHalfWave ?? (!isSingleInterface && r1 * r2 < 0);
+            const cosT = mv?.cosT ?? 1;
+            const phiFallback = (4 * Math.PI * nFilm * thickness * cosT) / wavelength;
+            const c = Math.cos(phiFallback);
+            const rFallback =
+                (r1 * r1 + r2 * r2 + 2 * r1 * r2 * c) / Math.max(1e-12, 1 + r1 * r1 * r2 * r2 + 2 * r1 * r2 * c);
+            const Rnorm = THREE.MathUtils.clamp(mv?.Rnorm ?? rFallback, 0, 1);
+            const isConstructive = flags?.isConstructive ?? false;
+            const isDestructive = flags?.isDestructive ?? false;
+
+            h.wavelength = wavelength;
+            h.sceneType = 'thin-film';
+            h.filmSlab.visible = false;
+            h.interferenceState = undefined;
+            h.thinFilmState = {
+                Rnorm,
+                hasRelativeHalfWave,
+                isSingleInterface,
+                isConstructive,
+                isDestructive
+            };
+
+            const visualSpacing = 0.045;
+            const baseOpacity = THREE.MathUtils.clamp(0.25 + Rnorm * 2.5, 0.2, 0.95);
+            h.fringeGroup.children.forEach((child, idx) => {
+                const i = idx - 7;
+                const mesh = child as THREE.Mesh;
+                mesh.position.y = i * visualSpacing;
+                mesh.visible = true;
+                const mat = mesh.material as THREE.MeshBasicMaterial;
+                mat.color.setHex(lightColor);
+                mat.opacity = baseOpacity * (1 - Math.abs(i) * 0.05);
+            });
+
+            const phaseText = isSingleInterface
+                ? '单界面反射'
+                : hasRelativeHalfWave
+                  ? '有相对半波损失 (+λ/2)'
+                  : '无相对半波损失 (0)';
+            const verdict = isSingleInterface
+                ? '单界面反射'
+                : isConstructive
+                  ? '相长 (反射增强)'
+                  : isDestructive
+                    ? '相消 (增透减弱)'
+                    : '过渡态';
+            if (h.statusLabel) {
+                updateTextSprite(
+                    h.statusLabel,
+                    `薄膜干涉 (1→${nFilm.toFixed(2)}→${nSub.toFixed(2)}) | d=${thickness.toFixed(0)}nm | ${phaseText}`,
+                    '#0f172a',
+                    20
+                );
+            }
+            if (h.formulaLabel) {
+                updateTextSprite(
+                    h.formulaLabel,
+                    `Airy 反射率 R=${(Rnorm * 100).toFixed(2)}% | ${verdict} (r₁=${r1.toFixed(2)}, r₂=${r2.toFixed(2)})`,
+                    '#2563eb',
+                    19
+                );
+            }
+            return;
+        }
+
         h.filmSlab.visible = false;
         h.interferenceState = undefined;
+        h.thinFilmState = undefined;
         const slitWidth = num(params['slitWidth'] ?? params['slitDist'] ?? params['spacing'] ?? params['d'], 0.15); // mm
         const distance = num(params['distance'] ?? params['L'], 1.5); // m
 

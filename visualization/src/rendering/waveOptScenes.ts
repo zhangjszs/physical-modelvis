@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 选必一 第四章「波动/光学」场景渲染模块
  *
  * 包含 6 个可视化场景：
@@ -549,13 +549,59 @@ export function drawSingleSlitScene(o: WaveOptSceneOptions) {
 // ========== 6. 薄膜干涉 ==========
 
 export function drawThinFilmScene(o: WaveOptSceneOptions) {
-    const { ctx, width: w, height: h, isDark, params } = o;
+    const { ctx, width: w, height: h, isDark, params, simulationResult } = o;
     clearScene(ctx, w, h, isDark);
     drawTitle(ctx, '薄膜干涉', w, isDark, { size: 20, y: 32 });
 
-    const nFilm = params.refractiveIndex ?? 1.33;
-    const thickness = params.thickness ?? 500;
+    // 修复 #182: 正确读取场景参数 refIndex / subsIndex / incAngle 并优先消费引擎 Fresnel 复振幅结果
+    const nFilm = params.refIndex ?? params.refractiveIndex ?? 1.38;
+    const nSub = params.subsIndex ?? 1.5;
+    const thickness = params.thickness ?? 300;
     const lambda = params.wavelength ?? 550;
+    const incAngle = params.incAngle ?? 0;
+
+    const mv = simulationResult?.diagnostics?.maxValues as
+        | {
+              Rnorm?: number;
+              delta?: number;
+              m?: number;
+              r1?: number;
+              r2?: number;
+              cosT?: number;
+          }
+        | undefined;
+    const flags = simulationResult?.diagnostics?.flags as
+        | {
+              hasRelativeHalfWave?: boolean;
+              isSingleInterface?: boolean;
+              isConstructive?: boolean;
+              isDestructive?: boolean;
+          }
+        | undefined;
+
+    const thetaRad = (incAngle * Math.PI) / 180;
+    const sinT = Math.min(0.9999, Math.sin(thetaRad) / Math.max(1, nFilm));
+    const cosT = mv?.cosT ?? Math.sqrt(Math.max(0, 1 - sinT * sinT));
+    const r1 = mv?.r1 ?? (1 - nFilm) / (1 + nFilm);
+    const r2 = mv?.r2 ?? (nFilm - nSub) / (nFilm + nSub);
+    const isSingleInterface = flags?.isSingleInterface ?? (Math.abs(r1) < 1e-12 || Math.abs(r2) < 1e-12);
+    const hasRelativeHalfWave = flags?.hasRelativeHalfWave ?? (!isSingleInterface && r1 * r2 < 0);
+    const delta = mv?.delta ?? 2 * nFilm * thickness * cosT + (hasRelativeHalfWave ? lambda / 2 : 0);
+    const evalR = (dNm: number): number => {
+        const phi = (4 * Math.PI * nFilm * dNm * cosT) / lambda;
+        const c = Math.cos(phi);
+        const num = r1 * r1 + r2 * r2 + 2 * r1 * r2 * c;
+        const den = 1 + r1 * r1 * r2 * r2 + 2 * r1 * r2 * c;
+        return den > 1e-12 ? clamp(num / den, 0, 1) : 1;
+    };
+    const Rnorm = mv?.Rnorm ?? evalR(thickness);
+    const verdict = isSingleInterface
+        ? '单界面反射'
+        : flags?.isConstructive
+          ? '相长 (反射增强)'
+          : flags?.isDestructive
+            ? '相消 (增透减弱)'
+            : '过渡态';
 
     // 薄膜截面
     const filmTop = h * 0.35;
@@ -569,12 +615,12 @@ export function drawThinFilmScene(o: WaveOptSceneOptions) {
     ctx.lineWidth = 2;
     ctx.strokeRect(40, filmTop, w - 80, filmBottom - filmTop);
 
-    // 介质标注
+    // 介质标注 (空气 → 薄膜 → 基片 n_s，不再硬编码底部空气)
     ctx.fillStyle = isDark ? '#f1f5f9' : '#1e293b';
     ctx.font = '12px sans-serif';
-    ctx.fillText('空气 n=1', 50, filmTop - 10);
-    ctx.fillText(`薄膜 n=${nFilm}`, 50, (filmTop + filmBottom) / 2);
-    ctx.fillText('空气 n=1', 50, filmBottom + 20);
+    ctx.fillText('空气 n₀=1.00', 50, filmTop - 10);
+    ctx.fillText(`薄膜 n=${nFilm.toFixed(2)}`, 50, (filmTop + filmBottom) / 2);
+    ctx.fillText(`基片 n_s=${nSub.toFixed(2)}${Math.abs(nSub - 1) < 1e-3 ? ' (空气)' : ''}`, 50, filmBottom + 20);
 
     // 入射光线 (三条)
     const incidentX = w * 0.25;
@@ -608,22 +654,28 @@ export function drawThinFilmScene(o: WaveOptSceneOptions) {
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // 半波损失标注
-    ctx.fillStyle = isDark ? '#fbbf24' : '#d97706';
+    // 动态相对半波损失标注 (随 hasRelativeHalfWave 切换，不再无条件写半波损失)
+    ctx.fillStyle = hasRelativeHalfWave ? (isDark ? '#fbbf24' : '#d97706') : isDark ? '#38bdf8' : '#0284c7';
     ctx.font = '11px sans-serif';
-    ctx.fillText('半波损失 λ/2', incidentX + 35, filmTop - 38);
+    const phaseBadge = isSingleInterface
+        ? '单界面反射 (无双光束干涉)'
+        : hasRelativeHalfWave
+          ? '有相对半波损失 +λ/2 (r₁·r₂ < 0)'
+          : '无相对半波损失 (r₁·r₂ > 0，两界面同相变)';
+    ctx.fillText(phaseBadge, incidentX + 35, filmTop - 38);
 
-    // 等厚条纹 (底部)
+    // 等厚条纹 (按两界面真实 Fresnel Airy 反射率绘制)
     const stripeY = h * 0.7;
     ctx.font = '12px sans-serif';
     ctx.fillStyle = isDark ? '#cbd5e1' : '#475569';
-    ctx.fillText('等厚干涉条纹 (俯视)', 40, stripeY - 10);
+    ctx.fillText('等厚干涉条纹 (俯视 · Airy 反射率)', 40, stripeY - 10);
     const stripeW = w - 80;
     const stripeH = 40;
+    const rMaxRef = Math.max(0.08, Math.pow((Math.abs(r1) + Math.abs(r2)) / (1 + Math.abs(r1 * r2)), 2));
     for (let i = 0; i < stripeW; i += 2) {
-        const t = thickness + (i / stripeW - 0.5) * 200;
-        const phase = (4 * Math.PI * nFilm * t) / lambda;
-        const I = Math.cos(phase) ** 2;
+        const t = Math.max(0, thickness + (i / stripeW - 0.5) * 300);
+        const Ri = evalR(t);
+        const I = clamp(Ri / rMaxRef, 0, 1);
         const r = Math.floor(200 * I + 55);
         const g = Math.floor(180 * I + 40);
         const b = Math.floor(60 * I + 80);
@@ -631,7 +683,14 @@ export function drawThinFilmScene(o: WaveOptSceneOptions) {
         ctx.fillRect(40 + i, stripeY, 2, stripeH);
     }
 
-    drawSubtitle(ctx, `n=${nFilm} d=${thickness}nm λ=${lambda}nm Δ=2nd+λ/2`, 20, h - 20, isDark);
+    const formulaStr = hasRelativeHalfWave ? 'Δ=2nd·cosθ_t+λ/2' : 'Δ=2nd·cosθ_t';
+    drawSubtitle(
+        ctx,
+        `n=${nFilm.toFixed(2)} n_s=${nSub.toFixed(2)} d=${thickness}nm λ=${lambda}nm ${formulaStr}=${delta.toFixed(1)}nm R=${(Rnorm * 100).toFixed(2)}% (${verdict})`,
+        20,
+        h - 20,
+        isDark
+    );
 }
 
 // ========== 7. 光的折射 (Snell 定律) ==========

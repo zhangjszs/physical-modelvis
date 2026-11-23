@@ -7,7 +7,7 @@ import { loadAllScenes, getSceneSync } from '../../src/scenes/sceneRegistry';
 import { runSceneSimulation } from '../../src/adapters/physicsCoreAdapter';
 import { drawLightControlSwitchScene } from '../../src/rendering/sensorApplicationScenes';
 import { drawElectrostaticInductionScene } from '../../src/rendering/electrostaticFieldScenes';
-import { drawInterferenceScene } from '../../src/rendering/waveOptScenes';
+import { drawInterferenceScene, drawThinFilmScene } from '../../src/rendering/waveOptScenes';
 import { circuitRig } from '../../src/components/simulation3d/rigs/circuitRig';
 import { electroscopeRig } from '../../src/components/simulation3d/rigs/electroscopeRig';
 import { waveOpticsRig } from '../../src/components/simulation3d/rigs/waveOpticsRig';
@@ -194,6 +194,79 @@ describe('M11 Wave 2: 2D/3D 与引擎单一真源回归', () => {
             expect(hFilm.interferenceState?.fringeShiftMm).toBeCloseTo(0.76, 5);
             expect(hFilm.interferenceState!.shiftY).toBeGreaterThan(0);
             expect(hFilm.fringeGroup.children[7]!.position.y).toBeCloseTo(hFilm.interferenceState!.shiftY, 6);
+        });
+    });
+
+    describe('#182 thin-film: 2D 正确读取 refIndex/subsIndex 并随 hasRelativeHalfWave 切换，2D/3D 与引擎同源', () => {
+        it('1→1.38→1.5 (无相对半波损失) 与 1→1.33→1.0 (有相对半波损失) 2D/3D 标牌与引擎一致', () => {
+            const sc = getSceneSync('thin-film')!;
+            expect(sc).toBeDefined();
+
+            // 场景 1: MgF2 薄膜在玻璃基片上 (1 < 1.38 < 1.5) -> 无相对半波损失，d=10nm 收敛至 0.04
+            const glassParams = { thickness: 10, refIndex: 1.38, wavelength: 550, incAngle: 0, subsIndex: 1.5 };
+            const glassSim = runSceneSimulation(sc, glassParams);
+            expect(glassSim.error).toBeNull();
+            const glassMv = glassSim.result!.diagnostics.maxValues as Record<string, number>;
+            expect(glassSim.result!.diagnostics.flags?.hasRelativeHalfWave).toBe(false);
+            expect(glassMv.Rnorm).toBeCloseTo(0.04, 2);
+
+            const recGlass = createRecordingCanvas({ width: 900, height: 600 });
+            drawThinFilmScene({
+                ctx: recGlass.ctx,
+                width: 900,
+                height: 600,
+                isDark: true,
+                params: glassParams,
+                simulationResult: glassSim.result,
+                currentTime: 0
+            });
+            const glassText = recGlass.texts.join(' ');
+            expect(glassText).toContain('薄膜 n=1.38');
+            expect(glassText).toContain('基片 n_s=1.50');
+            expect(glassText).toContain('无相对半波损失');
+            expect(glassText).not.toContain('Δ=2nd·cosθ_t+λ/2');
+
+            const threeGlass = new THREE.Scene();
+            const builtGlass = waveOpticsRig.buildEquipment(threeGlass, glassParams, glassSim.result);
+            const hGlass = builtGlass.handles as {
+                thinFilmState?: { Rnorm: number; hasRelativeHalfWave: boolean };
+            };
+            expect(hGlass.thinFilmState).toBeDefined();
+            expect(hGlass.thinFilmState!.hasRelativeHalfWave).toBe(false);
+            expect(hGlass.thinFilmState!.Rnorm).toBeCloseTo(glassMv.Rnorm!, 6);
+
+            // 场景 2: 空气-肥皂膜-空气 (1 < 1.33 > 1.0) -> 有相对半波损失，d=10nm 趋于暗膜 R→0
+            const soapParams = { thickness: 10, refIndex: 1.33, wavelength: 550, incAngle: 0, subsIndex: 1.0 };
+            const soapSim = runSceneSimulation(sc, soapParams);
+            expect(soapSim.error).toBeNull();
+            const soapMv = soapSim.result!.diagnostics.maxValues as Record<string, number>;
+            expect(soapSim.result!.diagnostics.flags?.hasRelativeHalfWave).toBe(true);
+            expect(soapMv.Rnorm).toBeLessThan(0.005);
+
+            const recSoap = createRecordingCanvas({ width: 900, height: 600 });
+            drawThinFilmScene({
+                ctx: recSoap.ctx,
+                width: 900,
+                height: 600,
+                isDark: true,
+                params: soapParams,
+                simulationResult: soapSim.result,
+                currentTime: 0
+            });
+            const soapText = recSoap.texts.join(' ');
+            expect(soapText).toContain('薄膜 n=1.33');
+            expect(soapText).toContain('基片 n_s=1.00');
+            expect(soapText).toContain('有相对半波损失 +λ/2');
+            expect(soapText).toContain('Δ=2nd·cosθ_t+λ/2');
+
+            const threeSoap = new THREE.Scene();
+            const builtSoap = waveOpticsRig.buildEquipment(threeSoap, soapParams, soapSim.result);
+            const hSoap = builtSoap.handles as {
+                thinFilmState?: { Rnorm: number; hasRelativeHalfWave: boolean };
+            };
+            expect(hSoap.thinFilmState).toBeDefined();
+            expect(hSoap.thinFilmState!.hasRelativeHalfWave).toBe(true);
+            expect(hSoap.thinFilmState!.Rnorm).toBeCloseTo(soapMv.Rnorm!, 6);
         });
     });
 });
