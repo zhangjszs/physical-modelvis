@@ -11,22 +11,11 @@ export const light_control_switchScene: SceneConfig = {
             label: '当前光照度 L',
             unit: 'lx',
             value: 0.5,
-            min: 0.5,
+            min: 0,
             max: 1e5,
             step: 0.5,
             default: 0.5,
-            description: '当前环境光照强度 (夜晚~0.5 lx, 白天~50000 lx)'
-        },
-        {
-            name: 'threshold',
-            label: '触发阈值 L_th',
-            unit: 'lx',
-            value: 10,
-            min: 1,
-            max: 1e3,
-            step: 1,
-            default: 10,
-            description: '路灯开关翻转阈值'
+            description: '当前环境光照强度 (完全黑暗 0 lx, 夜晚~0.5 lx, 白天~50000 lx)'
         },
         {
             name: 'Rfix',
@@ -37,7 +26,7 @@ export const light_control_switchScene: SceneConfig = {
             max: 1e6,
             step: 1000,
             default: 10000,
-            description: '分压电路中固定电阻值'
+            description: '分压电路中固定电阻值 (调节可改变等效临界照度 L_crit)'
         },
         {
             name: 'Esupply',
@@ -48,7 +37,7 @@ export const light_control_switchScene: SceneConfig = {
             max: 24,
             step: 1,
             default: 12,
-            description: '分压电路供电电压 E'
+            description: '分压电路供电电压 E (调节可改变等效临界照度 L_crit)'
         },
         {
             name: 'duration',
@@ -64,7 +53,6 @@ export const light_control_switchScene: SceneConfig = {
     ],
     buildProblem: params => {
         const lightIntensity = params['lightIntensity'] ?? 0.5;
-        const threshold = params['threshold'] ?? 10;
         const Rfix = params['Rfix'] ?? 10000;
         const Esupply = params['Esupply'] ?? 12;
         const durationH = params['duration'] ?? 24;
@@ -78,7 +66,6 @@ export const light_control_switchScene: SceneConfig = {
             constraints: {
                 lightControlSwitch: {
                     lightIntensity,
-                    threshold,
                     Rfix,
                     Esupply,
                     VbeOn: 0.7,
