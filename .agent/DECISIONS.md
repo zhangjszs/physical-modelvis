@@ -4,7 +4,7 @@
 > 旧答案与现状明显冲突时，可确认一次"是否仍然有效"。
 > 本文件曾随 `6214cbd` 开源化清理被误删，2026-10-02 规划者从 `d0d9e37` 恢复（D1–D4 原文保留），此后新增 D5+。
 
-> **当前有效结论（2026-11-19，D74–D76·续）**：**M10 Wave 1 全部 5 单（`#166/#169/#172/#173/#190`）已验收 CLOSED（M10 进度 5 / 8）**；**M10 Wave 2 全部 3 单（`#174/#175/#177`）已过 4.2 门禁并升为 `priority:P1` + `ready-for-agent`**，组成今日队列（P1 总数 = 3）；2026-11-18 新录入 12 单（`#192–#203`）已全量分拣收编入 **M12（12 单，全 `priority:P2`）**。用户同日答复「都安推荐的来」→ **D74=A（由用户自行清理工作区 3 处未暂存改动，Agent 严格不碰）与 D75=A（排程确立为 `M10 → M11 → M12 → #191 → #171 → #189`）全部转正生效，pending 清零**。D44=B / D61=A / D62=A / D68=A / D69=A / D70=A / D71=A / D72=A / D31 与真实发布红线维持。历史队列不可当作当前指令。
+> **当前有效结论（2026-11-23，D77–D79）**：**M10（Milestone 4）已达成 8 / 8 CLOSED 收官**；**M11（Milestone 5）进度 5 / 13**（`#170/#176/#178/#183/#184` CLOSED），**今日队列维持 M11 Wave 2 4 单（`#179/#180/#181/#182`，全 `priority:P1` + `ready-for-agent`）**，Wave 3 4 单（`#185/#186/#187/#188`）已全量完成源码 4.2 预审（维持 `priority:P2`）；M12（`#192–#203`，12 单）按 **D75=A** 排在 M11 清零后；**D78=A**（工作区 Node `24→26` 与 IDE 自动保存脏改动由用户自理、Agent 严禁触碰且不用 `--no-verify`）持续生效，**pending 清零**。D44=B / D61=A / D62=A / D68=A / D69=A / D70=A / D71=A / D72=A / D74=A / D75=A / D31 与真实发布红线维持。历史队列不可当作当前指令。
 
 ---
 
@@ -1387,8 +1387,18 @@ eslint tests 目录 `no-explicit-any` 降 warn）与 `36aed93`（移除 scripts/
   2. 2026-11-22 23:18 再次触发编辑器自动保存噪声：`physics-core/src/models/heat-transfer.ts` 被重排为单行对象（mtime `23:18:32 > dist 23:14:17`，同时触发 `format:check` 与 `guard-dist-freshness` 失败）且 `visualization/src/rendering/thermodynamicLawScenes.ts` 去除 UTF-8 BOM。该噪声拦截 `.husky/pre-push` 导致 `.agent/` 规划提交滞留本地。
 - **用户决定（方案 A）**：由用户自行决定是否提交 4 处 Node `24→26` 改动，同时由用户手动 `git restore physics-core/src/models/heat-transfer.ts visualization/src/rendering/thermodynamicLawScenes.ts`、排查编辑器自动保存/格式化冲突配置后执行 `git push`；Agent（Planner 与 Executor）严格不触碰任何上述未暂存代码或 CI 工作流文件、不使用 `--no-verify`。
 
+## D79 · 2026-11-23 每日规划：空产出巡检、IDE 脏文件再复发记录与 M11 Wave 3（#187/#188）4.2 预审补齐
+
+- **日期 / 决策者**：2026-11-23；Planner 依日常治理与契约 6.1 低风险技术预审权限执行，不新增产品决策或红线授权。
+- **同步与昨日现场**：`git fetch --all --prune` 确认 `origin/main` 仍停于 `e7e987d`（0 新提交），本地 `main @ d6602a1` 领先 2 个 2026-11-22 `.agent/` 规划提交；`git pull --rebase` 因工作区未暂存改动退出 128（rebase 本为无操作，按 D78=A 不 stash/不还原）。无 `.agent/DIARY/2026-11-23.md`，已用 `git log` / `gh issue list` / `gh run list` / `STATE.md` / `HANDOFF.md` 反推确认 2026-11-22 23:39 规划后无 Executor 执行产出（0 单 `in-review` / 0 单 `in-progress`）；夜间 `QA 场景巡检` `#45084927394`（2026-11-23 07:45+08:00）`success`；无 `.agent/LOCK` 残留。
+- **工作区 IDE 自动保存再复发实证（沿用 D78=A，不重复提问）**：核查 `stat` 与 `git diff` 发现 2026-11-23 `11:12:31` 再次触发编辑器旧缓冲区自动保存，新增 7 份脏改动（`newton-tube.ts`、`orbital.ts`、`newton-tube.test.ts`、`orbitalRig.ts`、`chapter2Scenes.ts`、`rigs-build.test.ts`、`scene-rig-physics.test.ts`——后者再次被旧缓冲区删去 61 行 `#177` 回归测试，HEAD 代码完好），连同昨夜 2 份 `.ts` 与 4 处 Node `24→26` 共 13 处未暂存改动。按已确认 D78=A 严格不触碰且不用 `--no-verify`，汇报中提供精确 `git restore` 命令供用户清理并推送。
+- **M11 Wave 3 4.2 预审补齐（契约 6.1 低风险技术定型，维持 `priority:P2` 暂不入队）**：
+  - **#187（AM 调制采样混叠）**：定型 `wave_t` 短时高采样细节（`4/fc`, `N=800`, `fs=200·fc`）与 `envelope_t` 长时 3 周期双策略（`fc/fm <= 66` 预算内真采样 `fs>=10·fc`；高 `fc/fm` 切换抗混叠 Peak-Detect 峰谷包络、总点数 `<=1600`），同步修复 `emWaveRig.ts:138` 漏读 `carrierFreq` 恒显 `100.0 MHz` 问题并保留 2D `#20` 原理示意契约。
+  - **#188（光栅角色散与缺级判据）**：定型 `dispersionRadPerNm` 修正为 `*1e-9` 并同时导出 `dispersionMradPerNm` 防 `toFixed(3)` 精度丢失（`λ>=d` 置标志不伪造有限值），缺级收敛至可见级次并移除 `d/a > 5` 误告警，2D 改消费真实 `asin(λ/d)` 取代小角近似；明确不触碰 `waveOpticsRig.ts`（留给 M12 `#202`）。
+- **队列与一致性**：全仓 25 开放单逐项通过 4.1 检查；今日队列维持 M11 Wave 2 4 单（`#179/#180/#181/#182`，全 `priority:P1` + `ready-for-agent`）；同步修正本文件顶部滞后的 2026-11-19 摘要栏；整体重写 `TASKS.md` 与 GitHub Issues 对齐。
+
 ---
 
-## 待用户确认（pending 索引，2026-11-22·续）
+## 待用户确认（pending 索引，2026-11-23）
 
-- **无 pending。**（D78=A 已于 2026-11-22 同日获用户确认转正；D74=A / D75=A / D68=A / D69=A / D70=A / D71=A / D72=A 与 D44=B 维持。）
+- **无 pending。**（D78=A / D74=A / D75=A / D68=A / D69=A / D70=A / D71=A / D72=A 与 D44=B 维持。）

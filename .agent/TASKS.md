@@ -1,29 +1,22 @@
 # TASKS（GitHub Issue 本地镜像）
 
-> Planner 整体重写 · 2026-11-22 · D77–D78·续（pending 清零）。GitHub Issues（25 开放单）为唯一权威；Executor 先改 Issue，再同步本文件状态。
-> 基线：`main @ e7e987d`（与 `origin/main` 同步；本轮规划追加 1 个 `.agent/` 提交），测试真值 **3260 = physics-core 1224 + visualization 2036**，`npm run selfcheck` 11/11 PASS，远端 CI `45037307092` / Deploy `45037587458` / QA `44962261661` 全绿；未见 `.agent/LOCK` 残留。
-> 标签约定：`ready-for-agent` 仅挂于今日队列 4 单（`#179/#180/#181/#182`）；`priority:P1` 严格收敛为今日队列 4 单；`needs-triage` / `in-review` / `in-progress` / `needs-info` 均已清零。
+> Planner 整体重写 · 2026-11-23 · D77–D79（pending 清零）。GitHub Issues（25 开放单）为唯一权威；Executor 先改 Issue，再同步本文件状态。
+> 基线：本地 `main @ d6602a1`（领先 `origin/main @ e7e987d` 2 个 2026-11-22 `.agent/` 规划提交，本轮再增 1 个 `.agent/` 提交；远端 0 新提交），测试真值 **3260 = physics-core 1224 + visualization 2036**，远端 CI `45037307092` / Deploy `45037587458` / 夜间 QA `45084927394`（2026-11-23 07:45+08:00）全绿；未见 `.agent/LOCK` 残留。
+> 标签约定：`ready-for-agent` 仅挂于今日队列 4 单（`#179/#180/#181/#182`）；`priority:P1` 严格收敛为今日队列 4 单；`needs-triage` / `in-review` / `in-progress` / `needs-info` 均保持清零。
 
-## 本轮验收与治理摘要（2026-11-22）
+## 本轮验收与治理摘要（2026-11-23）
 
-- **昨日现场核查**：已读 `.agent/DIARY/2026-11-22.md`（四段实录：M10 Wave 2 + 脏文件清理推送 + 晚间空队列巡检 + M11 首批 5 单）及 `STATE.md` / `HANDOFF.md` / `ENV.md`，Executor 集中验收、刷新 M11 队列及工作区 Node `24→26` / IDE 自动保存信号已全部回应。
-- **M10 Wave 2 独立验收（3 / 3 全部通过 → CLOSED，M10 达成 8 / 8 正式收官并关闭 Milestone 4）**：
-  - **#174**（`3e9f3cc` / `84ac72a`）：新增专用 `NewtonTubeModel`（登记 `MODEL_CHART_KEYS`），双体契约 `y=H→0` 真空同落/空气线性阻力恒不领先，2D/3D 全面消费 `getFrame`；独立复跑 `newton-tube.test.ts` (7/7)、`gapScenes.integration`、`scene-rig-physics`、`rigs-build`、`typed-charts` (2/2) + `selfcheck` 11/11 + 远端 CI/Deploy 全绿 → **通过并关闭**（[验收 comment](https://github.com/zhangjszs/physical-modelvis/issues/174#issuecomment-7081286440)）。
-  - **#175**（`2caf0ff` / `1c80197`）：`orbital.ts` 消费 `centralRadius` 首次触地 80 次二分插值截断、`flags.impacted`、`触地碰撞` 关键帧，2D/3D 触地改绘截断轨迹；独立复跑 `orbital.test.ts` (14/14)、`scene-rig-physics`、`three-scene-fixes` (12/12)、`single-source-contract` + `selfcheck` 11/11 + 远端 CI/Deploy 全绿 → **通过并关闭**（[验收 comment](https://github.com/zhangjszs/physical-modelvis/issues/175#issuecomment-7081287743)）。
-  - **#177**（`55df189` / `8583206`）：`newton-third-law.ts` 自由双体内力运动总动量守恒、负内力相向接触停于质心不穿透，2D/3D 同源并清除「共同加速」误述；独立复跑 `newton-third-law.test.ts` (12/12)、`scene-rig-physics` + `selfcheck` 11/11 + 远端 CI/Deploy 全绿 → **通过并关闭**（[验收 comment](https://github.com/zhangjszs/physical-modelvis/issues/177#issuecomment-7081289092)）。
-- **M11 首批独立验收（5 / 5 全部通过 → CLOSED，M11 进度 0 / 13 → 5 / 13）**：
-  - **#170**（`5636563` / `d057d07`）：轴向有符号投影与帧内插值速度同源；独立复跑 `spring.test.ts` (15/15) + `selfcheck` 11/11 + 远端 CI/Deploy 全绿 → **通过并关闭**（[验收 comment](https://github.com/zhangjszs/physical-modelvis/issues/170#issuecomment-7081288919)）。
-  - **#176**（`234f8c5` / `1001a1c`）：卡文迪什/微小形变统一 `D·tan(2θ) ≈ 2Dθ` 与 2D/3D `maxValues` 单一真源；独立复跑 `cavendish.test.ts` (15/15)、`micro-deformation.test.ts` (15/15)、`optical-lever-single-source.test.ts` (2/2) + `selfcheck` 11/11 + 远端 CI/Deploy 全绿 → **通过并关闭**（[验收 comment](https://github.com/zhangjszs/physical-modelvis/issues/176#issuecomment-7081290227)）。
-  - **#178**（`42d3e7f` / `0039b51`）：外切摩擦轮 `direction=-1`、`ω₂=-(r₁/r₂)ω₁` 切点速度矢量严格相等与 2D/3D 对齐；独立复跑 `transmission-belt.test.ts` (17/17)、`transmission-belt-direction.test.ts` (2/2) + `selfcheck` 11/11 + 远端 CI/Deploy 全绿 → **通过并关闭**（[验收 comment](https://github.com/zhangjszs/physical-modelvis/issues/178#issuecomment-7081292922)）。
-  - **#183**（`e644942` / `c2294ea`）：按 Planner 定型保留 `min=0` 空白态，消除 `0/0=NaN` 并同步 2D/3D 空白态文案；独立复跑 `liquid-mixing.test.ts` (5/5)、`liquid-mixing-empty.test.ts`、`single-source-contract` + `selfcheck` 11/11 + 远端 CI/Deploy 全绿 → **通过并关闭**（[验收 comment](https://github.com/zhangjszs/physical-modelvis/issues/183#issuecomment-7081294186)）。
-  - **#184**（`80bd329` / `5b525f8`）：按当前模式输出主曲线与终态 `t=tMax`、`T(tMax)`，明示 `T_env` 渐近，修正辐射 O(N) 子步与 2D/3D 同源；独立复跑 `heat-transfer.test.ts` (5/5)、`heat-transfer-consistency.test.ts`、`trajectory-semantics.test.ts`、`count:check` (3260) + `selfcheck` 11/11 + 远端 CI/Deploy 全绿 → **通过并关闭**（[验收 comment](https://github.com/zhangjszs/physical-modelvis/issues/184#issuecomment-7081295379)）。
-- **队列治理与排程**：
-  - M11 Wave 2（电磁+光学 4 单：`#179/#180/#181/#182`）逐单完成 4.2 Ready 门禁定型并升为 `priority:P1` + `ready-for-agent`；其余 M11 Wave 3 4 单（`#185/#186/#187/#188`）与 M12 12 单维持 `priority:P2`。
-  - 用户同日答复「按照推荐的来」→ **D78=A 已确认转正**（由用户自决 4 处 Node `24→26` 并手动 `git restore` 两处 IDE 脏改动后 `git push`，Agent 严格不触碰且不用 `--no-verify`），**pending 清零**。
+- **昨日现场核查**：无 `.agent/DIARY/2026-11-23.md`；已结合 `git log`、`gh issue list`、`gh run list`、`.agent/DIARY/2026-11-22.md` 及 `STATE.md` / `HANDOFF.md` / `ENV.md` 反推核实：**2026-11-22 23:39 规划收口（`d6602a1`）之后至 2026-11-23 22:30 无 Executor 执行产出**，0 单 `in-review` 待验收，0 单 `in-progress`；昨日 Executor 信号已于 `e219ee4` 全部回应。
+- **远端健康核查**：2026-11-23 07:45+08:00 自动触发的夜间 `QA 场景巡检` `#45084927394`（`origin/main @ e7e987d`）`success`。
+- **工作区脏文件新复发告警（沿用 D78=A，严禁触碰）**：`git pull --rebase` 因既有未暂存改动退出 128（`origin/main` 无新提交，rebase 本为无操作）。核查发现 2026-11-23 `11:12:31` 再次爆发 IDE 旧缓冲区自动保存，使未暂存改动从 6 处增至 **13 处**（4 处 Node `24→26` + 昨夜 2 处 `.ts` + 今晨新复发 7 处 `.ts`，其中 `visualization/tests/rendering/scene-rig-physics.test.ts` 再次被删去 61 行 `#177` 回归测试；HEAD 中代码完好）。继续严格执行 D78=A 不触碰、不 `--no-verify`，在汇报中给出精确清理命令。
+- **前瞻队列治理（4.1 逐项过 + M11 Wave 3 全量预审）**：
+  - 全仓 25 开放单逐项过 4.1 清单：无重复单、无 `ready` 质量回落、无方向冲突、无 `auto-discovered` 待定级、无缺失优先级、无超时 `in-progress`、无长期饥饿 P3/P4（`#167` 仅历 M10 1 个里程碑，未满 2 个）。
+  - 今日新完成 **#187（AM 调制抗混叠双尺度采样）** 与 **#188（光栅角色散 `1e-9` + 真实缺级判据）** 源码核查并写入 Planner 4.2 预审评论，至此 **M11 Wave 3 全部 4 单（`#185/#186/#187/#188`）已完成源码预审**（暂维持 `priority:P2` 待 Wave 2 清零后入队，保持 `priority:P1` 仅 4 单）。
+  - 修正 `DECISIONS.md` 顶部滞后的 `2026-11-19` 摘要栏使其与事实一致；pending 维持 **0 项**。
 
 ---
 
-## 今日队列（2026-11-22，共 4 项 · 全部属 M11 Wave 2 · `ready-for-agent`）
+## 今日队列（2026-11-23，共 4 项 · 全部属 M11 Wave 2 · `ready-for-agent`）
 
 ### 1. #179 · 光控开关阈值失效与 `L=0` NaN 修复（D69=A）
 
@@ -55,16 +48,16 @@
 
 ---
 
-## M11 剩余待排队列（Wave 3 · 4 单 · `open · priority:P2`）
+## M11 剩余待排队列（Wave 3 · 4 单 · `open · priority:P2` · 全量 4.2 预审已齐）
 
-> [Milestone 5](https://github.com/zhangjszs/physical-modelvis/milestone/5)（进度 5 / 13：已关 5 单 + 今日队列 4 单 + 下表 4 单待 Wave 2 推进后过 4.2 门禁入队）。
+> [Milestone 5](https://github.com/zhangjszs/physical-modelvis/milestone/5)（进度 5 / 13：已关 5 单 + 今日队列 4 单 + 下表 4 单均已完成 Planner 源码 4.2 预审，待 Wave 2 推进后转 `ready-for-agent`）。
 
 | Issue | 标题 | 标签 | 备注 |
 | --- | --- | --- | --- |
 | [#185](https://github.com/zhangjszs/physical-modelvis/issues/185) | β 射线负电荷半径归零修复 | `priority:P2`, `type:bug`, `area:engine`, `area:render` | Planner 4.2 预审已补：相对论动量 + `+x` 反向偏转 + 3D 消费引擎 |
 | [#186](https://github.com/zhangjszs/physical-modelvis/issues/186) | 衰变统计试验次数 `nTrials` 生效 | `priority:P2`, `type:bug`, `area:engine`, `area:render` | Planner 4.2 预审已补：`nTrials` 控真实样本总数 + 大 λ 稳定抽样 |
-| [#188](https://github.com/zhangjszs/physical-modelvis/issues/188) | 光栅角色散 `rad/nm` 差 1000 倍与缺级判据 | `priority:P2`, `type:bug`, `area:engine`, `area:render` | 乘数 `1e-9` + 真实 `missingOrders`（先于 M12 `#202`） |
-| [#187](https://github.com/zhangjszs/physical-modelvis/issues/187) | AM 调制采样低于 Nyquist 导致混叠 | `priority:P2`, `type:bug`, `area:engine`, `area:render` | 短时载波细节 vs 长时包络抗混叠策略 |
+| [#188](https://github.com/zhangjszs/physical-modelvis/issues/188) | 光栅角色散 `rad/nm` 差 1000 倍与缺级判据 | `priority:P2`, `type:bug`, `area:engine`, `area:render` | Planner 4.2 预审已补（2026-11-23）：`1e-9` + `mrad/nm` + 可见级次真实 `missingOrders` + 2D `asin`（不动 `waveOpticsRig` `#202`） |
+| [#187](https://github.com/zhangjszs/physical-modelvis/issues/187) | AM 调制采样低于 Nyquist 导致混叠 | `priority:P2`, `type:bug`, `area:engine`, `area:render` | Planner 4.2 预审已补（2026-11-23）：短时 `wave_t` + 长时 `envelope_t` 双策略（高 `fc/fm` 抗混叠峰谷包络）+ 3D `emWaveRig` 读 `carrierFreq` |
 
 ---
 
@@ -94,5 +87,5 @@
 - **#191** · `[P2] 实现组合实验台「可控放置」交互改造（#166 P1 期：B-1~B-9）`：**blocked** · `priority:P2` · `type:feature` · `area:render`。按 **D72=A / D75=A** 排于 M11/M12 清零后启动。
 - **#171** · `[P1][Sandbox M0] 固定平抛实验作为可编辑的沙盒预设装配`：**blocked** · `priority:P2` · `type:feature` · `area:engine, area:render`。按 D72=A 排于 #191 收口后由 Planner 出 Phase A RFC 再转 ready。
 - **#189** · `[P2][UI/UX Redesign] PHYSVIS // WORLD ENGINE 改版`：**blocked** · `priority:P2` · `type:feature` · `area:render`。按 D72=A 顺位后置，合并前需 owner 人工预览认可。
-- **#167** · `CI「安装 Playwright Chromium」遇 runner DNS 抖动加固`：`open` · `priority:P3` · `type:chore` · `area:ci`。D71=A 已授权 1.10 局部范围（仅给 `ci.yml`/`qa-sweep.yml` 安装步加 3 次退避重试），后置排期（M10 刚关闭，未满 2 个 Milestone）。
+- **#167** · `CI「安装 Playwright Chromium」遇 runner DNS 抖动加固`：`open` · `priority:P3` · `type:chore` · `area:ci`。D71=A 已授权 1.10 局部范围（仅给 `ci.yml`/`qa-sweep.yml` 安装步加 3 次退避重试），后置排期（仅历 M10 1 个 Milestone，未满 2 个）。
 - **#44** · `[P2] 暂缓 React 19 迁移`：**blocked + parked** · `priority:P2` · `type:chore` · `area:ci`。D44=B 冻结维持，勿动。
