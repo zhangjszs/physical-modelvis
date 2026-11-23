@@ -182,22 +182,44 @@ export function drawElectroscopeScene(opts: ElectromagnetismSceneOptions): void 
 }
 
 export function drawElectrostaticInductionScene(opts: ElectromagnetismSceneOptions): void {
-    const { ctx, width, height, isDark, params } = opts;
+    const { ctx, width, height, isDark, params, simulationResult } = opts;
     clearScene(ctx, width, height, isDark);
     drawTitle(ctx, '静电感应 (近/远端感应电荷)', width, isDark, { size: 18, y: 28 });
     const chargeC = params['chargeC'] ?? 1;
     const separation = params['separation'] ?? 2;
     const distanceAC = params['distanceAC'] ?? 10;
-    const cSign = chargeC >= 0 ? 1 : -1;
-    // 感应强度随电荷量增大、随距离平方减小（定性）
-    const induced = clamp((Math.abs(chargeC) / 100) * (10 / Math.max(distanceAC, 0.5)), 0.1, 1);
 
-    const conductorY = height * 0.5;
+    // 优先消费引擎单一真源 (#180: q_near + q_far = 0 硬守恒与有界箔片张角 θ)
+    const engMax = simulationResult?.diagnostics?.maxValues as
+        | {
+              qNear_uC?: number;
+              qFar_uC?: number;
+              qNear?: number;
+              qFar?: number;
+              theta_deg?: number;
+              inductionRatio?: number;
+              netCharge_uC?: number;
+          }
+        | undefined;
+    const dEffFallback = Math.max(0, distanceAC) + 0.5 * Math.max(0, separation);
+    const etaFallback = 100 / (100 + dEffFallback * dEffFallback);
+    const qSign = chargeC === 0 ? 0 : Math.sign(chargeC);
+    const qNearFallback = qSign === 0 ? 0 : -qSign * Math.abs(chargeC) * etaFallback;
+    const qFarFallback = qNearFallback === 0 ? 0 : -qNearFallback;
+
+    const eta = engMax?.inductionRatio ?? etaFallback;
+    const qNearUc = engMax?.qNear_uC ?? engMax?.qNear ?? qNearFallback;
+    const qFarUc = engMax?.qFar_uC ?? engMax?.qFar ?? qFarFallback;
+    const netChargeUc = engMax?.netCharge_uC ?? qNearUc + qFarUc;
+    const thetaDeg = engMax?.theta_deg ?? (180 / Math.PI) * Math.atan(1.2 * Math.abs(qNearUc));
+    const thetaRad = (clamp(thetaDeg, 0, 89) * Math.PI) / 180;
+
+    const conductorY = height * 0.46;
     const aLeft = width * 0.42;
     const gap = clamp(separation * 2, 6, 60);
-    const aRight = aLeft + 70;
+    const aRight = aLeft + 74;
     const bLeft = aRight + gap;
-    const bRight = bLeft + 70;
+    const bRight = bLeft + 74;
     const conductorH = 46;
     // 导体 A、B
     ctx.fillStyle = isDark ? '#1e293b' : '#e2e8f0';
@@ -212,35 +234,60 @@ export function drawElectrostaticInductionScene(opts: ElectromagnetismSceneOptio
         ctx.stroke();
     }
     // 外部带电体 C
-    const cX = aLeft - Math.max(distanceAC * 1.6, 40);
-    drawChargeSymbol(ctx, cX, conductorY, 20, cSign, isDark);
-    // 感应电荷标注：A 近端(左)与 C 异种，A 远端(右)同种；B 近端(左)同种
-    const aNearSign = -cSign;
-    const aFarSign = cSign;
-    const bNearSign = cSign;
-    const sym = (s: number) => (s > 0 ? '+' : '−');
-    const col = (s: number) => (s > 0 ? RED : BLUE);
+    const cX = aLeft - Math.max(Math.min(distanceAC * 1.8, width * 0.25), 44);
+    drawChargeSymbol(ctx, cX, conductorY, 20, qSign, isDark);
+
+    const sym = (v: number) => (v > 1e-9 ? '+' : v < -1e-9 ? '−' : '0');
+    const col = (v: number) => (v > 1e-9 ? RED : v < -1e-9 ? BLUE : mutedColor(isDark));
+    const fmtSigned = (v: number) => `${v > 1e-9 ? '+' : ''}${v.toFixed(3)} μC`;
+
+    // 感应电荷标注：孤立导体近端异号 q_near，远端等量同号 q_far (q_near + q_far = 0)
     ctx.font = 'bold 18px system-ui, sans-serif';
-    ctx.fillStyle = col(aNearSign);
-    ctx.fillText(sym(aNearSign), aLeft + 10, conductorY - conductorH / 2 - 8);
-    ctx.fillStyle = col(aFarSign);
-    ctx.fillText(sym(aFarSign), aRight - 18, conductorY - conductorH / 2 - 8);
-    ctx.fillStyle = col(bNearSign);
-    ctx.fillText(sym(bNearSign), bLeft + 10, conductorY - conductorH / 2 - 8);
-    // 电场线：C → A 近端
-    ctx.strokeStyle = mutedColor(isDark);
-    ctx.lineWidth = 1.5;
-    for (let i = -1; i <= 1; i++) {
-        ctx.beginPath();
-        ctx.moveTo(cX + 20, conductorY + i * 10);
-        ctx.lineTo(aLeft - 2, conductorY + i * 10);
-        ctx.stroke();
+    ctx.fillStyle = col(qNearUc);
+    ctx.fillText(sym(qNearUc), aLeft + 10, conductorY - conductorH / 2 - 8);
+    ctx.fillStyle = col(qFarUc);
+    ctx.fillText(sym(qFarUc), bRight - 20, conductorY - conductorH / 2 - 8);
+
+    // 导体下方金箔张角示意 (消费引擎 theta_deg)
+    const foilLen = 36;
+    for (const pivotX of [aLeft + 18, bRight - 18]) {
+        const pivotY = conductorY + conductorH / 2;
+        ctx.strokeStyle = ORANGE;
+        ctx.lineWidth = 3;
+        for (const dir of [-1, 1]) {
+            ctx.beginPath();
+            ctx.moveTo(pivotX, pivotY);
+            ctx.lineTo(pivotX + dir * Math.sin(thetaRad) * foilLen, pivotY + Math.cos(thetaRad) * foilLen);
+            ctx.stroke();
+        }
     }
+
+    // 电场线：C → A 近端 (仅在 Q_C != 0 时绘制)
+    if (qSign !== 0) {
+        ctx.strokeStyle = mutedColor(isDark);
+        ctx.lineWidth = 1.5;
+        for (let i = -1; i <= 1; i++) {
+            ctx.beginPath();
+            ctx.moveTo(cX + 20, conductorY + i * 10);
+            ctx.lineTo(aLeft - 2, conductorY + i * 10);
+            ctx.stroke();
+        }
+    }
+
     drawText(
         ctx,
-        `感应强度 ≈ ${(induced * 100).toFixed(0)}%`,
-        width * 0.12,
-        height * 0.8,
+        `近端 q_near = ${fmtSigned(qNearUc)}  |  远端 q_far = ${fmtSigned(qFarUc)}  |  净电荷 = ${netChargeUc.toFixed(3)} μC`,
+        width * 0.1,
+        height * 0.74,
+        isDark,
+        13,
+        textColor(isDark)
+    );
+    drawText(
+        ctx,
+        `感应系数 η = ${(eta * 100).toFixed(1)}%  |  箔片张角 θ = ${thetaDeg.toFixed(1)}°`,
+        width * 0.1,
+        height * 0.81,
         isDark,
         13,
         mutedColor(isDark)
@@ -249,13 +296,20 @@ export function drawElectrostaticInductionScene(opts: ElectromagnetismSceneOptio
         ctx,
         isDark,
         [
-            { label: 'C', value: `${chargeC.toFixed(2)} μC ${cSign > 0 ? '(+)' : '(−)'}` },
-            { label: 'd_AC', value: `${distanceAC.toFixed(1)} cm` },
-            { label: '近端', value: sym(aNearSign) }
+            { label: 'Q_C', value: `${chargeC.toFixed(2)} μC` },
+            { label: 'q_near', value: fmtSigned(qNearUc) },
+            { label: 'q_far', value: fmtSigned(qFarUc) },
+            { label: 'θ', value: `${thetaDeg.toFixed(1)}°` }
         ],
-        { boxW: 214 }
+        { boxW: 230 }
     );
-    drawInfoBar(ctx, width, height, '导体近端感应出异种电荷、远端同种电荷', isDark);
+    drawInfoBar(
+        ctx,
+        width,
+        height,
+        `孤立中性导体电荷守恒：q_near + q_far = ${netChargeUc.toFixed(3)} μC | 张角 θ = ${thetaDeg.toFixed(1)}°`,
+        isDark
+    );
 }
 
 export function drawElectrostaticShieldingScene(opts: ElectromagnetismSceneOptions): void {
