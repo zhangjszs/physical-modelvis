@@ -29,13 +29,41 @@ interface CircuitHandles {
     loadR: number;
     currentI: number;
     voltageU: number;
+    /** 灯泡基准发光强度 (供 onAnimate 做微幅脉冲，避免每帧累乘漂移) */
+    baseEmissiveIntensity: number;
+    /** 光控开关模式下的只读状态快照 (供单测与 2D/3D 同源校验) */
+    lightControlState?: {
+        lightIntensity: number;
+        vB: number;
+        rLdr: number;
+        criticalLux: number;
+        transistorOn: boolean;
+        lightOn: boolean;
+    };
+}
+
+/** 光控开关兜底饱和幂律计算 (仅当外部未传入 SimulationResult 时使用) */
+function fallbackLightControl(params: Record<string, number>) {
+    const L = num(params['lightIntensity'], 0.5);
+    const Rfix = num(params['Rfix'], 10000);
+    const E = num(params['Esupply'], 12);
+    const VbeOn = 0.7;
+    const Rdark = 1e6;
+    const calibRCrit = (10000 * 0.7) / (12 - 0.7);
+    const lKnee = 10 / Math.pow(Rdark / calibRCrit - 1, 1 / 0.7);
+    const rLdr = Rdark / (1 + Math.pow(Math.max(0, L) / lKnee, 0.7));
+    const vB = rLdr + Rfix > 0 ? (E * rLdr) / (rLdr + Rfix) : 0;
+    const rCrit = E > VbeOn ? (Rfix * VbeOn) / (E - VbeOn) : Infinity;
+    const criticalLux = rCrit > 0 && rCrit < Rdark ? lKnee * Math.pow(Rdark / rCrit - 1, 1 / 0.7) : 0;
+    const transistorOn = vB >= VbeOn;
+    return { L, Rfix, E, VbeOn, rLdr, vB, criticalLux, transistorOn, lightOn: transistorOn };
 }
 
 export const circuitRig: SceneRig = {
     worldScale: WORLD_SCALE,
     clampToGround: true,
 
-    buildEquipment(scene, params) {
+    buildEquipment(scene, params, result) {
         const group = new THREE.Group();
 
         // 1. 标准电学实验箱台面 (长 2.8m, 宽 1.6m, 厚 0.08m)
@@ -188,15 +216,75 @@ export const circuitRig: SceneRig = {
             internalR: 1,
             loadR: 10,
             currentI: 1.09,
-            voltageU: 10.91
+            voltageU: 10.91,
+            baseEmissiveIntensity: 0.8
         };
 
-        this.updateEquipment(handles, params);
+        this.updateEquipment(handles, params, result);
         return { group, handles };
     },
 
-    updateEquipment(handles, params) {
+    updateEquipment(handles, params, result) {
         const h = handles as CircuitHandles;
+        const mv = result?.diagnostics?.maxValues as Record<string, number> | undefined;
+        const isLightControl =
+            'lightIntensity' in params || (mv !== undefined && 'lightOnFlag' in mv && 'vB' in mv && 'rLdr' in mv);
+
+        if (isLightControl) {
+            const fb = fallbackLightControl(params);
+            const L = mv?.lightIntensity ?? fb.L;
+            const E = mv?.Esupply ?? fb.E;
+            const Rfix = mv?.Rfix ?? fb.Rfix;
+            const VbeOn = mv?.VbeOn ?? fb.VbeOn;
+            const rLdr = mv?.rLdr ?? fb.rLdr;
+            const vB = mv?.vB ?? fb.vB;
+            const criticalLux = mv?.criticalLux ?? fb.criticalLux;
+            const transistorOn = mv?.transistorOnFlag !== undefined ? mv.transistorOnFlag === 1 : fb.transistorOn;
+            const lightOn = mv?.lightOnFlag !== undefined ? mv.lightOnFlag === 1 : transistorOn;
+
+            h.emf = E;
+            h.loadR = Rfix;
+            h.voltageU = vB;
+            h.currentI = lightOn ? 1 : 0;
+            h.lightControlState = { lightIntensity: L, vB, rLdr, criticalLux, transistorOn, lightOn };
+
+            // 滑头按 log10(Rfix) 映射 (1kΩ ~ 1MΩ)
+            const logFrac = THREE.MathUtils.clamp((Math.log10(Math.max(1000, Rfix)) - 3) / 3, 0, 1);
+            h.sliderMesh.position.x = -0.25 + logFrac * 0.7;
+
+            // 路灯小灯泡与引擎 lightOnFlag 严格同源
+            const glowFactor = lightOn ? 1.6 : 0.0;
+            h.baseEmissiveIntensity = glowFactor;
+            (h.bulbMesh.material as THREE.MeshStandardMaterial).emissiveIntensity = glowFactor;
+            h.bulbGlow.intensity = lightOn ? 6.0 : 0.0;
+
+            const rText = rLdr >= 1e3 ? `${(rLdr / 1e3).toFixed(1)}kΩ` : `${rLdr.toFixed(1)}Ω`;
+            if (h.lcdVoltage) {
+                updateTextSprite(h.lcdVoltage, `V_B ${vB.toFixed(2)} V`, '#38bdf8', 26);
+            }
+            if (h.lcdCurrent) {
+                updateTextSprite(h.lcdCurrent, `L_c ${criticalLux.toFixed(1)} lx`, '#4ade80', 26);
+            }
+            if (h.statusLabel) {
+                updateTextSprite(
+                    h.statusLabel,
+                    `光控开关 | L=${L.toFixed(1)}lx | L_crit=${criticalLux.toFixed(1)}lx | 路灯${lightOn ? '亮' : '灭'}`,
+                    '#0f172a',
+                    22
+                );
+            }
+            if (h.formulaLabel) {
+                updateTextSprite(
+                    h.formulaLabel,
+                    `V_B=${vB.toFixed(2)}V (${transistorOn ? '≥' : '<'}${VbeOn.toFixed(1)}V 三极管${transistorOn ? '导通' : '截止'}) | R_LDR=${rText}`,
+                    '#2563eb',
+                    19
+                );
+            }
+            return;
+        }
+
+        h.lightControlState = undefined;
         const emf = num(params['emf'] ?? params['voltage'] ?? 12, 12); // V
         const r = num(params['internalR'] ?? params['r'] ?? 1.0, 1.0); // Ω
         const R = num(params['loadR'] ?? params['R'] ?? params['resistance'] ?? 10.0, 10.0); // Ω
@@ -220,6 +308,7 @@ export const circuitRig: SceneRig = {
         // 小灯泡亮度 ∝ P = I * U
         const power = I * U;
         const glowFactor = THREE.MathUtils.clamp(power / 30, 0.05, 1.8);
+        h.baseEmissiveIntensity = glowFactor;
         (h.bulbMesh.material as THREE.MeshStandardMaterial).emissiveIntensity = glowFactor;
         h.bulbGlow.intensity = glowFactor * 5.0;
 
@@ -255,9 +344,9 @@ export const circuitRig: SceneRig = {
         if (!h.bulbMesh) return;
 
         const { time } = ctx;
-        // 电流流动微脉冲律动
+        // 电流流动微脉冲律动 (基于基准亮度，熄灯态保持 0)
         const pulse = 1.0 + Math.sin(time * 5) * 0.03;
-        (h.bulbMesh.material as THREE.MeshStandardMaterial).emissiveIntensity *= pulse;
+        (h.bulbMesh.material as THREE.MeshStandardMaterial).emissiveIntensity = h.baseEmissiveIntensity * pulse;
     },
 
     getVisualPosition(pos, _params) {

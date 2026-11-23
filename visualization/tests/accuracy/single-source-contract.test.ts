@@ -596,19 +596,30 @@ describe('L1-migration: 渲染单一真源契约 (orbital / pendulum / vertical-
         expect(mv.tauC_s).toBeCloseTo(tauExpected, 6);
     });
 
-    it('light-control-switch: 引擎幂律 LDR + 分段 24h 曲线 (夜间 0.5lx), 渲染数值必须读引擎', () => {
+    it('light-control-switch: 引擎有界饱和幂律 LDR + 分压唯一真源 + 分段 24h 曲线 (#179)', () => {
         const sc = scene('light-control-switch');
-        // 夜晚 (0.5 lx < 阈值 10) → 灯亮
-        const night = runSceneSimulation(sc, { lightIntensity: 0.5, threshold: 10, Rfix: 10000, Esupply: 12 });
+        // D69=A: 已移除无效 threshold 滑块
+        expect(sc.parameters.some(p => p.name === 'threshold')).toBe(false);
+        // 完全黑暗 (0 lx) 与夜晚 (0.5 lx) → 无 NaN 且灯亮
+        const dark = runSceneSimulation(sc, { lightIntensity: 0, Rfix: 10000, Esupply: 12 });
+        expect(dark.error).toBeNull();
+        const mvDark = dark.result!.diagnostics.maxValues as Record<string, number>;
+        expect(Number.isFinite(mvDark.rLdr)).toBe(true);
+        expect(Number.isFinite(mvDark.vB)).toBe(true);
+        expect(mvDark.rLdr).toBe(1e6);
+        expect(mvDark.lightOnFlag).toBe(1);
+        expect(mvDark.criticalLux).toBeCloseTo(10, 4);
+
+        const night = runSceneSimulation(sc, { lightIntensity: 0.5, Rfix: 10000, Esupply: 12 });
         expect(night.error).toBeNull();
         const mvN = night.result!.diagnostics.maxValues as Record<string, number>;
         expect(mvN.lightOnFlag).toBe(1);
         expect(mvN.transistorOnFlag).toBe(1);
-        // 幂律模型: R = 1e6·L^(-0.7), L=0.5 → ≈1.6MΩ; V_B = 12·R/(R+10k)
-        expect(mvN.rLdr).toBeCloseTo(1e6 * Math.pow(0.5, -0.7), -3);
         expect(mvN.vB).toBeGreaterThan(0.7); // 导通
+        expect(mvN.criticalLux).toBeCloseTo(10, 4);
+
         // 白天 (50000 lx) → 灯灭
-        const day = runSceneSimulation(sc, { lightIntensity: 50000, threshold: 10, Rfix: 10000, Esupply: 12 });
+        const day = runSceneSimulation(sc, { lightIntensity: 50000, Rfix: 10000, Esupply: 12 });
         expect(day.error).toBeNull();
         const mvD = day.result!.diagnostics.maxValues as Record<string, number>;
         expect(mvD.lightOnFlag).toBe(0);
@@ -620,6 +631,8 @@ describe('L1-migration: 渲染单一真源契约 (orbital / pendulum / vertical-
         expect(maxL).toBeGreaterThan(49000); // 正午峰值
         const stateChart = chart['y_t']!.points;
         expect(stateChart[0]!.y).toBe(1); // 夜晚灯亮
+        const noonIdx = light.findIndex(p => Math.abs(p.x - 12) < 0.05);
+        expect(stateChart[noonIdx]!.y).toBe(0); // 正午灯灭
     });
 
     it('moon-earth-test: 引擎 a_月 vs g(R/r)² ≈ g/3600 (误差<5%), 渲染数值必须读 maxValues', () => {

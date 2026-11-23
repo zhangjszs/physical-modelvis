@@ -348,27 +348,42 @@ export function drawLightControlSwitchScene(o: SensorSceneOptions): void {
     clearScene(ctx, w, h, isDark);
 
     const L = params['lightIntensity'] ?? 0.5;
-    const threshold = params['threshold'] ?? 10;
     const Rfix = params['Rfix'] ?? 10000;
     const Esupply = params['Esupply'] ?? 12;
 
-    // 引擎单一真源: x_t = 24h 照度曲线 (h/lux), y_t = 开关状态 (h/0·1), maxValues 数值
+    // 引擎单一真源: x_t = 24h 照度曲线 (h/lux), y_t = 开关状态 (h/0·1), maxValues 数值 (#179)
     const engCharts = simulationResult ? chartsOf(simulationResult, 'light-control-switch') : undefined;
     const engMax = simulationResult?.diagnostics?.maxValues as
-        { rLdr?: number; vB?: number; lightOnFlag?: number; transistorOnFlag?: number } | undefined;
+        | {
+              rLdr?: number;
+              vB?: number;
+              lightOnFlag?: number;
+              transistorOnFlag?: number;
+              criticalLux?: number;
+              VbeOn?: number;
+          }
+        | undefined;
     // currentTime 模拟小时 (场景 duration 单位 = h)
     const tHours = ((currentTime % 24) + 24) % 24;
-    // 当前时刻照度 (lx): 引擎 24h 曲线插值; 回退归一化自算
-    const lightNow = engCharts?.x_t ? interpSeries(engCharts.x_t, tHours) : L * 40000;
-    // 回退自算 (无引擎结果时): 原指数近似 + 阈值判定
-    const Rdark2 = 1e6;
-    const k2 = 7;
-    // R_LDR / V_B (引擎幂律模型 R=R_dark·(L/L_ref)^-0.7, LDR 在下分压); 回退原指数自算
-    const Rldr = engMax?.rLdr ?? Rdark2 * Math.exp(-k2 * L);
-    const V_B = engMax?.vB ?? (Esupply * Rldr) / (Rldr + Rfix);
-    // 状态: 引擎判定 (暗→V_B 高→三极管导通→继电器吸合→灯亮); 回退原阈值判定
-    const lampOn = engMax?.lightOnFlag === 1 || (engMax === undefined && lightNow < threshold);
-    const transistorOn = engMax?.transistorOnFlag === 1 || (engMax === undefined && !lampOn);
+    // 24h 曲线当前时刻照度 (lx)
+    const lightNow = engCharts?.x_t ? interpSeries(engCharts.x_t, tHours) : L;
+    // 无引擎结果时使用同源有界饱和幂律兜底
+    const RdarkFallback = 1e6;
+    const vbeOn = engMax?.VbeOn ?? 0.7;
+    const calibRCrit = (10000 * 0.7) / (12 - 0.7);
+    const lKneeFallback = 10 / Math.pow(RdarkFallback / calibRCrit - 1, 1 / 0.7);
+    const rLdrFallback = RdarkFallback / (1 + Math.pow(Math.max(0, L) / lKneeFallback, 0.7));
+    const Rldr = engMax?.rLdr ?? rLdrFallback;
+    const V_B = engMax?.vB ?? (Rldr + Rfix > 0 ? (Esupply * Rldr) / (Rldr + Rfix) : 0);
+    const fallbackRCrit = Esupply > vbeOn ? (Rfix * vbeOn) / (Esupply - vbeOn) : Infinity;
+    const criticalLuxFallback =
+        fallbackRCrit > 0 && fallbackRCrit < RdarkFallback
+            ? lKneeFallback * Math.pow(RdarkFallback / fallbackRCrit - 1, 1 / 0.7)
+            : 0;
+    const criticalLux = engMax?.criticalLux ?? criticalLuxFallback;
+    // 状态: 唯一分压真源 V_B >= VbeOn (暗→V_B 高→三极管导通→继电器吸合→灯亮)
+    const transistorOn = engMax?.transistorOnFlag !== undefined ? engMax.transistorOnFlag === 1 : V_B >= vbeOn;
+    const lampOn = engMax?.lightOnFlag !== undefined ? engMax.lightOnFlag === 1 : transistorOn;
 
     drawTitle(ctx, '光控开关 (路灯自动控制)', w, isDark, { size: 18, y: 28 });
 
@@ -513,7 +528,7 @@ export function drawLightControlSwitchScene(o: SensorSceneOptions): void {
     ctx.font = 'bold 10px sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(transistorOn ? 'NPN 导通' : 'NPN 截止', trX + 30, trY + 46);
-    ctx.fillText(`V_cc ${transistorOn ? '≥' : '<'} V_be`, trX + 30, trY + 58);
+    ctx.fillText(`V_B ${transistorOn ? '≥' : '<'} V_be`, trX + 30, trY + 58);
 
     // --- 路灯 ---
     const lampX2 = w * 0.06;
@@ -608,12 +623,12 @@ export function drawLightControlSwitchScene(o: SensorSceneOptions): void {
         fillUnder: 'rgba(251,191,36,0.1)'
     });
 
-    // 阈值线
+    // 等效临界照度线 L_crit (只读电路反解值)
     const thrY2 =
         chartY2 +
         chartH2 -
-        ((Math.log10(Math.max(0.5, threshold)) - Math.log10(0.5)) / (Math.log10(40000) - Math.log10(0.5))) * chartH2;
-    if (thrY2 >= chartY2 && thrY2 <= chartY2 + chartH2) {
+        ((Math.log10(Math.max(0.5, criticalLux)) - Math.log10(0.5)) / (Math.log10(50000) - Math.log10(0.5))) * chartH2;
+    if (criticalLux > 0 && thrY2 >= chartY2 && thrY2 <= chartY2 + chartH2) {
         ctx.strokeStyle = '#ef4444';
         ctx.lineWidth = 1;
         ctx.setLineDash([4, 3]);
@@ -625,7 +640,7 @@ export function drawLightControlSwitchScene(o: SensorSceneOptions): void {
         ctx.fillStyle = '#ef4444';
         ctx.font = '9px sans-serif';
         ctx.textAlign = 'right';
-        ctx.fillText(`阈值=${threshold}lx`, chartX2 + chartW2 - 4, thrY2 - 2);
+        ctx.fillText(`L_crit=${criticalLux.toFixed(1)}lx`, chartX2 + chartW2 - 4, thrY2 - 2);
     }
 
     // 当前时刻点 (引擎 24h 曲线插值)
@@ -633,7 +648,7 @@ export function drawLightControlSwitchScene(o: SensorSceneOptions): void {
         const px3 = chartX2 + (tHours / 24) * chartW2;
         const lvl = Math.max(0.5, lightNow);
         const py3 =
-            chartY2 + chartH2 - ((Math.log10(lvl) - Math.log10(0.5)) / (Math.log10(40000) - Math.log10(0.5))) * chartH2;
+            chartY2 + chartH2 - ((Math.log10(lvl) - Math.log10(0.5)) / (Math.log10(50000) - Math.log10(0.5))) * chartH2;
         ctx.fillStyle = '#fff';
         ctx.beginPath();
         ctx.arc(px3, py3, 4, 0, Math.PI * 2);
@@ -678,10 +693,10 @@ export function drawLightControlSwitchScene(o: SensorSceneOptions): void {
     ctx.font = '11px sans-serif';
     ctx.textAlign = 'left';
     const vRows = [
-        `E = ${lightNow.toFixed(2)} lx`,
-        `R_LDR = ${Rldr >= 1e3 ? (Rldr / 1e3).toFixed(1) + ' kΩ' : Rldr.toFixed(0) + ' Ω'}`,
+        `L = ${L.toFixed(2)} lx`,
+        `R_LDR = ${Rldr >= 1e3 ? (Rldr / 1e3).toFixed(1) + ' kΩ' : Rldr.toFixed(1) + ' Ω'}`,
         `V_B = ${V_B.toFixed(3)} V`,
-        `阈值 V_be = 0.7 V`,
+        `L_crit = ${criticalLux.toFixed(1)} lx`,
         `输出 = ${lampOn ? '灯亮' : '灯灭'}`,
         `t = ${tHours.toFixed(1)} h`
     ];
@@ -697,30 +712,37 @@ export function drawLightControlSwitchScene(o: SensorSceneOptions): void {
     ctx.fillStyle = isDark ? '#475569' : '#cbd5e1';
     ctx.fillRect(slidX2, slidY2, slidW2, 6);
     // 对数填充
-    const slidR2 = Math.max(
-        0,
-        Math.min(1, (Math.log10(Math.max(0.5, L)) - Math.log10(0.5)) / (Math.log10(1e5) - Math.log10(0.5)))
-    );
+    const slidR2 =
+        L <= 0
+            ? 0
+            : Math.max(
+                  0,
+                  Math.min(1, (Math.log10(Math.max(0.5, L)) - Math.log10(0.5)) / (Math.log10(1e5) - Math.log10(0.5)))
+              );
     ctx.fillStyle = '#fbbf24';
     ctx.fillRect(slidX2, slidY2, slidR2 * slidW2, 6);
     // 刻度
     ctx.fillStyle = isDark ? '#94a3b8' : '#64748b';
     ctx.font = '9px sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillText('0.5lx', slidX2, slidY2 - 4);
+    ctx.fillText('0 lx', slidX2, slidY2 - 4);
     ctx.textAlign = 'right';
     ctx.fillText('1e5lx', slidX2 + slidW2, slidY2 - 4);
     ctx.textAlign = 'center';
     ctx.fillStyle = isDark ? '#cbd5e1' : '#334155';
     ctx.font = 'bold 11px monospace';
-    ctx.fillText(`照度 E = ${L.toFixed(2)} lx  阈值 = ${threshold} lx`, slidX2 + slidW2 / 2, slidY2 + 22);
+    ctx.fillText(
+        `当前照度 L = ${L.toFixed(2)} lx  等效临界 L_crit = ${criticalLux.toFixed(1)} lx`,
+        slidX2 + slidW2 / 2,
+        slidY2 + 22
+    );
 
     // 公式
     const formY3 = h * 0.86;
     ctx.fillStyle = isDark ? '#cbd5e1' : '#1e293b';
     ctx.font = 'bold 12px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('V_B = E_supp · R_LDR / (R_LDR + R_fix)', w * 0.5 + 60, formY3);
+    ctx.fillText('V_B = E · R_LDR / (R_LDR + R_fix) ≥ V_be (0.7 V)', w * 0.5 + 60, formY3);
     ctx.fillStyle = isDark ? '#94a3b8' : '#475569';
     ctx.font = '11px sans-serif';
     ctx.fillText('LDR: 光照↑ → R↓ → V_B↓ → 三极管截止 → 灯灭', w * 0.5 + 60, formY3 + 16);
@@ -731,12 +753,12 @@ export function drawLightControlSwitchScene(o: SensorSceneOptions): void {
         ctx,
         isDark,
         [
-            { label: 'E', value: `${lightNow.toFixed(2)} lx` },
-            { label: 'R_LDR', value: `${Rldr >= 1e3 ? (Rldr / 1e3).toFixed(1) + ' k' : Rldr.toFixed(0)} Ω` },
+            { label: 'L', value: `${L.toFixed(2)} lx` },
+            { label: 'R_LDR', value: `${Rldr >= 1e3 ? (Rldr / 1e3).toFixed(1) + ' k' : Rldr.toFixed(1)} Ω` },
             { label: 'R_fix', value: `${(Rfix / 1e3).toFixed(0)} kΩ` },
             { label: 'V_B', value: `${V_B.toFixed(3)} V` },
-            { label: '阈值', value: `${threshold} lx` },
-            { label: 't', value: `${currentTime.toFixed(1)} s` }
+            { label: 'L_crit', value: `${criticalLux.toFixed(1)} lx` },
+            { label: '状态', value: lampOn ? '导通/灯亮' : '截止/灯灭' }
         ],
         { boxW: 210, lineH: 16 }
     );
@@ -745,7 +767,7 @@ export function drawLightControlSwitchScene(o: SensorSceneOptions): void {
         ctx,
         w,
         h,
-        `VB=E·RLdr/(RLdr+Rfix)  E=${lightNow.toFixed(0)}lx  Rldr=${Rldr >= 1e3 ? (Rldr / 1e3).toFixed(0) + 'k' : Rldr.toFixed(0)}  VB=${V_B.toFixed(3)}V  阈值=${threshold}lx`,
+        `VB=E·RLdr/(RLdr+Rfix)  L=${L.toFixed(1)}lx  Rldr=${Rldr >= 1e3 ? (Rldr / 1e3).toFixed(1) + 'k' : Rldr.toFixed(1)}Ω  VB=${V_B.toFixed(3)}V  L_crit=${criticalLux.toFixed(1)}lx`,
         isDark,
         { height: 22, yOffset: 34 }
     );
