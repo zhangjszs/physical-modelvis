@@ -25,13 +25,19 @@ interface ElectroscopeHandles {
     charge: number;
     shielded: boolean;
     targetAngle: number;
+    /** 静电感应模式下的只读快照 (供 2D/3D 同源校验) */
+    inductionState?: {
+        qNear_uC: number;
+        qFar_uC: number;
+        thetaDeg: number;
+    };
 }
 
 export const electroscopeRig: SceneRig = {
     worldScale: WORLD_SCALE,
     clampToGround: true,
 
-    buildEquipment(scene, params) {
+    buildEquipment(scene, params, result) {
         const group = new THREE.Group();
 
         // 1. 绝缘实木实验底座 (长 1.8m, 宽 1.0m, 高 0.08m)
@@ -151,12 +157,68 @@ export const electroscopeRig: SceneRig = {
             targetAngle: 0.3
         };
 
-        this.updateEquipment(handles, params);
+        this.updateEquipment(handles, params, result);
         return { group, handles };
     },
 
-    updateEquipment(handles, params) {
+    updateEquipment(handles, params, result) {
         const h = handles as ElectroscopeHandles;
+        const mv = result?.diagnostics?.maxValues as Record<string, number> | undefined;
+        const isInduction =
+            'distanceAC' in params || (mv !== undefined && 'qNear_uC' in mv && 'qFar_uC' in mv && 'theta_deg' in mv);
+
+        if (isInduction) {
+            const chargeC = num(params['chargeC'] ?? mv?.chargeC, 1);
+            const distanceAC = num(params['distanceAC'] ?? mv?.distanceAC_cm, 10);
+            const separation = num(params['separation'] ?? mv?.separation_cm, 2);
+            const dEffFallback = Math.max(0, distanceAC) + 0.5 * Math.max(0, separation);
+            const etaFallback = 100 / (100 + dEffFallback * dEffFallback);
+            const qSign = chargeC === 0 ? 0 : Math.sign(chargeC);
+            const qNearFallback = qSign === 0 ? 0 : -qSign * Math.abs(chargeC) * etaFallback;
+            const qFarFallback = qNearFallback === 0 ? 0 : -qNearFallback;
+
+            const qNearUc = mv?.qNear_uC ?? mv?.qNear ?? qNearFallback;
+            const qFarUc = mv?.qFar_uC ?? mv?.qFar ?? qFarFallback;
+            const thetaDeg = THREE.MathUtils.clamp(
+                mv?.theta_deg ?? (180 / Math.PI) * Math.atan(1.2 * Math.abs(qNearUc)),
+                0,
+                89.9
+            );
+            const angleRad = (thetaDeg * Math.PI) / 180;
+
+            h.charge = chargeC;
+            h.shielded = false;
+            h.faradayCage.visible = false;
+            h.targetAngle = angleRad;
+            h.foilL.rotation.z = angleRad;
+            h.foilR.rotation.z = -angleRad;
+            h.inductionState = { qNear_uC: qNearUc, qFar_uC: qFarUc, thetaDeg };
+
+            // 带电棒随 d_AC 远近移动
+            const rodX = -0.45 - THREE.MathUtils.clamp((distanceAC / 100) * 0.65, 0, 0.65);
+            h.chargedRod.position.x = rodX;
+
+            const fmtSigned = (v: number) => `${v > 1e-9 ? '+' : ''}${v.toFixed(3)}μC`;
+            if (h.statusLabel) {
+                updateTextSprite(
+                    h.statusLabel,
+                    `⚡ 静电感应 (孤立中性导体): q_near=${fmtSigned(qNearUc)} | q_far=${fmtSigned(qFarUc)} (净电荷=0)`,
+                    '#0f172a',
+                    20
+                );
+            }
+            if (h.dataLabel) {
+                updateTextSprite(
+                    h.dataLabel,
+                    `Q_C=${chargeC.toFixed(1)}μC | d_AC=${distanceAC.toFixed(1)}cm | 箔片张角 θ=${thetaDeg.toFixed(1)}°`,
+                    '#2563eb',
+                    19
+                );
+            }
+            return;
+        }
+
+        h.inductionState = undefined;
         const charge = num(params['charge'] ?? params['chargeC'] ?? params['q'], 5); // μC 或相对电荷
         const shielded = (params['shielded'] ?? params['shield'] ?? 0) === 1;
 
@@ -201,16 +263,18 @@ export const electroscopeRig: SceneRig = {
         if (!h.foilL || !h.foilR) return;
 
         const { time } = ctx;
-        if (!h.shielded) {
+        if (!h.shielded && h.targetAngle > 1e-4) {
             // 极轻金箔在空气中的微小微抖律动
             const flutter = Math.sin(time * 8) * 0.015;
             const currentAngle = Math.max(0.02, h.targetAngle + flutter);
             h.foilL.rotation.z = currentAngle;
             h.foilR.rotation.z = -currentAngle;
 
-            // 带电棒微幅接近手抖律动
-            const rodSway = Math.sin(time * 2) * 0.03;
-            h.chargedRod.position.x = -0.75 + rodSway;
+            // 带电棒微幅接近手抖律动 (感应模式保留基于距离的中心位置)
+            if (!h.inductionState) {
+                const rodSway = Math.sin(time * 2) * 0.03;
+                h.chargedRod.position.x = -0.75 + rodSway;
+            }
         } else {
             h.foilL.rotation.z = 0;
             h.foilR.rotation.z = 0;

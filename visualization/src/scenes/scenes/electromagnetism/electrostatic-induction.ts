@@ -11,11 +11,11 @@ export const electrostatic_inductionScene: SceneConfig = {
             label: '带电体 C 电量',
             unit: 'μC',
             value: 1,
-            min: 0.1,
+            min: -100,
             max: 100,
-            step: 0.1,
+            step: 0.5,
             default: 1,
-            description: '外部带电体电量'
+            description: '外部带电体电量 (支持正/负电荷与零电量)'
         },
         {
             name: 'separation',

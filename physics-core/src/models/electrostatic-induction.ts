@@ -3,40 +3,71 @@ import type { SimulationResult, TrajectoryPoint, Keyframe, ChartSeries, Explanat
 import type { ParameterSpec } from '../types/common.js';
 import { PhysicsModelBase } from './base.js';
 
-/** 静电感应教学简化比例系数 (张角 vs) */
-const INDUCTION_K = 1e9; // μC / cm² → 力等效单位换算为力的比例
+/** 导体特征极化尺度 D_scale (cm): 用于计算有界无量纲感应系数 η ∈ (0, 1) */
+const INDUCTION_D_SCALE_CM = 10;
+/** 默认箔片张角饱和灵敏度 k_foil (μC⁻¹): 使默认 Q=1μC, d=10cm, s=2cm 落于 ~28.5° (15°–45°) */
+const DEFAULT_FOIL_K = 1.2;
+
+/**
+ * 计算孤立导体无量纲感应系数 η ∈ (0, 1)
+ *
+ * 物理含义: 带电体 C 越近 (d_AC 越小)、A/B 间隙 s 越小，外电场在导体上引起的电荷分离越强，
+ * 但孤立导体上的分离感应电荷量严格不超过施感电量: |q_near| = |q_far| = |Q_C| · η < |Q_C|。
+ */
+export function computeInductionRatio(distanceAC: number, separation: number): number {
+    const dEff = Math.max(0, distanceAC) + 0.5 * Math.max(0, separation);
+    const scale2 = INDUCTION_D_SCALE_CM * INDUCTION_D_SCALE_CM;
+    return scale2 / (scale2 + dEff * dEff);
+}
+
+/**
+ * 计算有界单调箔片张角 θ (°) ∈ [0°, 90°)
+ *
+ * 采用饱和反正切模型 θ = (180/π) · arctan(k_foil · |q_ind|)，避免线性外推产生上亿度伪数值。
+ */
+export function computeFoilAngleDeg(qMagUc: number, kFoil = DEFAULT_FOIL_K): number {
+    const safeQ = Math.max(0, qMagUc);
+    const safeK = Math.max(0, kFoil);
+    return (180 / Math.PI) * Math.atan(safeK * safeQ);
+}
 
 /**
  * 静电感应模型 — 必修三 第十二章
  *
- * 导体 A 在带电体 C 的电场中发生静电感应:
- *   近端 (右侧, 靠近 C) 感应异号电荷: q_near = −k_ind·Q_C/(d_AC+s)²
- *   远端 (左侧) 感应同号电荷:        q_far  = +k_ind·Q_C/d_AC²
- *   A 整体中性: q_near + q_far = 0 (近似)
- *   箔片张角 θ ∝ |q_near| (近端电荷越大, 斥力越大)
- *
- * 扫描 distanceAC (当 A 远离 C), 给出 q_C vs θ 关系曲线
- * 并给出 A, B, C 静态示意图
+ * 孤立中性导体 A/B 在带电体 C 的电场中发生电荷重分布:
+ *   感应系数: η = D₀² / (D₀² + (d_AC + s/2)²) ∈ (0, 1)
+ *   近端 (靠近 C) 感应异号电荷: q_near = −sgn(Q_C) · |Q_C| · η  (μC)
+ *   远端 (远离 C) 感应同号电荷: q_far  = −q_near                (μC)
+ *   硬守恒不变量: q_near + q_far === 0 (孤立中性导体总净电荷严格守恒)
+ *   近/远端场强衰减比: fieldRatio = (d_AC / (d_AC + s))² (与电荷比分离)
+ *   箔片张角: θ = (180/π) · arctan(k_foil · |q_near|) ∈ [0°, 90°)
  */
 export class ElectrostaticInductionModel extends PhysicsModelBase {
     readonly name = '静电感应';
-    readonly version = '1.0.0';
-    readonly description = '导体近端/远端感应电荷分布, 箔片张角 vs 带电体间距 (静电感应)';
+    readonly version = '1.1.0';
+    readonly description = '孤立中性导体近端/远端等量异号感应电荷分布与有界箔片张角 (静电感应)';
     readonly modelType = 'electrostatic-induction' as const;
     readonly assumptions = [
-        '导体 A/B 为良导体且接地断开 (孤立中性)',
-        '带电体 C 电量不变且距离足够远',
-        '感应电荷大小与 C 到场点的库仑力成正比',
-        '箔片张角与张端电荷成正比 (小角近似)'
+        '导体 A/B 为孤立中性良导体 (未接地)，总感应净电荷严格满足 q_near + q_far = 0',
+        '带电体 C 电量 Q_C 恒定，分离感应电荷量满足 |q_near| = |q_far| = |Q_C|·η ≤ |Q_C|',
+        '无量纲感应系数 η = D₀² / (D₀² + (d_AC + s/2)²) 随距离单调递减且恒小于 1',
+        '箔片张角采用有界单调饱和模型 θ = (180/π)·arctan(k_foil·|q_near|) ∈ [0°, 90°)'
     ];
-    readonly applicableRange = '电荷: 0.01–20 μC; 间距: 1–50 cm';
+    readonly applicableRange = '电荷: −100~100 μC; 间隙: 0.1~30 cm; 间距: 0.5~100 cm';
     readonly errorSources = [
-        '忽略导体 A 的形状 (理想化直棒)',
-        '实际感应电荷分布与 C 的具体几何相关',
-        '箔片张角与张端电荷的关系非线性'
+        '忽略导体实际三维曲率与边缘尖端效应 (理想化直棒)',
+        '实际感应电荷分布与 C 的具体几何形状相关',
+        '箔片转动惯量与空气阻尼未计入稳态张角'
     ];
     readonly requiredParameters: ParameterSpec[] = [
-        { name: 'chargeC', description: '带电体 C 电量 (μC)', unit: 'μC', required: true, min: 0.01, max: 100 },
+        {
+            name: 'chargeC',
+            description: '带电体 C 电量 (μC，支持正/负/零)',
+            unit: 'μC',
+            required: true,
+            min: -100,
+            max: 100
+        },
         { name: 'separation', description: 'A/B 间隙 (cm)', unit: 'cm', required: true, min: 0.1, max: 30 },
         { name: 'distanceAC', description: 'A 左端到 C 的距离 (cm)', unit: 'cm', required: true, min: 0.5, max: 100 }
     ];
@@ -61,31 +92,38 @@ export class ElectrostaticInductionModel extends PhysicsModelBase {
         const chargeC = c.chargeC;
         const separation = c.separation;
         const distanceAC = c.distanceAC;
-        const thetaK = c.thetaK ?? 50;
+        const kFoil = c.thetaK !== undefined ? Math.max(0, c.thetaK) : DEFAULT_FOIL_K;
         const sampleCount = c.sampleCount ?? 30;
 
-        // ===== 基准点计算 (当前 distanceAC) =====
-        const qNearBase = (-INDUCTION_K * chargeC) / ((distanceAC + separation) * (distanceAC + separation));
-        const qFarBase = (INDUCTION_K * chargeC) / (distanceAC * distanceAC);
-        const thetaBase = thetaK * Math.abs(qNearBase);
-        const nearestChargeRatio = qFarBase > 0 ? Math.abs(qNearBase / qFarBase) : 0;
+        // ===== 基准点计算 (当前 distanceAC): 孤立中性导体电荷重分布 =====
+        const etaBase = computeInductionRatio(distanceAC, separation);
+        const qSign = chargeC === 0 ? 0 : Math.sign(chargeC);
+        const qMagBase = Math.abs(chargeC) * etaBase;
+        const qNearBase = qSign === 0 ? 0 : -qSign * qMagBase;
+        const qFarBase = qNearBase === 0 ? 0 : -qNearBase;
+        const netChargeBase = qNearBase + qFarBase;
+        const thetaBase = computeFoilAngleDeg(qMagBase, kFoil);
+        const fieldRatio = Math.pow(distanceAC / (distanceAC + separation), 2);
 
-        // ===== 扫描 distanceAC 生成 q_C vs θ 散点图 =====
+        // ===== 扫描 distanceAC 生成 d_AC vs θ 曲线 =====
         const qC_theta_points: Array<{ x: number; y: number }> = [];
         const trajectory: TrajectoryPoint[] = [];
         const duration = problem.timeConfig.duration;
         const sampleCountTraj = problem.timeConfig.sampleCount ?? sampleCount;
-        const dt = duration / sampleCountTraj;
+        const dt = duration / Math.max(1, sampleCountTraj);
 
-        // distanceAC 范围: distanceAC/2 ~ distanceAC*2
         const minD = Math.max(0.5, distanceAC * 0.5);
         const maxD = distanceAC * 2;
+        let maxNetDeviation = Math.abs(netChargeBase);
 
         for (let i = 0; i <= sampleCount; i++) {
             const d = minD + (maxD - minD) * (i / sampleCount);
-            const qNear = (-INDUCTION_K * chargeC) / ((d + separation) * (d + separation));
-            const qFar = (INDUCTION_K * chargeC) / (d * d);
-            const theta = thetaK * Math.abs(qNear);
+            const eta = computeInductionRatio(d, separation);
+            const qMag = Math.abs(chargeC) * eta;
+            const qNear = qSign === 0 ? 0 : -qSign * qMag;
+            const qFar = qNear === 0 ? 0 : -qNear;
+            maxNetDeviation = Math.max(maxNetDeviation, Math.abs(qNear + qFar));
+            const theta = computeFoilAngleDeg(qMag, kFoil);
             qC_theta_points.push({ x: parseFloat(d.toFixed(2)), y: parseFloat(theta.toFixed(4)) });
             const t = i * dt;
             trajectory.push({
@@ -100,39 +138,34 @@ export class ElectrostaticInductionModel extends PhysicsModelBase {
 
         const qC_theta: ChartSeries = {
             xLabel: '距离 d_AC (cm)',
-            yLabel: '箔片张角 θ (度)',
+            yLabel: '箔片张角 θ (°)',
             xUnit: 'cm',
             yUnit: '°',
             points: qC_theta_points
         };
 
         // ===== 静态示意图 (A/B/C 三导体) =====
-        // C 在右侧 (右上), A 在中间, B 在左侧 (箔片分开)
-        // 近端 (右侧) +q_near, 远端 (左侧) -q_far (比例显示)
         const maxQInd = Math.max(Math.abs(qFarBase), Math.abs(qNearBase));
         const indicatorLen = 50;
+        const nearIndicator = maxQInd > 0 ? -indicatorLen * (qNearBase / maxQInd) : 0;
+        const farIndicator = maxQInd > 0 ? indicatorLen * (qFarBase / maxQInd) : 0;
         const staticDiagram: ChartSeries = {
             xLabel: '导体位置 (相对坐标)',
             yLabel: 'y (px)',
             xUnit: 'px',
             yUnit: 'px',
             points: [
-                // A 导体的左端 (远端) — 标记 q_far
                 { x: 0, y: 0 },
-                // A 导体的右端 (近端) — 标记 q_near
                 { x: 100, y: 0 },
-                // B 导体的右端 (与 A 分隔)
                 { x: 100 + separation * 4, y: 0 },
-                // B 导体的左端
                 { x: 100 + separation * 4 + 100, y: 0 },
-                // 带电体 C (在 A 右侧, 距离 distanceAC)
                 { x: 100 + distanceAC * 4, y: 40 },
-                // 近端感应电荷 + 指示方向
-                { x: 100, y: -indicatorLen * (qNearBase / maxQInd) },
-                // 远端感应电荷 - 指示方向
-                { x: 0, y: indicatorLen * (qFarBase / maxQInd) }
+                { x: 100, y: nearIndicator },
+                { x: 0, y: farIndicator }
             ]
         };
+
+        const fmtSignedUc = (v: number): string => `${v > 0 ? '+' : ''}${v.toFixed(4)} μC`;
 
         const keyframes: Keyframe[] = [
             {
@@ -140,66 +173,67 @@ export class ElectrostaticInductionModel extends PhysicsModelBase {
                 t: 0,
                 position: { x: qNearBase, y: thetaBase },
                 velocity: { x: 0, y: 0 },
-                description: `距离 d=${distanceAC}cm, 近端感应 q_near=${qNearBase.toExponential(3)} (相对单位)`
+                description: `距离 d=${distanceAC}cm, 近端感应 q_near=${fmtSignedUc(qNearBase)} (感应系数 η=${(etaBase * 100).toFixed(1)}%)`
             },
             {
                 label: '基准 (远端)',
                 t: duration / 2,
                 position: { x: qFarBase, y: thetaBase },
                 velocity: { x: 0, y: 0 },
-                description: `距离 d=${distanceAC}cm, 远端感应 q_far=${qFarBase.toExponential(3)} (相对单位)`
+                description: `距离 d=${distanceAC}cm, 远端感应 q_far=${fmtSignedUc(qFarBase)} (满足 q_near + q_far = 0)`
             },
             {
                 label: '当前张角',
                 t: duration,
-                position: { x: thetaBase, y: nearestChargeRatio },
+                position: { x: thetaBase, y: fieldRatio },
                 velocity: { x: 0, y: 0 },
-                description: `箔片张角 θ≈${thetaBase.toFixed(2)}°, 近远端电荷比=${nearestChargeRatio.toFixed(3)}`
+                description: `箔片张角 θ=${thetaBase.toFixed(2)}° (<90°), 近/远端场强衰减比=${fieldRatio.toFixed(3)}`
             }
         ];
 
         const steps: ExplanationStep[] = [
             {
                 order: 1,
-                description: '近端感应电荷 (异号, 靠近 C)',
-                formula: 'q_near = −k_ind·Q_C/(d_AC+s)²',
-                calculation: `q_near = −${INDUCTION_K}×${chargeC}/(${distanceAC}+${separation})² = ${qNearBase.toExponential(3)}`,
-                result: `绝对值: ${Math.abs(qNearBase).toExponential(3)}`
+                description: '有界无量纲感应系数 η ∈ (0, 1)',
+                formula: 'η = D₀² / (D₀² + (d_AC + s/2)²),  D₀ = 10 cm',
+                calculation: `η = 10² / (10² + (${distanceAC} + ${separation}/2)²) = ${etaBase.toFixed(4)}`,
+                result: `感应比例 ${(etaBase * 100).toFixed(1)}% (距离越近感应越强且始终 η < 1)`
             },
             {
                 order: 2,
-                description: '远端感应电荷 (同号, 远离 C)',
-                formula: 'q_far = +k_ind·Q_C/d_AC²',
-                calculation: `q_far = +${INDUCTION_K}×${chargeC}/${distanceAC}² = ${qFarBase.toExponential(3)}`,
-                result: `绝对值: ${qFarBase.toExponential(3)}`
+                description: '近端与远端等量异号感应电荷 (μC)',
+                formula: 'q_near = −sgn(Q_C)·|Q_C|·η,  q_far = −q_near',
+                calculation: `q_near = ${fmtSignedUc(qNearBase)},  q_far = ${fmtSignedUc(qFarBase)}`,
+                result: `|q_near| = |q_far| = ${qMagBase.toFixed(4)} μC ≤ |Q_C| = ${Math.abs(chargeC).toFixed(4)} μC`
             },
             {
                 order: 3,
-                description: 'A 整体电中性 (近似守恒)',
-                formula: 'q_near + q_far = 0 (理想)',
-                calculation: `${qNearBase.toExponential(3)} + ${qFarBase.toExponential(3)} = ${(qNearBase + qFarBase).toExponential(3)}`,
-                result: '近似为零'
+                description: '孤立中性导体总感应净电荷严格守恒',
+                formula: 'q_near + q_far = 0',
+                calculation: `${fmtSignedUc(qNearBase)} + ${fmtSignedUc(qFarBase)} = ${netChargeBase.toFixed(4)} μC`,
+                result: '严格为零 (硬不变量，误差 < 1e-12)'
             },
             {
                 order: 4,
-                description: '箔片张角 ∝ |q_near|',
-                formula: 'θ = θ_k·|q_near|',
-                calculation: `θ = ${thetaK}×|${qNearBase.toExponential(3)}| = ${thetaBase.toFixed(2)}°`,
-                result: '近端电荷越大, 张角越大'
+                description: '箔片有界饱和张角 θ ∈ [0°, 90°)',
+                formula: 'θ = (180/π)·arctan(k_foil·|q_near|)',
+                calculation: `θ = (180/π)·arctan(${kFoil}×${qMagBase.toFixed(4)}) = ${thetaBase.toFixed(2)}°`,
+                result: '感应电荷越大张角越大，且严格受限于 90° 以内'
             },
             {
                 order: 5,
-                description: '距离越远, 近远端电荷比趋近 1',
-                formula: 'ratio = (d_AC+s)²/d_AC²',
-                calculation: `(${distanceAC}+${separation})²/${distanceAC}² = ${nearestChargeRatio.toFixed(3)}`,
-                result: '远 → 趋近 1'
+                description: '近/远端外电场强衰减比 (与电荷比分离)',
+                formula: 'E_far / E_near = (d_AC / (d_AC + s))²',
+                calculation: `(${distanceAC} / (${distanceAC} + ${separation}))² = ${fieldRatio.toFixed(4)}`,
+                result: '距离越远，近远端外场强比越趋近 1 (但孤立导体近远端电荷量始终等量异号)'
             }
         ];
 
         const warnings: string[] = [];
         if (separation <= 0.5) warnings.push('极小间距下简化模型精度有限');
-        if (distanceAC <= 0.5) warnings.push('极小距离 AC 与实际不符 (C 不能再近)');
-        if (thetaBase > 90) warnings.push('张角过大 (>90°), 已超出小角近似范围');
+        if (distanceAC <= 0.5) warnings.push('极小距离 AC 接近接触边界，简化点电荷模型精度有限');
+
+        const chargeTolerance = 1e-12;
 
         return {
             meta: this.makeMeta('analytical'),
@@ -210,37 +244,65 @@ export class ElectrostaticInductionModel extends PhysicsModelBase {
                 'static-diagram': staticDiagram
             },
             diagnostics: {
-                conservedQuantities: [],
+                conservedQuantities: [
+                    {
+                        name: '孤立导体总感应净电荷守恒',
+                        law: '电荷守恒定律 (q_near + q_far = 0)',
+                        initialValue: 0,
+                        finalValue: netChargeBase,
+                        maxDeviation: maxNetDeviation,
+                        tolerance: chargeTolerance,
+                        conserved: maxNetDeviation < chargeTolerance
+                    }
+                ],
                 maxValues: {
                     chargeC,
                     separation_cm: separation,
                     distanceAC_cm: distanceAC,
-                    qNear: Math.abs(qNearBase),
+                    qNear: qNearBase,
                     qFar: qFarBase,
-                    nearestChargeRatio,
+                    qNear_uC: qNearBase,
+                    qFar_uC: qFarBase,
+                    netCharge_uC: netChargeBase,
+                    inductionRatio: etaBase,
+                    fieldRatio,
+                    nearestChargeRatio: fieldRatio,
                     theta_deg: thetaBase
                 },
                 rangeCheck: { withinRange: warnings.length === 0, warnings }
             },
             explanation: {
-                summary: `静电感应: Q_C=${chargeC}μC, d_AC=${distanceAC}cm, s=${separation}cm → q_near=${qNearBase.toExponential(3)}, θ≈${thetaBase.toFixed(1)}°`,
+                summary: `静电感应: Q_C=${chargeC}μC, d_AC=${distanceAC}cm, s=${separation}cm → q_near=${fmtSignedUc(qNearBase)}, q_far=${fmtSignedUc(qFarBase)} (净电荷 0), θ=${thetaBase.toFixed(1)}°`,
                 steps,
                 formulas: [
                     {
-                        name: '近端电荷',
-                        formula: 'q_near = −k_ind·Q_C/(d_AC+s)²',
+                        name: '无量纲感应系数',
+                        formula: 'η = D₀² / (D₀² + (d_AC + s/2)²)',
                         variables: {
-                            k_ind: { value: INDUCTION_K, unit: 'μC/cm²' },
-                            Q_C: { value: chargeC, unit: 'μC' },
-                            d: { value: distanceAC + separation, unit: 'cm' }
+                            D_0: { value: INDUCTION_D_SCALE_CM, unit: 'cm' },
+                            d_AC: { value: distanceAC, unit: 'cm' },
+                            s: { value: separation, unit: 'cm' },
+                            η: { value: parseFloat(etaBase.toFixed(4)), unit: '' }
                         }
                     },
                     {
-                        name: '远端电荷',
-                        formula: 'q_far = +k_ind·Q_C/d_AC²',
-                        variables: { d: { value: distanceAC, unit: 'cm' } }
+                        name: '孤立导体等量异号感应电荷',
+                        formula: 'q_near = −sgn(Q_C)·|Q_C|·η, q_far = −q_near',
+                        variables: {
+                            Q_C: { value: chargeC, unit: 'μC' },
+                            q_near: { value: parseFloat(qNearBase.toFixed(4)), unit: 'μC' },
+                            q_far: { value: parseFloat(qFarBase.toFixed(4)), unit: 'μC' },
+                            q_net: { value: netChargeBase, unit: 'μC' }
+                        }
                     },
-                    { name: '箔片张角', formula: 'θ = θ_k·|q_near|', variables: { θ_k: { value: thetaK, unit: '' } } }
+                    {
+                        name: '箔片饱和张角',
+                        formula: 'θ = (180/π)·arctan(k_foil·|q_near|)',
+                        variables: {
+                            k_foil: { value: kFoil, unit: 'μC⁻¹' },
+                            θ: { value: parseFloat(thetaBase.toFixed(2)), unit: '°' }
+                        }
+                    }
                 ]
             },
             renderHints: [
